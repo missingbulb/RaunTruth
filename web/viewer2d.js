@@ -38,12 +38,29 @@ export function hoverPop(btn, pop, fill) {
 // channel rows
 const HIDEABLE = { ruler: "#ruler-btn", grid: "#grid-btn" };
 
+const make = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+
+// a ruler's length as it reads: d in µm when the unit is "µm", else in pixels
+export function rulerText(d, unit) {
+  return unit === "µm" ? `${d.toFixed(d < 10 ? 2 : d < 100 ? 1 : 0)} µm` : `${d.toFixed(d < 100 ? 1 : 0)} px`;
+}
+// a ruler drawn into svg, in its pixels: the line from a to b ([x, y]) with a tick across each end, the text above
+// its middle clear of the line whatever its slant, and under it the marks under(make) gives
+export function rulerMarks(svg, [x1, y1], [x2, y2], text, under = () => []) {
+  const len = Math.hypot(x2 - x1, y2 - y1), nx = len ? (y1 - y2) / len : 0, ny = len ? (x2 - x1) / len : 1, t = 7;
+  const d = `M${x1},${y1}L${x2},${y2}M${x1 - nx * t},${y1 - ny * t}L${x1 + nx * t},${y1 + ny * t}M${x2 - nx * t},${y2 - ny * t}L${x2 + nx * t},${y2 + ny * t}`;
+  const label = make("text", { "text-anchor": "middle", "dominant-baseline": "central" });
+  label.textContent = text;
+  svg.append(...under(make, len), make("path", { class: "halo", d }), make("path", { class: "mark", d }), label);
+  const { width: w, height: h } = label.getBBox(), s = ny > 0 ? -1 : 1, off = 6 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
+  label.setAttribute("x", (x1 + x2) / 2 + nx * off * s); label.setAttribute("y", (y1 + y2) / 2 + ny * off * s);
+}
+
 export function viewer(shell) {
   const { $, state: st, page } = shell;
   // what an image changes on the page, as it loaded: put back when none is open
   const asBuilt = asLoaded(["#stage", "#minimap .mm-body", "#zoom-label"].map((s) => $(s)));
   let hooks = {}, declared = [], chans = [];
-  const make = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
 
 
@@ -343,36 +360,27 @@ export function viewer(shell) {
   // the ruler: its button arms it, a drag from a point shows the reach around it, and on release the ruler
   // stays between the two points with their distance, in µm when the file gives the pixel's width and height
   // (each axis its own), else in pixels; the button pressed again takes it away. It draws in its own layer,
-  // in screen pixels, so a study redrawing its overlay keeps it.
+  // in screen pixels, so a study redrawing its overlay keeps it. Another view may take the button over (rulerWith).
   const ruler = (() => {
     const btn = $("#ruler-btn"), svg = $("#ruler"), sc = $("#scroller");
-    let armed = false, from = null, to = null, live = false;
+    let armed = false, from = null, to = null, live = false, taken = null;
     function length() {
       const dx = to[0] - from[0], dy = to[1] - from[1];
-      if (st.um && st.umY) { const d = Math.hypot(dx * st.um, dy * st.umY); return `${d.toFixed(d < 10 ? 2 : d < 100 ? 1 : 0)} µm`; }
-      const d = Math.hypot(dx, dy); return `${d.toFixed(d < 100 ? 1 : 0)} px`;
+      return st.um && st.umY ? rulerText(Math.hypot(dx * st.um, dy * st.umY), "µm") : rulerText(Math.hypot(dx, dy), "px");
     }
     function draw() {
       svg.replaceChildren();
       if (!from) return;
       svg.setAttribute("width", st.W * st.zoom); svg.setAttribute("height", st.H * st.zoom);
-      const [x1, y1] = from.map((v) => v * st.zoom), [x2, y2] = to.map((v) => v * st.zoom);
-      const len = Math.hypot(x2 - x1, y2 - y1), nx = len ? (y1 - y2) / len : 0, ny = len ? (x2 - x1) / len : 1, t = 7;
-      const d = `M${x1},${y1}L${x2},${y2}M${x1 - nx * t},${y1 - ny * t}L${x1 + nx * t},${y1 + ny * t}M${x2 - nx * t},${y2 - ny * t}L${x2 + nx * t},${y2 + ny * t}`;
-      const parts = [make("path", { class: "halo", d }), make("path", { class: "mark", d })];
-      if (live) parts.unshift(make("circle", { class: "halo reach", cx: x1, cy: y1, r: len }), make("circle", { class: "mark reach", cx: x1, cy: y1, r: len }));
-      const label = make("text", { "text-anchor": "middle", "dominant-baseline": "central" });
-      label.textContent = length(); parts.push(label);
-      svg.append(...parts);
-      // the length above the middle of the ruler, its box clear of the line whatever the line's slant
-      const { width: w, height: h } = label.getBBox(), s = ny > 0 ? -1 : 1, off = 6 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
-      label.setAttribute("x", (x1 + x2) / 2 + nx * off * s); label.setAttribute("y", (y1 + y2) / 2 + ny * off * s);
+      const a = from.map((v) => v * st.zoom);
+      rulerMarks(svg, a, to.map((v) => v * st.zoom), length(), (mk, r) => live
+        ? [mk("circle", { class: "halo reach", cx: a[0], cy: a[1], r }), mk("circle", { class: "mark reach", cx: a[0], cy: a[1], r })] : []);
     }
     function set(on) {
       armed = on; from = to = null; live = false;
       btn.setAttribute("aria-pressed", on); sc.classList.toggle("measuring", on); draw();
     }
-    btn.onclick = () => set(btn.getAttribute("aria-pressed") !== "true");
+    btn.onclick = () => (taken ? taken() : set(btn.getAttribute("aria-pressed") !== "true"));
     sc.addEventListener("pointerdown", (e) => {
       if (!armed || e.button !== 0 || !st.img || hooks.capturesPointer?.()) return;
       e.preventDefault(); sc.setPointerCapture(e.pointerId);
@@ -388,7 +396,7 @@ export function viewer(shell) {
       draw();
     };
     sc.addEventListener("pointerup", drop); sc.addEventListener("pointercancel", drop);
-    return { draw, reset: () => set(false), get armed() { return armed; } };
+    return { draw, reset: () => set(false), get armed() { return armed; }, take(fn) { set(false); taken = fn; } };
   })();
   // the grid: its button draws it or takes it away; a click or a hover opens the popup of its colour and
   // spacing, in µm when the file gives the pixel's width and height (the cells then square in µm) and in
@@ -478,6 +486,8 @@ export function viewer(shell) {
     // another viewer's rows under the channels' rows, none to take them away, and the zoom buttons taken over by it
     // (fn(factor)) or given back (null)
     rowsAfter(els) { added = els; rows(); }, rowsWith(fn) { withRow = fn; rows(); }, zoomWith(fn) { zoomer = fn; if (!fn && st.img) $("#zoom-label").textContent = Math.round(st.zoom * 100) + "%"; },
+    // the Ruler button taken over by another view (fn() on each press) or given back (null), this view's ruler gone
+    rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
     doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
     draw, setZoom, fit, focus, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
