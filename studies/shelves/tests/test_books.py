@@ -406,7 +406,7 @@ def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkey
     blocker = Missing()
     sys.meta_path.insert(0, blocker)
     try:
-        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves', 'finders', 'r5_edges')]:
+        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves', 'finders', 'r8_precise', 'r5_edges')]:
             monkeypatch.delitem(sys.modules, name)
         Image.fromarray(photo()).save(tmp_path / 'shelf.png')
         s = importlib.import_module('shelves').Session(str(tmp_path / 'shelf.png'))

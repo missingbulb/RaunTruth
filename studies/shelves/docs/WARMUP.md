@@ -12,6 +12,7 @@ study.json            the study's contract with the shell; stage GT
 py/shelves.py         the Python entry: opens the photo (HEIC through pillow-heif), answers view, find and straighten
 py/finders.py         the finder's versions side by side (VERSIONS), each one's find
 py/books.py           R9, the text-guided finder (find), its text finder's view of the photo, and the straightening of four corners
+py/r8_precise.py      R8, the precise finder, kept as it was (2026-11-10); it straightens with books.py
 py/r5_edges.py        R5, the edge-only finder, kept as it was (2026-11-07); it straightens with books.py
 lab/photos.py         the owner's photos from Drive (data/sources.json), and with --gt the ground truth
 lab/grade.py          the finder and the readers scored against a submitted ground truth
@@ -30,8 +31,9 @@ tests/                test_books.py and test_grade.py (fast), test_reading.py an
 ## The pipeline
 
 1. **Find** (`finders.find`, Python, req/shelves/books/find): the version chosen in the shell's list
-   (req/shelves/books/versions), R9 (`books.find`, text-guided) at first, or R5 (`r5_edges.find`, edge-only: no
-   text finder, the perspective check still on). Text-guided: first the page runs PaddleOCR's text finder
+   (req/shelves/books/versions), R9 (`books.find`, text-guided) at first, R8 (`r8_precise.find`, precise: R9 less its
+   gap search, dark-spine waiver, extra runs and levelling) or R5 (`r5_edges.find`, edge-only: no text finder, the
+   perspective check still on). Text-guided: first the page runs PaddleOCR's text finder
    (`reading.textMap`, the `lines` reader's own) over Python's view of the photo (`books.text_view`, long side 1280)
    and hands the finder its map of where text is. Shelves are rows a horizontal edge crosses at least half
    the photo on, each looked at with a margin. Within a shelf, the edges between books are lines found as Osef does
@@ -111,8 +113,8 @@ With Pyodide on both sides the page and the sandbox gave the same text for every
 Each version's precision and recall, as the page lists them, come from scoring it on every ground truth on the page's
 path, once per version: `python3 studies/shelves/lab/finder_metrics.py [VERSION]` (after `photos.py --gt`), into
 `web/finder_metrics.json`. On 2026-11-15, six ground truths, 133 books: R9 0.67 / 0.89 (118 boxed, 175 boxes; tuned on
-five of the photos), R5 0.59 / 0.50 (66, 112; tuned by eye before any ground truth). R7 scored 0.75 / 0.62 and
-differed from R8 on one photo alone, so it was never offered.
+five of the photos), R8 0.77 / 0.74 (98, 127; tuned on three), R5 0.59 / 0.50 (66, 112; tuned by eye before any
+ground truth). R7 scored 0.75 / 0.62 and differed from R8 on one photo alone, so it was never offered.
 
 ## Ground truth
 

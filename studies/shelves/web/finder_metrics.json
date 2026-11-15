@@ -44,6 +44,46 @@
     }
    }
   },
+  "r8": {
+   "precision": 0.772,
+   "recall": 0.737,
+   "note": "98 of them boxed, in 127 boxes; tuned on 3 of these photos",
+   "matched": 98,
+   "truth": 133,
+   "found": 127,
+   "photos": {
+    "16acjVMXOAneRNL6LGaGR5JhiA4i5P8a6": {
+     "matched": 14,
+     "truth": 18,
+     "found": 16
+    },
+    "16w5nW2fggHzTcRKd-yYhahJO9mx-JtKE": {
+     "matched": 5,
+     "truth": 8,
+     "found": 7
+    },
+    "1HyJrL8LIyrQ8d3MferGdyws7jEqceKqG": {
+     "matched": 18,
+     "truth": 19,
+     "found": 21
+    },
+    "1g4iFNYEJsHQbxEOKtfcLlAN-Kg6SVZ2N": {
+     "matched": 11,
+     "truth": 13,
+     "found": 13
+    },
+    "1sdDdHRFAf4RQNUN_QbSxGtSotkLpwoTR": {
+     "matched": 15,
+     "truth": 15,
+     "found": 15
+    },
+    "1zktX1L6VkAxWrNPJSFydTzIbe_7odGHj": {
+     "matched": 35,
+     "truth": 60,
+     "found": 55
+    }
+   }
+  },
   "r5": {
    "precision": 0.589,
    "recall": 0.496,

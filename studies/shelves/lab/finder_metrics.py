@@ -22,7 +22,7 @@ from photos import RAW, photos
 
 OUT = os.path.join(HERE, '..', 'web', 'finder_metrics.json')
 # how far each version's score can be trusted: the photos it was tuned on are among those it is scored on
-TUNED = {'r9': 'tuned on 5 of these photos', 'r5': 'tuned by eye, before any ground truth'}
+TUNED = {'r9': 'tuned on 5 of these photos', 'r8': 'tuned on 3 of these photos', 'r5': 'tuned by eye, before any ground truth'}
 FIND = os.path.join(HERE, '..', 'reading', 'find.mjs')
 
 
