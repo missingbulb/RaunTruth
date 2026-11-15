@@ -210,9 +210,11 @@ export function mount(shell) {
       if (gen !== b.gen) return;
       const r = await ocrNow().read(crop, how, { turn: b.turnSet ? b.turn : null });
       if (gen !== b.gen) return;
-      const typed = b.typed ? b.text : null;
+      const typed = b.typed ? b.text : null, blank = !b.text;
       Object.assign(b, r, { reader: how });
       if (typed !== null) b.text = typed;
+      // an added book's first title, read after it opened, is selected to retype as a found one's is
+      else if (blank && b === cur && b.verdict !== "right") selectFor = b;
       save();
       shell.status("Book read again.");
     } finally { if (gen === b.gen) { b.reading = false; draw(); } }
@@ -307,7 +309,8 @@ export function mount(shell) {
       const box = cur ? item(cur) : missedTools();
       now.querySelector(".task-body").append(box);
       const t = box.querySelector("input");
-      if (t && selectFor === cur) { selectFor = null; requestAnimationFrame(() => { if (t.isConnected) { t.focus({ preventScroll: true }); t.select(); } }); }
+      // kept until a box still on the page takes it: the book may be drawn again before the next frame
+      if (t && selectFor === cur) requestAnimationFrame(() => { if (t.isConnected && selectFor === cur) { selectFor = null; t.focus({ preventScroll: true }); t.select(); } });
       else if (t && typing) { t.focus({ preventScroll: true }); t.setSelectionRange(typing.s, typing.e); }
     }
     shell.tasks.ready(!!(all.length && !open().length && noneMissed));
