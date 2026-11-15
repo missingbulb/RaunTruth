@@ -1,4 +1,4 @@
-"""Each version of the finder scored on every ground truth, on the page's own path (reading/read.mjs: the page's
+"""Each version of the finder scored on every ground truth, on the page's own path (reading/find.mjs: the page's
 Pyodide, and its text finder for a version that reads text), into web/finder_metrics.json, the numbers the shell's
 list of finders shows (req/shell/processing/algorithms). Run once per version, in the change that makes it (the nor-finder pack's
 quality-per-version); the photos and ground truth come first from `python3 studies/shelves/lab/photos.py --gt`.
@@ -22,8 +22,8 @@ from photos import RAW, photos
 
 OUT = os.path.join(HERE, '..', 'web', 'finder_metrics.json')
 # how far each version's score can be trusted: the photos it was tuned on are among those it is scored on
-TUNED = {'r8': 'tuned on 3 of these photos', 'r5': 'tuned by eye, before any ground truth'}
-READ = os.path.join(HERE, '..', 'reading', 'read.mjs')
+TUNED = {'r9': 'tuned on 5 of these photos', 'r5': 'tuned by eye, before any ground truth'}
+FIND = os.path.join(HERE, '..', 'reading', 'find.mjs')
 
 
 def corpus():
@@ -44,7 +44,7 @@ def score(version, pairs):
     with tempfile.TemporaryDirectory() as tmp:
         for photo, g in pairs:
             out = os.path.join(tmp, 'found.json')
-            subprocess.run(['node', READ, photo, f'find:{version}', 'none', out], check=True, stdout=subprocess.DEVNULL)
+            subprocess.run(['node', FIND, photo, out, version], check=True, stdout=subprocess.DEVNULL)
             r = boxes(json.load(open(g)), json.load(open(out))['books'])
             per[os.path.basename(g).split('__')[0]] = {k: r[k] for k in ('matched', 'truth', 'found')}
             for k in tot:

@@ -138,7 +138,7 @@ try {
   // req/shelves/books/versions: the finders offered, the text-guided one first, the edge-only one finding without the
   // text finder
   const listed = await page.$$eval("#algorithm option", (o) => o.map((x) => [x.value, x.textContent]));
-  check(listed.map(([k]) => k).join() === "r8,r5" && listed.every(([, t]) => /\(P\u00a0\.\d+\u00a0·\u00a0R\u00a0\.\d+\)$/.test(t)),
+  check(listed.map(([k]) => k).join() === "r9,r5" && listed.every(([, t]) => /\(P\u00a0\.\d+\u00a0·\u00a0R\u00a0\.\d+\)$/.test(t)),
     "two finders are offered, the text-guided one first, each with its precision and recall", listed);
   await page.click("#processing-box .sec-head h2");
   await page.selectOption("#algorithm", "r5");

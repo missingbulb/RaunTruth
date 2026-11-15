@@ -3,7 +3,7 @@ module, and the books a version finds. Each module's find(rgb, text) takes the t
 (the list's reads_text)."""
 import importlib
 
-VERSIONS = {'r8': 'books', 'r5': 'r5_edges'}
+VERSIONS = {'r9': 'books', 'r5': 'r5_edges'}
 
 
 def find(version, rgb, text=None):

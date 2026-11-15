@@ -39,7 +39,12 @@ read for a title matcher; matching the titles is not part of it.
   photos it removed real books. Set by the owner on 2026-11-10, no box lies over another: of two boxes overlapping,
   one is certainly wrong, and two stacked one over the other that overlap each other alone, by a large share, are one
   book's two halves, boxed as one. A line across the shelf that the edges between books run on across is lettering
-  or a light's edge over the books, not a shelf's board, and cuts no book. Test: `studies/shelves/tests/test_books.py`,
+  or a light's edge over the books, not a shelf's board, and cuts no book. Set by the owner on 2026-11-10, while
+  the study is in its GT stage Find books favours finding every book over boxing nothing wrong: a wrong box costs the
+  tagger one click to drop, a missed book a box drawn by hand. Versions are compared by F2, recall weighted twice
+  precision (Claude's default for the weighting and the stage; not yet confirmed by the owner). Set by the owner on
+  2026-11-10, Find books finds the same books in a photo the camera took turned, in one taken with one side of the
+  shelf nearer than the other, and in one where shade cuts across the books. Test: `studies/shelves/tests/test_books.py`,
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
@@ -53,12 +58,12 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_books.py`, `web-tests/test_image_open.py`.
   </details>
 
-- `req/shelves/books/versions` Find books runs the finder chosen: text-guided (R8), the default, or edge-only (R5).
+- `req/shelves/books/versions` Find books runs the finder chosen: text-guided (R9), the default, or edge-only (R5).
   <details>
 
   Set by the owner on 2026-11-13: the finder's versions are offered side by side, as NoR's and Vascular's are, in
   the shell's list (`req/shell/processing/algorithms`), today's first under a name of its own and beside it an
-  earlier one that behaves differently enough to be worth choosing. Text-guided is R8, the finder as it stands
+  earlier one that behaves differently enough to be worth choosing. Text-guided is R9, the finder as it stands
   (`py/books.py`); edge-only is R5 as it was (`py/r5_edges.py`), which finds the books from the photo's edges alone,
   so Find books runs no text finder for it. The list is the study's data (`web/algorithms.json`, its order the
   page's, its `reads_text` telling Find books whether to run the text finder), and so are their numbers: each one's

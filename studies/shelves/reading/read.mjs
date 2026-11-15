@@ -1,9 +1,9 @@
 // The Bookshelf Reader's readers in the sandbox: the books of one photo straightened by the study's own Python, then
 // read by the page's own reading.js with the same engine builds, so a score here is the page's score.
 //   npm ci --prefix studies/shelves/reading
-//   node studies/shelves/reading/read.mjs IMAGE BOOKS.json|find[:VERSION] READER|none [OUT.json]
-// BOOKS.json: {books: [{corners}]}, as a ground-truth file has them, or find for the finder's own (find:r5 for that
-// version, as web/algorithms.json lists them); READER: tesseract, lines or ppocr, or none to find the books and read nothing.
+//   node studies/shelves/reading/read.mjs IMAGE BOOKS.json|find READER [OUT.json]
+// BOOKS.json: {books: [{corners}]}, as a ground-truth file has them, or find for the finder's own; READER: tesseract,
+// lines or ppocr.
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
@@ -30,25 +30,14 @@ const r = reader({
 });
 // found as the page finds them: the text finder over Python's view of the photo, its map handed to the finder
 let books;
-if (booksFile.split(":")[0] === "find") {
-  // the version asked, or the page's first; the text finder run for one the list says reads text
-  const listed = JSON.parse(fs.readFileSync(path.join(here, "..", "web", "algorithms.json"), "utf8"));
-  const version = listed.find((a) => a.key === booksFile.split(":")[1]) || listed[0];
-  py.globals.set("version", version.key);
-  py.globals.set("text", "");
-  if (version.reads_text) {
-    const [vm, vb] = py.runPython("session.call('view', {})").toJs();
-    const { width, height } = JSON.parse(vm);
-    py.globals.set("text", JSON.stringify(await r.textMap({ width, height, data: vb })));
-  }
-  books = JSON.parse(py.runPython("session.call('find', dict(algorithm=version, text=json.loads(text) if text else None))[0]")).books;
+if (booksFile === "find") {
+  const [vm, vb] = py.runPython("session.call('view', {})").toJs();
+  const { width, height } = JSON.parse(vm);
+  py.globals.set("text", JSON.stringify(await r.textMap({ width, height, data: vb })));
+  // the page's first finder (web/algorithms.json), as Find books runs at first
+  py.globals.set("version", JSON.parse(fs.readFileSync(path.join(here, "..", "web", "algorithms.json"), "utf8"))[0].key);
+  books = JSON.parse(py.runPython("session.call('find', dict(algorithm=version, text=json.loads(text)))[0]")).books;
 } else books = JSON.parse(fs.readFileSync(booksFile, "utf8")).books;
-if (how === "none") {
-  await r.close();
-  const doc = JSON.stringify({ image: path.basename(image), books }, null, 1);
-  if (out) fs.writeFileSync(out, doc); else console.log(doc);
-  process.exit(0);
-}
 py.globals.set("corners", JSON.stringify(books.map((b) => b.corners)));
 const [meta, bytes] = py.runPython("session.call('straighten', dict(corners=json.loads(corners)))").toJs();
 const { sizes } = JSON.parse(meta);
