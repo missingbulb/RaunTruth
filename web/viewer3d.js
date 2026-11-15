@@ -614,6 +614,14 @@ export function viewer3d(shell, flat) {
     // the first shown channel's volume, slices of Y rows of X, and its colour for a value at a depth (0..1 through the
     // slices shown), as the 3D view paints it: [r, g, b] of 0 to 255
     volume: () => vol && vol.vols[first()],
+    // the same channel at the stack's own pixels, never binned: {X, Y, Z, data}, slices of Y rows of X, a view into the
+    // page's image rather than a copy
+    pixels() {
+      const im = page.get("image");
+      if (!vol || !im) return null;
+      const n = im.W * im.H, C = Math.floor(im.planes.length / (n * (1 + im.Z))), c = first(), at = C * n + c * im.Z * n;
+      return { X: im.W, Y: im.H, Z: im.Z, data: im.planes.subarray(at, at + im.Z * n) };
+    },
     // the depth colours of the first shown channel coloured by depth, as the 3D view paints them: a depth (0..1
     // through the slices shown) to [r, g, b] of 0 to 1; null while no shown channel is coloured by depth
     depthPalette() {
