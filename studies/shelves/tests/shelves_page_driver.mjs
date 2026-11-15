@@ -198,7 +198,11 @@ try {
   check(await page.evaluate(() => !document.querySelector(".bs-item") && !document.querySelector("#gt-tasks > li.now")), "no book is open until Start GT tagging (req/shell/ground-truth/tagging)");
   await page.click("#gt-start");
   const value = () => page.evaluate(() => $(".bs-item input")?.value);
-  const selected = () => page.evaluate(() => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length && t.value.length > 0; });
+  const isSelected = () => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length && t.value.length > 0; };
+  const selected = () => page.evaluate(isSelected);
+  // a few frames' grace for the box to take focus, bounded so a miss fails at once rather than hanging
+  const settledSelected = () => page.waitForFunction(isSelected, null, { timeout: 2000 }).then(() => true, () => false);
+  const titleState = () => page.evaluate(() => [document.activeElement?.tagName, $(".bs-item input")?.selectionStart, $(".bs-item input")?.selectionEnd]);
   check(await value() === "Title 260x40" && await page.$$eval(".bs-item canvas", (c) => c[0].width) === 260,
     "the walk starts at the leftmost book, not the finder's first, upright with what the reader read", await value());
   await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
@@ -286,6 +290,7 @@ try {
   await page.click('#bs-menu [data-do="add"]');
   await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x40");
   check((await books(page)).length === 4 && (await rows())[0] === "3/4 Books", "Add a book here boxes a book at the click, sized as the books found, and reads it as one more book", await rows());
+  check(await settledSelected(), "a book added here opens with its title focused and all its text selected, to retype", await titleState());
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   await page.click('#bs-menu [data-do="delete"]');
   check((await books(page)).length === 3 && (await rows())[0] === "3/3 Books", "Delete this book takes an added book away", await rows());
@@ -297,6 +302,7 @@ try {
   for (const [x, y] of [[330, 60], [380, 60], [380, 280], [330, 280]]) await page.mouse.click(...(await toScreen(x, y)));
   await page.waitForFunction(() => $(".bs-item input")?.value === "Title 220x50");
   check((await rows())[0] === "3/4 Books", "Draw a book takes four corners on the photo, and the book drawn is one more book to review", await rows());
+  check(await settledSelected(), "a book drawn opens with its title focused and all its text selected, to retype", await titleState());
   await page.click('.bs-verdicts [data-do="right"]');
   await page.click('[data-do="none"]');
   check((await rows()).join() === "4/4 Books" && !(await page.evaluate(() => $("#gt-submit").disabled)), "None missed ends the task, and Submit opens", await rows());

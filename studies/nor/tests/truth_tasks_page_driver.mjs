@@ -147,6 +147,8 @@ const cutShown = () => page.evaluate(() => { const g = document.querySelector("#
 const tagRows = () => page.evaluate(() => ["show-gt-cut", "show-gt-frame"].map((id) => $("#" + id).disabled));
 const startSays = () => page.evaluate(() => { const b = $("#gt-start"); return b && b.offsetParent ? b.textContent.trim() : null; });
 let s = await now();
+await check(W[0].cy != null, "the walk's first step is a candidate's, so a card could open before tagging starts", W[0]);
+await check(await page.evaluate(() => !$("#task-now").offsetParent && !$("#task-card .card .verdict .up")), "found, no card and no thumbs show before Start GT tagging");
 await check(!s.open && !s.card && !(await ring()).shown && !(await frame()) && !(await cutShown()), "found, no task is open: nothing ringed, framed or cut out", s);
 await check(await startSays() === "Start GT tagging" && (await tagRows()).every(Boolean), "Start GT tagging heads the box, and the Show menu's Cut out and Frame rows are off", [await startSays(), await tagRows()]);
 await check(s.rows[0].startsWith(`0/${P} Finalists`), "the rows count the tasks before tagging starts", s.rows);
@@ -167,11 +169,13 @@ await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith(`0/
 // the bar, a part per task as long as the task, filled as far as done
 await check(s.bar.length === 3 && s.bar[0].grow === P && s.bar[1].grow === F && s.bar[2].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
-// clicking a task goes to its next item along the walk
+// clicking a task goes to its next item along the walk, after the one open
 await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
-const first = W.find((x) => x.t === "pass");
+const first = [...W.slice(1), W[0]].find((x) => x.t === "pass");
 s = await now();
-await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's first finalist, its row open", s);
+await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's next finalist, its row open", s);
+// once the card it slid in over has gone
+await page.waitForFunction(() => !document.querySelector("#task-stage .leaving"));
 await check(await page.$$eval("#tasks-box .card", (c) => c.length) === 1, "one card at a time");
 // the open row carries the cogwheel, Back and Skip; the card is the crop and big thumbs under it
 const look = await page.evaluate(() => {
