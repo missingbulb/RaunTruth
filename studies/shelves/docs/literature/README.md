@@ -31,10 +31,12 @@ code](topics/datasets-code.md).
 
 1. **Detection is the wall.** In the one end-to-end measurement, matching falls from 0.918 on hand-drawn spines to
    0.641 on detected ones (Llabrés 2024). Work on Find books before reading.
-2. **Our finder is in the published classical family**, and no paper reports a classical segmenter's precision and
-   recall at an IoU, so there is no stronger classical baseline to beat — only upgrades to borrow.
-3. **Over-generate, then choose once.** Talker's weighted independent set and SKU-110K's EM-Merger both replace
-   pairwise merging with one global choice of non-overlapping spines — our merged-close-lines and post failures.
+2. **Our finder is in the published classical family.** The one classical segmenter with a reported precision and
+   recall (Talker: 80.7 / 87.3 and 70.4 / 72.6, tuned on its test images, at a stricter match) is not clearly above ours, so there is no stronger
+   classical baseline to beat — only upgrades to borrow.
+3. **Over-generate, then choose once.** Talker's selection over a tree of overlapping candidates and SKU-110K's
+   EM-Merger both replace pairwise merging with one global choice of non-overlapping spines — our merged-close-lines
+   and post failures. Talker's candidates alone reach recall 95 at precision ~38: the choice is where precision comes from.
 4. **Neighbours check and recover.** Pruning by neighbour consistency alone costs recall (Tonioni: precision 78→98%,
    recall stayed ~74%); recovering the gaps from the neighbours is what brought it to ~90/90.
 5. **Remove the lean first.** Smart Library kept Hough only to find the dominant book direction and rotated by it.
