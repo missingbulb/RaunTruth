@@ -16,7 +16,7 @@
 // study's own large holdings for the Memory tab, [{name, what, size}]; and the viewer's hooks (viewer2d.js).
 // A listener a study adds outside its own panels takes shell.signal, which ends it when the study leaves.
 "use strict";
-import { viewer as viewer2d, GRID, MINIMAP } from "./viewer2d.js";
+import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
 import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
@@ -168,13 +168,13 @@ const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 // the page's state: the shell's fields below, and whatever the study keeps beside them
 const st = { worker: null, H: 0, W: 0, um: null, umY: null, img: null, plain: null, zoom: 2, fileName: "", sha: "", source: null, heap: 0, files: 0,
-  ready: false, readyInfo: null, held: null, kept: null, busySince: 0, busyTimer: null, peeked: false, peek: null };
+  ready: false, readyInfo: null, held: null, kept: null, busySince: 0, peeked: false, peek: null };
 // What the shell's controls are drawn from (page_state.js): image, the image open ({name, source, W, H, um, umY,
 // info, planes, channels, Z, spacing}: Z slices, spacing µm between them or null) or null; opening, the one being read ({name}) or null; and the viewer's own fields.
 const page = pageState({ image: null, opening: null });
 // what a study leaving leaves of the state: the shell's own fields, each as the page loaded, but for Python's thread and
 // what it measures, which stay
-const SHELL_STATE = new Set(Object.keys(st)), ST_LOADED = { ...st }, PYTHON_STATE = ["worker", "heap", "files", "busySince", "busyTimer"];
+const SHELL_STATE = new Set(Object.keys(st)), ST_LOADED = { ...st }, PYTHON_STATE = ["worker", "heap", "files", "busySince"];
 // what a study leaving puts back as the page loaded: the parts of the page an image or a study changes, the holds
 // offline puts on a control kept
 const asStarted = asLoaded(["#busy", "#notice", "#load", "#switch"].map((s) => $(s)), holdOwns);
@@ -204,12 +204,11 @@ function status(text, err) {
 // photocopier's light sweeping across it instead of the spinner; "peek": the image painting as it arrives
 // stays in view, the text in a pill below it
 function busy(on, text, look) {
-  clearInterval(st.busyTimer); st.busySince = on ? st.busySince || Date.now() : 0;
+  st.busySince = on ? st.busySince || Date.now() : 0;
   $("#spin").classList.toggle("on", on); $("#busy").hidden = !on;
   $("#busy").classList.toggle("scan", on && look === "scan"); $("#busy").classList.toggle("peek", on && look === "peek");
   if (!on) return;
-  $("#busy-text").textContent = text || $("#status").textContent; $("#busy-time").textContent = "";
-  st.busyTimer = setInterval(() => { $("#busy-time").textContent = ((Date.now() - st.busySince) / 1000).toFixed(0) + " s"; }, 500);
+  $("#busy-text").textContent = text || $("#status").textContent;
 }
 // a study's own work: over an image the light sweeps it, whatever the study is doing (req/shell/waiting/visible)
 const studyBusy = (on, text) => busy(on, text, st.img ? "scan" : null);
@@ -308,12 +307,14 @@ function raiseResources(cpuShare, rate) {
 // ---------- the status bar's numbers: each changed character rolls up to its new one ----------
 // Characters are paired from the right, so "9%" to "12%" rolls the 9 to a 2 and brings the 1 in from nothing;
 // the old character is the rolling one's data-from, so the number reads as its new value throughout.
-const SPIKE_MS = 3000, SHARP_CPU = 0.3, SHARP_RATE = 2 ** 20;
+const SHARP_CPU = 0.3, SHARP_RATE = 2 ** 20;
+// the flash is the stylesheet's spike animation; a new spike plays it again from its start
 function showNumber(item, text, spike) {
   if (spike && !still()) {
+    // the item and its icon play it; asked of them alone, so no animation of a rolling digit is held after it is gone
+    if (item.classList.contains("spike")) for (const el of [item, item.querySelector("svg")]) for (const a of el?.getAnimations() || []) if (a.animationName === "spike") { a.cancel(); a.play(); }
     item.classList.add("spike");
-    clearTimeout(item.spikeTimer);
-    item.spikeTimer = setTimeout(() => item.classList.remove("spike"), SPIKE_MS);
+    if (!item.onanimationend) item.onanimationend = item.onanimationcancel = (e) => { if (e.target === item && e.animationName === "spike") item.classList.remove("spike"); };
   }
   const v = item.querySelector(".v"), was = v.textContent;
   if (text === was) return;
@@ -463,26 +464,21 @@ function fillStages(stage) {
   $("#stage-next").textContent = STAGES[stage]?.next || "";
 }
 // the stages pop up beside the switcher while a study's stage label is hovered, about that study
-const stagePop = $("#stage-pop");
-let stageLeaving = null;
+const stagePop = $("#stage-pop"), stageClose = closesOnLeave(stagePop, () => stagePop.matches(":hover"));
 function stageHover(tag) {
   tag.addEventListener("mouseenter", () => {
     if (!tag.dataset.stage) return;
-    clearTimeout(stageLeaving);
+    stageClose.stay();
     fillStages(tag.dataset.stage);
     const menu = $("#study-menu .pop").getBoundingClientRect(), row = tag.closest("a").getBoundingClientRect();
     if (!stagePop.matches(":popover-open")) stagePop.showPopover();
     stagePop.style.left = Math.max(8, Math.min(menu.right + 8, innerWidth - stagePop.offsetWidth - 8)) + "px";
     stagePop.style.top = Math.max(8, Math.min(row.top - 12, innerHeight - stagePop.offsetHeight - 8)) + "px";
   });
-  tag.addEventListener("mouseleave", leaveStage);
+  tag.addEventListener("mouseleave", stageClose.leave);
 }
-function leaveStage() {
-  clearTimeout(stageLeaving);
-  stageLeaving = setTimeout(() => { if (!stagePop.matches(":hover") && stagePop.matches(":popover-open")) stagePop.hidePopover(); }, 300);
-}
-stagePop.addEventListener("mouseenter", () => clearTimeout(stageLeaving));
-stagePop.addEventListener("mouseleave", leaveStage);
+stagePop.addEventListener("mouseenter", stageClose.stay);
+stagePop.addEventListener("mouseleave", stageClose.leave);
 const stageTruth = () => manifest.stage === "GT" || manifest.stage === "PostGT";
 // the study takes Ground Truth Taggers: every stage but Published, whose algorithm is trusted (req/shell/account/role)
 const takesTaggers = () => manifest.stage !== "Published";
