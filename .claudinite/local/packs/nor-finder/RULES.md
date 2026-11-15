@@ -83,6 +83,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 
 ## Merging
 
+- **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
+  fresh branch off `main`, running the tests after each, and merge the ones that hold; the one that does not stays
+  on the first branch, where the work goes on as a smaller change. (split-out-the-sound)
+
 - **A small pull request fixing a bug** — merge it yourself, unasked, once its first commit added
   a test that failed on the bug, a later commit fixed the bug, and the same test passed with no
   test file changed after that first commit. Any other pull request waits for the owner.
