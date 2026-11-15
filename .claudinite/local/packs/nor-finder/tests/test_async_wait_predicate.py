@@ -21,7 +21,7 @@ def findings(tmp_path, files, check='async-wait-predicate'):
     subprocess.run(git + ['add', '-A'], cwd=tmp_path, check=True)
     subprocess.run(git + ['commit', '-qm', 'fixture'], cwd=tmp_path, check=True)
     out = subprocess.run([CN, 'check', '--pack', 'nor-finder', '--repo', str(tmp_path)], capture_output=True, text=True).stdout
-    return sorted(line.split()[2].rstrip(':') for line in out.splitlines() if line.startswith(f'finding nor-finder/{check} '))
+    return sorted(line.split()[2].rstrip(':') for line in out.splitlines() if line.startswith((f'finding nor-finder/{check} ', f'advisory nor-finder/{check} ')))
 
 
 def test_an_async_predicate_is_found_in_a_driver_and_a_study_test(tmp_path):

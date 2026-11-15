@@ -40,5 +40,20 @@
         "unlessLineMatches": "/Google Chrome|^\\s*(export )?const [A-Z_]+ = \"(nor-)?(drive|google)[\\w:/-]*\";$/"
       }
     ]
+  },
+  {
+    "id": "test-reads-study-data",
+    "on_fail": "block",
+    "since": "2026-11-15",
+    "failureMessage": "a test that reads a study's downloaded images fails or skips wherever they were not fetched, so CI never exercises it, and no test downloads real data",
+    "fix": "draw a small image in the test (studies/nor/tests/synthetic_nor.py draws NoR's) instead of reading the study's data/raw folder",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.(m?js|py)$/",
+    "matchLines": [
+      {
+        "match": "/\\bdata\\/raw\\b|['\"]data['\"]\\s*,\\s*['\"]raw['\"]/",
+        "what": "reads a study's downloaded data/raw: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)/"
+      }
+    ]
   }
 ]
