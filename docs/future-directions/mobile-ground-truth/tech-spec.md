@@ -252,7 +252,7 @@ explicit tap with the size stated, as Prepare for Offline does today.
 ## 11. Shell changes
 
 **Lifting `req/shell/browsers/supported`.** Keep the desktop rule as it is. Add a sibling requirement (owner
-sets it), e.g. `req/shell/browsers/phone`: the phone tagging route supports Safari on iOS and Chrome on Android
+sets it and its tag), saying: the phone tagging route supports Safari on iOS and Chrome on Android
 from named versions, kept in `web/browsers.json` under a second list; `verdict()` takes the route. On the
 desktop page a phone stays unsupported, and its warning can link to the phone route. The desktop floor is CSS
 anchor positioning (Safari 26); the phone page should not use anchored popups at all, which lets its floor be
