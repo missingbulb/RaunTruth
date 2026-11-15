@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoR phone tagging mockup v2</title>
+<style>
+  :root {
+    --page: #eef0f3; --ink: #15181d; --soft: #5b6470; --frame: #1b1e24;
+    --screen: #ffffff; --panel: #f3f5f8; --line: #d5dae1;
+    --yes: #0b6bcb; --yes-ink: #ffffff; --no: #e4e7ec; --no-ink: #15181d;
+    --accent: #0b6bcb; --warn: #9a5b00; --ok: #17753a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0e1014; --ink: #eceff3; --soft: #9aa3af; --frame: #000000;
+      --screen: #171a20; --panel: #20242c; --line: #333a45;
+      --yes: #4da3ff; --yes-ink: #06121f; --no: #2b313b; --no-ink: #eceff3;
+      --accent: #4da3ff; --warn: #f0b354; --ok: #5fd08a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 40px; background: var(--page); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lede { color: var(--soft); margin: 0 0 20px; max-width: 70ch; }
+  .row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
+  figure { margin: 0; flex: 0 0 auto; }
+  figcaption { width: 360px; margin-top: 10px; color: var(--soft); font-size: 13px; }
+  figcaption b { color: var(--ink); display: block; font-size: 14px; }
+  .phone { width: 360px; height: 740px; border: 8px solid var(--frame); border-radius: 34px;
+    background: var(--screen); display: flex; flex-direction: column; overflow: hidden; }
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px;
+    font-size: 13px; color: var(--soft); }
+  .bar strong { color: var(--ink); font-size: 14px; }
+  .prog { display: flex; gap: 3px; padding: 0 16px; }
+  .prog i { height: 5px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
+  .prog i::after { content: ""; position: absolute; inset: 0; width: var(--f, 0%); background: var(--accent); }
+  .body { flex: 1; padding: 14px 16px 0; display: flex; flex-direction: column; min-height: 0; }
+  .q { font-size: 22px; font-weight: 650; margin: 2px 0 10px; letter-spacing: -0.01em; }
+  .hint { color: var(--soft); font-size: 13px; margin: 8px 0 0; }
+  .chip { background: #000; border-radius: 12px; overflow: hidden; display: block; width: 100%; }
+  .strips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .strips span { display: block; font-size: 11px; color: var(--soft); margin-top: 2px; }
+  .thumb { padding: 12px 16px 22px; display: grid; gap: 10px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; border: 0; border-radius: 16px; min-height: 72px; font-size: 20px; font-weight: 650; }
+  .yes { background: var(--yes); color: var(--yes-ink); }
+  .no { background: var(--no); color: var(--no-ink); }
+  .small { min-height: 44px; font-size: 15px; font-weight: 500; background: transparent; color: var(--soft);
+    border: 1px solid var(--line); border-radius: 12px; }
+  .links { display: flex; justify-content: space-between; font-size: 14px; color: var(--accent); padding: 0 4px; }
+  .card { background: var(--panel); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .card h3 { margin: 0 0 2px; font-size: 16px; }
+  .card p { margin: 0; color: var(--soft); font-size: 13px; }
+  .stat { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .stat:last-child { border-bottom: 0; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  .good { color: var(--ok); } .flag { color: var(--warn); }
+  .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .opts div { border: 2px solid var(--line); border-radius: 12px; padding: 3px; text-align: center; font-size: 12px; color: var(--soft); }
+  .opts div.sel { border-color: var(--accent); color: var(--ink); }
+  .opts svg { border-radius: 8px; display: block; width: 100%; background: #000; }
+  .big { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+  .sec { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .sec button { min-height: 48px; font-size: 16px; font-weight: 550; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; }
+  .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sheet svg { border-radius: 10px; display: block; width: 100%; background: #000; border: 3px solid transparent; }
+  .sheet svg.sel { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<h1>NoR Finder on a phone: five moments, v2</h1>
+<p class="lede">Placeholder drawings, made-up numbers. Chips stay black in both themes because they are microscope crops. Marks are white and sit off the signal, since the data itself is red and green.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="soft2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <g id="node">
+      <rect x="-62" y="-9" width="46" height="18" rx="8" fill="#2fe04a"/>
+      <rect x="16" y="-9" width="46" height="18" rx="8" fill="#2fe04a"/>
+      <rect x="-13" y="-8" width="26" height="16" rx="6" fill="#ff3030"/>
+    </g>
+    <g id="noise">
+      <circle cx="40" cy="38" r="9" fill="#2fe04a" opacity=".5"/>
+      <circle cx="286" cy="52" r="7" fill="#ff3030" opacity=".55"/>
+      <rect x="230" y="180" width="60" height="10" rx="5" fill="#2fe04a" opacity=".45" transform="rotate(-24 260 185)"/>
+      <circle cx="62" cy="196" r="6" fill="#ff3030" opacity=".4"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="row">
+
+<figure>
+  <div class="phone">
+    <div class="bar"><strong>NoR Finder</strong><span>Dana</span></div>
+    <div class="body">
+      <p class="q">Welcome back</p>
+      <div class="card"><h3>Slide5 up-left 2</h3>
+        <p>Chips: 212 of 310. Sheets: 40 of 103. Squares: not open yet.</p>
+        <div class="prog" style="padding:10px 0 0"><i style="flex:3;--f:68%"></i><i style="flex:2;--f:39%"></i><i style="flex:2;--f:0%"></i></div>
+      </div>
+      <div class="card"><h3>Your check score</h3><p><span class="good">19 of the last 20</span> hidden check chips right.</p></div>
+      <p class="hint">Opens on the next chip. About 15 min left, in any number of sittings.</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb"><button class="yes">Continue</button><button class="small">Practice first (8 chips)</button></div>
+  </div>
+  <figcaption><b>1. Entry</b>One tap to the first chip. Three passes, one question type each: chips, sheets, squares.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Chips</span><span>213 of 310</span></div>
+    <div class="prog"><i style="flex:1;--f:68%"></i></div>
+    <div class="body">
+      <p class="q">Is the bracketed one a node?</p>
+      <svg class="chip" viewBox="0 0 328 236" role="img" aria-label="Crop with two triplets; a white bracket marks the one asked about">
+        <rect width="328" height="236" fill="#000"/>
+        <g filter="url(#soft)"><use href="#noise"/><use href="#node" x="164" y="118"/><g transform="translate(206 160) rotate(-8) scale(.8)"><use href="#node"/></g></g>
+        <g stroke="#fff" stroke-width="2" fill="none"><path d="M96 98v-8h136v8M96 138v8h136v-8"/></g>
+      </svg>
+      <div class="strips">
+        <div><svg class="chip" viewBox="0 0 160 70"><rect width="160" height="70" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="20" y="22" width="44" height="12" rx="6"/><rect x="96" y="22" width="44" height="12" rx="6"/><rect x="92" y="48" width="30" height="9" rx="4" opacity=".7"/></g></svg><span>Caspr alone</span></div>
+        <div><svg class="chip" viewBox="0 0 160 70"><rect width="160" height="70" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="68" y="22" width="24" height="12" rx="5"/><rect x="126" y="47" width="14" height="9" rx="4" opacity=".7"/></g></svg><span>Nav alone</span></div>
+      </div>
+      <p class="hint">Or swipe the picture: right yes, left no.</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb" style="gap:0">
+      <div class="sec"><button>Can't tell</button><button>Back</button></div>
+      <div class="two"><button class="no">No</button><button class="yes">Yes</button></div>
+    </div>
+  </div>
+  <figcaption><b>2. Chips (T1)</b>Only the finder's passes and sheet picks come one at a time. The bracket sits off the signal and says which triplet. A slip up from Yes lands on Back, which is harmless.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Sheets</span><span>41 of 103</span></div>
+    <div class="prog"><i style="flex:1;--f:39%"></i></div>
+    <div class="body">
+      <p class="q">Tap any that might be a node</p>
+      <div class="sheet"><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="30" y="45" width="38" height="14" rx="7" fill="#2fe04a"/><rect x="70" y="46" width="20" height="12" rx="5" fill="#ff3030"/></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg><svg viewBox="0 0 160 104" class=sel><g filter="url(#soft2)"><g opacity=".45" transform="translate(80 52) scale(.75)"><use href="#node"/></g></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><circle cx="80" cy="52" r="12" fill="#ff3030"/><circle cx="60" cy="40" r="9" fill="#2fe04a" opacity=".7"/></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="34" y="44" width="92" height="16" rx="8" fill="#2fe04a"/><rect x="72" y="47" width="14" height="10" rx="4" fill="#ff3030" opacity=".6"/></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="28" y="50" width="36" height="13" rx="6" fill="#2fe04a" transform="rotate(25 46 56)"/><rect x="68" y="46" width="20" height="12" rx="5" fill="#ff3030"/><rect x="92" y="34" width="36" height="13" rx="6" fill="#2fe04a" transform="rotate(-30 110 40)"/></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg><svg viewBox="0 0 160 104" class=sel><g filter="url(#soft2)"><g transform="translate(80 52) scale(.8)"><use href="#node"/></g></g><g stroke="#fff" stroke-width="2" fill="none"><path d="M28 30v-8h104v8M28 74v8h104v-8"/></g></svg></div>
+      <p class="hint">A tapped one comes back alone for a proper yes or no. Unsure counts as "might be".</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb" style="gap:0">
+      <div class="sec"><button>Clear taps</button><button>Back</button></div>
+      <button class="yes">Next (2 tapped)</button>
+    </div>
+  </div>
+  <figcaption><b>3. Sheets (T1s)</b>Rejects and other finders' proposals, six at a time, similar brightness together. Replaces v1's bar-fitting screens, which left the phone.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Squares</span><span>39 of 100</span></div>
+    <div class="prog"><i style="flex:1;--f:38%"></i></div>
+    <div class="body">
+      <p class="q">Any node left here?</p>
+      <svg class="chip" viewBox="0 0 328 328" role="img" aria-label="One square of the image; answered items as faint outlines; one dashed ring where the helper tapped">
+        <rect width="328" height="328" fill="#000"/>
+        <g filter="url(#soft2)">
+          <g opacity=".22"><g transform="translate(80 70) rotate(18) scale(.55)"><use href="#node"/></g><g transform="translate(230 110) rotate(-40) scale(.55)"><use href="#node"/></g><g transform="translate(120 250) rotate(70) scale(.55)"><use href="#node"/></g></g>
+          <g transform="translate(236 244) rotate(-12) scale(.55)"><use href="#node"/></g>
+          <circle cx="40" cy="170" r="5" fill="#ff3030" opacity=".7"/><circle cx="170" cy="160" r="6" fill="#2fe04a" opacity=".6"/>
+          <rect x="250" y="30" width="40" height="7" rx="3" fill="#2fe04a" opacity=".5"/><circle cx="296" cy="300" r="4" fill="#ff3030" opacity=".5"/>
+        </g>
+        <g fill="none" stroke="#fff" stroke-width="1" opacity=".55"><rect x="40" y="50" width="80" height="40" rx="4" transform="rotate(18 80 70)"/><rect x="190" y="90" width="80" height="40" rx="4" transform="rotate(-40 230 110)"/><rect x="80" y="230" width="80" height="40" rx="4" transform="rotate(70 120 250)"/></g>
+        <circle cx="236" cy="244" r="44" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 5"/>
+      </svg>
+      <p class="hint">Faint boxes are already answered. Tap a node to ring it; tap the ring to take it back.</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb" style="gap:0">
+      <div class="sec"><button>Can't tell</button><button>Back</button></div>
+      <button class="yes">Done (1 marked)</button>
+    </div>
+  </div>
+  <figcaption><b>4. Squares (T4)</b>A later pass, once a square's chips are settled. A plain tap is enough: the ring is the 12 px match radius. No loupe, no pinch. Reads "Nothing left" until something is tapped.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><strong>Slide5 up-left 2</strong><span>done</span></div>
+    <div class="prog"><i style="flex:3;--f:100%"></i><i style="flex:2;--f:100%"></i><i style="flex:2;--f:100%"></i></div>
+    <div class="body">
+      <p class="big">All three done</p>
+      <p class="hint" style="margin:0 0 12px">31 minutes over 6 sittings</p>
+      <div class="card">
+        <div class="stat"><span>Nodes</span><b>231</b></div>
+        <div class="stat"><span>Not nodes</span><b>604</b></div>
+        <div class="stat"><span>Marked by you in squares</span><b>7</b></div>
+        <div class="stat"><span class="flag">Can't tell, for the lead</span><b class="flag">19</b></div>
+        <div class="stat"><span class="flag">Waiting for a second helper</span><b class="flag">835</b></div>
+        <div class="stat"><span>Hidden checks right</span><b class="good">29 of 31</b></div>
+      </div>
+      <p class="hint">Lengths are not checked here. The lead does those on the computer.</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb"><button class="yes">Send</button><button class="small">Next image</button></div>
+  </div>
+  <figcaption><b>5. Done</b>Detection labels only, sent as a submission. Says plainly what the phone did not do.</figcaption>
+</figure>
+
+</div>
+</body>
+</html>

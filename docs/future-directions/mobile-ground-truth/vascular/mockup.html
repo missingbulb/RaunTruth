@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vascular phone tagging: mockup</title>
+<style>
+  :root {
+    --page: #eef0f3; --ink: #15181d; --muted: #5d6673; --surface: #ffffff; --line: #d5dae1;
+    --btn: #e6e9ee; --btn-ink: #15181d; --primary: #2457d6; --primary-ink: #ffffff;
+    --bezel: #1b1e24; --track: #d5dae1; --done: #2457d6; --note: #7a4a00; --note-bg: #fff3d6;
+    /* annotation colours: none of them is in the red-to-green depth palette the signal is painted in */
+    --mark: #ffffff; --rim: #05070a; --probe: #35e0ff; --model: #ff4fd8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0e1013; --ink: #e9ecf1; --muted: #98a2b0; --surface: #191c22; --line: #2c313a;
+      --btn: #262b34; --btn-ink: #e9ecf1; --primary: #6f9bff; --primary-ink: #08122b;
+      --bezel: #000000; --track: #333945; --done: #6f9bff; --note: #ffd58a; --note-bg: #3a2c0c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 4px; max-width: 1100px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  header p { margin: 0 0 6px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 6px 24px 0; }
+  .legend i { display: inline-block; width: 26px; height: 10px; border-radius: 5px; vertical-align: middle; margin-right: 6px; border: 1px solid var(--line); }
+  .row { display: flex; gap: 28px; padding: 20px 24px 40px; overflow-x: auto; align-items: flex-start; }
+  figure { margin: 0; flex: 0 0 auto; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 376px; height: 756px; padding: 8px; border-radius: 34px; background: var(--bezel); }
+  .screen { width: 360px; height: 740px; border-radius: 27px; overflow: hidden; background: var(--surface);
+            display: flex; flex-direction: column; position: relative; }
+  .top { height: 48px; flex: 0 0 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 13px; color: var(--muted); }
+  .top .x { font-size: 20px; line-height: 1; width: 28px; }
+  .bar { flex: 1; display: flex; gap: 3px; height: 6px; }
+  .bar span { background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+  .bar span b { position: absolute; inset: 0 auto 0 0; background: var(--done); }
+  .img { margin: 0 10px; border-radius: 12px; overflow: hidden; background: #070506; flex: 0 0 auto; line-height: 0; }
+  .img + .img { margin-top: 6px; }
+  .q { padding: 12px 16px 0; font-size: 19px; font-weight: 650; }
+  .hint { padding: 3px 16px 0; font-size: 13px; color: var(--muted); }
+  .grow { flex: 1; }
+  /* everything below here sits in the bottom third: the thumb's reach */
+  .thumb { padding: 0 12px 14px; }
+  .scrub { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 4px; font-size: 12px; color: var(--muted); }
+  .scrub .play { width: 44px; height: 44px; border-radius: 22px; background: var(--btn); display: grid; place-items: center; font-size: 15px; color: var(--btn-ink); }
+  .scrub .track { flex: 1; height: 44px; position: relative; }
+  .scrub .track::before { content: ""; position: absolute; left: 0; right: 0; top: 20px; height: 4px; border-radius: 2px;
+     background: repeating-linear-gradient(90deg, var(--track) 0 2px, transparent 2px calc(100% / 12)); border-bottom: 1px solid var(--track); }
+  .scrub .knob { position: absolute; top: 6px; width: 32px; height: 32px; border-radius: 16px; background: var(--primary); margin-left: -16px; }
+  .scrub .tick { position: absolute; top: 2px; font-size: 10px; font-weight: 700; color: var(--ink); transform: translateX(-50%); }
+  .scrub .tick::after { content: ""; display: block; width: 2px; height: 14px; margin: 1px auto 0; background: var(--ink); }
+  .btns { display: flex; gap: 10px; }
+  .btn { flex: 1; height: 92px; border-radius: 18px; background: var(--btn); color: var(--btn-ink);
+         display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: 650; text-align: center; }
+  .btn small { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); }
+  .btn.primary small { color: inherit; opacity: .8; }
+  .btn svg { margin-bottom: 4px; }
+  .links { display: flex; justify-content: space-between; height: 44px; align-items: center; padding: 0 6px; font-size: 14px; color: var(--muted); }
+  .card { margin: 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .kv { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv:last-child { border: 0; }
+  .note { margin: 10px 14px 0; padding: 8px 12px; border-radius: 10px; background: var(--note-bg); color: var(--note); font-size: 12.5px; }
+  svg text { font-family: system-ui, sans-serif; }
+  .v { fill: none; stroke-linecap: round; stroke-linejoin: round; filter: url(#glow); }
+  .d1 { stroke: #ff3f38; } .d2 { stroke: #ff8a2a; } .d3 { stroke: #f1cf35; } .d4 { stroke: #4fd44a; }
+  .ring { fill: none; stroke: var(--mark); stroke-width: 2; paint-order: stroke; }
+  .rim { fill: none; stroke: var(--rim); stroke-width: 5; opacity: .85; }
+  .probe { fill: none; stroke: var(--probe); stroke-width: 1.6; }
+  .model { fill: none; stroke: var(--model); stroke-width: 1.2; opacity: .75; }
+  .lab { fill: var(--probe); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--rim); stroke-width: 3px; }
+  .cap { fill: #c9cfd8; font-size: 10px; paint-order: stroke; stroke: var(--rim); stroke-width: 2.5px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="haze"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="axial"><feGaussianBlur stdDeviation="9 4"/></filter>
+    <filter id="speckle" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 .55  0 0 0 0 .22  0 0 0 0 .08  0 0 0 .55 -.18"/>
+    </filter>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#000"/><rect width="1" height="6" fill="#444"/>
+    </pattern>
+  </defs>
+</svg>
+
+<header>
+  <h1>Vascular Measurements: ground-truth tagging on a phone (mockup)</h1>
+  <p>Seven moments of one three-minute deck (one area of one stack). Vessel drawings are placeholders, not data.
+     Every control that is pressed sits in the bottom third; the image is never a control except for one optional tap.
+     Answer buttons carry equal weight and never swap sides; the accent colour is kept for moving on.</p>
+</header>
+<div class="legend">
+  <span><i style="background:linear-gradient(90deg,#ff3f38,#ff8a2a,#f1cf35,#4fd44a)"></i>CD31 signal, coloured by depth (shallow red to deep green)</span>
+  <span><i style="background:#fff;border-color:#05070a;border-width:2px"></i>the item asked about (white, dark rim)</span>
+  <span><i style="background:#35e0ff"></i>points and rulers of the question (cyan)</span>
+  <span><i style="background:#ff4fd8"></i>the model's lines (magenta)</span>
+</div>
+
+<div class="row">
+
+<!-- 1 entry -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span style="font-weight:650;color:var(--ink);font-size:15px">Vascular · tagging</span><span class="grow"></span><span>Dana</span></div>
+  <div class="card">
+    <h2>cd31_frontal_x20 r 1</h2>
+    <p>6 of 16 areas done · 212 answers</p>
+    <svg viewBox="0 0 300 300" width="100%" style="margin-top:10px;border-radius:10px;background:#070506;display:block">
+      <rect width="300" height="300" filter="url(#speckle)" opacity=".7"/>
+      <g class="v" stroke-width="3">
+        <path class="d1" d="M10 60 C80 40 120 110 190 90 S270 40 295 70"/><path class="d2" d="M60 5 C70 80 40 140 80 200 S60 270 90 298"/>
+        <path class="d3" d="M5 190 C90 170 150 230 220 200 S280 230 298 210"/><path class="d4" d="M200 5 C180 80 230 140 210 220 S240 270 230 298"/>
+        <path class="d2" d="M120 100 C140 150 150 180 150 215"/><path class="d4" d="M80 200 C120 250 160 260 215 255"/>
+      </g>
+      <g fill="url(#hatch)"><rect x="0" y="0" width="300" height="75"/><rect x="150" y="75" width="150" height="75"/></g>
+      <rect x="76.5" y="76.5" width="72" height="72" class="rim"/><rect x="76.5" y="76.5" width="72" height="72" class="ring"/>
+      <text x="82" y="92" class="cap">Area 7 · next</text>
+    </svg>
+  </div>
+  <div class="card" style="margin-top:10px;border:0;padding:4px 14px">
+    <div class="kv"><span>This deck</span><span>38 questions · about 3 min</span></div>
+    <div class="kv"><span>Downloaded</span><span>ready offline</span></div>
+    <div class="kv"><span>Your check questions</span><span>19 of 20 right</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn primary">Continue<small>Area 7</small></div></div>
+    <div class="links"><span>Other stack</span><span>How to answer</span></div>
+  </div>
+</div></div>
+<figcaption><b>1 · Entry.</b> The link opens here, on the last stack; one press and the first question is up. The map is
+the stack flattened, done areas cut out, as on the desktop. Nothing runs on the phone: the deck was prepared beforehand.</figcaption></figure>
+
+<!-- 2 vessel or not -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:9"><b style="width:55%"></b></span><span style="flex:8"></span><span style="flex:7"></span><span style="flex:8"></span><span style="flex:6"></span></div>
+    <span>5/38</span></div>
+  <div class="img"><svg viewBox="0 0 340 236" width="340" height="236">
+    <rect width="340" height="236" fill="#070506"/><rect width="340" height="236" filter="url(#speckle)"/>
+    <g class="v"><path class="d2" stroke-width="7" d="M-5 150 C70 130 130 150 200 128 S300 120 345 96"/>
+      <path class="d3" stroke-width="3" opacity=".8" d="M40 -5 C60 40 50 70 86 96"/>
+      <path class="d2" stroke-width="2.6" opacity=".75" d="M186 131 C196 104 214 92 222 70"/>
+      <circle cx="232" cy="52" r="3" fill="#ff8a2a" stroke="none" opacity=".6"/><circle cx="246" cy="40" r="2" fill="#ff8a2a" stroke="none" opacity=".4"/></g>
+    <path class="model" d="M-5 150 C70 130 130 150 200 128 S300 120 345 96"/>
+    <path class="rim" stroke-width="4" d="M179 128 C189 101 207 89 215 67 M193 134 C203 107 221 95 229 73"/>
+    <path class="ring" stroke-width="1.4" d="M179 128 C189 101 207 89 215 67 M193 134 C203 107 221 95 229 73"/>
+    <text x="8" y="228" class="cap">slab: slices 4–8 of 12 · 60 µm across</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 76" width="340" height="76">
+    <rect width="340" height="76" fill="#070506"/><rect width="340" height="76" filter="url(#speckle)"/>
+    <g filter="url(#glow)" fill="#ff8a2a"><rect x="-10" y="30" width="36" height="16"/><rect x="26" y="33.5" width="210" height="9" opacity=".75"/>
+      <rect x="250" y="35.5" width="7" height="5" opacity=".4"/><rect x="274" y="35.5" width="6" height="5" opacity=".3"/><rect x="302" y="35.5" width="5" height="5" opacity=".25"/></g>
+    <path class="probe" stroke-dasharray="3 5" d="M0 22 H340 M0 54 H340"/>
+    <text x="8" y="70" class="cap">straightened along the line · 4× </text>
+  </svg></div>
+  <div class="q">Is the outlined piece a vessel?</div>
+  <div class="hint">Hold the picture to hide the outline.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn">Not a vessel</div><div class="btn">Vessel</div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>2 · Vessel or not</b> (a spur, a faint candidate, a loop's weak edge). Above: a thin slab around the piece's own depth,
+the piece between two slim white edges. Below: the same piece straightened, a real vessel reading as an even band between the dashes.
+About 3 s.</figcaption></figure>
+
+<!-- 3 do these connect -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:9"><b style="width:100%"></b></span><span style="flex:8"><b style="width:38%"></b></span><span style="flex:7"></span><span style="flex:8"></span><span style="flex:6"></span></div>
+    <span>13/38</span></div>
+  <div class="img"><svg viewBox="0 0 340 320" width="340" height="320">
+    <rect width="340" height="320" fill="#070506"/><rect width="340" height="320" filter="url(#speckle)"/>
+    <g class="v"><path class="d2" stroke-width="6" d="M-5 250 C40 240 80 220 124 196"/>
+      <path class="d2" stroke-width="5" opacity=".28" stroke-dasharray="5 9" d="M132 191 C150 181 166 170 190 158"/>
+      <path class="d3" stroke-width="6" d="M198 153 C240 130 280 90 345 70"/>
+      <path class="d4" stroke-width="5" opacity=".55" d="M60 -5 C100 80 190 210 250 325"/>
+      <path class="d1" stroke-width="3" opacity=".7" d="M250 325 C270 260 320 240 345 232"/></g>
+    <circle cx="124" cy="196" r="15" class="rim"/><circle cx="124" cy="196" r="15" class="probe" stroke-width="2.2"/>
+    <circle cx="198" cy="153" r="15" class="rim"/><circle cx="198" cy="153" r="15" class="probe" stroke-width="2.2"/>
+    <text x="96" y="232" class="lab">A</text><text x="214" y="136" class="lab">B</text>
+    <text x="8" y="312" class="cap">slice 7 of 12 ± 1 · 80 µm across</text>
+  </svg></div>
+  <div class="q">Is A to B one vessel?</div>
+  <div class="hint">The picture runs through depth by itself; drag to hold a depth.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="scrub"><div class="play">❚❚</div>
+      <div class="track"><span class="tick" style="left:50%">A</span><span class="tick" style="left:66.6%">B</span><span class="knob" style="left:58.3%"></span></div>
+      <span>depth<br><b style="color:var(--ink)">7</b>/12</span></div>
+    <div class="btns"><div class="btn">Separate</div><div class="btn">Connected</div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>3 · Do these two connect?</b> The owner's seed question. The depth strip is under the thumb and plays back and forth
+unasked; A and B are ticked at the depths where each is sharpest, so "two slices apart" is read before the picture is. The green
+vessel passing behind fades in and out as depth runs, which is what tells it apart. About 6 s.</figcaption></figure>
+
+<!-- 4 junction or crossing -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:9"><b style="width:100%"></b></span><span style="flex:8"><b style="width:100%"></b></span><span style="flex:7"><b style="width:43%"></b></span><span style="flex:8"></span><span style="flex:6"></span></div>
+    <span>21/38</span></div>
+  <div class="img"><svg viewBox="0 0 340 236" width="340" height="236">
+    <rect width="340" height="236" fill="#070506"/><rect width="340" height="236" filter="url(#speckle)"/>
+    <g class="v"><path class="d1" stroke-width="7" d="M-5 150 C80 140 120 118 170 116 S280 96 345 60"/>
+      <path class="d4" stroke-width="6" d="M90 -5 C110 50 150 90 172 116 S230 190 250 241"/></g>
+    <circle cx="171" cy="116" r="24" class="rim"/><circle cx="171" cy="116" r="24" class="ring"/>
+    <path class="probe" stroke-dasharray="2 6" d="M102 12 L242 222"/>
+    <text x="8" y="228" class="cap">from above · all depths · 60 µm across</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 92" width="340" height="92">
+    <rect width="340" height="92" fill="#070506"/><rect width="340" height="92" filter="url(#speckle)" opacity=".6"/>
+    <ellipse cx="170" cy="26" rx="20" ry="9" fill="#ff3f38" filter="url(#axial)"/>
+    <rect x="-10" y="56" width="360" height="13" fill="#4fd44a" filter="url(#axial)" opacity=".9"/>
+    <path class="probe" stroke-dasharray="2 6" d="M0 62 H340"/>
+    <text x="8" y="14" class="cap">shallow</text><text x="8" y="87" class="cap">deep · cut along the dotted line</text>
+    <text x="252" y="48" class="lab" style="font-size:11px">5 slices apart</text>
+  </svg></div>
+  <div class="q">Do these vessels join here?</div>
+  <div class="hint">Below: the same spot from the side.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="scrub"><div class="play">▶</div>
+      <div class="track"><span class="knob" style="left:33%"></span></div>
+      <span>depth<br><b style="color:var(--ink)">4</b>/12</span></div>
+    <div class="btns"><div class="btn">Only cross<small>different depths</small></div><div class="btn">Join<small>a real branch point</small></div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>4 · Junction or crossing.</b> Three cues for depth, none needing a turn of the model: depth colour from above, a cut through
+depth along the straighter pair, and the depth strip. Where the two sit closer than a vessel's own blur through depth (4 to 6 slices),
+no view separates them and "Can't tell" is the honest answer. About 8 s.</figcaption></figure>
+
+<!-- 5 caliber -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:9"><b style="width:100%"></b></span><span style="flex:8"><b style="width:100%"></b></span><span style="flex:7"><b style="width:100%"></b></span><span style="flex:8"><b style="width:25%"></b></span><span style="flex:6"></span></div>
+    <span>27/38</span></div>
+  <div class="img"><svg viewBox="0 0 340 250" width="340" height="250">
+    <rect width="340" height="250" fill="#070506"/><rect width="340" height="250" filter="url(#speckle)"/>
+    <rect x="-10" y="103" width="360" height="44" fill="#ff8a2a" filter="url(#haze)" opacity=".35"/>
+    <rect x="-10" y="111.5" width="360" height="27" fill="#ff8a2a" filter="url(#glow)"/>
+    <g>
+      <path class="rim" stroke-width="6" d="M110 107.5 V142.5 M100 107.5 H120 M100 142.5 H120"/>
+      <path class="probe" stroke-width="2.4" d="M110 107.5 V142.5 M100 107.5 H120 M100 142.5 H120"/>
+      <path class="rim" stroke-width="6" d="M230 90 V160 M220 90 H240 M220 160 H240"/>
+      <path class="probe" stroke-width="2.4" d="M230 90 V160 M220 90 H240 M220 160 H240"/>
+      <text x="92" y="92" class="lab">5 µm</text><text x="210" y="76" class="lab">10 µm</text>
+    </g>
+    <text x="8" y="242" class="cap">straightened · its sharpest slice (6) · 7 px per µm</text>
+  </svg></div>
+  <div class="q">How wide is this vessel?</div>
+  <div class="hint">Wall to wall, against the two rulers. Ignore the glow.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns">
+      <div class="btn"><svg width="44" height="22"><rect x="2" y="9" width="40" height="4" rx="2" fill="currentColor"/></svg>Under 5</div>
+      <div class="btn"><svg width="44" height="22"><rect x="2" y="6" width="40" height="10" rx="3" fill="currentColor"/></svg>5 to 10</div>
+      <div class="btn"><svg width="44" height="22"><rect x="2" y="1" width="40" height="20" rx="4" fill="currentColor"/></svg>Over 10</div>
+    </div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>5 · Caliber.</b> The answer is the bin itself, read against rulers drawn at the picture's own scale, on the slice
+where the vessel is sharpest (never the flattened picture, whose haze widens it). Asked only where the measured width sits near a
+bin edge. About 4 s.</figcaption></figure>
+
+<!-- 6 tile check -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:9"><b style="width:100%"></b></span><span style="flex:8"><b style="width:100%"></b></span><span style="flex:7"><b style="width:100%"></b></span><span style="flex:8"><b style="width:100%"></b></span><span style="flex:6"><b style="width:66%"></b></span></div>
+    <span>37/38</span></div>
+  <div class="img"><svg viewBox="0 0 340 340" width="340" height="340">
+    <rect width="340" height="340" fill="#070506"/><rect width="340" height="340" filter="url(#speckle)"/>
+    <g class="v"><path class="d1" stroke-width="5" d="M-5 90 C60 70 120 130 190 110 S300 60 345 80"/>
+      <path class="d2" stroke-width="4" d="M70 -5 C80 80 50 150 90 220 S70 300 100 345"/>
+      <path class="d3" stroke-width="4" d="M90 220 C150 240 200 300 260 290 S320 300 345 280"/>
+      <path class="d4" stroke-width="5" d="M230 -5 C210 80 260 150 240 230 S270 300 262 345"/>
+      <path class="d3" stroke-width="3" d="M136 112 C160 160 170 200 168 262"/>
+      <path class="d2" stroke-width="2.4" opacity=".55" d="M250 180 C280 170 310 190 345 176"/></g>
+    <g class="model"><path d="M-5 90 C60 70 120 130 190 110 S300 60 345 80"/><path d="M70 -5 C80 80 50 150 90 220 S70 300 100 345"/>
+      <path d="M90 220 C150 240 200 300 260 290 S320 300 345 280"/><path d="M230 -5 C210 80 260 150 240 230 S270 300 262 345"/>
+      <path d="M136 112 C160 160 170 200 168 262"/></g>
+    <g fill="#ff4fd8" opacity=".8"><circle cx="136" cy="112" r="3"/><circle cx="90" cy="220" r="3"/><circle cx="168" cy="262" r="3"/><circle cx="241" cy="226" r="3"/></g>
+    <circle cx="296" cy="179" r="22" class="rim"/><circle cx="296" cy="179" r="22" class="ring" stroke-dasharray="5 4"/>
+    <text x="232" y="150" class="cap">you tapped here</text>
+    <text x="8" y="332" class="cap">all depths · 165 µm across · pinch to zoom</text>
+  </svg></div>
+  <div class="q">Is every vessel here drawn, and nothing else?</div>
+  <div class="hint">Tap anything wrong, then press Something's off.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn primary">Something's off<small>1 spot tapped</small></div><div class="btn">Looks right</div></div>
+    <div class="links"><span>Back</span><span>Hold: lines off</span></div>
+  </div>
+</div></div>
+<figcaption><b>6 · The area's last step.</b> The only coarse question, after every small one in the area is answered. A tap is a
+pointer, never a drawing: the tracer follows the ridge from the tap to the model and the piece comes back as a "Vessel or not"
+question; a tap on a drawn line re-opens that line. "Looks right" marks the area reviewed. About 10 s.</figcaption></figure>
+
+<!-- 7 done -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span><span class="grow"></span><span>Dana</span></div>
+  <div class="card" style="border:0;padding-top:0">
+    <h2 style="font-size:22px">Area 7 is done</h2>
+    <p>41 answers in 3 min 05 s</p>
+    <svg viewBox="0 0 300 300" width="100%" style="margin-top:12px;border-radius:10px;background:#070506;display:block">
+      <rect width="300" height="300" filter="url(#speckle)" opacity=".7"/>
+      <g class="v" stroke-width="3">
+        <path class="d1" d="M10 60 C80 40 120 110 190 90 S270 40 295 70"/><path class="d2" d="M60 5 C70 80 40 140 80 200 S60 270 90 298"/>
+        <path class="d3" d="M5 190 C90 170 150 230 220 200 S280 230 298 210"/><path class="d4" d="M200 5 C180 80 230 140 210 220 S240 270 230 298"/>
+        <path class="d2" d="M120 100 C140 150 150 180 150 215"/><path class="d4" d="M80 200 C120 250 160 260 215 255"/>
+      </g>
+      <g fill="url(#hatch)"><rect x="0" y="0" width="300" height="75"/><rect x="150" y="75" width="150" height="75"/><rect x="75" y="75" width="75" height="75"/></g>
+      <rect x="1.5" y="76.5" width="72" height="72" class="rim"/><rect x="1.5" y="76.5" width="72" height="72" class="ring"/>
+      <text x="8" y="92" class="cap">Area 8 · next</text>
+    </svg>
+  </div>
+  <div class="card" style="border:0;padding:4px 14px">
+    <div class="kv"><span>Check questions</span><span>4 of 4 right</span></div>
+    <div class="kv"><span>Left for the desktop</span><span>2 "can't tell"</span></div>
+    <div class="kv"><span>Sent</span><span>saved here, sends on Wi-Fi</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn">Stop</div><div class="btn primary">Next area<small>35 questions · 3 min</small></div></div>
+    <div class="links"><span>Review my answers</span><span></span></div>
+  </div>
+</div></div>
+<figcaption><b>7 · Done.</b> The area is cut out of the map, as the desktop cuts it out of the stack. No count, length or
+caliber total is shown: those are results, and a helper who sees them move may steer toward them.</figcaption></figure>
+
+</div>
+</body>
+</html>
