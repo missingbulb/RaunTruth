@@ -1,5 +1,6 @@
 // The vascular page's test surface: a local server for the site, with a stand-in for the study's Python worker
-// that offers two algorithms (their names, icons and steps as the build lists them), a drawn stack to open as many
+// that offers two algorithms (their names, icons and steps as the study lists them; their precision and recall the
+// lab's, from the study's own file), a drawn stack to open as many
 // slices deep as the given model (drawnStack), and answers
 // Execute with that model, the arguments it was asked with in its "asked" field. The study is served in the
 // stage asked for.
@@ -45,7 +46,7 @@ export async function serve(repo, studies, model, stage) {
   const server = http.createServer((q, r) => {
     const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
     if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + standIn(model)); }
-    if (u === "/studies/vascular/web/algorithms.GENERATED.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify(ALGORITHMS)); }
+    if (u === "/studies/vascular/web/algorithms.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify(ALGORITHMS)); }
     if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
     if (u === "/studies/vascular/study.json") {
       r.writeHead(200, { "content-type": "application/json" });

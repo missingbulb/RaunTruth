@@ -34,7 +34,9 @@ if (booksFile === "find") {
   const [vm, vb] = py.runPython("session.call('view', {})").toJs();
   const { width, height } = JSON.parse(vm);
   py.globals.set("text", JSON.stringify(await r.textMap({ width, height, data: vb })));
-  books = JSON.parse(py.runPython("session.call('find', dict(text=json.loads(text)))[0]")).books;
+  // the page's first finder (web/algorithms.json), as Find books runs at first
+  py.globals.set("version", JSON.parse(fs.readFileSync(path.join(here, "..", "web", "algorithms.json"), "utf8"))[0].key);
+  books = JSON.parse(py.runPython("session.call('find', dict(algorithm=version, text=json.loads(text)))[0]")).books;
 } else books = JSON.parse(fs.readFileSync(booksFile, "utf8")).books;
 py.globals.set("corners", JSON.stringify(books.map((b) => b.corners)));
 const [meta, bytes] = py.runPython("session.call('straighten', dict(corners=json.loads(corners)))").toJs();

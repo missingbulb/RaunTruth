@@ -22,6 +22,7 @@ def test_the_helper_a_comment_a_stubbed_frame_and_page_code_are_not(tmp_path):
         'web-tests/page_frames.mjs': 'export const frames = (page, n = 2) => page.evaluate((n) => new Promise((ok) => { const f = (k) => (k ? requestAnimationFrame(() => f(k - 1)) : ok()); f(n); }), n);\n',
         'web-tests/a_driver.mjs': ('// requestAnimationFrame(() => requestAnimationFrame(ok)) waits two frames\n'
                                    'globalThis.requestAnimationFrame = (f) => { queued = f; return 1; };\n'
-                                   'await frames(page);\n'),
+                                   'await frames(page);\n'
+                                   'await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)))); // waits on purpose: x\n'),
         'web/page.js': 'requestAnimationFrame(() => requestAnimationFrame(ok));\n',
     }) == []

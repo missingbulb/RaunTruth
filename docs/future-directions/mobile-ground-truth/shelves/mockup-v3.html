@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookshelf Reader: phone ground truth, v3 (mock-up)</title>
+<style>
+  :root {
+    --page: #e9e6e0; --ink: #1c1b19; --soft: #6a665f; --screen: #faf8f4; --card: #ffffff;
+    --line: #d6d1c7; --go: #1f6f4a; --go-ink: #ffffff; --no: #9b2c2c; --btn: #efece5;
+    --bezel: #24221f; --pad: #e3dfd6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #121110; --ink: #f0ede6; --soft: #a39e94; --screen: #1b1a18; --card: #26241f;
+      --line: #3a372f; --go: #3fa873; --go-ink: #0c1a12; --no: #e07a7a; --btn: #302d27;
+      --bezel: #050505; --pad: #24221d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--page); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", Arial, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.lead { margin: 0 0 20px; color: var(--soft); max-width: 78ch; }
+  .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  figure { margin: 0 0 20px; flex: none; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--soft); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 360px; height: 740px; border: 8px solid var(--bezel); border-radius: 34px; background: var(--screen);
+    display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .bar { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--soft); }
+  .bar b { color: var(--ink); } .bar .fill { flex: 1; }
+  .prog { display: flex; gap: 3px; padding: 0 16px; }
+  .prog i { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; display: block; }
+  .prog i b { display: block; width: 0; height: 100%; background: var(--go); }
+  .stage { flex: 1; padding: 12px 16px 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .q { font-size: 21px; font-weight: 650; margin: 0; }
+  .hint { font-size: 13px; color: var(--soft); margin: -4px 0 0; }
+  .thumb { padding: 10px 16px 20px; display: grid; gap: 10px; }
+  .g2 { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  button { font: inherit; font-size: 16px; font-weight: 600; min-height: 56px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--btn); color: var(--ink); padding: 6px 10px; }
+  button.go { background: var(--go); color: var(--go-ink); border-color: transparent; }
+  button.no { color: var(--no); }
+  button.small { min-height: 46px; font-size: 14px; font-weight: 500; }
+
+  /* the shelf, in place */
+  .shelf { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 3px; background: #2a1d13;
+    padding: 14px 6px 0; border-bottom: 12px solid #5a4028; border-top: 10px solid #4a3421; border-radius: 4px; height: var(--h, 400px); overflow: hidden; }
+  .sp { flex: none; position: relative; width: var(--w, 50px); height: var(--t, 94%); background: var(--c, #456); border-radius: 2px 2px 0 0;
+    color: var(--f, #f3e9c8); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; white-space: nowrap; }
+  .sp.fr::after, .frame { content: ""; position: absolute; inset: var(--in, -1px); border: 2px solid #fff; box-shadow: 0 0 0 2px #111, inset 0 0 0 1px #111; border-radius: 1px; pointer-events: none; }
+  .sp.ok { filter: saturate(.75); }
+  .badge { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%;
+    font: 700 16px/26px system-ui; text-align: center; writing-mode: horizontal-tb; border: 2px solid #fff; box-shadow: 0 0 0 2px #111; z-index: 2; }
+  .badge.t { background: #1f6f4a; color: #fff; } .badge.n { background: #fff; color: #111; }
+  .sp.ask::after { border-style: dashed; }
+  .sp.faded { opacity: .45; filter: grayscale(.7); }
+  .post { flex: none; width: 14px; height: 100%; background: #5a4028; position: relative; }
+  .pop { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 14px; padding: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.45); display: grid; gap: 8px; z-index: 3; }
+  .pop small { color: var(--soft); font-size: 12px; }
+  .tail { position: absolute; top: -9px; width: 16px; height: 16px; background: var(--card); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+
+  /* ends */
+  .loupe { position: absolute; left: 12px; top: 12px; width: 112px; height: 130px; border-radius: 12px; border: 2px solid #fff; box-shadow: 0 0 0 2px #111;
+    background: linear-gradient(#4a3421 0 34%, #2a1d13 34% 38%, #d9c27a 38% 100%); overflow: hidden; z-index: 3; }
+  .loupe::before { content: ""; position: absolute; left: 0; right: 0; top: 38%; border-top: 2px solid #fff; box-shadow: 0 0 0 1.5px #111; }
+  .loupe::after { content: "top end, ×3"; position: absolute; left: 8px; bottom: 6px; font-size: 11px; color: #2a2412; font-weight: 600; }
+  .ghost { position: absolute; border: 2px dashed #fff; box-shadow: 0 0 0 1.5px #111; opacity: .8; }
+  .trackpad { border: 2px dashed var(--line); border-radius: 16px; height: 150px; background: var(--pad); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; color: var(--soft); font-size: 13px; position: relative; }
+  .trackpad .dotp { width: 54px; height: 54px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .trackpad .arr { font-size: 20px; color: var(--ink); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .seg span { min-height: 46px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+  .seg span.on { background: var(--ink); color: var(--screen); }
+
+  /* titles */
+  .chipwrap { background: #2a1d13; border-radius: 8px; padding: 10px 14px; display: grid; gap: 6px; }
+  .chip { height: 50px; background: var(--c, #456); color: var(--f, #f3e9c8); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 0 0 2px #111; }
+  .chip .t { font-size: 22px; } .chip .a { font-size: 18px; } .chip .p { font-size: 13px; border: 1px solid currentColor; padding: 1px 5px; border-radius: 3px; }
+  .field { border: 2px solid var(--go); border-radius: 12px; background: var(--card); min-height: 48px; padding: 8px 14px; font-size: 20px; }
+  .caret { border-inline-start: 2px solid var(--ink); margin-inline-start: 1px; }
+  .lab { font-size: 12px; color: var(--soft); margin: 0 0 -4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; direction: rtl; }
+  .chips span { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 11px 12px; font-size: 18px; min-height: 46px; }
+  .sugg { display: flex; gap: 6px; direction: rtl; padding: 6px 6px 0; background: var(--btn); border-top: 1px solid var(--line); }
+  .sugg span { flex: 1; text-align: center; border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 9px 2px; font-size: 18px; min-height: 44px; }
+  .sugg span small { display: block; font-size: 10px; color: var(--soft); line-height: 1; }
+  .kb { background: var(--btn); padding: 8px 4px 14px; display: grid; gap: 8px; }
+  .kb div { display: flex; gap: 4px; justify-content: center; direction: rtl; }
+  .kb span { width: 29px; height: 44px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); text-align: center; line-height: 42px; font-size: 17px; }
+  .kb span.w { width: 150px; } .kb span.m { width: 44px; font-size: 12px; }
+
+  /* shelf mode, submit */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .mini { display: flex; align-items: flex-end; gap: 2px; background: #2a1d13; padding: 8px 6px 0; border-bottom: 8px solid #5a4028; border-radius: 4px; height: 150px; overflow: hidden; }
+  .mini i { flex: none; width: var(--w, 18px); height: var(--t, 94%); background: var(--c, #456); border-radius: 2px 2px 0 0; display: block; }
+  .mini i.gate { outline: 2px solid #fff; box-shadow: 0 0 0 4px #111; z-index: 1; position: relative; }
+  .tally { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; font-size: 15px; }
+  .tally b { text-align: end; } .tally small { color: var(--soft); display: block; font-size: 12px; }
+  .big { font-size: 44px; font-weight: 700; margin: 0; line-height: 1.1; }
+</style>
+</head>
+<body>
+<h1>Bookshelf Reader: ground truth on a phone, v3</h1>
+<p class="lead">A design mock-up, nothing built or timed on a person. Answers are given in place on the shelf picture: one tap a book. Each frame is 360 × 740; spines, titles and counts are invented. Frames are two strokes, light over dark, so they show on any spine.</p>
+<div class="row">
+
+<figure>
+<div class="phone"><div class="bar"><b>13/60 Books</b><span class="fill"></span><span>Shelf 2 of 5 · part 2 of 3</span></div>
+<div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:45%"></b></i><i style="flex:12"><b></b></i><i style="flex:13"><b></b></i><i style="flex:10"><b></b></i></div>
+<div class="stage">
+ <p class="q">Tap every book</p><p class="hint">A frame that fits its book gets a tick. A book with no frame gets one where you tap.</p>
+ <div class="shelf" style="--h:440px">
+  <div class="sp fr ok" style="--w:48px;--c:#7a2f2a">חולית<i class="badge t">✓</i></div>
+  <div class="sp fr ok" style="--w:48px;--c:#7a2f2a;--t:93%">ילדי חולית<i class="badge t">✓</i></div>
+  <div class="sp" style="--w:40px;--c:#17171a;--t:88%;--f:#4b4b50">המוסד<i class="badge n">+</i></div>
+  <div class="sp fr" style="--w:56px;--c:#d9c27a;--f:#2a2412;--in:-1px -1px 40% -1px">זר בארץ נוכריה</div>
+  <div class="sp" style="--w:46px;--c:#14342b;--t:96%">שר הטבעות א</div>
+  <div class="sp" style="--w:46px;--c:#14342b;--t:96%">שר הטבעות ב</div>
+  <span class="frame" style="inset:auto 13px 0 auto;width:99px;height:404px"></span>
+ </div>
+</div><div class="thumb"><div class="g2"><button class="small">Undo</button><button class="go">Done with these (3)</button></div></div></div>
+<figcaption><b>1. Tap every book, in place.</b> One gesture replaces One whole book?, Tap each book and the shelf check. The part is zoomed until the narrowest frame is 44 px. Here: two frames ticked, a dark spine the finder missed added (+), and two frames left alone because they are wrong: one stops at the title, one covers two volumes. About 0.9 s a book.</figcaption>
+</figure>
+
+<figure>
+<div class="phone"><div class="bar"><b>16/60 Books</b><span class="fill"></span><span>Shelf 2 of 5 · part 2 of 3</span></div>
+<div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:55%"></b></i><i style="flex:12"><b></b></i><i style="flex:13"><b></b></i><i style="flex:10"><b></b></i></div>
+<div class="stage">
+ <p class="q">This frame was not tapped</p><p class="hint">1 of 2 left on this part.</p>
+ <div class="shelf" style="--h:440px">
+  <div class="sp faded" style="--w:48px;--c:#7a2f2a">חולית</div>
+  <div class="sp faded" style="--w:48px;--c:#7a2f2a;--t:93%">ילדי חולית</div>
+  <div class="sp faded" style="--w:40px;--c:#17171a;--t:88%;--f:#4b4b50">המוסד</div>
+  <div class="sp faded" style="--w:56px;--c:#d9c27a;--f:#2a2412">זר בארץ נוכריה</div>
+  <div class="sp" style="--w:46px;--c:#14342b;--t:96%">שר הטבעות א<i class="badge n" style="bottom:150px">1</i></div>
+  <div class="sp" style="--w:46px;--c:#14342b;--t:96%">שר הטבעות ב</div>
+  <span class="frame" style="inset:auto 13px 0 auto;width:99px;height:404px;border-style:dashed"></span>
+  <div class="pop"><i class="tail" style="right:66px"></i><small>Two or more: tap each book inside the frame (1 so far)</small>
+   <div class="g3"><button class="small no">Not a book</button><button class="small" style="background:var(--ink);color:var(--screen)">Two or more</button><button class="small">Ends are off</button></div></div>
+ </div>
+</div><div class="thumb"><div class="g2"><button class="small">‹ Back</button><button class="go">That is all of them (1)</button></div></div></div>
+<figcaption><b>2. What was left untapped is the question.</b> Asked where the frame stands, with its neighbours faded, not hidden. Not a book is never beside a confirm. Two or more reuses the same tap; the new frames are drawn before moving on, and a tapped seam can be moved. No Same book? for books just tapped apart. About 1.5 s to remove, 4 s to split.</figcaption>
+</figure>
+
+<figure>
+<div class="phone"><div class="bar"><b>17/60 Books</b><span class="fill"></span><span>Shelf 2 of 5 · part 2 of 3</span></div>
+<div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:60%"></b></i><i style="flex:12"><b></b></i><i style="flex:13"><b></b></i><i style="flex:10"><b></b></i></div>
+<div class="stage">
+ <p class="q">Slide the end onto the book</p>
+ <div class="shelf" style="--h:300px;justify-content:flex-end;padding-right:28px">
+  <div class="loupe"></div>
+  <div class="sp faded" style="--w:44px;--c:#17171a;--t:88%;--f:#4b4b50">המוסד</div>
+  <div class="sp" style="--w:60px;--c:#d9c27a;--f:#2a2412;font-size:13px">זר בארץ נוכריה
+    <span class="ghost" style="inset:40% -1px -1px -1px"></span><span class="frame" style="inset:-1px"></span></div>
+  <div class="sp faded" style="--w:50px;--c:#14342b;--t:96%">שר הטבעות א</div>
+ </div>
+ <div class="seg"><span class="on">Top end</span><span>Foot end</span></div>
+ <div class="trackpad"><span class="arr">↕</span><span class="dotp"></span><span>Drag anywhere here. The end moves at half speed.</span></div>
+</div><div class="thumb"><div class="g3"><button class="small">‹ Back</button><button class="small">A side is off</button><button class="go small">It fits</button></div></div></div>
+<figcaption><b>3. Ends, not corners; no A/B/C chooser.</b> The end slides along the book's own sides, so a leaning book keeps its lean. The thumb stays in the lower half and never covers the edge; the loupe shows it at three times. The dashed line is where the finder stopped. Corners, by the same drag, only behind A side is off. About 5 s; 12 s with a side.</figcaption>
+</figure>
+
+<figure>
+<div class="phone"><div class="bar"><b>Titles 5/16</b><span class="fill"></span><span>3 too small to ask</span></div>
+<div class="prog"><i style="flex:16"><b style="width:31%"></b></i></div>
+<div class="stage" style="gap:8px">
+ <div class="chipwrap"><div class="chip" dir="rtl" style="--c:#7a2f2a"><span class="a">פרנק הרברט</span><span class="t">ילדי חולית</span></div>
+  <div class="chip" dir="rtl" style="--c:#7a2f2a;justify-content:flex-end"><span class="p">מעריב</span></div></div>
+ <div class="field" dir="rtl">פרנק הרברט יל<span class="caret"></span></div>
+ <p class="lab">From the book before</p>
+ <div class="chips"><span style="opacity:.4">פרנק</span><span style="opacity:.4">הרברט</span><span>חולית</span><span>מעריב</span></div>
+ <div class="g3" style="grid-template-columns:1fr 1fr 1fr 1fr"><button class="small">⟲ Flip</button><button class="small">No text</button><button class="small">Can't read</button><button class="small go">Done</button></div>
+</div>
+<div class="sugg"><span>ילדי<small>the reader's</small></span><span>ילד</span><span>ילדים</span></div>
+<div class="kb"><div><span>פ</span><span>ם</span><span>ן</span><span>ו</span><span>ט</span><span>א</span><span>ר</span><span>ק</span></div><div><span>ף</span><span>ך</span><span>ל</span><span>ח</span><span>י</span><span>ע</span><span>כ</span><span>ג</span><span>ד</span><span>ש</span></div><div><span>ץ</span><span>ת</span><span>צ</span><span>מ</span><span>נ</span><span>ה</span><span>ב</span><span>ס</span><span>ז</span></div><div><span class="m">123</span><span class="m">EN</span><span class="w"></span><span class="m">⌫</span></div></div></div>
+<figcaption><b>4. Titles: words before letters.</b> The book before lends its words as chips (two taps typed the author here). Suggestions sit on the keyboard's top edge, 1 cm from the thumb, ranked: this photo's words, the reader's own for this spine (ranked, never filled in), then the lists. Done and Flip are away from the keys. Spines too narrow in the photo's own pixels are not asked. About 15 to 19 s a book.</figcaption>
+</figure>
+
+<figure>
+<div class="phone"><div class="bar"><b>At the shelf</b><span class="fill"></span><span>Shelf 2 of 5</span></div>
+<div class="prog"><i style="flex:1"><b style="width:20%"></b></i></div>
+<div class="stage">
+ <p class="q">Does the shelf still look like this?</p><p class="hint">The photo is from 25 September. Three spines here were too small to read in it.</p>
+ <div class="mini"><i style="--w:22px;--c:#7a2f2a"></i><i style="--w:22px;--c:#7a2f2a;--t:92%"></i><i style="--w:18px;--c:#17171a;--t:88%"></i><i style="--w:26px;--c:#d9c27a"></i><i style="--w:21px;--c:#14342b"></i><i style="--w:21px;--c:#14342b"></i>
+  <i class="gate" style="--w:9px;--c:#e8e2d2;--t:70%"></i><i style="--w:24px;--c:#3d5a80"></i><i class="gate" style="--w:11px;--c:#5b3a6b;--t:84%"></i><i style="--w:28px;--c:#a34b23"></i><i class="gate" style="--w:10px;--c:#6b705c;--t:80%"></i><i style="--w:30px;--c:#444"></i><i style="--w:24px;--c:#22405e;--t:90%"></i></div>
+ <div class="card" style="font-size:13px;color:var(--soft)"><b style="color:var(--ink)">Same books, same places:</b> type the three framed spines off the books. Saved as read from the book, never scored against a reader.<br><br><b style="color:var(--ink)">Changed:</b> nothing is typed onto the old photo. Take a new one; it is tagged as its own photo.</div>
+</div><div class="thumb"><button>It changed: take a new photo</button><button class="go">Same: type the 3 small ones</button><div class="g2" style="grid-template-columns:1fr 1fr"><button class="small">‹ Back</button><button class="small">Skip this shelf</button></div></div></div>
+<figcaption><b>5. At the shelf: check the shelf before trusting it.</b> A row at a time, asked before any title is typed from a book. Only the spines the photo could not show are asked for, so the other hand is free most of the time. The camera is a permission the owner has not approved; without it the first button is Skip.</figcaption>
+</figure>
+
+<figure>
+<div class="phone"><div class="bar"><b>Living room, left case</b><span class="fill"></span><span>Boxes</span></div>
+<div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:100%"></b></i><i style="flex:12"><b style="width:100%"></b></i><i style="flex:13"><b style="width:100%"></b></i><i style="flex:10"><b style="width:100%"></b></i></div>
+<div class="stage" style="gap:14px">
+ <p class="big">60 books</p>
+ <div class="card"><div class="tally">
+  <span>Frames you ticked<small>the finder's own box, looked at in place</small></span><b>33</b>
+  <span>Ends or sides you moved</span><b>9</b>
+  <span>Books you tapped in, ends set</span><b>11</b>
+  <span>Books you tapped in, ends not set<small>a place on the shelf, not a box: scored by the point</small></span><b>7</b>
+  <span>Frames removed</span><b>12</b></div></div>
+ <div class="card" style="font-size:13px;color:var(--soft)">Titles are not in this file (unread, not empty). Each shelf was saved as it was finished.</div>
+</div><div class="thumb"><button class="go">Submit boxes</button><button class="small">‹ Back to the shelves</button></div></div>
+<figcaption><b>6. Submit says how each box was made.</b> The file carries it per book, so the finder's scores are reported apart for boxes someone drew or moved, boxes only ticked, and places only tapped. A shelf is saved when its last part is done, so a cleared browser loses a shelf at most.</figcaption>
+</figure>
+
+</div>
+</body>
+</html>

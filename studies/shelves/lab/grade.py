@@ -6,7 +6,7 @@ than 0.5 (a box over two like books, 0.5 with each, is neither), each matched on
 only: CER is the edit distance over the text's length (at most 1), words the share of its words of two letters or
 more that the reading holds.
 
-    python3 studies/shelves/lab/grade.py GT.json --photo PHOTO          # the finder, run here on the photo
+    python3 studies/shelves/lab/grade.py GT.json --photo PHOTO          # the finder, run here on the photo (--version r5)
     python3 studies/shelves/lab/grade.py GT.json --found FOUND.json     # boxes found elsewhere: {books: [{corners}]}
     python3 studies/shelves/lab/grade.py GT.json --read READ.json       # read.mjs PHOTO GT.json READER READ.json
 """
@@ -20,16 +20,11 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'py'))
-from books import area, overlap
+from books import iou
 
 
 def truth(gt):
     return [b for b in gt['books'] if b['verdict'] == 'right']
-
-
-def iou(a, b):
-    inter = overlap(a, b)
-    return inter / max(1e-9, area(a) + area(b) - inter)
 
 
 def boxes(gt, found):
@@ -95,6 +90,7 @@ def main(argv=None):
     how.add_argument('--photo')
     how.add_argument('--found')
     how.add_argument('--read')
+    ap.add_argument('--version', help="the finder's version --photo runs (web/algorithms.json), its first if none")
     a = ap.parse_args(argv)
     gt = json.load(open(a.gt))
     if a.read:
@@ -102,7 +98,8 @@ def main(argv=None):
     else:
         if a.photo:
             import shelves
-            found = json.loads(shelves.Session(a.photo).call('find', {})[0])['books']
+            first = json.load(open(os.path.join(HERE, '..', 'web', 'algorithms.json')))[0]['key']
+            found = json.loads(shelves.Session(a.photo).call('find', {'algorithm': a.version or first})[0])['books']
         else:
             found = json.load(open(a.found))['books']
         out = boxes(gt, found)

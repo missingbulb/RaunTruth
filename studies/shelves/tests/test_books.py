@@ -299,14 +299,16 @@ def test_a_plain_spine_whose_title_the_text_finder_marks_is_boxed():
     assert hit(books.find(a, text))
 
 
-def test_without_its_text_a_plain_spine_is_boxed_only_by_its_colour(monkeypatch):
-    """req/shelves/books/find (2026-11-10): the text line is what keeps the plain spine among the line-found boxes;
-    with no text, only its face's one colour boxes it."""
+def test_a_plain_spine_with_clear_sides_is_boxed_without_its_text_or_its_colour(monkeypatch):
+    """req/shelves/books/find (2026-11-10): a plain spine is a book's face when both its sides are clear edges and its
+    face is one colour, with no text map and no colour region to vouch for it; with that waiver off, only its text
+    keeps it."""
     a, truth, text = titled_shelf()
     pale = np.array(truth[4])
     hit = lambda found: any(np.abs(np.array(b['corners']) - pale).max() <= 10 for b in found)
-    assert hit(books.find(a))
     monkeypatch.setattr(books, 'REGION_SCALES', ())
+    assert hit(books.find(a))
+    monkeypatch.setattr(books, 'FIT_STRONG', 1.01)
     assert not hit(books.find(a))
     assert hit(books.find(a, text))
 
@@ -384,7 +386,7 @@ def test_books_lying_cover_up_are_boxed_as_covers_and_the_planks_are_not():
 
 def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkeypatch):
     """The page's Pyodide installs only study.json's packages: a module of any other installed distribution is
-    blocked here, as it is missing there."""
+    blocked here, as it is missing there. Every version of the finder the page offers."""
     import importlib
     import importlib.abc
     import importlib.metadata
@@ -404,19 +406,20 @@ def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkey
     blocker = Missing()
     sys.meta_path.insert(0, blocker)
     try:
-        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves')]:
+        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves', 'finders', 'r8_precise', 'r5_edges')]:
             monkeypatch.delitem(sys.modules, name)
         Image.fromarray(photo()).save(tmp_path / 'shelf.png')
         s = importlib.import_module('shelves').Session(str(tmp_path / 'shelf.png'))
-        found = json.loads(s.call('find', {})[0])['books']
-        s.call('straighten', {'corners': [b['corners'] for b in found]})
+        for version in importlib.import_module('finders').VERSIONS:
+            found = json.loads(s.call('find', {'algorithm': version})[0])['books']
+            assert found, f'the photo has books for {version} to box'
+            s.call('straighten', {'corners': [b['corners'] for b in found]})
         error = None
     except ModuleNotFoundError as e:
         error = e
     finally:
         sys.meta_path.remove(blocker)
     assert error is None, f'the page has no {error.name!r}'
-    assert found, 'the photo has books to box'
 
 
 def banded_shelf():

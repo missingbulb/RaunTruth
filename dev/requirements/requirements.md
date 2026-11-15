@@ -80,7 +80,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Auto-save images, and everything kept for images. Google's token lasts about an hour and is kept on
   this device for that hour. A new one can be asked for only in the user's own click or key press, so
   once it has run out the page asks only in one that needs Google: a change to a setting that follows
-  the user, or opening Drive's button or the image selector. Google's window then opens and closes by itself while
+  the user, opening Drive's button or the image selector, or any click that reads Drive (`req/shell/drive/renewal`). Google's window then opens and closes by itself while
   Google still remembers the consent; any other click opens nothing. Whenever
   the page has a token it syncs: the file's settings replace this device's, the theme at once, except
   each one this device changed since it last synced, which is kept and saved over the file's; with no
@@ -315,7 +315,7 @@ nobody has decided: what the page does there is not a requirement yet.
   see opens whether or not it is shared publicly, a shared drive's included, and one it cannot see is refused as
   Google refuses it. Signed out, the same reads carry the site's API key alone, and reach only what is shared as
   "Anyone with the link". A signed-in user whose token has run out is not read for with the key: the next click on
-  a Drive control renews the token, and a read with none says to click again. Sign-in asks Google for read access
+  a Drive control renews the token (`req/shell/drive/renewal`), and a read with none says to click again. Sign-in asks Google for read access
   to the user's Drive (`drive.readonly`) along with the rest (`req/shell/account/sign-in`); a token from before
   that, lacking it, is renewed on the next click on a Drive control. `drive.readonly` is a restricted scope: until
   Google verifies the site, Google shows an "unverified app" screen on signing in and lets in at most 100 new users
@@ -410,6 +410,19 @@ nobody has decided: what the page does there is not a requirement yet.
   read as without the file (`req/shell/drive/dialog`, `req/shell/drive/stacks`). The download waits, like every other, while Drive
   throttles the site (`req/shell/drive/throttle`). Manage storage counts each folder's file with its study's thumbnails. Test:
   `web-tests/test_drive_previews_page.py`.
+  </details>
+
+- `req/shell/drive/renewal` Any click that reads Google Drive renews a run-out sign-in and carries on with the new token; a click in the token's last ten minutes renews it early.
+  <details>
+
+  Set by the owner on 2026-11-10. Google gives a new token only within the user's own click or key press
+  (`req/shell/account/sign-in`). So, signed in, a Drive read the user's click starts, from any control (a Drive button,
+  a folder or image in Data Management, Update previews, an offline download, a ground-truth save), renews a token
+  that has run out, silently for the same user, waits for Google's answer and goes on with the new token: one click
+  does what it was for, never "press again". In the token's last ten minutes such a click renews it too, the read
+  going on at once with the token it still has. Google is asked once however many reads the click starts. A read
+  with no click behind it opens nothing and, with the token run out, fails saying to click again; so does one whose
+  click Google's window answered with no token. Test: `web-tests/test_drive_renewal_page.py`.
   </details>
 
 - `req/shell/drive/stacks` The Drive dialog tells a 3D stack from a flat image, and shows a stack in 3D once opened.
@@ -653,7 +666,15 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Folded at first: the field in µm and px, the pixel size, the bit depth, the ImageJ series, the
   microscope and date when the file names them (the lab's ImageJ exports never do), and the software that saved
-  it (`web-tests/test_file_info.py`). What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
+  it (`web-tests/test_file_info.py`). Changed by the owner on 2026-11-13: each format pins the fields worth
+  seeing, a HEIC or JPEG photo its field, bit depth, camera (make and model) and when it was taken (with
+  its UTC offset), a PNG its field and bit depth, a TIFF the lines above; a study's `view.details` may name,
+  per format (`tiff`, `heic`, `jpeg`, `png`), the fields it pins instead, by the labels the details show.
+  Every other field the file carries is listed below them in More details, folded at first: a TIFF's tags
+  and ImageJ header, a photo's EXIF (GPS included), JFIF and XMP fields, a HEIC's container (its images,
+  thumbnails, auxiliary images and colour profile), a PNG's chunks. Binary blobs (a maker note, an embedded
+  profile's bytes, a thumbnail, a list of more than 16 values) are left out. The bit depth is the file's
+  own, even where the page shows the image in 8 bits. What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
   line says the microscope or acquisition is missing, and with no image open the box names none and shows no
   details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
   </details>
@@ -1013,6 +1034,22 @@ nobody has decided: what the page does there is not a requirement yet.
   BigTIFF, and a part over 4 GB. Test: `web-tests/test_split.py`, `web-tests/test_image_edit.py`.
   </details>
 
+- `req/shell/processing/algorithms` A study offering several algorithms lists them atop its Processing box, the first the default, each with its icon, title and precision and recall.
+  <details>
+
+  Set by the owner on 2026-11-13: what NoR Finder and Vascular Measurements each drew for themselves is the shell's,
+  so every study with more than one algorithm shows it the same way. Changed by the owner on 2026-11-14: the algorithms
+  are data the study contributes, and the shell does the deciding. A study's `study.json` names in `algorithms` its
+  `list`, a JSON file of `[{key, title, icon, about}]`, the first its default, and its `metrics`, a JSON file of
+  `{measured, versions: {key: {precision, recall, note}}}` that its lab writes; no study code builds either for the
+  shell, and an entry may carry fields of the study's own. The shell joins the two and draws a list at the top of
+  Processing, each entry its icon, title and `(P .xx · R .xx)` where measured, its tooltip saying what they were measured on; under it a fold,
+  How the *title* algorithm works, the chosen one's `about` as a Markdown outline, ending in bold with its precision
+  and recall and what they were measured on, its `note` beside it. An algorithm with no precision and recall shows
+  neither. The study reads the choice (`shell.algorithm`: `ready`, `key`, `title`, `on(fn)`) and runs it; it draws no
+  list of its own. Test: `web-tests/test_study_contract.py`, `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
   <details>
 
@@ -1195,8 +1232,8 @@ nobody has decided: what the page does there is not a requirement yet.
   The published site is the shell's page and, from each study, only what its standard layout says
   the page loads: `study.json`, the study's page part under `web/` (never its Python), and the
   modules directly in the folders its Python is imported from (`python.paths`), which is all the
-  page's importer can reach, and the files its `generated` names under `web/`, each the output of one of
-  its scripts the build runs. A study's docs, data, tests and lab notes stay in the repo, and nothing
+  page's importer can reach; the build runs none of a study's code (owner, 2026-11-14: a study contributes data).
+  A study's docs, data, tests and lab notes stay in the repo, and nothing
   in a study says how, where or whether it is published. The build (`dev/tools/build/build.py`)
   assembles the set under `dev/build/site/`, the tree the release uploads. Test:
   `web-tests/test_published_site.py`.

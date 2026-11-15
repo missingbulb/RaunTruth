@@ -67,10 +67,10 @@ try {
   // the numbers the page shows are the shipped metrics file's, which the lab's grader writes
   const quality = JSON.parse(fs.readFileSync(path.join(repo, "studies", "vascular", "web", "algorithm_metrics.json"), "utf8"));
   const two = (x) => x.toFixed(2).replace(/^0/, "");
-  await page.waitForFunction(() => /\bR\u00a0/.test($("#vm-algo").options[0]?.textContent || ""));
-  const algos = await page.evaluate(() => ({ titles: [...$("#vm-algo").options].map((o) => o.textContent), value: $("#vm-algo").value,
-    about: $("#vm-about summary").textContent, note: $("#vm-about-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
-    nested: !!$("#vm-about-note").querySelector("ul > li > ul > li"), bold: $("#vm-about-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
+  await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
+  const algos = await page.evaluate(() => ({ titles: [...$("#algorithm").options].map((o) => o.textContent), value: $("#algorithm").value,
+    about: $("#algorithm-about summary").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
+    nested: !!$("#algorithm-note").querySelector("ul > li > ul > li"), bold: $("#algorithm-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
   const listed = ALGORITHMS.map((a) => { const q = quality.versions[a.key]; return `${a.icon} ${a.title} (P\u00a0${two(q.precision)}\u00a0·\u00a0R\u00a0${two(q.recall)})`; });
   check(algos.titles.join() === listed.join() && algos.value === ALGORITHMS[0].key, `Processing lists each algorithm with its icon, name, precision and recall, the default first: ${algos.titles}`);
   check(algos.about === `How the ${ALGORITHMS[0].title} algorithm works` && algos.note.includes("touches no junction") && algos.nested,
@@ -89,7 +89,7 @@ try {
   check(!before.model && !before.tasks && before.modes.join() === "image", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
-  await page.selectOption("#vm-algo", "v4");
+  await page.selectOption("#algorithm", "v4");
   await page.click("#vm-run");
   await page.waitForFunction(() => !$("#model-on").hidden);
   const ran = await doc();
@@ -456,6 +456,9 @@ try {
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
     && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
+  // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
+  const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
+  check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
   await page.click("#gt-close");
 
   await page.keyboard.press("Control+z");

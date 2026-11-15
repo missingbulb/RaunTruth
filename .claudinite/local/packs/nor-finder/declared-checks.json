@@ -31,13 +31,13 @@
     "id": "frame-wait-in-one-file",
     "on_fail": "block",
     "failureMessage": "a frame wait copied into each driver drifts: one waits one frame, the next two, and nobody can say which a page needs",
-    "fix": "import frames(page, n) from web-tests/page_frames.mjs",
+    "fix": "import frames(page, n) from web-tests/page_frames.mjs; where a wait in the page itself is needed, end the line `// waits on purpose: <reason>`",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!page_frames\\.mjs$).*\\.m?js$/",
     "matchLines": [
       {
         "match": "/requestAnimationFrame\\(\\s*(\\(\\)|\\w+)\\s*=>\\s*(\\{\\s*)?\\w*\\(?\\s*requestAnimationFrame\\(|requestAnimationFrame\\(\\s*(ok|r|done|resolve)\\s*\\)/",
         "what": "waits for frames outside web-tests/page_frames.mjs: {match}",
-        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*waits on purpose:/"
       }
     ]
   },

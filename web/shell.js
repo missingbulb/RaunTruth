@@ -1,7 +1,7 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), notices, the user's saved settings, downloads and ground-truth
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), notices, the user's saved settings, downloads and ground-truth
 // submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js) with its Preprocessing (Split into parts), the resources dialog (storage, memory,
 // network and CPU) and the version history.
 //
@@ -43,6 +43,7 @@ import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
 import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
+import { algorithmChoice } from "./algorithm_choice.js";
 
 const $ = (s) => document.querySelector(s);
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
@@ -310,7 +311,8 @@ const SHARP_CPU = 0.3, SHARP_RATE = 2 ** 20;
 // the flash is the stylesheet's spike animation; a new spike plays it again from its start
 function showNumber(item, text, spike) {
   if (spike && !still()) {
-    if (item.classList.contains("spike")) for (const a of item.getAnimations({ subtree: true })) if (a.animationName === "spike") { a.cancel(); a.play(); }
+    // the item and its icon play it; asked of them alone, so no animation of a rolling digit is held after it is gone
+    if (item.classList.contains("spike")) for (const el of [item, item.querySelector("svg")]) for (const a of el?.getAnimations() || []) if (a.animationName === "spike") { a.cancel(); a.play(); }
     item.classList.add("spike");
     if (!item.onanimationend) item.onanimationend = item.onanimationcancel = (e) => { if (e.target === item && e.animationName === "spike") item.classList.remove("spike"); };
   }
@@ -744,7 +746,7 @@ function handle(m) {
 function imageOpened(m) {
   st.um = m.meta.um; st.umY = m.meta.um_y;
   page.set({ opening: null, image: { name: st.fileName, source: st.source, W: m.meta.W, H: m.meta.H, um: st.um, umY: st.umY,
-    info: m.meta.info, planes: m.images, channels: m.meta.channels || null, Z: m.meta.Z || 1, spacing: m.meta.spacing ?? null } });
+    info: m.meta.info, more: m.meta.more || [], planes: m.images, channels: m.meta.channels || null, Z: m.meta.Z || 1, spacing: m.meta.spacing ?? null } });
   busy(false); statusBar();
   showImage();
   boxDone($("#image-box"), loadedSummary());
@@ -762,9 +764,14 @@ function imageOpened(m) {
 
 // ---------- loading ----------
 // what the file says about the image ([label, text] rows); null clears it
-function fileInfo(rows) {
-  const box = $("#file-info"), item = (tag, text, cls) => Object.assign(document.createElement(tag), { textContent: text, className: cls || "" });
-  box.replaceChildren(...(rows || []).flatMap(([k, v]) => [item("dt", k), item("dd", v)]));
+// the details (req/shell/image/file-info): the fields pinned, then every other field the file carries, folded
+function fileInfo(rows, more = []) {
+  const item = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
+  const list = (r) => r.flatMap(([k, v]) => [item("dt", k), item("dd", v)]);
+  $("#file-info").replaceChildren(...list(rows || []));
+  $("#file-more-list").replaceChildren(...list(rows ? more : []));
+  $("#file-more-n").textContent = rows ? String(more.length) : "";
+  $("#file-more").hidden = !rows || !more.length; $("#file-more").open = false;
   $("#file-box").classList.toggle("empty", !rows);
   if (!rows) $("#file-box").open = false;
 }
@@ -794,7 +801,7 @@ function placeLoad() {
 function imageBox() {
   const opening = page.get("opening"), im = page.get("image"), name = opening?.name || im?.name, remoteOn = fromRemote();
   $("#file-name").textContent = remoteOn && name ? "Details" : name || ""; $("#file-box").hidden = !name;
-  fileInfo(opening ? null : im?.info || null);
+  fileInfo(opening ? null : im?.info || null, im?.more || []);
   $("#load").classList.toggle("done", !!im); $("#unload").hidden = !im;
   const listed = remoteOn && recentAll().length > 0;
   $("#image-pick .pick-name").textContent = name || (listed ? "Choose an image" : "No image opened here yet");
@@ -827,7 +834,7 @@ async function openBytes(name, bytes, source) {
   }
   if (st.kept !== kept) return; // another image came meanwhile, or none is open
   const images = im.images;
-  const meta = { W: im.W, H: im.H, Z: im.Z, um: im.um, um_y: im.umY, spacing: im.spacing, info: im.info, channels: im.channels };
+  const meta = { W: im.W, H: im.H, Z: im.Z, um: im.um, um_y: im.umY, spacing: im.spacing, info: im.info, more: im.more, channels: im.channels };
   imageOpened({ type: "opened", meta, images }); settle({ type: "opened", meta }); statusBar();
 }
 async function sha256(bytes) {
@@ -2193,6 +2200,7 @@ async function mountStudy(id) {
   for (const v of new Set(Object.values(viewers))) v.active?.(v === view);
   view.channels(manifest.channels);
   views.mount();
+  algorithms.mount(manifest, base, lifetime.signal);
   const mod = await import(base + manifest.web.module);
   study = (await mod.mount(shell)) || {};
   view.use(study);
@@ -2210,7 +2218,7 @@ const STUDY_BOXES = { processing: "#processing-box", tasks: "#tasks-box", summar
 function studyBoxes() {
   const first = manifest.phases[0]?.key || "load", truthNow = makesTruth();
   for (const [slot, sel] of Object.entries(STUDY_BOXES)) {
-    const b = $(sel), filled = !!b.querySelector("[data-study-panel]");
+    const b = $(sel), filled = !!b.querySelector("[data-study-panel]") || (slot === "processing" && !!manifest.algorithms);
     b.hidden = !filled || (slot === "tasks" && !truthNow) || (slot === "summary" && truthNow);
     b.dataset.opens = slot === "processing" ? "load" : first;
     if (slot === "processing" && first !== "load") b.dataset.folds = first; else delete b.dataset.folds;
@@ -2218,11 +2226,12 @@ function studyBoxes() {
   }
 }
 const viewers = {};
+const algorithms = algorithmChoice({ $, outline, status });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
   lifetime.abort(); lifetime = new AbortController();
-  truth.leave();
+  truth.leave(); algorithms.leave();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
   css?.remove(); css = null;
@@ -2240,7 +2249,7 @@ const shell = {
   $, state: st, page, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
   clearable: (what, fn) => truth.clearable(what, () => { tasks.forget(); fn(); }), showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
-  tasks,
+  tasks, algorithm: algorithms.api,
   get viewer() { return view; }, get study() { return manifest; }, get signal() { return lifetime.signal; }, get makesTruth() { return makesTruth(); },
 };
 const offlineCopy = offline({ $, esc, sizeText, remote, throttled, throttle, stored: () => diskBar(),
