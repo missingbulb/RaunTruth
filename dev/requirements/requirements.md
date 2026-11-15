@@ -307,6 +307,18 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_dialog_motion_page.py`.
   </details>
 
+- `req/shell/drag/escape` Escape in the middle of any drag cancels it: what the drag changed goes back, and the rest of the press does nothing.
+  <details>
+
+  Set by the owner on 2026-11-15. Every drag on the page, the shell's and a study's, cancels on Escape
+  pressed before the button is let go: a ground-truth handle, corner or lasso, Edit Image's crop, lasso
+  or cut, the ruler, the left bar's width, the minimap, the image's pan and the 3D view's turn all go
+  back to where they were when the press began. That Escape does nothing else, no dialog closes on it,
+  and letting go afterwards is no click and no drop.
+  Every drag goes through one wrapper, so a new one cancels the same way. Test:
+  `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
+  </details>
+
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
   <details>
 
