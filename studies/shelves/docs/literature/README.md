@@ -42,8 +42,9 @@ code](topics/datasets-code.md).
    readings in both orientations rather than one.
 7. **No one has measured our hardest cases**: Hebrew spines, home shelves, dark plain spines, turned photos. Our own
    ground truth is the only score of them; the CC0 Shenzhen set can score detection on library shelves, nothing finer.
-8. **Hebrew evidence is thin and self-published**, and no source states which way Hebrew spine titles run: keep the
-   orientation data-driven, and measure our own look-alike confusion matrix.
+8. **Hebrew evidence is thin and mostly self-published.** Z39.41 §6.2 does give the Hebrew spine convention; read
+   through, a Hebrew spine wants the opposite quarter turn to an English one. Count the turn per language in our
+   ground truth before using it as a prior, and measure our own look-alike confusion matrix.
 
 ## Sources not reached
 
