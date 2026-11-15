@@ -453,6 +453,9 @@ try {
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
     && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
+  // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
+  const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
+  check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
   await page.click("#gt-close");
 
   await page.keyboard.press("Control+z");
