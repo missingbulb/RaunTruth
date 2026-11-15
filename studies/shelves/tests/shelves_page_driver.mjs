@@ -228,6 +228,7 @@ try {
   check(await page.evaluate((n) => tess.reads - n, reads0) === 1, "Ctrl+↑ is Flip");
   await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = true; });
   check(!(await press({ key: "Backspace", code: "Backspace", ctrlKey: true })) && (await books(page)).length === 3, "a key does nothing while its button is off");
+  await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = false; });
   await page.keyboard.press("Control+Backspace");
   check((await books(page)).length === 2 && (await rowsOf(page))[0] === "2/2 Books", "Ctrl+Backspace is Not a book", [await books(page), await rowsOf(page)]);
   check(!(await press({ key: "a", code: "KeyA", ctrlKey: true })), "a key the task does not use is left to the page");
