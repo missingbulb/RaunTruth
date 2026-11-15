@@ -54,5 +54,19 @@
         "unlessLineMatches": "/Google Chrome|^\\s*(export )?const [A-Z_]+ = \"(nor-)?(drive|google)[\\w:/-]*\";$/"
       }
     ]
+  },
+  {
+    "id": "timers-in-one-file",
+    "on_fail": "block",
+    "failureMessage": "a timer set anywhere in page code is a cadence nobody can list, a visual effect guessing how long it takes, or a poll running on in a hidden tab",
+    "fix": "a visual effect is a CSS transition or animation, acted on at transitionend or animationend; background work goes through every(), settle(), within() or after() in web/pacing.js; where only a raw timer will do, end the line `// timed here: <reason>`",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!pacing\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/\\bset(Timeout|Interval)\\(|\\bAbortSignal\\.timeout\\(/",
+        "what": "sets a timer outside web/pacing.js: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*timed here:/"
+      }
+    ]
   }
 ]
