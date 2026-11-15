@@ -457,42 +457,42 @@ function clicked(e) {
   if (isCandidate(h)) return openMenu(h, e.clientX, e.clientY);
 }
 
-// A menu of buttons at the pointer: items are [label, fn returning the next model] or [note, null].
+// A menu of buttons at the pointer: items are [label, fn returning the next model], [label, null, why it does not apply
+// here], greyed, or [note, null].
 export function showMenu(items, x, y) {
   const m = $('ctx');
-  m.replaceChildren(...items.map(([label, fn]) => {
-    if (!fn) { const p = document.createElement('div'); p.className = 'note'; p.textContent = label; return p; }
+  m.replaceChildren(...items.map(([label, fn, why]) => {
+    if (!fn && !why) { const p = document.createElement('div'); p.className = 'note'; p.textContent = label; return p; }
     const b = document.createElement('button'); b.type = 'button'; b.className = 'item'; b.textContent = label;
-    b.onclick = () => { closeMenu(); apply(fn()); V.redraw(); };
+    if (fn) b.onclick = () => { closeMenu(); apply(fn()); V.redraw(); };
+    else { b.disabled = true; b.title = why; }
     return b;
   }));
   m.hidden = false;
   m.style.left = `${Math.min(x, innerWidth - m.offsetWidth - 8)}px`; m.style.top = `${Math.min(y, innerHeight - m.offsetHeight - 8)}px`;
 }
 
+// The same options on every vessel, in one order; what does not apply to what was clicked stays, greyed, saying why.
 function openMenu(h, x, y) {
   const items = [];
   const zScale = V.S.zs;   // µm per slice, as the view draws it
-  if (isCandidate(h)) {
-    const c = model.segments[h.segment].confidence;
-    items.push(['Approve this vessel (A)', () => Mo.review(model, h.segment, 'accepted')]);
-    items.push(['Decline this vessel (D)', () => Mo.review(model, h.segment, 'rejected')]);
-    if (c != null) items.push([`low confidence: ${c.toFixed(2)}`, null]);
-  }
-  if (h.segment != null) {
-    items.push(['Delete this segment', () => Mo.deleteSegment(model, h.segment)]);
-    items.push(['Split this segment here', () => splitAt(h)]);
-    items.push(['Add a curve point here', () => Mo.splitSegment(model, h.segment, h.t)[0]]);
-  } else {
-    // every vessel at the point counts, a low-confidence one too, as the edits see them
-    const d = Mo.neighbours(model, h.node).length;
-    if (d >= 3) {
-      items.push(['Look at it from the side: crossing or split?', () => { lookAt(h.node); return model; }]);
-      items.push(['Wrong junction: these vessels cross, split them', () => Mo.splitJunction(model, h.node, zScale)]);
-    }
-    if (d === 2) items.push(['Remove this point: its two lines become one', () => Mo.removeBend(model, h.node)]);
-    items.push([d === 1 ? 'Delete this tip and its segment' : 'Delete this point and its segments', () => Mo.deleteNode(model, h.node)]);
-  }
+  const seg = h.segment != null, cand = isCandidate(h);
+  // every vessel at the point counts, a low-confidence one too, as the edits see them
+  const d = seg ? 0 : Mo.neighbours(model, h.node).length;
+  const onSeg = 'Right-click the vessel’s line, between its points';
+  const onPoint = handles() ? 'Right-click one of the vessel’s points' : 'Zoom in to pick a vessel’s points';
+  const opt = (label, ok, why, fn) => items.push(ok ? [label, fn] : [label, null, why]);
+  opt('Approve this vessel (A)', cand, 'Only for a faded vessel still to decide', () => Mo.review(model, h.segment, 'accepted'));
+  opt('Decline this vessel (D)', cand, 'Only for a faded vessel still to decide', () => Mo.review(model, h.segment, 'rejected'));
+  if (cand) { const c = model.segments[h.segment].confidence; if (c != null) items.push([`low confidence: ${c.toFixed(2)}`, null]); }
+  opt('Delete this segment', seg, onSeg, () => Mo.deleteSegment(model, h.segment));
+  opt('Split this segment here', seg, onSeg, () => splitAt(h));
+  opt('Add a curve point here', seg, onSeg, () => Mo.splitSegment(model, h.segment, h.t)[0]);
+  const junction = seg ? onPoint : 'Only where three or more vessels meet';
+  opt('Look at it from the side: crossing or split?', d >= 3, junction, () => { lookAt(h.node); return model; });
+  opt('Wrong junction: these vessels cross, split them', d >= 3, junction, () => Mo.splitJunction(model, h.node, zScale));
+  opt('Remove this point: its two lines become one', d === 2, seg ? onPoint : 'Only on a point between two lines', () => Mo.removeBend(model, h.node));
+  opt(d === 1 ? 'Delete this tip and its segment' : 'Delete this point and its segments', !seg, onPoint, () => Mo.deleteNode(model, h.node));
   showMenu(items, x, y);
   hover = h; V.redraw();
 }
