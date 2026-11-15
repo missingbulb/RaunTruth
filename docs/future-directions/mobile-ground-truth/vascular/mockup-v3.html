@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vascular phone tagging: mockup v3</title>
+<style>
+  :root {
+    --page: #eef0f3; --ink: #15181d; --muted: #5d6673; --surface: #ffffff; --line: #d5dae1;
+    --btn: #e6e9ee; --btn-ink: #15181d; --primary: #2457d6; --primary-ink: #ffffff;
+    --bezel: #1b1e24; --track: #d5dae1; --done: #2457d6; --chosen: #cfdcff; --chosen-line: #2457d6;
+    /* the evidence is grey, so the marks are the two hues grey never gives, told apart without red or green */
+    --item: #ffb000; --ask: #4aa8ff; --rim: #05070a;
+    --p1: #2457d6; --p2: #8a5cd6; --p3: #b9c0cb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0e1013; --ink: #e9ecf1; --muted: #98a2b0; --surface: #191c22; --line: #2c313a;
+      --btn: #262b34; --btn-ink: #e9ecf1; --primary: #6f9bff; --primary-ink: #08122b;
+      --bezel: #000000; --track: #333945; --done: #6f9bff; --chosen: #223a78; --chosen-line: #6f9bff;
+      --p1: #6f9bff; --p2: #b294f2; --p3: #4a515d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 4px; max-width: 1100px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  header p { margin: 0 0 6px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 6px 24px 0; }
+  .legend i { display: inline-block; width: 26px; height: 10px; border-radius: 5px; vertical-align: middle; margin-right: 6px; border: 1px solid var(--line); }
+  .row { display: flex; flex-wrap: wrap; gap: 28px; padding: 20px 24px 40px; align-items: flex-start; }
+  figure { margin: 0; flex: 0 0 auto; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 376px; height: 756px; padding: 8px; border-radius: 34px; background: var(--bezel); }
+  .screen { width: 360px; height: 740px; border-radius: 27px; overflow: hidden; background: var(--surface);
+            display: flex; flex-direction: column; position: relative; }
+  .top { height: 44px; flex: 0 0 44px; display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 13px; color: var(--muted); }
+  .bar { flex: 1; height: 6px; background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+  .bar b { position: absolute; inset: 0 auto 0 0; background: var(--done); }
+  .q { padding: 4px 16px 0; font-size: 19px; font-weight: 650; }
+  .hint { padding: 3px 16px 0; font-size: 13px; color: var(--muted); }
+  .grow { flex: 1; }
+  .img { margin: 0 10px; border-radius: 12px; overflow: hidden; background: #060607; flex: 0 0 auto; line-height: 0; }
+  .img + .img, .pair + .img, .img + .pair { margin-top: 6px; }
+  .pair { margin: 0 10px; display: flex; gap: 6px; flex: 0 0 auto; }
+  .pair .img { margin: 0; }
+  /* the answers sit right under the evidence; nothing but them in the thumb's reach */
+  .thumb { padding: 10px 12px 30px; }
+  .btns { display: flex; gap: 8px; }
+  .btn { flex: 1; height: 80px; border-radius: 16px; background: var(--btn); color: var(--btn-ink);
+         display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; font-weight: 650; text-align: center; padding: 0 4px; }
+  .btn small { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+  .btn svg { margin-bottom: 5px; }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); }
+  .btn.primary small { color: inherit; opacity: .85; }
+  .btn.chosen { background: var(--chosen); outline: 2px solid var(--chosen-line); outline-offset: -2px; }
+  .low { display: flex; gap: 8px; margin-top: 8px; }
+  .low .btn { height: 44px; font-size: 14px; font-weight: 550; border-radius: 12px; }
+  .quarters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .quarters .btn { height: 50px; flex-direction: row; gap: 10px; font-size: 14px; font-weight: 550; border-radius: 12px; }
+  .quarters .btn svg { margin: 0; }
+  .lbl { font-size: 12px; color: var(--muted); padding: 8px 4px 0; }
+  .card { margin: 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv:last-child { border: 0; }
+  .kv span:last-child { text-align: right; color: var(--muted); }
+  .parts { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0 6px; }
+  .parts i { display: block; }
+  .key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+  .key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+  svg text { font-family: system-ui, sans-serif; }
+  .v { fill: none; stroke: #e2e2e2; stroke-linecap: round; stroke-linejoin: round; filter: url(#glow); }
+  .item { fill: none; stroke: var(--item); stroke-width: 2.2; stroke-linecap: round; }
+  .ask { fill: none; stroke: var(--ask); stroke-width: 2.2; stroke-linecap: round; }
+  .rimk { fill: none; stroke: var(--rim); stroke-width: 5; stroke-linecap: round; opacity: .85; }
+  .cap { fill: #c9cfd8; font-size: 10px; paint-order: stroke; stroke: var(--rim); stroke-width: 2.5px; }
+  .capi { fill: var(--item); font-size: 10.5px; font-weight: 700; paint-order: stroke; stroke: var(--rim); stroke-width: 3px; }
+  .capa { fill: var(--ask); font-size: 10.5px; font-weight: 700; paint-order: stroke; stroke: var(--rim); stroke-width: 3px; }
+  .pic { stroke: currentColor; fill: none; stroke-width: 4; stroke-linecap: round; }
+  .picf { fill: currentColor; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="axial" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="9 5"/></filter>
+    <filter id="speckle" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .6 -.2"/>
+    </filter>
+  </defs>
+</svg>
+
+<header>
+  <h1>Vascular Measurements: ground-truth tagging on a phone (mockup v3)</h1>
+  <p>After the usage audit. One sitting instead of three rounds; the evidence for each answer is one straightened strip read left
+     to right, right above the answers; nothing blinks and nothing plays; depth is never a colour; the chart question is gone;
+     Can't tell is a button. Vessel drawings are placeholders, not data.</p>
+</header>
+<div class="legend">
+  <span><i style="background:linear-gradient(90deg,#222,#e2e2e2)"></i>CD31 signal, grey, each crop in its own window</span>
+  <span><i style="background:#ffb000"></i>the item asked about (amber brackets and ticks, beside it, never on it)</span>
+  <span><i style="background:#4aa8ff"></i>what the question points at: a landing, a lane, a depth (blue)</span>
+</div>
+
+<div class="row">
+
+<!-- 1 entry -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span style="font-weight:650;color:var(--ink);font-size:15px">Vascular · tagging</span><span class="grow"></span><span>Dana</span></div>
+  <div class="card">
+    <h2>cd31_frontal_x20 r 1</h2>
+    <p>One sitting · about 14 min · 5 decks of 40</p>
+    <svg viewBox="0 0 300 190" width="100%" style="margin-top:10px;border-radius:10px;background:#060607;display:block">
+      <rect width="300" height="190" filter="url(#speckle)" opacity=".7"/>
+      <g class="v" stroke-width="2.6">
+        <path d="M10 40 C80 26 120 70 190 58 S270 26 295 46"/><path d="M60 5 C70 50 40 90 80 126 S60 170 90 188"/>
+        <path d="M5 120 C90 108 150 146 220 126 S280 146 298 134"/><path d="M200 5 C180 50 230 90 210 140 S240 170 230 188"/>
+        <path d="M120 64 C140 96 150 114 150 136" opacity=".6"/><path d="M80 126 C120 158 160 164 215 160" opacity=".8"/>
+      </g>
+      <g fill="#000" opacity=".82"><rect x="0" y="0" width="300" height="47.5"/><rect x="150" y="47.5" width="150" height="47.5"/></g>
+      <rect x="76" y="48.5" width="73" height="46" fill="none" stroke="#05070a" stroke-width="5"/>
+      <rect x="76" y="48.5" width="73" height="46" fill="none" stroke="#ffb000" stroke-width="2"/>
+      <text x="82" y="62" class="capi">Area 7 · next</text>
+    </svg>
+    <div class="parts"><i style="width:34%;background:var(--p1)"></i><i style="width:9%;background:var(--p2)"></i><i style="width:57%;background:var(--p3)"></i></div>
+    <div class="key"><span><i style="background:var(--p1)"></i>decided by a person</span><span><i style="background:var(--p2)"></i>by measurement</span><span><i style="background:var(--p3)"></i>default, not checked</span></div>
+  </div>
+  <div class="card" style="margin-top:8px;border:0;padding:2px 14px">
+    <div class="kv"><span>Segments so far</span><span>196, of which 112 rest on a default</span></div>
+    <div class="kv"><span>Ends leaving the slab</span><span>66 settled by rule · 20 asked as a check</span></div>
+    <div class="kv"><span>Afterwards</span><span>one follow-up deck, about 2 min</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn primary">Continue<small>deck 2 of 5 · 40 answers · about 3 min</small></div></div>
+    <div class="low"><div class="btn">Other stack</div><div class="btn">How to answer</div></div>
+  </div>
+</div></div>
+<figcaption><b>1 · Entry.</b> One sitting, not three rounds: a junction is asked after its own branches in the same deck and
+skipped if one of them was judged noise, so nothing waits for the lab. The bar says how much of the count a person decided, how
+much a measurement did, and how much is still the extractor's default: the last part is inside the count's stated range.</figcaption></figure>
+
+<!-- 2 dead end -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><div class="bar"><b style="width:30%"></b></div><span>12/40</span></div>
+  <div class="q">The branch between the amber ticks</div>
+  <div class="hint">Read the strip left to right: branch, gap, where it would land.</div>
+  <div class="grow"></div>
+  <div class="img"><svg viewBox="0 0 340 250" width="340" height="250">
+    <rect width="340" height="250" fill="#060607"/><rect width="340" height="250" filter="url(#speckle)"/>
+    <g class="v"><path stroke-width="7" d="M-5 196 C70 176 130 196 200 174 S300 166 345 142"/>
+      <path stroke-width="3.4" opacity=".8" d="M150 186 C160 156 172 138 182 118"/>
+      <path stroke-width="3" opacity=".2" stroke-dasharray="4 9" d="M186 110 C196 90 210 72 228 58"/>
+      <path stroke-width="4" d="M236 52 C262 36 300 32 345 16"/></g>
+    <path class="rimk" d="M128 176 l8 4 M194 104 l8 4"/><path class="item" d="M128 176 l8 4 M194 104 l8 4"/>
+    <path class="rimk" d="M250 62 l-8 -14"/><path class="ask" d="M250 62 l-8 -14"/>
+    <text x="100" y="170" class="capi">branch</text><text x="254" y="76" class="capa">landing</text>
+    <text x="8" y="242" class="cap">all depths · 60 µm across</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 72" width="340" height="72">
+    <rect width="340" height="72" fill="#060607"/><rect width="340" height="72" filter="url(#speckle)"/>
+    <rect x="-4" y="25" width="134" height="10" fill="#e2e2e2" opacity=".8" filter="url(#soft)"/>
+    <rect x="130" y="26" width="92" height="8" fill="#e2e2e2" opacity=".2" filter="url(#soft)"/>
+    <rect x="222" y="24" width="124" height="12" fill="#e2e2e2" opacity=".9" filter="url(#soft)"/>
+    <path class="rimk" d="M8 4 v8 M130 4 v8 M8 48 v8 M130 48 v8"/><path class="item" d="M8 4 v8 M130 4 v8 M8 48 v8 M130 48 v8"/>
+    <path class="rimk" d="M222 4 v8 M222 48 v8"/><path class="ask" d="M222 4 v8 M222 48 v8"/>
+    <text x="46" y="68" class="capi">branch</text><text x="164" y="68" class="cap">gap</text><text x="262" y="68" class="capa">landing</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 40" width="340" height="40">
+    <rect width="340" height="40" fill="#060607"/><rect width="340" height="40" filter="url(#speckle)"/>
+    <rect x="62" y="12" width="10" height="12" fill="#e2e2e2" opacity=".7" filter="url(#soft)"/>
+    <text x="8" y="35" class="cap">for comparison: the same strip a quarter turn away</text>
+  </svg></div>
+  <div class="thumb">
+    <div class="btns">
+      <div class="btn"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" stroke-dasharray="1 7" opacity=".5" d="M3 6 H51"/></svg>Noise<small>no band</small></div>
+      <div class="btn"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" d="M3 6 H22"/></svg>Stops<small>vessel, then dark</small></div>
+      <div class="btn"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" d="M3 6 H22 M36 6 H51"/><path class="pic" opacity=".45" d="M24 6 H34"/></svg>Runs on<small>vessel right through</small></div>
+    </div>
+    <div class="low"><div class="btn">Back</div><div class="btn">Can't tell</div></div>
+  </div>
+</div></div>
+<figcaption><b>2 · Dead end.</b> v2 showed strips of the branch, which is not where the doubt is, and a dotted path blinking over
+the gap. Here the lab straightens the whole proposed path into one strip: the answer is whether the band runs through the gap,
+judged against the same strip turned a quarter. The marks sit beside the signal, so nothing blinks. The strip is 13 mm above the
+answers, not 79. About 4 s from steps (v2: 6.4).</figcaption></figure>
+
+<!-- 3 carries on -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><div class="bar"><b style="width:52%"></b></div><span>21/40</span></div>
+  <div class="q">Past the crossing vessel</div>
+  <div class="hint">Does the amber branch show again on the far side?</div>
+  <div class="grow"></div>
+  <div class="img"><svg viewBox="0 0 340 250" width="340" height="250">
+    <rect width="340" height="250" fill="#060607"/><rect width="340" height="250" filter="url(#speckle)"/>
+    <g class="v"><path stroke-width="7" d="M-5 150 C80 140 150 120 200 116 S290 100 345 70"/>
+      <path stroke-width="5" d="M120 -5 C130 40 150 80 166 116"/>
+      <path stroke-width="4" opacity=".28" d="M171 130 C182 164 192 204 200 255"/></g>
+    <path class="rimk" d="M104 8 l12 -3 M146 104 l12 -4"/><path class="item" d="M104 8 l12 -3 M146 104 l12 -4"/>
+    <path class="rimk" d="M158 140 l12 -4 M184 240 l12 -3"/><path class="ask" d="M158 140 l12 -4 M184 240 l12 -3"/>
+    <text x="62" y="30" class="capi">branch</text><text x="208" y="200" class="capa">far side</text>
+    <text x="8" y="242" class="cap">all depths · 70 µm across</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 72" width="340" height="72">
+    <rect width="340" height="72" fill="#060607"/><rect width="340" height="72" filter="url(#speckle)"/>
+    <rect x="-4" y="24" width="150" height="12" fill="#e2e2e2" opacity=".85" filter="url(#soft)"/>
+    <rect x="146" y="6" width="26" height="48" fill="#e2e2e2" opacity=".95" filter="url(#soft)"/>
+    <rect x="176" y="26" width="170" height="9" fill="#e2e2e2" opacity=".26" filter="url(#soft)"/>
+    <path class="rimk" d="M8 4 v8 M140 4 v8 M8 50 v8 M140 50 v8"/><path class="item" d="M8 4 v8 M140 4 v8 M8 50 v8 M140 50 v8"/>
+    <path class="rimk" d="M180 4 v8 M332 4 v8 M180 50 v8 M332 50 v8"/><path class="ask" d="M180 4 v8 M332 4 v8 M180 50 v8 M332 50 v8"/>
+    <text x="50" y="68" class="capi">branch</text><text x="232" y="68" class="capa">far side</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 40" width="340" height="40">
+    <rect width="340" height="40" fill="#060607"/><rect width="340" height="40" filter="url(#speckle)"/>
+    <rect x="146" y="-6" width="26" height="40" fill="#e2e2e2" opacity=".95" filter="url(#soft)"/>
+    <text x="8" y="35" class="cap">for comparison: a lane beside it</text>
+  </svg></div>
+  <div class="thumb">
+    <div class="btns">
+      <div class="btn"><svg width="54" height="14" viewBox="0 0 54 14"><path class="pic" d="M3 7 H22"/><path class="pic" stroke-width="5" d="M27 2 V12"/></svg>Stops at it<small>dark beyond</small></div>
+      <div class="btn"><svg width="54" height="14" viewBox="0 0 54 14"><path class="pic" d="M3 7 H22 M32 7 H51"/><path class="pic" stroke-width="5" d="M27 2 V12"/></svg>Carries on<small>a band beyond</small></div>
+    </div>
+    <div class="low"><div class="btn">Back</div><div class="btn">Can't tell</div></div>
+  </div>
+</div></div>
+<figcaption><b>3 · A three-way junction that might be a crossing.</b> The same template as frame 2, so one habit serves both:
+the branch straightened through the vessel it meets, and a parallel lane for comparison (a neighbouring vessel in the lane would
+show in both). "The branch from above" is gone: the branch is the amber one. About 3.5 s (v2: 4.3).</figcaption></figure>
+
+<!-- 4 join or cross -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><div class="bar"><b style="width:60%"></b></div><span>24/40</span></div>
+  <div class="q">One vessel in each picture, or the same two in both?</div>
+  <div class="hint">The same spot, at two depths the lab picked.</div>
+  <div class="grow"></div>
+  <div class="pair">
+    <div class="img"><svg viewBox="0 0 167 167" width="167" height="167">
+      <rect width="167" height="167" fill="#060607"/><rect width="167" height="167" filter="url(#speckle)"/>
+      <g class="v"><path stroke-width="6" d="M-5 108 C40 100 60 86 84 84 S140 68 172 44"/>
+        <path stroke-width="5" opacity=".1" d="M40 -5 C52 30 70 60 86 84 S118 140 128 172"/></g>
+      <path class="rimk" d="M64 64 h-8 v8 M104 64 h8 v8 M64 104 h-8 v-8 M104 104 h8 v-8"/><path class="item" d="M64 64 h-8 v8 M104 64 h8 v8 M64 104 h-8 v-8 M104 104 h8 v-8"/>
+      <text x="8" y="16" class="capa">upper · slices 3 to 5</text>
+    </svg></div>
+    <div class="img"><svg viewBox="0 0 167 167" width="167" height="167">
+      <rect width="167" height="167" fill="#060607"/><rect width="167" height="167" filter="url(#speckle)"/>
+      <g class="v"><path stroke-width="6" opacity=".1" d="M-5 108 C40 100 60 86 84 84 S140 68 172 44"/>
+        <path stroke-width="5" d="M40 -5 C52 30 70 60 86 84 S118 140 128 172"/></g>
+      <path class="rimk" d="M64 64 h-8 v8 M104 64 h8 v8 M64 104 h-8 v-8 M104 104 h8 v-8"/><path class="item" d="M64 64 h-8 v8 M104 64 h8 v8 M64 104 h-8 v-8 M104 104 h8 v-8"/>
+      <text x="8" y="16" class="capa">lower · slices 9 to 11</text>
+    </svg></div>
+  </div>
+  <div class="img"><svg viewBox="0 0 340 120" width="340" height="120">
+    <rect width="340" height="120" fill="#060607"/><rect width="340" height="120" filter="url(#speckle)" opacity=".6"/>
+    <ellipse cx="170" cy="34" rx="22" ry="9" fill="#e2e2e2" filter="url(#axial)"/>
+    <rect x="-10" y="80" width="360" height="13" fill="#e2e2e2" filter="url(#axial)" opacity=".9"/>
+    <path class="rimk" d="M6 22 v24 M6 74 v24"/><path class="ask" d="M6 22 v24 M6 74 v24"/>
+    <text x="14" y="38" class="capa">upper</text><text x="14" y="70" class="capa">lower</text>
+    <path class="rimk" d="M150 6 v8 M190 6 v8"/><path class="item" d="M150 6 v8 M190 6 v8"/>
+    <text x="190" y="114" class="cap">from the side · 9 slices tall</text>
+  </svg></div>
+  <div class="thumb">
+    <div class="btns">
+      <div class="btn"><svg width="40" height="22" viewBox="0 0 40 22"><ellipse class="picf" cx="20" cy="5" rx="7" ry="3.5"/><rect class="picf" x="4" y="15" width="32" height="5" rx="2.5"/></svg>Only cross<small>one in each</small></div>
+      <div class="btn"><svg width="40" height="22" viewBox="0 0 40 22"><ellipse class="picf" cx="20" cy="11" rx="8" ry="6"/><rect class="picf" x="4" y="8.5" width="32" height="5" rx="2.5"/></svg>Join<small>both in both</small></div>
+    </div>
+    <div class="low"><div class="btn">Back</div><div class="btn">Can't tell</div></div>
+  </div>
+</div></div>
+<figcaption><b>4 · Join or only cross</b>, still asked only where depth shows two peaks. v2 played nine slices there and back
+(1.8 to 3.6 s, the earlier slices held in memory) with step buttons 0.7 mm above the answers. Here the lab cuts the two slabs at
+the two peaks and shows them side by side: no playback, no memory, no stepping, and no colour, so a red-green colour-blind person
+reads it the same. The side cut keeps depth as a position. About 4.3 s (v2: 7.4).</figcaption></figure>
+
+<!-- 5 area -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><div class="bar"><b style="width:95%"></b></div><span>38/40</span></div>
+  <div class="q">Area 7: every vessel drawn, nothing else?</div>
+  <div class="hint">Amber: the model's lines. A coarse look is enough.</div>
+  <div class="grow"></div>
+  <div class="img"><svg viewBox="0 0 340 300" width="340" height="300">
+    <rect width="340" height="300" fill="#060607"/><rect width="340" height="300" filter="url(#speckle)"/>
+    <g class="v"><path stroke-width="5" d="M-5 80 C60 60 120 120 190 100 S300 50 345 70"/>
+      <path stroke-width="4" d="M70 -5 C80 70 50 130 90 195 S70 270 100 305"/>
+      <path stroke-width="4" d="M90 195 C150 215 200 265 260 255 S320 265 345 245"/>
+      <path stroke-width="5" d="M230 -5 C210 70 260 130 240 205 S270 270 262 305"/>
+      <path stroke-width="2.4" opacity=".5" d="M250 160 C280 150 310 170 345 156"/></g>
+    <g fill="none" stroke="#ffb000" stroke-width="1.3" opacity=".9"><path d="M-5 80 C60 60 120 120 190 100 S300 50 345 70"/><path d="M70 -5 C80 70 50 130 90 195 S70 270 100 305"/>
+      <path d="M90 195 C150 215 200 265 260 255 S320 265 345 245"/><path d="M230 -5 C210 70 260 130 240 205 S270 270 262 305"/></g>
+    <path d="M170 0 V300 M0 150 H340" stroke="#4aa8ff" stroke-width="1" stroke-dasharray="2 6" opacity=".8"/>
+    <text x="8" y="16" class="capa">A</text><text x="178" y="16" class="capa">B</text><text x="8" y="166" class="capa">C</text><text x="178" y="166" class="capa">D</text>
+    <text x="8" y="292" class="cap">all depths · 165 µm across</text>
+  </svg></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn" style="height:60px">Looks right</div></div>
+    <div class="lbl">Something's off, in the quarter:</div>
+    <div class="quarters">
+      <div class="btn"><svg width="22" height="20" viewBox="0 0 22 20"><rect x="1" y="1" width="20" height="18" rx="3" fill="none" stroke="currentColor" opacity=".5"/><rect class="picf" x="1" y="1" width="10" height="9" rx="2"/></svg>A</div>
+      <div class="btn"><svg width="22" height="20" viewBox="0 0 22 20"><rect x="1" y="1" width="20" height="18" rx="3" fill="none" stroke="currentColor" opacity=".5"/><rect class="picf" x="11" y="1" width="10" height="9" rx="2"/></svg>B</div>
+      <div class="btn"><svg width="22" height="20" viewBox="0 0 22 20"><rect x="1" y="1" width="20" height="18" rx="3" fill="none" stroke="currentColor" opacity=".5"/><rect class="picf" x="1" y="10" width="10" height="9" rx="2"/></svg>C</div>
+      <div class="btn"><svg width="22" height="20" viewBox="0 0 22 20"><rect x="1" y="1" width="20" height="18" rx="3" fill="none" stroke="currentColor" opacity=".5"/><rect class="picf" x="11" y="10" width="10" height="9" rx="2"/></svg>D</div>
+    </div>
+    <div class="low"><div class="btn">Back</div><div class="btn">Can't tell</div></div>
+  </div>
+</div></div>
+<figcaption><b>5 · The area's last look.</b> v2 asked a finger to find a faint capillary under itself with a magnifier, which
+takes the second hand and 4 to 6 s a mark. Here the lab searches: signal outside the model's lines was already asked earlier in
+the deck as ordinary pieces. What is left is a coarse look, and "off" is one tap that names a quarter, on a 28 mm button in the thumb's reach;
+the lab or the desktop takes it from there, and the area is not counted reviewed until then. About 8 s (v2: 14 to 22).</figcaption></figure>
+
+<!-- 6 back -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><div class="bar"><b style="width:28%"></b></div><span>11/40 · earlier answer</span></div>
+  <div class="q">The branch between the amber ticks</div>
+  <div class="hint">You answered this 20 s ago. Tap another answer to change it.</div>
+  <div class="grow"></div>
+  <div class="img"><svg viewBox="0 0 340 250" width="340" height="250">
+    <rect width="340" height="250" fill="#060607"/><rect width="340" height="250" filter="url(#speckle)"/>
+    <g class="v"><path stroke-width="6" d="M-5 60 C70 80 150 70 210 96 S300 120 345 116"/>
+      <path stroke-width="3.2" opacity=".75" d="M120 78 C128 110 122 140 130 168"/>
+      <path stroke-width="4" d="M40 255 C80 228 150 232 210 214 S300 200 345 204"/></g>
+    <path class="rimk" d="M100 84 l10 -2 M112 170 l10 -2"/><path class="item" d="M100 84 l10 -2 M112 170 l10 -2"/>
+    <path class="rimk" d="M150 236 l-10 -12"/><path class="ask" d="M150 236 l-10 -12"/>
+    <text x="64" y="130" class="capi">branch</text><text x="156" y="244" class="capa">landing</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 72" width="340" height="72">
+    <rect width="340" height="72" fill="#060607"/><rect width="340" height="72" filter="url(#speckle)"/>
+    <rect x="-4" y="25" width="134" height="10" fill="#e2e2e2" opacity=".75" filter="url(#soft)"/>
+    <rect x="222" y="24" width="124" height="12" fill="#e2e2e2" opacity=".9" filter="url(#soft)"/>
+    <path class="rimk" d="M8 4 v8 M130 4 v8 M8 48 v8 M130 48 v8"/><path class="item" d="M8 4 v8 M130 4 v8 M8 48 v8 M130 48 v8"/>
+    <path class="rimk" d="M222 4 v8 M222 48 v8"/><path class="ask" d="M222 4 v8 M222 48 v8"/>
+    <text x="46" y="68" class="capi">branch</text><text x="164" y="68" class="cap">gap</text><text x="262" y="68" class="capa">landing</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 40" width="340" height="40">
+    <rect width="340" height="40" fill="#060607"/><rect width="340" height="40" filter="url(#speckle)"/>
+    <text x="8" y="35" class="cap">for comparison: the same strip a quarter turn away</text>
+  </svg></div>
+  <div class="thumb">
+    <div class="btns">
+      <div class="btn"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" stroke-dasharray="1 7" opacity=".5" d="M3 6 H51"/></svg>Noise<small>no band</small></div>
+      <div class="btn chosen"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" d="M3 6 H22"/></svg>Stops<small>your answer</small></div>
+      <div class="btn"><svg width="54" height="12" viewBox="0 0 54 12"><path class="pic" d="M3 6 H22 M36 6 H51"/><path class="pic" opacity=".45" d="M24 6 H34"/></svg>Runs on<small>vessel right through</small></div>
+    </div>
+    <div class="low"><div class="btn">Earlier still</div><div class="btn primary">Keep · go on to 13</div></div>
+  </div>
+</div></div>
+<figcaption><b>6 · Back, and coming back after an interruption.</b> Back shows the earlier item with its answer lit, so a wrong
+tap is fixed with one tap, and a deck reopened after a call starts on this screen: the last thing answered, as a reminder of
+what "faint" looked like. Back and Can't tell are 44 px buttons above the phone's own gesture strip, not words inside it. Here
+the gap is dark and the answer is an open end: it stays in the count's range, never "settled".</figcaption></figure>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookshelf Reader: phone ground truth, v2 (mock-up)</title>
+<style>
+  :root {
+    --page: #e9e6e0; --ink: #1c1b19; --soft: #6a665f; --screen: #faf8f4; --card: #ffffff;
+    --line: #d6d1c7; --go: #1f6f4a; --go-ink: #ffffff; --no: #9b2c2c; --btn: #efece5;
+    --mark: #ffd400; --mark-under: #111; --bezel: #24221f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #121110; --ink: #f0ede6; --soft: #a39e94; --screen: #1b1a18; --card: #26241f;
+      --line: #3a372f; --go: #3fa873; --go-ink: #0c1a12; --no: #e07a7a; --btn: #302d27;
+      --bezel: #050505;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--page); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", Arial, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 36px 0 12px; color: var(--soft); font-weight: 600; }
+  p.lead { margin: 0 0 20px; color: var(--soft); max-width: 70ch; }
+  .row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+  figure { margin: 0; flex: none; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--soft); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 360px; height: 740px; border: 8px solid var(--bezel); border-radius: 34px; background: var(--screen);
+    display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .bar { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--soft); }
+  .bar .count { color: var(--ink); font-weight: 600; }
+  .bar .fill { flex: 1; }
+  .prog { display: flex; gap: 3px; padding: 0 16px; }
+  .prog i { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; display: block; }
+  .prog i b { display: block; height: 100%; background: var(--go); }
+  .stage { flex: 1; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .q { font-size: 22px; font-weight: 650; margin: 2px 0 0; }
+  .hint { font-size: 13px; color: var(--soft); margin: -6px 0 0; }
+  .thumb { padding: 12px 16px 22px; display: grid; gap: 10px; }
+  .two { grid-template-columns: 1fr 1fr; }
+  .five { grid-template-columns: repeat(5, 1fr); }
+  button { font: inherit; font-size: 17px; font-weight: 600; min-height: 60px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--btn); color: var(--ink); padding: 8px 10px; }
+  button.go { background: var(--go); color: var(--go-ink); border-color: transparent; }
+  button.no { color: var(--no); }
+  button.small { min-height: 46px; font-size: 14px; font-weight: 500; }
+  button.read { min-height: 58px; font-size: 20px; text-align: start; padding-inline: 16px; background: var(--card); }
+  .links { display: flex; justify-content: space-between; font-size: 13px; color: var(--soft); padding: 0 4px; }
+
+  /* spines */
+  .shelf { display: flex; align-items: flex-end; gap: 2px; background: #3b2a1c; padding: 8px 6px 0; border-bottom: 9px solid #5a4028;
+    border-radius: 4px; height: var(--h, 120px); overflow: hidden; }
+  .sp { flex: none; width: var(--w, 20px); height: var(--t, 96%); background: var(--c, #456); border-radius: 2px 2px 0 0;
+    color: var(--f, #f3e9c8); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; letter-spacing: .3px; position: relative; }
+  .sp.lean { transform: rotate(-5deg); transform-origin: bottom left; margin-right: 6px; }
+  .sp.cut { background: #000 !important; color: transparent; }
+  .sp.cur { outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); z-index: 1; }
+  .sp.dim { opacity: .35; }
+  .gap { flex: none; display: flex; gap: 2px; align-items: flex-end; height: 100%; padding: 0 2px; position: relative;
+    outline: 2px dashed var(--mark); outline-offset: 1px; box-shadow: 0 0 0 4px var(--mark-under); }
+  .chip { border-radius: 6px; height: var(--h, 62px); background: var(--c, #456); color: var(--f, #f3e9c8); display: flex;
+    align-items: center; justify-content: space-between; padding: 0 14px; gap: 12px; font-weight: 700; position: relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), inset 0 10px 14px -10px rgba(255,255,255,.35); }
+  .chip .t { font-size: 22px; } .chip .a { font-size: 14px; font-weight: 600; opacity: .9; } .chip .p { font-size: 10px; opacity: .8;
+    border: 1px solid currentColor; padding: 2px 5px; border-radius: 3px; }
+  .chip .flip { position: absolute; top: -12px; inset-inline-end: -6px; background: var(--card); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 20px; font-size: 12px; padding: 4px 10px; font-weight: 600; }
+  .linebox { outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); border-radius: 3px; padding: 0 4px; }
+  .zoom { border-radius: 8px; background: var(--c); color: var(--f); height: 96px; display: flex; align-items: center;
+    justify-content: center; font-size: 40px; font-weight: 800; letter-spacing: 1px; filter: blur(.5px) contrast(.92); }
+  .swipe { display: flex; justify-content: space-between; font-size: 12px; color: var(--soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .toks { display: flex; flex-wrap: wrap; gap: 8px; direction: rtl; }
+  .tok { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 20px; background: var(--card); }
+  .tok.bad { border: 2px solid var(--no); }
+  .alts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .alts button { font-size: 20px; min-height: 54px; }
+  .entry { flex: 1; display: flex; flex-direction: column; padding: 28px 20px 0; gap: 14px; }
+  .entry h3 { font-size: 26px; margin: 0; }
+  .photo { display: flex; gap: 12px; align-items: center; }
+  .photo .pic { width: 64px; height: 48px; border-radius: 6px; background: repeating-linear-gradient(90deg, #7a3b2e 0 7px, #2d4a66 7px 12px, #c8a24a 12px 20px, #2f5d43 20px 26px); border-bottom: 5px solid #5a4028; flex: none; }
+  .photo small { color: var(--soft); display: block; }
+  .switch { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .switch i { width: 46px; height: 28px; border-radius: 14px; background: var(--line); position: relative; flex: none; }
+  .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--card); }
+  .big { font-size: 54px; font-weight: 700; margin: 0; }
+  .tally { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 16px; }
+  .tally b { text-align: end; }
+  .seam { position: absolute; top: -6px; bottom: 0; width: 0; border-left: 2px dashed var(--mark); filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000); }
+
+  .links { align-items: stretch; padding: 0; gap: 10px; }
+  .links button { min-height: 48px; font-size: 14px; font-weight: 500; flex: 1; background: transparent; }
+  .sp.done { filter: grayscale(.85); opacity: .5; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 7px); }
+  .sp.dim { opacity: .6; filter: grayscale(.6); }
+  .sp.open { outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); z-index: 1; }
+  .pad { background: #3b2a1c; border-radius: 8px; padding: 14px 18px; display: grid; gap: 6px; }
+  .pad .chip { border-radius: 2px; outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); }
+  .pad .edge { height: 9px; border-radius: 2px; opacity: .8; }
+  .dot { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #111; border: 3px solid #111;
+    font: 700 14px/24px system-ui; text-align: center; writing-mode: horizontal-tb; top: 46%; left: 50%; transform: translateX(-50%); }
+  .toast { background: var(--ink); color: var(--screen); border-radius: 12px; padding: 0 6px 0 14px; display: flex; align-items: center;
+    justify-content: space-between; font-size: 14px; min-height: 48px; }
+  .toast button { min-height: 44px; background: transparent; border: 0; color: var(--mark); font-size: 15px; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .opt { background: #3b2a1c; border-radius: 10px; padding: 10px 0 0; height: 250px; display: flex; justify-content: center; align-items: flex-end; gap: 2px;
+    border: 3px solid transparent; position: relative; overflow: hidden; }
+  .opt.pick { border-color: var(--go); }
+  .opt .box { position: absolute; outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); }
+  .opt small { position: absolute; top: 6px; left: 8px; color: #fff; font-weight: 700; font-size: 13px; }
+  .field { border: 2px solid var(--go); border-radius: 12px; background: var(--card); min-height: 54px; padding: 10px 14px; font-size: 21px; }
+  .field .caret { border-inline-start: 2px solid var(--ink); margin-inline-start: 1px; }
+  .sugg { display: flex; gap: 8px; direction: rtl; }
+  .sugg span { flex: 1; text-align: center; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 12px 4px; font-size: 19px; }
+  .kb { background: var(--btn); border-top: 1px solid var(--line); padding: 8px 4px 14px; display: grid; gap: 7px; }
+  .kb div { display: flex; gap: 4px; justify-content: center; direction: rtl; }
+  .kb span { width: 28px; height: 40px; border-radius: 6px; background: var(--card); border: 1px solid var(--line); text-align: center; line-height: 38px; font-size: 17px; }
+  .kb span.w { width: 150px; } .kb span.m { width: 44px; font-size: 12px; }
+  .sit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-top: 8px; }
+  .sit span { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; } .sit b { display: block; }
+</style>
+</head>
+<body>
+<h1>Bookshelf Reader: ground truth on a phone, v2</h1>
+<p class="lead">A design mock-up, nothing built. Boxes first; titles as a second sitting. Each frame is 360 × 740. Spines, titles and counts are invented. Every answer is at least 44 px tall.</p>
+<div class="row" style="flex-wrap:wrap">
+<figure>
+<div class="phone"><div class="entry">
+ <div style="color:var(--soft);font-size:13px">Bookshelf Reader</div><h3>Tag books</h3>
+ <div class="card"><div class="photo"><div class="pic"></div><div><b>Living room, left case</b><small>60 books found</small></div></div>
+   <div class="sit"><span><b>Boxes</b>12 of 60 · about 7 min left</span><span><b>Titles</b>after the boxes</span></div></div>
+ <div class="card"><div class="photo"><div class="pic" style="filter:hue-rotate(80deg)"></div><div><b>Study, top shelves</b><small>16 books</small></div></div>
+   <div class="sit"><span><b>Boxes</b>submitted ✓</span><span><b>Titles</b>0 of 16 · here or on the computer</span></div></div>
+ <div class="switch" style="min-height:48px"><i style="height:32px;width:54px"></i><span>I am standing at this shelf<br><small style="color:var(--soft)">Titles only: read them off the books themselves</small></span></div>
+</div><div class="thumb"><button class="go">Continue boxes: Living room</button><button>Titles: Study, top shelves</button></div></div>
+<figcaption><b>1. Entry: two sittings.</b> Boxes are the phone's main job and are submitted by themselves. Titles are a separate, optional sitting, on the phone or the computer.</figcaption>
+</figure>
+<figure>
+<div class="phone"><div class="bar"><span class="count">13/60 Books</span><span class="fill"></span><span>Shelf 2 of 5</span></div><div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:14%"></b></i><i style="flex:12"><b style="width:0%"></b></i><i style="flex:13"><b style="width:0%"></b></i><i style="flex:10"><b style="width:0%"></b></i></div><div class="stage">
+ <div class="shelf" style="--h:96px"><div class="sp done" style="--w:22px;--c:#5a6"></div><div class="sp done" style="--w:17px;--t:88%;--c:#865"></div>
+  <div class="sp open" style="--w:26px;--c:#7a2f2a"></div><div class="sp" style="--w:26px;--c:#7a2f2a"></div><div class="sp" style="--w:19px;--c:#22405e;--t:90%"></div>
+  <div class="sp" style="--w:30px;--c:#d9c27a"></div><div class="sp" style="--w:15px;--c:#2f5d43;--t:84%"></div><div class="sp" style="--w:24px;--c:#1d1d1f"></div>
+  <div class="sp" style="--w:18px;--c:#a34b23;--t:92%"></div><div class="sp" style="--w:27px;--c:#3d5a80"></div><div class="sp" style="--w:20px;--c:#6b705c"></div><div class="sp" style="--w:25px;--c:#444"></div></div>
+ <p class="q">Is the frame on one whole book?</p>
+ <div class="pad"><div class="edge" style="background:#865"></div>
+  <div class="chip" dir="rtl" style="--c:#7a2f2a;--h:64px"><span class="t" style="font-size:30px">חולית</span><span class="a" style="font-size:18px">פרנק</span></div>
+  <div class="chip" dir="rtl" style="--c:#7a2f2a;--h:64px"><span class="a" style="font-size:18px">הרברט</span><span class="p" style="font-size:14px">מעריב</span></div>
+  <div class="edge" style="background:#7a2f2a;filter:brightness(1.15)"></div></div>
+ <div class="swipe"><span>← swipe the picture: not a book</span><span>one book →</span></div>
+ <div class="toast"><span>Box 12 removed</span><button>Undo</button></div>
+</div><div class="thumb">
+ <div class="thumb" style="padding:0;grid-template-columns:1fr 1fr 1fr"><button class="small">Two or more</button><button class="small">Frame is off</button><button class="small">⟲ Flip</button></div>
+ <div class="thumb two" style="padding:0"><button class="no">Not a book</button><button class="go">One book</button></div><div class="links"><button>‹ Back</button><button>Next ›</button></div></div></div>
+<figcaption><b>2. One whole book?</b> The spine wrapped into two rows at twice the size, with a margin of photo around the frame so a frame that stops short shows. Swipes act on the picture only; Not a book can be undone. About 3 s.</figcaption>
+</figure>
+<figure>
+<div class="phone"><div class="bar"><span class="count">Shelf 2</span><span class="fill"></span><span>Unframed stretch 3 of 4</span></div><div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:70%"></b></i><i style="flex:12"><b style="width:0%"></b></i><i style="flex:13"><b style="width:0%"></b></i><i style="flex:10"><b style="width:0%"></b></i></div><div class="stage">
+ <p class="q">Tap each book</p><p class="hint">Only the bright ones. A book the photo cuts off counts if you can see its spine.</p>
+ <div class="shelf" style="--h:300px;justify-content:center"><div class="sp dim" style="--w:40px;--c:#22405e;font-size:13px">FOUNDATION</div>
+  <div class="sp" style="--w:56px;--c:#14342b;font-size:15px">שר הטבעות א<i class="dot">1</i></div>
+  <div class="sp" style="--w:56px;--c:#14342b;font-size:15px">שר הטבעות ב<i class="dot">2</i></div>
+  <div class="sp" style="--w:56px;--c:#14342b;font-size:15px">שר הטבעות ג</div>
+  <div class="sp" style="--w:34px;--c:#1b1b1d;--t:90%"></div>
+  <div class="sp dim" style="--w:40px;--c:#a34b23;--t:90%;font-size:13px">המוסד</div></div>
+</div><div class="thumb"><div class="thumb two" style="padding:0"><button class="small">Undo last tap</button><button class="small">Nothing here is a book</button></div>
+ <button class="go">That is all of them (2)</button><div class="links"><button>‹ Back</button><button>Next ›</button></div></div></div>
+<figcaption><b>3. Missed books: a tap each.</b> Replaces count-then-seams. A tap is both the count and the place; frames are cut between taps, on an edge where one is found, midway where none is. At most four books a screen. About 1.5 s a book.</figcaption>
+</figure>
+<figure>
+<div class="phone"><div class="bar"><span class="count">14/60 Books</span><span class="fill"></span><span>Shelf 2 of 5</span></div><div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:14%"></b></i><i style="flex:12"><b style="width:0%"></b></i><i style="flex:13"><b style="width:0%"></b></i><i style="flex:10"><b style="width:0%"></b></i></div><div class="stage">
+ <p class="q">Which frame fits the book?</p><p class="hint">The yellow book. Its top, foot and both sides.</p>
+ <div class="opts"><div class="opt "><small>A</small><div class="sp" style="--w:20px;--c:#22405e;--t:80%"></div><div class="sp" style="--w:34px;--c:#d9c27a;--t:92%"></div><div class="sp" style="--w:20px;--c:#2f5d43;--t:74%"></div><span class="box" style="left:31px;width:34px;bottom:0;top:70px"></span></div><div class="opt pick"><small>B</small><div class="sp" style="--w:20px;--c:#22405e;--t:80%"></div><div class="sp" style="--w:34px;--c:#d9c27a;--t:92%"></div><div class="sp" style="--w:20px;--c:#2f5d43;--t:74%"></div><span class="box" style="left:31px;width:34px;bottom:0;top:28px"></span></div><div class="opt "><small>C</small><div class="sp" style="--w:20px;--c:#22405e;--t:80%"></div><div class="sp" style="--w:34px;--c:#d9c27a;--t:92%"></div><div class="sp" style="--w:20px;--c:#2f5d43;--t:74%"></div><span class="box" style="left:31px;width:56px;bottom:0;top:28px"></span></div></div>
+</div><div class="thumb"><div class="thumb" style="padding:0;grid-template-columns:1fr 1fr 1fr"><button>A</button><button class="go">B</button><button>C</button></div>
+ <button class="small">None fits: move the corners</button><div class="links"><button>‹ Back</button><button>Next ›</button></div></div></div>
+<figcaption><b>4. Frame is off: choose, then drag.</b> Two or three other frames from the finder's own candidates before any dragging; the corner drag with a loupe is the fallback, and the only way to fix a leaning top or foot. About 5 s to choose, 15 s to drag.</figcaption>
+</figure>
+<figure>
+<div class="phone"><div class="bar"><span class="count">Shelf 2</span><span class="fill"></span><span>14 books, 3 added</span></div><div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:100%"></b></i><i style="flex:12"><b style="width:0%"></b></i><i style="flex:13"><b style="width:0%"></b></i><i style="flex:10"><b style="width:0%"></b></i></div><div class="stage">
+ <p class="q">Any book still bright?</p><p class="hint">Framed books are faded. Drag sideways for the rest of the shelf.</p>
+ <div class="shelf" style="--h:250px"><div class="sp done" style="--w:30px;--c:#7a2f2a"></div><div class="sp done" style="--w:24px;--t:88%;--c:#22405e"></div><div class="sp done" style="--w:34px;--c:#d9c27a"></div>
+  <div class="sp done" style="--w:34px;--c:#14342b"></div><div class="sp open" style="--w:26px;--t:90%;--c:#1b1b1d"></div><div class="sp done" style="--w:38px;--c:#3d5a80"></div>
+  <div class="sp" style="--w:9px;--c:#e8e2d2;--t:70%"></div><div class="sp done" style="--w:20px;--t:84%;--c:#5b3a6b"></div><div class="sp done" style="--w:28px;--c:#a34b23"></div><div class="sp done" style="--w:31px;--c:#6b705c"></div></div>
+ <p class="hint" style="margin-top:0">A tap near the dark spine picked it: taps go to the nearest unframed stretch.</p>
+</div><div class="thumb"><button>Frame the one I tapped</button><button class="go">Nothing left</button><div class="links"><button>‹ Back</button><button>Next ›</button></div></div></div>
+<figcaption><b>5. Shelf check.</b> Framed books fade and lose their colour; they are never blacked out, so a dark spine the finder missed still stands out. The one coarse step, last on each shelf. About 4 s.</figcaption>
+</figure>
+<figure>
+<div class="phone"><div class="bar"><span class="count">Titles 5/16</span><span class="fill"></span><span>At the shelf: off</span></div><div class="prog"><i style="flex:16"><b style="width:31%"></b></i></div><div class="stage" style="gap:10px">
+ <div class="pad" style="padding:10px 14px"><div class="chip" dir="rtl" style="--c:#d9c27a;--f:#2a2412;--h:54px"><span class="a" style="font-size:18px">רוברט היינליין</span><span class="t" style="font-size:22px">זר בארץ</span></div>
+  <div class="chip" dir="rtl" style="--c:#d9c27a;--f:#2a2412;--h:54px"><span class="t" style="font-size:22px">נוכריה</span><span class="p" style="font-size:13px">עם עובד</span></div></div>
+ <div class="field" dir="rtl">רוברט היי<span class="caret"></span></div>
+ <div class="sugg"><span>היינליין</span><span>היינה</span><span>הייתי</span></div>
+ <div class="thumb" style="padding:0;grid-template-columns:1fr 1fr 1fr"><button class="small">No text on it</button><button class="small">Can't read</button><button class="small go">Done</button></div>
+</div><div class="kb"><div><span>פ</span><span>ם</span><span>ן</span><span>ו</span><span>ט</span><span>א</span><span>ר</span><span>ק</span></div><div><span>ף</span><span>ך</span><span>ל</span><span>ח</span><span>י</span><span>ע</span><span>כ</span><span>ג</span><span>ד</span><span>ש</span></div><div><span>ץ</span><span>ת</span><span>צ</span><span>מ</span><span>נ</span><span>ה</span><span>ב</span><span>ס</span><span>ז</span></div><div><span class="m">123</span><span class="m">EN</span><span class="w"></span><span class="m">⌫</span></div></div></div>
+<figcaption><b>6. Titles: one field a book (optional sitting).</b> Empty to start, so nothing of the reader's is confirmed by accident. Completion after two letters from the study's two word lists and words already typed on this photo; the phone's own autocorrect is off. About 12 to 25 s a book.</figcaption>
+</figure>
+</div>
+</body>
+</html>
