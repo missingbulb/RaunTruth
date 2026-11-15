@@ -1,10 +1,10 @@
 # Figures — Zhang et al. 2022
 
-The three micrograph figures, extracted from the PDF (kept in the study's Drive Literature folder
-as `fvets-09-980963.pdf`) with `_tools/extract_pdf_assets.py` and converted to PNG at the
-resolution embedded in the PDF. Licence CC BY. Digest: [`../digest.md`](../digest.md).
+The three micrograph figures, described from the PDF (kept in the study's Drive Literature folder
+as `fvets-09-980963.pdf`) with `_tools/extract_pdf_assets.py` at the resolution embedded in the PDF.
+Licence CC BY. The images are not in the repo: the study keeps no binaries in git. Digest: [`../digest.md`](../digest.md).
 
-Figures 2–6 are omics charts and are not committed; their content is transcribed in the digest §3.
+Figures 2–6 are omics charts; their content is transcribed in the digest §3.
 
 > **No `panels/` folder, deliberately.** All tissue is 5 µm paraffin sections of cow mammary
 > gland on an Olympus microscope or a Pannoramic slide scanner. The only single-channel vessel
@@ -18,7 +18,7 @@ Scale bars below are the ones **drawn on the panels**; the captions state differ
 
 ## Fig 8 — `fig8_IF_DAPI_CD31_aSMA_CAV1.png` (the one closest to us)
 
-![Fig 8](fig8_IF_DAPI_CD31_aSMA_CAV1.png)
+*Image not in the repo: the study keeps no binaries in git. Render it from the PDF in the Drive Literature folder.*
 
 3780 × 3140 px. A 5 × 6 grid. Columns: arteriole Con / HM, venule Con / HM, capillary Con / HM.
 Rows: **A** DAPI (blue), **B** CD31 (Cy5, shown magenta), **C** α-SMA (Cy3, red), **D** CAV1
@@ -43,7 +43,7 @@ What you actually see:
 
 ## Fig 1 — `fig1_HE_alveoli_and_vessels.png`
 
-![Fig 1](fig1_HE_alveoli_and_vessels.png)
+*Image not in the repo: the study keeps no binaries in git. Render it from the PDF in the Drive Literature folder.*
 
 827 × 1039 px. H&E, 4 rows × 2 columns (Con | HM): **A/B** alveoli, **C/D** arterioles, **E/F**
 venules, **G/H** capillaries. Drawn bars: A **100 µm**; B, C, D **50 µm**; E–H **20 µm** — so the
@@ -55,7 +55,7 @@ around a few cells — at this scale a capillary is a handful of nuclei, not a t
 
 ## Fig 7 — `fig7_CAV1_IHC_qPCR_western.png`
 
-![Fig 7](fig7_CAV1_IHC_qPCR_western.png)
+*Image not in the repo: the study keeps no binaries in git. Render it from the PDF in the Drive Literature folder.*
 
 1535 × 2034 px. **A1–D2**: CAV1 IHC (DAB brown, haematoxylin counterstain) in alveoli, arterioles,
 venules and capillaries, Con | HM. **A3–D4**: matching negative controls (no primary), blue only.
@@ -67,7 +67,7 @@ gives readings off the plot, marked as such.
 
 ---
 
-## Figures not committed (described for completeness)
+## Figures 2–6 (described for completeness)
 
 - **Fig 2** — A: identification bars (76,255 / 63,103 / 7,618 / 20,335); B: pie of peptides per
   protein; C: DEPs up 2,718, down 1,021; D: GO/KEGG term counts (all vs P.adjust < 0.05);

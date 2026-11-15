@@ -218,11 +218,10 @@ and the captions disagree, so anyone who does use a panel must read the bar in t
 
 ## 7. Extracted images
 
-The PDF carries eight raster figures. The three **micrograph** figures are committed (CC BY) and
-described in [`figures/README.md`](figures/README.md). Figures 2–6 are bioinformatics charts
+The PDF carries eight raster figures. The three **micrograph** figures are described in [`figures/README.md`](figures/README.md). Figures 2–6 are bioinformatics charts
 (bar/pie charts, bubble plots, Venn and upset diagrams, volcano plots, heat maps, PPI networks);
-every number in them that matters is transcribed in §3, so they are described there but not
-committed.
+every number in them that matters is transcribed in §3, so they are described there. No image is in the repo: the study
+keeps no binaries in git.
 
 **No `panels/` folder, deliberately.** The only isolated single-channel vessel images are the six
 CD31 panels of Fig 8 row B. Each shows **one vessel cross-section** in a 5 µm slide-scanned
@@ -232,11 +231,11 @@ input to a segment-skeletonize-and-count pipeline, and the `VESSEL_` contract st
 
 | File | Fig | Content |
 |---|---|---|
-| [`figures/fig1_HE_alveoli_and_vessels.png`](figures/fig1_HE_alveoli_and_vessels.png) | 1 | H&E: alveoli, arterioles, venules, capillaries, C vs HM. |
+| `figures/fig1_HE_alveoli_and_vessels.png` | 1 | H&E: alveoli, arterioles, venules, capillaries, C vs HM. |
 | — (not committed) | 2 | Proteome summary: identification counts, peptide distribution, DEP counts, GO/KEGG counts, top-20 BP and KEGG. |
 | — (not committed) | 3 | GO bubble plot + term table, Venn (3/24/32), volcano, heat map of 24 shared DEPs. |
 | — (not committed) | 4 | ClueGO network of 59 DEPs and 25 GO terms. |
 | — (not committed) | 5 | KEGG circle plot of 4 pathways, heat map of 49 DEPs, volcano, upset plot. |
 | — (not committed) | 6 | Venn (50/9/40), heat map and log2FC of 9 shared DEPs, PPI of 99 DEPs, MGI phenotype grid. |
-| [`figures/fig7_CAV1_IHC_qPCR_western.png`](figures/fig7_CAV1_IHC_qPCR_western.png) | 7 | CAV1 IHC by vessel type with negative controls; qPCR and western bars. |
-| [`figures/fig8_IF_DAPI_CD31_aSMA_CAV1.png`](figures/fig8_IF_DAPI_CD31_aSMA_CAV1.png) | 8 | IF: DAPI / **CD31** / α-SMA / CAV1 / merge for arteriole, venule, capillary, C vs HM. |
+| `figures/fig7_CAV1_IHC_qPCR_western.png` | 7 | CAV1 IHC by vessel type with negative controls; qPCR and western bars. |
+| `figures/fig8_IF_DAPI_CD31_aSMA_CAV1.png` | 8 | IF: DAPI / **CD31** / α-SMA / CAV1 / merge for arteriole, venule, capillary, C vs HM. |
