@@ -11,3 +11,10 @@ export const viewDrawn = (page) => page.evaluate(() => new Promise((ok) => {
   v.onDraw(() => { heard.abort(); ok(); }, heard.signal);
   v.redraw();
 }));
+
+// The page has drawn n frames and then gone idle: what the frames set off, a callback or an observer's report, has
+// run too. The browser says when it is idle; nothing here guesses how long that takes.
+export const idle = (page, n = 2) => page.evaluate((n) => new Promise((ok) => {
+  const next = (left) => (left ? requestAnimationFrame(() => next(left - 1)) : requestIdleCallback(() => ok()));
+  next(n);
+}), n);
