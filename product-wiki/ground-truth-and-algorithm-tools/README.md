@@ -18,6 +18,7 @@ the version the repo pins.
 - Cellpose and StarDist cannot run in Pyodide. Cellpose-SAM's weights alone are about 1.23 GB.
 - Point-detection scoring is a one-to-one assignment within a distance cutoff. Spotiflow's default of 3 px should be set in µm for our data.
 - "GeoJSON" from image annotation tools is not standard GeoJSON, because the standard fixes coordinates to Earth longitude and latitude.
+- CVAT lists TIFF as supported, but a user reports it shows high-bit-depth grayscale only after squeezing it to 8 bits.
 
 
 ## (a) Annotation and ground-truth creation
@@ -34,7 +35,7 @@ the version the repo pins.
 | **QuPath** annotations | Polygons, points, lines, ellipses, plus interactive classification | GeoJSON (`exportObjectsToGeoJson`), ROI zip via ImageJ RoiManager, binary or labeled images ([exporting annotations](https://qupath.readthedocs.io/en/stable/docs/advanced/exporting_annotations.html)) | GPL-3.0 | "Using GeoJSON does impose some limitations; notably, ellipses become polygons." |
 | **ilastik** | Brush scribbles per class | Probability maps and segmentations (export formats not verified) | GPL-2.0-or-later ([LICENSE](https://github.com/ilastik/ilastik/blob/main/LICENSE)) | The Pixel Classification workflow trains "a Random Forest classifier… from user annotations interactively" on "generic pixel features, such as smoothed pixel intensity, edge filters and texture descriptors" ([docs](https://www.ilastik.org/documentation/pixelclassification/pixelclassification)). |
 | **Cellpose GUI** (human-in-the-loop) | Masks drawn and corrected over model output | `_seg.npy`, plus ROIs through `roifile` | BSD-3-Clause ([LICENSE](https://github.com/MouseLand/cellpose/blob/main/LICENSE)) | "Cellpose 2.0 allows human-in-the-loop training of models" ([README](https://github.com/MouseLand/cellpose); [paper](https://www.nature.com/articles/s41592-022-01663-4)). The workflow is: annotate, retrain, correct, repeat. |
-| **CVAT Community** | Boxes, polygons, masks, keypoints, tags; SAM interactor | "20+ supported formats: CVAT (XML), COCO (JSON), YOLO…, Pascal VOC…" ([README](https://github.com/cvat-ai/cvat)) | MIT | Self-hosted web app (Docker). Built for general computer vision; not microscopy-aware. |
+| **CVAT Community** | Boxes, polygons, masks, keypoints, tags; SAM interactor | "20+ supported formats: CVAT (XML), COCO (JSON), YOLO…, Pascal VOC…" ([README](https://github.com/cvat-ai/cvat)) | MIT | Self-hosted web app (Docker). Built for general computer vision; not microscopy-aware. Docs list TIFF among the image formats it takes, via Pillow ([overview](https://docs.cvat.ai/docs/getting_started/overview/)). One user's report is that 12-bit grayscale is downsampled to 8-bit for display, and that the docs tie this to the browser UI ([CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178), open, Jan 2026; one voice, not confirmed by the maintainers). See *Gaps*. |
 | **Label Studio** | Images, text, audio, video, time series | "Various model formats" | Apache-2.0 ([LICENSE](https://github.com/HumanSignal/label-studio/blob/develop/LICENSE)) | Self-hosted with Docker ([README](https://github.com/HumanSignal/label-studio)). Same caveat as CVAT. |
 | **arivis Cloud** (formerly APEER) | Partial annotation for training cloud models | — | Proprietary | Renamed from APEER, not discontinued ([ZEISS KB](https://knowledge.zeiss.com/rms/en/arivis-cloud/getting-started/what-is-arivis-cloud)). |
 
@@ -141,22 +142,35 @@ segmenter. Its runtime in WebAssembly on a 1200 × 1200 × 2-channel image was *
 - [README](https://github.com/weigertlab/spotiflow)
 - [matching.py](https://github.com/weigertlab/spotiflow/blob/main/spotiflow/utils/matching.py)
 - [doi:10.1038/s41592-023-02151-z](https://doi.org/10.1038/s41592-023-02151-z)
+- [overview](https://docs.cvat.ai/docs/getting_started/overview/)
+- [CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178)
+- [CVAT #2987](https://github.com/cvat-ai/cvat/issues/2987)
 
 ## Growth log
 
 - **2026-10-30** — page created. Annotation tools and export formats, algorithm libraries checked
   against the Pyodide 314 lock, and scoring practice.
+- **2026-11-15** — CVAT 16-bit question partly answered: TIFF is listed as supported, but the only
+  bit-depth evidence is one user's report of 8-bit downsampling. Label Studio still unchecked.
 
 ## Open questions
 
 - Which annotation tool will the owner's lab actually use to mark nodes: points, lines or masks?
 - What matching tolerance in µm makes a detected node "the same" as an annotated one?
+- Does a current CVAT release display and export a 16-bit two-channel TIFF without reducing it to 8 bits? A test with one real lab file would settle it.
 
 ## Gaps / not verified
 
-- **16-bit support in CVAT and Label Studio** was not checked. Both are built for general
-  computer vision. Whether they display and keep 16-bit multichannel TIFFs, or convert them to
-  8-bit, is unknown. Check before suggesting either to a lab.
+- **16-bit support in CVAT** is only partly checked (2026-11-15). Its docs list TIFF as supported,
+  and the only evidence on bit depth is a user's report in
+  [CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178) that 12-bit grayscale is downsampled
+  to 8-bit, with no maintainer reply. An older issue,
+  [CVAT #2987](https://github.com/cvat-ai/cvat/issues/2987) "Loading 16-bit tiff images" (open,
+  opened 2021, 7 comments), opens with a TIFF upload failing on the online test version. Only
+  its opening post was read, so it says nothing about current behaviour. Whether CVAT keeps
+  16-bit multichannel TIFFs intact is still unverified: test a real file before suggesting it to a lab.
+- **16-bit support in Label Studio** was not checked. Its task-import guide (fetched 2026-11-15)
+  does not mention TIFF or bit depth, which is an absence in that page and not a finding about the product.
 - **ilastik export formats and platforms**, and **Cellpose GUI export formats** beyond
   `_seg.npy` and roifile, were not read from their docs.
 - **Fiji line-profile tool docs** were not re-read. The brief's description is relied on.
