@@ -14,7 +14,7 @@ export function mount(shell) {
   shell.signal.addEventListener("abort", () => MV.leave());
   shell.views.on((v) => { items.visibleNow(v === "items"); if (v === "image") V.redraw(); });
   items.init(V, () => shell.views.show("image"), shell.views.count);
-  if (truth) tasks.init(V, shell.tasks, steps, submit);
+  if (truth) tasks.init(V, shell.tasks, steps, submit, shell.signal);
 
   // ---------- Processing: Execute, with the algorithm chosen above it (the shell's) ----------
   const chosen = () => algorithms.find((a) => a.key === shell.algorithm.key);

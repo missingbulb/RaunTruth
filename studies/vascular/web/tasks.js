@@ -109,6 +109,8 @@ function verdict(j, v) {
 }
 
 // ---------- drawing the box and the map ----------
+// a button's key, small at its end
+function hint(b, key) { const k = document.createElement('kbd'); k.textContent = key; k.setAttribute('aria-hidden', 'true'); b.append(' ', k); b.setAttribute('aria-keyshortcuts', key); }
 const button = (label, fn, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (cls) b.className = cls; b.onclick = fn; return b; };
 function card(m, j) {
   const el = document.createElement('div'), cv = document.createElement('canvas'), acts = document.createElement('div');
@@ -116,6 +118,7 @@ function card(m, j) {
   const px = Math.max(MIN_PX, Math.round($('gt-tasks').clientWidth || 280));
   cv.style.width = cv.style.height = px + 'px';
   acts.append(button('Junction', () => verdict(j, 'right'), 'yes'), button('They cross', () => verdict(j, 'cross'), 'no'));
+  hint(acts.firstChild, 'F'); hint(acts.lastChild, 'J');
   acts.firstChild.title = 'Three or more vessels really meet here'; acts.lastChild.title = 'The vessels only pass each other at different depths: split them';
   requestAnimationFrame(() => junctionPicture(cv, m, j, px));
   el.append(cv, acts);
@@ -268,8 +271,25 @@ export function open() {
   return [{ level: 'warn', grade: true, ok: !left, text: left ? `Areas: ${left} of ${count()} left` : 'Areas: every one done' }];
 }
 
-// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them
-export function init(view, tasks, changed, submit) {
+// ---------- the keys: each presses its button, while an area is tagged ----------
+// by the key's place on the keyboard, so any layout has them where they are
+const KEYS = { KeyF: '#task-card .verdict .yes', KeyJ: '#task-card .verdict .no', Space: '#area-ok', KeyS: '#task-skip' };
+const busy = (e) => e.target.closest?.('input, select, textarea, [contenteditable=""], [contenteditable="true"]') ||
+  document.querySelector('details.menu[open], dialog[open], #ctx:not([hidden])');
+// Space on a button with the focus is that button's own
+const pressable = (t) => t.closest?.('button, summary, a[href], [role="button"]');
+function onKey(e) {
+  const at = KEYS[e.code];
+  if (!at || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !T.tagging() || st.submit || st.area == null || busy(e)) return;
+  if (e.code === 'Space' && pressable(e.target)) return;
+  const b = document.querySelector(at);
+  if (!b || b.disabled || !b.offsetParent) return;
+  e.preventDefault(); b.click();
+}
+
+// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them;
+// signal: the study's, ending its keys
+export function init(view, tasks, changed, submit, signal) {
   V = view; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
@@ -287,6 +307,8 @@ export function init(view, tasks, changed, submit) {
   });
   $('task-skip').onclick = skip;
   $('area-ok').onclick = areaRight;
+  hint($('task-skip'), 'S'); hint($('area-ok'), 'Space');
+  document.addEventListener('keydown', onKey, { signal });
   $('vm-focus').onclick = () => { if (st.area == null) return; st.focused = !st.focused; show(true); };
 }
 // for the study's page tests, which drive it from outside
