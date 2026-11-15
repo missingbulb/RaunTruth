@@ -1099,7 +1099,7 @@ export function mount(shell) {
     for (const t of ["pass", "fail", "missed"]) shell.tasks.count(t, ready ? did[t] : null, count[t], ready && taskDone(t));
     // the open task: its tools on its row, and its item's card under it
     const li = shell.tasks.open(ready ? st.task : null), now = $("#task-now"), tools = $("#task-tools");
-    const c = ready && st.sel != null ? candOf(st.sel) : null;
+    const c = ready && tagging() && st.sel != null ? candOf(st.sel) : null;
     if (li && st.task !== "submit") {
       li.querySelector(".task-head").append(tools);
       (st.task === "missed" ? li.querySelector(".missed-slot") : li.querySelector(".task-body")).append(now);
