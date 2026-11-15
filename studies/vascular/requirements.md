@@ -121,6 +121,22 @@ owner's decisions on the stacks and the vessel model, are
   Test: `studies/vascular/tests/test_stack_page.py`.
   </details>
 
+- `req/vascular/truth/keys` While an area is tagged, keys give the verdicts: F and J judge the junction, Space does the area, S skips it.
+  <details>
+
+  Set by the owner on 2026-11-15, one scheme for every study's ground-truth tasks, the keys read by their place on the
+  keyboard so they work in any layout. F gives the verdict the box offers first, J the other: for the junction pictured,
+  F is Junction and J is They cross. Space is Area is right, only while it is on, unless a button has the focus, which
+  Space presses as anywhere; S is Skip. The tasks ask about no line
+  (a faint one is kept by clicking it, `req/vascular/truth/tasks`), so F and J judge only junctions; the A and D keys over
+  a faint line keep or decline it, as before (`req/vascular/model/correct`). There is no Back in these tasks, so
+  Backspace does nothing here. A key acts only while GT tagging is on and an area is open, never while typing in a field
+  or with a menu or dialog open, never when its button is hidden or off, and once per press, however long it is held; it
+  does what its button does, and only a key that acted is kept from the page. None of them is a key the stack's view or
+  the model already uses. Each button shows its key, small, at its end. Test:
+  `studies/vascular/tests/test_vessel_keys_page.py`.
+  </details>
+
 - `req/vascular/truth/marks` While tagging, an area done is cut out of the stack, blacked out through every slice.
   <details>
 
