@@ -143,6 +143,10 @@ export function edges(m) {
   return out;
 }
 
+// The widths the algorithm estimated: nothing in the ground-truth tasks sets or confirms one, so a submitted
+// model names them in its "unchecked" list rather than passing them off as corrected.
+export const WIDTHS = ['r', 'r_a', 'r_b', 'taper_known'];
+
 export function toJSON(m, extra = {}) {
   const { nodes, segments, ...rest } = m;
   const es = edges(m), ends = new Set(es.flatMap((e) => [e.ids[0], e.ids.at(-1)]));

@@ -730,7 +730,7 @@ export const drawn = (text, name) => open(text, name);
 export function truth() {
   if (!model) return null;
   const doc = Mo.toJSON(model, { status: edits || model.status === 'corrected' ? 'corrected' : model.status,
-    corrected_at: new Date().toISOString(), corrections: (model.corrections || 0) + edits });
+    corrected_at: new Date().toISOString(), corrections: (model.corrections || 0) + edits, unchecked: Mo.WIDTHS });
   const stem = String(model.source || 'vessels').replace(/\.tiff?$/i, ''), v = Mo.pieceCounts(model);
   return { doc, file: `${stem}.vessels.corrected.json`, edits: edits + (model.corrections || 0), stem,
     items: [{ level: 'warn', ok: !v.candidate, text: v.candidate ? `${v.candidate} low-confidence vessel${v.candidate === 1 ? '' : 's'} still to approve or decline` : 'Every low-confidence vessel has your verdict' }] };
