@@ -62,7 +62,9 @@ owner's decisions on the stacks and the vessel model, are
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
   a vessel's `state` (`accepted` or `rejected`) beside `proposed`, the state the extractor gave it;
   a junction found right in `checked_junctions`; each area done in `reviewed_regions`, the area's box
-  with its `step`, `area`. Test: `studies/vascular/tests/test_vessel_tasks_page.py`.
+  with its `step`, `area`. Nothing in the tasks sets or confirms a width, so the widths stay the algorithm's
+  estimates, kept but named in the file's `unchecked` list (`r`, `r_a`, `r_b`, `taper_known`), never claimed
+  as corrected. Test: `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
 - `req/vascular/model/run` Processing picks an extraction algorithm, says how it works and how well, and Execute draws the vessel model in the browser.
