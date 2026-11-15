@@ -20,6 +20,10 @@
     "packages": [],
     "wheels": []
   },
+  "algorithms": {
+    "list": "web/algorithms.json",
+    "metrics": "web/algorithm_metrics.json"
+  },
   "web": {
     "module": "web/fixture.js",
     "panels": "web/fixture.html",

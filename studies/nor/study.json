@@ -35,6 +35,10 @@
       "tifffile==2026.3.3"
     ]
   },
+  "algorithms": {
+    "list": "web/algorithms.json",
+    "metrics": "web/finder_metrics.json"
+  },
   "web": {
     "module": "web/nor.js",
     "panels": "web/nor.html",

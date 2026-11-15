@@ -39,6 +39,10 @@
     ],
     "wheels": []
   },
+  "algorithms": {
+    "list": "web/algorithms.json",
+    "metrics": "web/finder_metrics.json"
+  },
   "web": {
     "module": "web/shelves.js",
     "panels": "web/shelves.html",

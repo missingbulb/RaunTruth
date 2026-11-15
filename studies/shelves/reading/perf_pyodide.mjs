@@ -37,13 +37,15 @@ else {
   await r.close();
   lap("text finder");
 }
+// the page's first finder (web/algorithms.json), as Find books runs at first
+py.globals.set("version", JSON.parse(fs.readFileSync(path.join(here, "..", "web", "algorithms.json"), "utf8"))[0].key);
 const heapBefore = py._module.HEAPU8.length;
 lap("setup");
 let books;
 const finds = [];
 for (let i = 0; i < Number(process.env.REPS || 1); i++) {
   const t = performance.now();
-  books = JSON.parse(py.runPython("session.call('find', dict(text=json.loads(text)))[0]")).books;
+  books = JSON.parse(py.runPython("session.call('find', dict(algorithm=version, text=json.loads(text)))[0]")).books;
   finds.push((performance.now() - t) / 1000);
 }
 lap("find");

@@ -36,11 +36,10 @@ NODE_PATH=DIR/node_modules node analysis/extraction/perf_pyodide.mjs STUDY STACK
 
 - **Default: v5** (`lab.py` `DEFAULT`). The study's page offers every version, the default first,
   and runs the one chosen on the stack open (`lab.run_volume`, as `run` does from a file), in the
-  page's Python: a new version file and its `VERSIONS` entry are all it takes to offer one there.
-  The file's `TITLE` and `ICON` are its name and icon in the page's list, `STEPS` (a Markdown
-  outline) its How the algorithm works; its docstring stays the developer's account. The site's build
-  lists them from the source without importing it (`menu.py`), so they, `VERSIONS`, `DEFAULT` and
-  `RETIRED` stay plain literals. The list shows
+  page's Python: a new version file, its `VERSIONS` entry and its entry in the study's list
+  (`web/algorithms.json`, the default first) offer one there. The file's `TITLE`, `ICON` and `STEPS` (a Markdown
+  outline) are its name, icon and How the algorithm works in that list, a test failing when the two differ; its
+  docstring stays the developer's account. The list (drawn by the shell, `req/shell/processing/algorithms`) shows
   each version's precision and recall from `web/algorithm_metrics.json`, which `grade --json`
   writes; a test fails when a version's source has changed since. `RETIRED` (in `lab.py`) names
   the versions the page no longer offers and why: v1, since 2026-11-04.
