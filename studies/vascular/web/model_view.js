@@ -10,6 +10,7 @@
 // are marked on the view.
 import * as Mo from './model.js';
 import { coverage } from './coverage.js';
+import { widthsLook } from './widths.js';
 
 const $ = (id) => document.getElementById(id);
 // the shell's 3D view (viewer3d.js `three`): its camera, the stack's place in it and its hooks
@@ -52,6 +53,8 @@ let makingTruth = false, tagOn = false, cutOn = true, task = null, area = null, 
 // point a handle, turning freely; null for the whole stack. outside: the mode chosen for the whole stack, back once the
 // area is left; peeking: the model alone, while its label is on or Ctrl held
 let focused = null, outside = 'overlay', peeking = false, peekOn = false, ctrlHeld = false, peekKeys = [];
+// the widths look of the area open (widths.js), on while W has switched it on there
+let look = null;
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* no storage: edits live until the page closes */ } },
@@ -195,6 +198,7 @@ function draw() {
   const c = cv.getContext('2d'); c.scale(dpr, dpr);
   if (alone()) { c.fillStyle = '#000'; c.fillRect(0, 0, cv.clientWidth, cv.clientHeight); }
   view = project();
+  if (look.on) return look.draw(c);
   if (mode !== 'image') drawModel(c);
   marks(c);
   if (alone()) V.axes(c, view.vp, view.W, view.H);
@@ -384,6 +388,7 @@ function undo() { if (!history.length) return; future.push(model); model = histo
 function redo() { if (!future.length) return; history.push(model); model = future.pop(); edits++; changed(); }
 
 function grab(e) {
+  if (look?.on) return look.grab(e);
   if (!model || (mode === 'image' && !focused)) return null;
   closeMenu();
   const h = pick(e);
@@ -448,7 +453,7 @@ function grab(e) {
 
 // A left click on a faded vessel asks for its verdict.
 function clicked(e) {
-  if (!model || (mode === 'image' && !focused)) return;
+  if (!model || (mode === 'image' && !focused) || look.on) return;
   if (drawing) return drawClick(e);
   // while the study makes ground truth a junction picked on the view is the current task's
   const at = makingTruth && picked && focused && pick(e);
@@ -555,6 +560,7 @@ export function reveal(p) {
 // again, in the mode chosen for it.
 export function focusArea(b) {
   if (!model || !V) return;
+  if (look.on) look.show(null);
   if (!b) {
     if (!focused) return;
     focused = null; peeking = peekOn = false; showPeek();
@@ -567,9 +573,18 @@ export function focusArea(b) {
   frameFocus(); setMode(focusMode()); refreshMask(true);
 }
 export const focusedArea = () => focused;
+// W: the widths look on the area open, or the lines over the stack again
+function toggleLook() {
+  if (!focused || !tagOn || !model) return;
+  if (drawing) setDrawing(false);
+  closeMenu(); hover = null;
+  look.show(look.on ? null : focused.box);
+  if (!look.on) { frameFocus(); setMode(focusMode()); }
+}
 // the owner tags ground truth now or not: only while they do is what is done cut out, and the Show menu's row for it on
 export function tagging(on) {
   tagOn = !!on; $('m-cut').disabled = !tagOn;
+  if (!tagOn && look?.on) look.show(null);
   refreshMask(true); V?.redraw();
 }
 const focusMode = () => (peeking ? 'model' : 'overlay');
@@ -589,7 +604,7 @@ function showPeek() {
 }
 function peek() {
   const on = peekOn || ctrlHeld;
-  if (!focused || peeking === on) return;
+  if (!focused || peeking === on || look.on) return;
   peeking = on; showPeek(); setMode(focusMode());
 }
 const heldCtrl = (on) => { ctrlHeld = on; peek(); };
@@ -738,6 +753,7 @@ export function truth() {
 
 // Called whenever a stack opens: it opens with no model until the algorithm draws one.
 export function stackOpened() {
+  if (look?.on) look.show(null);
   model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; task = null; area = null; focused = null; peeking = peekOn = false; showPeek();
   $('vm-show').hidden = false;
   $('model-on').hidden = true; $('vm-review').hidden = true; msg(''); setMode('image');
@@ -754,7 +770,7 @@ export function forget() { if (savedKey) store.del(savedKey); }
 // at: each point in µm; kinds: each point's state and whether it is a curve point inside one vessel or an end
 // handles: the points are handles to drag now; drawing: while a missed vessel is drawn, where the line ends on screen and
 // what a click there joins it to
-export const inspect = () => ({ model: model && Mo.toJSON(model), points: view && Object.fromEntries(view.pts), edits,
+export const inspect = () => ({ model: model && Mo.toJSON(model), points: view && Object.fromEntries(view.pts), edits, widths: look?.inspect() ?? null,
   handles: !!V && handles(), drawing: drawing && { end: drawEnd(), onto: hover },
   at: model && Object.fromEntries([...model.nodes].map(([id, n]) => [id, { x: n.x, y: n.y, z: n.z }])),
   kinds: model && Object.fromEntries([...model.nodes.keys()].map((id) => {
@@ -771,6 +787,10 @@ export function init(view, signal, makesTruth) {
   model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; mode = 'image'; task = null; area = null; picked = null;
   focused = null; outside = 'overlay'; peeking = peekOn = ctrlHeld = false;
   cv = document.createElement('canvas'); cv.id = 'mcv';
+  // the stack's middle depth on screen, from straight above, for the widths look
+  const plane = (x, y) => { const v = V.M.xf(V.camera(cv.clientWidth / cv.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
+    return [(v[0] / v[3] + 1) / 2 * cv.clientWidth, (1 - v[1] / v[3]) / 2 * cv.clientHeight]; };
+  look = widthsLook({ V, canvas: cv, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t) });
   V.onDraw(draw, signal);
   V.controls(cv, grab, clicked);
   for (const el of peekKeys) el.remove();
@@ -779,12 +799,14 @@ export function init(view, signal, makesTruth) {
   peekKeys = [peekBtn, Object.assign(document.createElement('span'), { className: 'v3-key', textContent: 'ctrl' })];
   V.keys.prepend(...peekKeys); showPeek();
   cv.addEventListener('pointermove', (e) => {
+    if (look.on && !e.buttons) return look.move(e);
     if (!model || e.buttons || rubber) return;
     if (drawing) { const r = cv.getBoundingClientRect(); drawing.to = [e.clientX - r.left, e.clientY - r.top]; }
     const h = pick(e, false, drawnFrom()), same = JSON.stringify(h) === JSON.stringify(hover);
     cv.classList.toggle('over-point', !!h);
     if ((!same || drawing) && $('ctx').hidden) { hover = h; V.redraw(); }
   });
+  cv.addEventListener('pointerleave', () => { if (look.on) look.leave(); });
   cv.addEventListener('pointerleave', () => { if (hover && $('ctx').hidden) { hover = null; V.redraw(); } });
   $('model-mode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.disabled) setMode(b.dataset.v); });
   $('review-mode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setReview(b.dataset.v); });
@@ -798,7 +820,9 @@ export function init(view, signal, makesTruth) {
     store.del(savedKey); model = loaded; history = []; future = []; edits = 0; msg(''); changed(); };
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Control') heldCtrl(true);
-    if (!model || e.target.closest('input, textarea')) return;
+    if (!model || e.target.closest('input, textarea, select')) return;
+    if (!(e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'w' && focused && tagOn) { toggleLook(); return; }
+    if (look.on && look.key(e, true)) return;
     if (e.key === 'Escape') closeMenu();
     if (drawing && (e.key === 'Escape' || e.key === 'Enter')) { setDrawing(false); return; }
     const k0 = e.key.toLowerCase();
@@ -810,8 +834,8 @@ export function init(view, signal, makesTruth) {
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
   }, { signal });
-  document.addEventListener('keyup', (e) => { if (e.key === 'Control') heldCtrl(false); }, { signal });
+  document.addEventListener('keyup', (e) => { if (e.key === 'Control') heldCtrl(false); if (look.on) look.key(e, false); }, { signal });
   addEventListener('blur', () => heldCtrl(false), { signal });
-  V.onReset(() => { if (!focused || !model) return false; frameFocus(); return true; }, signal);
+  V.onReset(() => { if (!focused || !model) return false; frameFocus(); if (look.on) V.S.held = true; return true; }, signal);
   document.addEventListener('pointerdown', (e) => { if (!$('ctx').contains(e.target) && e.target !== cv) closeMenu(); }, { signal });
 }

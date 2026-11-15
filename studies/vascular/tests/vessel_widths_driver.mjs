@@ -75,7 +75,7 @@ const doc = () => page.evaluate(() => window.vascular.model().model);
 const frames = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 // the model canvas's pixel at a place on it, [r, g, b]
 const pixel = (x, y) => page.evaluate(([x, y]) => { const c = document.querySelector("#mcv"), k = c.width / c.clientWidth;
-  return [...c.getContext("2d").getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
+  return [...c.getContext("2d").getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
 const MAGENTA = ([r, g, b]) => r > 180 && b > 150 && g < 140, AMBER = ([r, g, b]) => r > 180 && g > 110 && b < 90;
 const near = (rgb, want) => rgb && want(rgb);
 // a vessel of the look by its line's y in µm
@@ -109,7 +109,7 @@ try {
     for (let k = 0; k < 8; k++) { const ux = (Math.ceil(STRIPES.x0 / UM) + 1 + k + .5) * UM; xs.push((await pixel(...screen(ux, ys, w).map((v, i) => v - (i ? cy : cx))))[0]); }
     const flips = xs.slice(1).filter((v, k) => (v > 128) !== (xs[k] > 128)).length;
     check(binned > UM * 1.5 && flips >= 6, `the look is the stack's own ${UM} µm pixels, not the 3D view's ${binned.toFixed(2)} µm voxels: across the stripes ${xs}`);
-    const g = await pixel(...screen(85, 40, w).map((v, i) => v - (i ? cy : cx)));
+    const g = await pixel(...screen(55, 40, w).map((v, i) => v - (i ? cy : cx)));
     check(g[0] === g[1] && g[1] === g[2] && g[0] > 128, `... grey, the vessel bright: ${g}`);
   }
   const est = vesselAt(w, 40), even = vesselAt(w, 90), drawn = vesselAt(w, 140);
@@ -157,8 +157,8 @@ try {
   check(e.width?.how === "nudge" && Math.abs(e.width.um - 3.75) < 1e-9, `− steps it narrower: ${JSON.stringify(e.width)}`);
 
   // Area is right waits for the vessel the person drew
-  check(await page.evaluate(() => $("#area-ok").disabled) && /1 vessel you drew/.test(await page.evaluate(() => $("#junctions-note").textContent)),
-    `Area is right waits for the width of the vessel the person drew, its line saying so: ${await page.evaluate(() => $("#junctions-note").textContent)}`);
+  check(await page.evaluate(() => $("#area-ok").disabled) && /1 vessel you drew/.test(await page.evaluate(() => $("#widths-note").textContent)),
+    `Area is right waits for the width of the vessel the person drew, its line saying so: ${await page.evaluate(() => $("#widths-note").textContent)}`);
   await page.mouse.move(...screen(100, 140, w)); await frames();
   await page.keyboard.press("u");
   e = edgeAt(await doc(), 140);
