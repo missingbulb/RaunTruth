@@ -59,7 +59,7 @@
     "id": "timers-in-one-file",
     "on_fail": "block",
     "failureMessage": "a timer set anywhere in page code is a cadence nobody can list, a visual effect guessing how long it takes, or a poll running on in a hidden tab",
-    "fix": "a visual effect is a CSS transition or animation, acted on at transitionend or animationend; background work goes through every(), settle(), within() or after() in web/pacing.js; where only a raw timer will do, end the line `// timed here: <reason>`",
+    "fix": "a visual effect is a CSS transition or animation, acted on at transitionend or animationend, and given its own rule under :root[data-motion=\"off\"] in web/style.css where something waits on it; background work goes through every(), settle(), within() or after() in web/pacing.js; where only a raw timer will do, end the line `// timed here: <reason>`",
     "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!pacing\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
     "matchLines": [
       {
@@ -82,6 +82,20 @@
         "require": "/(?!)/",
         "what": "is not Markdown, in the literature folder",
         "fix": "fold it into the paper's <slug>.md as text and links, then delete it"
+      }
+    ]
+  },
+  {
+    "id": "motion-end-with-animations-off",
+    "on_fail": "block",
+    "failureMessage": "the page's animations-off setting stops every CSS transition and animation, so code waiting on one's end never runs: a popup stays open, a class is never cleared",
+    "fix": "give the motion a rule under :root[data-motion=\"off\"] in web/style.css that still ends it, or show it is never started then; test it with animations off, and end the line `// ends with animations off: <how>`",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/(transition|animation)(end|cancel)\\b/",
+        "what": "acts on a CSS motion's end, which animations off never fires: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*ends with animations off:/"
       }
     ]
   }
