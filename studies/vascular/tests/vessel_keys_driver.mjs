@@ -116,7 +116,7 @@ try {
   keys = await legendKeys(page);
   check(keys === "1 2 3 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
-  check(labels.F === "Junction" && labels.J === "They cross" && labels.S === "Skip" && labels["1"] === "Model", `each row says what its key does: ${JSON.stringify(labels)}`);
+  check(labels["1"] === "Model" && labels["2"] === "No outlines" && labels["3"] === "Side by side", `each row says what its key does: ${JSON.stringify(labels)}`);
   await frames(page);
   const hints = await page.evaluate(() => ({ yes: $("#task-card .verdict .yes kbd")?.textContent, no: $("#task-card .verdict .no kbd")?.textContent,
     ok: $("#area-ok kbd")?.textContent, skip: $("#task-skip kbd")?.textContent }));
@@ -171,10 +171,6 @@ try {
 
   // every junction of this area judged with F, Space does it
   // a key held fills its row blue, let go it is grey again
-  await page.keyboard.down("f");
-  const fDown = (await row("F"))?.lit;
-  await page.keyboard.up("f");
-  check(fDown && !(await row("F"))?.lit, "F held fills its row blue, let go it is grey again");
   for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
   keys = await legendKeys(page);

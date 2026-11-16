@@ -370,13 +370,10 @@ const key = async (code, o = {}) => {
 };
 // the key a button shows at its end, while it is shown
 const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
-// the legend's rows the page should show now: the open item's keys whose buttons are on, then the Show menu's views
+// the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
 const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
 const VIEWS = ["Finalists 1", "Rejected 2", "Added NoRs 3"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 4", "Frame the area 5"];
-const expectRows = async () => [
-  ...(await shownOn("#task-card .verdict .up") ? ["A NoR F", "Not a NoR J"] : []), ...(await shownOn("#area-ok") ? ["No missed NoRs here Space"] : []),
-  ...(await shownOn("#task-back") ? ["Back ⌫"] : []), ...(await shownOn("#task-skip") ? ["Skip S"] : []),
-  ...(await shownOn("#task-card .reset-lines") ? ["Reset measurements R"] : []), ...TAGGING_VIEWS].join(", ");
+const expectRows = async () => TAGGING_VIEWS.join(", ");
 const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5"].map((code) => ({ code }));
 const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
 let took = await key("KeyF");
@@ -389,8 +386,7 @@ await page.evaluate(() => document.activeElement?.blur());
 await page.evaluate((k) => nor.goTo(k), first.key);
 const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
 await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
-await check(await legendRows(page) === await expectRows() && (await legendRows(page)).startsWith("A NoR F, Not a NoR J"),
-  "tagging a candidate, the legend lists F, J, the open item's tools that are on and the views", await legendRows(page));
+await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
 const heard = await studyTakes(page, KEYS);
 await check(heard.listeners >= 1 && heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
 s = await now();
@@ -408,7 +404,7 @@ await check(took && await verdictNow(j2) === "out" && s2.cur !== second2.key, "J
 took = await key("Backspace");
 s2 = await now();
 await check(took && s2.cur === second2.key && await page.$eval("#task-card .verdict .down", (b) => b.classList.contains("on")), "Backspace is Back: the item before, its verdict shown", s2);
-await check(await legendRows(page) === await expectRows() && (await legendRows(page)).includes("Back ⌫"), "with an item behind, Back is in the legend", await legendRows(page));
+await check(await legendRows(page) === await expectRows() && await chip("#task-back") === "⌫", "with an item behind, Back shows its key, off the legend", await legendRows(page));
 took = await key("Alt+KeyS");
 await check(!took && (await now()).cur === second2.key, "with Alt held, S does nothing");
 await page.evaluate(() => { const f = document.createElement("input"); f.id = "typing"; document.body.append(f); f.focus(); });
@@ -433,7 +429,7 @@ await check(!took, "with nothing measured differently, R does nothing");
   await page.mouse.move(b.x + b.width / 2 + 15, b.y + b.height / 2 - 10, { steps: 5 }); await page.mouse.up();
 }
 const rChip = await chip("#task-card .reset-lines");
-await check((await legendRows(page)).includes("Reset measurements R") && await legendRows(page) === await expectRows(), "measured differently, Reset measurements is in the legend", await legendRows(page));
+await check(await chip("#task-card .reset-lines") === "R" && await legendRows(page) === await expectRows(), "measured differently, Reset measurements shows its key, off the legend", await legendRows(page));
 took = await key("KeyR");
 await check(rChip === "R" && took && await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "R is Reset measurements, its chip R", rChip);
 // Space: the area's check, even with a button focused
@@ -442,8 +438,7 @@ await check(!took, "away from an area's check, Space does nothing of the page's"
 const A2 = W.find((x) => x.key.startsWith("a:")).a;
 await page.evaluate((k) => nor.goTo(k), "a:" + A2);
 const okChip = await chip("#area-ok");
-await check(await legendRows(page) === await expectRows() && (await legendRows(page)).startsWith("No missed NoRs here Space") && !(await legendRows(page)).includes(" F,"),
-  "on an area's check the legend lists Space, not F or J", await legendRows(page));
+await check(await legendRows(page) === await expectRows() && await chip("#area-ok") === "Space", "on an area's check No missed NoRs here shows Space, off the legend", await legendRows(page));
 await page.focus("#gt-start");
 took = await key("Space");
 s2 = await now();
