@@ -679,17 +679,18 @@ export function mount(shell) {
     d.innerHTML = `<div class="head">${num}<span class="state">${state}</span>
       <span class="verdict" role="group" aria-label="Your verdict"></span></div>`;
     const acts = d.querySelector(".verdict");
-    const btn = (cls, on, title, fn) => {
+    const btn = (cls, on, title, fn, key) => {
       const b = document.createElement("button"); b.type = "button"; b.className = cls + (on ? " on" : ""); b.innerHTML = THUMB;
       b.title = title; b.setAttribute("aria-label", title); b.setAttribute("aria-pressed", on);
+      if (where === "task") b.setAttribute("aria-keyshortcuts", key);
       // on a task's card, a verdict moves on to the task's next candidate
       b.onclick = (e) => { e.stopPropagation(); st.sel = c.i; fn(); if (where === "task" && verdictOf(c)) moveOn(); }; acts.append(b);
     };
     const say = (v) => (c.added ? setAdded(c.k, { verdict: v === "approve" ? "in" : v === "reject" ? "out" : null }) : decide(c.i, v));
     btn("up", f === "in", f === "in" ? "You said this is a NoR. Click to undo" : "A NoR: keep it, with its lengths as shown (saved as ground truth)",
-      () => say(f === "in" ? null : "approve"));
+      () => say(f === "in" ? null : "approve"), "F");
     btn("down", f === "out", f === "out" ? (c.added ? "You said this is not a NoR. Click to undo" : "You said this is not a NoR. Click to let the filters decide again") : "Not a NoR: reject it (saved as ground truth)",
-      () => say(f === "out" ? null : "reject"));
+      () => say(f === "out" ? null : "reject"), "J");
     if (c.added) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
       acts.lastChild.onclick = (e) => { e.stopPropagation(); removeAdded(c.k); };
@@ -710,7 +711,7 @@ export function mount(shell) {
     const e = st.edits.get(c.i) || {};
     // on a task's card, the task says what is measured: a button alone puts the finder's lengths back
     if (e.length || e.red || e.width) {
-      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button">Reset measurements</button>`
+      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button" aria-keyshortcuts="R">Reset measurements</button>`
         : `<div class="tag">Lengths adjusted <button class="link">reset</button></div>`);
       d.querySelector(".reset-lines, .tag button").onclick = () => edit(c.i, { length: null, red: null, width: null });
     }
@@ -1142,6 +1143,19 @@ export function mount(shell) {
     } });
     for (const id of ["#show-gt-cut", "#show-gt-frame"]) $(id).disabled = true;
     shell.tasks.row("missed").querySelector(".task-body").append($("#nor-tasks .missed-slot"), $("#area-check"));
+    // while tagging, a key presses the open item's button that bears it, read by its place on the keyboard so any
+    // layout works (req/nor/truth/keys)
+    const NAMED = { Space: "Space", Backspace: "Backspace" };
+    document.addEventListener("keydown", (e) => {
+      if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || !tagging() || !st.cur) return;
+      if (e.target.closest?.("input, select, textarea, [contenteditable]") || e.target.isContentEditable) return;
+      if (document.querySelector("dialog[open], details.menu[open], :popover-open, #ctx:not([hidden])")) return;
+      const name = NAMED[e.code] || /^Key([A-Z])$/.exec(e.code)?.[1];
+      const b = name && [...$("#tasks-box").querySelectorAll(`button[aria-keyshortcuts="${name}"]`)]
+        .find((b) => !b.disabled && b.getClientRects().length && !b.closest("[inert]"));
+      if (!b) return;
+      e.preventDefault(); b.click();
+    }, here);
   }
 
   // ---------- the summary mask: areas lassoed on the image, combined by exclusive or ----------
