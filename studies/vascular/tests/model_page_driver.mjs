@@ -75,7 +75,7 @@ try {
   await page.click("#vm-run");
   await page.waitForFunction(() => !$("#model-on").hidden);
   check(/vessel edges/.test(await facts()), `Execute opens the model it draws: ${(await facts()).slice(0, 80)}`);
-  // req/vascular/summary: the eight numbers, over the whole field and then inside a lassoed mask
+  // req/vascular/summary/metrics and req/vascular/summary/mask: the eight numbers, over the whole field and then inside a lassoed mask
   await page.waitForFunction(() => !!window.vascular.summary().summary);
   const sum = () => page.evaluate(() => ({ s: window.vascular.summary().summary, text: $("#vm-summary").textContent }));
   const whole = await sum();

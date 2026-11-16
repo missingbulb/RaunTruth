@@ -139,6 +139,17 @@ owner's decisions on the stacks and the vessel model, are
   Test: `studies/vascular/tests/test_stack_page.py`.
   </details>
 
+- `req/vascular/summary/mask` A mask lassoed on the stack from straight above limits the summary to the tissue inside it, through every slice.
+  <details>
+
+  Set by the owner on 2026-11-16, as NoR's (`req/nor/summary/mask`). Add mask, at the Summary box's top, turns the
+  stack to face straight down and holds it, then a drag lassos an area (Esc cancels); the view turns back after. The
+  area runs through every slice below it. Lassoing again adds an area by exclusive or, so one inside another cuts a
+  hole. The mask's borders show over the stack as a pulsing dashed line, following the view as it turns. Clear mask,
+  shown while a mask is on, removes it. The mask is kept in µm, remembered in the browser per file name. Test:
+  `studies/vascular/tests/test_model_page.py`, `studies/vascular/tests/test_vessel_summary.mjs`.
+  </details>
+
 - `req/vascular/summary/metrics` Summary gives the model's eight numbers over the tissue counted: the mask, else the whole field.
   <details>
 
@@ -161,17 +172,6 @@ owner's decisions on the stacks and the vessel model, are
   the branch lengths show as histograms, as NoR's (`req/nor/summary/histograms`). 1 to 7 are sums and counts over the
   model's points and segments, under a millisecond on a whole stack's model (owner, 2026-11-16). Test:
   `studies/vascular/tests/test_vessel_summary.mjs`, `studies/vascular/tests/test_model_page.py`.
-  </details>
-
-- `req/vascular/summary/mask` A mask lassoed on the stack from straight above limits the summary to the tissue inside it, through every slice.
-  <details>
-
-  Set by the owner on 2026-11-16, as NoR's (`req/nor/summary/mask`). Add mask, at the Summary box's top, turns the
-  stack to face straight down and holds it, then a drag lassos an area (Esc cancels); the view turns back after. The
-  area runs through every slice below it. Lassoing again adds an area by exclusive or, so one inside another cuts a
-  hole. The mask's borders show over the stack as a pulsing dashed line, following the view as it turns. Clear mask,
-  shown while a mask is on, removes it. The mask is kept in µm, remembered in the browser per file name. Test:
-  `studies/vascular/tests/test_model_page.py`, `studies/vascular/tests/test_vessel_summary.mjs`.
   </details>
 
 - `req/vascular/truth/keys` While an area is tagged, keys give the verdicts: F and J judge the junction, Space does the area, S skips it.
