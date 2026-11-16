@@ -42,6 +42,7 @@ import { truthTasks } from "./truth_tasks.js";
 import { subfolderName } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
+import { storedPart } from "./vsi.js";
 import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
 import { algorithmChoice } from "./algorithm_choice.js";
@@ -1097,7 +1098,7 @@ function remoteDialog() {
     const kept = await savedImage(id);
     if (kept && !recent && sha === undefined && !throttled()) sha = await remote.checksum(id).catch(() => null);
     // offline, a copy kept here is the only one to be had
-    if (kept && (recent || offlineCopy.offline() || (sha && sha === (await sha256(kept.bytes))))) {
+    if (kept && (recent || offlineCopy.offline() || (sha && sha === (await sha256(storedPart(kept.bytes)))))) {
       $("#remote-dlg").close(); msg("");
       peek()(kept.bytes, kept.bytes.byteLength); remember(id, kept.name, path); picture(id, kept.name, kept.bytes);
       if (!recent) tip("recent-files", $("#image-pick"), "To load recent files click here");

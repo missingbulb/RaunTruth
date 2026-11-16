@@ -9,6 +9,7 @@
 // planes and volume (null for a flat image) are views into it}.
 import { readTiff, fromPlanes } from "./split.js";
 import { fileFields } from "./file_fields.js";
+import { isVsiAlone, pairFiles, readPair } from "./vsi.js";
 
 const LOWER = 0.005, UPPER = 0.998;
 // a robust standard deviation in median absolute deviations, for normal noise, and how many of them a
@@ -33,7 +34,9 @@ const isTiff = (b) => b.length >= 4 && ((b[0] === 0x49 && b[1] === 0x49 && b[2] 
 // the image in bytes (an ArrayBuffer or Uint8Array) as the viewers show it; view: the study's study.json view
 export async function openImage(bytes, view = {}) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (isVsiAlone(b)) throw new Error("A cellSens .vsi opens only together with its _name_ folder, which holds its pixels.");
   if (isTiff(b)) return withDetails(b, await openTiff(b, view), view);
+  if (pairFiles(b)) return withDetails(b, await openVsi(b, view), view, "vsi");
   if (isHeif(b)) return withDetails(b, await openHeif(b, view), view);
   const { W, H, rgba } = await browserPixels(b);
   return withDetails(b, fromPixels(W, H, rgba, view, greyFile(b)), view);
@@ -42,12 +45,13 @@ export async function openImage(bytes, view = {}) {
 // the fields each format pins in the details, by their labels; a study's view.details names its own per format
 const PINS = {
   tiff: ["Field", "Pixel", "Depth", "Series", "Microscope", "Date", "Slices", "Channels", "Saved by"],
+  vsi: ["Field", "Pixel", "Depth", "Slices", "Z-step", "Channels", "Stored", "Saved by"],
   heic: ["Field", "Depth", "Camera", "Taken"], jpeg: ["Field", "Depth", "Camera", "Taken"], png: ["Field", "Depth"], image: ["Field", "Depth"],
 };
 // the opened image with its details split (req/shell/image/file-info): info, the fields pinned, in the pins' order;
-// more, every other field the file carries, in the file's order
-export function withDetails(b, im, view = {}) {
-  const { format, fields, facts } = fileFields(b);
+// more, every other field the file carries, in the file's order; as: the format, where the bytes alone do not say it
+export function withDetails(b, im, view = {}, as = null) {
+  const { format, fields, facts } = as ? { format: as, fields: [], facts: {} } : fileFields(b);
   const rows = im.info.map(([k, val]) => [k, k === "Depth" && format !== "tiff" && facts.bits ? val.replace(/^\d+-bit/, `${facts.bits}-bit`) : val]);
   if (format !== "tiff") rows.push(...[["Camera", facts.camera], ["Taken", facts.taken]].filter(([, val]) => val));
   const all = [], seen = new Set();
@@ -192,6 +196,21 @@ export async function openTiff(b, view = {}) {
   if (saved) info.push(["Saved by", saved]);
   const spacing = microns && ij.spacing ? Number(ij.spacing) : null;
   return shown(W, H, t.Z, raw, said, view, rgb ? "photo" : "tiff", { um, umY, spacing, info });
+}
+
+// an Olympus cellSens image, its .vsi and .ets kept as one file (req/shell/image/cellsens), shown as a fluorescence
+// TIFF of the same channels is
+async function openVsi(b, view) {
+  const p = await readPair(b), n = Math.min(p.C, MOST), x = p.um, info = [];
+  const raw = p.planes.slice(0, n).map((slices) => slices.map((s) => samples(s, p.bps, 1)));
+  info.push(["Field", x ? `${(p.W * x).toFixed(1)} × ${(p.H * x).toFixed(1)} µm (${p.W} × ${p.H} px)` : `${p.W} × ${p.H} px`]);
+  if (x) info.push(["Pixel", `${x.toFixed(4)} µm`]);
+  info.push(["Depth", `${p.bps * 8}-bit`]);
+  if (p.Z > 1) info.push(["Slices", String(p.Z)]);
+  if (p.spacing) info.push(["Z-step", `${p.spacing} µm`]);
+  info.push(["Channels", n === p.C ? String(p.C) : `${p.C}, the first ${n} shown`]);
+  info.push(["Stored", p.compressed ? "JPEG 2000" : "uncompressed"], ["Saved by", "Olympus cellSens"]);
+  return shown(p.W, p.H, p.Z, raw, p.channels.slice(0, n), view, "tiff", { um: x, umY: x, spacing: p.spacing, info });
 }
 
 // a plane's little-endian bytes as numbers
