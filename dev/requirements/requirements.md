@@ -1673,7 +1673,9 @@ nobody has decided: what the page does there is not a requirement yet.
   is marked `full` and runs only in the full set, nightly (the workflow's own schedule)
   and on every push to main, so it has run on anything a release can ship: a green full run on main
   wakes the site release (`.github/workflows/tests-full.yml`, `web-tests/test_ci_split.py`). The nightly run also
-  runs the full set on Firefox and WebKit (`req/checks/other-engines`).
+  runs the full set on Firefox and WebKit (`req/checks/other-engines`). The repo's Claudinite checks run on every PR and
+  every push to main, in a job of their own beside the fast set (set by the owner on 2026-11-16), so a PR breaking one
+  is red before it merges.
   </details>
 
 - `req/checks/other-engines` Every night the full set also runs on Firefox and WebKit; their failures fail the night only once the page supports their browser.

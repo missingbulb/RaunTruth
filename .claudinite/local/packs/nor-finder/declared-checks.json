@@ -17,7 +17,7 @@
     "id": "fixed-wait-in-test",
     "on_fail": "block",
     "failureMessage": "a test that sleeps a fixed time guesses how long the page takes: too short on a slow runner, so it flakes, and wasted on every fast one",
-    "fix": "wait for what the next check reads (waitForFunction, waitForSelector, until()), have a stand-in hold its answer until the test releases it (held() from web-tests/held.mjs), or move the page's clock with ctx.clock; where only real time will do, end the line `// waits on purpose: <reason>`, and a deadline that only bounds a hang `// bounds a hang: <reason>`",
+    "fix": "wait for what the next check reads, hold a stand-in's answer with held(), or move ctx.clock; else end the line `// waits on purpose: <reason>`, or `// bounds a hang: <reason>`",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.(m?js|py)$/",
     "matchLines": [
       {
@@ -59,7 +59,7 @@
     "id": "timers-in-one-file",
     "on_fail": "block",
     "failureMessage": "a timer set anywhere in page code is a cadence nobody can list, a visual effect guessing how long it takes, or a poll running on in a hidden tab",
-    "fix": "a visual effect is a CSS transition or animation, acted on at transitionend or animationend, and given its own rule under :root[data-motion=\"off\"] in web/style.css where something waits on it; background work goes through every(), settle(), within() or after() in web/pacing.js; where only a raw timer will do, end the line `// timed here: <reason>`",
+    "fix": "make a visual effect a CSS motion that animations off keeps running where needed, background work every(), settle(), within() or after() from web/pacing.js; else end the line `// timed here: <reason>`",
     "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!pacing\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
     "matchLines": [
       {
@@ -89,7 +89,7 @@
     "id": "motion-end-with-animations-off",
     "on_fail": "block",
     "failureMessage": "the page's animations-off setting stops every CSS transition and animation, so code waiting on one's end never runs: a popup stays open, a class is never cleared",
-    "fix": "give the motion a rule under :root[data-motion=\"off\"] in web/style.css that still ends it, or show it is never started then; test it with animations off, and end the line `// ends with animations off: <how>`",
+    "fix": "keep the motion ending under :root[data-motion=\"off\"] in web/style.css, or show it never starts then; test it so, and end the line `// ends with animations off: <how>`",
     "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!vendor\\/)[^]*\\.(m?js|html)$/",
     "matchLines": [
       {
