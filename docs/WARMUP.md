@@ -61,6 +61,9 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   `shown` at first, and optionally `depth` (in 3D, coloured by depth from the start: `true`, or a palette's name), `about` (the (?)'s description, at most 100 words) and `black` and
   `white` (its first points, 0–255). A channel it leaves out takes what the file says, then its place
   (red, green, blue…); the Image Viewer names none.
+- `actions` — optional, the study's keyboard shortcuts as data, which the shell wires, lists in the keys legend and
+  marks on the buttons they mirror (`req/shell/image/keys`); the module hands over only their handlers and the
+  states they wait on, through `shell.actions.handle` and `shell.actions.report`.
 - `progress` — the status line while Python installs (`install`), loads the study (`load`), takes the
   image's file (`open`) and runs each action (by its name).
 - `generated` — optional, files under `web/` the site's build writes from the study's own scripts (output path:

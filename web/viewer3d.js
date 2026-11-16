@@ -244,21 +244,21 @@ export function viewer3d(shell, flat) {
   const depthRows = () => { flat.rowsWith(mode3d ? depthRow : null); redraw(); };
   const stage = html("div", { id: "v3-stage", hidden: true });
   const cv = html("canvas", { id: "v3-gl" }), hudCv = html("canvas", { id: "v3-hud" });
-  // whether a plain drag pans rather than turns: the label's state, and shift held over it; kept only while the page is open
-  const panBtn = html("button", { id: "v3-pan", type: "button", textContent: "Panning", title: "Press Shift to pan, or click to keep panning on" });
+  // whether a plain drag pans rather than turns: its row's state in the keys legend, and shift held; kept only while
+  // the page is open. Shift is heard here, wherever the focus is, its row only lit by it
   let panOn = false, shiftHeld = false;
   const panning = () => panOn || shiftHeld;
-  const showPan = () => panBtn.setAttribute("aria-pressed", String(panning()));
-  panBtn.onclick = () => { panOn = !panOn; showPan(); };
-  const heldShift = (on) => { if (shiftHeld !== on) { shiftHeld = on; showPan(); } };
-  addEventListener("keydown", (e) => { if (e.key === "Shift") heldShift(true); });
-  addEventListener("keyup", (e) => { if (e.key === "Shift") heldShift(false); });
-  addEventListener("blur", () => heldShift(false));
-  showPan();
-  // the labels at the bottom left, one above the other, each with the key that holds it on beside it; a study may add its own above
-  const keys = html("div", { className: "v3-keys" });
-  keys.append(panBtn, html("span", { className: "v3-key", textContent: "shift" }));
-  stage.append(cv, hudCv, keys);
+  addEventListener("keydown", (e) => { if (e.key === "Shift") { shiftHeld = true; shell.actions.refresh(); } });
+  addEventListener("keyup", (e) => { if (e.key === "Shift") { shiftHeld = false; shell.actions.refresh(); } });
+  addEventListener("blur", () => { shiftHeld = false; shell.actions.refresh(); });
+  // its row in the keys legend, there while this viewer is the study's
+  let panRow = null;
+  function panKey(on) {
+    panRow?.abort(); panRow = on ? new AbortController() : null;
+    if (on) shell.actions.add({ id: "v3-pan", label: "Panning", title: "Press Shift to pan, or click to keep panning on", keys: ["ShiftLeft", "ShiftRight"],
+      hint: "shift", kind: "toggle", wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
+  }
+  stage.append(cv, hudCv);
 
   // ---------- GL ----------
   function initGL() {
@@ -535,7 +535,6 @@ export function viewer3d(shell, flat) {
     get meta() { return vol ? { shape: [vol.Z, vol.Y, vol.X], um_per_px: (page.get("image")?.um || 1) * vol.bin } : null; },
     get half() { return half; },
     get stage() { return stage; },
-    get keys() { return keys; },
     camera, redraw, controls, axes,
     // whether a drag pans rather than turns just now, for a study's own drags to give way to it
     get panning() { return panning(); },
@@ -641,7 +640,7 @@ export function viewer3d(shell, flat) {
     ...flat,
     three,
     // the shell says whether this is the viewer of the study on the page; the 3D parts go when it is not
-    active(on) { active = on; placed(on); take(on ? page.get("image") : null); },
+    active(on) { active = on; panKey(on); placed(on); take(on ? page.get("image") : null); },
     get overlay() { return flat.overlay; }, get scroller() { return flat.scroller; },
   };
 }

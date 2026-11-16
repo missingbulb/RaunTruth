@@ -10,11 +10,11 @@ import { order } from "./channel_order.js";
 export function mount(shell) {
   const { $ } = shell, V = shell.viewer.three, truth = shell.makesTruth;
   let algorithms = [], ran = null, running = null;
-  MV.init(V, shell.signal, truth);
+  MV.init(V, shell.signal, truth, shell.actions);
   shell.signal.addEventListener("abort", () => MV.leave());
   shell.views.on((v) => { items.visibleNow(v === "items"); if (v === "image") V.redraw(); });
   items.init(V, () => shell.views.show("image"), shell.views.count);
-  if (truth) tasks.init(V, shell.tasks, steps, submit, shell.signal);
+  if (truth) tasks.init(V, shell.tasks, steps, submit, shell.actions);
 
   // ---------- Processing: Execute, with the algorithm chosen above it (the shell's) ----------
   const chosen = () => algorithms.find((a) => a.key === shell.algorithm.key);

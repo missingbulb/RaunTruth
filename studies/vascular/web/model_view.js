@@ -51,8 +51,9 @@ let review = 'all', reach = .5, maskKey = null, maskTimer = null, drawing = null
 let makingTruth = false, tagOn = false, cutOn = true, task = null, area = null, picked = null;
 // focused: the main view shows one area of the ground-truth tasks alone, {box}: opening from straight above with every
 // point a handle, turning freely; null for the whole stack. outside: the mode chosen for the whole stack, back once the
-// area is left; peeking: the model alone, while its label is on or Ctrl held
-let focused = null, outside = 'overlay', peeking = false, peekOn = false, ctrlHeld = false, peekKeys = [];
+// area is left; peeking: the model alone, while its row of the keys legend is on or 1 held; bareArea: an area shows the
+// stack without the lines over it
+let focused = null, outside = 'overlay', peeking = false, peekOn = false, oneHeld = false, bareArea = false;
 // the widths look of the area open (widths.js), on while W has switched it on there
 let look = null;
 const store = {
@@ -372,7 +373,7 @@ const listeners = [];
 // Other views of the model (the item cards) hear every change to it, a new model included.
 export const onChange = (fn) => listeners.push(fn);
 // the study left: nothing hears the model any more, and its canvas leaves the 3D view
-export function leave() { listeners.length = 0; for (const el of peekKeys) el.remove(); peekKeys = []; V?.place(null); V = null; }
+export function leave() { listeners.length = 0; V?.place(null); V = null; }
 const tell = () => listeners.forEach((fn) => fn(model));
 export const current = () => model;
 // an edit made from another view, undoable like any other
@@ -556,21 +557,21 @@ export function reveal(p) {
   V.S.pivot = toWorld(p); V.S.clip = null; V.redraw();
 }
 // One area of the ground-truth tasks alone in the main view, a box in µm: opening from straight above, the lines over
-// the stack with a handle on every point, turning freely. Holding Ctrl shows the model alone. null shows the whole stack
+// the stack with a handle on every point, turning freely. Holding 1 shows the model alone. null shows the whole stack
 // again, in the mode chosen for it.
 export function focusArea(b) {
   if (!model || !V) return;
   if (look.on) look.show(null);
   if (!b) {
     if (!focused) return;
-    focused = null; peeking = peekOn = false; showPeek();
+    focused = null; peeking = peekOn = false;
     Object.assign(V.S, { clip: null, held: false, rot: V.facing(0, 0), pivot: [0, 0, 0], dist: V.FIT_DIST });
     $('vm-show').hidden = false; setMode(outside); refreshMask(true);
     return;
   }
-  focused = { box: b }; peeking = peekOn = false; showPeek();
+  focused = { box: b }; peeking = peekOn = false;
   $('vm-show').open = false; $('vm-show').hidden = true;
-  frameFocus(); setMode(focusMode()); refreshMask(true);
+  frameFocus(); setMode(shownMode()); refreshMask(true);
 }
 export const focusedArea = () => focused;
 // W: the widths look on the area open, or the lines over the stack again
@@ -579,15 +580,18 @@ function toggleLook() {
   if (drawing) setDrawing(false);
   closeMenu(); hover = null;
   look.show(look.on ? null : focused.box);
-  if (!look.on) { frameFocus(); setMode(focusMode()); }
+  if (!look.on) { frameFocus(); setMode(shownMode()); }
+  tellKeys();
 }
 // the owner tags ground truth now or not: only while they do is what is done cut out, and the Show menu's row for it on
 export function tagging(on) {
   tagOn = !!on; $('m-cut').disabled = !tagOn;
   if (!tagOn && look?.on) look.show(null);
-  refreshMask(true); V?.redraw();
+  refreshMask(true); V?.redraw(); tellKeys();
 }
-const focusMode = () => (peeking ? 'model' : 'overlay');
+// what the main view shows: the model alone while peeking, else in an area the lines over the stack or the stack bare,
+// else what was chosen for the whole stack
+const shownMode = () => (peeking ? 'model' : focused ? (bareArea ? 'image' : 'overlay') : outside);
 // the area filling the view from straight above, the rest of the stack cut away
 const FILL = 1.05;
 function frameFocus() {
@@ -597,17 +601,20 @@ function frameFocus() {
     pivot: [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, 0], dist: Math.max(.15, V.FIT_DIST * h * FILL), held: false });
   V.redraw();
 }
-// the Model label above Panning: in an area only, filled while the model shows alone
-function showPeek() {
-  for (const el of peekKeys) el.hidden = !focused;
-  peekKeys[0]?.setAttribute('aria-pressed', String(peeking));
-}
 function peek() {
-  const on = peekOn || ctrlHeld;
-  if (!focused || peeking === on || look.on) return;
-  peeking = on; showPeek(); setMode(focusMode());
+  const on = peekOn || oneHeld;
+  if (!model || peeking === on || look.on) return;
+  peeking = on; setMode(shownMode());
 }
-const heldCtrl = (on) => { ctrlHeld = on; peek(); };
+const heldOne = (on) => { oneHeld = on; peek(); };
+// 2: the magenta lines over the stack, shown or hidden; on the whole stack Overlay or Image
+const linesOn = () => (focused ? !bareArea : outside === 'overlay');
+function toggleLines() {
+  if (focused) bareArea = !bareArea; else outside = outside === 'overlay' ? 'image' : 'overlay';
+  if (!peeking) setMode(shownMode());
+}
+function toggleWidths() { showWidths = !showWidths; $('m-widths').checked = showWidths; V.redraw(); tellKeys(); }
+function toggleCut() { cutOn = !cutOn; $('m-cut').checked = cutOn; refreshMask(true); tellKeys(); }
 function closeMenu() { if (!$('ctx').hidden) { $('ctx').hidden = true; hover = null; V.redraw(); } }
 
 // ---------- the review: detected or missed ----------
@@ -620,7 +627,7 @@ function setReview(r) {
     missed: 'Only the signal away from the model’s vessels: whatever bright line is left is a vessel the model does not have.',
   }[r];
   $('reach-row').hidden = r === 'all';
-  refreshMask(true);
+  refreshMask(true); tellKeys();
 }
 // What the owner has decided, cut out of the whole stack while they tag ground truth and the Show menu says so: each
 // area done; null while nothing is.
@@ -657,6 +664,7 @@ function setDrawing(on) {
   if (on && !model) return;
   drawing = on ? { from: null, to: null } : null;
   cv.classList.toggle('connecting', !!on);
+  if (on) bareArea = false;
   if (on && mode !== 'overlay') setMode('overlay');
   $('draw-note').textContent = on ? 'Click along the vessel, a point at a time; each point goes to the brightest spot under the pointer. Click an existing vessel, press Enter or Escape to end. Ctrl-Z takes back a point.' : '';
   V.redraw();
@@ -690,11 +698,12 @@ function drawClick(e) {
 // ---------- loading, modes, saving ----------
 function setMode(m) {
   mode = model ? m : 'image';
-  if (!focused) outside = mode;
+  if (!focused && !peeking) outside = mode;
   for (const b of $('model-mode').querySelectorAll('button')) { b.setAttribute('aria-pressed', String(b.dataset.v === mode)); b.disabled = !model && b.dataset.v !== 'image'; }
   // the model's canvas stays over the stack in every mode, for the tasks' marks
   V.place(model ? cv : null, mode === 'side');
   V.redraw();
+  tellKeys();
 }
 
 function facts() {
@@ -754,7 +763,7 @@ export function truth() {
 // Called whenever a stack opens: it opens with no model until the algorithm draws one.
 export function stackOpened() {
   if (look?.on) look.show(null);
-  model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; task = null; area = null; focused = null; peeking = peekOn = false; showPeek();
+  model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; task = null; area = null; focused = null; peeking = peekOn = bareArea = false;
   $('vm-show').hidden = false;
   $('model-on').hidden = true; $('vm-review').hidden = true; msg(''); setMode('image');
   $('model-facts').textContent = 'No vessel model yet: Execute the algorithm.';
@@ -778,14 +787,33 @@ export const inspect = () => ({ model: model && Mo.toJSON(model), points: view &
     return [id, `${st.size === 1 ? [...st][0] : 'mixed'}-${on.length === 2 ? 'curve' : 'end'}`];
   })) });
 
+// ---------- the keys: the study's declared actions (study.json), its part of them the handlers and the states ----------
+// what each action does; the shell hears the keys (req/shell/image/keys)
+const HANDLERS = {
+  widths: (phase) => { if (phase !== 'up') toggleLook(); },
+  'image-alone': (phase) => look.bare(phase === 'click' ? !look.isBare() : phase === 'down'),
+  cannot: () => look.cannot(),
+  nudge: (phase, { event }) => { if (event) look.nudge(/Equal|Add/.test(event.code) ? 1 : -1); },
+  estimate: () => look.estimate(),
+  model: (phase) => { if (phase === 'click') { peekOn = !peekOn; peek(); } else heldOne(phase === 'down'); },
+  outlines: () => toggleLines(),
+  'vessel-widths': () => toggleWidths(),
+  cut: () => toggleCut(),
+  missed: () => setReview(review === 'missed' ? 'all' : 'missed'),
+};
+// the states the actions wait on, told the shell as they change
+let keys = null;
+const tellKeys = () => keys?.report({ model: !!model, focused: !!focused, look: !!look?.on, peeking, lines: linesOn(), widths: showWidths, cut: cutOn,
+  missed: review === 'missed', truthTagging: makingTruth && tagOn });
+
 // view: the shell's 3D view; signal ends the listeners outside the study's own panels when the study leaves;
-// makesTruth: the study makes ground truth, so what is decided is cut out of the stack
-export function init(view, signal, makesTruth) {
-  V = view; makingTruth = !!makesTruth; tagOn = false; cutOn = true;
+// makesTruth: the study makes ground truth, so what is decided is cut out of the stack; actions: the shell's keys
+export function init(view, signal, makesTruth, actions) {
+  V = view; keys = actions; keys?.handle(HANDLERS); makingTruth = !!makesTruth; tagOn = false; cutOn = true;
   $('m-cut-row').hidden = !makingTruth; $('m-cut').checked = true; $('m-cut').disabled = true;
-  $('m-cut').onchange = (e) => { cutOn = e.target.checked; refreshMask(true); };
+  $('m-cut').onchange = (e) => { cutOn = e.target.checked; refreshMask(true); tellKeys(); };
   model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; mode = 'image'; task = null; area = null; picked = null;
-  focused = null; outside = 'overlay'; peeking = peekOn = ctrlHeld = false;
+  focused = null; outside = 'overlay'; peeking = peekOn = oneHeld = bareArea = false;
   cv = document.createElement('canvas'); cv.id = 'mcv';
   // the stack's middle depth on screen, from straight above, for the widths look
   const plane = (x, y) => { const v = V.M.xf(V.camera(cv.clientWidth / cv.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
@@ -793,11 +821,6 @@ export function init(view, signal, makesTruth) {
   look = widthsLook({ V, canvas: cv, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t) });
   V.onDraw(draw, signal);
   V.controls(cv, grab, clicked);
-  for (const el of peekKeys) el.remove();
-  const peekBtn = Object.assign(document.createElement('button'), { id: 'vm-peek', type: 'button', textContent: 'Model', title: 'Hold Ctrl to see the model alone, or click to keep it on' });
-  peekBtn.onclick = () => { peekOn = !peekOn; peek(); };
-  peekKeys = [peekBtn, Object.assign(document.createElement('span'), { className: 'v3-key', textContent: 'ctrl' })];
-  V.keys.prepend(...peekKeys); showPeek();
   cv.addEventListener('pointermove', (e) => {
     if (look.on && !e.buttons) return look.move(e);
     if (!model || e.buttons || rubber) return;
@@ -808,21 +831,18 @@ export function init(view, signal, makesTruth) {
   });
   cv.addEventListener('pointerleave', () => { if (look.on) look.leave(); });
   cv.addEventListener('pointerleave', () => { if (hover && $('ctx').hidden) { hover = null; V.redraw(); } });
-  $('model-mode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.disabled) setMode(b.dataset.v); });
+  $('model-mode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.disabled) { peeking = peekOn = false; setMode(b.dataset.v); } });
   $('review-mode').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setReview(b.dataset.v); });
   const reachOut = () => { $('reach-o').value = `${Math.round(reach * 100)}% of its width`; };
   $('reach').addEventListener('input', (e) => { reach = e.target.value / 100; reachOut(); refreshMask(); });
   reachOut();
   V.onSpacing(() => refreshMask(), signal);
-  $('m-widths').onchange = (e) => { showWidths = e.target.checked; V.redraw(); };
+  $('m-widths').onchange = (e) => { showWidths = e.target.checked; V.redraw(); tellKeys(); };
   $('m-undo').onclick = undo; $('m-redo').onclick = redo;
   $('m-reset').onclick = () => { if (!edits || !confirm(`Discard all ${edits} edits and go back to the model as loaded?`)) return;
     store.del(savedKey); model = loaded; history = []; future = []; edits = 0; msg(''); changed(); };
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Control') heldCtrl(true);
     if (!model || e.target.closest('input, textarea, select')) return;
-    if (!(e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'w' && focused && tagOn) { toggleLook(); return; }
-    if (look.on && look.key(e, true)) return;
     if (e.key === 'Escape') closeMenu();
     if (drawing && (e.key === 'Escape' || e.key === 'Enter')) { setDrawing(false); return; }
     const k0 = e.key.toLowerCase();
@@ -834,8 +854,6 @@ export function init(view, signal, makesTruth) {
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
   }, { signal });
-  document.addEventListener('keyup', (e) => { if (e.key === 'Control') heldCtrl(false); if (look.on) look.key(e, false); }, { signal });
-  addEventListener('blur', () => heldCtrl(false), { signal });
   V.onReset(() => { if (!focused || !model) return false; frameFocus(); if (look.on) V.S.held = true; return true; }, signal);
   document.addEventListener('pointerdown', (e) => { if (!$('ctx').contains(e.target) && e.target !== cv) closeMenu(); }, { signal });
 }

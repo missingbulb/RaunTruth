@@ -252,18 +252,14 @@ export function widthsLook(ctx) {
       cancel() { drag = null; V.redraw(); },
     };
   }
-  // the keys the look answers; true when it took the key
-  function key(e, down) {
-    if (e.ctrlKey || e.metaKey || e.altKey) return false;
-    const k = e.key.toLowerCase();
-    if (k === 'i') { if (bare !== down) { bare = down; V.redraw(); } return true; }
-    if (!down) return false;
+  // what the look's keys do (the study's declared actions): the image alone or the marks again; the vessel under the
+  // pointer, or the one last set, a step narrower (-1) or wider (1), its width not to be told, or the estimate again
+  function setBare(on) { if (bare !== on) { bare = on; V.redraw(); } }
+  function nudge(dir) { const v = target(); if (v) word(v, Mo.nudge(ctx.model(), v.segs, dir * STEP_UM, v.estimate, today())); }
+  function cannot() { const v = target(); if (v) word(v, Mo.setWidth(ctx.model(), v.segs, { how: 'cannot', on: today() })); }
+  function estimate() {
     const v = target(), m = ctx.model();
-    if (k === '+' || k === '=') { if (v) word(v, Mo.nudge(m, v.segs, STEP_UM, v.estimate, today())); return true; }
-    if (k === '-' || k === '_') { if (v) word(v, Mo.nudge(m, v.segs, -STEP_UM, v.estimate, today())); return true; }
-    if (k === 'u') { if (v) word(v, Mo.setWidth(m, v.segs, { how: 'cannot', on: today() })); return true; }
-    if (k === 'backspace') { e.preventDefault(); if (v && Mo.widthOf(m, v.segs)) word(v, Mo.setWidth(m, v.segs, null), `Vessel ${v.n}'s width is the estimate again.`); return true; }
-    return false;
+    if (v && Mo.widthOf(m, v.segs)) word(v, Mo.setWidth(m, v.segs, null), `Vessel ${v.n}'s width is the estimate again.`);
   }
 
   return {
@@ -274,7 +270,7 @@ export function widthsLook(ctx) {
       if (b) Object.assign(V.S, { rot: V.facing(0, 0), held: true }); else V.S.held = false;
       V.redraw();
     },
-    draw, grab, move, key,
+    draw, grab, move, bare: setBare, isBare: () => bare, nudge, cannot, estimate,
     leave() { hover = null; clearTimeout(timer); if (lens) { lens = null; V.redraw(); } },
     inspect() {
       if (!box) return null;
