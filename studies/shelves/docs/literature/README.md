@@ -12,7 +12,7 @@ the repo.
 | Document | What it answers |
 |---|---|
 | [`SURVEY.md`](SURVEY.md) | The synthesis: how the problem was framed, what failed, the few comparable numbers, what can honestly score us, the changes the evidence supports, ranked |
-| [`talker-2013-spine-segmentation.md`](talker-2013-spine-segmentation.md) | The classical, viewpoint-independent spine segmenter: candidates, then one global non-overlapping choice |
+| [`talker-2013-spine-segmentation.md`](talker-2013-spine-segmentation.md) | The classical, viewpoint-independent spine segmenter: candidates and a contrast-free seam test, then a heuristic selection (the global choice is only in the WACV abstract) |
 | [`ma-2024-oriented-rcnn-spines.md`](ma-2024-oriented-rcnn-spines.md) | The one rigorous spine-detection benchmark (CC0 Shenzhen set, AP@0.75), YOLOv8n-OBB included |
 | [`yang-2016-smart-library.md`](yang-2016-smart-library.md) | Why Hough was demoted to the dominant lean; per-line reading, the up/down test, catalog retrieval |
 | [`goldman-2019-sku110k.md`](goldman-2019-sku110k.md) | The EM-Merger that replaced greedy NMS on densely packed shelves |
