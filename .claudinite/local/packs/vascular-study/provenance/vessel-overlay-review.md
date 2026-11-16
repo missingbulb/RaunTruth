@@ -63,3 +63,8 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** unchanged carrier, now in the study's own local pack.
+
+## 2026-11-16 · reworded · a link re-pointed to the flattened literature file (#968)
+- **Reason:** each paper's folder became one `<slug>.md`; nothing else changed.
+- **Actor:** @missingbulb (owner).
+- **Landed:** #968
