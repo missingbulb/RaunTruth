@@ -135,6 +135,14 @@ async function drag(page, [x, y], dx, dy) {
   await page.mouse.move(x, y); await page.mouse.down();
   await page.mouse.move(x + dx, y + dy, { steps: 5 }); await page.mouse.up();
 }
+// the same drag with Escape pressed before the release (req/shell/drag/escape); during() sees it under way
+async function escapedDrag(page, [x, y], dx, dy, during) {
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps: 5 });
+  const seen = await during();
+  await page.keyboard.press("Escape"); await page.mouse.move(x + dx + 10, y + dy + 10, { steps: 2 }); await page.mouse.up();
+  return seen;
+}
 // how far the four ends of a candidate's length and red lines are from one straight line, in pixels
 const offAxis = (L) => {
   const [A, B] = L.length, n = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -194,6 +202,14 @@ async function markAndVote(page) {
   await drag(page, await handle(page, "width", 0), 0, -25);
   const w1 = await page.evaluate(() => nor.candOf("u1").m.width);
   await check(w1 > w0 + 1, `a dragged width end widens the NoR (${w0.toFixed(1)} to ${w1.toFixed(1)} px)`);
+  // Escape in the middle of a handle's drag puts it back, and the NoR keeps its lines
+  {
+    const lines = () => page.evaluate(() => JSON.stringify(nor.candOf("u1").lines)), kept = await lines(), at = await handle(page, "width", 0);
+    const mid = await escapedDrag(page, at, 0, -25, () => handle(page, "width", 0));
+    const back = await handle(page, "width", 0);
+    await check(Math.abs(mid[1] - at[1]) > 10 && Math.hypot(back[0] - at[0], back[1] - at[1]) < 1 && await lines() === kept,
+      "Escape mid-drag puts a handle back where it was, the NoR's lines unchanged", { at, mid, back });
+  }
   // with another candidate voted on, only the added NoR keeps the button red
   await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
   const waiting = await page.$eval("#gt-submit", (b) => ({ state: b.dataset.state, why: b.title }));
@@ -295,6 +311,18 @@ async function lasso(page, pts) {
 
 async function mask(page) {
   const passes = await page.evaluate(() => st.passes.length);
+  // a lasso cancelled by Escape before it is let go draws no mask
+  {
+    const masked = await page.evaluate(() => st.mask.length);
+    await page.click("#mask-add");
+    const box = await page.evaluate(() => { const b = $("#base").getBoundingClientRect(); return { l: b.left, t: b.top, w: b.width, h: b.height }; });
+    const live = await escapedDrag(page, [box.l + box.w * 0.2, box.t + box.h * 0.2], box.w * 0.5, box.h * 0.5, async () => {
+      await page.mouse.move(box.l + box.w * 0.2, box.t + box.h * 0.7, { steps: 4 });
+      return page.evaluate(() => !!$("#overlay .lasso-live"));
+    });
+    const after = await page.evaluate(() => ({ mask: st.mask.length, lassoing: $("#scroller").classList.contains("lassoing"), line: !!$("#overlay .lasso-live") }));
+    await check(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
+  }
   await lasso(page, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]]);
   const fit = await page.evaluate(() => ({ view: st.view, w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
   await check(fit.view === "image" && fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);

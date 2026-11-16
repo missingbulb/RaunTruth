@@ -8,7 +8,7 @@
 
 Detect and quantify the fluorescently-labeled cerebral blood vessels in the **gP-CD31 (red) confocal
 panels** from Wang et al. 2022. The professor's three asks: **categorize, count, measure (length)**.
-Biology + imaging numbers: [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network/digest.md`](literature/wang-2022-cd31-vascular-network/digest.md).
+Biology + imaging numbers: [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network.md`](literature/wang-2022-cd31-vascular-network.md).
 
 **Working dataset:** every `references/*/figures/panels/VESSEL_*.png` — the isolated vessel channel,
 one folder per source paper. The **16 Wang gP-CD31 (red) rat panels** are the primary set, the one
@@ -24,7 +24,7 @@ paper** so the sets are never averaged together. Paper index and the intake prot
    When establishing what a good result looks like, actually *look* at the images and reason about
    them. Never invent/fabricate numbers, and never run the analysis pipeline and present its own
    output as if it were ground truth — that is circular. The visual, LLM-derived expectations live in
-   [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md`](literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md)
+   [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network.md#figures`](literature/wang-2022-cd31-vascular-network.md#figures)
    and are the reference the automated pipeline is judged against.
 
 2. **We converse on visual assertions.** Progress is discussed by *overlaying the extracted data on
@@ -96,7 +96,7 @@ The owner iterated to this exact style — keep it:
 | `references/METHODS-SYNTHESIS.md` | Cross-paper method comparison: what the literature does, what we adopted, what we rejected. |
 | `references/<paper>/digest.md` | Self-contained digest per paper — read this instead of the PDF. |
 | `references/<paper>/figures/` + `panels/` | Full figures and cropped panels; `VESSEL_*.png` = working-dataset inputs; each `README.md` = inventory + descriptions. |
-| `references/wang-2022-cd31-vascular-network/figures/panels/expected-results.md` | Visual (LLM) expected results for the primary 16 panels — the validation reference. |
+| `references/wang-2022-cd31-vascular-network.md#figures` | Visual (LLM) expected results for the primary 16 panels — the validation reference. |
 | `analysis/measure_vessels.py` | Extraction + metrics (categorize/count/measure). `--overlays` writes a 3-panel debug view. |
 | `analysis/annotate_overlays.py` | Presentation overlays in the style above. |
 | `analysis/results-first-pass.md` | Measured results, calibration, limitations. |

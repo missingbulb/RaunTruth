@@ -292,13 +292,19 @@ try {
     const onScreen = (p) => p && p[0] > 20 && p[0] < cw - 20 && p[1] > 20 && p[1] < ch - 20;
     const at0 = (await page.evaluate(() => window.vascular.model())).at;
     const menuNow = () => page.evaluate(() => (document.querySelector("#ctx").hidden ? [] : [...document.querySelectorAll("#ctx .item")].map((b) => b.textContent)));
+    // req/vascular/model/correct: one list on every vessel, what does not apply greyed with why, never hidden
+    const menuState = () => page.evaluate(() => [...document.querySelectorAll("#ctx .item")].map((b) => ({ label: b.textContent, off: b.disabled, why: b.title })));
+    let pointMenu = null;
     const bend = Object.keys(kinds).find((k) => kinds[k] === "candidate-curve" && onScreen(points[k]) && inArea(at0[k], 10));
     check(!!bend, "a low-confidence vessel's curve point in the area");
     if (bend) {
       const n0 = (await doc()).edges.length, segs0 = (await page.evaluate(() => window.vascular.model())).kinds;
       await page.mouse.click(cx + points[bend][0], cy + points[bend][1], { button: "right" });
       const menu = await menuNow(), k = menu.findIndex((x) => /^Remove this point/.test(x));
+      pointMenu = await menuState();
       check(k >= 0, `a curve point's menu offers to remove it from its line: ${menu}`);
+      const split = pointMenu.find((x) => x.label === "Split this segment here");
+      check(k >= 0 && !pointMenu[k].off && split?.off && !!split.why, `... with a segment's options there too, greyed with why: ${JSON.stringify(pointMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model());
@@ -323,6 +329,10 @@ try {
       await page.mouse.click(cx + mid[0], cy + mid[1], { button: "right" });
       const menu = await menuNow(), k = menu.indexOf("Split this segment here");
       check(k >= 0 && menu.includes("Delete this segment"), `a segment's menu offers Split this segment here beside Delete this segment: ${menu}`);
+      const segMenu = await menuState(), remove = segMenu.find((x) => /^Remove this point/.test(x.label));
+      check(!!pointMenu && JSON.stringify(segMenu.map((x) => x.label)) === JSON.stringify(pointMenu.map((x) => x.label)),
+        `a segment's menu lists the same options, in the same order, as a point's: ${segMenu.map((x) => x.label)} | ${pointMenu?.map((x) => x.label)}`);
+      check(k >= 0 && !segMenu[k].off && remove?.off && !!remove.why, `... a point's options greyed with why: ${JSON.stringify(segMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model()), fresh = Object.keys(after.at).filter((id) => !m1.at[id]);
@@ -381,7 +391,10 @@ try {
 
   // every junction judged, Area is right does the area
   for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
+  // the vessels drawn there wait for a width (req/vascular/truth/widths): said here to be ones that cannot be told
+  check(await page.evaluate(() => $("#area-ok").disabled), "Area is right waits while a vessel drawn there has no width");
+  await page.evaluate(() => window.vascular.edit((m) => { const w = { how: "cannot" }; return { ...m, segments: m.segments.map((s) => (s.proposed ? s : { ...s, width: w })) }; }));
+  check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict and every vessel drawn there a width");
   await page.click("#area-ok");
   m = await doc(); t = await tasks();
   const nodeAt = new Map(m.nodes.map((n) => [n.id, n]));

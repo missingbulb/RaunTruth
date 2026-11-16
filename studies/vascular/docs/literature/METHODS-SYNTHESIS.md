@@ -39,7 +39,7 @@ Our three locked asks against what the literature reports:
 | Pruning | **none** (`prune=none`) | **iterative, remove globally smallest first, threshold S ≈ vessel diameter** | fixed `min_len = 8 px`, 40 passes | Rust does not prune at all; Pyvane's is principled and scale-linked; **ours is a magic number** |
 | Gap bridging | not mentioned | not mentioned | binary closing (disk 2) + fill holes | **ours alone** — a response to figure-crop dropout that neither paper needs |
 | Batch | in the script | processor pipeline | glob over `references/*/figures/panels/VESSEL_*.png` | equivalent |
-| Visualization | **grid heatmap**, **15 × 15** squares, own LUT supplied | per-pixel tortuosity maps | outline-over-original overlays | complementary; see §4.4 — the exact recipe is now in the repo |
+| Visualization | **grid heatmap**, **15 × 15** squares, own LUT supplied | per-pixel tortuosity maps | outline-over-original overlays | complementary; see §4.4 — the exact recipe is transcribed in the Rust summary |
 
 **Structural agreement is the reassuring part:** three independent groups all do
 *binarize → skeletonize → graph → count and sum*. Our architecture is not idiosyncratic.
@@ -90,7 +90,7 @@ Freitas-Andrade's three ground-truth panels add: 22.60 / 16.72 / 8.84 mm/mm² an
 ### 3.1 The decisive test — same method, same image ⭐
 
 Rust's supplementary material supplies both their **exact macro** and a **µm-calibrated,
-native-resolution vessel image** (`references/rust-2020-fiji-vascular-analysis/supplementary/`).
+native-resolution vessel image** ([publisher's supplementary material](https://doi.org/10.3389/fnins.2020.00244), transcribed in [`rust-2020-fiji-vascular-analysis.md`](rust-2020-fiji-vascular-analysis.md) §7).
 Reimplementing their recipe step-for-step and running both on that one image is the only true
 apples-to-apples comparison in the whole corpus:
 
@@ -161,7 +161,7 @@ count is untrustworthy.
 **Rust and Bizou independently converge on this construct.** Not a replacement for the outline
 overlays (which stay the agreed QA style), but it answers a different and very on-topic question:
 *where* is the tissue under-vascularized. That is the ischemic-core/penumbra question directly.
-**Rust's exact macro is now in the repo** (`supplementary/Heatmap.ijm`, 15 × 15 squares, with
+**Rust's exact heatmap macro is transcribed** in [`rust-2020-fiji-vascular-analysis.md`](rust-2020-fiji-vascular-analysis.md) §7.2 (15 × 15 squares, with
 their `hm_stroke.lut`) — there is a concrete recipe to copy rather than invent.
 
 ### 4.6 Try the published segmentation choices

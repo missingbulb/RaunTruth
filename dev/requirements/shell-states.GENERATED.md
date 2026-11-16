@@ -4090,6 +4090,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skip | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The area now | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Junctions' note | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Widths' note | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's stage | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's card | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Area is right | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4107,7 +4108,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Reset view group | ○ | ○ | ● | ● | ● | ● |
@@ -4276,6 +4277,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skip | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The area now | ⋯ | ⋯ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Junctions' note | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Widths' note | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's stage | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's card | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Area is right | ⋯ | ⋯ | ⊘ |
@@ -4293,7 +4295,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Reset view group | ○ | ● | ● |
@@ -4611,7 +4613,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ○ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Reset view group | ○ | ○ | ● | ○ |
