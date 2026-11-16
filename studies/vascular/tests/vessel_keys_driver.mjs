@@ -4,8 +4,8 @@
 // no key acts out of tagging, typing in a field, with a menu open, held down, or when its button is off, and a key that
 // did not act is left to the page; each button shows its key. The image's keys legend (req/shell/image/keys) lists exactly the keys that act,
 // each filled blue while held; the number keys switch the views (req/vascular/model/view): 1 held shows the model
-// alone as Ctrl did, Ctrl no longer does, 2 hides and shows the lines over the stack with the Show menu following, and a
-// digit typed in a field does nothing. Exits 1 on a failed check, 2 when it cannot run.
+// alone as Ctrl did, Ctrl no longer does, 2 held hides the lines over the stack, 3 held shows side by side, each kept on
+// by clicking its row, no key for Vessel widths or Missed, and a digit typed in a field does nothing. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_keys_driver.mjs STUDIES
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
@@ -74,34 +74,49 @@ try {
 
   // the legend out of tagging: the views that act on the whole stack, and Panning
   let keys = await legendKeys(page);
-  check(keys === "1 2 3 5 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
-  // 2 hides the lines over the stack and shows them again, the Show menu's views following
+  check(keys === "1 2 3 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
+  // 2 held hides the lines over the stack, its row filled; let go, they are back; clicking its row keeps them hidden
   const m0 = await mode();
-  check(await press("Digit2") && (await mode()) === "image" && !(await row("2")).lit, `2 hides the lines over the stack, the Show menu on Image: ${m0} → ${await mode()}`);
-  check(await press("Numpad2") && (await mode()) === "overlay" && (await row("2")).lit, `2 on the number pad shows them again, Overlay, its row filled: ${await mode()}`);
-  check(!(await press("Digit2", { repeat: true })) && (await mode()) === "overlay", "2 held down toggles once");
+  await page.keyboard.down("2");
+  const bare0 = await mode(), bare0Row = await row("2");
+  await page.keyboard.up("2");
+  check(m0 === "overlay" && bare0 === "image" && bare0Row.lit && (await mode()) === "overlay" && !(await row("2")).lit,
+    `holding 2 hides the lines over the stack, its row filled, letting go shows them again: ${m0} → ${bare0} → ${await mode()}`);
+  await page.keyboard.down("Numpad2");
+  const padBare = await mode();
+  await page.keyboard.up("Numpad2");
+  check(padBare === "image" && (await mode()) === "overlay", `2 on the number pad does the same: ${padBare}`);
+  await page.click("#key-outlines");
+  const keptBare = await mode();
+  await page.click("#key-outlines");
+  check(keptBare === "image" && (await mode()) === "overlay", `clicking the 2 row keeps the lines hidden, again shows them: ${keptBare} → ${await mode()}`);
   check(!(await press("Digit2", { on: "#area-grid" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
   await page.evaluate(() => { $("#vm-show").open = true; });
   check(!(await press("Digit2")) && (await mode()) === "overlay", "2 with the Show menu open does nothing");
   await page.evaluate(() => { $("#vm-show").open = false; });
-  // 3: Vessel widths, the Show menu's box following; 5: Missed, and back to Everything
+  // 3 held: side by side; let go, the view as it was; clicking its row keeps side by side on
+  await page.keyboard.down("3");
+  const side = await mode(), sideRow = await row("3");
+  await page.keyboard.up("3");
+  check(side === "side" && sideRow.lit && sideRow.label === "Side by side" && (await mode()) === "overlay" && !(await row("3")).lit,
+    `holding 3 shows side by side, its row filled, letting go the view as it was: ${side} → ${await mode()}`);
+  await page.click("#key-side");
+  const keptSide = await mode();
+  await page.click("#key-side");
+  check(keptSide === "side" && (await mode()) === "overlay", `clicking the 3 row keeps side by side on, again off: ${keptSide} → ${await mode()}`);
+  // no key for Vessel widths or Missed any more
   const w0 = await page.evaluate(() => $("#m-widths").checked);
-  await press("Digit3");
-  check((await page.evaluate(() => $("#m-widths").checked)) === !w0 && (await row("3")).lit === !w0, `3 switches Vessel widths, the Show menu's box following: ${w0} → ${!w0}`);
-  await press("Digit3");
-  await press("Digit5");
-  const missed = await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v), missedLit = (await row("5")).lit;
-  await press("Digit5");
-  check(missed === "missed" && missedLit && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
-    `5 shows Missed, its row filled, and again Everything: ${missed}`);
+  const fiveKept = await press("Digit5");
+  check(!fiveKept && (await page.evaluate(() => $("#m-widths").checked)) === w0 && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
+    "5 does nothing, and no key switches Vessel widths or Missed");
 
   await page.click("#gt-start");
   await page.waitForFunction(() => window.vascular.tasks().key);
   // tagging, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
   keys = await legendKeys(page);
-  check(keys === "F J S W 1 2 3 shift", `tagging a junction, the keys legend lists F, J, S, W, the views and Panning: ${keys}`);
+  check(keys === "1 2 3 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
-  check(labels.F === "Junction" && labels.J === "They cross" && labels.S === "Skip" && labels["1"] === "Model", `each row says what its key does: ${JSON.stringify(labels)}`);
+  check(labels["1"] === "Model" && labels["2"] === "No outlines" && labels["3"] === "Side by side", `each row says what its key does: ${JSON.stringify(labels)}`);
   await frames(page);
   const hints = await page.evaluate(() => ({ yes: $("#task-card .verdict .yes kbd")?.textContent, no: $("#task-card .verdict .no kbd")?.textContent,
     ok: $("#area-ok kbd")?.textContent, skip: $("#task-skip kbd")?.textContent }));
@@ -121,11 +136,11 @@ try {
   const kept = await mode();
   await page.click("#key-model");
   check(kept === "model" && (await mode()) === "overlay", `clicking the Model row keeps the model alone on, again off: ${kept} → ${await mode()}`);
-  // 2 in an area: the lines hidden and back
-  await press("Digit2");
+  // 2 in an area: the lines hidden while it is held
+  await page.keyboard.down("2");
   const bare = await mode(), bareRow = await row("2");
-  await press("Digit2");
-  check(bare === "image" && !bareRow.lit && (await mode()) === "overlay" && (await row("2")).lit, `2 in an area hides the lines over the stack and shows them again: ${bare}`);
+  await page.keyboard.up("2");
+  check(bare === "image" && bareRow.lit && (await mode()) === "overlay" && !(await row("2")).lit, `holding 2 in an area hides the lines over the stack, letting go shows them: ${bare}`);
 
   // F: Junction, the junction found right and the next one current
   s0 = await state();
@@ -156,14 +171,10 @@ try {
 
   // every junction of this area judged with F, Space does it
   // a key held fills its row blue, let go it is grey again
-  await page.keyboard.down("f");
-  const fDown = (await row("F"))?.lit;
-  await page.keyboard.up("f");
-  check(fDown && !(await row("F"))?.lit, "F held fills its row blue, let go it is grey again");
   for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
   keys = await legendKeys(page);
-  check(keys === "Space S W 1 2 3 shift", `no junction left, F and J leave the legend and Space joins it: ${keys}`);
+  check(keys === "1 2 3 shift", `no junction left, the legend still lists only the views and Panning: ${keys}`);
   s0 = await state();
   // Space on a focused button presses that button, not Area is right
   check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");
@@ -182,7 +193,7 @@ try {
   s0 = await state();
   check(!(await press("KeyS")) && same(await state(), s0), "after Stop tagging S does nothing");
   keys = await legendKeys(page);
-  check(keys === "1 2 3 5 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
+  check(keys === "1 2 3 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
 } catch (e) {
   failed = true; console.error(e);
 }

@@ -258,7 +258,7 @@ export function viewer3d(shell, flat) {
   function panKey(on) {
     panRow?.abort(); panRow = on ? new AbortController() : null;
     if (on) shell.actions.add({ id: "v3-pan", label: "Panning", title: "Press Shift to pan, or click to keep panning on", keys: ["ShiftLeft", "ShiftRight"],
-      hint: "shift", kind: "toggle", wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
+      hint: "shift", kind: "toggle", legend: true, wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
   }
   const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   rulerSvg.id = "v3-ruler";
