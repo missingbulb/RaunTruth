@@ -65,11 +65,21 @@ await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
 
 // a press at `from` dragged to `to`, Escape while it is held, then a little more motion and the release
+// and, while it is held, the label at the page's bottom center that says Escape cancels it (req/shell/drag/hint)
+const hint = () => page.evaluate(() => {
+  const el = [...document.querySelectorAll("body *")].find((n) => n.textContent.trim() === "Hit 'esc' to cancel" && !n.children.length);
+  if (!el || !el.checkVisibility()) return null;
+  const b = el.getBoundingClientRect(), bar = $("#statusbar").getBoundingClientRect();
+  return { centered: Math.abs(b.x + b.width / 2 - innerWidth / 2) < 2, above: b.bottom <= bar.top && bar.top - b.bottom < 60, through: getComputedStyle(el).pointerEvents === "none" };
+});
 async function escaped(from, to, during) {
   await page.mouse.move(...from); await page.mouse.down();
   await page.mouse.move(...to, { steps: 5 });
   const mid = during ? await during() : null;
+  const shown = await hint();
+  await check(shown && shown.centered && shown.above && shown.through, "mid-drag, 'Hit 'esc' to cancel' shows at the bottom center, above the status bar", shown);
   await page.keyboard.press("Escape");
+  await check(await hint() === null, "Escape takes the label away");
   await page.mouse.move(to[0] + 15, to[1] + 10, { steps: 3 });
   await page.mouse.up();
   return mid;
@@ -122,6 +132,19 @@ await home();
   const mid = await escaped([body.x + body.width * 0.7, body.y + body.height * 0.7], [body.x + body.width * 0.9, body.y + body.height * 0.8], scroll);
   await check(mid.join() !== before.join(), "dragging in the minimap moves the view", { before, mid });
   await check((await scroll()).join() === before.join(), "Escape mid-drag in the minimap puts the view back", { before, after: await scroll() });
+}
+
+// a drag let go, not Escaped, takes the label with it; a click that does not move never shows it
+{
+  await home();
+  const at = await middleOf("#scroller");
+  await page.mouse.move(...at); await page.mouse.down();
+  await check(await hint() === null, "a press that has not moved shows no label");
+  await page.mouse.move(at[0] - 30, at[1] - 20, { steps: 3 });
+  await check(await hint() !== null, "the label shows once the press moves");
+  await page.mouse.up();
+  await check(await hint() === null, "letting go takes the label away");
+  await home();
 }
 
 await check(await heard() === 0, "no Escape that cancelled a drag reached the page", await heard());
