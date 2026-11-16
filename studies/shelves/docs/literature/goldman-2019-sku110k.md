@@ -3,8 +3,7 @@
 *E. Goldman, R. Herzig, A. Eisenschtat, O. Ratzon, I. Levi, J. Goldberger, T. Hassner. CVPR 2019 ·
 arXiv [1904.00853](https://arxiv.org/abs/1904.00853) (v3, 30 Apr 2019) · Bar-Ilan, Tel Aviv University,
 Trax Retail (funder), Open University of Israel · open access on arXiv, licence not checked; the dataset's
-licence is not stated in the paper (code and data at github.com/eg4000/SKU110K_CVPR19) · PDF: study Drive folder
-Literature/goldman-2019-sku110k-dense.pdf · full text read from the arXiv PDF.*
+licence is not stated in the paper (code and data at github.com/eg4000/SKU110K_CVPR19) · PDF: study Drive folder `Literature/Precise Detection in Densely Packed Scenes.pdf` · full text read from the arXiv PDF.*
 
 **Why it matters to us:** our finder's hardest choice is which of many overlapping candidates are separate
 books (R9's runs are joined by "add where it overlaps none at IoU 0.3", `ADD_IOU`; lines are joined by `CROWD`).

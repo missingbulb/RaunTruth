@@ -12,6 +12,7 @@
   Medical Sciences, Beijing 100700, China.
 - **Venue / id:** *Scientific Reports* (2022) **12:22288**. DOI **10.1038/s41598-022-26831-6**. Open
   access (CC BY). 13-page article.
+- **PDF:** kept in the study's Drive `Literature` folder as `The immunolocalization of cluster of differentiation 31, phalloidin and alpha smooth muscle actin on vascular network of normal and ischemic rat brain.pdf`, not in the repo.
 - **One-line thesis:** goat-**polyclonal** anti-CD31 (gP-CD31) labels the cerebral capillary network
   far more completely than **monoclonal** anti-CD31 (mM-CD31), and is highly compatible with
   phalloidin and α-SMA for mapping the vascular network in 3-D, in both healthy and ischemic rat brain.

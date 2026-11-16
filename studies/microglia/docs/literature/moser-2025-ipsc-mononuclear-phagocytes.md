@@ -19,7 +19,7 @@
   GmbH. This is an open access article under the terms of the Creative Commons Attribution License,
   which permits use, distribution and reproduction in any medium, provided the original work is
   properly cited." → **CC BY**; the PDF and figures are redistributed here with this citation.
-- **PDF:** `moser-2025-ipsc-mononuclear-phagocytes.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Human iPSC-Derived Mononuclear Phagocytes Improve Cognition and Neural Health across Multiple Mouse Models of Aging and Alzheimer's Disease.pdf`, not in the repo.
 - **One-line thesis:** repeated tail-vein injection of human iPSC-derived mononuclear phagocytes
   (iMPs) into aging NSG, middle-aged BALB/c and 5xFAD mice improves hippocampus-dependent memory
   and **restores ramified hippocampal microglial morphology** (traced branch length, Sholl

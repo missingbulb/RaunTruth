@@ -2,8 +2,7 @@
 
 *A. Tonioni, L. Di Stefano (University of Bologna, DISI). ICIAP 2017 by common citation; the arXiv page names no
 venue · arXiv [1707.08378](https://arxiv.org/abs/1707.08378) (v2, 19 Sep 2017) · open access on arXiv, licence not
-checked; annotations offered at the authors' project page (vision.disi.unibo.it) · PDF: study Drive folder
-Literature/tonioni-2017-subgraph-isomorphism.pdf · full text read from the arXiv PDF.*
+checked; annotations offered at the authors' project page (vision.disi.unibo.it) · PDF: study Drive folder `Literature/Product recognition in store shelves as a sub-graph isomorphism problem.pdf` · full text read from the arXiv PDF.*
 
 **Why it matters to us:** it is a classical, CPU, three-stage pipeline (detect, prune by neighbour consistency,
 recover the gaps from neighbours) that shows pruning alone raises precision but not recall, and the recovery step

@@ -3,8 +3,7 @@
 *Artemis Llabrés, Arka Ujjal Dey, Dimosthenis Karatzas, Ernest Valveny (Computer Vision Center, UAB, Spain) ·
 arXiv [2407.19812](https://arxiv.org/abs/2407.19812) v1, 29 Jul 2024 (the extracted text carries no venue; DAS 2024
 is the caller's attribution, unconfirmed here) · dataset and code: github.com/llabres/library-dataset · open-access
-preprint; no licence is stated in the text, for the paper or the dataset · PDF: study Drive folder
-Literature/llabres-2024-library-dataset.pdf.*
+preprint; no licence is stated in the text, for the paper or the dataset · PDF: study Drive folder `Literature/Image-text matching for large-scale book collections.pdf`.*
 
 **Why it matters here:** it is the one source that takes spine readings all the way to catalogue entries, which is
 the job of the title matcher our reader's JSON feeds (`req/shelves/matcher/export`). Its numbers say how much a

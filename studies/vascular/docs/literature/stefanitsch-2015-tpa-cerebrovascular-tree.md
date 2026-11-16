@@ -9,7 +9,7 @@
   Division of Vascular Biology; University of Michigan Medical School.
 - **Venue / id:** *Frontiers in Cellular Neuroscience* (2015) **9:456**, ORIGINAL RESEARCH.
   DOI **10.3389/fncel.2015.00456**. Open access. 12 pages.
-- **PDF:** `stefanitsch-2015-tpa-cerebrovascular-tree.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `tPA Deficiency in Mice Leads to Rearrangement in the Cerebrovascular Tree and Cerebroventricular Malformations.pdf`, not in the repo.
 - **One-line thesis:** mice lacking tissue-type plasminogen activator (tPA) have a **structurally
   rearranged cerebrovascular tree** — fewer large, smooth-muscle-covered vessels and more small
   ones — plus more ERG⁺ endothelial cells, more junctional ZO1, less perivascular PDGFRα, and

@@ -3,8 +3,7 @@
 *Ma H., Wang C., Li A., Xu A., Han D. Sensors 2024, 24(24), 7996, published 14 Dec 2024. DOI
 [10.3390/s24247996](https://doi.org/10.3390/s24247996). CC BY 4.0, open access. Authors: Dalian University of
 Technology library and Dalian Maritime University. Read in full from the publisher PDF. The extracted text repeats
-its "for peer review" layer, so most passages appear twice; the duplicates agree. PDF: study Drive folder
-`Literature/ma-2024-oriented-rcnn-spine-detection.pdf`.*
+its "for peer review" layer, so most passages appear twice; the duplicates agree. PDF: study Drive folder `Literature/An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN.pdf`.*
 
 **Why it matters to us:** it is the one spine-detection benchmark with a stated strict IoU, oriented boxes, and a
 public library dataset. It also measures a small learned detector, YOLOv8n-OBB.

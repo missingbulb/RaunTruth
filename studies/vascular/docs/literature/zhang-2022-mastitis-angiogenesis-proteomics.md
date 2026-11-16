@@ -11,7 +11,7 @@
   Published 08 Aug 2022. DOI **10.3389/fvets.2022.980963**. 15 pages.
 - **Licence:** **CC BY** (stated on page 1: "distributed under the terms of the Creative Commons
   Attribution License (CC BY)").
-- **PDF:** kept in the study's Drive Literature folder as `DIA proteomics identified the potential targets associated with angiogenesis in the mammary glands of dairy cows with hemorrhagic mastitis.pdf`, not in the repo.
+- **PDF:** kept in the study's Drive `Literature` folder as `DIA proteomics identified the potential targets associated with angiogenesis in the mammary glands of dairy cows with hemorrhagic mastitis.pdf`, not in the repo.
 - **One-line thesis:** in mammary glands of Holstein cows with hemorrhagic mastitis (n = 3 vs 3
   healthy), arterioles, venules and capillaries are histologically damaged; DIA proteomics finds
   3,739 differentially expressed proteins, 99 of them in blood/vascular/angiogenesis GO terms and

@@ -9,7 +9,7 @@
   Institute; Federal University of São Carlos; University of São Paulo; uOttawa Brain and Mind.
 - **Venue / id:** *Neurophotonics* (2022) **9(3):031916**, article type **PROTOCOL**.
   DOI **10.1117/1.NPh.9.3.031916**. Published online 18 May 2022. 17 pages.
-- **PDF:** `freitas-andrade-2022-pyvane-endothelial-networks.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Unbiased analysis of mouse brain endothelial networks from two- or three-dimensional fluorescence images.pdf`, not in the repo.
 - **Code:** **Pyvane**, open-source Python — <https://github.com/chcomin/pyvane>
 - **One-line thesis:** a full wet-lab-to-number protocol — CD31 immunostaining of mouse brain
   (2-D on 25 µm sections, 3-D on 50–150 µm sections) followed by **segmentation → skeleton →

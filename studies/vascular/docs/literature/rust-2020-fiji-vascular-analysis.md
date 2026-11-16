@@ -13,7 +13,7 @@
   Institute for Regenerative Medicine, University of Zurich / ETH Zürich.
 - **Venue / id:** *Frontiers in Neuroscience* (2020) **14:244**, article type **METHODS**.
   DOI **10.3389/fnins.2020.00244**. Open access (CC BY). 10 pages.
-- **PDF:** `rust-2020-fiji-vascular-analysis.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `A Practical Guide to the Automated Analysis of Vascular Growth, Maturation and Injury in the Brain.pdf`, not in the repo.
 - **Supplementary:** the ImageJ toolbox, the LUT and the authors' calibrated representative
   image are on the article's Supplementary Material tab ([doi.org/10.3389/fnins.2020.00244](https://doi.org/10.3389/fnins.2020.00244)); their content is transcribed in **§7**.
 - **One-line thesis:** a free, open-source **Fiji (ImageJ)** pipeline that binarizes and

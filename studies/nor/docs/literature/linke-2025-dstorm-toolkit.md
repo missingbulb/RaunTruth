@@ -4,6 +4,8 @@
 [ScienceDirect S2667074725000060](https://www.sciencedirect.com/science/article/pii/S2667074725000060) ·
 University of Würzburg · read from the supplied PDF (11 pages).*
 
+
+*PDF: kept in the study's Drive `Literature` folder as `Deep learning-driven automated high-content dSTORM imaging with a scalable open-source toolkit.pdf`, not in the repo.*
 Same group as [`appeltshauser-2022-polyneuropathy.md`](appeltshauser-2022-polyneuropathy.md), and
 it reuses that study's node images as one of its demo datasets.
 

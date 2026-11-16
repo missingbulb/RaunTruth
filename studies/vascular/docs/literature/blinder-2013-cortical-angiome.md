@@ -7,7 +7,7 @@
   **David Kleinfeld\*** (\*corresponding, dk@physics.ucsd.edu). UC San Diego; SAIC.
 - **Venue / id:** *Nature Neuroscience* **16**(7):889–897, July 2013. DOI **10.1038/nn.3426**.
   Paywalled; PDF supplied by the owner (2026-10-29). 11 pages including Online Methods.
-- **PDF:** not committed: the article is copyrighted (Nature Neuroscience) and this repo is public. The owner holds a copy; this digest and the figures below are the working record.
+- **PDF:** kept in the study's Drive `Literature` folder as `The cortical angiome - an interconnected vascular network with noncolumnar patterns of blood flow.pdf`, not in the repo.
 - **One-line thesis:** the mouse cortical microvasculature, reconstructed in full over several
   mm³, is a highly interconnected 3D mesh of loops whose topology and computed flow ignore
   cortical columns; penetrating venules act as sinks, so collateral flow does not rescue tissue

@@ -18,7 +18,7 @@
   license, which permits unrestricted use, distribution and reproduction in any medium provided
   that the original work is properly attributed." → PDF and figures are redistributed here with
   this attribution.
-- **PDF:** `kim-2024-microglia-morphology-pipeline.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution.pdf`, not in the repo.
 - **Code:** <https://github.com/ciernialab/MicrogliaMorphology> (ImageJ macro),
   <https://github.com/ciernialab/MicrogliaMorphologyR> (R package). Data, input images,
   thresholded images and all single-cell images: OSF <https://osf.io/8t5c2/>. Video tutorial:

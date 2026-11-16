@@ -3,6 +3,8 @@
 *medRxiv preprint 2022.08.05.22278366 · [DOI](https://doi.org/10.1101/2022.08.05.22278366) ·
 CC-BY 4.0 · University of Würzburg · read from the supplied PDF (29 pages + supplement).*
 
+
+*PDF: kept in the study's Drive `Literature` folder as `Super-resolution imaging pinpoints ultrastructural changes at the node of Ranvier in patients with polyneuropathy.pdf`, not in the repo.*
 > **Attribution correction.** The first pass cited this as "Stengel et al.", from a web-search
 > summary. The co-first authors are **Appeltshauser, Linke and Heil**; issue
 > [#6](https://github.com/missingbulb/RaunTruth/issues/6) carries the wrong name.
