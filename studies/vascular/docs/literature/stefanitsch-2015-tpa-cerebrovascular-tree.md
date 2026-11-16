@@ -1,6 +1,4 @@
-# Reference digest — Stefanitsch et al. 2015, tPA deficiency and the cerebrovascular tree
-
-> Self-contained digest of the source paper. **No need to reopen the PDF.**
+# Stefanitsch et al. 2015 — tPA deficiency and the cerebrovascular tree
 
 - **Title:** *tPA Deficiency in Mice Leads to Rearrangement in the Cerebrovascular Tree and
   Cerebroventricular Malformations*
@@ -10,47 +8,31 @@
 - **Venue / id:** *Frontiers in Cellular Neuroscience* (2015) **9:456**, ORIGINAL RESEARCH.
   DOI **10.3389/fncel.2015.00456**. Open access. 12 pages.
 - **PDF:** kept in the study's Drive `Literature` folder as `tPA Deficiency in Mice Leads to Rearrangement in the Cerebrovascular Tree and Cerebroventricular Malformations.pdf`, not in the repo.
-- **One-line thesis:** mice lacking tissue-type plasminogen activator (tPA) have a **structurally
-  rearranged cerebrovascular tree** — fewer large, smooth-muscle-covered vessels and more small
-  ones — plus more ERG⁺ endothelial cells, more junctional ZO1, less perivascular PDGFRα, and
-  mild lateral-ventricle malformations.
 
 ---
 
-## 1. Why this matters to *our* task ⭐
+## 1. What it gives the study
 
-**This paper contributes numbers, not images.** Its imaging is all two-channel
-(vessel marker + DAPI), so it yields **no isolated vessel-channel panels** and adds nothing to
-the working dataset — see §5, which says so plainly rather than forcing unsuitable crops in.
+**A measured caliber distribution for CD31⁺ mouse cortical vessels**, the external anchor for
+CATEGORIZE, and a mean artery diameter by smooth-muscle marker. Wild-type adult mouse cortex
+(n = 5 mice; mean ± SEM; Fig 1B–C and 3C–D, bar heights with the vessel counts printed on the bars):
 
-What it does contribute is the thing no other paper in the corpus has given us:
-
-> **The first external, quantitative reference for our CATEGORIZE ask.**
-
-Rust 2020 explicitly declines to classify vessel types. Wang 2022 shows *which markers* sit on
-artery walls but never bins by caliber. This paper measures **vessel diameter distributions and
-bins them**, in µm, for healthy adult mouse cortex — which is exactly the quantity
-`ARTERY_DIAM_PX` is a proxy for.
-
-### The reference caliber distribution (wild-type mouse cortex)
-
-| Marker | Mean vessel diameter (WT) | Size distribution (WT) |
+| Marker | Mean diameter (WT) | Size distribution (WT) |
 |---|---|---|
-| **CD31⁺** (all endothelium) | **6.03 ± 0.3 µm** (n = 211 vessels) | **< 5 µm: 54 ± 6%** · 5–10 µm: ~36% · **> 10 µm: 10 ± 1%** |
-| **ASMA⁺** (smooth-muscle-covered = arteries/arterioles) | **22.9 ± 1.3 µm** | **< 15 µm: 17 ± 8%** · **> 30 µm: 19 ± 3%** |
+| **CD31⁺** (all endothelium) | **6.03 ± 0.3 µm** (n = 211 vessels) | **< 5 µm: 54 ± 6%** · 5–10 µm: ~36% (counts 114 / 76 / 21) · **> 10 µm: 10 ± 1%** |
+| **ASMA⁺** (smooth-muscle-covered: arteries, arterioles) | **22.9 ± 1.3 µm** | **< 15 µm: 17 ± 8%** · **> 30 µm: 19 ± 3%** |
 
-**Two things fall straight out of this, and both are actionable:**
+What follows for the study:
 
-1. **Our artery threshold is probably far too low.** `ARTERY_DIAM_PX = 9` px converts to
-   **5.9 µm** on the wang fig4/5/6 panels — which by this paper's numbers is *below the mean
-   diameter of all CD31⁺ vessels* (6.03 µm) and squarely inside the capillary population.
-   Smooth-muscle-covered vessels average **22.9 µm**. Whatever the right cut is, a threshold
-   that classifies a mean-sized capillary as an artery is not it.
-2. **The threshold is in the wrong units.** `ARTERY_DIAM_PX` is a fixed *pixel* value applied
-   across panels with different µm/px, so it silently means a different physical diameter on
-   every figure:
+1. **Our artery threshold is too low.** `ARTERY_DIAM_PX = 9` is **5.9 µm** on the Wang
+   fig4/5/6 panels, below the mean of *all* CD31⁺ vessels and inside the capillary population;
+   smooth-muscle-covered vessels average 22.9 µm. On Rust's calibrated native image the same cut
+   calls 29% of segments artery against the 10% of CD31⁺ vessels above 10 µm here
+   ([`METHODS-SYNTHESIS.md`](METHODS-SYNTHESIS.md) §4.2).
+2. **The threshold must be in µm.** A fixed pixel value means a different diameter on every
+   panel (from `measure_vessels.py`'s calibration):
 
-   | Panels | µm/px | What 9 px actually means |
+   | Panels | µm/px | 9 px means |
    |---|---|---|
    | wang fig4/5/6 | 0.658 | 5.9 µm |
    | wang fig1 | 0.820 | 7.4 µm |
@@ -58,194 +40,47 @@ bins them**, in µm, for healthy adult mouse cortex — which is exactly the qua
    | rust20 fig1 adult overview | 1.351 | 12.2 µm |
    | rust20 fig3 overview | 1.190 | 10.7 µm |
 
-   A vessel of one real size is classified differently depending on which figure it appears in.
-   **The caliber threshold should be a µm constant converted per panel through `umpp_for()`** —
-   the same fix the Freitas-Andrade digest recommends for the smoothing σ and prune length.
+3. **A published three-bin scheme**, < 5 / 5–10 / > 10 µm for CD31⁺ (and < 15 / > 30 µm for
+   ASMA⁺), to report as a distribution in place of a binary split.
 
-Coincidentally our current split reports ~10% arteries on the wang panels, which *matches* the
-paper's 10% of CD31⁺ vessels > 10 µm. Treat that as a coincidence to be checked, not a
-validation: it is produced by a threshold that means 5.9 µm, not 10 µm.
+Our split's ~10% arteries on the Wang panels matches the 10% above 10 µm only by coincidence: it
+comes from a cut that means 5.9 µm, not 10 µm.
 
----
+**What it does not give:** how a diameter was measured (no algorithm, no manual-vs-automatic
+statement beyond "Volocity / ImageJ64"), whether it is the CD31 outer width or a lumen, and any
+µm/px or field size. The caliber numbers the study most needs are the least specified in the paper;
+per-staining parameters are in Supplementary Table S1, not obtained. No counts, lengths or branching.
 
-## 2. Design and methods
+## 2. Methods behind the numbers
 
-- **Animals:** adult **tPA⁻/⁻ mice, n = 5**, vs **WT littermate controls, n = 5**.
-- **Tissue:** isoflurane anaesthesia → transcardial perfusion with 4% PFA/PBS → 1 h post-fix RT
-  → 30% sucrose overnight 4 °C → **50 µm vibratome sections**, stained free-floating.
-- **Staining:** permeabilize/block in 1% BSA + 0.5% Triton X-100/PBS overnight 4 °C; primaries
-  **1:200** overnight 4 °C; secondaries (AF488/568/647) overnight 4 °C; DAPI 0.2 µg/ml.
-- **Markers used** (a useful catalogue in itself):
+- 50 µm vibratome sections, perfusion-fixed (4% PFA); CD31 (BD 553370), confirmed with a second
+  endothelial marker, podocalyxin; ASMA-Cy3 for smooth muscle.
+- Analysis on **maximum-intensity projections of 15–22 µm z-stacks** (Zeiss LSM700) or on
+  epifluorescence images; 4–11 fields per animal in cortex, hippocampus and amygdala, no
+  sub-regional difference found. Quantities are pixel counts above a set threshold with identical
+  acquisition settings within a staining experiment.
+- **Two independent readers, blinded to group**, with one image set per staining re-read by a second
+  blinded reader. A model for how the owner's ground truth could be cross-checked; our visual
+  expectations are a one-reader version of it.
 
-  | Marker | Cat # | Labels |
-  |---|---|---|
-  | **CD31** | BD 553370 | endothelium |
-  | **Podocalyxin** | R&D AF1556 | endothelium (second, confirmatory marker) |
-  | **ASMA-Cy3** | Sigma C6198 | vascular smooth muscle → arteries/arterioles |
-  | **CD13** | AbD Serotec MCA2183 | pericytes **and** vSMC on larger vessels |
-  | **ERG1** | Abcam ab92513 | endothelial nuclei (transcription factor) |
-  | **ZO1** | Invitrogen 339100 | tight junctions |
-  | **Collagen IV** | AbD Serotec 21501470 | basement membrane |
-  | **GFAP** / **AQP4** | Dako Z0334 / Millipore AB2218 | astrocytes / perivascular endfeet |
-  | **GLUT1** | Santa Cruz sc-1605 | endothelial + ependymal glucose transporter |
-  | **PDGFRα** | R&D AF1062 | perivascular fibroblast-like cells |
-  | **S100B** | Dako Z0311 | ependyma (needs boiling antigen retrieval) |
+## 3. How the distribution moves (tPA⁻/⁻, n = 5)
 
-- **Imaging:** Zeiss **LSM700** confocal or Zeiss **Axio Observer Z1**, ZEN 2009. Analysis on
-  **maximum-intensity projections of 15–22 µm Z-stacks**, or epifluorescent images.
-- **Sampling:** 4–11 fields of view per animal, matched anatomic positions located via the DAPI
-  channel, in cortex / hippocampus / amygdala (regions with high tPA expression). No sub-regional
-  differences found.
-- **Quantification:** pixel count above a set threshold, with **identical acquisition settings
-  within a staining experiment**; software Volocity 3D / ImageJ64 / Photoshop CS5.
-- **MRI:** 7.0 T Varian, coronal T2 fast spin-echo, TR/TE 4000/60 ms, FOV 20 × 20 mm, matrix
-  256 × 128, 0.5 mm slices × 25.
-- **Stats:** GraphPad Prism 6.0, unpaired Student's t-test, mean ± SEM.
+The knockout shifts it toward small vessels: mean CD31⁺ diameter **4.75 ± 0.2 µm** (P < 0.01);
+< 5 µm 67 ± 4% (P < 0.05); > 10 µm 1 ± 0.8% (P < 0.01); counts 180 / 85 / 4 = 269. Mean ASMA⁺
+15.4 ± 0.7 µm; < 15 µm 61 ± 6%, > 30 µm 5 ± 1% (both P < 0.01), with total ASMA unchanged. Total CD31
+staining falls only non-significantly (80 ± 12% of WT, P = 0.31): **a caliber shift can leave area
+% flat**, so area % alone would miss it, and a caliber distribution would not.
 
-> ⭐ **A methodological practice worth stealing:** *"Stained brain sections … were analyzed by two
-> independent investigators **blinded** to the study group. In addition … at least one set of
-> images from each respective staining was reanalyzed by a second blinded investigator."* Two
-> blinded readers, plus a re-read for control. That is the gold standard our
-> `expected-results.md` visual-expectation practice is a one-reader approximation of.
+## 4. Limitations
 
-## 3. Results
+A constitutive knockout, so developmental and adult effects cannot be separated; and the
+diameter method is unstated (§1), measured on 2D projections of 15–22 µm stacks.
 
-1. **Cerebrovascular tree rearrangement (Fig 1).** tPA⁻/⁻ vessels are smaller: mean CD31⁺
-   diameter **4.75 ± 0.2 vs 6.03 ± 0.3 µm** (P<0.01). Distribution shifts: **< 5 µm 67 ± 4% vs
-   54 ± 6%** (P<0.05); **> 10 µm 1 ± 0.8% vs 10 ± 1%** (P<0.01). Total CD31 staining reduced
-   only non-significantly (80 ± 12% of WT, P = 0.31). Confirmed independently with podocalyxin.
-   *(Vessel counts on the bars: WT 114/76/21 = 211; tPA⁻/⁻ 180/85/4 = 269.)*
-2. **More endothelial cells, tighter junctions (Fig 2).** Significantly more **ERG⁺ nuclei** in
-   tPA⁻/⁻ (also after normalizing to CD31 intensity), and increased **junctional ZO1**.
-3. **Loss of large ASMA⁺ vessels (Fig 3).** Mean ASMA⁺ diameter **15.4 ± 0.7 vs 22.9 ± 1.3 µm**
-   (P<0.01); **< 15 µm: 61 ± 6% vs 17 ± 8%**; **> 30 µm: 5 ± 1% vs 19 ± 3%** (both P<0.01).
-   Total ASMA amount unchanged (P = 0.46) — the smooth muscle is redistributed, not lost.
-   **CD13** shows normal capillary pericyte coverage but loss of the large CD13⁺ vessels,
-   so overall CD13 staining falls (P<0.05).
-4. **Basement membrane and astrocytes normal (Fig 4).** Collagen IV, GFAP and AQP4 all normally
-   distributed around similar-sized vessels — the rearrangement is vascular, not glial.
-5. **Perivascular PDGFRα reduced (Fig 5).** Total PDGFRα unchanged, but **vessel-associated**
-   PDGFRα significantly reduced.
-6. **Ventricular malformations (Fig 6).** Lateral-ventricle asymmetry on MRI (smallest:largest
-   ratio **70 ± 5%** in tPA⁻/⁻, n = 13, vs **86 ± 4%** WT, n = 10), hypoplastic septum, thicker
-   ependymal lining, increased ependymal GLUT1 (**580 ± 144% of WT**) and ZO1 — the punctate WT
-   ZO1 pattern becoming continuous. Milder than the *Pdgfc⁻/⁻* phenotype (56 ± 6%).
+## 5. Why no panels
 
-**Interpretation:** the barrier protection previously seen in tPA⁻/⁻ mice may be partly
-structural — a vascular bed rebuilt with fewer large vessels and more, tighter capillaries —
-rather than purely signalling. The ventricular phenotype links tPA to PDGF-C signalling in vivo.
+Every micrograph is a two- or three-channel merge (a vessel marker with DAPI nuclei, often a third
+marker), so none is an isolated vessel channel, and the DAPI speckle would read as texture to any
+threshold. No pixel size is stated either. Nothing enters `VESSEL_*`.
 
-## 4. Limitations / gaps
-
-- **No µm/px, no field dimensions** stated for any objective.
-- **How vessel diameter was measured is not described** — no algorithm, no manual-vs-automatic
-  statement, beyond "analyzed using Volocity / ImageJ64". The caliber numbers we most want are
-  the least methodologically specified in the paper.
-- Correlative: a constitutive knockout, so developmental and adult effects cannot be separated.
-- Detailed per-staining analysis parameters are in **Supplementary Table S1**, not in the PDF.
-
-## 5. Extracted images — and why there is no `panels/` folder here
-
-All six figures are extracted and described in [`figures/README.md`](#figures).
-
-**No panel from this paper enters the working dataset.** Every micrograph is a **two-channel
-merge** — vessel marker plus DAPI nuclei, and often a third marker — so none is an isolated
-vessel channel. Cropping them would put images into `VESSEL_*` that violate the dataset's one
-contract (single-channel, vessels bright on dark), and the blue DAPI speckle would be measured
-as texture by any thresholding pipeline. Combined with the absence of any stated pixel size,
-there is nothing here to calibrate either.
-
-The figures are still worth having: they are the visual record behind the caliber numbers in §1,
-and Figure 3 in particular shows what a **genuinely large, ASMA⁺, smooth-muscle-covered vessel**
-looks like next to capillaries — which is the distinction our CATEGORIZE ask is trying to make.
-
-| File | Fig | Content |
-|---|---|---|
-| `figures/fig1_CD31_podocalyxin_vessel_calibre.png` | 1 | **The caliber figure.** CD31 (green) + DAPI, WT vs tPA⁻/⁻; diameter and size-distribution bar charts; podocalyxin (red) confirmation. |
-| `figures/fig2_ERG_ZO1.png` | 2 | ERG⁺ endothelial nuclei and junctional ZO1. |
-| `figures/fig3_ASMA_CD13_mural_cells.png` | 3 | **ASMA⁺ artery caliber** + CD13 mural cells. |
-| `figures/fig4_collagenIV_GFAP_AQP4.png` | 4 | Basement membrane and astrocytes — the negative result. |
-| `figures/fig5_PDGFRa_perivascular.png` | 5 | Perivascular PDGFRα loss. |
-| `figures/fig6_ventricular_defects.png` | 6 | Ventricular malformation: DAPI sections, MRI montage, ependymal markers. |
-
----
-
-## Figures
-
-All six figures, extracted from
-`../stefanitsch-2015-tpa-cerebrovascular-tree.pdf`
-with the paper-intake skill's extractor. 
-> **There is no `panels/` folder for this paper, deliberately.** Every micrograph here is a
-> two-channel merge (vessel marker + DAPI nuclei, sometimes a third marker), so none qualifies as
-> an isolated vessel channel, and the paper states no pixel size to calibrate with. The reasoning
-> is in §5 above. The value of this paper is its **caliber numbers**,
-> not its images.
-
-Scale bars, where stated: Figs 1A/1F/3A/3E left+middle panels **50 µm**, right panels **20 µm**;
-Figs 2, 4, 5 and 6D/E/G **20 µm**; Figs 1E, 6A/6B **1 mm**.
-
----
-
-### Fig 1 — `fig1_CD31_podocalyxin_vessel_calibre.png` ⭐
-
-
-**The figure behind the caliber reference numbers.**
-- **(A)** CD31 (green) + DAPI (blue), wild-type (top) vs tPA⁻/⁻ (bottom), two magnifications.
-  **Arrowheads** mark the thick, large-diameter vessels present in WT; **arrows** mark the small
-  vessels that dominate tPA⁻/⁻. The visual difference is genuinely obvious — WT has continuous
-  thick trunks running through the field, tPA⁻/⁻ has short thin fragments.
-- **(B)** average vessel diameter, WT 6.03 vs tPA⁻/⁻ 4.75 µm (n = 211 / 269 vessels, printed on
-  the bars).
-- **(C)** stacked size distribution in three bins — **< 5 µm** (black), **5–10 µm** (light grey),
-  **> 10 µm** (dark grey) — with vessel counts printed inside each segment (WT 114/76/21;
-  tPA⁻/⁻ 180/85/4).
-- **(D)** total CD31 staining intensity, n.s.
-- **(E)** whole-hemisphere podocalyxin tiling; **(F)** podocalyxin (red) + DAPI close-ups
-  confirming the same shift with an independent endothelial marker.
-
-**Why the three-bin scheme matters to us:** < 5 / 5–10 / > 10 µm is a published, biologically
-motivated caliber binning for CD31⁺ mouse cortical vessels. Our CATEGORIZE ask currently uses a
-single pixel-valued threshold — see §1 above for what that threshold
-actually works out to in µm, and why it looks wrong.
-
-### Fig 2 — `fig2_ERG_ZO1.png`
-
-
-(A) ERG staining — endothelial nuclei as discrete puncta along vessels; (B, C) counts of ERG⁺
-nuclei, raw and normalized to CD31 intensity, both significantly higher in tPA⁻/⁻; (D) ZO1 tight
-junctions, more strongly junctional in tPA⁻/⁻.
-
-### Fig 3 — `fig3_ASMA_CD13_mural_cells.png` ⭐
-
-
-(A) **ASMA** (smooth muscle) with podocalyxin and DAPI — arrowheads on the big
-smooth-muscle-covered arteries of WT, arrows on the small ASMA⁺ vessels that replace them in
-tPA⁻/⁻. (B) total ASMA amount, n.s. (C) mean ASMA⁺ diameter, 22.9 → 15.4 µm. (D) size
-distribution, bins **< 15 µm** and **> 30 µm**. (E) **CD13** — pericytes on capillaries (arrows)
-plus vSMC on large vessels (arrowheads), the latter essentially gone in tPA⁻/⁻; (F) resulting
-CD13 reduction.
-
-**Useful to look at directly** when thinking about the capillary-vs-artery distinction: this is
-what an artery with real smooth-muscle coverage looks like beside the capillary bed, at 20–50 µm
-scale bars.
-
-### Fig 4 — `fig4_collagenIV_GFAP_AQP4.png`
-
-
-The negative control result: (A) collagen IV basement membrane, (B) GFAP astrocytes,
-(C) AQP4 perivascular endfeet — all normal in tPA⁻/⁻. Worth keeping as an example of what
-*non*-vascular perivascular signal looks like in the same tissue.
-
-### Fig 5 — `fig5_PDGFRa_perivascular.png`
-
-
-(A) PDGFRα staining with podocalyxin and DAPI, arrows on PDGFRα⁺ vessels; (B) total PDGFRα, n.s.;
-(C) perivascular PDGFRα, significantly reduced.
-
-### Fig 6 — `fig6_ventricular_defects.png`
-
-
-(A) DAPI-stitched coronal sections showing lateral-ventricle asymmetry and hypoplastic septum;
-(B) **in vivo 7 T MRI** montage, WT vs two tPA⁻/⁻ mice; (C) ventricular size-ratio box plot;
-(D–H) ependymal lining — S100B/podocalyxin, GLUT1 and ZO1, with quantification between the
-dashed lines. Not vascular-quantification material, but it is the paper's second main claim.
+Left out: the ERG, ZO1, collagen IV, GFAP, AQP4, PDGFRα and CD13 results, the ventricular
+malformation and MRI work, and the reagent catalogue; none bears on the metrics or ground truth.
