@@ -97,7 +97,7 @@ and is still the main event. The review adds a cheaper prerequisite and sharper 
    external check against Wang's phalloidin / α-SMA panels.
 
 Rust's supplementary toolbox — the macro, the heatmap script (15 × 15 squares) and their LUT —
-is in [`references/rust-2020-fiji-vascular-analysis/supplementary/`](literature/rust-2020-fiji-vascular-analysis/supplementary/),
+is transcribed in [`literature/rust-2020-fiji-vascular-analysis.md`](literature/rust-2020-fiji-vascular-analysis.md) §7,
 so the published parameters (median radius 1, `setThreshold(66,255)`, particles ≥ 20 µm²,
 `prune=none`) no longer have to be guessed at.
 
