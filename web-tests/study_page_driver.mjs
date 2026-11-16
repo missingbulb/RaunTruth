@@ -68,7 +68,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await pw[ENGINE].launch(LAUNCH);
 const problems = [];
 const done = async () => { await browser.close(); server.close(); for (const p of problems) console.error(p); process.exitCode = problems.length ? 1 : 0; };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await localStudy(ctx, "fixture");
 await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
@@ -157,6 +157,18 @@ try {
   const result = await page.evaluate(() => [document.querySelector("#fx-result").textContent, !!document.querySelector('#overlay g[data-layer="fx"] #fx-mask')]);
   console.log(result[0]);
   if (result[0] !== "400 pixels above the threshold" || !result[1]) problems.push("the call's answer did not reach the study, or its layer was not drawn");
+  // req/shell/summary/download: the study's summary, handed to the shell as data, saved as the shell's one CSV
+  if (!(await page.isVisible("#summary-dl"))) problems.push("Download Summary is not offered once the study set its summary");
+  else {
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#summary-dl")]);
+    const csv = fs.readFileSync(await dl.path(), "utf8").trim().split("\n");
+    console.log(dl.suggestedFilename(), csv);
+    if (dl.suggestedFilename() !== path.basename(image).replace(/\.[^.]*$/, "") + "_summary.csv") problems.push("the summary's file is named " + dl.suggestedFilename());
+    if (csv[0] !== "image,study,counted_over,measurement,unit,value,n,mean,sd,median,min,max") problems.push("the summary's columns are " + csv[0]);
+    const name = path.basename(image);
+    if (!csv.includes(`${name},Fixture,the whole image,Pixels above the threshold,pixels,400,,,,,,`)) problems.push("the summary holds no row for the count: " + csv.slice(1));
+    if (!csv.some((r) => r.startsWith(`${name},Fixture,the whole image,Threshold,grey level,128,`))) problems.push("the summary holds no row for the threshold: " + csv.slice(1));
+  }
 
   // the switcher swaps studies in place: found by search, the image unloaded, the fixture's panels gone
   // the listeners on the shell's own objects, as only Chromium's DevTools count them: null, not counted, in another engine
@@ -220,6 +232,8 @@ try {
   console.log(JSON.stringify(inNor), "listeners", await listeners());
   if (!inNor.stayed || inNor.path !== "/web/nor" || inNor.title !== "NoR Finder") problems.push("choosing NoR Finder did not swap it in at /web/nor: " + JSON.stringify(inNor));
   if (inNor.image || inNor.file !== "") problems.push("an image opened in NoR Finder after the switch: " + JSON.stringify(inNor));
+  // a summary goes with the study that set it: NoR's Summary box carries no Download Summary of the fixture's
+  if (await page.isVisible("#summary-dl")) problems.push("Download Summary is still offered after the study that set the summary left");
   if (!inNor.icon.endsWith("/studies/nor/web/icon.svg")) problems.push("switching to NoR Finder did not swap in its icon: " + inNor.icon);
   await headIcon("/studies/nor/web/icon.svg");
   await page.goBack();

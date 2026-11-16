@@ -24,8 +24,7 @@
             ]
           },
           {"name": "Summary's text", "select": "#summary", "req": "req/nor/summary/density"},
-          {"name": "Download Candidates", "select": "#dl-cands", "control": true, "req": "req/nor/downloads"},
-          {"name": "Download Summary", "select": "#dl-summary", "control": true, "req": "req/nor/downloads"}
+          {"name": "Download Candidates", "select": "#dl-cands", "control": true, "req": "req/nor/downloads"}
         ]
       }
     ]},

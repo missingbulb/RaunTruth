@@ -86,10 +86,11 @@ function draw() {
 function later() { if (!timer) timer = requestAnimationFrame(() => { timer = 0; render(); }); }
 function render() {
   const m = model(), box = $('vm-summary');
-  if (!m) { last = null; box.replaceChildren(); return; }
+  if (!m) { last = null; box.replaceChildren(); shell.summary.set(null); return; }
   const s = { ...summarize(m, { mask, zStepUm: V.S.zs }), nearest: nearestVessel(m, { mask, zStepUm: V.S.zs }) };
   last = { ...s, branchLength: strip(s.branchLength), diameter: strip(s.diameter), tortuosity: strip(s.tortuosity), nearest: strip(s.nearest), masked: mask.length };
   const where = mask.length ? `inside the mask (${mask.length} area${mask.length === 1 ? '' : 's'})` : 'over the whole field';
+  shell.summary.set({ over: `${mask.length ? `a mask of ${mask.length} area${mask.length === 1 ? '' : 's'}` : 'the whole field'}${m.excluded_regions?.length ? ', damaged areas left out' : ''}`, rows: rows(s) });
   const dmg = m.excluded_regions?.length ? ', damaged areas left out' : '';
   box.innerHTML = `<p class="note">Confirmed vessels ${where}${dmg}: ${fmt(s.tissueMm3 * 1e9 / 1e6, 2)} × 10⁶ µm³ of tissue, all ${m.slices} slices at ${fmt(V.S.zs, 2)} µm.</p>
     <dl class="vm-metrics">
@@ -102,6 +103,22 @@ function render() {
     <div class="hists">${hist('Mean branch length, µm', s.branchLength)}${hist('Vessel diameter, µm', s.diameter)}${hist('Vessel tortuosity (length ÷ end-to-end)', s.tortuosity, 2)}${hist(`Nearest-vessel distance, µm, from tissue points ${fmt(s.nearest.spacingUm)} µm apart`, s.nearest)}</div>`;
 }
 const strip = ({ v: _v, ...rest }) => rest;
+// the summary as the shell's Download Summary saves it: a row per measurement, a distribution with its statistics
+const dist = (measurement, unit, st) => ({ measurement, unit, n: st.n, mean: st.mean, sd: st.sd, median: st.med, min: st.min, max: st.max });
+const rows = (s) => [
+  { measurement: 'Tissue volume', unit: 'mm³', value: s.tissueMm3 },
+  { measurement: 'Vascular volume fraction', unit: '%', value: 100 * s.volumeFraction },
+  { measurement: 'Vessel length density', unit: 'mm/mm³', value: s.lengthDensity },
+  { measurement: 'Vessel length', unit: 'µm', value: s.lengthUm },
+  { measurement: 'Branch point density', unit: 'per mm³', value: s.branchPointDensity },
+  { measurement: 'Junctions', unit: 'count', value: s.junctions },
+  { measurement: 'Branch density', unit: 'per mm³', value: s.branchDensity },
+  { measurement: 'Branches', unit: 'count', value: s.branches },
+  dist('Branch length, junction to junction', 'µm', s.branchLength),
+  dist('Vessel diameter', 'µm', s.diameter),
+  dist('Vessel tortuosity', 'length ÷ end-to-end', s.tortuosity),
+  dist('Nearest-vessel distance', 'µm', s.nearest),
+];
 
 // a histogram with a count axis, the mean as a line and one SD either side of it as a band
 function hist(label, s, d = 1) {

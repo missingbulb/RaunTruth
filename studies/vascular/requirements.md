@@ -170,7 +170,8 @@ owner's decisions on the stacks and the vessel model, are
 
   A branch counts where its middle lies, a junction where it lies, a piece of tube where its middle lies. 6, 7, 8 and
   the branch lengths show as histograms, as NoR's (`req/nor/summary/histograms`). 1 to 7 are sums and counts over the
-  model's points and segments, under a millisecond on a whole stack's model (owner, 2026-11-16). Test:
+  model's points and segments, under a millisecond on a whole stack's model (owner, 2026-11-16). The shell's Download
+  Summary saves them, a row each, the four distributions with their statistics (`req/shell/summary/download`). Test:
   `studies/vascular/tests/test_vessel_summary.mjs`, `studies/vascular/tests/test_model_page.py`.
   </details>
 

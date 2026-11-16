@@ -47,6 +47,7 @@ import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
 import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
+import { summaryDownload } from "./summary_download.js";
 
 const $ = (s) => document.querySelector(s);
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
@@ -824,6 +825,7 @@ async function openBytes(name, bytes, source) {
   // the file as it came, for Python at a Run (a copy is handed over then), Edit Image and the problem report
   const kept = st.kept = { name, source, bytes };
   tasks.tagging(false);
+  summaryCsv.clear();
   study.opening?.(name, source);
   st.sha = await sha256(bytes);
   if (remote.owns(source)) noteSha(source.id, st.sha);
@@ -2242,13 +2244,15 @@ function studyBoxes() {
 }
 const viewers = {};
 const algorithms = algorithmChoice({ $, outline, status });
+// Download Summary at the Summary box's foot: the study's summary, saved as the shell's one CSV
+const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
-  truth.leave(); algorithms.leave();
+  truth.leave(); algorithms.leave(); summaryCsv.clear();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
   css?.remove(); css = null;
@@ -2267,6 +2271,8 @@ const shell = {
   clearable: (what, fn) => truth.clearable(what, () => { tasks.forget(); fn(); }), showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
+  // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
+  summary: summaryCsv.api,
   // the study's declared actions (req/shell/image/keys): handle({id: fn(phase, {event, control})}), report({state: value});
   // add(spec), a viewer's own
   actions: { ...keys.api, add: keys.add, refresh: keys.refresh },

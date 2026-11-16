@@ -1573,6 +1573,19 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_visibility_page.py`.
   </details>
 
+- `req/shell/summary/download` Download Summary, at the Summary box's foot, saves the study's summary as one standard CSV.
+  <details>
+
+  Set by the owner on 2026-11-16: the study works out the numbers worth reporting, the shell exports them, the same
+  way for every study. A study hands the shell its summary as data, `shell.summary.set({over, rows})`, and takes it
+  back with `set(null)`; while it has one the box ends with Download Summary. The file, `<image name>_summary.csv`, is
+  one table with a row per measurement: `image`, `study`, `counted_over` (what the study says it counted over, such as
+  a mask), `measurement`, `unit`, `value` for a single number, and `n`, `mean`, `sd`, `median`, `min`, `max` for a
+  distribution, a column left empty where the row has none. A summary goes with the study that set it, and with the
+  image: opening another image or study takes the button away until the study sets one again. Test:
+  `web-tests/study_page_driver.mjs` (the fixture study), `studies/vascular/tests/model_page_driver.mjs`.
+  </details>
+
 - `req/shell/tools/grid` A Grid button beside the Ruler draws a grid over the image, its colour and spacing the user's.
   <details>
 

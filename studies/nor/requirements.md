@@ -105,12 +105,13 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   its lengths corrected before it is approved; its cogwheel holds them, with no sort.
   </details>
 
-- `req/nor/downloads` Download Candidates and Download Summary give CSVs; Submit Ground Truth gives the ground truth.
+- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
   <details>
 
-  Moved by the owner on 2026-10-07. At the bottom of the Summary box, side by side across its width,
-  Download Candidates gives the candidates as CSV (every candidate, its status, its reasons, the
-  user's decision and its measurements) and Download Summary the summary as CSV. Submit Ground
+  Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
+  CSV (every candidate, its status, its reasons, the user's decision and its measurements), and under it the shell's
+  Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
+  finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/2`): a JSON file naming the image (its SHA-256, and where it was loaded

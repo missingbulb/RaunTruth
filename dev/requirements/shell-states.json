@@ -356,6 +356,13 @@
                 {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+              ],
+              "children": [
+                {"name": "Download Summary", "select": "#summary-dl", "control": true, "req": "req/shell/summary/download",
+                  "rule": [
+                    {"is": "shown", "approval": "undecided"}
+                  ]
+                }
               ]
             }
           ]

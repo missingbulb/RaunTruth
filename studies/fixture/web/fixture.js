@@ -35,12 +35,16 @@ export function mount(shell) {
     opened() {
       counted = null; $("#fx-count").disabled = false; $("#fx-done").checked = false; task(); shell.views.count(null);
       $("#fx-result").textContent = $("#fx-sum").textContent = $("#fx-item").textContent = "Nothing counted yet."; shell.viewer.layer("fx").replaceChildren();
+      shell.summary.set(null);
     },
     result(action, meta, bytes) {
       shell.busy(false);
       counted = { threshold: +$("#fx-threshold").value, count: meta.count };
       $("#fx-result").textContent = $("#fx-sum").textContent = $("#fx-item").textContent = `${meta.count} pixels ${shell.algorithm.title} the threshold`;
       $("#fx-done").checked = false; task(); shell.views.count(1);
+      shell.summary.set({ over: "the whole image", rows: [
+        { measurement: "Pixels above the threshold", unit: "pixels", value: meta.count },
+        { measurement: "Threshold", unit: "grey level", value: counted.threshold }] });
       shell.step("count", true, `${meta.count} pixels above ${counted.threshold}`);
       shell.boxDone($("#fx-box"), `Counted at ${counted.threshold}`);
       const { W } = shell.state, g = shell.viewer.layer("fx");

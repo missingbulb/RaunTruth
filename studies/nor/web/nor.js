@@ -874,11 +874,19 @@ export function mount(shell) {
     $("#summary").innerHTML = `<div>${passes.length} NoRs${st.mask.length ? " inside the mask" : ""}. ${scale}</div>
       <div class="density">Density: <b>${fmt(D.value, 0)}</b> ${D.unit} (${passes.length} in ${fmt(D.area, 4)} ${D.areaUnit})</div>
       <div class="hists">${rows.map(([l, s]) => hist(l, s)).join("")}</div>`;
+    // the summary as the shell's Download Summary saves it (req/shell/summary/download)
+    shell.summary.set({ over: st.mask.length ? `a mask of ${st.mask.length} lassoed area${st.mask.length === 1 ? "" : "s"}` : "the whole image", rows: [
+      { measurement: "Finalists", unit: "count", value: passes.length },
+      { measurement: "Density", unit: D.unit, value: D.value },
+      { measurement: "Area counted", unit: D.areaUnit, value: D.area },
+      ...rows.map(([, s], k) => ({ measurement: MEASURES[k][1], unit: MEASURES[k][2] ? unitName() : "ratio", n: s.n, mean: s.mean, sd: s.sd, median: s.med, min: s.min, max: s.max })),
+      ...Object.entries(counts).map(([k, n]) => ({ measurement: `Rejected: ${reasonOf(k).letter} ${reasonOf(k).title}`, unit: "count", value: n }))] });
   }
 
   // ---------- downloads ----------
   function downloads(on) {
-    for (const id of ["#dl-cands", "#dl-summary"]) $(id).disabled = !on || !st.meta;
+    $("#dl-cands").disabled = !on || !st.meta;
+    if (!on) shell.summary.set(null);
     gtButton();
   }
   const base = () => st.fileName.replace(/\.[^.]+$/, "") || "nors";
@@ -894,15 +902,6 @@ export function mount(shell) {
         ...measures(c).map(([, v]) => fmt(v, 3))];
     });
     saveFile(base() + "_candidates.csv", csv([head, ...rows]), "text/csv");
-  };
-  $("#dl-summary").onclick = () => {
-    const { passes } = counted(), D = density(passes.length), u = D.unit.replace("per ", "").replace("mm²", "mm2").replace(" px²", "_px2").replace(/ /g, "_");
-    const rows = [["measurement", "n", "mean", "sd", "median", "min", "max"],
-      ...summaryRows(passes).map(([l, s]) => [l, s.n, fmt(s.mean, 3), fmt(s.sd, 3), fmt(s.med, 3), fmt(s.min, 3), fmt(s.max, 3)]),
-      [], ["density", "value"], [`finalists_per_${u}`, fmt(D.value, 3)], [`area_${u}`, fmt(D.area, 6)], ["finalists", passes.length],
-      [], ["rejected", "count"], ...Object.entries(st.counts).map(([k, n]) => [`${reasonOf(k).letter} ${reasonOf(k).title}`, n]),
-      ...(st.mask.length ? [[], ["counted", `inside a mask of ${st.mask.length} lassoed areas`]] : [])];
-    saveFile(base() + "_summary.csv", csv(rows), "text/csv");
   };
   // What a person decided on this image, for scoring finders in the lab (detection/nor_lab.py reads it
   // with --labels) and for the repo's ground truth (detection/ground_truth.py): only what the user marked.
@@ -1350,7 +1349,7 @@ export function mount(shell) {
   window.nor = { taskItems, walk, goTo, focusOn, truth, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
-  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands", "#dl-summary"]) slow($(id));
+  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
 
   // each finder's controls, as detection/finder_list.py lists them, so they never wait for Python; the finder itself
   // is chosen above them, in the shell's list
