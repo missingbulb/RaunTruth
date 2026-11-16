@@ -180,7 +180,12 @@ try {
   check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");
   const spaceKept = await press("Space");
   s1 = await state();
-  check(spaceKept && s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space does the area and moves on: ${JSON.stringify([s0, s1])}`);
+  check(spaceKept && s1.regions === s0.regions && s1.area === s0.area && (await tasks()).widths, `Space opens the area's widths step: ${JSON.stringify([s0, s1])}`);
+  keys = await legendKeys(page);
+  check(keys === "I V shift", `in the widths step the legend lists Image alone, 3D and Panning: ${keys}`);
+  await press("Space");
+  s1 = await state();
+  check(s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space again, These widths look right, does the area and moves on: ${JSON.stringify([s0, s1])}`);
 
   // S: Skip, the next area
   s0 = s1;

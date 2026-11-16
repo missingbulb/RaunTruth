@@ -55,8 +55,8 @@ let makingTruth = false, tagOn = false, cutOn = true, task = null, area = null, 
 // last switched on showing
 let focused = null, outside = 'overlay', peeks = [];
 const held = new Set(), kept = new Set();
-// the widths look of the area open (widths.js), on while W has switched it on there
-let look = null;
+// the widths step of the area open (widths.js), on once its junctions are done; widthPicked hears a vessel selected there
+let look = null, widthPicked = () => {};
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* no storage: edits live until the page closes */ } },
@@ -302,11 +302,13 @@ function drawModel(c) {
 function marks(c) {
   c.globalAlpha = 1; c.setLineDash([]); c.lineCap = 'round'; c.lineJoin = 'round';
   const stroke = (path, w) => { for (const [s, lw] of [[RIM, w + 3], [MARK, w]]) { c.strokeStyle = s; c.lineWidth = lw; path(); c.stroke(); } };
-  if (task?.segments) for (const i of task.segments) {
+  // in the widths step, away in 3D, its selected vessel is the item
+  const item = look.open ? (look.selected() && { segments: look.selected().segs }) : task;
+  if (item?.segments) for (const i of item.segments) {
     const line = view.curves.get(i); if (!line) continue;
     stroke(() => { c.beginPath(); c.moveTo(line[0][0], line[0][1]); for (const q of line) c.lineTo(q[0], q[1]); }, 2);
   }
-  if (task?.node != null) {
+  if (!look.open && task?.node != null) {
     const p = view.pts.get(task.node), n = model.nodes.get(task.node);
     if (p) {
       const o = V.M.xf(view.vp, toWorld({ ...n, x: n.x + (n.r || 0) })), rr = o[3] > 0 ? Math.hypot((o[0] / o[3] + 1) / 2 * view.W - p[0], (1 - o[1] / o[3]) / 2 * view.H - p[1]) : 0;
@@ -391,6 +393,8 @@ function redo() { if (!future.length) return; history.push(model); model = futur
 
 function grab(e) {
   if (look?.on) return look.grab(e);
+  // away in 3D the drag only turns and pans the view
+  if (look?.open) return null;
   if (!model || (mode === 'image' && !focused)) return null;
   closeMenu();
   const h = pick(e);
@@ -455,7 +459,7 @@ function grab(e) {
 
 // A left click on a faded vessel asks for its verdict.
 function clicked(e) {
-  if (!model || (mode === 'image' && !focused) || look.on) return;
+  if (!model || (mode === 'image' && !focused) || look.open) return;
   if (drawing) return drawClick(e);
   // while the study makes ground truth a junction picked on the view is the current task's
   const at = makingTruth && picked && focused && pick(e);
@@ -562,7 +566,7 @@ export function reveal(p) {
 // again, in the mode chosen for it.
 export function focusArea(b) {
   if (!model || !V) return;
-  if (look.on) look.show(null);
+  if (look.open) look.show(null);
   if (!b) {
     if (!focused) return;
     focused = null; peeks = []; kept.clear();
@@ -575,19 +579,33 @@ export function focusArea(b) {
   frameFocus(); setMode(shownMode()); refreshMask(true);
 }
 export const focusedArea = () => focused;
-// W: the widths look on the area open, or the lines over the stack again
-function toggleLook() {
-  if (!focused || !tagOn || !model) return;
+// The open area's widths step (req/vascular/truth/widths), on or off; idempotent
+export function widthsStep(on) {
+  if (!model || !focused || !tagOn || !!on === look.open) return;
   if (drawing) setDrawing(false);
-  closeMenu(); hover = null;
-  look.show(look.on ? null : focused.box);
-  if (!look.on) { frameFocus(); setMode(shownMode()); }
+  closeMenu(); hover = null; peeks = []; kept.clear(); held.clear();
+  look.show(on ? focused.box : null);
+  if (!look.open) { frameFocus(); setMode(shownMode()); }
+  tellKeys();
+}
+export const widthsOpen = () => !!look?.open;
+export const onWidthPick = (fn) => { widthPicked = fn; };
+// the selected vessel of the widths step, its width stepped (-1 narrower, 1 wider) or put back to the estimate
+export const selectedWidth = () => (look?.open ? look.selected() : null);
+export const stepWidth = (dir) => look?.open && look.nudge(dir);
+export const resetWidth = () => look?.open && look.reset();
+// V held in the widths step: the area in 3D, the lines over the stack, turning freely; let go, flat from above again
+function away(phase) {
+  if (!look.open) return;
+  const on = phase === 'click' ? look.on : phase === 'down';
+  look.away(on);
+  if (on) { V.S.held = false; setMode('overlay'); } else { frameFocus(); V.S.held = true; }
   tellKeys();
 }
 // the owner tags ground truth now or not: only while they do is what is done cut out, and the Show menu's row for it on
 export function tagging(on) {
   tagOn = !!on; $('m-cut').disabled = !tagOn;
-  if (!tagOn && look?.on) look.show(null);
+  if (!tagOn && look?.open) look.show(null);
   refreshMask(true); V?.redraw(); tellKeys();
 }
 // what the main view shows: the view a number key shows, else in an area the lines over the stack, else what was chosen
@@ -605,7 +623,7 @@ function frameFocus() {
   V.redraw();
 }
 function peek() {
-  if (!model || look.on) return;
+  if (!model || look.open) return;
   const on = Object.keys(PEEKS).filter((n) => held.has(n) || kept.has(n));
   const next = [...peeks.filter((n) => on.includes(n)), ...on.filter((n) => !peeks.includes(n))];
   if (next.join() === peeks.join()) return;
@@ -764,7 +782,7 @@ export function truth() {
 
 // Called whenever a stack opens: it opens with no model until the algorithm draws one.
 export function stackOpened() {
-  if (look?.on) look.show(null);
+  if (look?.open) look.show(null);
   model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; task = null; area = null; focused = null; peeks = []; kept.clear();
   $('vm-show').hidden = false;
   $('model-on').hidden = true; $('vm-review').hidden = true; msg(''); setMode('image');
@@ -792,11 +810,8 @@ export const inspect = () => ({ model: model && Mo.toJSON(model), points: view &
 // ---------- the keys: the study's declared actions (study.json), its part of them the handlers and the states ----------
 // what each action does; the shell hears the keys (req/shell/image/keys)
 const HANDLERS = {
-  widths: (phase) => { if (phase !== 'up') toggleLook(); },
   'image-alone': (phase) => look.bare(phase === 'click' ? !look.isBare() : phase === 'down'),
-  cannot: () => look.cannot(),
-  nudge: (phase, { event }) => { if (event) look.nudge(/Equal|Add/.test(event.code) ? 1 : -1); },
-  estimate: () => look.estimate(),
+  'three-d': (phase) => away(phase),
   model: (phase) => peekKey('alone', phase),
   outlines: (phase) => peekKey('bare', phase),
   side: (phase) => peekKey('side', phase),
@@ -804,7 +819,7 @@ const HANDLERS = {
 };
 // the states the actions wait on, told the shell as they change
 let keys = null;
-const tellKeys = () => keys?.report({ model: !!model, focused: !!focused, look: !!look?.on, cut: cutOn,
+const tellKeys = () => keys?.report({ model: !!model, focused: !!focused, look: !!look?.open, flat: !!look?.on, away: !!look?.open && !look.on, cut: cutOn,
   ...Object.fromEntries(Object.keys(PEEKS).map((n) => [n, peeks.at(-1) === n])), truthTagging: makingTruth && tagOn });
 
 // view: the shell's 3D view; signal ends the listeners outside the study's own panels when the study leaves;
@@ -819,7 +834,7 @@ export function init(view, signal, makesTruth, actions) {
   // the stack's middle depth on screen, from straight above, for the widths look
   const plane = (x, y) => { const v = V.M.xf(V.camera(cv.clientWidth / cv.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
     return [(v[0] / v[3] + 1) / 2 * cv.clientWidth, (1 - v[1] / v[3]) / 2 * cv.clientHeight]; };
-  look = widthsLook({ V, canvas: cv, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t) });
+  look = widthsLook({ V, canvas: cv, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t), chose: () => widthPicked() });
   V.onDraw(draw, signal);
   V.controls(cv, grab, clicked);
   cv.addEventListener('pointermove', (e) => {
@@ -855,6 +870,6 @@ export function init(view, signal, makesTruth, actions) {
     if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
   }, { signal });
-  V.onReset(() => { if (!focused || !model) return false; frameFocus(); if (look.on) V.S.held = true; return true; }, signal);
+  V.onReset(() => { if (!focused || !model) return false; frameFocus(); if (look.open) { look.away(false); V.S.held = true; } return true; }, signal);
   document.addEventListener('pointerdown', (e) => { if (!$('ctx').contains(e.target) && e.target !== cv) closeMenu(); }, { signal });
 }

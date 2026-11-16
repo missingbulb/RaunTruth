@@ -1,16 +1,17 @@
-// The widths look of an area of the ground-truth tasks (req/vascular/truth/widths): the area in the stack's own pixels,
-// every slice flattened, grey, from straight above, each vessel's one width drawn as two rims and written in µm, and
-// the person's word on it: a drag from one wall to the other, a nudge, "cannot", or the estimate put back. Resting the
-// pointer on a vessel opens a lens on it at its own depth, with the brightness across it.
+// An area's widths step of the ground-truth tasks (req/vascular/truth/widths): the area in the stack's own pixels,
+// every slice flattened, grey, from straight above, each vessel's one width drawn as two rims and written in µm. A click
+// selects a vessel, and the person's word on it is a step narrower or wider or the estimate put back. Resting the
+// pointer on a vessel opens a lens on it at its own depth, with the brightness across it. While away the area shows in
+// 3D, as the model's view draws it, the selection kept.
 import * as Mo from './model.js';
 
 // magenta: the algorithm's estimate, a colour the grey picture never carries; amber: set by the person; grey dotted:
-// it cannot be told
+// it cannot be told, as a file from before may say
 const ESTIMATE = '#ff4fd8', SET = '#ffb020', CANNOT = '#a8a8a8', CROSS = '#4fd1d9';
 const RIM_PX = 2;
 // the rims stop this short of each end, where a vessel meets a junction or fades into a tip
 const END_UM = 2;
-// a nudge, and how near the pointer must be to a vessel's line, beyond its rims, to pick it
+// a step, and how near the pointer must be to a vessel's line, beyond its rims, to pick it
 const STEP_UM = .25, PICK_PX = 8;
 // how long the pointer rests before the lens opens; the lens: screen pixels per pixel of the stack, pixels each way,
 // slices either side of the vessel's own, how far from the pointer, and its profile's height
@@ -21,11 +22,15 @@ const SAMPLES = 8;
 const LO_Q = .01, HI_Q = .997;
 
 const today = () => new Date().toISOString().slice(0, 10);
+// a width as the step and the box write it: to the hundredth, a whole tenth with one place
+export const umText = (um) => `${um.toFixed(2).replace(/0$/, '')} µm`;
 
-// ctx: {V, model(), apply(next), canvas, plane(x, y): [sx, sy] screen at the stack's middle depth, msg(text)}
+// ctx: {V, model(), apply(next), canvas, plane(x, y): [sx, sy] screen at the stack's middle depth, msg(text), chose(): a
+// vessel selected}
 export function widthsLook(ctx) {
   const { V } = ctx;
-  let box = null, bare = false, hover = null, chosen = null, lens = null, timer = null, drag = null, picture = null, vessels = null;
+  // chosen: the selected vessel's number; away: the area shown in 3D for now
+  let box = null, bare = false, away = false, hover = null, chosen = null, lens = null, timer = null, picture = null, vessels = null;
 
   // ---------- the area's vessels, each with its one width ----------
   function list() {
@@ -64,7 +69,6 @@ export function widthsLook(ctx) {
   // ---------- µm and the screen, from straight above ----------
   function rect() { const [X0, Y0] = ctx.plane(box.x0, box.y0), [X1, Y1] = ctx.plane(box.x1, box.y1); return [X0, Y0, X1, Y1]; }
   const toScreen = (r, x, y) => [r[0] + (x - box.x0) / (box.x1 - box.x0) * (r[2] - r[0]), r[1] + (y - box.y0) / (box.y1 - box.y0) * (r[3] - r[1])];
-  const toUm = (r, sx, sy) => [box.x0 + (sx - r[0]) / (r[2] - r[0]) * (box.x1 - box.x0), box.y0 + (sy - r[1]) / (r[3] - r[1]) * (box.y1 - box.y0)];
   const pxPerUm = (r) => (r[2] - r[0]) / (box.x1 - box.x0);
   const at = (e) => { const b = ctx.canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
 
@@ -109,7 +113,7 @@ export function widthsLook(ctx) {
   function label(v, s, r) {
     const k = v.path.length >> 1, p = v.path[k], { n } = frame(v.path, k), out = Math.max(...(s.rims || [0]).map(Math.abs)) * pxPerUm(r) + 13;
     const [x, y] = toScreen(r, p.x, p.y), dir = n[1] <= 0 ? 1 : -1;
-    return { text: s.um != null ? `${s.um.toFixed(1)} µm` : '?', at: [x + n[0] * out * dir, y + n[1] * out * dir] };
+    return { text: s.um != null ? umText(s.um) : '?', at: [x + n[0] * out * dir, y + n[1] * out * dir] };
   }
   function draw(c) {
     const W = ctx.canvas.clientWidth, H = ctx.canvas.clientHeight, r = rect();
@@ -123,7 +127,7 @@ export function widthsLook(ctx) {
     if (bare) { drawLens(c, r); return; }
     c.lineCap = 'butt'; c.lineJoin = 'round';
     for (const v of list()) {
-      const s = shape(v), lines = drag?.v.n === v.n ? null : rims(v, s, r), colour = { set: SET, cannot: CANNOT, estimate: ESTIMATE, none: ESTIMATE }[s.kind];
+      const s = shape(v), lines = rims(v, s, r), colour = { set: SET, cannot: CANNOT, estimate: ESTIMATE, none: ESTIMATE }[s.kind];
       if (lines) {
         c.strokeStyle = colour; c.lineWidth = RIM_PX; c.setLineDash(s.kind === 'cannot' ? [2, 3] : []);
         for (const l of lines) { c.beginPath(); l.forEach(([x, y], k) => (k ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); }
@@ -145,15 +149,11 @@ export function widthsLook(ctx) {
       if (s.kind === 'set') { c.strokeStyle = SET; c.lineWidth = 1; c.strokeRect(t.at[0] - tw / 2 + .5, t.at[1] - 7.5, tw - 1, 15); }
       c.fillStyle = colour; c.fillText(t.text, t.at[0], t.at[1] + 1);
       if (chosen === v.n || hover?.v.n === v.n) {
-        c.globalAlpha = .5; c.strokeStyle = '#fff'; c.lineWidth = 1;
+        c.globalAlpha = chosen === v.n ? .9 : .5; c.strokeStyle = '#fff'; c.lineWidth = chosen === v.n ? 2 : 1;
         c.beginPath(); v.path.forEach((p, k) => { const [x, y] = toScreen(r, p.x, p.y); k ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.globalAlpha = 1;
       }
     }
     c.textAlign = 'start'; c.textBaseline = 'alphabetic';
-    if (drag?.to) {
-      c.strokeStyle = SET; c.lineWidth = 1.5; c.beginPath(); c.moveTo(...drag.from); c.lineTo(...drag.to); c.stroke();
-      for (const [x, y] of [drag.from, drag.to]) { c.beginPath(); c.arc(x, y, 2.5, 0, 2 * Math.PI); c.fillStyle = SET; c.fill(); }
-    }
     drawLens(c, r);
   }
 
@@ -187,11 +187,11 @@ export function widthsLook(ctx) {
     const x = px + LENS_GAP + side <= W ? px + LENS_GAP : Math.max(0, px - LENS_GAP - side), y = Math.min(Math.max(0, py - side / 2), Math.max(0, H - side - PROFILE_PX));
     c.imageSmoothingEnabled = false; c.drawImage(L.cv, x, y, side, side);
     c.strokeStyle = '#fff'; c.lineWidth = 1; c.strokeRect(x + .5, y + .5, side - 1, side - 1);
-    // the line across the vessel, dashed, and the walls drawn now as ticks on it, hidden while a drag measures it
+    // the line across the vessel, dashed, and the walls drawn now as ticks on it
     const cx = x + L.centre[0] * LENS_K, cy = y + L.centre[1] * LENS_K, ext = LENS_HALF * LENS_K;
     c.setLineDash([5, 4]); c.strokeStyle = CROSS; c.beginPath(); c.moveTo(cx - L.n[0] * ext, cy - L.n[1] * ext); c.lineTo(cx + L.n[0] * ext, cy + L.n[1] * ext); c.stroke(); c.setLineDash([]);
     const s = shape(v);
-    if (s.rims && !drag) {
+    if (s.rims) {
       c.strokeStyle = s.kind === 'set' ? SET : s.kind === 'cannot' ? CANNOT : ESTIMATE; c.lineWidth = 2;
       for (const off of s.rims) {
         const d = off / L.umPerPx * LENS_K, tx = cx + L.n[0] * d, ty = cy + L.n[1] * d;
@@ -217,10 +217,10 @@ export function widthsLook(ctx) {
     }
     return best;
   }
-  const target = () => hover?.v ?? list().find((v) => v.n === chosen) ?? null;
+  const selected = () => list().find((v) => v.n === chosen) ?? null;
   function word(v, next, said) {
     if (!v || next === ctx.model()) return;
-    chosen = v.n; ctx.apply(next); if (lens) lens.data = null;
+    ctx.apply(next); if (lens) lens.data = null;
     if (said) ctx.msg(said);
   }
   function move(e) {
@@ -233,49 +233,48 @@ export function widthsLook(ctx) {
     timer = setTimeout(() => { if (hover) { lens = { v: hover.v.n, k: hover.k, at: [x, y] }; V.redraw(); } }, REST_MS); // timed here: a study loads no shell module; the lens opens once the pointer has rested
     V.redraw();
   }
-  // a drag from one wall to the other, kept on the line across the vessel where it started
+  // a press on a vessel selects it as it is let go, whatever the pointer did between; it sets nothing
+  const still = { move() {}, up() {}, cancel() {} };
   function grab(e) {
-    if (e.button !== 0) return { move() {}, up() {}, cancel() {} };
-    const from = at(e), h = under(...from);
-    if (!h) return { move() {}, up() {}, cancel() {} };
-    const { n } = frame(h.v.path, h.k);
-    const onLine = (p) => { const d = (p[0] - from[0]) * n[0] + (p[1] - from[1]) * n[1]; return [from[0] + n[0] * d, from[1] + n[1] * d]; };
-    drag = { v: h.v, from, to: null };
-    return {
-      move(ev) { drag.to = onLine(at(ev)); if (lens) lens.at = at(ev); V.redraw(); },
-      up() {
-        const to = drag.to, v = drag.v; drag = null;
-        if (!to || Math.hypot(to[0] - from[0], to[1] - from[1]) < 3) { chosen = v.n; return V.redraw(); }
-        const r = rect(), walls = [toUm(r, ...from), toUm(r, ...to)];
-        word(v, Mo.measure(ctx.model(), v.segs, walls, today()));
-      },
-      cancel() { drag = null; V.redraw(); },
-    };
+    if (e.button !== 0) return still;
+    const h = under(...at(e));
+    if (!h) return still;
+    return { move() {}, up() { if (chosen !== h.v.n) { chosen = h.v.n; ctx.chose(); } V.redraw(); }, cancel() {} };
   }
-  // what the look's keys do (the study's declared actions): the image alone or the marks again; the vessel under the
-  // pointer, or the one last set, a step narrower (-1) or wider (1), its width not to be told, or the estimate again
+  // the image alone or the marks again; the selected vessel a step narrower (-1) or wider (1), from its width, else its
+  // estimate, else, for a vessel the person drew, the median of the area's other widths; or its estimate again
   function setBare(on) { if (bare !== on) { bare = on; V.redraw(); } }
-  function nudge(dir) { const v = target(); if (v) word(v, Mo.nudge(ctx.model(), v.segs, dir * STEP_UM, v.estimate, today())); }
-  function cannot() { const v = target(); if (v) word(v, Mo.setWidth(ctx.model(), v.segs, { how: 'cannot', on: today() })); }
-  function estimate() {
-    const v = target(), m = ctx.model();
+  function nudge(dir) {
+    const v = selected(); if (!v) return;
+    const others = list().filter((x) => x !== v).map((x) => shape(x).um).filter((u) => u > 0).sort((a, b) => a - b);
+    const mid = others.length ? (others[(others.length - 1) >> 1] + others[others.length >> 1]) / 2 : null;
+    word(v, Mo.nudge(ctx.model(), v.segs, dir * STEP_UM, v.estimate ?? mid, today()));
+  }
+  function reset() {
+    const v = selected(), m = ctx.model();
     if (v && Mo.widthOf(m, v.segs)) word(v, Mo.setWidth(m, v.segs, null), `Vessel ${v.n}'s width is the estimate again.`);
   }
 
   return {
-    get on() { return !!box; },
-    // the look on the area box (µm), or off with null
+    // on: the flat view shows; open: the step is on the area, flat or away in 3D
+    get on() { return !!box && !away; },
+    get open() { return !!box; },
+    // the step on the area box (µm), or off with null
     show(b) {
-      box = b; bare = false; hover = null; chosen = null; lens = null; drag = null; clearTimeout(timer);
+      box = b; bare = false; away = false; hover = null; chosen = null; lens = null; clearTimeout(timer);
       if (b) Object.assign(V.S, { rot: V.facing(0, 0), held: true }); else V.S.held = false;
       V.redraw();
     },
-    draw, grab, move, bare: setBare, isBare: () => bare, nudge, cannot, estimate,
+    // the area in 3D for now, or flat again, the selection kept; the caller frames the view
+    away(on) { if (!box || away === on) return; away = on; hover = null; lens = null; clearTimeout(timer); V.redraw(); },
+    // the selected vessel: its number, segments, width in µm and what that width is
+    selected() { const v = box && selected(); if (!v) return null; const s = shape(v); return { n: v.n, segs: v.segs, um: s.um, kind: s.kind, drawn: v.drawn }; },
+    draw, grab, move, bare: setBare, isBare: () => bare, nudge, reset,
     leave() { hover = null; clearTimeout(timer); if (lens) { lens = null; V.redraw(); } },
     inspect() {
       if (!box) return null;
       const r = rect();
-      return { rect: r, box, image: !!flattened(), marks: !bare,
+      return { rect: r, box, image: !!flattened(), marks: !bare, flat: !away, selected: chosen,
         vessels: list().map((v) => {
           const s = shape(v), l = rims(v, s, r), t = label(v, s, r);
           return { n: v.n, mid: { x: v.path[v.path.length >> 1].x, y: v.path[v.path.length >> 1].y }, kind: s.kind, label: t.text, um: s.um,
