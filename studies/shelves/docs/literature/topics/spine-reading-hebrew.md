@@ -6,13 +6,13 @@ Paper index (open access unless marked):
 
 | File | Paper | Year | Licence | PDF |
 |---|---|---|---|---|
-| yang-2016-smart-library.pdf | Yang, He, Huang, Zhou, Ororbia, Kifer, Giles, "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading" (Penn State) | 2016 | arXiv licence | https://arxiv.org/pdf/1611.07385 |
-| llabres-2024-library-dataset.pdf | Llabrés, Dey, Karatzas, Valveny (CVC Barcelona), "Image-text matching for large-scale book collections", DAS 2024, LNCS 14994 | 2024 | CC BY 4.0 | https://arxiv.org/pdf/2407.19812 |
-| anegawa-2020-text-detection-rough-books.pdf | Anegawa, Aritsugi, "Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data" | 2020 | arXiv licence | https://arxiv.org/pdf/2006.14808 |
-| wieczorek-2022-trixi-the-librarian.pdf | Wieczorek, Sygo, Liu, Koshil, "Trixi the Librarian" (PR-2 robot sorts books) | 2022 | CC BY 4.0 | https://arxiv.org/pdf/2210.10110 |
-| kostic-2020-visual-companion-booklovers.pdf | Kostic et al., "Visual Companion for Booklovers" (BookVIS app) | 2020 | arXiv licence | https://arxiv.org/pdf/2011.00329 |
-| ma-2024-oriented-rcnn-spine-detection.pdf | Ma, Wang, Li, Xu, Han, "An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN", *Sensors* 24(24):7996 | 2024 | MDPI CC BY | https://pdfs.semanticscholar.org/5400/ccb6f4d16302552068af709e23ff8e6f47ae.pdf |
-| suissa-2023-hebrew-ocr-postcorrection.pdf | Suissa, Elmalech, Zhitomirsky-Geffet (Bar-Ilan), "Optimizing the Neural Network Training for OCR Error Correction of Historical Hebrew Texts" | 2023 | CC BY-NC-ND 4.0 | https://arxiv.org/pdf/2307.16220 |
+| Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf | Yang, He, Huang, Zhou, Ororbia, Kifer, Giles, "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading" (Penn State) | 2016 | arXiv licence | https://arxiv.org/pdf/1611.07385 |
+| Image-text matching for large-scale book collections.pdf | Llabrés, Dey, Karatzas, Valveny (CVC Barcelona), "Image-text matching for large-scale book collections", DAS 2024, LNCS 14994 | 2024 | CC BY 4.0 | https://arxiv.org/pdf/2407.19812 |
+| Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data.pdf | Anegawa, Aritsugi, "Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data" | 2020 | arXiv licence | https://arxiv.org/pdf/2006.14808 |
+| Trixi the Librarian.pdf | Wieczorek, Sygo, Liu, Koshil, "Trixi the Librarian" (PR-2 robot sorts books) | 2022 | CC BY 4.0 | https://arxiv.org/pdf/2210.10110 |
+| Visual Companion for Booklovers.pdf | Kostic et al., "Visual Companion for Booklovers" (BookVIS app) | 2020 | arXiv licence | https://arxiv.org/pdf/2011.00329 |
+| An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN.pdf | Ma, Wang, Li, Xu, Han, "An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN", *Sensors* 24(24):7996 | 2024 | MDPI CC BY | https://pdfs.semanticscholar.org/5400/ccb6f4d16302552068af709e23ff8e6f47ae.pdf |
+| Optimizing the neural network training for OCR error correction of historical Hebrew texts.pdf | Suissa, Elmalech, Zhitomirsky-Geffet (Bar-Ilan), "Optimizing the Neural Network Training for OCR Error Correction of Historical Hebrew Texts" | 2023 | CC BY-NC-ND 4.0 | https://arxiv.org/pdf/2307.16220 |
 
 Not downloaded (paywalled, or the download failed):
 - Chen, Tsai, Girod et al., "Building book inventories using smartphones", ACM MM 2010. ResearchGate: https://www.researchgate.net/publication/221571765. Paywalled at ACM.

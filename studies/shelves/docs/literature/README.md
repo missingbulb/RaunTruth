@@ -21,6 +21,14 @@ the repo.
 | [`llabres-2024-book-matching.md`](llabres-2024-book-matching.md) | Matching noisy spine reads to a title list; detection, not reading, costs the most |
 | [`suissa-2023-hebrew-ocr-correction.md`](suissa-2023-hebrew-ocr-correction.md) | Correcting Hebrew OCR with errors synthesised to look like the corpus's own |
 | [`niso-z3941-spines.md`](niso-z3941-spines.md) | What a spine is supposed to carry and which way its title runs (Latin-script books) |
+| [`anegawa-2020-text-detection-rough-books.md`](anegawa-2020-text-detection-rough-books.md) | Growing one box per book from a scene-text detector's word boxes, using lean, a corridor and a two-colour (spine/ink) match; weak numbers |
+| [`kostic-2020-visual-companion-booklovers.md`](kostic-2020-visual-companion-booklovers.md) | A single-cover recognition app (SIFT + Tesseract + CNN BoW); the source of the "rotation and distortion hurt spine OCR" remark, which it never measures |
+| [`wieczorek-2022-trixi-the-librarian.md`](wieczorek-2022-trixi-the-librarian.md) | Per-shelf perspective warp from shelf corners before detection; COCO "book" merges spines; HSV colour beat text and SIFT, no accuracy reported |
+| [`liu-2016-planogram-recurring-patterns.md`](liu-2016-planogram-recurring-patterns.md) | Finding repeated items without templates; learning a template from the items found to recover the ones missed |
+| [`ray-2018-upc-planogram.md`](ray-2018-upc-planogram.md) | Choosing the whole shelf row at once: candidates per position, then the best non-overlapping path through a graph |
+| [`sah-2026-hough-rectified-shelves.md`](sah-2026-hough-rectified-shelves.md) | Hough over shelf lines picks one of two fixed homographies: +2–5 mAP on angled photos, lost above 40 objects; lean threshold toward boards |
+| [`edwardy-2001-reshelving-control-charts.md`](edwardy-2001-reshelving-control-charts.md) | Library shelving accuracy: misshelved means out of order with a neighbour; sample ~10% of shelves and shelf-read only when the accuracy rating drops (93–98% in order) |
+| [`newtonmiller-2010-inventory-cost-eblip.md`](newtonmiller-2010-inventory-cost-eblip.md) | The barcode-inventory baseline: 8.35 s per book, 82% of misshelved books within 25 books of their place, 30% of "Missing" books in place |
 
 The researchers' working notes, every claim cited, are in [`topics/`](topics/): [spine
 detection](topics/spine-detection.md), [spine reading and Hebrew](topics/spine-reading-hebrew.md), [library

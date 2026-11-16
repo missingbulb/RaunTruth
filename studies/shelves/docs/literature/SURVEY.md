@@ -83,7 +83,7 @@ The one learned step with a measured reference point is a **YOLOv8n-OBB or YOLO1
 | Taira 2003/04, Lee 2008, Quoc & Choi 2009, Nevetha & Baskar 2015 | Paywalled or not found | Classical history only |
 | AuRoSS IROS 2015; Brinkman ISMAR 2013; Abcouwer & van Loon LHT 2020 | Paywalled / OA unknown | RFID and AR context only |
 | ANSI/NISO Z39.41 | Encrypted PDF | Label-area and title-direction clauses unverified |
-| U-PC ECCV 2018 full method; Locount AAAI 2021; ShelfRectNet | 403 / arXiv rate-limit / abstract only | Retail shelf finding and counting |
+| Locount AAAI 2021; ShelfRectNet (U-PC is now read in full: [`ray-2018-upc-planogram.md`](ray-2018-upc-planogram.md)) | 403 / arXiv rate-limit / abstract only | Retail shelf finding and counting |
 | Semantic Scholar; Papers With Code; Roboflow pages | 429 / unreachable / 403 | Discovery completeness; Roboflow set sizes and completeness |
 | Hebrew spine-direction practice | Z39.41 §6.2 states the convention; no source measures how far Israeli publishers follow it | Count the turn per language in our own ground truth |
 | Tesseract per-line CER on spines; any Hebrew scene-text benchmark; Hebrew confusion matrix | Not found in any source | Our own crops are the only measure |

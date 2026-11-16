@@ -2,8 +2,8 @@
 
 Researched 2026-11-15. Downloaded open-access PDFs (verified with `file`, not opened) are in
 the study Drive folder `Literature/`
-`llabres-2024-library-dataset.pdf` (arXiv 2407.19812), `wieczorek-2022-trixi-the-librarian.pdf` (arXiv 2210.10110),
-`yang-2016-smart-library.pdf` (arXiv 1611.07385). The Stanford Tsai 2011 PDF failed twice with a TLS-chain error through the proxy and was not saved.
+`Image-text matching for large-scale book collections.pdf` (arXiv 2407.19812), `Trixi the Librarian.pdf` (arXiv 2210.10110),
+`Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf` (arXiv 1611.07385). The Stanford Tsai 2011 PDF failed twice with a TLS-chain error through the proxy and was not saved.
 
 ## Q1. Datasets: size, regime, annotation type, licence, URL, quality, fit to our regime
 
