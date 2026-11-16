@@ -230,7 +230,7 @@ export function widthsLook(ctx) {
     if (!h) { lens = null; return V.redraw(); }
     if (lens?.v === h.v.n) { lens = { v: h.v.n, k: h.k, at: [x, y] }; return V.redraw(); }
     lens = null;
-    timer = setTimeout(() => { if (hover) { lens = { v: hover.v.n, k: hover.k, at: [x, y] }; V.redraw(); } }, REST_MS);
+    timer = setTimeout(() => { if (hover) { lens = { v: hover.v.n, k: hover.k, at: [x, y] }; V.redraw(); } }, REST_MS); // timed here: a study loads no shell module; the lens opens once the pointer has rested
     V.redraw();
   }
   // a drag from one wall to the other, kept on the line across the vessel where it started
