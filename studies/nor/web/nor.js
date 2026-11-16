@@ -679,18 +679,17 @@ export function mount(shell) {
     d.innerHTML = `<div class="head">${num}<span class="state">${state}</span>
       <span class="verdict" role="group" aria-label="Your verdict"></span></div>`;
     const acts = d.querySelector(".verdict");
-    const btn = (cls, on, title, fn, key) => {
+    const btn = (cls, on, title, fn) => {
       const b = document.createElement("button"); b.type = "button"; b.className = cls + (on ? " on" : ""); b.innerHTML = THUMB;
       b.title = title; b.setAttribute("aria-label", title); b.setAttribute("aria-pressed", on);
-      if (where === "task") b.setAttribute("aria-keyshortcuts", key);
       // on a task's card, a verdict moves on to the task's next candidate
       b.onclick = (e) => { e.stopPropagation(); st.sel = c.i; fn(); if (where === "task" && verdictOf(c)) moveOn(); }; acts.append(b);
     };
     const say = (v) => (c.added ? setAdded(c.k, { verdict: v === "approve" ? "in" : v === "reject" ? "out" : null }) : decide(c.i, v));
     btn("up", f === "in", f === "in" ? "You said this is a NoR. Click to undo" : "A NoR: keep it, with its lengths as shown (saved as ground truth)",
-      () => say(f === "in" ? null : "approve"), "F");
+      () => say(f === "in" ? null : "approve"));
     btn("down", f === "out", f === "out" ? (c.added ? "You said this is not a NoR. Click to undo" : "You said this is not a NoR. Click to let the filters decide again") : "Not a NoR: reject it (saved as ground truth)",
-      () => say(f === "out" ? null : "reject"), "J");
+      () => say(f === "out" ? null : "reject"));
     if (c.added) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
       acts.lastChild.onclick = (e) => { e.stopPropagation(); removeAdded(c.k); };
@@ -711,7 +710,7 @@ export function mount(shell) {
     const e = st.edits.get(c.i) || {};
     // on a task's card, the task says what is measured: a button alone puts the finder's lengths back
     if (e.length || e.red || e.width) {
-      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button" aria-keyshortcuts="R">Reset measurements</button>`
+      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button">Reset measurements</button>`
         : `<div class="tag">Lengths adjusted <button class="link">reset</button></div>`);
       d.querySelector(".reset-lines, .tag button").onclick = () => edit(c.i, { length: null, red: null, width: null });
     }
@@ -1081,6 +1080,19 @@ export function mount(shell) {
     for (const a of st.areas) if (areaDone(a, w)) holes.push(areaRect(a));
     shell.viewer.doneMask(holes.map(([x, y, width, height]) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height]]));
   }
+  // the keys (req/nor/truth/keys, req/shell/image/keys), wired by the shell from study.json's actions: it presses the
+  // open item's buttons itself; the Show menu's views are switched here, and the states the keys wait on told as
+  // they change
+  const VIEW_KEYS = { "show-pass": "show-gt-pass", "show-fails": "show-gt-fails", "show-added": "show-gt-added", "show-cut": "show-gt-cut", "show-frame": "show-gt-frame" };
+  shell.actions.handle(Object.fromEntries(Object.entries(VIEW_KEYS).map(([a, id]) => [a, (phase) => {
+    if (phase === "up") return;
+    const b = $("#" + id); b.checked = !b.checked; b.oninput();
+  }])));
+  function tellKeys() {
+    const v = st.show || {};
+    shell.actions.report({ tagging: tagging(), step: !!st.cur, views: TRUTH && !!st.meta,
+      gtPass: v.gtPass, gtFails: v.gtFails, gtAdded: v.gtAdded, gtCut: v.gtCut, gtFrame: v.gtFrame });
+  }
   function renderTasks() {
     if (!TRUTH) return;
     const ready = !!st.meta && !!st.passes;
@@ -1118,6 +1130,7 @@ export function mount(shell) {
     if (was && fresh && was.dataset.i !== fresh.dataset.i) slideIn(was, fresh, st.taskDir || 1);
     st.taskDir = 0;
     drawReveal();
+    tellKeys();
   }
   // the next item's card slides in over the last one's, which slides out the other way
   function slideIn(was, fresh, dir) {
@@ -1136,6 +1149,7 @@ export function mount(shell) {
       { key: "missed", name: "Areas", title: "The image's areas, each checked for NoRs the finder missed" }],
     { submit, pick: (t) => { if (st.meta) goTask(t); }, tagging: (on) => {
       for (const id of ["#show-gt-cut", "#show-gt-frame"]) $(id).disabled = !on;
+      tellKeys();
       if (!st.meta || !st.passes) return;
       // started, the walk opens where it is, its area framed and brought into view; stopped, the image is as viewed
       renderTasks(); placeRing(); frameArea(on && st.area != null);
@@ -1143,19 +1157,6 @@ export function mount(shell) {
     } });
     for (const id of ["#show-gt-cut", "#show-gt-frame"]) $(id).disabled = true;
     shell.tasks.row("missed").querySelector(".task-body").append($("#nor-tasks .missed-slot"), $("#area-check"));
-    // while tagging, a key presses the open item's button that bears it, read by its place on the keyboard so any
-    // layout works (req/nor/truth/keys)
-    const NAMED = { Space: "Space", Backspace: "Backspace" };
-    document.addEventListener("keydown", (e) => {
-      if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || !tagging() || !st.cur) return;
-      if (e.target.closest?.("input, select, textarea, [contenteditable]") || e.target.isContentEditable) return;
-      if (document.querySelector("dialog[open], details.menu[open], :popover-open, #ctx:not([hidden])")) return;
-      const name = NAMED[e.code] || /^Key([A-Z])$/.exec(e.code)?.[1];
-      const b = name && [...$("#tasks-box").querySelectorAll(`button[aria-keyshortcuts="${name}"]`)]
-        .find((b) => !b.disabled && b.getClientRects().length && !b.closest("[inert]"));
-      if (!b) return;
-      e.preventDefault(); b.click();
-    }, here);
   }
 
   // ---------- the summary mask: areas lassoed on the image, combined by exclusive or ----------
@@ -1300,7 +1301,7 @@ export function mount(shell) {
       inp.type === "checkbox" ? (inp.checked = st.show[k]) : (inp.value = st.show[k]);
       inp.oninput = () => {
         st.show[k] = inp.type === "checkbox" ? inp.checked : inp.type === "range" ? +inp.value : inp.value;
-        writeJSON(SHOW, st.show); applyShow(); if (/C$/.test(k) && st.meta) { st.crops.clear(); if (st.view === "items") renderList(); renderSelected(); }
+        writeJSON(SHOW, st.show); applyShow(); tellKeys(); if (/C$/.test(k) && st.meta) { st.crops.clear(); if (st.view === "items") renderList(); renderSelected(); }
       };
     }
     applyShow();

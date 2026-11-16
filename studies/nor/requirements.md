@@ -281,7 +281,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   shown or is off. Keys act only while tagging (`req/shell/ground-truth/tagging`) with an item or an
   area's check open, never while typing in a field, holding a key down, with Ctrl, Alt or Cmd held, or with a
   menu or dialog open; a key that does nothing there keeps its usual effect. Each button shows its key
-  in a small chip beside its label. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  in a small chip beside its label. Changed by the owner on 2026-11-16: the keys are the shell's
+  (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
+  bottom left while they act, the study listening to no key itself; and the Show menu's ground-truth rows are
+  on number keys, 1 Finalists, 2 Rejected, 3 Added NoRs, and while tagging 4 Cut out what is done and 5 Frame
+  the area, each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image, revealing a picture behind it.
