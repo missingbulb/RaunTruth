@@ -62,6 +62,10 @@ const server = http.createServer((q, r) => {
     return r.end(`import * as real from "./image_open.real.js"; export * from "./image_open.real.js";
 export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose: it stands in for a slow computer reading the image
   }
+  if (u === "/studies/nor/web/nor.js" && !q.headers["x-late"]) {
+    // the study's code comes after its algorithm list, so the page has listed them before its own start has run
+    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose: it stands in for a slow computer fetching the study's code
+  }
   const f = u === "/web/image_open.real.js" ? path.join(repo, "web", "image_open.js")
     : u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
@@ -75,6 +79,10 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
 
+// the page's own start has run: the study mounted, the status bar filled and the low-memory popup asked for; the
+// algorithm list, fetched without the page waiting on it, can be ready before it
+const started = (page) => page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false
+  && document.querySelector("#status").textContent === "Ready. Load an image.");
 async function open(gb) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await asTagger(ctx);
@@ -89,7 +97,7 @@ async function open(gb) {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await started(page);
   return { ctx, page };
 }
 const held = (page, id) => page.evaluate((id) => { const b = $(id); return b.disabled && b.classList.contains("working"); }, id);
@@ -160,7 +168,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await shot(page, "memory_popup");
   await shot(page, "memory_popup_box", "#memory-dlg");
   await page.check("#memory-off"); await page.click("#memory-dlg button.primary");
-  await page.reload(); await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.reload(); await started(page);
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "after Don't show this again, it does not come back");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");
