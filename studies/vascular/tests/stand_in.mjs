@@ -61,3 +61,10 @@ export async function serve(repo, studies, model, stage) {
   await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
   return { origin: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
 }
+
+// The image's keys legend as shown (req/shell/image/keys): each row's key, label, and whether it is filled blue.
+export const BLUE = /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/;
+export const legend = (page) => page.evaluate((blue) => [...document.querySelectorAll(".keys-legend .key-chip")].filter((b) => b.checkVisibility())
+  .map((b) => ({ key: b.nextElementSibling?.checkVisibility() ? b.nextElementSibling.textContent.trim() : null, label: b.textContent.trim(),
+    lit: new RegExp(blue).test(getComputedStyle(b).backgroundColor) })), BLUE.source);
+export const legendKeys = async (page) => (await legend(page)).map((r) => r.key).join(" ");

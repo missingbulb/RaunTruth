@@ -343,25 +343,25 @@ try {
     }
   }
 
-  // Ctrl shows the model alone while it is held, a Model label above Panning saying so, a faded "ctrl" beside it
+  // 1 shows the model alone while it is held, a Model row of the keys legend above Panning saying so, a faded "1" beside it
   const peekLabel = () => page.evaluate(() => {
-    const b = $("#vm-peek"), p = $("#v3-pan").getBoundingClientRect(), r = b?.getBoundingClientRect(), k = b?.nextElementSibling, kr = k?.getBoundingClientRect();
+    const b = $("#key-model"), p = $("#v3-pan").getBoundingClientRect(), r = b?.getBoundingClientRect(), k = b?.nextElementSibling, kr = k?.getBoundingClientRect();
     return b && { text: b.textContent.trim(), shown: b.checkVisibility(), on: b.getAttribute("aria-pressed") === "true", fill: getComputedStyle(b).backgroundColor,
       key: k?.textContent.trim(), keyShown: !!k?.checkVisibility(), keyFaded: !!k && Number(getComputedStyle(k).opacity) < 1,
-      above: r.bottom <= p.top && p.top - r.bottom < 12 && Math.abs(r.left - p.left) < 2, beside: !!kr && kr.left >= r.right && kr.left - r.right < 16 };
+      above: r.bottom <= p.top && Math.abs(r.left - p.left) < 2, beside: !!kr && kr.left >= r.right && kr.left - r.right < 16 };
   });
   const free = await peekLabel();
-  check(free && free.text === "Model" && free.shown && !free.on && free.above && free.key === "ctrl" && free.keyShown && free.keyFaded && free.beside,
-    `in an area a Model label shows right above Panning, off, a faded "ctrl" right beside it: ${JSON.stringify(free)}`);
-  await page.keyboard.down("Control");
+  check(free && free.text === "Model" && free.shown && !free.on && free.above && free.key === "1" && free.keyShown && free.keyFaded && free.beside,
+    `in an area a Model row shows above Panning, off, a faded "1" right beside it: ${JSON.stringify(free)}`);
+  await page.keyboard.down("1");
   const held = (await view()).mode, heldLabel = await peekLabel();
-  await page.keyboard.up("Control");
-  check(held === "model" && (await view()).mode === "overlay", `holding Ctrl shows the model alone, letting go the lines over the stack again: ${held} → ${(await view()).mode}`);
+  await page.keyboard.up("1");
+  check(held === "model" && (await view()).mode === "overlay", `holding 1 shows the model alone, letting go the lines over the stack again: ${held} → ${(await view()).mode}`);
   check(heldLabel.on && /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/.test(heldLabel.fill) && !(await peekLabel()).on,
-    `the Model label is filled blue while Ctrl is held, as Panning is while on, and off once it is let go: ${heldLabel.fill}`);
-  await page.click("#vm-peek");
+    `the Model row is filled blue while 1 is held, as Panning is while on, and off once it is let go: ${heldLabel.fill}`);
+  await page.click("#key-model");
   const clicked = (await view()).mode;
-  await page.click("#vm-peek");
+  await page.click("#key-model");
   check(clicked === "model" && (await view()).mode === "overlay", `clicking the Model label shows the model alone, clicking it again the lines over the stack: ${clicked} → ${(await view()).mode}`);
 
   // the area's junctions, one at a time
@@ -450,7 +450,6 @@ try {
   v = await view(); t = await tasks();
   check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.cut.off && v.start === "Start GT tagging", `Stop tagging gives the whole stack back, no task open, Cut out what is done off: ${JSON.stringify(v)}`);
   check(!(await mini()).shown, "out of tagging the map of the areas is gone");
-  check(!(await peekLabel())?.shown && !(await page.evaluate(() => $("#vm-peek")?.nextElementSibling?.checkVisibility())), "out of an area the Model label and its ctrl are gone");
   if (gl) {
     await page.keyboard.press("Control+z");
     const lit = await brightness();

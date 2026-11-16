@@ -107,7 +107,15 @@ owner's decisions on the stacks and the vessel model, are
   vessel as wide as the model says. Changed by the owner on 2026-11-07, everything that sets how the model shows
   is at the toolbar's left (`req/shell/image/toolbar`): Vessel widths and Everything, Detected and Missed, with the reach
   beyond the vessel wall while Detected or Missed is on (`req/vascular/model/correct`). Changed by the owner on 2026-11-07, as NoR's
-  (`req/nor/show-menu`): all of them, the four views included, are in one Show menu at the toolbar's left. While an area of the
+  (`req/nor/show-menu`): all of them, the four views included, are in one Show menu at the toolbar's left. Changed by
+  the owner on 2026-11-16, the views are on the number keys too, each listed in the image's keys legend
+  (`req/shell/image/keys`) while it acts, filled blue while it is on: 1 Model, the model alone while 1 is held, and kept
+  on or off by clicking its label; 2 Outlines, the magenta lines over the stack shown or hidden (Overlay or Image on
+  the whole stack); 3 Vessel widths; 4 Cut out what is done, while tagging on the whole stack; 5 Missed, on or back to
+  Everything, on the whole stack. 1, 2 and 3 act wherever a model shows, in an area too, but not in its widths look. A
+  key changes what its Show menu row changes, and the row follows it. A digit is read by its place, on the number row
+  or the number pad, never while typing in a field or with a menu or dialog open, never with Ctrl, Alt or ⌘, and a held
+  digit toggles once. Side by side and Detected have no key. While an area of the
   Ground Truth Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
   vessels always show, faded, with no option to hide them; hiding vessels to help ground truth belongs in the Ground Truth Tasks. Test: `studies/vascular/tests/test_model_page.py`.
   </details>
@@ -136,7 +144,10 @@ owner's decisions on the stacks and the vessel model, are
   Backspace does nothing here. A key acts only while GT tagging is on and an area is open, never while typing in a field
   or with a menu or dialog open, never when its button is hidden or off, and once per press, however long it is held; it
   does what its button does, and only a key that acted is kept from the page. None of them is a key the stack's view or
-  the model already uses. Each button shows its key, small, at its end. Test:
+  the model already uses. Changed by the owner on 2026-11-16, they are the study's declared actions
+  (`req/shell/image/keys`), each button showing its key and the image's keys legend listing each while it acts, its
+  button shown and on, filled blue while the key is held. While an area is open in tagging W shows there too, and while the widths
+  look is on I, U, − / + and ⌫ (`req/vascular/truth/widths`). Test:
   `studies/vascular/tests/test_vessel_keys_page.py`.
   </details>
 
@@ -195,10 +206,10 @@ owner's decisions on the stacks and the vessel model, are
   every low-confidence one not kept is declined, and the walk moves to the next area not done. There is no button to
   draw a missed vessel, none saying no vessel was missed, and none ending the junctions apart (owner, 2026-11-07).
 
-  Holding Ctrl shows the model alone, and letting it go the lines over the stack again (owner, 2026-11-07). While an
-  area is open a Model label sits right above the 3D view's Panning label, alike: filled blue while the model shows alone,
-  a faded grey "ctrl" right beside it; clicking it keeps the model alone on or off, as Panning's click does (owner,
-  2026-11-08). At the toolbar's left, in the Show menu's place, a big Back to image button leaves the area
+  Holding 1 shows the model alone, and letting it go the lines over the stack again; Ctrl does not (owner, 2026-11-16,
+  in place of Ctrl, set on 2026-11-07). Its Model row in the image's keys legend is filled blue while the model shows
+  alone, a faded grey "1" beside it; clicking it keeps the model alone on or off, as Panning's click does (owner,
+  2026-11-08), and 2 hides the lines over the stack (`req/vascular/model/view`). At the toolbar's left, in the Show menu's place, a big Back to image button leaves the area
   for the whole stack, where the Show menu is again; in the same place, Back to task returns to the area. Each area
   done is kept in the model's `reviewed_regions` as the area's box, with its `step`, `area`; in a file from the three
   steps, an area counts done where its `lines`, `missed` and `junctions` boxes all cover it. Test:
