@@ -8,6 +8,7 @@
 // else opens it from the study's first folder, and returns once it is downloading.
 import fs from "node:fs";
 import path from "node:path";
+import { click } from "./page_click.mjs";
 
 // per context: {files, opening}, opening true while openFromDrive runs
 const files = new WeakMap();
@@ -71,15 +72,17 @@ export async function openFromDrive(page, file) {
 // the Image box opened, as a user opens it when it has folded after an image, then Drive's button pressed
 export async function pressDrive(page) {
   await unfold(page);
-  await page.click("#load-remote");
+  await click(page, "#load-remote");
 }
 // the image selector opened (the Image box opened first), and its nth image chosen, from 1; null leaves it open
 export async function pickRecent(page, nth = 1) {
   await unfold(page);
-  await page.click("#image-pick");
+  await click(page, "#image-pick");
   if (nth != null) await page.click(`#image-menu .recent:nth-child(${nth})`);
 }
 async function unfold(page) {
+  // an image still opening folds the box as it finishes: wait for that before reading whether it is folded
+  await page.waitForFunction(() => !window.shellForTests?.page.get("opening"));
   if (await page.evaluate(() => document.querySelector("#image-box").classList.contains("folded"))) {
     await page.click("#image-box");
     await page.waitForFunction(() => document.querySelector("#load").checkVisibility() && !document.documentElement.hasAttribute("data-drawers"));
