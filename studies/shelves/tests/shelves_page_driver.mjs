@@ -5,7 +5,8 @@
 // req/shelves/truth/task (one book at a time in the order the books stand, Back and Next, a book picked on the photo
 // whatever its verdict, its title ready to retype, a book marked not a book or deleted gone from the photo, a corner dragged past the photo, a book flipped, books added and
 // deleted from the right-click menu, a missed book drawn, what is approved cut out of the photo, Submit's export, the
-// draft continued after a reload, one tagging button at a time), req/shell/image/toolbar (no ruler or grid on a photo) and
+// draft continued after a reload, one tagging button at a time), req/shelves/truth/keys (the verdicts from the
+// keyboard), req/shell/image/toolbar (no ruler or grid on a photo) and
 // req/shell/waiting/visible (the light sweeping the photo while the study works). The real
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/shelves/tests/shelves_page_driver.mjs STUDIES
@@ -20,6 +21,7 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
+import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -187,6 +189,52 @@ try {
     "Continue GT tagging goes back to the book that was open, the books taken off still gone", [await valueOf(page), await offered(page)]);
   await page.context().close();
 
+  // req/shelves/truth/keys: the verdicts from the keyboard, the title's text box keeping its letters
+  page = await open("tagger", KEPT);
+  await page.click("#bs-find");
+  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  // a key pressed where the page has the focus, and whether the page took it
+  const press = (spec) => page.evaluate((spec) => {
+    const e = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...spec });
+    (document.activeElement || document.body).dispatchEvent(e);
+    return e.defaultPrevented;
+  }, spec);
+  const ENTER = { key: "Enter", code: "Enter" };
+  check(!(await press(ENTER)), "out of tagging, Enter is left to the page");
+  await page.click("#gt-start");
+  await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  const hints = await page.evaluate(() => Object.fromEntries(["right", "wrong", "flip", "back", "next"].map((k) => [k, $(`.bs-item [data-do="${k}"] kbd`)?.textContent])));
+  check(hints.right === "Enter" && hints.wrong === "Ctrl+Backspace" && hints.flip === "Ctrl+↑" && hints.back === "Alt+←" && hints.next === "Alt+→",
+    "each button shows its key", hints);
+  const confirm = () => page.evaluate(() => { const p = $(".bs-item .bs-confirm"); return p && !p.hidden ? p.textContent : ""; });
+  check(await press({ ...ENTER, isComposing: true }) === false && (await rowsOf(page))[0] === "0/3 Books" && await confirm() === "",
+    "an Enter ending a word being composed approves nothing", await rowsOf(page));
+  await page.keyboard.press("Enter");
+  check((await rowsOf(page))[0] === "0/3 Books" && await valueOf(page) === "Title 260x40" && /^Left as read: Enter again if it is exactly right/.test(await confirm()),
+    "Enter on a title left as the reader read it approves nothing yet, and says so", [await rowsOf(page), await confirm()]);
+  await page.keyboard.press("Enter");
+  check((await rowsOf(page))[0] === "1/3 Books" && await valueOf(page) === "Title 240x35" && await confirm() === "",
+    "a second Enter approves it as read and moves on, as Right does", [await rowsOf(page), await valueOf(page)]);
+  await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  await page.keyboard.type("Dune");
+  await page.keyboard.press("Enter");
+  check((await rowsOf(page))[0] === "2/3 Books" && await valueOf(page) === "Title 180x180", "Enter on a title typed approves it at once", await rowsOf(page));
+  await page.keyboard.press("Alt+ArrowLeft");
+  check(await valueOf(page) === "Dune", "Alt+← is Back", await valueOf(page));
+  await page.keyboard.down("Alt"); await page.keyboard.down("ArrowRight"); await page.keyboard.down("ArrowRight"); await page.keyboard.up("ArrowRight"); await page.keyboard.up("Alt");
+  check(await valueOf(page) === "Title 180x180", "Alt+→ is Next, and held down it moves one book", await valueOf(page));
+  const reads0 = await page.evaluate(() => tess.reads);
+  await page.keyboard.press("Control+ArrowUp");
+  await page.waitForFunction((n) => tess.reads > n && $("#status").textContent === "Book read again.", reads0);
+  check(await page.evaluate((n) => tess.reads - n, reads0) === 1, "Ctrl+↑ is Flip");
+  await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = true; });
+  check(!(await press({ key: "Backspace", code: "Backspace", ctrlKey: true })) && (await books(page)).length === 3, "a key does nothing while its button is off");
+  await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = false; });
+  await page.keyboard.press("Control+Backspace");
+  check((await books(page)).length === 2 && (await rowsOf(page))[0] === "2/2 Books", "Ctrl+Backspace is Not a book", [await books(page), await rowsOf(page)]);
+  check(!(await press({ key: "a", code: "KeyA", ctrlKey: true })), "a key the task does not use is left to the page");
+  await page.context().close();
+
   // a tagger: one book at a time, in the order the books stand, the missed ones added, then Submit
   page = await open("tagger", KEPT);
   await page.click("#bs-find");
@@ -238,12 +286,15 @@ try {
   const toScreen = (x, y) => page.evaluate(([x, y]) => { const r = $("#base").getBoundingClientRect(); return [r.left + x * st.zoom, r.top + y * st.zoom]; }, [x, y]);
   const viewOf = () => page.evaluate(() => [st.zoom, $("#scroller").scrollLeft, $("#scroller").scrollTop]);
   // the page's next n frames drawn, by when a smooth scroll begun has moved the view
-  const frames = (n) => page.evaluate((n) => new Promise((done) => { const f = (k) => (k ? requestAnimationFrame(() => f(k - 1)) : done()); f(n); }), n);
+  const frames = (n) => framesOf(page, n);
   // the view still for a frame, a smooth scroll that framed the last book over
-  const settled = () => page.waitForFunction(() => new Promise((done) => {
-    const sc = $("#scroller"), at = [sc.scrollLeft, sc.scrollTop];
-    requestAnimationFrame(() => requestAnimationFrame(() => done(sc.scrollLeft === at[0] && sc.scrollTop === at[1])));
-  }));
+  const settled = async () => {
+    for (let at = null, n = 0; n < 300; n++) {
+      const now = await viewOf();
+      if (at && now[1] === at[1] && now[2] === at[2]) return;
+      at = now; await framesOf(page);
+    }
+  };
   // zoomed in, the cover's left edge alone in view, at the view's right
   await settled();
   for (let i = 0; i < 4; i++) await page.click("#zoom-in");
@@ -271,6 +322,16 @@ try {
   const before = await scrolled();
   const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
   const zoom = await page.evaluate(() => st.zoom);
+  // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
+  {
+    const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
+    const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value);
+    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
+    const mid = await corners();
+    await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
+    check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read,
+      "Escape mid-drag puts a corner back where it was, the book unchanged", { kept, mid, after: await corners() });
+  }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
   await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
   const live = await page.$eval(".bs-item canvas", (c) => c.width);

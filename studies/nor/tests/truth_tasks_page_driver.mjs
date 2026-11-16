@@ -3,8 +3,9 @@
 // Ground Truth Tasks takes Summary's place and the image is the only view (req/nor/truth/tasks,
 // req/shell/views/second); the tasks are one walk through the image's areas, with Back and Skip
 // (req/nor/truth/order); the image marks what is reviewed, under a task-named Show menu (req/nor/truth/marks,
-// req/nor/show-menu); the summary's mask waits for the summary (req/nor/summary/mask); in a PreGT study the
-// summary is back. Prints what it saw; exits 1 on a failure, 2 when it cannot run.
+// req/nor/show-menu); while tagging a key gives each button's answer (req/nor/truth/keys); the summary's mask
+// waits for the summary (req/nor/summary/mask); in a PreGT study the summary is back. Prints what it saw; exits 1
+// on a failure, 2 when it cannot run.
 //   node tests/truth_tasks_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
@@ -18,6 +19,7 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { frames } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -356,13 +358,87 @@ await check(s.task === "submit" && s.rows[2] === "100/100 Areas" && (await page.
 await check(await page.$$eval('#gt-tasks > li[data-task="missed"], #gt-tasks > li[data-task="pass"], #gt-tasks > li[data-task="fail"]', (l) => l.every((x) => x.classList.contains("done"))), "every task is checked done");
 await page.close();
 
+// ---- req/nor/truth/keys: a key per button while tagging, read by its place on the keyboard ----
+page = await open();
+await page.evaluate(() => { document.activeElement?.blur(); window.addEventListener("keydown", (e) => { window.lastKey = e.defaultPrevented; }); });
+// a key pressed as a person does, or as a layout or a held key sends it; true when the page took it
+const key = async (code, o = {}) => {
+  if (!o.as) { await page.keyboard.press(code); return page.evaluate(() => window.lastKey); }
+  return page.evaluate(([code, o]) => { const e = new KeyboardEvent("keydown", { code, key: o.as, repeat: !!o.repeat, bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; }, [code, o]);
+};
+const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? getComputedStyle(b, "::after").content : null).catch(() => null);
+const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
+let took = await key("KeyF");
+await check(!took && await page.evaluate(() => st.forced.size === 0), "before Start GT tagging, F does nothing");
+await page.click("#gt-start");
+await page.evaluate(() => document.activeElement?.blur());
+await page.evaluate((k) => nor.goTo(k), first.key);
+const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
+await check(chips.up === '"F"' && chips.down === '"J"' && chips.skip === '"S"' && chips.back === '"⌫"', "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
+s = await now();
+took = await key("KeyF");
+let s2 = await now();
+await check(took && await verdictNow(i0) === "in" && s2.cur === await nextOpen(first.key) && s2.rows[0].startsWith(`1/${P} Finalists`), "F is the thumbs up: the item is a NoR and the walk moves on", s2);
+// the next items: a finalist and a rejected candidate
+const second2 = W.filter((x) => x.t === "pass")[1], j2 = +second2.key.slice(2);
+await page.evaluate((k) => nor.goTo(k), second2.key);
+took = await key("KeyJ", { as: "ח", repeat: true });
+await check(!took && await verdictNow(j2) === null && (await now()).cur === second2.key, "a key held down does not repeat its verdict");
+took = await key("KeyJ", { as: "ח" });
+s2 = await now();
+await check(took && await verdictNow(j2) === "out" && s2.cur !== second2.key, "J in a Hebrew layout is the thumbs down: not a NoR, and the walk moves on", s2);
+took = await key("Backspace");
+s2 = await now();
+await check(took && s2.cur === second2.key && await page.$eval("#task-card .verdict .down", (b) => b.classList.contains("on")), "Backspace is Back: the item before, its verdict shown", s2);
+took = await key("Alt+KeyS");
+await check(!took && (await now()).cur === second2.key, "with Alt held, S does nothing");
+await page.evaluate(() => { const f = document.createElement("input"); f.id = "typing"; document.body.append(f); f.focus(); });
+took = await key("KeyS");
+await check(!took && (await now()).cur === second2.key && await page.$eval("#typing", (f) => f.value) === "s", "typing in a field, S is a letter typed, not Skip");
+await page.evaluate(() => document.querySelector("#typing").remove());
+await page.click("#card-menu summary");
+took = await key("KeyS");
+await check(!took && (await now()).cur === second2.key, "with a menu open, S does nothing");
+await page.click("#card-menu summary");
+await page.evaluate(() => document.activeElement?.blur());
+took = await key("KeyS");
+s2 = await now();
+await check(took && s2.cur === await nextOpen(second2.key) && await verdictNow(j2) === "out", "S is Skip: the walk's next item not done", s2);
+// R: a rejected candidate's measurements changed, put back
+await page.evaluate((k) => nor.goTo(k), W.find((x) => x.t === "fail").key);
+took = await key("KeyR");
+await check(!took, "with nothing measured differently, R does nothing");
+{
+  const h = page.locator('#task-card .handle[data-k="length"][data-j="1"]'); await h.scrollIntoViewIfNeeded();
+  const b = await h.boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2 + 15, b.y + b.height / 2 - 10, { steps: 5 }); await page.mouse.up();
+}
+const rChip = await chip("#task-card .reset-lines");
+took = await key("KeyR");
+await check(rChip === '"R"' && took && await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "R is Reset measurements, its chip R", rChip);
+// Space: the area's check, even with a button focused
+took = await key("Space");
+await check(!took, "away from an area's check, Space does nothing of the page's");
+const A2 = W.find((x) => x.key.startsWith("a:")).a;
+await page.evaluate((k) => nor.goTo(k), "a:" + A2);
+const okChip = await chip("#area-ok");
+await page.focus("#gt-start");
+took = await key("Space");
+s2 = await now();
+await check(okChip === '"Space"' && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2) && await startSays() === "Stop tagging",
+  "Space is No missed NoRs here, the area checked and the walk on, the focused Stop tagging not pressed", { okChip, s2 });
+await page.click("#gt-start");
+took = await key("KeyS");
+await check(!took && !(await now()).open, "tagging stopped, the keys do nothing");
+await page.close();
+
 // ---- the picture's link failing: black, never the browser's broken-picture icon ----
 picture = false;
 page = await open();
 await page.click("#gt-start");
 await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
 await page.pictureFailed;
-await page.evaluate(() => new Promise((ok) => requestAnimationFrame(ok)));
+await frames(page, 1);
 const none = await page.evaluate(() => ({ image: !!document.querySelector("#overlay image.done-reveal"), bg: getComputedStyle(document.querySelector("#overlay .done-bg")).fill }));
 await check(!none.image && none.bg === "rgb(0, 0, 0)", "a picture that cannot load leaves the cut-outs black", none);
 await page.close();

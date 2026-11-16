@@ -50,6 +50,7 @@
         ],
         "children": [
           {"name": "Junctions' note", "select": "#junctions-note", "req": "req/vascular/truth/tasks"},
+          {"name": "Widths' note", "select": "#widths-note", "req": "req/vascular/truth/widths"},
           {"name": "The junction's stage", "select": "#task-stage", "req": "req/vascular/truth/tasks",
             "children": [
               {"name": "The junction's card", "select": "#task-card", "req": "req/vascular/truth/tasks"}

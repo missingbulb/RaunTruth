@@ -271,6 +271,19 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
   </details>
 
+- `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.
+  <details>
+
+  Set by the owner on 2026-11-15, one scheme for every study. F is a NoR (the thumbs up), J is not
+  (the thumbs down), Space is the area's "No missed NoRs here", Backspace is Back, S is Skip and R is
+  Reset measurements. A key is read by where it sits on the keyboard, so it works in any layout
+  (Hebrew too), and does just what clicking its button does, and nothing while that button is not
+  shown or is off. Keys act only while tagging (`req/shell/ground-truth/tagging`) with an item or an
+  area's check open, never while typing in a field, holding a key down, with Ctrl, Alt or Cmd held, or with a
+  menu or dialog open; a key that does nothing there keeps its usual effect. Each button shows its key
+  in a small chip beside its label. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  </details>
+
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image, revealing a picture behind it.
   <details>
 

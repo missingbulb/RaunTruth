@@ -32,7 +32,7 @@ const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in-key", clientId
 const GSI = `window.google = { accounts: { oauth2: { initTokenClient(o) {
   window.asked = [];
   return { requestAccessToken(opts) { window.asked.push(opts || {});
-    setTimeout(() => window.gsiRefuses ? o.error_callback({ type: "popup_closed" }) : o.callback({ access_token: "${NEW}", expires_in: 3599, scope: "${SCOPES}" }), 300); } };
+    setTimeout(() => window.gsiRefuses ? o.error_callback({ type: "popup_closed" }) : o.callback({ access_token: "${NEW}", expires_in: 3599, scope: "${SCOPES}" }), 300); } }; // waits on purpose: Google's window answers after the read, which a renewal while the read goes on needs
 } } } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
@@ -125,7 +125,7 @@ async function click(page) {
 {
   const { ctx, page, reads } = await session(-3600e3);
   // a read once the user activation a test's evaluate itself carries (5 s) is over: no click behind it
-  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500))
+  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
     .then(() => import("/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
   const asked = await page.evaluate(() => (window.asked || []).length);
   check(/click again/.test(err) && asked === 0 && reads.length === 0, "a read with no click behind it opens nothing and says to click again", { err, asked, reads });

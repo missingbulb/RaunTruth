@@ -1,4 +1,4 @@
-"""req/shelves/books/find, req/shelves/read/readers, req/shelves/matcher/export and req/shelves/truth/task: the page in
+"""req/shelves/books/find, req/shelves/read/readers, req/shelves/matcher/export, req/shelves/truth/task and req/shelves/truth/keys: the page in
 headless Chromium against a stand-in worker and a stand-in Tesseract (shelves_page_driver.mjs)."""
 import json
 import os

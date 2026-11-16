@@ -10,6 +10,7 @@
 // takes that press, which then never pans the view nor picks.
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
+import { drag } from "./drag.js";
 
 // the user's grid: {colour, um, px}, its colour and the distance between its lines in µm and in pixels
 export const GRID = "nor-grid";
@@ -19,14 +20,25 @@ export const MINIMAP = "nor-minimap";
 // a popup that opens while the pointer is over its button or itself, or the button has the keyboard's focus, and
 // stays while the user is at one of its fields; the button is its anchor, which the stylesheet places it by. The
 // browser's own interest invoker does this where it has one. fill() writes the current values into it as it opens
+// a hover popup closes the stylesheet's moment after the pointer and the focus leave it and what opened it: .leaving
+// waits on its transition, and the end of it closes the popup unless the user came back (keep())
+export function closesOnLeave(pop, keep = () => false) {
+  pop.classList.add("hover-pop");
+  pop.addEventListener("transitionend", (e) => {
+    if (e.target !== pop || e.propertyName !== "opacity" || !pop.classList.contains("leaving")) return;
+    pop.classList.remove("leaving");
+    if (!keep() && pop.matches(":popover-open")) pop.hidePopover();
+  });
+  pop.addEventListener("focusin", () => pop.classList.remove("leaving"));
+  return { stay: () => pop.classList.remove("leaving"), leave: () => pop.classList.add("leaving") };
+}
+
 export function hoverPop(btn, pop, fill) {
   pop.addEventListener("beforetoggle", (e) => { if (e.newState === "open") fill(); });
   const show = () => { if (!pop.matches(":popover-open")) pop.showPopover({ source: btn }); };
   if ("interestForElement" in HTMLButtonElement.prototype) btn.interestForElement = pop;
   else {
-    let leaving = null;
-    const stay = () => clearTimeout(leaving);
-    const leave = () => { stay(); leaving = setTimeout(() => { if (!pop.matches(":hover, :focus-within") && !btn.matches(":hover, :focus-visible")) pop.hidePopover(); }, 300); };
+    const { stay, leave } = closesOnLeave(pop, () => pop.matches(":hover, :focus-within") || btn.matches(":hover, :focus-visible"));
     for (const on of ["mouseenter", "focus"]) btn.addEventListener(on, () => { stay(); show(); });
     for (const off of ["mouseleave", "blur"]) btn.addEventListener(off, leave);
     pop.addEventListener("mouseenter", stay); pop.addEventListener("mouseleave", leave);
@@ -250,8 +262,11 @@ export function viewer(shell) {
       sc.scrollTo(x * st.zoom - sc.clientWidth / 2, y * st.zoom - sc.clientHeight / 2);
     };
     const body = box.querySelector(".mm-body");
-    body.addEventListener("pointerdown", (e) => { body.setPointerCapture(e.pointerId); shell.showImage(); go(e); });
-    body.addEventListener("pointermove", (e) => { if (body.hasPointerCapture(e.pointerId)) go(e); });
+    body.addEventListener("pointerdown", (e) => {
+      const sc = $("#scroller"), was = [sc.scrollLeft, sc.scrollTop];
+      drag(body, e, { move: go, cancel: () => sc.scrollTo(...was) });
+      shell.showImage(); go(e);
+    });
     $("#scroller").addEventListener("scroll", view);
     addEventListener("resize", place);
     return { draw, view, place };
@@ -305,23 +320,25 @@ export function viewer(shell) {
 
   // drag to move, scroll up and down to zoom, sideways to step
   {
-    const sc = $("#scroller"); let drag = null;
+    // a press, until it moves far enough to be a pan or is let go as a click
+    const sc = $("#scroller"); let press = null;
     sc.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || !st.img || hooks.capturesPointer?.() || ruler.armed) return;
-      drag = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop, c: hooks.pickAt?.(e) ?? null, moved: false, id: e.pointerId, down: e };
+      press = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop, c: hooks.pickAt?.(e) ?? null, down: e };
     });
     // a press the study's own listener took (a glyph of its drawing grabbed) is not the view's: it neither pans nor picks
-    const taken = () => { if (drag?.down.defaultPrevented) drag = null; return !drag; };
+    const taken = () => { if (press?.down.defaultPrevented) press = null; return !press; };
     sc.addEventListener("pointermove", (e) => {
-      if (taken()) return;
-      if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) { drag.moved = true; sc.setPointerCapture(drag.id); sc.classList.add("dragging"); $("#tip").hidden = true; }
-      if (drag.moved) { sc.scrollLeft = drag.l - (e.clientX - drag.x); sc.scrollTop = drag.t - (e.clientY - drag.y); }
+      if (taken() || e.pointerId !== press.down.pointerId || Math.hypot(e.clientX - press.x, e.clientY - press.y) <= 4) return;
+      const p = press; press = null;
+      const to = (ev) => { sc.scrollLeft = p.l - (ev.clientX - p.x); sc.scrollTop = p.t - (ev.clientY - p.y); };
+      const over = () => sc.classList.remove("dragging");
+      sc.classList.add("dragging"); $("#tip").hidden = true;
+      drag(sc, p.down, { move: to, drop: over, cancel: () => { over(); sc.scrollTo(p.l, p.t); } });
+      to(e);
     });
-    const end = () => {
-      if (!taken() && !drag.moved) hooks.pick?.(drag.c);
-      drag = null; sc.classList.remove("dragging");
-    };
-    sc.addEventListener("pointerup", end); sc.addEventListener("pointercancel", () => { drag = null; sc.classList.remove("dragging"); });
+    sc.addEventListener("pointerup", () => { if (!taken()) hooks.pick?.(press.c); press = null; });
+    sc.addEventListener("pointercancel", () => { press = null; });
     sc.addEventListener("dblclick", (e) => {
       if (!st.img || hooks.capturesPointer?.() || ruler.armed) return;
       const it = hooks.pickAt?.(e);
@@ -375,19 +392,18 @@ export function viewer(shell) {
     btn.onclick = () => set(btn.getAttribute("aria-pressed") !== "true");
     sc.addEventListener("pointerdown", (e) => {
       if (!armed || e.button !== 0 || !st.img || hooks.capturesPointer?.()) return;
-      e.preventDefault(); sc.setPointerCapture(e.pointerId);
+      e.preventDefault();
       from = toImage(e); to = from; live = true; draw();
+      drag(sc, e, { move: (ev) => { to = toImage(ev); draw(); }, drop, cancel: () => { if (live) { live = false; from = to = null; draw(); } } });
     });
-    sc.addEventListener("pointermove", (e) => { if (live) { to = toImage(e); draw(); } });
     // a click with no drag measures nothing, and the ruler stays armed
-    const drop = () => {
+    function drop() {
       if (!live) return;
       live = false;
       if (Math.hypot(to[0] - from[0], to[1] - from[1]) * st.zoom < 3) from = to = null;
       else { armed = false; sc.classList.remove("measuring"); }
       draw();
-    };
-    sc.addEventListener("pointerup", drop); sc.addEventListener("pointercancel", drop);
+    }
     return { draw, reset: () => set(false), get armed() { return armed; } };
   })();
   // the grid: its button draws it or takes it away; a click or a hover opens the popup of its colour and

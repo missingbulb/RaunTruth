@@ -8,6 +8,7 @@ import { evenCuts, gridParts, partName, patternProblem, splitImage, zip } from "
 import { readImage } from "./image_open.js";
 import { asLoaded } from "./as_loaded.js";
 import { holdOwns } from "./offline.js";
+import { drag as dragPointer } from "./drag.js";
 
 // the user's file-name pattern for a split's parts, kept for the next visit (its name from before Edit Image)
 export const SPLIT_PATTERN = "nor-split-pattern";
@@ -186,7 +187,7 @@ export function imageEditor(ctx) {
       else return;
     }
     ev.preventDefault(); ev.stopImmediatePropagation();
-    sc().setPointerCapture(ev.pointerId);
+    dragPointer(sc(), ev, { move, drop: up, cancel: () => { drag = null; if (editing()) overlay(); } });
   }
   // a cut's place in the image for a point of the drawing, kept a twentieth of the crop from its neighbours
   function cutAt(axis, i, at) {
@@ -227,9 +228,6 @@ export function imageEditor(ctx) {
   }
   // before the viewer's own panning, so a tool's press is not a drag of the view
   addEventListener("pointerdown", down, true);
-  addEventListener("pointermove", move, true);
-  addEventListener("pointerup", up, true);
-  addEventListener("pointercancel", () => { drag = null; if (editing()) overlay(); }, true);
 
   // ---------- opening and leaving ----------
   // the image itself in place of its preview: resolves once it is open

@@ -11,6 +11,7 @@
 // slice of every channel, channel by channel.
 "use strict";
 import { asLoaded } from "./as_loaded.js";
+import { drag } from "./drag.js";
 
 const MAX_SIDE = 640; // the GPU's budget: a ray samples every voxel it crosses, so a wider volume is binned to this
 const CHANNELS = 4;   // the most channels the 3D view adds together
@@ -185,7 +186,7 @@ function binned(planes, at, C, Z, W, H, bin) {
 export function viewer3d(shell, flat) {
   const { $, page } = shell;
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
-  let active = false, gl = null, U = {}, tex = [], dirty = true, vol = null, mode3d = false;
+  let active = false, gl = null, U = {}, tex = [], frame = 0, vol = null, mode3d = false;
   // clip: [x0, y0, x1, y1] in world units, the part of the stack shown, or null for all; spot: {x, y, r}, the part of the
   // screen kept clear while the rest dims (x and y fractions of the width and height, r of the height), or null;
   // held: a drag neither turns nor pans the view, which only zooms
@@ -316,7 +317,6 @@ export function viewer3d(shell, flat) {
 
   // ---------- drawing ----------
   function render() {
-    dirty = false;
     if (!vol || stage.hidden || !gl) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (S.dragging ? 0.6 : 1);
     const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
@@ -381,9 +381,9 @@ export function viewer3d(shell, flat) {
     for (const [t, , b] of ends) c.fillText(t, b[0] + 3, b[1] - 3);
     c.restore();
   }
-  const redraw = () => { dirty = true; };
-  const loop = () => { if (dirty) render(); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
+  // drawn on the next frame after a change, a run of changes drawn once, and no frame drawn with nothing changed
+  const redraw = () => { frame ||= requestAnimationFrame(() => { frame = 0; render(); }); };
+  redraw();
   new ResizeObserver(redraw).observe(stage);
   flat.onDrawn(redraw);
 
@@ -392,26 +392,28 @@ export function viewer3d(shell, flat) {
   // on any canvas that shows the stack's camera; grab(e), when given, sees each press first and may take that pointer
   // for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where it began
   function controls(el, grab, click) {
-    const pts = new Map(), own = new Map(), down = new Map();
-    let last = null;
+    const pts = new Map(), down = new Map();
+    // the camera as the gesture's first press found it, for a cancelled gesture to put back
+    let last = null, was = null;
     el.addEventListener("pointerdown", (e) => {
-      el.setPointerCapture(e.pointerId);
       const g = grab && !pts.size ? grab(e) : null;
-      if (g) { own.set(e.pointerId, g); return; }
+      if (g) return drag(el, e, { move: g.move, drop: g.up, cancel: () => g.cancel?.() });
       if (e.button === 0 && !pts.size) down.set(e.pointerId, [e.clientX, e.clientY]); else down.clear();
+      if (!pts.size) was = { rot: S.rot, pivot: S.pivot, dist: S.dist };
       pts.set(e.pointerId, [e.clientX, e.clientY]); S.dragging = true; last = null;
+      drag(el, e, { move, drop: end, cancel });
     });
-    const end = (e) => {
-      const g = own.get(e.pointerId);
-      if (g) { own.delete(e.pointerId); if (e.type === "pointerup") g.up(e); else g.cancel?.(); return; }
+    function end(e) {
       const d = down.get(e.pointerId); down.delete(e.pointerId);
       pts.delete(e.pointerId); if (!pts.size) { S.dragging = false; redraw(); } last = null;
-      if (click && d && e.type === "pointerup" && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
-    };
-    el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
-    el.addEventListener("pointermove", (e) => {
-      const g = own.get(e.pointerId);
-      if (g) return g.move(e);
+      if (click && d && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
+    }
+    function cancel() {
+      if (!pts.size) return;
+      pts.clear(); down.clear(); last = null;
+      Object.assign(S, was, { dragging: false }); redraw();
+    }
+    function move(e) {
       if (!pts.has(e.pointerId)) return;
       const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
       const dx = e.clientX - prev[0], dy = e.clientY - prev[1], k = 2.2 / el.clientHeight;
@@ -423,7 +425,7 @@ export function viewer3d(shell, flat) {
       else if (panning() || e.shiftKey || e.buttons === 2) pan((-dx * k * S.dist) / 3, (dy * k * S.dist) / 3);
       else { S.rot = turn(S.rot, 1, -dx * TURN_PER_PX); S.rot = turn(S.rot, 0, -dy * TURN_PER_PX); }
       redraw();
-    });
+    }
     el.addEventListener("contextmenu", (e) => e.preventDefault());
     el.addEventListener("wheel", (e) => {
       e.preventDefault();
@@ -614,6 +616,14 @@ export function viewer3d(shell, flat) {
     // the first shown channel's volume, slices of Y rows of X, and its colour for a value at a depth (0..1 through the
     // slices shown), as the 3D view paints it: [r, g, b] of 0 to 255
     volume: () => vol && vol.vols[first()],
+    // the same channel at the stack's own pixels, never binned: {X, Y, Z, data}, slices of Y rows of X, a view into the
+    // page's image rather than a copy
+    pixels() {
+      const im = page.get("image");
+      if (!vol || !im) return null;
+      const n = im.W * im.H, C = Math.floor(im.planes.length / (n * (1 + im.Z))), c = first(), at = C * n + c * im.Z * n;
+      return { X: im.W, Y: im.H, Z: im.Z, data: im.planes.subarray(at, at + im.Z * n) };
+    },
     // the depth colours of the first shown channel coloured by depth, as the 3D view paints them: a depth (0..1
     // through the slices shown) to [r, g, b] of 0 to 1; null while no shown channel is coloured by depth
     depthPalette() {

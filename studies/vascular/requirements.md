@@ -40,7 +40,8 @@ owner's decisions on the stacks and the vessel model, are
   file loaded, shows as the toolbar says (`req/vascular/model/view`): white tubes in a view of its
   own that turns with the stack's, or magenta over the stack. On the model: drag a point to move it, its handle shown
   only while ground truth is tagged, never on the main view out of tagging (owner, 2026-11-08),
-  right-click a segment or a point to delete it, add or remove a bend (a point on any vessel, low-confidence ones
+  right-click a segment or a point to delete it (one menu on every vessel, the same options in one order, what does not
+  apply to what was clicked greyed with why, never hidden; owner, 2026-11-15), add or remove a bend (a point on any vessel, low-confidence ones
   too: its two lines become one), split a segment where it was clicked into two tips set a little apart (owner,
   2026-11-08) or split a junction into vessels that cross, right-drag from one piece to another to connect them, drag a vessel's tip onto another
   vessel or point to attach it there, for a connection the algorithm missed (owner, 2026-11-07), and click a faded
@@ -186,4 +187,27 @@ owner's decisions on the stacks and the vessel model, are
   done is kept in the model's `reviewed_regions` as the area's box, with its `step`, `area`; in a file from the three
   steps, an area counts done where its `lines`, `missed` and `junctions` boxes all cover it. Test:
   `studies/vascular/tests/test_vessel_tasks_page.py`.
+  </details>
+
+- `req/vascular/truth/widths` In an open area, W shows each vessel's width to review and correct, in µm.
+  <details>
+
+  Set by the owner on 2026-11-15, inside the area review rather than as a task of its own
+  (`req/vascular/truth/tasks`). While an area is open, W switches its widths look on or off: the area in the stack's
+  own pixels (never the 3D view's binned voxels), every slice flattened, grey, from straight above, turning off. Each
+  vessel, junction or tip to the next, has one width, never a taper: two lines at that width either side of it,
+  stopping short of its ends, and the width in µm beside its middle. Magenta is the algorithm's estimate, nobody has
+  checked; amber one the person set, its lines at the walls they measured; dotted grey with a "?" one they could not
+  tell; a vessel the person drew shows a "?" until it has a width. Holding I shows the image alone. Resting the pointer
+  on a vessel opens a lens beside it: the stack's own pixels there, the mean of about three slices at the vessel's
+  depth, a line across the vessel and the brightness along that line, half its height dashed. Dragging from one wall
+  to the other sets the vessel's width, the drag kept as its two walls; − and + make the vessel under the pointer, or
+  the one last set, 0.25 µm narrower or wider; U says its width cannot be told; Backspace puts back the estimate.
+  Area is right waits until every vessel the person drew in the area has a width or cannot be told, and its line in
+  the area says how many are left; it then marks every other vessel's width there that the person did not set or
+  mark as looked at, never as measured. Widths are values in µm, never classes. Each vessel's `width` in the file
+  is `{um, how, walls, on}`: `how` is `walls` (dragged, `walls` the two points in µm), `nudge` (stepped from the
+  estimate), `cannot` or `looked`, `um` only where the person set it; a vessel nobody said anything of has none.
+  The algorithm's `r`, `r_a`, `r_b` and `taper_known` stay as it wrote them and are still named in `unchecked`. Test:
+  `studies/vascular/tests/test_vessel_widths_page.py`, `studies/vascular/tests/test_vessel_model_edits.mjs`.
   </details>
