@@ -18,6 +18,7 @@ import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -72,7 +73,7 @@ page.setDefaultTimeout(15000);
 
 const look = () => page.evaluate(() => window.vascular.model().widths);
 const doc = () => page.evaluate(() => window.vascular.model().model);
-const frames = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+const frames = () => framesOf(page);
 // the model canvas's pixel at a place on it, [r, g, b]
 const pixel = (x, y) => page.evaluate(([x, y]) => { const c = document.querySelector("#mcv"), k = c.width / c.clientWidth;
   return [...c.getContext("2d").getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
@@ -136,7 +137,7 @@ try {
   // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
   const [ex, ey] = screen(70, 40, w);
   await page.mouse.move(ex, ey);
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => !!window.vascular.model().widths.lens).catch(() => {});
   w = await look();
   check(!!w.lens && w.lens.vessel === est.n && w.lens.slices.join() === `${FOCUS - 1},${FOCUS + 1}` && w.lens.profile >= 20 && w.lens.half > 0,
     `resting on a vessel opens its lens, slices ${FOCUS}±1, the brightness across it with half its height: ${JSON.stringify(w.lens)}`);

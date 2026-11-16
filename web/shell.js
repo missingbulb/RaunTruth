@@ -316,7 +316,7 @@ function showNumber(item, text, spike) {
     // the item and its icon play it; asked of them alone, so no animation of a rolling digit is held after it is gone
     if (item.classList.contains("spike")) for (const el of [item, item.querySelector("svg")]) for (const a of el?.getAnimations() || []) if (a.animationName === "spike") { a.cancel(); a.play(); }
     item.classList.add("spike");
-    if (!item.onanimationend) item.onanimationend = item.onanimationcancel = (e) => { if (e.target === item && e.animationName === "spike") item.classList.remove("spike"); };
+    if (!item.onanimationend) item.onanimationend = item.onanimationcancel = (e) => { if (e.target === item && e.animationName === "spike") item.classList.remove("spike"); }; // ends with animations off: none starts then (still()), and one running is cancelled, which clears it
   }
   const v = item.querySelector(".v"), was = v.textContent;
   if (text === was) return;

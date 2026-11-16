@@ -8,3 +8,9 @@
   new raw timer in unseen.
 - **Rejected:** a production clock hook for tests - Playwright's clock already fakes every page
   timer, and tests bend their own surface.
+
+## 2026-11-16 · reworded · the fix names the animations-off rule a motion something waits on needs
+- **Reason:** the fix sent converted timers to transitionend/animationend, which animations off
+  never fires.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5

@@ -138,8 +138,8 @@ try {
     await page.click("#zoom-out");
 
     // the Ruler in 3D: a drag on the top slice shown, an orb of the reach while dragging, the ruler alone after
-    const rulerNow = () => page.evaluate(async () => {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const rulerNow = async () => { await viewDrawn(page); return rulerShown(); };
+    const rulerShown = () => page.evaluate(() => {
       const svg = $("#v3-ruler"), orb = svg?.querySelector("circle.orb"), text = svg?.querySelector("text");
       return { orb: orb ? { r: +orb.getAttribute("r"), fill: getComputedStyle(orb).fill, opacity: +getComputedStyle(orb).fillOpacity } : null,
         line: !!svg?.querySelector("path.mark"), text: text?.textContent || null, pressed: $("#ruler-btn").getAttribute("aria-pressed"),

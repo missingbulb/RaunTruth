@@ -40,6 +40,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   it should be, that it starts and that it ends in the right state, through `web-tests/page_motions.mjs`; never
   how it looks on the way. (testing-motion-ends)
 
+- **Waiting in a test for the page to have drawn** (a canvas, the 3D view) - wait for that surface's own draw,
+  through `web-tests/page_frames.mjs`; a count of frames says only that frames passed, and a view that draws on
+  demand may have drawn in none of them. (wait-for-the-draw)
+
 - **Testing code that needs a study's image** - draw a small one in the test (NoR's is
   `studies/nor/tests/synthetic_nor.py`); never a study's real data, which no test downloads.
   (tests-draw-images)
@@ -82,6 +86,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   and each change to what a state shows, to the owner as a question. (shell-states-unreviewed)
 
 ## Merging
+
+- **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
+  fresh branch off `main`, running the tests after each, and merge the ones that hold; the one that does not stays
+  on the first branch, where the work goes on as a smaller change. (split-out-the-sound)
 
 - **A small pull request fixing a bug** — merge it yourself, unasked, once its first commit added
   a test that failed on the bug, a later commit fixed the bug, and the same test passed with no
