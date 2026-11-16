@@ -1,6 +1,7 @@
-"""req/vascular/truth/widths: the widths look of an open area, its lens, the widths set, nudged, marked cannot or put
-back, Area is right marking the rest looked at, and the export (vessel_widths_driver.mjs, in headless Chromium on a
-stack drawn there). SHOTS, when set, is a folder the driver saves a picture of the look and of the lens into."""
+"""req/vascular/truth/widths: an area's widths step, its lens, a vessel selected, its width stepped or put back, These
+widths look right marking the rest looked at and doing the area, and the export (vessel_widths_driver.mjs, in headless
+Chromium on a stack drawn there). SHOTS, when set, is a folder the driver saves a picture of the step and of the lens
+into."""
 import json
 import os
 import shutil
