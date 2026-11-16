@@ -2,7 +2,7 @@
 
 What computer vision, retail dense-shelf detection and library science already know about boxing books on a
 shelf photo and reading their titles, gathered 2026-11-15 so the study builds on it instead of re-deriving it.
-Start with [`SURVEY.md`](SURVEY.md); the paper notes make each source's PDF unnecessary to re-open.
+Start with [`SURVEY.md`](SURVEY.md); each paper note holds what that source gives the study's spine detection and reading.
 
 The PDFs live in the study's Drive root, in `Literature/`, named as the notes' `PDF:` lines say. Only the notes are in
 the repo.

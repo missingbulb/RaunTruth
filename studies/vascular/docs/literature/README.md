@@ -1,7 +1,9 @@
 # References — source papers
 
-One Markdown file per paper, written so the article never has to be reopened: the method, the
-parameters, the numbers, and every figure and cropped panel described in text. Nothing else lives
+One Markdown file per paper, holding what the article gives this study: the method steps,
+parameters and numbers its tracing, counting and measuring can use, and the inventory of any panel
+it gave the working dataset. The PDF is in the study's Drive `Literature` folder, named by title.
+Nothing else lives
 here — no PDF, figure, panel, crop script or supplementary file, whatever the licence; the article
 and its supplementary material are linked at the publisher. The `literature-summaries-only` check
 holds the folder to this shape.
@@ -11,7 +13,7 @@ literature/
   README.md                  <- you are here: the paper index
   METHODS-SYNTHESIS.md       <- cross-paper: what the literature does vs what we adopted
   BIOLOGY-INVARIANTS.md      <- what a real vessel graph must look like: scoring invariants, for expert sign-off
-  <paper-slug>.md            the paper: digest, then its figures and panels described
+  <paper-slug>.md            the paper: what it gives the study, and its panel inventory where it has one
 ```
 
 **Slug format:** `<first-author>-<year>-<short-topic>`, lowercase, hyphenated.

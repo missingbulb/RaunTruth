@@ -1,7 +1,8 @@
 # Literature — source papers
 
-One Markdown file per paper, `<first-author>-<year>-<short-topic>.md`, written so the article never
-has to be reopened: its method, numbers and figures described in text. Nothing else lives here —
+One Markdown file per paper, `<first-author>-<year>-<short-topic>.md`, holding what the article gives
+this study: the method steps, parameters and numbers its algorithm and ground truth can use. The PDF
+is in the study's Drive `Literature` folder, named by title. Nothing else lives here —
 no PDF, figure, crop or supplementary file, whatever the licence; the article, its figures and its
 supplementary material are linked at the publisher. `SYNTHESIS.md` holds the cross-paper reading.
 The intake procedure is the `paper-intake` skill; the `literature-summaries-only` check holds the
