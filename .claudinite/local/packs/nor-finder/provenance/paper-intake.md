@@ -99,3 +99,14 @@
 - **Actor:** @missingbulb (owner).
 - **Retire when:** the owner wants an article's own material kept in the repository again.
 - **Landed:** #968
+
+## 2026-11-16 · reworded · a summary is a reading for the study, not a description of the article
+- **Source:** the owner: "It's an article summary, not explanation. Only what's useful, only in the
+  context of the study, only if it help the algorithmic work or the GT extraction."
+- **Reason:** the step list mandated every parameter and every figure panel by panel, so summaries
+  followed the paper's structure instead of the study's questions; the study's questions now come
+  first and decide what is kept.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
+- **Rejected:** a check on summary length or on a Figures heading: a size or a heading does not tell
+  a purposeful summary from a blind one.
