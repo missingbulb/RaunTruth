@@ -48,6 +48,7 @@ import { asLoaded } from "./as_loaded.js";
 import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
 import { summaryDownload } from "./summary_download.js";
+import { summaryMask } from "./summary_mask.js";
 
 const $ = (s) => document.querySelector(s);
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
@@ -758,6 +759,7 @@ function imageOpened(m) {
   step("load", true, `${st.fileName}, ${m.meta.W} × ${m.meta.H} px, from ${from}`);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
   status("Image loaded."); // the study's opened hook says what comes next, if anything
+  summaryMasks.opened();
   study.opened?.(m.meta);
   // a draft to continue opens Ground Truth Tasks with the image, Continue GT tagging in view
   if (tasks.offer() && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
@@ -825,7 +827,7 @@ async function openBytes(name, bytes, source) {
   // the file as it came, for Python at a Run (a copy is handed over then), Edit Image and the problem report
   const kept = st.kept = { name, source, bytes };
   tasks.tagging(false);
-  summaryCsv.clear();
+  summaryCsv.clear(); summaryMasks.left();
   study.opening?.(name, source);
   st.sha = await sha256(bytes);
   if (remote.owns(source)) noteSha(source.id, st.sha);
@@ -1544,6 +1546,14 @@ async function inventory() {
       continue;
     }
     if (OWN_SETTINGS[k]) { settings += bytesOf(k); continue; }
+    const masked = summaryMasks.keyOf(k);
+    if (masked) {
+      if (masked.study === manifest?.id) {
+        const im = selections.get(masked.image) || { name: masked.image, whats: new Set(), keys: [], size: 0 };
+        im.whats.add("summary mask"); im.keys.push(k); im.size += bytesOf(k); selections.set(masked.image, im);
+      } else sectionOf(masked.study).entries.push({ kind: "selections", name: masked.image, what: "Your selections: summary mask", size: bytesOf(k), del: () => drop(k), held: true, ask: true });
+      continue;
+    }
     if (k.startsWith(GT_DRAFT)) {
       const rest = k.slice(GT_DRAFT.length), id = rest.slice(0, rest.indexOf("|")), name = rest.slice(id.length + 1, rest.lastIndexOf("|"));
       if (id === manifest?.id) {
@@ -2241,18 +2251,22 @@ function studyBoxes() {
     if (slot === "processing" && first !== "load") b.dataset.folds = first; else delete b.dataset.folds;
     summaries.delete(b);
   }
+  summaryMasks.redraw();
 }
 const viewers = {};
 const algorithms = algorithmChoice({ $, outline, status });
 // Download Summary at the Summary box's foot: the study's summary, saved as the shell's one CSV
 const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
+// the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
+const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get("image"), fileName: () => st.fileName, study: () => manifest,
+  shows: () => !$("#summary-box").hidden, drag, readJSON, writeJSON, views });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
-  truth.leave(); algorithms.leave(); summaryCsv.clear();
+  truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
   css?.remove(); css = null;
@@ -2273,6 +2287,8 @@ const shell = {
   tasks, algorithm: algorithms.api,
   // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
   summary: summaryCsv.api,
+  // the summary's mask (req/shell/summary/mask): polygons(), inside(x, y), on(fn, signal)
+  mask: summaryMasks.api,
   // the study's declared actions (req/shell/image/keys): handle({id: fn(phase, {event, control})}), report({state: value});
   // add(spec), a viewer's own
   actions: { ...keys.api, add: keys.add, refresh: keys.refresh },

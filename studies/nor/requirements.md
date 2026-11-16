@@ -256,20 +256,14 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   shaded, and the mean, SD and n written above it, with no separate table.
   </details>
 
-- `req/nor/summary/mask` A lassoed summary mask limits the summary and the CSVs to the candidates inside it.
+- `req/nor/summary/mask` The shell's summary mask limits the summary and the CSVs to the candidates inside it.
   <details>
 
-  Set by the owner on 2026-10-06. Add mask, on its own row below the Summary box's title (moved
-  there by the owner on 2026-10-31), switches to the image
-  view, zooms out to show the whole image and lets the user lasso an area by dragging (Esc
-  cancels). The summary then counts only the candidates whose centre is inside the mask, and the
-  Candidates and Summary CSVs hold only those; the ground truth ignores the mask. Lassoing again
-  adds an area by exclusive or, so a lasso inside another cuts a hole. The mask's borders show as a
-  pulsing dashed line, and its inside is tinted a very transparent white only when areas overlap or
-  nest. Clear mask, shown while a mask is on, removes it. The mask is remembered in the browser per
-  file name (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on 2026-11-04: the mask
-  shows only while the summary does, so while the study makes ground truth it is neither drawn nor
-  listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  Set by the owner on 2026-10-06; the mask itself is the shell's since 2026-11-16 (`req/shell/summary/mask`). The
+  summary counts only the candidates whose centre is inside the mask, and the Candidates and Summary CSVs hold only
+  those; the ground truth ignores the mask (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on
+  2026-11-04: the mask shows only while the summary does, so while the study makes ground truth it is neither drawn
+  nor listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
   </details>
 
 - `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.

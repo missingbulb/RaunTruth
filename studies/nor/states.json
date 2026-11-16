@@ -17,12 +17,6 @@
     {"under": "Summary", "tree": [
       {"name": "The NoR summary", "select": "#nor-summary", "req": "req/nor/summary/density",
         "children": [
-          {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/nor/summary/mask"},
-          {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/nor/summary/mask", "steady": "shows only once a mask is drawn",
-            "rule": [
-              {"is": "hidden"}
-            ]
-          },
           {"name": "Summary's text", "select": "#summary", "req": "req/nor/summary/density"},
           {"name": "Download Candidates", "select": "#dl-cands", "control": true, "req": "req/nor/downloads"}
         ]
@@ -94,13 +88,6 @@
       {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/views", "unwalked": "the item view is shelved",
         "rule": [
           {"is": "hidden", "req": "req/shell/views/second", "about": "its item view is shelved"}
-        ]
-      }
-    ]},
-    {"under": "Main view", "after": "Busy", "tree": [
-      {"name": "Lasso hint", "select": "#lasso-hint", "req": "req/nor/summary/mask", "steady": "shows only while a mask is drawn",
-        "rule": [
-          {"is": "hidden"}
         ]
       }
     ]},

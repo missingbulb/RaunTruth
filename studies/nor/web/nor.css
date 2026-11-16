@@ -154,24 +154,8 @@
 #ctx .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
 #ctx .item:hover, #ctx .item:focus-visible { color: var(--accent); }
 #ctx[hidden], #card-menu[hidden] { display: none; }
-
-/* the summary mask: its borders as a pulsing dashed line; its inside tinted only when areas overlap or nest */
-.mask-btns { display: flex; gap: 6px; margin-bottom: 10px; }
-.mask-btns button { padding: 3px 10px; font-size: 12px; }
 #settings-box .reset-row { display: flex; justify-content: flex-end; margin-top: 4px; }
-.mask-btns button[hidden] { display: none; }
-#overlay .mask-marks { pointer-events: none; }
-#overlay .mask-marks .edge { fill: none; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke;
-  animation: mask-pulse 1.6s ease-in-out infinite alternate; }
-#overlay .mask-marks .edge.under { stroke: #000; stroke-dasharray: none; stroke-width: 2.5; stroke-opacity: .5; animation: none; }
-#overlay .mask-marks .fill { fill: #fff; fill-opacity: .07; stroke: none; }
-@keyframes mask-pulse { from { stroke-opacity: 1; } to { stroke-opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { #overlay .mask-marks .edge { animation-duration: 6s; } }
-#overlay .lasso-live { fill: #ffffff14; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-#scroller.lassoing, #scroller.lassoing #overlay g[data-i] { cursor: crosshair; }
-#lasso-hint { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 5px 14px; border-radius: 999px;
-  background: var(--shade); border: 1px solid var(--line); font-weight: 600; font-size: 13px; pointer-events: none; }
-#lasso-hint[hidden] { display: none; }
+
 
 /* the open ground-truth task's tools on its row, and its item's card under it */
 #task-now[hidden], #card-menu[hidden], #task-tools[hidden], #area-check[hidden], #show-menu [hidden] { display: none; }

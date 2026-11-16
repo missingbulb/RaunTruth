@@ -49,7 +49,7 @@ export function mount(shell) {
       empty: "Correct the model first: approve or decline a vessel, judge a junction, do an area or draw a missed vessel." });
   }
   // a stack already open when the study comes in (a switch from another study)
-  if (shell.page.get("image")) { MV.stackOpened(); if (!truth) summary.opened(shell.state.fileName); }
+  if (shell.page.get("image")) MV.stackOpened();
   // edit: an edit of the model from a page test, fn(model) the next model
   window.vascular = { tasks: tasks.inspect, model: MV.inspect, summary: summary.inspect, edit: (fn) => MV.edit(fn(MV.current())) };
 
@@ -57,7 +57,7 @@ export function mount(shell) {
 
   return {
     order,
-    opening() { ran = null; MV.stackOpened(); if (!truth) summary.opened(shell.state.fileName); canRun(); },
+    opening() { ran = null; MV.stackOpened(); canRun(); },
     opened() { canRun(); shell.status("Stack loaded. Press Execute to draw its vessel model."); },
     result(action, meta) {
       if (action !== "extract") return;

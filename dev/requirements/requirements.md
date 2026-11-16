@@ -1586,6 +1586,24 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/study_page_driver.mjs` (the fixture study), `studies/vascular/tests/model_page_driver.mjs`.
   </details>
 
+- `req/shell/summary/mask` Add mask, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
+  <details>
+
+  Set by the owner on 2026-11-16, in place of NoR's and Vascular's own masks: one mask for every study, offered only
+  by a study whose `study.json` says it can count inside one (`"summary": {"mask": true}`; every study filling the
+  Summary box says true or false). Add mask switches to the image, shows all of it (a stack seen from straight above,
+  held still, the area running through every slice) and lets the user lasso an area by dragging; Esc cancels, and a
+  lasso a few pixels across is no area. Lassoing again adds an area by exclusive or, so one inside another cuts a hole.
+  The borders show as a pulsing dashed line over the image, or over the stack following the view as it turns, and the
+  inside is tinted a very transparent white only when areas overlap or nest. Clear mask, shown while a mask is on,
+  removes it. The mask is kept in the image's pixels on this device, per study and file name, under the study's
+  `<id>-mask-v1:<file>` key (NoR's mask from before keeps its key), and the Storage tab lists it with the image's
+  selections. It shows only while the summary does: while the study makes ground truth it is neither drawn nor
+  offered, and comes back with the summary. The study reads `shell.mask`: `polygons()`, `inside(x, y)` and `on(fn)`
+  for each change. Test: `web-tests/test_study_contract.py`, `studies/nor/tests/test_ground_truth_page.py`,
+  `studies/vascular/tests/test_model_page.py`, `studies/shelves/tests`.
+  </details>
+
 - `req/shell/tools/grid` A Grid button beside the Ruler draws a grid over the image, its colour and spacing the user's.
   <details>
 

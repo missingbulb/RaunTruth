@@ -62,11 +62,6 @@
       }
     ]},
     {"under": "Summary", "tree": [
-      {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/vascular/summary/mask"},
-      {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/vascular/summary/mask",
-        "unwalked": "shows only while a mask is on, which no path lassos", "rule": [{"is": "hidden", "approval": "tentative"}]},
-      {"name": "The lasso's hint", "select": "#mask-hint", "req": "req/vascular/summary/mask",
-        "unwalked": "shows only while a lasso is armed, which no path arms", "rule": [{"is": "hidden", "approval": "tentative"}]},
       {"name": "The model's numbers", "select": "#vm-summary", "req": "req/vascular/summary/metrics"},
       {"name": "What the model holds", "select": "#model-facts", "req": "req/vascular/model/run"}
     ]},
