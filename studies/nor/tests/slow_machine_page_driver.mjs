@@ -62,6 +62,10 @@ const server = http.createServer((q, r) => {
     return r.end(`import * as real from "./image_open.real.js"; export * from "./image_open.real.js";
 export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose: it stands in for a slow computer reading the image
   }
+  if (u === "/studies/nor/web/nor.js" && !q.headers["x-late"]) {
+    // the study's code comes after its algorithm list, so the page has listed them before its own start has run
+    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose: it stands in for a slow computer fetching the study's code
+  }
   const f = u === "/web/image_open.real.js" ? path.join(repo, "web", "image_open.js")
     : u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
