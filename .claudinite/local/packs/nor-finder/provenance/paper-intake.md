@@ -81,3 +81,21 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** unchanged carrier, now in the study's own local pack.
+
+## 2026-11-16 · moved · from vascular-study into nor-finder, for every study (#968)
+- **Source:** the owner, on adopting a second study's articles: the skill should be repo-wide.
+- **Reason:** the microglia study takes in articles too; vascular paths became `studies/<study>/`.
+- **Actor:** @missingbulb (owner).
+- **Mechanism:** unchanged carrier, a guidelines skill reached by its description, now in the
+  repo's own pack.
+- **Landed:** #968
+
+## 2026-11-16 · strengthened · one Markdown summary per paper, everything else linked (#968)
+- **Source:** the owner: "I don't want images in the repo. In general, I want the article
+  extractions to only write an md summary to the repo, and if there are any references to external
+  elements (certainly if copywritten) just link to them."
+- **Reason:** PDFs, figures, panel crops and supplementary files no longer enter the repo under any
+  licence; the panel-calibration steps went with the panels.
+- **Actor:** @missingbulb (owner).
+- **Retire when:** the owner wants an article's own material kept in the repository again.
+- **Landed:** #968

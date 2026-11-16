@@ -40,5 +40,21 @@
         "unlessLineMatches": "/Google Chrome|^\\s*(export )?const [A-Z_]+ = \"(nor-)?(drive|google)[\\w:/-]*\";$/"
       }
     ]
+  },
+  {
+    "id": "literature-summaries-only",
+    "on_fail": "block",
+    "failureMessage": "a study's literature folder holds only one Markdown summary per paper; a PDF, a figure, a crop, supplementary code or a subfolder copies the publisher's material into a public repository",
+    "fix": "fold what the file says into the paper's studies/<study>/docs/literature/<slug>.md, link the original at its publisher (DOI, supplementary URL), and delete the file; the paper-intake skill says how",
+    "scanFiles": "/^studies\\/[^/]+\\/docs\\/literature\\/(?![^/]+\\.md$)/",
+    "scanTracked": true,
+    "checkEachFile": [
+      {
+        "whenFileMatches": "/[\\s\\S]?/",
+        "require": "/(?!)/",
+        "what": "is not a flat .md summary in the literature folder",
+        "fix": "fold it into the paper's <slug>.md as text and links, then delete it"
+      }
+    ]
   }
 ]

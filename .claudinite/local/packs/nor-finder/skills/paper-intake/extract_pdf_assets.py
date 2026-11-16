@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """Step 1 of paper intake: pull the text and the embedded figure images out of a PDF.
 
-This is the mechanical half of the intake protocol (the judgement half — reading the
-paper, writing the digest, naming the figures — is the `paper-intake` skill). It is
-deliberately dumb: it does not guess what a figure is, it just dumps every embedded
-raster above a size floor and writes a manifest for a human/LLM to name from.
+This is the mechanical half of the intake (the judgement half - reading the paper and its
+figures and writing the summary - is the `paper-intake` skill). It dumps every embedded raster
+above a size floor and writes a manifest; nothing it writes is committed.
 
 Usage:
-    python3 references/_tools/extract_pdf_assets.py <paper.pdf> <out-dir> [--min-px 400]
+    python3 .claudinite/local/packs/nor-finder/skills/paper-intake/extract_pdf_assets.py <paper.pdf> <scratch-dir> [--min-px 400]
 
 Writes into <out-dir>:
-    fulltext.txt          page-delimited text of the whole PDF (working copy, not committed)
+    fulltext.txt          page-delimited text of the whole PDF
     raw/p<NN>_x<xref>.<ext>   every embedded image whose long edge >= --min-px
     manifest.tsv          page, xref, w, h, ext, bytes, suggested filename
 
-Then: read fulltext.txt, LOOK at each raw image, and `git mv` it to
-<paper>/figures/figN_<slug>.png with a description in figures/README.md.
-
-Requires: pymupdf (see requirements.txt).
+Requires: pymupdf (`pip install pymupdf`).
 """
 import argparse
 import os
