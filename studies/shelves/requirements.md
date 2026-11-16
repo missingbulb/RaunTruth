@@ -80,7 +80,8 @@ read for a title matcher; matching the titles is not part of it.
   Outside ground truth the Summary box lists each book's text in the order found, shelf by shelf
   from the top; Download for the matcher saves `<image>_books.json`: the image, its size, and per
   book an id, its view, its text (empty when nothing was read), the reader's confidence (0 to 1,
-  null when it was not read) and the reader's name, and its corners. Test:
+  null when it was not read) and the reader's name, and its corners. With a summary mask on, the list and the file hold
+  only the books inside it, each keeping its number (`req/shelves/summary`). Test:
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
@@ -105,6 +106,16 @@ read for a title matcher; matching the titles is not part of it.
   Python, then, the owner's choice of 2026-11-10, the names of Hebrew Wikipedia's article titles (authors, book
   titles, publishers), the site's own file, made by the lab from one dated dump. Test: `studies/shelves/tests/test_reading.py`, `studies/shelves/tests/test_spelling.py`,
   `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shelves/summary` Summary counts the books, spines and covers, and lists each one's text, over the books the mask touches.
+  <details>
+
+  Set by the owner on 2026-11-16. Outside ground truth, once books are found, the Summary box says how many books it
+  counts, how many of them spines and how many covers, above the list of their texts. A book counts when any part of
+  its box lies inside the shell's summary mask (`req/shell/summary/mask`), every book with no mask. The shell's
+  Download Summary saves the three counts and a row per book, its number, view and text
+  (`req/shell/summary/download`). Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.

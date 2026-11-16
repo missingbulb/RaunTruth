@@ -8,7 +8,7 @@
     ]
   },
   "stage": "GT",
-  "summary": {"mask": false},
+  "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [

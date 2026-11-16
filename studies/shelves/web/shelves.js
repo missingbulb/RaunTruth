@@ -102,7 +102,8 @@ export function mount(shell) {
   // proposed: what the finder and the reader said, kept for scoring; while tagged, turnSet: the tagger set the turn,
   // typed: the tagger typed its text}]
   // asked: the book whose title, left as read, one Enter has asked to approve as it is
-  let books = [], cur = null, drawing = null, dragging = null, noneMissed = false, opened = false, selectFor = null, asked = null;
+  // found: whether books were found (or drafted) on the photo open, for the summary to count
+  let books = [], cur = null, drawing = null, dragging = null, noneMissed = false, opened = false, selectFor = null, asked = null, found = false;
   let ocr = null;
   const truth = () => shell.makesTruth;
   // the tagger tags now: a book is open, framed and its corners dragged only then (req/shell/ground-truth/tagging)
@@ -125,7 +126,7 @@ export function mount(shell) {
     shell.tasks.draft({ books: books.map((b) => Object.fromEntries(KEEP.filter((k) => k in b).map((k) => [k, b[k]]))), noneMissed, open: books.indexOf(cur) });
   }
   function resume(d) {
-    books = (d.books || []).map((b) => ({ ...b })); noneMissed = !!d.noneMissed; drawing = null;
+    books = (d.books || []).map((b) => ({ ...b })); noneMissed = !!d.noneMissed; drawing = null; found = true;
     cur = books[d.open] ?? null;
     // a draft kept before Not a book took a box away holds it still
     books = books.filter((b) => b.verdict !== "wrong");
@@ -238,18 +239,45 @@ export function mount(shell) {
   }
   function draw() { drawBoxes(); list(); tasks(); }
 
-  // the titles, outside ground truth: what the matcher is sent
+  // the summary's mask (req/shell/summary/mask): a book counts when any part of its box lies inside it
+  const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  const crosses = ([a, b], [c, d]) => side(a, b, c) !== side(a, b, d) && side(c, d, a) !== side(c, d, b);
+  const edgesOf = (p) => p.map((q, i) => [q, p[(i + 1) % p.length]]);
+  function inMask(b) {
+    const mask = shell.mask.polygons();
+    if (!mask.length) return true;
+    const c = b.corners, mid = [c.reduce((t, p) => t + p[0], 0) / 4, c.reduce((t, p) => t + p[1], 0) / 4];
+    const probes = [...c, mid, ...edgesOf(c).map(([p, q]) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2])];
+    if (probes.some(([x, y]) => shell.mask.inside(x, y))) return true;
+    // a border of the mask crossing the box: the box lies on both sides of it, one of them inside
+    const box = edgesOf(c);
+    if (mask.some((p) => edgesOf(p).some((e) => box.some((f) => crosses(e, f))))) return true;
+    // an area of the mask wholly inside the box
+    const inBox = ([x, y]) => edgesOf(c).every(([p, q]) => side(p, q, [x, y]) === side(c[0], c[1], c[2]) || side(p, q, [x, y]) === 0);
+    return mask.some((p) => inBox(p[0]));
+  }
+  shell.mask.on(() => list(), shell.signal);
+
+  // the titles, outside ground truth: what the summary counts and the matcher is sent, inside the mask
   function list() {
     $("#bs-found").textContent = books.length ? `${books.length} books: ${books.filter((b) => b.view === "spine").length} spines, ${books.filter((b) => b.view === "cover").length} covers.` : "";
     if (truth()) return;
-    $("#bs-list").replaceChildren(...books.map((b) => {
-      const li = document.createElement("li"); li.className = b === cur ? "current" : "";
+    const shown = books.filter(inMask), masked = shell.mask.polygons().length > 0;
+    $("#bs-count").textContent = found ? `${shown.length} book${shown.length === 1 ? "" : "s"}${masked ? " inside the mask" : ""}: ${shown.filter((b) => b.view === "spine").length} spines, ${shown.filter((b) => b.view === "cover").length} covers.` : "";
+    // the summary as the shell's Download Summary saves it (req/shell/summary/download): the counts, then each book's text
+    shell.summary.set(found ? { over: masked ? `a mask of ${shell.mask.polygons().length} area${shell.mask.polygons().length === 1 ? "" : "s"}, books partly inside counted` : "the whole photo", rows: [
+      { measurement: "Books", unit: "count", value: shown.length },
+      { measurement: "Spines", unit: "count", value: shown.filter((b) => b.view === "spine").length },
+      { measurement: "Covers", unit: "count", value: shown.filter((b) => b.view === "cover").length },
+      ...shown.map((b) => ({ measurement: `Book ${books.indexOf(b) + 1} (${b.view})`, unit: "text", value: b.text ?? "" }))] } : null);
+    $("#bs-list").replaceChildren(...shown.map((b) => {
+      const li = document.createElement("li"); li.className = b === cur ? "current" : ""; li.value = books.indexOf(b) + 1;
       li.innerHTML = `<span class="bs-text" dir="auto"></span>`; li.querySelector(".bs-text").textContent = b.text || "";
       li.title = `${b.view}${b.confidence != null ? `, ${Math.round(b.confidence * 100)}% sure` : ""}`;
       li.onclick = () => { cur = b; focus(b); draw(); };
       return li;
     }));
-    $("#bs-export").disabled = !books.length;
+    $("#bs-export").disabled = !shown.length;
   }
   $("#bs-export").onclick = () => {
     const name = st.fileName.replace(/\.[^.]*$/, "");
@@ -257,7 +285,7 @@ export function mount(shell) {
   };
   // what the database matcher is sent: each book's text, where it is, and how sure the reading is
   const matcherDoc = () => ({ image: st.fileName, W: st.W, H: st.H,
-    books: books.map((b, i) => ({ id: i + 1, view: b.view, text: b.text ?? "", confidence: b.confidence ?? null, reader: b.reader ?? null, corners: b.corners })) });
+    books: books.map((b, i) => ({ b, i })).filter(({ b }) => inMask(b)).map(({ b, i }) => ({ id: i + 1, view: b.view, text: b.text ?? "", confidence: b.confidence ?? null, reader: b.reader ?? null, corners: b.corners })) });
   // the book framed in the view: zoomed to fill most of it, unless already close to that, and in its middle
   function focus(b) {
     const xs = b.corners.map((p) => p[0]), ys = b.corners.map((p) => p[1]), sc = $("#scroller");
@@ -462,13 +490,13 @@ export function mount(shell) {
   return {
     ready() { $("#bs-find").disabled = !opened; },
     opened() {
-      opened = true; books = []; cur = null; noneMissed = false; drawing = null; selectFor = null; hideMenu();
+      opened = true; found = false; books = []; cur = null; noneMissed = false; drawing = null; selectFor = null; hideMenu();
       $("#bs-find").disabled = false; $("#bs-read").disabled = true; $("#bs-export").disabled = true;
       shell.viewer.layer("bs").replaceChildren(); draw();
     },
     result(action, meta) {
       if (action === "find") {
-        books = meta.books.map((b) => ({ ...b, source: "found", verdict: null }));
+        books = meta.books.map((b) => ({ ...b, source: "found", verdict: null })); found = true;
         cur = null; noneMissed = false; shell.busy(false);
         shell.step("find", true, `${shell.algorithm.title}: ${books.length} books found` + (textless ? `, without the text finder (${textless})` : ""));
         shell.boxDone($("#bs-box"), `${books.length} books`);
