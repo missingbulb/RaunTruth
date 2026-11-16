@@ -12,7 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.join(here
 const require = createRequire(import.meta.url);
 let entry;
 try { entry = require.resolve("pyodide/pyodide.mjs", { paths: [here] }); } catch {
-  console.error("no pyodide: npm i --prefix web-tests pyodide@314.0.7"); process.exit(2);
+  console.error("no pyodide: python3 web-tests/page_libraries.py"); process.exit(2);
 }
 const { loadPyodide } = await import(pathToFileURL(entry).href);
 const { bridge } = await import(pathToFileURL(path.join(repo, "web", "bridge.js")).href);
