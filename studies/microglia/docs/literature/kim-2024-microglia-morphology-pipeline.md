@@ -416,7 +416,7 @@ All five embedded rasters are real figures (no logos/icons). Descriptions:
 ## Figures
 
 Every raster embedded in
-`../kim-2024-microglia-morphology-pipeline.pdf`,
+the PDF in the study's Drive `Literature` folder (named in the citation block),
 converted to PNG unchanged (CC BY 4.0, © 2024 Kim et al.). Each figure is one embedded image; there
 are five, all real figures. 
 Scale measured off the figures by me (white-bar pixel run in the embedded image): Fig 1B overview

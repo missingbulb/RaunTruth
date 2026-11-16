@@ -229,7 +229,7 @@ panel inventory and caveats: [`figures/panels/README.md`](#figures).
 ## Figures
 
 Native-resolution figure images extracted from
-`../freitas-andrade-2022-pyvane-endothelial-networks.pdf`
+the PDF in the study's Drive `Literature` folder (named in the citation block)
 with the paper-intake skill's extractor. Cropped panels: [`panels/README.md`](#figures).
 
 **All 13 figures of the paper are here.** Unlike the other papers in this corpus, **not one of

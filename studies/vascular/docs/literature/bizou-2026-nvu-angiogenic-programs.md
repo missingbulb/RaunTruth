@@ -125,7 +125,7 @@ either.
 ## Figures
 
 All six main figures, extracted from
-`../bizou-2026-nvu-angiogenic-programs.pdf` with
+the PDF in the study's Drive `Literature` folder (named in the citation block) with
 the paper-intake skill's extractor. 
 > **No `panels/` folder for this paper, deliberately.** Every micrograph is a multi-channel merge
 > (vessels yellow + DAPI blue + EdU/other marker), so none is an isolated vessel channel, and no

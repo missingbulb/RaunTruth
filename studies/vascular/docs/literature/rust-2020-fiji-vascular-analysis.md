@@ -399,7 +399,7 @@ per-paper rollup in `measure_vessels.py` exists so the two are never averaged to
 ## Figures
 
 Native-resolution figure images extracted from
-`../rust-2020-fiji-vascular-analysis.pdf` with
+the PDF in the study's Drive `Literature` folder (named in the citation block) with
 the paper-intake skill's extractor. Cropped sub-panels and the working-dataset inventory: [`panels/README.md`](#figures).
 The authors' supplementary toolbox and their calibrated representative image are in
 the publisher's supplementary material — see §7 above.

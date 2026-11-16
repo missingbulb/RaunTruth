@@ -139,7 +139,7 @@ All eleven figures, described in [`figures/README.md`](#figures).
 ## Figures
 
 All eleven figures, extracted from
-`../smith-2019-capillary-networks-across-species.pdf`
+the PDF in the study's Drive `Literature` folder (named in the citation block)
 with the paper-intake skill's extractor. CC BY 4.0, © the authors.
 
 > **There is no `panels/` folder for this paper, deliberately.** Fig. 1 is a render of a vectorized

@@ -173,7 +173,7 @@ looks like next to capillaries — which is the distinction our CATEGORIZE ask i
 ## Figures
 
 All six figures, extracted from
-`../stefanitsch-2015-tpa-cerebrovascular-tree.pdf`
+the PDF in the study's Drive `Literature` folder (named in the citation block)
 with the paper-intake skill's extractor. 
 > **There is no `panels/` folder for this paper, deliberately.** Every micrograph here is a
 > two-channel merge (vessel marker + DAPI nuclei, sometimes a third marker), so none qualifies as

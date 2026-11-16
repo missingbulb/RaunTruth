@@ -153,7 +153,7 @@ segment-skeletonize-and-count pipeline.
 ## Figures
 
 All nine figures, extracted from
-`../hill-2020-aging-mra-cerebrovascular-loss.pdf`
+the PDF in the study's Drive `Literature` folder (named in the citation block)
 with the paper-intake skill's extractor. 
 > **No `panels/` folder for this paper, deliberately.** This is MR angiography at (100 µm)³
 > voxels, not fluorescence microscopy — a different modality at a different scale, with no

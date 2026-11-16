@@ -319,7 +319,7 @@ was dropped. Panel-by-panel descriptions, scale-bar measurements and what the mi
 ## Figures
 
 Native-resolution figure images extracted from
-`../moser-2025-ipsc-mononuclear-phagocytes.pdf`
+the PDF in the study's Drive `Literature` folder (named in the citation block)
 (open access under the "Creative Commons Attribution License" — CC BY, version not stated in the PDF — © 2025 The Author(s), *Advanced Science*,
 Wiley-VCH; cite DOI 10.1002/advs.202417848). 
 Each figure is a single embedded raster, saved here as PNG. The only other image in the PDF, the

@@ -414,7 +414,7 @@ with attribution to Lind-Holm Mogensen, Ameli, Skupin & Michelucci, *STAR Protoc
 ## Figures
 
 Every image embedded in
-`../lind-holm-mogensen-2024-microglia-morphology-protocol.pdf`,
+the PDF in the study's Drive `Literature` folder (named in the citation block),
 extracted at native resolution and converted to PNG. Licence **CC BY 4.0** (stated on p. 1 of the PDF); © the authors, schematics made with BioRender.
 
 The paper has **no numbered figures and no captions** — images sit inline beside the step they
