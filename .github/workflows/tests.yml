@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+# a new push to a pull request supersedes the run on its previous head; every commit on main finishes its run
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   # every pull request, and main once it lands
   check:
