@@ -14,8 +14,7 @@
 - **Licence:** **all rights reserved** — every page carries "The copyright holder for this
   preprint … is the author/funder. All rights reserved. No reuse allowed without permission."
   So no PDF, figure or panel is committed; figures are described in words only.
-- **PDF:** kept in the study's Drive Literature folder as `Hierarchical imaging and computational analysis of three-dimensional vascular network architecture in the entire postnatal and adult mouse brain.pdf`, not in
-  the repo.
+- **PDF:** kept in the study's Drive `Literature` folder as `Hierarchical imaging and computational analysis of three-dimensional vascular network architecture in the entire postnatal and adult mouse brain.pdf`, not in the repo.
 - **One-line thesis:** a ~10-day protocol — polyurethane (PU4ii) corrosion casting, desktop µCT
   overview, synchrotron µCT at 0.65–0.73 µm isotropic voxels, Otsu + skeleton graph analysis —
   that quantifies the 3D vessel network of P10 and P60 mouse brains, splitting capillaries

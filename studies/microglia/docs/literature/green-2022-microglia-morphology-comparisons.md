@@ -14,7 +14,7 @@
 - **Licence (as stated in the PDF):** "This article is licensed under a **Creative Commons
   Attribution 4.0 International License**" (CC BY 4.0), © The Author(s) 2022. Redistribution and
   derivatives are allowed with attribution, so the PDF and the figures are committed here.
-- **PDF:** `green-2022-microglia-morphology-comparisons.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Comparisons of quantitative approaches for assessing microglial morphology reveal inconsistencies, ecological fallacy, and a need for standardization.pdf`, not in the repo.
 - **Data:** Dryad, doi:10.5061/dryad.j3tx95xhq (CC0). Listed, but the files could not be
   downloaded from here. See [§ What is not in this PDF](#9-what-is-not-in-this-pdf).
 - **One-line thesis:** five common ImageJ ways of quantifying Iba1 microglial morphology

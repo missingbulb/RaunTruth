@@ -14,6 +14,7 @@
   article type ARTICLE, marked OPEN. DOI **10.1038/s41392-026-02620-9**. Received 23 Sep 2025,
   revised 14 Jan 2026, accepted 28 Jan 2026, published online 25 Mar 2026. 16 pages (p. 16 is
   references and the licence; its lower half is blank).
+- **PDF:** kept in the study's Drive `Literature` folder as `Oligodendrocyte precursor cells–microglia crosstalk via BMP4 drives microglial neuroprotective response and mitigates Alzheimer's disease.pdf`, not in the repo.
 - **Licence (exact wording, p. 16):** "This article is licensed under a Creative Commons
   **Attribution-NonCommercial-NoDerivatives 4.0** International License … You do not have
   permission under this licence to share adapted material derived from this article or parts of

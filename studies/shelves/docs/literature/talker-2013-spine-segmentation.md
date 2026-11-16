@@ -3,8 +3,7 @@
 *Lior Talker (supervisor Yael Moses), M.Sc. dissertation, Efi Arazi School of Computer Science, IDC Herzliya
 (now Reichman University), July 2013. Conference version: Talker & Moses, "Viewpoint-independent book spine
 segmentation", WACV 2014. No DOI for the thesis; it was found at runi.ac.il (URL in [SURVEY](SURVEY.md)). Openly
-downloadable, licence not stated. Full text read from the thesis PDF. PDF: study Drive folder
-`Literature/talker-2013-spine-segmentation-reorganization-thesis.pdf`.*
+downloadable, licence not stated. Full text read from the thesis PDF. PDF: study Drive folder `Literature/Book Spine Segmentation for Bookshelf Reorganization.pdf`.*
 
 **Why it matters to us:** it is the one classical segmenter built for leaning books under perspective, scored with a
 stated match criterion. Its loop has the same shape as ours: generate too many candidates, then pick.

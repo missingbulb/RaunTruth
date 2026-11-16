@@ -21,7 +21,7 @@
   the authors applied **CC BY 4.0** to any Author Accepted Manuscript. **CC BY permits
   redistribution and derivatives → the PDF and the extracted figures are committed here, with
   attribution.**
-- **PDF:** `lind-holm-mogensen-2024-microglia-morphology-protocol.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Protocol for immunofluorescence staining and large-scale analysis to quantify microglial cell morphology at single-cell resolution in mice.pdf`, not in the repo.
 - **Builds on / for complete details:** Lind-Holm Mogensen et al. 2024 (*J. Neuroinflammation*
   21:174, PARK7/DJ-1 + LPS) and Fixemer et al. 2022 (*Acta Neuropathol. Commun.* 10:36,
   human hippocampus). The computational pipeline is **MIC-MAC** (Salamanca et al. 2019, *Glia*

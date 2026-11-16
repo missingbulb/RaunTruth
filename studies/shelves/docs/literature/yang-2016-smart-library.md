@@ -2,8 +2,7 @@
 
 *Xiao Yang, Dafang He, Wenyi Huang, Zihan Zhou, Alex Ororbia, Daniel Kifer, C. Lee Giles (Penn State). arXiv
 [1611.07385](https://arxiv.org/abs/1611.07385) v1, 22 Nov 2016. The paper carries an AAAI 2016 copyright line but
-names no venue. Free on arXiv; licence not stated in the text. Read in full from the arXiv PDF (7 pages). PDF: study
-Drive folder `Literature/yang-2016-smart-library.pdf`.*
+names no venue. Free on arXiv; licence not stated in the text. Read in full from the arXiv PDF (7 pages). PDF: study Drive folder `Literature/Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf`.*
 
 **Why it matters to us:** it is the clearest case of demoting low-level lines to estimating the books' lean, and of
 finding the boundaries between books from text rather than edges. It also gives the reading-side recipe we partly

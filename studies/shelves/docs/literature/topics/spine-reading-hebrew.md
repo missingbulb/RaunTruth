@@ -6,13 +6,13 @@ Paper index (open access unless marked):
 
 | File | Paper | Year | Licence | PDF |
 |---|---|---|---|---|
-| yang-2016-smart-library.pdf | Yang, He, Huang, Zhou, Ororbia, Kifer, Giles, "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading" (Penn State) | 2016 | arXiv licence | https://arxiv.org/pdf/1611.07385 |
-| llabres-2024-library-dataset.pdf | Llabrés, Dey, Karatzas, Valveny (CVC Barcelona), "Image-text matching for large-scale book collections", DAS 2024, LNCS 14994 | 2024 | CC BY 4.0 | https://arxiv.org/pdf/2407.19812 |
-| anegawa-2020-text-detection-rough-books.pdf | Anegawa, Aritsugi, "Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data" | 2020 | arXiv licence | https://arxiv.org/pdf/2006.14808 |
-| wieczorek-2022-trixi-the-librarian.pdf | Wieczorek, Liu, Sygo, Koshil, "Trixi the Librarian" (PR-2 robot sorts books) | 2022 | CC BY 4.0 | https://arxiv.org/pdf/2210.10110 |
-| kostic-2020-visual-companion-booklovers.pdf | Kostic et al., "Visual Companion for Booklovers" (BookVIS app) | 2020 | arXiv licence | https://arxiv.org/pdf/2011.00329 |
-| ma-2024-oriented-rcnn-spine-detection.pdf | Ma, Wang, Li, Xu, Han, "An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN", *Sensors* 24(24):7996 | 2024 | MDPI CC BY | https://pdfs.semanticscholar.org/5400/ccb6f4d16302552068af709e23ff8e6f47ae.pdf |
-| suissa-2023-hebrew-ocr-postcorrection.pdf | Suissa, Elmalech, Zhitomirsky-Geffet (Bar-Ilan), "Optimizing the Neural Network Training for OCR Error Correction of Historical Hebrew Texts" | 2023 | CC BY-NC-ND 4.0 | https://arxiv.org/pdf/2307.16220 |
+| Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf | Yang, He, Huang, Zhou, Ororbia, Kifer, Giles, "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading" (Penn State) | 2016 | arXiv licence | https://arxiv.org/pdf/1611.07385 |
+| Image-text matching for large-scale book collections.pdf | Llabrés, Dey, Karatzas, Valveny (CVC Barcelona), "Image-text matching for large-scale book collections", DAS 2024, LNCS 14994 | 2024 | CC BY 4.0 | https://arxiv.org/pdf/2407.19812 |
+| Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data.pdf | Anegawa, Aritsugi, "Text Detection on Roughly Placed Books by Leveraging a Learning-based Model Trained with Another Domain Data" | 2020 | arXiv licence | https://arxiv.org/pdf/2006.14808 |
+| Trixi the Librarian.pdf | Wieczorek, Sygo, Liu, Koshil, "Trixi the Librarian" (PR-2 robot sorts books) | 2022 | CC BY 4.0 | https://arxiv.org/pdf/2210.10110 |
+| Visual Companion for Booklovers.pdf | Kostic et al., "Visual Companion for Booklovers" (BookVIS app) | 2020 | arXiv licence | https://arxiv.org/pdf/2011.00329 |
+| An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN.pdf | Ma, Wang, Li, Xu, Han, "An Accurate Book Spine Detection Network Based on Improved Oriented R-CNN", *Sensors* 24(24):7996 | 2024 | MDPI CC BY | https://pdfs.semanticscholar.org/5400/ccb6f4d16302552068af709e23ff8e6f47ae.pdf |
+| Optimizing the neural network training for OCR error correction of historical Hebrew texts.pdf | Suissa, Elmalech, Zhitomirsky-Geffet (Bar-Ilan), "Optimizing the Neural Network Training for OCR Error Correction of Historical Hebrew Texts" | 2023 | CC BY-NC-ND 4.0 | https://arxiv.org/pdf/2307.16220 |
 
 Not downloaded (paywalled, or the download failed):
 - Chen, Tsai, Girod et al., "Building book inventories using smartphones", ACM MM 2010. ResearchGate: https://www.researchgate.net/publication/221571765. Paywalled at ACM.
@@ -40,7 +40,7 @@ Every published spine pipeline uses the same stages: segment the spines, normali
 - **Robot use (2022).** A robot pipeline that combines deep learning models with classical computer vision for book detection and recognition is "good enough to repeatedly sort three books". The abstract gives no numbers. The search snippet adds that it fine-tunes a detector on 611 self-collected spine images and uses CRAFT for text detection before recognition (snippet) — [Wieczorek et al. 2022](https://arxiv.org/abs/2210.10110)
 - **2025 library system.** YOLOv11 segmentation plus optimised PaddleOCR reports 96.8% single-book recognition accuracy in real bookshelf scenes (snippet; the page returned 403 and was not verified) — [Electronics 2025](https://www.mdpi.com/2079-9292/14/23/4689)
 - **Spine detection only (2024).** An improved Oriented R-CNN detects rotated spine boxes at 90.22% mAP on its spine dataset. This measures detection, not reading (snippet) — [Ma et al. 2024](https://www.mdpi.com/1424-8220/24/24/7996)
-- **Older OCR-based work.** Camera geometric distortion and photo rotation lower OCR quality (snippet from a search summary of the BookVIS paper; its abstract describes a visualisation app, so this claim is unverified) — [Kostic et al. 2020](https://arxiv.org/pdf/2011.00329)
+- **Older OCR-based work.** Camera geometric distortion and photo rotation lower OCR quality (the full text says so in §3.2 as an unmeasured remark about Tesseract, with no error rate; see [`kostic-2020-visual-companion-booklovers.md`](../kostic-2020-visual-companion-booklovers.md)) — [Kostic et al. 2020](https://arxiv.org/pdf/2011.00329)
 
 ### Orientation and publishing convention
 - **English-language standard.** ISO 6357 favours descending (top-to-bottom) spine titles, which read correctly when the book lies flat with its cover up — [danq.me on ISO 6357](https://danq.me/2019/01/27/iso-6357/)

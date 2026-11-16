@@ -3,8 +3,7 @@
 *Omri Suissa, Avshalom Elmalech, Maayan Zhitomirsky-Geffet (Department of Information Science, Bar-Ilan University)
 · the extracted text carries no venue, year, DOI or licence; its web references were last accessed 2019-06-20, so
 it predates "2023", the caller's dating (unconfirmed here). It is **not** the ACM JOCCH 2022 paper (doi
-10.1145/3479159) that [HEBREW.md](../HEBREW.md) cites, though by the same group on the same corpus · PDF: study
-Drive folder Literature/suissa-2023-hebrew-ocr-postcorrection.pdf.*
+10.1145/3479159) that [HEBREW.md](../HEBREW.md) cites, though by the same group on the same corpus · PDF: study Drive folder `Literature/Optimizing the neural network training for OCR error correction of historical Hebrew texts.pdf`.*
 
 **Why it matters here:** it is the one source with a *measured* table of which Hebrew letters OCR confuses, and a
 test of what dictionary-style spellcheckers do to Hebrew OCR output. Both bear on our speller (`spelling` in

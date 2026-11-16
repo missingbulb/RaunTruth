@@ -4,6 +4,8 @@
 [PMID 36107227](https://pubmed.ncbi.nlm.nih.gov/36107227/) · read from the NIH author manuscript
 (PMC, 33 pages) supplied by the owner.*
 
+
+*PDF: kept in the study's Drive `Literature` folder as `Concussion leads to widespread axonal sodium channel loss and disruption of the node of Ranvier.pdf`, not in the repo.*
 > **Attribution correction.** The first pass of this review cited this paper as "Reeves et al.",
 > taken from a web-search summary. **The authors are Song, McEwan, Ameen-Ali, Tomasevich,
 > Kennedy-Dietrich, Palma, Arroyo, Dolle, Johnson, Stewart & Smith.** Issue

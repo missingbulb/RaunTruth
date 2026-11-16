@@ -12,9 +12,7 @@
   41 pages: article, Methods, 10 Extended Data figures and the Nature Portfolio Reporting Summary.
 - **Licence:** **CC BY 4.0** ("Open Access This article is licensed under a Creative Commons
   Attribution 4.0 International License", page 12). © the authors.
-- **PDF:** kept in the study's Drive Literature folder as
-  `Characteristics of blood–brain barrier heterogeneity between brain regions revealed by profiling vascular and perivascular cells.pdf`,
-  not in the repo.
+- **PDF:** kept in the study's Drive `Literature` folder as `Characteristics of blood–brain barrier heterogeneity between brain regions revealed by profiling vascular and perivascular cells.pdf`, not in the repo.
 - **One-line thesis:** the median eminence (ME), a circumventricular organ with naturally leaky
   vessels, differs from somatosensory cortex both in its capillary endothelial cells (~400–445
   differentially expressed genes; PLVAP⁺, fenestrated, MFSD2A⁻, GLUT1⁻, CLDN5⁻) and in their

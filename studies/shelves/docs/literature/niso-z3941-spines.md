@@ -3,8 +3,7 @@
 *National Information Standards Organization, "Printed Information on Spines", ANSI/NISO Z39.41-1997 (revision of
 Z39.41-1990; first issued 1979 as *Book Spine Formats*), approved by ANSI 14 January 1997 · NISO Press, Bethesda,
 1998 · ISBN 1-880124-32-7, ISSN 1041-5653 · niso.org · © 1998 NISO, all rights reserved (no reproduction without
-permission; these notes paraphrase and quote clauses briefly) · PDF: study Drive folder
-Literature/niso-1997-z3941-printed-info-spines.pdf.*
+permission; these notes paraphrase and quote clauses briefly) · PDF: study Drive folder `Literature/Printed Information on Spines.pdf`.*
 
 **Why it matters here:** it is the norm for *where* on a spine the title, the author and the publisher go and
 *which way* the title runs, including for Hebrew. It gives our reader priors on layout and turn, and our matcher a

@@ -9,7 +9,7 @@
   Grossman School of Medicine / NYU Tandon / SUNY Downstate.
 - **Venue / id:** *Frontiers in Aging Neuroscience* (2020) **12:585218**, ORIGINAL RESEARCH.
   DOI **10.3389/fnagi.2020.585218**. Open access. 17 pages.
-- **PDF:** `hill-2020-aging-mra-cerebrovascular-loss.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Detection of Cerebrovascular Loss in the Normal Aging C57BL Mouse Brain Using in vivo Contrast-Enhanced Magnetic Resonance Angiography.pdf`, not in the repo.
 - **One-line thesis:** a home-made **gadolinium-micelle blood-pool contrast agent** makes whole-
   brain **in vivo MR angiography** of the mouse cerebrovasculature possible longitudinally; over
   two years of normal aging the **apparent cerebral blood volume (aCBV) falls significantly**, and

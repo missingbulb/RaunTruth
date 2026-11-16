@@ -3,7 +3,7 @@
 *F. Chen, H. Zhang, Z. Li, J. Dou, S. Mo, H. Chen, Y. Zhang, U. Ahmed, C. Zhu, M. Savvides (CMU, Pittsburgh,
 Tsinghua). ECCV 2022 · arXiv [2204.00298](https://arxiv.org/abs/2204.00298) (v4, 20 Jul 2022, with supplementary) ·
 open access on arXiv, licence not checked; the dataset's licence is not stated in the paper (unitedretail.github.io,
-with an evaluation server) · PDF: study Drive folder Literature/chen-2022-unitail.pdf · full text and supplementary
+with an evaluation server) · PDF: study Drive folder `Literature/Unitail - Detecting, Reading, and Matching in Retail Scene.pdf` · full text and supplementary
 read from the arXiv PDF.*
 
 **Why it matters to us:** it is the case for detecting dense, tilted items as **quadrilaterals** rather than

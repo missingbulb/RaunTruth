@@ -2,8 +2,8 @@
 
 Researched 2026-11-15. Downloaded open-access PDFs (verified with `file`, not opened) are in
 the study Drive folder `Literature/`
-`llabres-2024-library-dataset.pdf` (arXiv 2407.19812), `wieczorek-2022-trixi-the-librarian.pdf` (arXiv 2210.10110),
-`yang-2016-smart-library.pdf` (arXiv 1611.07385). The Stanford Tsai 2011 PDF failed twice with a TLS-chain error through the proxy and was not saved.
+`Image-text matching for large-scale book collections.pdf` (arXiv 2407.19812), `Trixi the Librarian.pdf` (arXiv 2210.10110),
+`Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf` (arXiv 1611.07385). The Stanford Tsai 2011 PDF failed twice with a TLS-chain error through the proxy and was not saved.
 
 ## Q1. Datasets: size, regime, annotation type, licence, URL, quality, fit to our regime
 
@@ -32,7 +32,7 @@ Three public sets carry **per-spine polygons** on real phone photos of shelves: 
   - Harald Varner "Book identification by spine"
 
   A search summary reported one set with 546 CC BY 4.0 images and one with 611 images, both boxes. I could not verify which projects those are; the 611 matches Trixi's own count (below). Most descriptions are empty. — [LibVision](https://universe.roboflow.com/libvision/book-spines-vh9b8), [Varner seg](https://universe.roboflow.com/harald-varner-xv5u7/book-spine-instance-segmentation), [minhaz](https://universe.roboflow.com/minhaz/book_spine_instance_segmentation-uqybb), [Art Processors](https://universe.roboflow.com/art-processors/book-spines-test-2/dataset/), [cnu-hmlab](https://universe.roboflow.com/cnu-hmlab-syko-and-ash/book-spine-dataset), [cnu-hmlab library](https://universe.roboflow.com/cnu-hmlab-syko-and-ash/book-spine-dataset-library), [P2](https://universe.roboflow.com/book-detection/book-spine-detection-p2), [Kocaeli](https://universe.roboflow.com/kocaeli-university-yw5uh/book-dataset), [fully-visible](https://universe.roboflow.com/dt-bbmdm/books-but-only-if-spine-is-fully-visible.), [leo-ueno](https://universe.roboflow.com/leo-ueno/book-spine-segmentation), [DAHL](https://universe.roboflow.com/woody-willis-kly8v/dahl-book-spine-identification), [Varner id](https://universe.roboflow.com/harald-varner-xv5u7/book-identification-by-spine), [shangching books](https://universe.roboflow.com/shangching-live-com/books-pxco5)
-- **Trixi the Librarian (Wieczorek, Liu, Sygo, Koshil; arXiv 2022-10).** A robotics paper that labelled spines in **611 images**, fine-tuned YOLOv5 on them and links its dataset. A Roboflow project by shangching (likely co-author Shang-Ching Liu) appears in search results. Its only reported result is qualitative: it can "repeatedly sort three books on a shelf". — [arXiv 2210.10110](https://arxiv.org/abs/2210.10110); [Roboflow shangching books](https://universe.roboflow.com/shangching-live-com/books-pxco5)
+- **Trixi the Librarian (Wieczorek, Sygo, Liu, Koshil; arXiv 2022-10).** A robotics paper that labelled spines in **611 images**, fine-tuned YOLOv5 on them and links its dataset. A Roboflow project by shangching (likely co-author Shang-Ching Liu) appears in search results. Its only reported result is qualitative: it can "repeatedly sort three books on a shelf". — [arXiv 2210.10110](https://arxiv.org/abs/2210.10110); [Roboflow shangching books](https://universe.roboflow.com/shangching-live-com/books-pxco5)
 
 **B. Title or identity labels (can score reading or matching; aggregate only for detection)**
 

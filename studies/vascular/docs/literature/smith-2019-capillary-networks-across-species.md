@@ -10,7 +10,7 @@
   (\*corresponding). IMF Toulouse; Cornell; Delaware; INSERM Toulouse; Tel Aviv; UC San Diego.
 - **Venue / id:** *Frontiers in Physiology* (2019) **10:233**. DOI **10.3389/fphys.2019.00233**.
   **Open access, CC BY.** Supplementary Material online (not fetched; see §5).
-- **PDF:** `smith-2019-capillary-networks-across-species.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Brain Capillary Networks Across Species - A few Simple Organizational Requirements Are Sufficient to Reproduce Both Structure and Function.pdf`, not in the repo.
 - **One-line thesis:** mouse and human cortical capillary beds are topologically the same and differ
   only in scale; a 3D Voronoi network trimmed to three-way junctions, with one length scale
   L_C (75 µm mouse, 90 µm human), reproduces their geometry, topology, flow and transport.

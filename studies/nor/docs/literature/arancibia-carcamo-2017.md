@@ -3,6 +3,8 @@
 *eLife 2017;6:e23329 · DOI [10.7554/eLife.23329](https://doi.org/10.7554/eLife.23329) ·
 CC-BY · UCL (Attwell lab) + Iwate Medical University · full text read from the publisher PDF.*
 
+
+*PDF: kept in the study's Drive `Literature` folder as `Node of Ranvier length as a potential regulator of myelinated axon conduction speed.pdf`, not in the repo.*
 **Why this source is first among all of them:** the owner's overview reproduces this paper's
 Figure 1 as its own Figures 2 and 7, and its §5.3 plot-profile requirement *is* this paper's node
 length method. This is the reference implementation we are automating. These notes are written to

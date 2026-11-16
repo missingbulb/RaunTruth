@@ -6,7 +6,7 @@ building the detector, not for a neuroscientist.
 Principal source: **Rasband & Peles 2016**, *The Nodes of Ranvier: Molecular Assembly and
 Maintenance*, Cold Spring Harbor Perspectives in Biology 8:a020495,
 [PMC4772103](https://pmc.ncbi.nlm.nih.gov/articles/PMC4772103/) — full text read. Points sourced
-elsewhere are attributed inline.
+elsewhere are attributed inline. Its PDF is kept in the study's Drive `Literature` folder as `The Nodes of Ranvier - Molecular Assembly and Maintenance.pdf`, not in the repo.
 
 The same authors' newer review — **Rasband & Peles 2021**, *Mechanisms of node of Ranvier assembly*,
 Nat Rev Neurosci 22:7–20 — was also read in full and **supersedes nothing here**. It is a mechanism

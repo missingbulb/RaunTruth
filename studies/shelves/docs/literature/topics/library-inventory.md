@@ -33,10 +33,10 @@ The only near-perfect field figure, "up to 99%", comes from RFID (A*STAR's AuRoS
 - Trixi the Librarian (Wieczorek, Sygo, Liu, Koshil, Univ. Hamburg, arXiv:2210.10110, 2022; OA):
   - Platform: a PR-2 robot.
   - Pipeline: YOLOv5 spine detection, fine-tuned on 611 self-labelled images, then CRAFT text detection and a DTRB scene-text recognizer.
-  - Text matching was abandoned for **HSV colour histograms**, because text and SIFT were "not sufficiently reliable". Small text became illegible at the camera's resolution.
+  - Text matching was abandoned for **HSV colour histograms**, because neither text nor SIFT "showed sufficient performance": the text was too small and the camera gave too few clear images, and SIFT confused look-alike books (full text: [`wieczorek-2022-trixi-the-librarian.md`](../wieczorek-2022-trixi-the-librarian.md)).
   - It reports no quantitative accuracy; the demo sorts three books.
   - It notes **there is no standardized benchmark for book-spine recognition**.
-  - [ar5iv](https://ar5iv.labs.arxiv.org/html/2210.10110). Local: `wieczorek-2022-trixi-the-librarian.pdf` (only 2 pages; possibly short or truncated, not verified).
+  - [ar5iv](https://ar5iv.labs.arxiv.org/html/2210.10110). Local: `Trixi the Librarian.pdf` (the complete 10-page arXiv v2).
 - DL On-shelf Books Recognition (GitHub, Boatsure): top-1 99.18%, top-5 99.91% when recognizing 3.6k IDs from 5.6k spine images, in **simulated** scenarios, with a prototype grasping robot. — [GitHub](https://github.com/Boatsure/DL-On-shelf-Books-Recognition)
 
 **Smartphone and vision research**
@@ -44,7 +44,7 @@ The only near-perfect field figure, "up to 99%", comes from RFID (A*STAR's AuRoS
 - Tsai, Chen, Singh, Girod, "Combining image and text features: a hybrid approach to mobile book spine recognition", ACM MM 2011 (DOI 10.1145/2072298.2071930). It runs text-based search (spine OCR as keywords) and image-feature matching in parallel and combines the results. The motivation: "some book spines contain only text components that do not yield distinguishing image features". A listing reports that either pipeline alone reaches about 72% recall and the hybrid about 91%. — [NTHU listing](https://scholars.nthu.edu.tw/esploro/outputs/conferencePaper/Combining-image-and-text-features-A/9957768442206774); author PDF https://web.stanford.edu/~bgirod/pdfs/Tsai_ACM_Multimedia_11.pdf (not saved: TLS error).
   - Conflict: a later arXiv paper cites the Tsai hybrid as precision 0.92, recall 0.60, F 0.91 (internally inconsistent). Unresolved until the original is read. — [arXiv 1611.07385](https://arxiv.org/pdf/1611.07385)
   - A later Stanford Android version used tiled search and reached about 1 s recognition delay for live viewfinder augmentation. Stanford also holds patent US 9,805,331, "Smartphone-based asset management", covering library, bookstore and **personal collections**. — [Google Patents](https://patents.google.com/patent/US9805331)
-- Yang, He, Huang, Zhou, Ororbia, Kifer, Giles (Penn State), "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading", arXiv:1611.07385, 2016; OA. It treats spine reading as scene text and argues that "the performance of most existing approaches is limited by book spine segmentation and off-the-shelf OCR systems". The abstract gives no numbers. — [arXiv abs](https://arxiv.org/abs/1611.07385). Local: `yang-2016-smart-library.pdf` (2 pages; may be a truncated copy, not verified).
+- Yang, He, Huang, Zhou, Ororbia, Kifer, Giles (Penn State), "Smart Library: Identifying Books in a Library using Richly Supervised Deep Scene Text Reading", arXiv:1611.07385, 2016; OA. It treats spine reading as scene text and argues that "the performance of most existing approaches is limited by book spine segmentation and off-the-shelf OCR systems". The abstract gives no numbers. — [arXiv abs](https://arxiv.org/abs/1611.07385). Local: `Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf` (2 pages; may be a truncated copy, not verified).
 - IAPR DAS 2024, "Image-text matching for large-scale book collections": SAM-based spine segmentation, commercial OCR and partial text matching against the catalogue, with a released bookshelf-image dataset from a Spanish public library. — [IAPR archive](https://iapr.org/archives/das2024/papers/Image-text%20matching%20for%20large-scale%20book%20collections.html) (not downloaded; OA status unchecked)
 
 **Tagged AR**
@@ -106,7 +106,7 @@ ISO 6357:1985 (confirmed 2023) prefers a **transverse** (horizontal) spine title
 - British equivalent BS 6738. The author's English shelf is mostly descending, with some transverse and ascending exceptions. Commenters report German and Swiss titles as "typically ascending". — [Dan Q blog, 2019](https://bcdn.danq.me/2019/01/27/iso-6357/) (blog, secondary)
 - North America runs top to bottom, Europe usually bottom to top. — [creativepro "dot-font: Putting Some Spine in Design"](https://creativepro.com/?p=118228) (secondary)
 - ANSI/NISO Z39.41: first issued 1979 as a spine format standard, now titled "Placement Guidelines for Information on Spines". It "describes and allocates areas on the spines of printed bindings, covers, containers". NISO distributes it free. — [NISO project page](https://groups.niso.org/higherlogic/ws/public/projects/126/details); [ANSI webstore](https://webstore.ansi.org/standards/niso/ansinisoz39411997r2002)
-  - PDF: https://groups.niso.org/higherlogic/ws/public/download/6465/Printed%20Information%20on%20Spines.pdf. Local copy: `niso-1997-z3941-printed-info-spines.pdf`. It is an encrypted PDF, so its clauses (label-area dimensions, title direction) could not be read and are not verified here.
+  - PDF: https://groups.niso.org/higherlogic/ws/public/download/6465/Printed%20Information%20on%20Spines.pdf. Local copy: `Printed Information on Spines.pdf`. It is an encrypted PDF, so its clauses (label-area dimensions, title direction) could not be read and are not verified here.
 - Hebrew: Hebrew books run right to left, so their page order is reversed (the last page of the PDF is the first page of the book). The source does not discuss spines. — [Times of Israel blog "Reverse polarity"](https://blogs.timesofisrael.com/reverse-polarity/)
 
 ### Inferences
@@ -129,12 +129,12 @@ Manual shelf reading checks call-number order shelf by shelf. Cornell measured 2
   - Traditional shelf reading took 2.24 min per 3-ft shelf and found 1.18 shelving errors per shelf, for 274 h over 7,340 shelves.
   - "QuickRead": students check only the first half of each call number, 25–35 shelves per 15-minute stint. It finds **83%** of shelving errors (goal 90% in half the time) and catches every book misshelved several aisles away.
   - [Cornell](https://engineering.library.cornell.edu/space-optimization-and-inventory-control)
-- Electronic shelf reading, medium academic library, about 300,000 volumes:
+- Electronic shelf reading, about 305,000 volumes scanned (LC classes D–H, N, P and Q, two thirds of the monograph collection; Sung, Whisler & Sung 2009, reviewed by Newton Miller 2010):
   - Of 228 "missing" books, 30% were scanned in their correct location, 10% were found 26–100 books away and about 50% more than 100 books away.
-  - Re-shelving "missing" books was more cost-effective than buying them again.
-  - [EBLIP evidence summary, Sep 2010](https://doaj.org/article/8d04ab196e384558971336867b7ef9eb) (search snippet; DOAJ returned 403 on fetch). OA. PDF https://journals.library.ualberta.ca/eblip/index.php/EBLIP/article/download/8214/7342/22440, local `newtonmiller-2010-inventory-cost-eblip.pdf`.
-  - The "sinclair" filename is a placeholder: I could not verify the summary's author or the original study it summarizes.
-- Edwardy & Pontius, "Monitoring book reshelving in libraries using statistical sampling and control charts", *LRTS* 45(2), 2001, DOI 10.5860/lrts.45n2.90; OA. It samples misshelving rates over time and uses a control chart to decide when to shelf-read. — [LRTS](https://journals.ala.org/index.php/lrts/article/view/5196). Local: `edwardy-2001-reshelving-control-charts.pdf`.
+  - The labour of inventory control (2.2 ¢ per book scanned) cost less than repurchasing or borrowing the badly misshelved books it found.
+  - [EBLIP evidence summary, Sep 2010](https://doaj.org/article/8d04ab196e384558971336867b7ef9eb) (search snippet; DOAJ returned 403 on fetch). OA. PDF https://journals.library.ualberta.ca/eblip/index.php/EBLIP/article/download/8214/7342/22440, local `Labour Costs for Inventory Control Less Expensive than Repurchasing.pdf`.
+  - Full text: [`newtonmiller-2010-inventory-cost-eblip.md`](../newtonmiller-2010-inventory-cost-eblip.md).
+- Edwardy & Pontius, "Monitoring book reshelving in libraries using statistical sampling and control charts", *LRTS* 45(2), 2001, DOI 10.5860/lrts.45n2.90; OA. It samples misshelving rates over time and uses a control chart to decide when to shelf-read. — [LRTS](https://journals.ala.org/index.php/lrts/article/view/5196). Local: `Monitoring Book Reshelving in Libraries Using Statistical Sampling and Control Charts.pdf`.
 - Other figures:
   - UW–Madison sample inventory: 1,225 items reported misshelved in 2 months (Van Gemert, 1996). — [search snippet, crln](https://crln.acrl.org/index.php/crlnews/article/view/18994/21903)
   - Purdue (barcode era): 20% of books missing or misshelved before a full inventory; the missing rate fell from 5.6% to under 0.5% after. — [Purdue e-Pubs](https://docs.lib.purdue.edu/lib_fsdocs/1)
@@ -164,7 +164,7 @@ Detecting misplacement (order) is irrelevant for a home tool. "Missing" here mea
 - I have no quantitative error rates from manual shelf reading itself: how many errors a human shelf-reader misses.
 - No library-science source defines a standard "inventory accuracy" metric. Practice uses ad hoc read rates and missing counts.
 
-Downloaded but not text-verified: `niso-1997-z3941-printed-info-spines.pdf`, `newtonmiller-2010-inventory-cost-eblip.pdf`, `edwardy-2001-reshelving-control-charts.pdf`, `yang-2016-smart-library.pdf`, `wieczorek-2022-trixi-the-librarian.pdf`.
+Each of these is now summarised from its full text: [`niso-z3941-spines.md`](../niso-z3941-spines.md), [`newtonmiller-2010-inventory-cost-eblip.md`](../newtonmiller-2010-inventory-cost-eblip.md), [`edwardy-2001-reshelving-control-charts.md`](../edwardy-2001-reshelving-control-charts.md), [`yang-2016-smart-library.md`](../yang-2016-smart-library.md), [`wieczorek-2022-trixi-the-librarian.md`](../wieczorek-2022-trixi-the-librarian.md).
 
 Paywalled or failed downloads:
 - Li et al. IROS 2015 (AuRoSS): paywalled.

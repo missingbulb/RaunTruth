@@ -10,7 +10,7 @@
   CHU Sainte-Justine / Université de Montréal / Polytechnique Montréal.
 - **Venue / id:** *Nature Communications* (2026) **17:6746**.
   DOI **10.1038/s41467-026-73373-w**. Received 18 Aug 2023, accepted 28 Apr 2026. 18 pages.
-- **PDF:** `bizou-2026-nvu-angiogenic-programs.pdf`
+- **PDF:** kept in the study's Drive `Literature` folder as `Mapping neuro-vascular unit communications reveals distinct angiogenic programs across developing mouse brain regions.pdf`, not in the repo.
 - **One-line thesis:** spatial transcriptomics + region-resolved endothelial scRNA-seq across
   postnatal mouse brain show that **cortex and thalamus run different angiogenic programs on
   different schedules**; neuronal→endothelial **TGFβ2** signalling drives thalamic vascularization

@@ -12,6 +12,7 @@
 - **Venue / id:** *Journal of Visualized Experiments* (JoVE) **136**, **e57648**, published
   5 June 2018. Article type: **Video Article** (a protocol with a companion video). 9 pages.
   DOI **10.3791/57648**. Article/video URL: https://www.jove.com/video/57648
+- **PDF:** kept in the study's Drive `Literature` folder as `Quantifying Microglia Morphology from Photomicrographs of Immunohistochemistry Prepared Tissue Using ImageJ.pdf`, not in the repo.
 - **Licence (as printed in every page header):** "Copyright © 2018 Creative Commons
   Attribution-NonCommercial-NoDerivs 3.0 Unported License" — **CC BY-NC-ND 3.0**.
 - **Funding:** NINR F32NR013611. Authors declare nothing to disclose.

@@ -11,8 +11,7 @@
   1–20). DOI **10.1016/j.neuron.2021.02.006**. © Elsevier. Free author manuscript at
   [PMC8525211](https://pmc.ncbi.nlm.nih.gov/articles/PMC8525211); the publisher PDF read here came from
   [the Kleinfeld lab site](https://neurophysics.ucsd.edu/publications/1-s2.0-S0896627321000805-main.pdf).
-- **PDF:** not committed: the article is copyrighted (Elsevier) and this repository is public. The
-  two links above hold it; this digest is the working record. No figure images are committed either.
+- **PDF:** kept in the study's Drive `Literature` folder as `Brain microvasculature has a common topology with local differences in geometry that match metabolic load.pdf`, not in the repo.
 - **One-line thesis:** in a sub-micrometre reconstruction of three whole mouse brains, every region
   shares one network topology (three-way junctions, near-planar, compact loops, the same percolation
   threshold), while regions differ in length density, which tracks resting metabolism so that the

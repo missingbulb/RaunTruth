@@ -2,10 +2,10 @@
 
 Scope note: compiled 2026-11-15 with a capped tool budget. Semantic Scholar API returned HTTP 429 (rate limit) on every query, so discovery used arXiv API + web search. Stanford (web.stanford.edu) PDFs failed with a TLS "self-signed certificate in chain" error through the sandbox proxy, and MDPI PDF endpoints returned HTML (bot wall); those papers are listed but not downloaded. Downloaded PDFs (verified with `file` as real PDFs, not opened):
 the study Drive folder `Literature/`
-- `yang-2016-smart-library.pdf` (arXiv 1611.07385)
-- `llabres-2024-library-dataset.pdf` (arXiv 2407.19812)
-- `wieczorek-2022-trixi-the-librarian.pdf` (arXiv 2210.10110)
-- `talker-2013-spine-segmentation-reorganization-thesis.pdf` (Reichman Univ. MSc thesis, 23.7 MB)
+- `Smart Library - Identifying Books in a Library using Richly Supervised Deep Scene Text Reading.pdf` (arXiv 1611.07385)
+- `Image-text matching for large-scale book collections.pdf` (arXiv 2407.19812)
+- `Trixi the Librarian.pdf` (arXiv 2210.10110)
+- `Book Spine Segmentation for Bookshelf Reorganization.pdf` (Reichman Univ. MSc thesis, 23.7 MB)
 
 ## Q1. Which papers/theses exist, and what does each method do, step by step?
 

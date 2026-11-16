@@ -11,8 +11,7 @@
   October 3, 2018). DOI **10.1152/physrev.00050.2017**. 58 pages, ~700 references.
 - **Licence:** "Copyright © 2019 the American Physiological Society" (page 21 footer). Not open
   access, so no figure images are committed (see [`figures/README.md`](#figures)).
-- **PDF:** not in the repo. It is kept in the study's Drive Literature folder as
-  `Blood-Brain Barrier - From Physiology to Disease and Back.pdf`.
+- **PDF:** kept in the study's Drive `Literature` folder as `Blood-Brain Barrier - From Physiology to Disease and Back.pdf`, not in the repo.
 - **One-line thesis:** the BBB is a property of the whole neurovascular unit (endothelium,
   pericytes, smooth muscle cells, astrocytes, neurons), varies along the arterio-capillary-venous
   axis, and breaks down early in many neurodegenerative and acute CNS disorders, often before
