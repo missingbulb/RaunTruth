@@ -1,7 +1,7 @@
 # Project brief — automated detection of Nodes of Ranvier
 
 Durable ingest of the owner's overview document (`NoR_detection_project.pdf`, 4 pages). Session
-upload paths do not persist, so **this file and [`figures/`](figures/) are the record** — the PDF
+upload paths do not persist, so **this file, its figures described in words, is the record** — the PDF
 itself is not the source of truth for any later session.
 
 The verbatim extracted text is kept beside it in
