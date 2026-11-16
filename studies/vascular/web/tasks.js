@@ -278,7 +278,7 @@ function show(moved) {
     $('area-ok').title = left ? `${left} junction${left === 1 ? '' : 's'} here still to judge` : "Every line, point and junction here is right: on to the area's widths";
   } else if (widths) {
     j = null;
-    work.querySelector('.hint').textContent = 'Click a vessel to select it, then make it narrower or wider. Hold 5 to see the area in 3D.';
+    work.querySelector('.hint').textContent = 'Click a vessel to select it, then make it narrower or wider. Hold 4 to see the area in colour in 3D.';
     $('junctions-note').textContent = '';
     const bare = drawnWithout(m, st.area).length;
     $('widths-note').textContent = bare ? `${bare} vessel${bare === 1 ? '' : 's'} you drew here still need${bare === 1 ? 's' : ''} a width.` : '';

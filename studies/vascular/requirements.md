@@ -110,17 +110,18 @@ owner's decisions on the stacks and the vessel model, are
   (`req/nor/show-menu`): all of them, the four views included, are in one Show menu at the toolbar's left. Changed by
   the owner on 2026-11-16, the views are on the number keys too, each listed in the image's keys legend
   (`req/shell/image/keys`) while a model shows, its row filled blue while its view is the one shown. Changed by the
-  owner on 2026-11-16, every view is a number, held at any time a model shows, in the whole stack, an area or its
-  widths step alike: it shows that view while held, the view as it was back on release, and clicking its label keeps
-  it on or off; the last one switched on shows. 1 Model, the model alone; 2 No outlines, the stack without the magenta
-  lines over it; 3 Side by side; 5 Image + model, the magenta lines over the stack; 6 Widths, the stack from straight
-  above in its own pixels, every slice flattened, grey, with each vessel's width (`req/vascular/truth/widths`), never
-  turning; 7 Grey image, the same without the widths. 1, 2, 3 and 5 turn in 3D as the view was turned; 6 and 7 are of
-  the area open, or the whole stack, and letting go turns the view back as it was. What shows with no number held is
-  the step's own view: on the whole stack the one the Show menu chose, in an area Image + model, in an area's widths
-  step Widths. 4 Cut out what is done, while
-  tagging on the whole stack, switches its Show menu row, which follows it, and a held 4 switches once. A digit is
-  read by its place, on the number row or the number pad, never while typing in a field or with a menu or dialog open,
+  owner on 2026-11-16, every view is a number, held at any time a model shows, and each number means one thing
+  wherever it is pressed: 1 the model alone; 2 no markings, the picture without the lines or widths drawn over it; 3
+  side by side, the picture and the model each in a half; 4 the other of the two pictures, the stack in colour in 3D or
+  grey from straight above in its own pixels, every slice flattened, with each vessel's width
+  (`req/vascular/truth/widths`). A held number shows its view, the view as it was back on release, and clicking its
+  label keeps it on or off; the last one switched on shows. With none held the step's own view shows, which no number
+  names: on the whole stack the one the Show menu chose, in an area the model's lines over the stack in colour in 3D,
+  in an area's widths step the grey picture with the widths. So 2 there is the grey picture alone, 3 the grey picture
+  with the widths beside the model, and 4 the area in colour in 3D; on the whole stack or in an area 2 is the stack
+  without the lines, 3 the stack beside the model, and 4 the grey picture with the widths. The grey picture never turns,
+  and letting go turns the view back as it was. Cut out what is done has no key: its Show menu row switches it
+  while tagging on the whole stack (`req/vascular/truth/marks`). A digit is read by its place, on the number row or the number pad, never while typing in a field or with a menu or dialog open,
   never with Ctrl, Alt or ⌘. Vessel widths, Detected and Missed have no key. While an area of the
   Ground Truth Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
   vessels always show, faded, with no option to hide them; hiding vessels to help ground truth belongs in the Ground Truth Tasks. Test: `studies/vascular/tests/test_model_page.py`.
@@ -234,9 +235,10 @@ owner's decisions on the stacks and the vessel model, are
   slice flattened, grey, from straight above, never turning. Each vessel, junction or tip to the next, has one width,
   never a taper: two lines at that width either side of it, stopping short of its ends, and the width in µm beside its
   middle. Magenta is the algorithm's estimate, nobody has checked; amber one the person set; a vessel the person drew
-  shows a "?" until it has a width. This is the Widths view, 6 (`req/vascular/model/view`), the step's own: holding
-  another number shows that view of the area, 5 the model's lines over the stack in 3D, turning as anywhere, with the
-  selected vessel marked, and letting go gives the Widths view back, the selection kept; 7 shows the grey image alone. Resting the pointer on a vessel opens a lens beside it: the stack's own pixels there, the mean of
+  shows a "?" until it has a width. This is the step's own view (`req/vascular/model/view`): holding a number shows
+  another view of the area, 2 the grey picture alone, 3 the grey picture beside the model, 4 the model's lines over the
+  stack in colour in 3D, turning as anywhere, with the selected vessel marked, and letting go gives it back, the
+  selection kept. Resting the pointer on a vessel opens a lens beside it: the stack's own pixels there, the mean of
   about three slices at the vessel's depth, a line across the vessel and the brightness along that line, half its
   height dashed.
 

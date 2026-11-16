@@ -90,11 +90,8 @@
     {"id": "wider", "label": "Wider", "title": "The selected vessel 0.25 µm wider", "keys": ["Equal", "Shift+Equal", "NumpadAdd"], "hint": "+", "kind": "press", "legend": false, "control": "#w-wider", "when": ["look"]},
     {"id": "reset", "label": "Reset", "title": "The algorithm's estimate again as the selected vessel's width", "keys": ["Backspace"], "kind": "press", "legend": false, "control": "#w-reset", "when": ["look"]},
     {"id": "model", "label": "Model", "title": "Hold 1 to see the model alone, or click to keep it on", "keys": ["Digit1", "Numpad1"], "kind": "hold", "legend": true, "on": "alone", "when": ["model"]},
-    {"id": "outlines", "label": "No outlines", "title": "Hold 2 to hide the model's magenta lines over the stack, or click to keep them hidden", "keys": ["Digit2", "Numpad2"], "kind": "hold", "legend": true, "on": "bare", "when": ["model"]},
-    {"id": "side", "label": "Side by side", "title": "Hold 3 to see the stack and the model side by side, or click to keep it on", "keys": ["Digit3", "Numpad3"], "kind": "hold", "legend": true, "on": "side", "when": ["model"]},
-    {"id": "both", "label": "Image + model", "title": "Hold 5 to see the model's lines over the stack, or click to keep it on", "keys": ["Digit5", "Numpad5"], "kind": "hold", "legend": true, "on": "both", "when": ["model"]},
-    {"id": "widths-view", "label": "Widths", "title": "Hold 6 to see the stack from straight above in its own pixels, grey, with each vessel's width, or click to keep it on", "keys": ["Digit6", "Numpad6"], "kind": "hold", "legend": true, "on": "widths", "when": ["model"]},
-    {"id": "grey", "label": "Grey image", "title": "Hold 7 to see the stack from straight above in its own pixels, grey, without the widths, or click to keep it on", "keys": ["Digit7", "Numpad7"], "kind": "hold", "legend": true, "on": "grey", "when": ["model"]},
-    {"id": "cut", "label": "Cut out what is done", "title": "Each area done, blacked out of the stack", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "legend": false, "on": "cut", "when": ["model", "truthTagging", "!focused"]}
+    {"id": "outlines", "label": "No markings", "title": "Hold 2 to see the picture without the lines or widths drawn over it, or click to keep it so", "keys": ["Digit2", "Numpad2"], "kind": "hold", "legend": true, "on": "bare", "when": ["model"]},
+    {"id": "side", "label": "Side by side", "title": "Hold 3 to see the picture and the model side by side, or click to keep it on", "keys": ["Digit3", "Numpad3"], "kind": "hold", "legend": true, "on": "side", "when": ["model"]},
+    {"id": "swap", "label": "3D / 2D", "title": "Hold 4 for the other view: the stack in colour in 3D, or grey from straight above in its own pixels with each vessel's width", "keys": ["Digit4", "Numpad4"], "kind": "hold", "legend": true, "on": "swap", "when": ["model"]}
   ]
 }

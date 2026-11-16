@@ -44,7 +44,7 @@ const SPOT_REACH = 1.25, SPOT_MIN_PX = 60, FADED = .15;
 
 let model = null, loaded = null, history = [], future = [], edits = 0, savedKey = null;
 // mode: what the main view shows, "image" (the stack alone), "model" (the model alone), "overlay", "side", or from straight
-// above in the stack's own pixels "widths" or "grey" (the picture alone)
+// above in the stack's own pixels "widths", "grey" (the picture alone) or "wside" (the widths beside the model)
 let mode = 'image', hover = null, rubber = null, showWidths = true;
 let review = 'all', reach = .5, maskKey = null, maskTimer = null, drawing = null, moving = null;
 // makingTruth: the study makes ground truth; tagOn: the owner tags it now; cutOn: what is done is cut out while they
@@ -60,7 +60,7 @@ const held = new Set(), kept = new Set();
 // once its junctions are done; widthPicked hears a vessel selected there; flatSaved: the camera before a flat view, back
 // after it
 let look = null, widthStep = false, widthPicked = () => {}, flatSaved = null;
-const FLAT = new Set(['widths', 'grey']);
+const FLAT = new Set(['widths', 'grey', 'wside']);
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* no storage: edits live until the page closes */ } },
@@ -81,6 +81,8 @@ function fromWorld(p) {
 }
 
 let cv = null, view = null;   // the canvas the model is drawn on, and its last projection
+// the widths view's own canvas while it shows beside the model, over the stack's half
+let wcv = null;
 function project() {
   const W = cv.clientWidth, H = cv.clientHeight, vp = V.camera(W / H), pts = new Map();
   const at = (p) => { const v = V.M.xf(vp, toWorld(p)); return v[3] > 0 ? [(v[0] / v[3] + 1) / 2 * W, (1 - v[1] / v[3]) / 2 * H, v[3], v[2] / v[3]] : null; };
@@ -196,7 +198,7 @@ const hex = (rgb) => '#' + rgb.map((v) => Math.round(v * 255).toString(16).padSt
 const depthTint = (palette, z) => hex(palette((z - V.S.z0) / Math.max(V.S.z1 - V.S.z0, 1)));
 const shade = (hex, f) => `rgb(${[1, 3, 5].map((k) => Math.round(parseInt(hex.slice(k, k + 2), 16) * f)).join(',')})`;
 
-const alone = () => mode === 'side' || mode === 'model';
+const alone = () => mode === 'side' || mode === 'model' || mode === 'wside';
 function draw() {
   if (!V || !model || !V.meta || !cv.clientWidth) return;
   const dpr = window.devicePixelRatio || 1;
@@ -204,7 +206,11 @@ function draw() {
   const c = cv.getContext('2d'); c.scale(dpr, dpr);
   if (alone()) { c.fillStyle = '#000'; c.fillRect(0, 0, cv.clientWidth, cv.clientHeight); }
   view = project();
-  if (look.on) return look.draw(c);
+  if (look.on && mode !== 'wside') return look.draw(c);
+  if (mode === 'wside' && wcv.clientWidth) {
+    wcv.width = wcv.clientWidth * dpr; wcv.height = wcv.clientHeight * dpr;
+    const w = wcv.getContext('2d'); w.scale(dpr, dpr); look.draw(w);
+  }
   if (mode !== 'image') drawModel(c);
   marks(c);
   if (alone()) V.axes(c, view.vp, view.W, view.H);
@@ -380,7 +386,7 @@ const listeners = [];
 // Other views of the model (the item cards) hear every change to it, a new model included.
 export const onChange = (fn) => listeners.push(fn);
 // the study left: nothing hears the model any more, and its canvas leaves the 3D view
-export function leave() { listeners.length = 0; V?.place(null); V = null; }
+export function leave() { listeners.length = 0; V?.place(null); wcv?.remove(); V = null; }
 const tell = () => listeners.forEach((fn) => fn(model));
 export const current = () => model;
 // an edit made from another view, undoable like any other
@@ -396,7 +402,7 @@ function undo() { if (!history.length) return; future.push(model); model = histo
 function redo() { if (!future.length) return; history.push(model); model = future.pop(); edits++; changed(); }
 
 function grab(e) {
-  if (look?.on) return look.grab(e);
+  if (look?.on) return mode === 'wside' ? null : look.grab(e);
   // the widths step in another view: a drag only turns and pans it
   if (widthStep) return null;
   if (!model || (mode === 'image' && !focused)) return null;
@@ -607,10 +613,17 @@ export function tagging(on) {
   refreshMask(true); V?.redraw(); tellKeys();
 }
 // what the main view shows: the view a number key shows, else in an area's widths step the widths, else in an area the
-// lines over the stack, else what was chosen for the whole stack
-const PEEKS = { alone: 'model', bare: 'image', side: 'side', both: 'overlay', widths: 'widths', grey: 'grey' };
+// lines over the stack, else what was chosen for the whole stack. Each key means one thing in either: 1 the model alone,
+// 2 no markings, 3 side by side, 4 the other of the stack in colour in 3D and grey from straight above
+const PEEKS = {
+  alone: () => 'model',
+  bare: (flat) => (flat ? 'grey' : 'image'),
+  side: (flat) => (flat ? 'wside' : 'side'),
+  swap: (flat) => (flat ? 'overlay' : 'widths'),
+};
+const peekMode = (n) => PEEKS[n](widthStep);
 const peeking = () => peeks.length > 0;
-const shownMode = () => (peeking() ? PEEKS[peeks.at(-1)] : widthStep ? 'widths' : focused ? 'overlay' : outside);
+const shownMode = () => (peeking() ? peekMode(peeks.at(-1)) : widthStep ? 'widths' : focused ? 'overlay' : outside);
 // the area filling the view from straight above, the rest of the stack cut away
 const FILL = 1.05;
 function frameFocus() {
@@ -632,7 +645,6 @@ function peekKey(name, phase) {
   if (phase === 'click') { if (!kept.delete(name)) kept.add(name); } else if (phase === 'down') held.add(name); else held.delete(name);
   peek();
 }
-function toggleCut() { cutOn = !cutOn; $('m-cut').checked = cutOn; refreshMask(true); tellKeys(); }
 function closeMenu() { if (!$('ctx').hidden) { $('ctx').hidden = true; hover = null; V.redraw(); } }
 
 // ---------- the review: detected or missed ----------
@@ -732,8 +744,10 @@ function setMode(m) {
   }
   if (!focused && !peeking() && !flat) outside = mode;
   for (const b of $('model-mode').querySelectorAll('button')) { b.setAttribute('aria-pressed', String(b.dataset.v === mode)); b.disabled = !model && b.dataset.v !== 'image'; }
-  // the model's canvas stays over the stack in every mode, for the tasks' marks
-  V.place(model ? cv : null, mode === 'side');
+  // the model's canvas stays over the stack in every mode, for the tasks' marks; beside the widths, the widths over the
+  // stack's half
+  V.place(model ? cv : null, mode === 'side' || mode === 'wside');
+  if (mode === 'wside') V.stage.append(wcv); else wcv?.remove();
   V.redraw();
   tellKeys();
 }
@@ -825,15 +839,12 @@ const HANDLERS = {
   model: (phase) => peekKey('alone', phase),
   outlines: (phase) => peekKey('bare', phase),
   side: (phase) => peekKey('side', phase),
-  both: (phase) => peekKey('both', phase),
-  'widths-view': (phase) => peekKey('widths', phase),
-  grey: (phase) => peekKey('grey', phase),
-  cut: () => toggleCut(),
+  swap: (phase) => peekKey('swap', phase),
 };
 // the states the actions wait on, told the shell as they change
 let keys = null;
 const tellKeys = () => keys?.report({ model: !!model, focused: !!focused, look: widthStep, cut: cutOn,
-  ...Object.fromEntries(Object.keys(PEEKS).map((n) => [n, mode === PEEKS[n]])), truthTagging: makingTruth && tagOn });
+  ...Object.fromEntries(Object.keys(PEEKS).map((n) => [n, mode === peekMode(n)])), truthTagging: makingTruth && tagOn });
 
 // view: the shell's 3D view; signal ends the listeners outside the study's own panels when the study leaves;
 // makesTruth: the study makes ground truth, so what is decided is cut out of the stack; actions: the shell's keys
@@ -844,12 +855,19 @@ export function init(view, signal, makesTruth, actions) {
   model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; mode = 'image'; task = null; area = null; picked = null;
   focused = null; outside = 'overlay'; peeks = []; held.clear(); kept.clear();
   cv = document.createElement('canvas'); cv.id = 'mcv';
-  // the stack's middle depth on screen, from straight above, for the widths look
-  const plane = (x, y) => { const v = V.M.xf(V.camera(cv.clientWidth / cv.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
-    return [(v[0] / v[3] + 1) / 2 * cv.clientWidth, (1 - v[1] / v[3]) / 2 * cv.clientHeight]; };
-  look = widthsLook({ V, canvas: cv, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t), chose: () => widthPicked(), selecting: () => widthStep });
+  wcv = document.createElement('canvas'); wcv.id = 'wcv';
+  Object.assign(wcv.style, { position: 'absolute', top: '0', left: '0', width: '50%', height: '100%' });
+  // the widths view's canvas: the model's, or its own beside the model
+  const wCanvas = () => (mode === 'wside' ? wcv : cv);
+  // the stack's middle depth on that canvas, from straight above, for the widths view
+  const plane = (x, y) => { const el = wCanvas(), v = V.M.xf(V.camera(el.clientWidth / el.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
+    return [(v[0] / v[3] + 1) / 2 * el.clientWidth, (1 - v[1] / v[3]) / 2 * el.clientHeight]; };
+  look = widthsLook({ V, get canvas() { return wCanvas(); }, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t), chose: () => widthPicked(), selecting: () => widthStep });
   V.onDraw(draw, signal);
   V.controls(cv, grab, clicked);
+  V.controls(wcv, (e) => look.grab(e));
+  wcv.addEventListener('pointermove', (e) => { if (look.on && !e.buttons) look.move(e); });
+  wcv.addEventListener('pointerleave', () => look.leave());
   cv.addEventListener('pointermove', (e) => {
     if (look.on && !e.buttons) return look.move(e);
     if (!model || e.buttons || rubber) return;
