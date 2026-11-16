@@ -673,6 +673,24 @@ nobody has decided: what the page does there is not a requirement yet.
   GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Test: `web-tests/test_study_runs.py`.
   </details>
 
+- `req/shell/image/cellsens` An Olympus cellSens image, a `.vsi` and its `_<name>_` folder, is one image: one row in the Drive dialog, opened in 2D or 3D like any other.
+  <details>
+
+  Set by the owner on 2026-11-16, for the microglia study's IX83 images. cellSens saves an image as a `.vsi` file
+  (its details) beside a folder `_<name>_` whose `stack1/frame_t_0.ets` holds the pixels. The Google Drive dialog
+  lists the pair as one image row, named after the `.vsi`, and does not list the `_<name>_` folder. Opening it
+  downloads the `.vsi`, lists the `_<name>_` folder and its `stack1` folder, and downloads the `.ets`: three requests
+  more than a TIFF takes, all to Drive (approved by the owner on 2026-11-16); the two files are kept together as one
+  image (`req/shell/drive/kept-images`). The page reads the `.vsi`'s own details, never a guess: the pixel size, the
+  z-step, each channel's name and its display colour; and the `.ets`'s slices, every channel of every one, stored
+  uncompressed or as JPEG 2000. JPEG 2000 is decoded by OpenJPEG's WebAssembly build, fetched from jsDelivr at a
+  pinned version only when such an image is first opened (owner, 2026-11-16, as libheif is for a HEIC). A stack
+  opens in 3D, a single plane in 2D, both through `req/shell/image/open`'s contrast and channel rows. A `.vsi`
+  whose pixels are stored otherwise (JPEG, PNG, a slide scanner's tiled pyramid) says why it cannot be read.
+  Opening one from this computer is not offered yet (owner, 2026-11-16: Google Drive only for now). Test:
+  `web-tests/test_cellsens.py`.
+  </details>
+
 - `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say.
   <details>
 
@@ -755,7 +773,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07. The shell reads a TIFF (ImageJ hyperstacks, OME-TIFFs in one file and plain
   TIFFs; uncompressed, LZW, Deflate or PackBits), a HEIC (set by the owner on 2026-11-10: by libheif's
   WebAssembly build, fetched from jsDelivr at a pinned version only when a HEIC is first opened, in every browser)
-  and any image the browser decodes (PNG, JPEG), and opens it in
+  an Olympus cellSens `.vsi` with its pixels (`req/shell/image/cellsens`) and any image the browser decodes (PNG,
+  JPEG), and opens it in
   the study's viewer: its channels in the file's own order, each under the name the file gives it and in the
   colour the file displays it in, a z-stack flattened (each pixel the brightest of every slice) and slice by
   slice. Each channel's contrast is set once over the whole stack, never per slice, so signal that fades with
