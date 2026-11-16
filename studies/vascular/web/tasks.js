@@ -65,9 +65,13 @@ function itemsOf(m) {
   const { vessels, junctions } = build(m);
   const js = junctions.map((j) => ({ ...j, key: `j${j.id}`, at: { x: j.x, y: j.y, z: j.z }, done: Mo.checkedJunction(m, j.id) }))
     .sort((p, q) => p.y - q.y || p.x - q.x);
-  return { vessels: vessels.map((v) => ({ ...v, at: v.path[v.path.length >> 1] })), junctions: js };
+  return { vessels: vessels.map((v) => ({ ...v, at: v.path[v.path.length >> 1], said: Mo.widthOf(m, v.segments) })), junctions: js };
 }
 const junctionsIn = (m, a) => items.junctions.filter((j) => areaOf(m, j) === a);
+const vesselsIn = (m, a) => items.vessels.filter((v) => areaOf(m, v.at) === a && Mo.live(v));
+// the vessels the person drew in an area that still have no width: neither set by hand nor said to be one that cannot be
+// told (req/vascular/truth/widths)
+const drawnWithout = (m, a) => vesselsIn(m, a).filter((v) => !v.proposed && !Mo.measured(v.said) && v.said?.how !== 'cannot');
 
 // ---------- moving through the areas ----------
 // to: an area, or null for Submit
@@ -91,14 +95,17 @@ function setGrid(k) {
 
 // ---------- the verdicts ----------
 // Area is right: the area done, each vessel whose middle lies in it, confident ones accepted, low-confidence ones
-// not kept declined
+// not kept declined, and each one's width the person said nothing of looked at (never measured); it waits while a
+// vessel the person drew there has no width
 function areaRight() {
-  const m = MV.current(); if (!m || st.area == null) return;
+  const m = MV.current(); if (!m || st.area == null || drawnWithout(m, st.area).length) return;
   let o = { ...m, reviewed_regions: [...(m.reviewed_regions || []), region(m, areaBox(m, st.area))] };
+  const on = new Date().toISOString().slice(0, 10);
   for (const v of items.vessels) {
-    if (areaOf(m, v.at) !== st.area || !v.proposed) continue;
-    const open = v.segments.filter((i) => o.segments[i].state === v.proposed);
+    if (areaOf(m, v.at) !== st.area) continue;
+    const open = v.proposed ? v.segments.filter((i) => o.segments[i].state === v.proposed) : [];
     if (open.length) o = Mo.decide(o, open, v.proposed === 'vessel' ? 'accepted' : 'rejected');
+    if (Mo.live(o.segments[v.segments[0]]) && !v.said && v.width != null) o = Mo.setWidth(o, v.segments, { how: 'looked', on });
   }
   MV.edit(o); moveOn();
 }
@@ -233,8 +240,11 @@ function show(moved) {
   if (open) {
     const left = js.filter((x) => !x.done).length;
     $('junctions-note').textContent = !js.length ? 'No junctions in this area.' : left ? `${js.length - left + 1} of ${js.length} junctions here` : `All ${js.length} junctions here judged.`;
-    $('area-ok').disabled = left > 0;
-    $('area-ok').title = left ? `${left} junction${left === 1 ? '' : 's'} here still to judge` : 'Every line, point and junction here is right: on to the next area';
+    const bare = drawnWithout(m, st.area).length;
+    $('widths-note').textContent = bare ? `${bare} vessel${bare === 1 ? '' : 's'} you drew here still need${bare === 1 ? 's' : ''} a width: press W, then drag across ${bare === 1 ? 'it' : 'each'} or press U.` : 'W shows the widths here.';
+    $('area-ok').disabled = left > 0 || bare > 0;
+    $('area-ok').title = left ? `${left} junction${left === 1 ? '' : 's'} here still to judge` : bare ? `${bare} vessel${bare === 1 ? '' : 's'} you drew here without a width`
+      : 'Every line, point, junction and width here is right: on to the next area; a width you did not set is kept as looked at, not measured';
   } else j = null;
   options(j);
   const was = $('task-card').firstElementChild, card_ = j ? card(m, j) : null;

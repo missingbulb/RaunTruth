@@ -52,8 +52,9 @@ export function parse(j) {
     const ids = [s.a], flow = FLOWS.includes(s.flow) ? s.flow : null;
     // a verdict in a file written before "proposed": only a candidate could take one
     const proposed = ['vessel', 'candidate'].includes(s.proposed) ? s.proposed : state === 'vessel' || state === 'candidate' ? state : 'candidate';
-    const { id: _i, a: _a, b: _b, via: _v, state: _st, confidence: _c, vessel: _ve, r_a: _ra, r_b: _rb, flow: _f, proposed: _p, drawn: _d, ...rest } = s;
+    const { id: _i, a: _a, b: _b, via: _v, state: _st, confidence: _c, vessel: _ve, r_a: _ra, r_b: _rb, flow: _f, proposed: _p, drawn: _d, width, ...rest } = s;
     const extra = Object.keys(rest).length ? rest : null;
+    if (width != null) readWidth(width, s);
     for (const p of (v2 && s.via) || []) {
       if (![p.x, p.y, p.z].every(Number.isFinite)) throw new ModelError(`a curve point on edge ${s.a}–${s.b} has no position`);
       m.nodes.set(next, pt(next, p)); ids.push(next++);
@@ -64,7 +65,7 @@ export function parse(j) {
       const k = key(ids[i - 1], ids[i]);
       if (ids[i - 1] !== ids[i] && !seen.has(k)) {
         seen.add(k);
-        m.segments.push(seg(ids[i - 1], ids[i], { state, proposed: s.drawn ? null : proposed, confidence: s.confidence, vessel: s.vessel, ...(r && { ra: r[i - 1], rb: r[i] }), flow, extra }));
+        m.segments.push(seg(ids[i - 1], ids[i], { state, proposed: s.drawn ? null : proposed, confidence: s.confidence, vessel: s.vessel, ...(r && { ra: r[i - 1], rb: r[i] }), flow, extra, width }));
       }
     }
   }
@@ -104,9 +105,10 @@ const pt = (id, p) => (Number.isFinite(p.r) ? { id, x: p.x, y: p.y, z: p.z, r: p
 // confidence is the extractor's score and vessel its guess at which branch continues a trunk; a
 // segment the owner drew has neither, and stays without them
 // extra holds the edge's fields this viewer has no use for, written back as they came
-const seg = (a, b, { state, proposed, confidence, vessel, ra, rb, flow, extra }) => ({ a, b, state, ...(proposed && { proposed }), ...(confidence != null && { confidence }),
-  ...(vessel != null && { vessel }), ...(Number.isFinite(ra) && Number.isFinite(rb) && { ra, rb }), ...(flow != null && { flow }), ...(extra && { extra }) });
-const sameEdge = (p, q) => p.state === q.state && p.proposed === q.proposed && p.confidence === q.confidence && p.vessel === q.vessel && p.extra === q.extra;
+// width is the person's word on the vessel's width (setWidth), one object shared by every segment of the vessel
+const seg = (a, b, { state, proposed, confidence, vessel, ra, rb, flow, extra, width }) => ({ a, b, state, ...(proposed && { proposed }), ...(confidence != null && { confidence }),
+  ...(vessel != null && { vessel }), ...(Number.isFinite(ra) && Number.isFinite(rb) && { ra, rb }), ...(flow != null && { flow }), ...(extra && { extra }), ...(width && { width }) });
+const sameEdge = (p, q) => p.state === q.state && p.proposed === q.proposed && p.confidence === q.confidence && p.vessel === q.vessel && p.extra === q.extra && p.width === q.width;
 
 // The segments at each point, rejected ones included, since a recorded "no" keeps its own ends.
 function incidence(m) {
@@ -143,6 +145,49 @@ export function edges(m) {
   return out;
 }
 
+// The widths the algorithm estimated: a person's word on a width goes in the vessel's own "width" and never over these,
+// so a submitted model names them in its "unchecked" list rather than passing them off as corrected.
+export const WIDTHS = ['r', 'r_a', 'r_b', 'taper_known'];
+
+// ---------- a vessel's width, as a person said it ----------
+// One width per vessel (junction or tip to the next), never a taper: {um, how, walls, on}. how is "walls" (a drag from
+// one wall to the other, walls its two ends [x, y] in µm), "nudge" (the estimate stepped), "cannot" (it cannot be told)
+// or "looked" (its estimate looked at in an area found right, not measured); um, a diameter in µm, only on the first two.
+// A vessel nobody said anything of has none, and its width is the algorithm's estimate.
+export const WIDTH_HOWS = ['walls', 'nudge', 'cannot', 'looked'];
+const MEASURED = new Set(['walls', 'nudge']);
+export const measured = (w) => !!w && MEASURED.has(w.how);
+function readWidth(w, s) {
+  const at = `(${s.a}–${s.b})`;
+  if (!WIDTH_HOWS.includes(w?.how)) throw new ModelError(`an edge's width says neither of ${WIDTH_HOWS.join(', ')} ${at}`);
+  if (MEASURED.has(w.how) && !(w.um > 0)) throw new ModelError(`an edge's width set by hand has no µm ${at}`);
+  if (w.walls != null && !(w.walls.length === 2 && w.walls.every((p) => p?.length === 2 && p.every(Number.isFinite)))) throw new ModelError(`an edge's walls are not two points ${at}`);
+}
+export const widthOf = (m, segs) => m.segments[segs[0]]?.width ?? null;
+// the segments segs, one vessel's, given width w, or none with w null: the same object on each, so they stay one edge
+export function setWidth(m, segs, w) {
+  const o = clone(m);
+  for (const i of segs) { if (!o.segments[i]) continue; const { width: _w, ...s } = o.segments[i]; o.segments[i] = w ? { ...s, width: w } : s; }
+  return o;
+}
+const day = (on) => (on ? { on } : {});
+// a drag from one wall to the other, [[x, y], [x, y]] in µm: the vessel's width is its length
+export const measure = (m, segs, walls, on) => setWidth(m, segs, { um: Math.hypot(walls[1][0] - walls[0][0], walls[1][1] - walls[0][1]), how: 'walls', walls, ...day(on) });
+// the width stepped by `by` µm: a measured one's walls each moved half of it, else from the width set or, with none, from
+// the estimate (µm, null when there is none, and then nothing changes)
+const LEAST_UM = .25;
+export function nudge(m, segs, by, estimate, on) {
+  const w = widthOf(m, segs);
+  if (w?.how === 'walls' && w.walls) {
+    const [p, q] = w.walls, L = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1, um = Math.max(LEAST_UM, L + by), k = (um - L) / 2 / L;
+    const d = [(q[0] - p[0]) * k, (q[1] - p[1]) * k];
+    return setWidth(m, segs, { ...w, um, walls: [[p[0] - d[0], p[1] - d[1]], [q[0] + d[0], q[1] + d[1]]], ...day(on) });
+  }
+  const from = measured(w) ? w.um : estimate;
+  if (!(from > 0)) return m;
+  return setWidth(m, segs, { um: Math.max(LEAST_UM, from + by), how: 'nudge', ...day(on) });
+}
+
 export function toJSON(m, extra = {}) {
   const { nodes, segments, ...rest } = m;
   const es = edges(m), ends = new Set(es.flatMap((e) => [e.ids[0], e.ids.at(-1)]));
@@ -156,7 +201,7 @@ export function toJSON(m, extra = {}) {
         ...(e.proposed ? { proposed: e.proposed } : { drawn: true }),
         ...(e.confidence != null && { confidence: e.confidence }),
         ...(Number.isFinite(start.r0) && Number.isFinite(end.r0) && { r_a: start.r0, r_b: end.r0 }), ...(out != null && { flow: out ? 'ab' : 'ba' }),
-        via: e.ids.slice(1, -1).map(at) };
+        ...(e.width && { width: e.width }), via: e.ids.slice(1, -1).map(at) };
     }) };
 }
 

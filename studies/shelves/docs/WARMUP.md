@@ -26,6 +26,7 @@ web/words/names.txt   Hebrew Wikipedia titles' words the readings are spelled by
 web/tessdata/         Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
 reading/              the sandbox: read.mjs, find.mjs, perf_pyodide.mjs and the pinned engine builds (package.json)
 tests/                test_books.py and test_grade.py (fast), test_reading.py and test_shelves_page.py (full)
+docs/literature/      what spine detection, dense-shelf detection and library science already know (start at its README)
 ```
 
 ## The pipeline

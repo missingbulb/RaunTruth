@@ -74,7 +74,8 @@
   border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }
 #ctx[hidden] { display: none; }
 #ctx .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
-#ctx .item:hover, #ctx .item:focus-visible { color: var(--accent); }
+#ctx .item:enabled:hover, #ctx .item:focus-visible { color: var(--accent); }
+#ctx .item:disabled { color: var(--dim); cursor: default; }
 #ctx .note { padding: 4px; }
 
 #items-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
