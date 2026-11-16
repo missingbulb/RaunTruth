@@ -145,6 +145,19 @@ photos taken as they were under `Data/Open Shelves/` and its ground truth under 
 from the phone's frame by the dataset, so it tests the finder at a smaller scale than our photos as well as on
 English spines. `finder_metrics.py` scores it on its own (`datasets`); nobody tuned on it, so it is held out.
 
+First scores there (2026-11-16, the page's path, `find.mjs` then `grade.py`, before the upload; **indicative**:
+one photographer's shelves at 640 px, per-photo recall 0.00-0.90, median 0.72):
+
+| | precision / recall, Open Shelves (1,021 books) | the owner's (133) |
+|---|---|---|
+| R9 | 0.55 / 0.68 | 0.67 / 0.89 |
+| R8 | 0.65 / 0.61 | 0.77 / 0.74 |
+| R5 | 0.78 / 0.53 | 0.59 / 0.50 |
+
+The versions keep their order. Two failure classes are new: a **pile of books lying flat** (R9 0 of 14 on
+`IMG_1401`, boxing the pile as long slanted strips) and **long diagonal boxes across a shelf**, edges at the
+lean limit joined into a book. Standing spines hold up (19 of 21 on the best photo).
+
 A score is the page's: `node studies/shelves/reading/find.mjs PHOTO OUT.json`, then
 `python3 studies/shelves/lab/grade.py GT.json --found OUT.json`. Robustness inputs come from
 `python3 studies/shelves/lab/warp.py PHOTO GT.json OUTDIR --rotate ... --tilt ... --vtilt ... [--crop]`: the photo and its
