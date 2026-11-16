@@ -319,6 +319,14 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
   </details>
 
+- `req/shell/drag/hint` While anything is dragged, a label at the bottom center of the page says "Hit 'esc' to cancel".
+  <details>
+
+  Set by the owner on 2026-11-16. It shows once the pointer pressed has moved, on every drag that Escape cancels
+  (`req/shell/drag/escape`), and goes when the drag ends: released, cancelled or Escaped. A click that does not move
+  shows nothing. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
+  </details>
+
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
   <details>
 

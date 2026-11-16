@@ -1019,3 +1019,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-submit[data-state=todo] .gt-ico { color: var(--no); animation: gt-pulse 2s ease-in-out infinite; }
 @keyframes gt-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.9); } }
 @media (prefers-reduced-motion: reduce) { #gt-submit .gt-ico { animation: none !important; } }
+
+/* while a drag is held, the reminder that Escape cancels it (req/shell/drag/hint): bottom center, above the status bar */
+#drag-hint { position: fixed; left: 50%; bottom: calc(1cm + 12px); transform: translateX(-50%); z-index: 20; pointer-events: none;
+  padding: 4px 12px; font-size: 12px; color: var(--text); background: var(--tipbg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
+#drag-hint[hidden] { display: none; }
