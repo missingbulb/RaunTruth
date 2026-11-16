@@ -374,7 +374,6 @@
             {"name": "Ruler", "select": "#ruler-btn", "control": true, "req": "req/shell/tools/ruler",
               "rule": [
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
                 {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
               ]
             },
