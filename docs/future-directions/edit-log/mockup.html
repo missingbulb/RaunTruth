@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History panel in Ground Truth Tasks (mockup)</title>
+<style>
+  :root { --bg: #f4f5f7; --panel: #fff; --line: #dcdfe4; --text: #1d2129; --dim: #6b7280; --accent: #2457d6; --yes: #1a8f4c; --ring: #ffd400; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; color: var(--text); background: var(--bg); display: flex; height: 100vh; min-height: 720px; }
+  #left { width: 320px; background: var(--panel); border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: var(--dim); }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  #bar { display: flex; gap: 3px; height: 8px; flex: none; }
+  #bar span { border-radius: 4px; background: linear-gradient(to right, var(--yes) var(--d), var(--line) var(--d)); }
+  ol.tasks { list-style: none; margin: 0; padding: 0; }
+  ol.tasks > li { border-top: 1px solid var(--line); padding: 7px 0; }
+  ol.tasks > li:first-child { border-top: 0; }
+  .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .now { font-weight: 600; }
+  .card { margin-top: 8px; }
+  .crop { height: 110px; border-radius: 6px; background: #10131a; position: relative; overflow: hidden; }
+  .crop i { position: absolute; left: 30%; right: 30%; top: 46%; height: 9px; background: #2bd36b; border-radius: 4px; }
+  .crop b { position: absolute; left: 46%; width: 8%; top: 44%; height: 13px; background: #e23b4e; border-radius: 3px; }
+  .verdicts { display: flex; gap: 8px; margin-top: 8px; }
+  .verdicts button { flex: 1; padding: 9px; }
+  .tools { display: flex; gap: 12px; font-size: 12px; color: var(--accent); margin-top: 6px; }
+  .submit { display: flex; justify-content: space-between; align-items: center; }
+  .link { border: 0; background: none; color: var(--accent); padding: 0; font-size: 12px; }
+
+  /* the history */
+  #history { border-top: 1px solid var(--line); padding-top: 8px; }
+  #history summary { display: flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; }
+  #history summary::-webkit-details-marker { display: none; }
+  #history summary .title { flex: 1; font-weight: 600; }
+  #history summary .title small { font-weight: 400; color: var(--dim); }
+  #history summary button { padding: 3px 8px; }
+  kbd { font: 11px ui-monospace, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; margin-left: 3px; }
+  #history ol { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+  #history li { display: flex; gap: 8px; align-items: baseline; padding: 4px 8px; font-size: 12px; border-top: 1px solid var(--line); cursor: pointer; }
+  #history li:first-child { border-top: 0; }
+  #history li:hover { background: #eef3ff; }
+  #history li .dot { width: 8px; flex: none; color: var(--accent); }
+  #history li .what { flex: 1; min-width: 0; }
+  #history li .when { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #history li.undone .what { color: var(--dim); text-decoration: line-through; text-decoration-color: #b8bdc7; }
+  #history li.here { background: #f3f6ff; font-weight: 600; }
+  #history li.mark { cursor: default; color: var(--dim); font-size: 11px; background: #fafafa; }
+  #history li.mark:hover { background: #fafafa; }
+  #history li.floor { cursor: default; color: var(--dim); }
+  #history li .more { color: var(--accent); font-size: 11px; }
+  .note { font-size: 11px; color: var(--dim); margin: 6px 0 0; }
+
+  #main { flex: 1; position: relative; background: #0b0d12; overflow: hidden; }
+  #main .cand { position: absolute; border: 1px solid rgba(255,255,255,.35); width: 34px; height: 16px; border-radius: 2px; }
+  #main .hl { position: absolute; left: 41%; top: 37%; width: 60px; height: 60px; margin: -22px 0 0 -13px; border: 2px solid var(--ring); border-radius: 50%; box-shadow: 0 0 0 3px rgba(255,212,0,.25); }
+  #main .tip { position: absolute; left: calc(41% + 56px); top: calc(37% - 18px); background: #fff; border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+  #main .legend { position: absolute; left: 12px; bottom: 12px; color: #cfd4dc; font-size: 12px; }
+  #main .legend kbd { color: #cfd4dc; border-color: #4a5160; }
+</style>
+</head>
+<body>
+<aside id="left">
+  <h2>Ground Truth Tasks</h2>
+  <button class="primary">Stop tagging</button>
+  <div id="bar"><span style="flex:47;--d:36%"></span><span style="flex:93;--d:11%"></span><span style="flex:100;--d:9%"></span></div>
+  <ol class="tasks">
+    <li><span class="n">17/47</span> <span class="now">Finalists</span>
+      <div class="card">
+        <div class="crop"><i></i><b></b></div>
+        <div class="verdicts"><button>A NoR <kbd>F</kbd></button><button>Not a NoR <kbd>J</kbd></button></div>
+        <div class="tools"><span>Back</span><span>Skip</span></div>
+      </div>
+    </li>
+    <li><span class="n">10/93</span> Rejected</li>
+    <li><span class="n">9/100</span> Missed</li>
+    <li class="submit"><button disabled>Submit Ground Truth</button><button class="link">Clear progress</button></li>
+  </ol>
+
+  <details id="history" open>
+    <summary>
+      <span class="title">History <small>· 39</small></span>
+      <button title="Undo: Approved #23">Undo<kbd>Ctrl+Z</kbd></button>
+      <button title="Redo: Rejected #31">Redo<kbd>Ctrl+Y</kbd></button>
+    </summary>
+    <ol>
+      <li class="undone"><span class="dot"></span><span class="what">Rejected #31</span><span class="when">14:09</span></li>
+      <li class="undone"><span class="dot"></span><span class="what">Width of #23 set to 4.1 px</span><span class="when">14:08</span></li>
+      <li class="here"><span class="dot">●</span><span class="what">Approved #23</span><span class="when">14:08</span></li>
+      <li><span class="dot"></span><span class="what">Moved a length end of #23 (+4, −2)</span><span class="when">14:07</span></li>
+      <li><span class="dot"></span><span class="what">Added a NoR at 812, 440</span><span class="when">14:06</span></li>
+      <li><span class="dot"></span><span class="what">No missed NoRs in area 8</span><span class="when">14:05</span></li>
+      <li class="mark"><span class="dot"></span><span class="what">Submitted to Drive</span><span class="when">14:02</span></li>
+      <li><span class="dot"></span><span class="what">Approved 14 finalists <span class="more">show each</span></span><span class="when">13:51–14:01</span></li>
+      <li><span class="dot"></span><span class="what">Rejected #4</span><span class="when">13:50</span></li>
+      <li class="floor"><span class="dot"></span><span class="what">Algorithm ran: walk, Balanced · 140 candidates</span><span class="when">13:48</span></li>
+      <li class="floor"><span class="dot"></span><span class="what">Image opened</span><span class="when">13:47</span></li>
+    </ol>
+    <p class="note">Click a row to go back to it. Rows above the dot come back with Redo until you change something.</p>
+  </details>
+</aside>
+<main id="main">
+  <div class="cand" style="left:22%;top:18%"></div><div class="cand" style="left:63%;top:24%"></div>
+  <div class="cand" style="left:41%;top:37%"></div><div class="cand" style="left:71%;top:58%"></div>
+  <div class="cand" style="left:30%;top:66%"></div><div class="cand" style="left:52%;top:80%"></div>
+  <div class="hl"></div><div class="tip">Moved a length end of #23</div>
+  <div class="legend">Undo <kbd>Ctrl+Z</kbd> &nbsp; Redo <kbd>Ctrl+Y</kbd></div>
+</main>
+</body>
+</html>
