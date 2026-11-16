@@ -81,3 +81,9 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** unchanged carrier, now in the study's own local pack.
+
+## 2026-11-16 · retired · moved to nor-finder as a repo-wide skill (#968)
+- **Reason:** every study takes in articles now; the skill and its history continue in nor-finder's
+  provenance/paper-intake.md.
+- **Actor:** @missingbulb (owner).
+- **Landed:** #968

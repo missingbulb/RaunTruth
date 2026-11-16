@@ -107,6 +107,19 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
+- `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.
+  <details>
+
+  Set by the owner on 2026-11-15, as for NoR's and Vascular Measurements' tasks, but with keys the title's text box
+  leaves free, since letters there are typing: Enter, in the title or anywhere in the task, is Right with the title
+  typed, the same as the button, and moves on. A title still exactly as the reader read it is never approved by one
+  key: the first Enter says "Left as read: Enter again if it is exactly right" under it, and a second Enter approves.
+  Alt+← is Back, Alt+→ Next, Ctrl+↑ Flip and Ctrl+Backspace Not a book. The keys are read by where they sit on the
+  keyboard, so they work in any layout (Hebrew too); they act only while tagging with a book open, a key held down
+  acts once, a key does nothing while its button is hidden or off, and an Enter that ends a word being composed (an
+  IME) approves nothing. Each button shows its key in small type. Test: `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
 - `req/shelves/truth/task` One ground-truth task: each book in turn, in the order they stand, has its corners, turn and title set right, and the missed books are added.
   <details>
 

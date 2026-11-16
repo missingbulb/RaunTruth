@@ -307,6 +307,18 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_dialog_motion_page.py`.
   </details>
 
+- `req/shell/drag/escape` Escape in the middle of any drag cancels it: what the drag changed goes back, and the rest of the press does nothing.
+  <details>
+
+  Set by the owner on 2026-11-15. Every drag on the page, the shell's and a study's, cancels on Escape
+  pressed before the button is let go: a ground-truth handle, corner or lasso, Edit Image's crop, lasso
+  or cut, the ruler, the left bar's width, the minimap, the image's pan and the 3D view's turn all go
+  back to where they were when the press began. That Escape does nothing else, no dialog closes on it,
+  and letting go afterwards is no click and no drop.
+  Every drag goes through one wrapper, so a new one cancels the same way. Test:
+  `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
+  </details>
+
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
   <details>
 
@@ -942,7 +954,8 @@ nobody has decided: what the page does there is not a requirement yet.
   The status bar's online icon (`req/shell/status-bar/online`) shows it, the network's tooltip and its
   Network tab saying the page is offline too. No
   network is the browser saying so, or the site not answering, asked every 30 seconds all session long and every
-  5 seconds while offline, so the network going mid-session shows within 30 seconds and coming back within
+  5 seconds while offline, while the tab is shown: a hidden tab asks nothing, and asks once it is shown again if
+  that long has passed (set by the owner on 2026-11-13), so the network going mid-session shows within 30 seconds and coming back within
   seconds, even with a release that landed meanwhile still being copied (set by the owner on 2026-11-04), the browser saying online or not, and a Wi-Fi's
   sign-in page answering in the site's place counts as no network. What the page is doing follows it, set by the
   owner on 2026-11-03: a study whose Python could not load loads it once the network is back, with no reload;
@@ -955,7 +968,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Request and Data Management (`req/shell/data/mode`). A change to a setting that follows the user (`req/shell/account/sign-in`) waits and is saved once the network is
   back. A visit the browser cannot reach a copy for, never opened online, shows the browser's own
   offline page: no site opens there. Nothing here installs the site as an app or asks the browser
-  for anything. Test: `web-tests/test_offline_page.py`.
+  for anything. Test: `web-tests/test_offline_page.py`, `web-tests/test_background_tab_page.py` (a hidden tab).
   </details>
 
 - `req/shell/offline/mark` What is available offline says so, quietly: a study, and an image from Google Drive.
@@ -1207,8 +1220,9 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/site/out-of-date` An open page knows when it is out of date.
   <details>
 
-  Every 5 minutes it compares its version with the published one; when a newer one is out, the
-  version box in the status bar lights up and refreshes the page when clicked.
+  Every 5 minutes while the tab is shown it compares its version with the published one, and once a hidden tab is
+  shown again when 5 minutes have passed (set by the owner on 2026-11-13); when a newer one is out, the
+  version box in the status bar lights up and refreshes the page when clicked. Test: `web-tests/test_background_tab_page.py`.
   </details>
 
 - `req/shell/site/policies` The site publishes its privacy policy and terms of service, linked from its landing page and the avatar's menu.
@@ -1513,7 +1527,10 @@ nobody has decided: what the page does there is not a requirement yet.
   its own axis, which may differ; in pixels when it does not. A click with no drag measures nothing.
   Once the ruler is down the image pans again; pressing the button again takes the ruler away, as
   does opening another image. The ruler keeps its place and size through zoom and the study's own
-  drawing. Test: `web-tests/test_ruler_page.py`.
+  drawing. On a stack in 3D (`req/shell/viewer-3d`) the Ruler works the same, on the plane of the top slice
+  shown, where its first point lands: while dragging, a transparent white orb shows the reach around that point in
+  depth too, and on release the ruler alone stays between the two points with their distance, through the view's turns,
+  zoom and pans (owner, 2026-11-15). Test: `web-tests/test_ruler_page.py`, `web-tests/test_viewer3d_page.py`.
   </details>
 
 - `req/shell/version-history` Clicking the version opens a Version history; a bubble points at it after an update.
@@ -1550,7 +1567,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the label holds. That state lives only while the page is open: it is never stored or restored (owner,
   2026-11-05). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
   the view back to looking straight down; no menu of other views (owner, 2026-11-08), and the 2D view's Zoom, which zooms the 3D view (owner,
-  2026-11-04); the 2D view's other tools step aside. Brightest shows the brightest point along each
+  2026-11-04) and its Ruler, measuring on the top slice shown (`req/shell/tools/ruler`, owner, 2026-11-15); the 2D view's other tools step aside. Brightest shows the brightest point along each
   ray, Surface a lit surface where the signal crosses a level, and colour by depth paints by the
   depth of that point so crossings at different depths read apart: the study's `view` sets the render
   it opens with. The depth is a row of the image box under the

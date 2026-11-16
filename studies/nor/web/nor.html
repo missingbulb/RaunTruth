@@ -28,8 +28,8 @@
 </template>
 <template data-slot="tasks">
     <div id="nor-tasks">
-      <div class="missed-slot"></div><div id="area-check"><p class="hint">Right-click where the finder missed a NoR in the framed area.</p><button id="area-ok" class="primary" type="button">No missed NoRs here</button></div>
-      <span id="task-tools"><button id="task-back" class="link" type="button" title="The one you were on before, to change your mind" disabled>‹ Back</button><button id="task-skip" class="link" type="button" title="The next one, leaving this one for later">Skip ›</button></span>
+      <div class="missed-slot"></div><div id="area-check"><p class="hint">Right-click where the finder missed a NoR in the framed area.</p><button id="area-ok" class="primary" type="button" aria-keyshortcuts="Space">No missed NoRs here</button></div>
+      <span id="task-tools"><button id="task-back" class="link" type="button" aria-keyshortcuts="Backspace" title="The one you were on before, to change your mind" disabled>‹ Back</button><button id="task-skip" class="link" type="button" aria-keyshortcuts="S" title="The next one, leaving this one for later">Skip ›</button></span>
       <div id="task-now"><div id="task-stage"><div id="task-card"></div></div></div>
     </div>
 </template>

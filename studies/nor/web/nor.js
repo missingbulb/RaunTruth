@@ -645,20 +645,19 @@ export function mount(shell) {
     // a handle goes wherever it is dragged; the result is kept in image coordinates
     svg.addEventListener("pointerdown", (e) => {
       const h = e.target.closest(".handle"); if (!h) return;
-      e.preventDefault(); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
+      e.preventDefault(); e.stopPropagation();
       const k = h.dataset.k, j = +h.dataset.j, from = L;
       const move = (ev) => {
         const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
         const q = pt.matrixTransform(svg.getScreenCTM().inverse());
         L = dragLines(from, k, j, g.toXY([q.x, q.y])); draw();
       };
-      const up = () => {
-        svg.removeEventListener("pointermove", move); svg.removeEventListener("pointerup", up);
+      const drop = () => {
         if (L === from) return;
         const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), lines = { length: r2(L.length), red: r2(L.red), width: r2(L.width) };
         c.added ? setAdded(c.k, { lines }) : edit(c.i, lines);
       };
-      svg.addEventListener("pointermove", move); svg.addEventListener("pointerup", up);
+      shell.drag(svg, e, { move, drop, cancel: () => { L = from; draw(); } });
     });
     return svg;
   }
@@ -680,17 +679,18 @@ export function mount(shell) {
     d.innerHTML = `<div class="head">${num}<span class="state">${state}</span>
       <span class="verdict" role="group" aria-label="Your verdict"></span></div>`;
     const acts = d.querySelector(".verdict");
-    const btn = (cls, on, title, fn) => {
+    const btn = (cls, on, title, fn, key) => {
       const b = document.createElement("button"); b.type = "button"; b.className = cls + (on ? " on" : ""); b.innerHTML = THUMB;
       b.title = title; b.setAttribute("aria-label", title); b.setAttribute("aria-pressed", on);
+      if (where === "task") b.setAttribute("aria-keyshortcuts", key);
       // on a task's card, a verdict moves on to the task's next candidate
       b.onclick = (e) => { e.stopPropagation(); st.sel = c.i; fn(); if (where === "task" && verdictOf(c)) moveOn(); }; acts.append(b);
     };
     const say = (v) => (c.added ? setAdded(c.k, { verdict: v === "approve" ? "in" : v === "reject" ? "out" : null }) : decide(c.i, v));
     btn("up", f === "in", f === "in" ? "You said this is a NoR. Click to undo" : "A NoR: keep it, with its lengths as shown (saved as ground truth)",
-      () => say(f === "in" ? null : "approve"));
+      () => say(f === "in" ? null : "approve"), "F");
     btn("down", f === "out", f === "out" ? (c.added ? "You said this is not a NoR. Click to undo" : "You said this is not a NoR. Click to let the filters decide again") : "Not a NoR: reject it (saved as ground truth)",
-      () => say(f === "out" ? null : "reject"));
+      () => say(f === "out" ? null : "reject"), "J");
     if (c.added) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
       acts.lastChild.onclick = (e) => { e.stopPropagation(); removeAdded(c.k); };
@@ -711,7 +711,7 @@ export function mount(shell) {
     const e = st.edits.get(c.i) || {};
     // on a task's card, the task says what is measured: a button alone puts the finder's lengths back
     if (e.length || e.red || e.width) {
-      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button">Reset measurements</button>`
+      d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button" aria-keyshortcuts="R">Reset measurements</button>`
         : `<div class="tag">Lengths adjusted <button class="link">reset</button></div>`);
       d.querySelector(".reset-lines, .tag button").onclick = () => edit(c.i, { length: null, red: null, width: null });
     }
@@ -1099,7 +1099,7 @@ export function mount(shell) {
     for (const t of ["pass", "fail", "missed"]) shell.tasks.count(t, ready ? did[t] : null, count[t], ready && taskDone(t));
     // the open task: its tools on its row, and its item's card under it
     const li = shell.tasks.open(ready ? st.task : null), now = $("#task-now"), tools = $("#task-tools");
-    const c = ready && st.sel != null ? candOf(st.sel) : null;
+    const c = ready && tagging() && st.sel != null ? candOf(st.sel) : null;
     if (li && st.task !== "submit") {
       li.querySelector(".task-head").append(tools);
       (st.task === "missed" ? li.querySelector(".missed-slot") : li.querySelector(".task-body")).append(now);
@@ -1143,6 +1143,19 @@ export function mount(shell) {
     } });
     for (const id of ["#show-gt-cut", "#show-gt-frame"]) $(id).disabled = true;
     shell.tasks.row("missed").querySelector(".task-body").append($("#nor-tasks .missed-slot"), $("#area-check"));
+    // while tagging, a key presses the open item's button that bears it, read by its place on the keyboard so any
+    // layout works (req/nor/truth/keys)
+    const NAMED = { Space: "Space", Backspace: "Backspace" };
+    document.addEventListener("keydown", (e) => {
+      if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || !tagging() || !st.cur) return;
+      if (e.target.closest?.("input, select, textarea, [contenteditable]") || e.target.isContentEditable) return;
+      if (document.querySelector("dialog[open], details.menu[open], :popover-open, #ctx:not([hidden])")) return;
+      const name = NAMED[e.code] || /^Key([A-Z])$/.exec(e.code)?.[1];
+      const b = name && [...$("#tasks-box").querySelectorAll(`button[aria-keyshortcuts="${name}"]`)]
+        .find((b) => !b.disabled && b.getClientRects().length && !b.closest("[inert]"));
+      if (!b) return;
+      e.preventDefault(); b.click();
+    }, here);
   }
 
   // ---------- the summary mask: areas lassoed on the image, combined by exclusive or ----------
@@ -1223,25 +1236,25 @@ export function mount(shell) {
     sc.addEventListener("pointerdown", (e) => {
       if (!st.lasso || e.button !== 0) return;
       // no text selection or native drag may start under the lasso: either would cancel the pointer
-      e.preventDefault(); sc.setPointerCapture(e.pointerId);
+      e.preventDefault();
       st.lasso.pts = [at(e)]; st.lasso.line = el("polyline", { class: "lasso-live" }); $("#overlay").append(st.lasso.line);
+      shell.drag(sc, e, { move, drop, cancel: endLasso });
     }, here);
-    sc.addEventListener("pointermove", (e) => {
+    function move(e) {
       const L = st.lasso; if (!L || !L.pts) return;
       const p = at(e), q = L.pts[L.pts.length - 1];
       if (Math.hypot(p[0] - q[0], p[1] - q[1]) * st.zoom < 3) return;
       L.pts.push(p.map((v) => Math.round(v * 10) / 10));
       L.line.setAttribute("points", L.pts.map((q) => q.join(",")).join(" "));
-    }, here);
-    sc.addEventListener("pointerup", () => {
+    }
+    function drop() {
       const L = st.lasso; if (!L || !L.pts) return;
       const pts = L.pts.map(([x, y]) => [Math.min(Math.max(x, 0), st.W), Math.min(Math.max(y, 0), st.H)]);
       const area = Math.abs(pts.reduce((a, [x, y], i) => { const [p, q] = pts[(i + 1) % pts.length]; return a + x * q - p * y; }, 0)) / 2;
       endLasso();
       // a lasso smaller than a NoR's footprint is a slip, not an area
       if (pts.length >= 3 && area * st.zoom * st.zoom >= 100) setMask([...st.mask, pts]);
-    }, here);
-    sc.addEventListener("pointercancel", () => { if (st.lasso) endLasso(); }, here);
+    }
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.lasso) endLasso(); }, here);
   }
 

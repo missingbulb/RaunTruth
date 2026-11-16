@@ -55,6 +55,16 @@ await check(JSON.stringify(await size()) === JSON.stringify([W, H]), "Done shows
 await page.click("#edit-open");
 await page.waitForFunction(() => !$("#edit-box").hidden);
 await page.click("#edit-crop");
+// Escape in the middle of the drag draws no crop, and the release after it is none (req/shell/drag/escape)
+{
+  const [first, mid] = await Promise.all([[10, 10], [50, 40]].map(([x, y]) => screen(x, y)));
+  await page.mouse.move(...first); await page.mouse.down(); await page.mouse.move(...mid, { steps: 4 });
+  const drawn = await page.evaluate(() => $("#overlay").innerHTML.length);
+  await page.keyboard.press("Escape"); await page.mouse.move(mid[0] + 20, mid[1] + 10, { steps: 2 }); await page.mouse.up();
+  const after = await page.evaluate(() => $("#overlay").innerHTML.length);
+  await check(JSON.stringify(await size()) === JSON.stringify([W, H]) && after < drawn && await page.evaluate(() => !$("#edit-box").hidden),
+    "Escape mid-crop draws no crop and keeps Edit Image open", { size: await size(), drawn, after });
+}
 await drag([[10, 10], [40, 30], [70, 50]]);
 await page.waitForFunction(() => shellForTests.page.get("image").W === 60);
 await check(JSON.stringify(await size()) === JSON.stringify([60, 40]) && /60 × 40 px/.test(await page.textContent("#edit-crop-size")), "Crop shows only the rectangle drawn", await size());

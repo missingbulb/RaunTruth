@@ -20,6 +20,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { frames, viewDrawn } from "./page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -84,8 +85,8 @@ page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.me
 page.setDefaultTimeout(10000);
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
-const picture = () => page.evaluate(async () => {
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+const picture = async () => { await viewDrawn(page); return pictureNow(); };
+const pictureNow = () => page.evaluate(() => {
   const gl = document.querySelector("#v3-gl"), c = document.createElement("canvas");
   c.width = gl.width; c.height = gl.height;
   const g = c.getContext("2d"); g.drawImage(gl, 0, 0);
@@ -128,13 +129,61 @@ try {
     check(tools.title === "Reset view to top" && tools.label === "Reset view to top" && tools.icon && !tools.text && !tools.menu && tools.beside && !(await page.$("#v3-stage #v3-tools")),
       `beside Zoom one icon button, its tooltip Reset view to top, and no menu of views: ${JSON.stringify(tools)}`);
     check(!tools.gone.length, `the toolbar has no Render, Colour by depth or Slices tool: ${tools.gone}`);
-    check(tools.zoom && await page.isHidden("#ruler-btn"), "Zoom stays in 3D, the other 2D tools step aside");
+    check(tools.zoom && await page.isVisible("#ruler-btn") && await page.isHidden("#grid-btn"), "Zoom and the Ruler stay in 3D, the other 2D tools step aside");
     const z0 = await page.textContent("#zoom-label");
     await page.click("#zoom-in");
     await picture();
     const z1 = await page.textContent("#zoom-label");
     check(parseInt(z1) > parseInt(z0), `Zoom in zooms the 3D view: ${z0} → ${z1}`);
     await page.click("#zoom-out");
+
+    // the Ruler in 3D: a drag on the top slice shown, an orb of the reach while dragging, the ruler alone after
+    const rulerNow = () => page.evaluate(async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const svg = $("#v3-ruler"), orb = svg?.querySelector("circle.orb"), text = svg?.querySelector("text");
+      return { orb: orb ? { r: +orb.getAttribute("r"), fill: getComputedStyle(orb).fill, opacity: +getComputedStyle(orb).fillOpacity } : null,
+        line: !!svg?.querySelector("path.mark"), text: text?.textContent || null, pressed: $("#ruler-btn").getAttribute("aria-pressed"),
+        from: window.shellForTests.viewer.three.ruler?.from || null };
+    });
+    const rotNow = () => page.evaluate(() => JSON.stringify(window.shellForTests.viewer.three.S.rot));
+    const c3 = await page.evaluate(() => { const b = $("#v3-gl").getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
+    const rot0 = await rotNow();
+    await page.click("#ruler-btn");
+    await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down();
+    await page.mouse.move(c3[0] + 20, c3[1], { steps: 4 }); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 });
+    const live = await rulerNow();
+    const topZ = await page.evaluate(() => { const v = window.shellForTests.viewer.three, S = v.S, Zs = v.meta.shape[0]; return v.half[2] * (1 - (2 * S.z0) / Zs); });
+    check(live.orb && Math.abs(live.orb.r - 80) < 8 && /rgb\(255, 255, 255\)|url\(/.test(live.orb.fill) && live.line && /^\d+(\.\d+)? µm$/.test(live.text || ""),
+      `dragging the 3D ruler shows an orb of the reach, its radius the drag, with the distance in µm: ${JSON.stringify(live)}`);
+    check(live.from && Math.abs(live.from[2] - topZ) < 1e-6, `the ruler's first point lies on the top slice shown: ${JSON.stringify(live.from)} vs z ${topZ}`);
+    // the same drag read on the stack's middle depth, in its pixels of 1 µm: the top slice, a little nearer, reads a little less
+    const midUm = await page.evaluate(([x0, x1, y]) => { const v = window.shellForTests.viewer.three, a = v.toImage({ clientX: x0, clientY: y }), b = v.toImage({ clientX: x1, clientY: y });
+      return Math.hypot(b[0] - a[0], b[1] - a[1]); }, [c3[0] - 40, c3[0] + 40, c3[1]]);
+    check(Math.abs(parseFloat(live.text) / midUm - 1) < 0.06, `the 3D ruler's distance is the stack's: ${live.text} for ${midUm.toFixed(1)} µm at middle depth`);
+    await page.mouse.up();
+    const down = await rulerNow();
+    check(!down.orb && down.line && down.text === live.text && down.pressed === "true" && await rotNow() === rot0,
+      `on release the ruler alone stays, and the drag did not turn the view: ${JSON.stringify(down)}`);
+    await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0.5, -0.4); v.redraw(); });
+    const turnedR = await rulerNow();
+    check(turnedR.line && turnedR.text === down.text, `the ruler stays with its distance as the view turns: ${JSON.stringify(turnedR)}`);
+    await page.click("#ruler-btn");
+    const gone = await rulerNow();
+    check(!gone.line && !gone.text && gone.pressed === "false", `pressing the Ruler again takes it away: ${JSON.stringify(gone)}`);
+    // Escape mid-drag (req/shell/drag/escape) takes the orb and the ruler away, the ruler still armed, and the release
+    // after it neither measures nor turns the view
+    await page.click("#v3-reset");
+    const rotE = await rotNow();
+    await page.click("#ruler-btn");
+    await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down(); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 });
+    await page.keyboard.press("Escape");
+    const esc = await rulerNow();
+    await page.mouse.move(c3[0] + 80, c3[1] + 30, { steps: 4 }); await page.mouse.up();
+    const escUp = await rulerNow();
+    check(!esc.orb && !esc.line && !escUp.orb && !escUp.line && escUp.pressed === "true" && await rotNow() === rotE,
+      `Escape mid-drag takes the orb and the ruler away, the ruler still armed, the view unturned: ${JSON.stringify([esc, escUp])}`);
+    await page.click("#ruler-btn");
+    await page.click("#v3-reset");
     const slicesRow = await page.evaluate(() => { const r = $("#channels .v3-slices"); return r && !!r.querySelector("#v3-z0") && !!r.querySelector("#v3-z1") && !!r.querySelector("#v3-zs"); });
     check(slicesRow, "the slices shown and their spacing are a row in the image box, under the channels' rows");
     // req/shell/viewer-3d: Colour by depth is each channel's, an icon tick on its own row beside its colour picker, with
@@ -302,7 +351,7 @@ try {
     await page.mouse.move(r[0] - s0, r[1] - s0); await page.mouse.down();
     for (const [dx, dy] of [[1, -1], [1, 1], [-1, 1], [-1, -1]]) await page.mouse.move(r[0] + dx * s0, r[1] + dy * s0, { steps: 4 });
     await page.mouse.up();
-    await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+    await viewDrawn(page);
     const cut = await page.evaluate(([W, H]) => {
       const im = window.shellForTests.page.get("image"), m = im.W * im.H, at = (x, y) => [...Array(im.planes.length / m).keys()].map((k) => im.planes[k * m + y * im.W + x]);
       return { flaws: $("#edit-flaws").textContent, outlined: !!$("#edit-3d polygon"), middle: at(W >> 1, H >> 1), edge: at(2, 2), turned: window.shellForTests.viewer.three.S.rot[2][2] > 0.999 };
@@ -321,7 +370,7 @@ try {
   const loaded = async (name) => {
     await page.setInputFiles("#file", { name, mimeType: "image/tiff", buffer: name.endsWith(".png") ? FLAT : STACK });
     await page.waitForFunction((name) => window.shellForTests.page.get("image")?.name === name && $("#status").textContent === "Image loaded.", name);
-    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    await frames(page);
     return page.evaluate(() => ({ in3d: !!$("#v3-stage")?.checkVisibility(), flat: $("#stage").checkVisibility(), open: !$("#image-box").classList.contains("folded") }));
   };
   if (gl3d) {

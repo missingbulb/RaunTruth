@@ -21,6 +21,18 @@ function engines() {
   };
 }
 
+// the open book's buttons on the keyboard (req/shelves/truth/keys), by where a key sits, so in any layout, and the
+// one modifier held with it; none of them a letter, the title's text box being typed in
+const KEYS = {
+  right: { hint: "Enter", codes: ["Enter", "NumpadEnter"], mod: null },
+  wrong: { hint: "Ctrl+Backspace", codes: ["Backspace"], mod: "ctrlKey" },
+  flip: { hint: "Ctrl+↑", codes: ["ArrowUp"], mod: "ctrlKey" },
+  back: { hint: "Alt+←", codes: ["ArrowLeft"], mod: "altKey" },
+  next: { hint: "Alt+→", codes: ["ArrowRight"], mod: "altKey" },
+};
+const keyFor = (e) => Object.keys(KEYS).find((k) => KEYS[k].codes.includes(e.code)
+  && ["ctrlKey", "altKey", "shiftKey", "metaKey"].every((m) => e[m] === (m === KEYS[k].mod)));
+
 // the longest side of a book's picture in the task, in its pixels
 const PICTURE = 640;
 
@@ -101,7 +113,8 @@ export function mount(shell) {
   // books: [{corners, view, text, confidence, reader, turn, source: "found" | "missed", verdict: null | "right",
   // proposed: what the finder and the reader said, kept for scoring; while tagged, turnSet: the tagger set the turn,
   // typed: the tagger typed its text}]
-  let books = [], cur = null, drawing = null, dragging = null, noneMissed = false, opened = false, selectFor = null;
+  // asked: the book whose title, left as read, one Enter has asked to approve as it is
+  let books = [], cur = null, drawing = null, dragging = null, noneMissed = false, opened = false, selectFor = null, asked = null;
   let ocr = null;
   const truth = () => shell.makesTruth;
   // the tagger tags now: a book is open, framed and its corners dragged only then (req/shell/ground-truth/tagging)
@@ -210,9 +223,11 @@ export function mount(shell) {
       if (gen !== b.gen) return;
       const r = await ocrNow().read(crop, how, { turn: b.turnSet ? b.turn : null });
       if (gen !== b.gen) return;
-      const typed = b.typed ? b.text : null;
+      const typed = b.typed ? b.text : null, blank = !b.text;
       Object.assign(b, r, { reader: how });
       if (typed !== null) b.text = typed;
+      // an added book's first title, read after it opened, is selected to retype as a found one's is
+      else if (blank && b === cur && b.verdict !== "right") selectFor = b;
       save();
       shell.status("Book read again.");
     } finally { if (gen === b.gen) { b.reading = false; draw(); } }
@@ -275,7 +290,7 @@ export function mount(shell) {
   const open = () => books.filter((b) => !b.verdict);
   // a book made the open one: a title not yet approved is selected, to retype; while tagging, the spot Continue GT
   // tagging comes back to
-  function show(b, keepView = false) { cur = b; selectFor = b && b.verdict !== "right" ? b : null; if (b && !keepView) focus(b); if (tagging() && books.length) save(); draw(); }
+  function show(b, keepView = false) { cur = b; asked = null; selectFor = b && b.verdict !== "right" ? b : null; if (b && !keepView) focus(b); if (tagging() && books.length) save(); draw(); }
   // the next book still open along the shelves after this one, round to the first; none once every book is decided
   function next(after = cur) {
     const all = walk(), from = all.indexOf(after);
@@ -307,7 +322,8 @@ export function mount(shell) {
       const box = cur ? item(cur) : missedTools();
       now.querySelector(".task-body").append(box);
       const t = box.querySelector("input");
-      if (t && selectFor === cur) { selectFor = null; requestAnimationFrame(() => { if (t.isConnected) { t.focus({ preventScroll: true }); t.select(); } }); }
+      // kept until a box still on the page takes it: the book may be drawn again before the next frame
+      if (t && selectFor === cur) requestAnimationFrame(() => { if (t.isConnected && selectFor === cur) { selectFor = null; t.focus({ preventScroll: true }); t.select(); } });
       else if (t && typing) { t.focus({ preventScroll: true }); t.setSelectionRange(typing.s, typing.e); }
     }
     shell.tasks.ready(!!(all.length && !open().length && noneMissed));
@@ -327,14 +343,17 @@ export function mount(shell) {
   // the book on show: its picture, Flip, its text and the verdict
   function item(b) {
     const box = document.createElement("div"); box.className = "bs-item";
-    box.innerHTML = `<div class="bs-tools"><a data-do="back">Back</a><a data-do="next">Next</a></div><canvas></canvas>
-      <div class="bs-row"><button type="button" data-do="flip" title="Turn the picture upside down">Flip</button></div>
+    const key = (k) => `<kbd class="bs-key">${KEYS[k].hint}</kbd>`;
+    box.innerHTML = `<div class="bs-tools"><a data-do="back">Back ${key("back")}</a><a data-do="next">Next ${key("next")}</a></div><canvas></canvas>
+      <div class="bs-row"><button type="button" data-do="flip" title="Turn the picture upside down">Flip ${key("flip")}</button></div>
       <input type="text" dir="auto" placeholder="The title, as printed" aria-label="Title"><p class="bs-reading dim" hidden>Reading again…</p>
-      <div class="bs-verdicts"><button type="button" class="primary" data-do="right">Right</button><button type="button" data-do="wrong">Not a book</button></div>`;
+      <p class="bs-confirm hint" role="status" hidden>Left as read: Enter again if it is exactly right</p>
+      <div class="bs-verdicts"><button type="button" class="primary" data-do="right">Right ${key("right")}</button><button type="button" data-do="wrong">Not a book ${key("wrong")}</button></div>`;
     paint(box.querySelector("canvas"), b);
     box.querySelector('[data-do="flip"]').onclick = () => flip(b);
     box.querySelector(".bs-reading").hidden = !b.reading;
-    const t = box.querySelector("input"); t.value = b.text || ""; t.oninput = () => { b.text = t.value; b.typed = true; save(); };
+    box.querySelector(".bs-confirm").hidden = asked !== b;
+    const t = box.querySelector("input"); t.value = b.text || ""; t.oninput = () => { b.text = t.value; b.typed = true; asked = null; box.querySelector(".bs-confirm").hidden = true; save(); };
     for (const v of ["right", "wrong"]) {
       const k = box.querySelector(`[data-do="${v}"]`);
       k.setAttribute("aria-pressed", String(b.verdict === v)); k.onclick = () => verdict(v);
@@ -423,23 +442,40 @@ export function mount(shell) {
     if (e.button !== 0 || !opened) return;
     if (drawing) { e.preventDefault(); drawing.pts.push(at(e)); if (drawing.pts.length === 4) drew(drawing.pts); else draw(); return; }
     const k = e.target.closest?.(".bs-corner");
-    if (k && cur) { e.preventDefault(); sc.setPointerCapture(e.pointerId); dragging = +k.dataset.corner; }
+    if (!k || !cur) return;
+    e.preventDefault(); dragging = +k.dataset.corner;
+    const book = cur, was = book.corners.map((p) => [...p]);
+    shell.drag(sc, e, { move, drop, cancel: () => { dragging = null; book.corners = was; drawBoxes(); repaint(); } });
   }, here);
-  sc.addEventListener("pointermove", (e) => {
+  function move(e) {
     if (dragging === null || !cur) return;
     const [x, y] = at(e);
     cur.corners[dragging] = [past(x, st.W), past(y, st.H)];
     drawBoxes(); repaint();
-  }, here);
-  const drop = () => {
+  }
+  function drop() {
     if (dragging === null) return;
     dragging = null; cur.corners = clockwise(cur.corners); save();
     // the reading follows the corners
     reread(cur);
-  };
-  sc.addEventListener("pointerup", drop, here);
-  sc.addEventListener("pointercancel", drop, here);
+  }
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (drawing) endDrawing(); hideMenu(); } }, here);
+
+  // ---------- the keyboard: the open book's buttons pressed by their keys (req/shelves/truth/keys) ----------
+  document.addEventListener("keydown", (e) => {
+    const k = keyFor(e), t = e.target instanceof Element ? e.target : null;
+    if (!k || e.isComposing || e.keyCode === 229 || !tagging() || !cur || drawing) return;
+    const box = document.querySelector(".bs-item");
+    if (!box || t?.closest("dialog") || (t?.closest("input, textarea, select, [contenteditable]") && !box.contains(t))) return;
+    // Enter on a control of its own presses that control
+    if (k === "right" && t?.closest("button, a[href], summary") && t !== document.body) return;
+    const b = box.querySelector(`[data-do="${k}"]`);
+    if (!b || b.disabled || !b.checkVisibility()) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (k === "right" && !cur.typed && asked !== cur) { asked = cur; box.querySelector(".bs-confirm").hidden = false; return; }
+    b.click();
+  }, here);
 
   return {
     ready() { $("#bs-find").disabled = !opened; },

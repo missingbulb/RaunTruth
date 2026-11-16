@@ -12,7 +12,7 @@ Every capability of [missingbulb/vascularColoring](https://github.com/missingbul
 | Vessel model drafter `vessel_model.py`; tracer spike `trace_vessel_graph.py`; `export_stack_view.py` + `stack_view/` | `analysis/` | moved (the last two as spikes) |
 | Stack manifest and fetcher (`data/sources.json`, `fetch_data.py`) | `data/`, `analysis/stack_sources.py` | moved; renamed to stop shadowing NoR's `fetch_data`; sharing one fetcher is open (D6) |
 | WORKING-GUIDE, STATUS, 3D-STACKS, results-first-pass | `docs/` | moved |
-| Literature: 10 digests, METHODS-SYNTHESIS, BIOLOGY-INVARIANTS, figure READMEs, `crop_panels.py`, `_tools/`, Rust's macros | `docs/literature/` | moved |
+| Literature: 10 digests, METHODS-SYNTHESIS, BIOLOGY-INVARIANTS, figure READMEs, `crop_panels.py`, `_tools/`, Rust's macros | `docs/literature/` | moved; since flattened to one Markdown file per paper, the scripts and macros dropped (D5) |
 | Literature binaries: PDFs (~36 MB), figures and panels (~88 MB) | linked at vascularColoring | open (D5) |
 | Vessel-model/2 format and edits (`model.js`), review tube (`coverage.js`), the four v5 draft models | `web/`; the drafts no longer ship: Execute draws a model in the page (`req/vascular/model/run`) | moved, tested |
 | 3D viewer: WebGL2 ray-caster, Brightest/Surface, colour by depth, slab, slice spacing, look-from, Flattened and Depth-profile views (`viewer.js`, `stack.js`) | `web/viewer3d.js` (shell) | moved: every shown channel in its row's colour and points; Flattened is the 2D view; the single-slice picture and Depth profile not yet |
@@ -43,8 +43,9 @@ Every capability of [missingbulb/vascularColoring](https://github.com/missingbul
 - **D4, ground truth:** stage GT, using the shell's Submit Ground Truth with label
   `vascular-ground-truth`. This needs the shell's submit popup to stop counting NoR's `labels`.
   An intake task follows once the first corrected model is submitted.
-- **D5, literature binaries:** none come into git. The READMEs keep linking to vascularColoring at
-  `54badaa`.
+- **D5, literature binaries:** none come into git, and the paper summaries no longer embed or link
+  the copies at vascularColoring: each paper is one Markdown file linking the publisher (owner,
+  2026-11-16).
 - **D7, the pack:** port 5 Go checks with their roots under `studies/vascular/` (the three
   calibration checks, locked-metric-fields, overlay-color-contrast, panel-scale-calibration).
   Drop render-outputs-gitignored, rendered-overlays-untracked and paper-folder-indexed. Retire the
