@@ -102,10 +102,10 @@
     ]
   },
   "actions": [
-    {"id": "right", "label": "Right", "keys": ["Enter", "NumpadEnter"], "kind": "press", "control": ".bs-item [data-do=\"right\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item", "ownControl": true},
-    {"id": "back", "label": "Back", "keys": ["Alt+ArrowLeft"], "kind": "press", "control": ".bs-item [data-do=\"back\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
-    {"id": "next", "label": "Next", "keys": ["Alt+ArrowRight"], "kind": "press", "control": ".bs-item [data-do=\"next\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
-    {"id": "flip", "label": "Flip", "keys": ["Ctrl+ArrowUp"], "kind": "press", "control": ".bs-item [data-do=\"flip\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
-    {"id": "wrong", "label": "Not a book", "keys": ["Ctrl+Backspace"], "hint": "Ctrl+Backspace", "kind": "press", "control": ".bs-item [data-do=\"wrong\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"}
+    {"id": "right", "label": "Right", "keys": ["Enter", "NumpadEnter"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"right\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item", "ownControl": true},
+    {"id": "back", "label": "Back", "keys": ["Alt+ArrowLeft"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"back\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "next", "label": "Next", "keys": ["Alt+ArrowRight"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"next\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "flip", "label": "Flip", "keys": ["Ctrl+ArrowUp"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"flip\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "wrong", "label": "Not a book", "keys": ["Ctrl+Backspace"], "hint": "Ctrl+Backspace", "kind": "press", "legend": false, "control": ".bs-item [data-do=\"wrong\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"}
   ]
 }

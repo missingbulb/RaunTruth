@@ -32,7 +32,9 @@ export function actions(legend) {
   const down = new Set();
   // a declared condition, "name" or "!name", over the states reported
   const holds = (c) => (c[0] === "!" ? !state[c.slice(1)] : !!state[c]);
+  // every action says whether it is a state of the view, listed in the legend, or not, its key only on its control
   function add(spec, order, signal) {
+    if (typeof spec.legend !== "boolean") return console.error(`the action ${spec.id} says nothing of the legend: give it legend true or false`);
     const keys = spec.keys.map(parse);
     const a = { spec, keys, order, codes: keys.map((k) => k.code), held: false };
     a.control = () => (typeof spec.control === "string" ? document.querySelector(spec.control) : null);
@@ -49,7 +51,7 @@ export function actions(legend) {
     a.hint = html("span", { className: "key-hint", textContent: spec.hint || hintOf(spec.keys) });
     a.row = html("div", { className: "key-row" }); a.row.append(a.label, a.hint);
     list.push(a); list.sort((x, y) => x.order - y.order);
-    legend.append(...list.map((x) => x.row));
+    legend.append(...list.filter((x) => x.spec.legend).map((x) => x.row));
     signal?.addEventListener("abort", () => { list.splice(list.indexOf(a), 1); a.row.remove(); a.control()?.querySelector(":scope > kbd.key-on")?.remove(); });
     paint();
     return a;

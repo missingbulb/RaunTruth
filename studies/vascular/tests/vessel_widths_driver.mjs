@@ -100,13 +100,13 @@ try {
   check(await look() == null, "an area opens with the lines over the stack, not the widths look");
   // req/vascular/truth/keys: an area with no junction and a drawn vessel without a width: no F, J or Space in the legend
   let keys = await legendKeys(page);
-  check(keys === "S W 1 2 3 shift", `in an area without junctions the keys legend lists S, W, the views and Panning: ${keys}`);
+  check(keys === "1 2 3 shift", `in an area without junctions the keys legend lists the views and Panning: ${keys}`);
 
   // W: the widths look, the area from above in the stack's own pixels, flattened, grey
   await page.keyboard.press("w"); await frames();
   let w = await look();
   keys = await legendKeys(page);
-  check(keys === "S W I U −/+ ⌫ shift", `with the widths look on the legend lists its keys, the views gone: ${keys}`);
+  check(keys === "I shift", `with the widths look on the legend lists Image alone and Panning, the views gone: ${keys}`);
   check(!!w && w.vessels.length === 3 && w.image, `W shows the widths look over the area's three vessels: ${JSON.stringify(w && w.vessels.map((v) => v.label))}`);
   const binned = await page.evaluate(() => window.shellForTests.viewer.three.meta.um_per_px);
   {
@@ -173,7 +173,7 @@ try {
   check(e.width?.how === "cannot" && !("um" in e.width) && vesselAt(w, 140).kind === "cannot" && vesselAt(w, 140).label === "?", `U says the width cannot be told: ${JSON.stringify(e.width)}`);
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "... and Area is right is on again");
   keys = await legendKeys(page);
-  check(keys === "Space S W I U −/+ ⌫ shift", `... and Space joins the legend: ${keys}`);
+  check(keys === "I shift", `... and Space stays off the legend, on its button: ${keys}`);
 
   // Backspace puts back the estimate
   await page.mouse.move(...screen(110, 40, w)); await frames();

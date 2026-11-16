@@ -114,7 +114,7 @@ try {
   await page.waitForFunction(() => window.vascular.tasks().key);
   // tagging, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
   keys = await legendKeys(page);
-  check(keys === "F J S W 1 2 3 shift", `tagging a junction, the keys legend lists F, J, S, W, the views and Panning: ${keys}`);
+  check(keys === "1 2 3 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
   check(labels.F === "Junction" && labels.J === "They cross" && labels.S === "Skip" && labels["1"] === "Model", `each row says what its key does: ${JSON.stringify(labels)}`);
   await frames(page);
@@ -178,7 +178,7 @@ try {
   for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
   keys = await legendKeys(page);
-  check(keys === "Space S W 1 2 3 shift", `no junction left, F and J leave the legend and Space joins it: ${keys}`);
+  check(keys === "1 2 3 shift", `no junction left, the legend still lists only the views and Panning: ${keys}`);
   s0 = await state();
   // Space on a focused button presses that button, not Area is right
   check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");

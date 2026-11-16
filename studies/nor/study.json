@@ -80,16 +80,16 @@
     "reveal": "https://urbananimal.co.in/wp-content/uploads/2025/04/image-6.jpg.webp"
   },
   "actions": [
-    {"id": "yes", "label": "A NoR", "keys": ["KeyF"], "kind": "press", "control": "#task-card .verdict .up", "when": ["tagging", "step"]},
-    {"id": "no", "label": "Not a NoR", "keys": ["KeyJ"], "kind": "press", "control": "#task-card .verdict .down", "when": ["tagging", "step"]},
-    {"id": "none-missed", "label": "No missed NoRs here", "keys": ["Space"], "kind": "press", "control": "#area-ok", "when": ["tagging", "step"]},
-    {"id": "back", "label": "Back", "keys": ["Backspace"], "kind": "press", "control": "#task-back", "when": ["tagging", "step"]},
-    {"id": "skip", "label": "Skip", "keys": ["KeyS"], "kind": "press", "control": "#task-skip", "when": ["tagging", "step"]},
-    {"id": "reset", "label": "Reset measurements", "keys": ["KeyR"], "kind": "press", "control": "#task-card .reset-lines", "when": ["tagging", "step"]},
-    {"id": "show-pass", "label": "Finalists", "title": "The finalists waiting for your verdict, each a faint outline", "keys": ["Digit1", "Numpad1"], "kind": "toggle", "on": "gtPass", "when": ["views"]},
-    {"id": "show-fails", "label": "Rejected", "title": "The rejected waiting for your verdict, each a faint outline", "keys": ["Digit2", "Numpad2"], "kind": "toggle", "on": "gtFails", "when": ["views"]},
-    {"id": "show-added", "label": "Added NoRs", "title": "The NoRs you added where the finder missed one", "keys": ["Digit3", "Numpad3"], "kind": "toggle", "on": "gtAdded", "when": ["views"]},
-    {"id": "show-cut", "label": "Cut out what is done", "title": "What you decided, and each area done, cut out of the image", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "on": "gtCut", "when": ["views", "tagging"]},
-    {"id": "show-frame", "label": "Frame the area", "title": "The area you are working on, framed", "keys": ["Digit5", "Numpad5"], "kind": "toggle", "on": "gtFrame", "when": ["views", "tagging"]}
+    {"id": "yes", "label": "A NoR", "keys": ["KeyF"], "kind": "press", "legend": false, "control": "#task-card .verdict .up", "when": ["tagging", "step"]},
+    {"id": "no", "label": "Not a NoR", "keys": ["KeyJ"], "kind": "press", "legend": false, "control": "#task-card .verdict .down", "when": ["tagging", "step"]},
+    {"id": "none-missed", "label": "No missed NoRs here", "keys": ["Space"], "kind": "press", "legend": false, "control": "#area-ok", "when": ["tagging", "step"]},
+    {"id": "back", "label": "Back", "keys": ["Backspace"], "kind": "press", "legend": false, "control": "#task-back", "when": ["tagging", "step"]},
+    {"id": "skip", "label": "Skip", "keys": ["KeyS"], "kind": "press", "legend": false, "control": "#task-skip", "when": ["tagging", "step"]},
+    {"id": "reset", "label": "Reset measurements", "keys": ["KeyR"], "kind": "press", "legend": false, "control": "#task-card .reset-lines", "when": ["tagging", "step"]},
+    {"id": "show-pass", "label": "Finalists", "title": "The finalists waiting for your verdict, each a faint outline", "keys": ["Digit1", "Numpad1"], "kind": "toggle", "legend": true, "on": "gtPass", "when": ["views"]},
+    {"id": "show-fails", "label": "Rejected", "title": "The rejected waiting for your verdict, each a faint outline", "keys": ["Digit2", "Numpad2"], "kind": "toggle", "legend": true, "on": "gtFails", "when": ["views"]},
+    {"id": "show-added", "label": "Added NoRs", "title": "The NoRs you added where the finder missed one", "keys": ["Digit3", "Numpad3"], "kind": "toggle", "legend": true, "on": "gtAdded", "when": ["views"]},
+    {"id": "show-cut", "label": "Cut out what is done", "title": "What you decided, and each area done, cut out of the image", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "legend": true, "on": "gtCut", "when": ["views", "tagging"]},
+    {"id": "show-frame", "label": "Frame the area", "title": "The area you are working on, framed", "keys": ["Digit5", "Numpad5"], "kind": "toggle", "legend": true, "on": "gtFrame", "when": ["views", "tagging"]}
   ]
 }

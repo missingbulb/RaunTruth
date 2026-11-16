@@ -708,6 +708,9 @@ nobody has decided: what the page does there is not a requirement yet.
     while the key is held and off when it is let go;
   - optionally `control`, the button it mirrors: the key presses it, it acts only while that button is shown and on,
     and the button carries the key, small, at its end; with none, the study's handler for it does what it does;
+  - `legend`, `true` for a state of the image's view (a view held or kept on, a layer shown or hidden), listed in the
+    keys legend, or `false` for anything else (a verdict, a step, an edit, a task's mode), its key shown only on its
+    control; an action saying neither is refused, never wired (owner, 2026-11-16);
   - optionally `when`, the states the study reports that must all hold for it to act (`area`, `!look`), and `on`, the
     state that says a toggle or a hold is on (a toggle's control's own pressed or ticked state when none is named);
   - optionally `inField`, an element inside which a text field with the focus still lets the key act, and
@@ -719,7 +722,7 @@ nobody has decided: what the page does there is not a requirement yet.
   however long it is held, a held key let go wherever the focus went; only a key that acted is kept from the page, and its repeats while it is held, so a held Alt+← never takes the browser back.
 
   At the image's bottom left, over the image in the 2D and 3D views alike, the keys legend lists one row for each
-  shortcut that acts just now, in the study's order, the viewer's own last (the 3D view's Panning,
+  state of the view whose shortcut acts just now, in the study's order, the viewer's own last (the 3D view's Panning,
   `req/shell/viewer-3d`): what it does in a small label, its key beside it in a faded grey. A row is filled blue while
   its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
   a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
