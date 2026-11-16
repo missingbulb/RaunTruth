@@ -1560,7 +1560,10 @@ nobody has decided: what the page does there is not a requirement yet.
   its own axis, which may differ; in pixels when it does not. A click with no drag measures nothing.
   Once the ruler is down the image pans again; pressing the button again takes the ruler away, as
   does opening another image. The ruler keeps its place and size through zoom and the study's own
-  drawing. Test: `web-tests/test_ruler_page.py`.
+  drawing. On a stack in 3D (`req/shell/viewer-3d`) the Ruler works the same, on the plane of the top slice
+  shown, where its first point lands: while dragging, a transparent white orb shows the reach around that point in
+  depth too, and on release the ruler alone stays between the two points with their distance, through the view's turns,
+  zoom and pans (owner, 2026-11-15). Test: `web-tests/test_ruler_page.py`, `web-tests/test_viewer3d_page.py`.
   </details>
 
 - `req/shell/version-history` Clicking the version opens a Version history; a bubble points at it after an update.
@@ -1597,7 +1600,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the label holds. That state lives only while the page is open: it is never stored or restored (owner,
   2026-11-05). Panning is the bottom row of the image's keys legend (`req/shell/image/keys`, owner, 2026-11-16). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
   the view back to looking straight down; no menu of other views (owner, 2026-11-08), and the 2D view's Zoom, which zooms the 3D view (owner,
-  2026-11-04); the 2D view's other tools step aside. Brightest shows the brightest point along each
+  2026-11-04) and its Ruler, measuring on the top slice shown (`req/shell/tools/ruler`, owner, 2026-11-15); the 2D view's other tools step aside. Brightest shows the brightest point along each
   ray, Surface a lit surface where the signal crosses a level, and colour by depth paints by the
   depth of that point so crossings at different depths read apart: the study's `view` sets the render
   it opens with. The depth is a row of the image box under the

@@ -1,7 +1,7 @@
 # First-pass measured results — categorize / count / measure
 
 > Output of [`measure_vessels.py`](../analysis/measure_vessels.py) on the 16 `VESSEL_*.png` gP-CD31 panels.
-> Measured companion to the visual [`expected-results.md`](literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md).
+> Measured companion to the visual [`expected-results.md`](literature/wang-2022-cd31-vascular-network.md#figures).
 > **First pass — parameters not yet tuned; treat rankings as the real result, absolute numbers as directional.**
 
 ## Scale calibration (px → µm) — measured from the figures

@@ -4,6 +4,7 @@
 // of the 3D view's own under them shows part of the depth and sets the spacing between slices. Each channel may be
 // coloured by depth instead of in its colour: an icon tick on its row, and its colour picker then a palette picker
 // (the channel's `depth`, a palette's key; a study's channels may set it, true taking a palette no other channel has).
+// The 2D view's Ruler measures here too, on the plane of the top slice shown.
 // The study's `view` in study.json sets what the 3D view opens with: render ("brightest" | "surface") and the
 // spacing between slices when the file does not say, with who stated it (spacingSource).
 //
@@ -12,6 +13,7 @@
 "use strict";
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
+import { rulerMarks, rulerText } from "./viewer2d.js";
 
 const MAX_SIDE = 640; // the GPU's budget: a ray samples every voxel it crosses, so a wider volume is binned to this
 const CHANNELS = 4;   // the most channels the 3D view adds together
@@ -193,7 +195,7 @@ export function viewer3d(shell, flat) {
   const S = { mode: 0, iso: 0.35, z0: 0, z1: 0, zs: 1, rot: facing(0, 0), dist: FIT_DIST, pivot: [0, 0, 0], dragging: false, clip: null, spot: null, held: false };
   let mask = null, keepSide = 0;
   const drawers = [], spacingHeard = [], resetHeard = [];
-  let half = [1, 1, 0.1];
+  let half = [1, 1, 0.1], perWorld = 1; // perWorld: µm (or the image's pixels) in a world unit across x and y
 
   // ---------- the page's parts: Reset view to top in the toolbar beside Zoom, the slices' row and Colour by depth
   // under the channels' rows, the stage in the 2D one's place ----------
@@ -258,7 +260,9 @@ export function viewer3d(shell, flat) {
     if (on) shell.actions.add({ id: "v3-pan", label: "Panning", title: "Press Shift to pan, or click to keep panning on", keys: ["ShiftLeft", "ShiftRight"],
       hint: "shift", kind: "toggle", wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
   }
-  stage.append(cv, hudCv);
+  const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  rulerSvg.id = "v3-ruler";
+  stage.append(cv, hudCv, rulerSvg);
 
   // ---------- GL ----------
   function initGL() {
@@ -312,7 +316,7 @@ export function viewer3d(shell, flat) {
   }
   function geometry() {
     const um = page.get("image")?.um || 1, ext = [vol.X * vol.bin * um, vol.Y * vol.bin * um, vol.Z * S.zs], m = Math.max(...ext);
-    half = ext.map((e) => e / m);
+    half = ext.map((e) => e / m); perWorld = m / 2;
   }
 
   // ---------- drawing ----------
@@ -343,6 +347,7 @@ export function viewer3d(shell, flat) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     zoomText();
     hud(vp);
+    rulerDraw(vp);
     for (const fn of drawers) fn();
   }
   // the stack's box and its size, and its three axes through the pivot, the one point that stays put while it turns
@@ -436,7 +441,56 @@ export function viewer3d(shell, flat) {
     }, { passive: false });
     new ResizeObserver(redraw).observe(el);
   }
-  controls(cv);
+
+  // ---------- the ruler, the 2D view's (req/shell/tools/ruler) on the plane of the top slice shown: its points in
+  // world coordinates, and while dragging an orb of the reach around the first ----------
+  const R = { armed: false, from: null, to: null, live: false }, rulerBtn = $("#ruler-btn");
+  function rulerSet(on) {
+    Object.assign(R, { armed: on, from: null, to: null, live: false });
+    rulerBtn.setAttribute("aria-pressed", on); cv.classList.toggle("measuring", on); redraw();
+  }
+  // where the line of sight through a pointer meets the plane z of the world, [x, y, z]; null where the view looks along it
+  function atDepth(e, z) {
+    const r = cv.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
+    const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height) * 2;
+    const [a, b] = [-1, 1].map((d) => { const w = M.xf(iv, [nx, ny, d]); return w.slice(0, 3).map((v) => v / w[3]); });
+    if (Math.abs(b[2] - a[2]) < 1e-9) return null;
+    const t = (z - a[2]) / (b[2] - a[2]);
+    return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), z];
+  }
+  const topSlice = () => half[2] * (1 - (2 * S.z0) / vol.Z);
+  function rulerDraw(vp) {
+    rulerSvg.replaceChildren();
+    if (!R.from) return;
+    const W = cv.clientWidth, H = cv.clientHeight;
+    rulerSvg.setAttribute("width", W); rulerSvg.setAttribute("height", H);
+    const P = (p) => { const v = M.xf(vp, p); return v[3] > 0 ? [((v[0] / v[3] + 1) / 2) * W, ((1 - v[1] / v[3]) / 2) * H] : null; };
+    const a = P(R.from), b = P(R.to), reach = Math.hypot(R.to[0] - R.from[0], R.to[1] - R.from[1]);
+    if (!a || !b) return;
+    const rim = R.live && P(R.from.map((v, i) => v + reach * S.rot[0][i]));
+    rulerMarks(rulerSvg, a, b, rulerText(reach * perWorld, page.get("image")?.um ? "µm" : "px"), (mk) => {
+      if (!rim) return [];
+      const fill = mk("radialGradient", { id: "v3-orb-fill", cx: 0.38, cy: 0.34, r: 0.7 });
+      for (const [o, op] of [[0, 0.42], [0.65, 0.12], [1, 0.26]]) fill.append(mk("stop", { offset: o, "stop-color": "#fff", "stop-opacity": op }));
+      const defs = mk("defs", {}); defs.append(fill);
+      return [defs, mk("circle", { class: "orb", cx: a[0], cy: a[1], r: Math.hypot(rim[0] - a[0], rim[1] - a[1]), fill: "url(#v3-orb-fill)" })];
+    });
+  }
+  // an armed ruler takes a left press on the top slice shown for its drag; one let go within a few pixels measures nothing
+  function rulerGrab(e) {
+    if (!R.armed || e.button !== 0 || !vol) return null;
+    const p = atDepth(e, topSlice());
+    if (!p) return null;
+    Object.assign(R, { from: p, to: p, live: true, at: [e.clientX, e.clientY] }); redraw();
+    const drop = (e) => {
+      R.live = false;
+      if (!e || Math.hypot(e.clientX - R.at[0], e.clientY - R.at[1]) < CLICK_PX) R.from = R.to = null;
+      else { R.armed = false; cv.classList.remove("measuring"); }
+      redraw();
+    };
+    return { move(e) { const q = atDepth(e, R.from[2]); if (q) { R.to = q; redraw(); } }, up: drop, cancel: () => drop(null) };
+  }
+  controls(cv, rulerGrab);
 
   // ---------- the tools ----------
   const ui = (id) => (tools.querySelector("#" + id) || slicesRow.querySelector("#" + id));
@@ -497,6 +551,7 @@ export function viewer3d(shell, flat) {
     stage.hidden = !mode3d; tools.hidden = !mode3d; $("#scroller").hidden = mode3d;
     flat.rowsAfter(mode3d ? [slicesRow] : []); flat.rowsWith(mode3d ? depthRow : null);
     flat.zoomWith(mode3d ? (k) => { S.dist = Math.min(Math.max(S.dist / k, MIN_DIST), 12); redraw(); } : null);
+    rulerSet(false); flat.rulerWith(mode3d ? () => rulerSet(rulerBtn.getAttribute("aria-pressed") !== "true") : null);
     if (mode3d) $("#view").dataset.v3 = ""; else delete $("#view").dataset.v3;
     redraw();
   }
@@ -532,6 +587,8 @@ export function viewer3d(shell, flat) {
   const first = () => { const rows = flat.levels(); const k = rows.findIndex((c, i) => c.on && i < vol.vols.length); return k < 0 ? 0 : k; };
   const three = {
     M, S, FIT_DIST, facing,
+    // the ruler on the view: its first and last point in world coordinates, while it is drawn
+    get ruler() { return R.from ? { from: [...R.from], to: [...R.to] } : null; },
     get meta() { return vol ? { shape: [vol.Z, vol.Y, vol.X], um_per_px: (page.get("image")?.um || 1) * vol.bin } : null; },
     get half() { return half; },
     get stage() { return stage; },
@@ -560,13 +617,8 @@ export function viewer3d(shell, flat) {
     // a pointer's place on the shown image's pixels at the stack's middle depth, [x, y]; null where the view looks along
     // that plane. From straight above it is the pixel under the pointer, through every slice.
     toImage(e) {
-      if (!vol) return null;
-      const r = cv.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
-      const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height) * 2;
-      const [a, b] = [-1, 1].map((d) => { const w = M.xf(iv, [nx, ny, d]); return w.slice(0, 3).map((v) => v / w[3]); });
-      if (Math.abs(b[2] - a[2]) < 1e-9) return null;
-      const t = -a[2] / (b[2] - a[2]), x = a[0] + t * (b[0] - a[0]), y = a[1] + t * (b[1] - a[1]);
-      return [((x / half[0] + 1) / 2) * vol.X * vol.bin, ((1 - y / half[1]) / 2) * vol.Y * vol.bin];
+      const w = vol && atDepth(e, 0);
+      return w && [((w[0] / half[0] + 1) / 2) * vol.X * vol.bin, ((1 - w[1] / half[1]) / 2) * vol.Y * vol.bin];
     },
     // where a pixel of the shown image at the stack's middle depth lies on the view, [x, y] from its top left; null
     // behind the camera
