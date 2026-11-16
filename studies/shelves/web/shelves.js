@@ -21,18 +21,6 @@ function engines() {
   };
 }
 
-// the open book's buttons on the keyboard (req/shelves/truth/keys), by where a key sits, so in any layout, and the
-// one modifier held with it; none of them a letter, the title's text box being typed in
-const KEYS = {
-  right: { hint: "Enter", codes: ["Enter", "NumpadEnter"], mod: null },
-  wrong: { hint: "Ctrl+Backspace", codes: ["Backspace"], mod: "ctrlKey" },
-  flip: { hint: "Ctrl+↑", codes: ["ArrowUp"], mod: "ctrlKey" },
-  back: { hint: "Alt+←", codes: ["ArrowLeft"], mod: "altKey" },
-  next: { hint: "Alt+→", codes: ["ArrowRight"], mod: "altKey" },
-};
-const keyFor = (e) => Object.keys(KEYS).find((k) => KEYS[k].codes.includes(e.code)
-  && ["ctrlKey", "altKey", "shiftKey", "metaKey"].every((m) => e[m] === (m === KEYS[k].mod)));
-
 // the longest side of a book's picture in the task, in its pixels
 const PICTURE = 640;
 
@@ -327,6 +315,7 @@ export function mount(shell) {
       else if (t && typing) { t.focus({ preventScroll: true }); t.setSelectionRange(typing.s, typing.e); }
     }
     shell.tasks.ready(!!(all.length && !open().length && noneMissed));
+    shell.actions.report({ tagging: tagging(), book: !!cur, drawing: !!drawing });
   }
   // the book's picture in the task, drawn here from the photo the viewer shows, at the book's turn
   function paint(cv, b) {
@@ -343,12 +332,11 @@ export function mount(shell) {
   // the book on show: its picture, Flip, its text and the verdict
   function item(b) {
     const box = document.createElement("div"); box.className = "bs-item";
-    const key = (k) => `<kbd class="bs-key">${KEYS[k].hint}</kbd>`;
-    box.innerHTML = `<div class="bs-tools"><a data-do="back">Back ${key("back")}</a><a data-do="next">Next ${key("next")}</a></div><canvas></canvas>
-      <div class="bs-row"><button type="button" data-do="flip" title="Turn the picture upside down">Flip ${key("flip")}</button></div>
+    box.innerHTML = `<div class="bs-tools"><a data-do="back">Back</a><a data-do="next">Next</a></div><canvas></canvas>
+      <div class="bs-row"><button type="button" data-do="flip" title="Turn the picture upside down">Flip</button></div>
       <input type="text" dir="auto" placeholder="The title, as printed" aria-label="Title"><p class="bs-reading dim" hidden>Reading again…</p>
       <p class="bs-confirm hint" role="status" hidden>Left as read: Enter again if it is exactly right</p>
-      <div class="bs-verdicts"><button type="button" class="primary" data-do="right">Right ${key("right")}</button><button type="button" data-do="wrong">Not a book ${key("wrong")}</button></div>`;
+      <div class="bs-verdicts"><button type="button" class="primary" data-do="right">Right</button><button type="button" data-do="wrong">Not a book</button></div>`;
     paint(box.querySelector("canvas"), b);
     box.querySelector('[data-do="flip"]').onclick = () => flip(b);
     box.querySelector(".bs-reading").hidden = !b.reading;
@@ -461,21 +449,15 @@ export function mount(shell) {
   }
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (drawing) endDrawing(); hideMenu(); } }, here);
 
-  // ---------- the keyboard: the open book's buttons pressed by their keys (req/shelves/truth/keys) ----------
-  document.addEventListener("keydown", (e) => {
-    const k = keyFor(e), t = e.target instanceof Element ? e.target : null;
-    if (!k || e.isComposing || e.keyCode === 229 || !tagging() || !cur || drawing) return;
-    const box = document.querySelector(".bs-item");
-    if (!box || t?.closest("dialog") || (t?.closest("input, textarea, select, [contenteditable]") && !box.contains(t))) return;
-    // Enter on a control of its own presses that control
-    if (k === "right" && t?.closest("button, a[href], summary") && t !== document.body) return;
-    const b = box.querySelector(`[data-do="${k}"]`);
-    if (!b || b.disabled || !b.checkVisibility()) return;
-    e.preventDefault();
-    if (e.repeat) return;
-    if (k === "right" && !cur.typed && asked !== cur) { asked = cur; box.querySelector(".bs-confirm").hidden = false; return; }
-    b.click();
-  }, here);
+  // ---------- the keyboard (req/shelves/truth/keys, req/shell/image/keys) ----------
+  // the shell presses the open book's buttons by the keys study.json gives them; Right's key, on a title still as
+  // the reader read it, first asks for a second press
+  shell.actions.handle({
+    right: (phase, { control }) => {
+      if (!cur.typed && asked !== cur) { asked = cur; document.querySelector(".bs-item .bs-confirm").hidden = false; return; }
+      control.click();
+    },
+  });
 
   return {
     ready() { $("#bs-find").disabled = !opened; },

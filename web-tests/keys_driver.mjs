@@ -14,6 +14,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
+import { frames } from "./page_frames.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 
@@ -115,12 +116,21 @@ try {
   check(await press("KeyG", { altKey: true }) && (await grid()), "Alt+G presses Grid");
 
 
-  // a key held fills its row blue until let go
+  // a key held fills its row blue until let go; Grid's popup, open since Grid was pressed, closed first, as it takes
+  // the keys while open
+  await page.evaluate(() => document.querySelector(":popover-open")?.hidePopover());
   await page.keyboard.down("r");
   const held = (await legend())[0].lit;
+  // the key held after it acted: its repeats are kept from the page too, and press nothing more
+  const repeatKept = await page.evaluate(() => {
+    const e = new KeyboardEvent("keydown", { code: "KeyR", key: "r", repeat: true, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(e); return e.defaultPrevented;
+  });
+  const stillOn = await ruler();
   await page.keyboard.up("r");
   await page.keyboard.press("r");
   check(held, "a key held fills its row blue");
+  check(repeatKept && stillOn, "a held key that acted keeps its repeats from the page, pressing once", { repeatKept, stillOn });
 
   // clicking a row does what its key does
   await page.click(".keys-legend .key-chip");
@@ -128,7 +138,8 @@ try {
   await page.click(".keys-legend .key-chip");
 
   // a control off takes its row away
-  await page.evaluate(() => { $("#ruler-btn").disabled = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  await page.evaluate(() => { $("#ruler-btn").disabled = true; });
+  await frames(page);
   rows = await legend();
   check(rows.map((r) => r.key).join() === "Alt+G", "a control turned off takes its row out of the legend", rows);
 } catch (e) {

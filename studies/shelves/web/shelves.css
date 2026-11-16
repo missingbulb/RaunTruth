@@ -37,5 +37,5 @@
 .bs-menu button:hover { background: var(--hover, #0001); }
 #bs-found:empty { display: none; }
 /* each button's key, in small type (req/shelves/truth/keys) */
-.bs-item .bs-key { font-size: 10px; padding: 0 4px; margin-left: 4px; opacity: 0.75; vertical-align: 1px; }
+.bs-item kbd.key-on { font-size: 10px; padding: 0 4px; margin-left: 4px; opacity: 0.75; vertical-align: 1px; }
 .bs-confirm { margin: 2px 0; }

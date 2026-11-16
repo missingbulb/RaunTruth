@@ -90,7 +90,7 @@ export function actions(legend) {
       e.preventDefault();
       a.held = true;
       act(a, a.spec.kind === "hold" ? "down" : "press", e);
-    }
+    } else if (e.repeat && list.some((x) => x.held && x.codes.includes(e.code))) e.preventDefault();
     paint();
   });
   addEventListener("keyup", (e) => {

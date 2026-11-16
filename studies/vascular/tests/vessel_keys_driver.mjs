@@ -15,6 +15,7 @@ import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
+import { frames } from "../../../web-tests/page_frames.mjs";
 import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 
@@ -101,7 +102,7 @@ try {
   check(keys === "F J S W 1 2 3 shift", `tagging a junction, the keys legend lists F, J, S, W, the views and Panning: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
   check(labels.F === "Junction" && labels.J === "They cross" && labels.S === "Skip" && labels["1"] === "Model", `each row says what its key does: ${JSON.stringify(labels)}`);
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  await frames(page);
   const hints = await page.evaluate(() => ({ yes: $("#task-card .verdict .yes kbd")?.textContent, no: $("#task-card .verdict .no kbd")?.textContent,
     ok: $("#area-ok kbd")?.textContent, skip: $("#task-skip kbd")?.textContent }));
   check(same(hints, { yes: "F", no: "J", ok: "Space", skip: "S" }), `each button shows its key: ${JSON.stringify(hints)}`);

@@ -178,11 +178,10 @@
 #area-ok { width: 100%; margin-top: 6px; }
 #task-tools { display: inline-flex; align-items: center; gap: 6px; }
 #task-tools .link { font-size: 12px; padding: 2px 0; white-space: nowrap; }
-/* each task button's key, a small chip beside its label (req/nor/truth/keys) */
-#tasks-box button[aria-keyshortcuts]::after { content: attr(aria-keyshortcuts); font: 10px/1 ui-monospace, monospace; padding: 2px 4px;
+/* each task button's key, the shell's, a small chip beside its label (req/nor/truth/keys) */
+#tasks-box kbd.key-on { font: 10px/1 ui-monospace, monospace; padding: 2px 4px;
   margin-left: 6px; border: 1px solid currentColor; border-bottom-width: 2px; border-radius: 4px; opacity: .6; vertical-align: middle; }
-#tasks-box button[aria-keyshortcuts="Backspace"]::after { content: "⌫"; }
-#task-tools button[aria-keyshortcuts]::after { margin-left: 3px; padding: 1px 3px; font-size: 9px; }
+#task-tools kbd.key-on { margin-left: 3px; padding: 1px 3px; font-size: 9px; }
 #task-tools .link:disabled { opacity: .4; }
 #task-tools #card-menu summary { padding: 2px 4px; border: 0; background: none; color: var(--dim); display: inline-flex; }
 #task-tools #card-menu summary::after { content: none; }
