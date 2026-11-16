@@ -109,13 +109,13 @@ owner's decisions on the stacks and the vessel model, are
   beyond the vessel wall while Detected or Missed is on (`req/vascular/model/correct`). Changed by the owner on 2026-11-07, as NoR's
   (`req/nor/show-menu`): all of them, the four views included, are in one Show menu at the toolbar's left. Changed by
   the owner on 2026-11-16, the views are on the number keys too, each listed in the image's keys legend
-  (`req/shell/image/keys`) while it acts, filled blue while it is on: 1 Model, the model alone while 1 is held, and kept
-  on or off by clicking its label; 2 Outlines, the magenta lines over the stack shown or hidden (Overlay or Image on
-  the whole stack); 3 Vessel widths; 4 Cut out what is done, while tagging on the whole stack; 5 Missed, on or back to
-  Everything, on the whole stack. 1, 2 and 3 act wherever a model shows, in an area too, but not in its widths look. A
-  key changes what its Show menu row changes, and the row follows it. A digit is read by its place, on the number row
-  or the number pad, never while typing in a field or with a menu or dialog open, never with Ctrl, Alt or ⌘, and a held
-  digit toggles once. Side by side and Detected have no key. While an area of the
+  (`req/shell/image/keys`) while it acts, filled blue while it is on. Changed by the owner on 2026-11-16, 1, 2 and 3 each
+  show a view while held, back to the view as it was on release, and kept on or off by clicking their label: 1 Model,
+  the model alone; 2 No outlines, the stack without the magenta lines over it; 3 Side by side. The last one switched on
+  shows. They act wherever a model shows, in an area too, but not in its widths look. 4 Cut out what is done, while
+  tagging on the whole stack, switches its Show menu row, which follows it, and a held 4 switches once. A digit is
+  read by its place, on the number row or the number pad, never while typing in a field or with a menu or dialog open,
+  never with Ctrl, Alt or ⌘. Vessel widths, Detected and Missed have no key. While an area of the
   Ground Truth Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
   vessels always show, faded, with no option to hide them; hiding vessels to help ground truth belongs in the Ground Truth Tasks. Test: `studies/vascular/tests/test_model_page.py`.
   </details>

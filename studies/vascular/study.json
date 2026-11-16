@@ -91,10 +91,9 @@
     {"id": "cannot", "label": "Cannot tell", "title": "The width of the vessel under the pointer cannot be told", "keys": ["KeyU"], "kind": "press", "when": ["look"]},
     {"id": "nudge", "label": "Narrower / wider", "title": "The vessel under the pointer, or the one last set, 0.25 µm narrower or wider", "keys": ["Minus", "Shift+Minus", "NumpadSubtract", "Equal", "Shift+Equal", "NumpadAdd"], "hint": "−/+", "kind": "press", "when": ["look"]},
     {"id": "estimate", "label": "Estimate", "title": "The algorithm's estimate put back as the vessel's width", "keys": ["Backspace"], "kind": "press", "when": ["look"]},
-    {"id": "model", "label": "Model", "title": "Hold 1 to see the model alone, or click to keep it on", "keys": ["Digit1", "Numpad1"], "kind": "hold", "on": "peeking", "when": ["model", "!look"]},
-    {"id": "outlines", "label": "Outlines", "title": "The magenta lines of the model over the stack, shown or hidden", "keys": ["Digit2", "Numpad2"], "kind": "toggle", "on": "lines", "when": ["model", "!look"]},
-    {"id": "vessel-widths", "label": "Vessel widths", "title": "Each vessel drawn as wide as the model says", "keys": ["Digit3", "Numpad3"], "kind": "toggle", "on": "widths", "when": ["model", "!look"]},
-    {"id": "cut", "label": "Cut out what is done", "title": "Each area done, blacked out of the stack", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "on": "cut", "when": ["model", "truthTagging", "!focused"]},
-    {"id": "missed", "label": "Missed", "title": "Only the signal away from the model's vessels, or everything again", "keys": ["Digit5", "Numpad5"], "kind": "toggle", "on": "missed", "when": ["model", "!focused"]}
+    {"id": "model", "label": "Model", "title": "Hold 1 to see the model alone, or click to keep it on", "keys": ["Digit1", "Numpad1"], "kind": "hold", "on": "alone", "when": ["model", "!look"]},
+    {"id": "outlines", "label": "No outlines", "title": "Hold 2 to hide the model's magenta lines over the stack, or click to keep them hidden", "keys": ["Digit2", "Numpad2"], "kind": "hold", "on": "bare", "when": ["model", "!look"]},
+    {"id": "side", "label": "Side by side", "title": "Hold 3 to see the stack and the model side by side, or click to keep it on", "keys": ["Digit3", "Numpad3"], "kind": "hold", "on": "side", "when": ["model", "!look"]},
+    {"id": "cut", "label": "Cut out what is done", "title": "Each area done, blacked out of the stack", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "on": "cut", "when": ["model", "truthTagging", "!focused"]}
   ]
 }
