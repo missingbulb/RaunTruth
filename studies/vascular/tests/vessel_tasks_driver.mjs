@@ -391,7 +391,10 @@ try {
 
   // every junction judged, Area is right does the area
   for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
-  check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
+  // the vessels drawn there wait for a width (req/vascular/truth/widths): said here to be ones that cannot be told
+  check(await page.evaluate(() => $("#area-ok").disabled), "Area is right waits while a vessel drawn there has no width");
+  await page.evaluate(() => window.vascular.edit((m) => { const w = { how: "cannot" }; return { ...m, segments: m.segments.map((s) => (s.proposed ? s : { ...s, width: w })) }; }));
+  check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict and every vessel drawn there a width");
   await page.click("#area-ok");
   m = await doc(); t = await tasks();
   const nodeAt = new Map(m.nodes.map((n) => [n.id, n]));
