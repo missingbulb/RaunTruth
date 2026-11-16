@@ -74,7 +74,7 @@ try {
 
   // the legend out of tagging: the views that act on the whole stack, and Panning
   let keys = await legendKeys(page);
-  check(keys === "1 2 3 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
   // 2 held hides the lines over the stack, its row filled; let go, they are back; clicking its row keeps them hidden
   const m0 = await mode();
   await page.keyboard.down("2");
@@ -104,17 +104,19 @@ try {
   const keptSide = await mode();
   await page.click("#key-side");
   check(keptSide === "side" && (await mode()) === "overlay", `clicking the 3 row keeps side by side on, again off: ${keptSide} → ${await mode()}`);
-  // no key for Vessel widths or Missed any more
+  // 5, 6 and 7 are views too, on the whole stack as anywhere; no key switches Vessel widths or Missed
   const w0 = await page.evaluate(() => $("#m-widths").checked);
-  const fiveKept = await press("Digit5");
-  check(!fiveKept && (await page.evaluate(() => $("#m-widths").checked)) === w0 && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
-    "5 does nothing, and no key switches Vessel widths or Missed");
+  const seen = [];
+  for (const k of ["5", "6", "7"]) { await page.keyboard.down(k); seen.push(await page.evaluate(() => window.vascular.model().view)); await page.keyboard.up(k); }
+  check(seen.join() === "overlay,widths,grey" && (await mode()) === "overlay" && (await page.evaluate(() => $("#m-widths").checked)) === w0
+    && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
+    `holding 5, 6 and 7 shows Image + model, Widths and the grey image of the whole stack, and no key switches Vessel widths or Missed: ${seen}`);
 
   await page.click("#gt-start");
   await page.waitForFunction(() => window.vascular.tasks().key);
   // tagging, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
   keys = await legendKeys(page);
-  check(keys === "1 2 3 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
   check(labels["1"] === "Model" && labels["2"] === "No outlines" && labels["3"] === "Side by side", `each row says what its key does: ${JSON.stringify(labels)}`);
   await frames(page);
@@ -174,7 +176,7 @@ try {
   for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
   keys = await legendKeys(page);
-  check(keys === "1 2 3 shift", `no junction left, the legend still lists only the views and Panning: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `no junction left, the legend still lists only the views and Panning: ${keys}`);
   s0 = await state();
   // Space on a focused button presses that button, not Area is right
   check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");
@@ -182,7 +184,7 @@ try {
   s1 = await state();
   check(spaceKept && s1.regions === s0.regions && s1.area === s0.area && (await tasks()).widths, `Space opens the area's widths step: ${JSON.stringify([s0, s1])}`);
   keys = await legendKeys(page);
-  check(keys === "I V shift", `in the widths step the legend lists Image alone, 3D and Panning: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `in the widths step the legend lists the same views and Panning: ${keys}`);
   await press("Space");
   s1 = await state();
   check(s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space again, These widths look right, does the area and moves on: ${JSON.stringify([s0, s1])}`);
@@ -198,7 +200,7 @@ try {
   s0 = await state();
   check(!(await press("KeyS")) && same(await state(), s0), "after Stop tagging S does nothing");
   keys = await legendKeys(page);
-  check(keys === "1 2 3 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
 } catch (e) {
   failed = true; console.error(e);
 }

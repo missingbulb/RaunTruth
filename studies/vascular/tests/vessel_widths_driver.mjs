@@ -1,8 +1,8 @@
 // Drives the vascular study's page in a GT stage in headless Chromium against the stand-in worker (stand_in.mjs), on a
 // stack drawn here with vessels of known widths: req/vascular/truth/widths. An area's junctions done, Area is right opens
 // its widths step: the area in the stack's own pixels (finer than the 3D view's binned voxels), each vessel's width as
-// two rims and a number in µm, magenta while it is the estimate, amber once set; I held shows the image alone, V held
-// the area in 3D, the selection kept; resting on a vessel opens a lens; clicking a vessel selects it and a drag sets
+// two rims and a number in µm, magenta while it is the estimate, amber once set; the number keys show every view at any
+// time, 6 the widths and 7 the grey image alone, 5 the area in 3D, the selection kept; resting on a vessel opens a lens; clicking a vessel selects it and a drag sets
 // nothing; − and + on the box or the keys step the selected vessel's width, Reset puts back the estimate; These widths
 // look right waits for a drawn vessel's width, marks the rest looked at and does the area; the export carries each
 // width and still names the estimates unchecked. Exits 1 on a failed check, 2 when it cannot run.
@@ -100,7 +100,15 @@ try {
   check(await look() == null, "an area opens with the lines over the stack, not its widths");
   // req/vascular/truth/keys: an area with no junction: no F, J or Space in the legend
   let keys = await legendKeys(page);
-  check(keys === "1 2 3 shift", `in an area without junctions the keys legend lists the views and Panning: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift", `in an area without junctions the keys legend lists the views and Panning: ${keys}`);
+  const lit = async () => (await legend(page)).filter((r) => r.lit).map((r) => r.key).join(" ");
+  check(await lit() === "5", `the area's own view, Image + model, is the row filled blue: ${await lit()}`);
+  // 6 held in the junctions step: the area's widths, from straight above; let go, the lines over the stack again
+  await page.keyboard.down("6"); await frames();
+  const peekW = await look(), peekLit = await lit();
+  await page.keyboard.up("6"); await frames();
+  check(!!peekW && peekW.vessels.length === 3 && peekLit === "6" && await look() == null && (await page.evaluate(() => window.vascular.model().view)) === "overlay",
+    `6 held shows the area's widths at any time, its row lit; let go, the area's own view again: ${peekLit}`);
   // W is no key any more
   await page.keyboard.press("w"); await frames();
   check(await look() == null, "W does nothing");
@@ -110,11 +118,11 @@ try {
   check(await okText() === "Area is right", `the junctions done, the area's button is Area is right: ${await okText()}`);
   await page.click("#area-ok"); await frames();
   let w = await look();
-  check(!!w && w.vessels.length === 3 && w.image && w.flat, `Area is right opens the area's widths, its three vessels: ${JSON.stringify(w && w.vessels.map((v) => v.label))}`);
+  check(!!w && w.vessels.length === 3 && w.image && (await page.evaluate(() => window.vascular.model().view)) === "widths", `Area is right opens the area's widths, its three vessels: ${JSON.stringify(w && w.vessels.map((v) => v.label))}`);
   check(await okText() === "These widths look right" && (await page.evaluate(() => window.vascular.tasks().area)) === 0,
     `... in the same area, its button now These widths look right: ${await okText()}`);
   keys = await legendKeys(page);
-  check(keys === "I V shift", `in the widths step the legend lists Image alone, 3D and Panning, the views gone: ${keys}`);
+  check(keys === "1 2 3 5 6 7 shift" && await lit() === "6", `in the widths step the legend lists the same views, Widths the one shown: ${keys}, lit ${await lit()}`);
   const binned = await page.evaluate(() => window.shellForTests.viewer.three.meta.um_per_px);
   {
     // across the stripes, one pixel bright and the next dark: the step shows what the binned 3D view cannot
@@ -137,12 +145,12 @@ try {
   check(await page.evaluate(() => $("#area-ok").disabled) && /1 vessel you drew/.test(await page.evaluate(() => $("#widths-note").textContent)),
     `These widths look right waits for the width of the vessel the person drew, its line saying so: ${await page.evaluate(() => $("#widths-note").textContent)}`);
 
-  // I held: the image alone
-  await page.keyboard.down("i"); await frames();
-  const bare = await look(), rgbBare = await pixel(...est.rims[0]), iHeld = (await legend(page)).find((r) => r.key === "I")?.lit;
-  await page.keyboard.up("i"); await frames();
-  check(bare.image && bare.marks === false && !near(rgbBare, MAGENTA) && (await look()).marks, `holding I shows the image alone, letting go the rims again: ${rgbBare}`);
-  check(iHeld && !(await legend(page)).find((r) => r.key === "I").lit, "I held fills its row of the legend blue, let go it is grey");
+  // 7 held: the grey image alone
+  await page.keyboard.down("7"); await frames();
+  const bare = await look(), rgbBare = await pixel(...est.rims[0]), greyLit = await lit();
+  await page.keyboard.up("7"); await frames();
+  check(bare.image && bare.marks === false && !near(rgbBare, MAGENTA) && (await look()).marks, `holding 7 shows the grey image alone, letting go the rims again: ${rgbBare}`);
+  check(greyLit === "7" && await lit() === "6", `7 held fills its row of the legend blue, let go Widths again: ${greyLit}`);
 
   // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
   const [ex, ey] = screen(70, 40, w);
@@ -191,14 +199,17 @@ try {
   await page.keyboard.press("-");
   check(Math.abs(edgeAt(await doc(), 90).width.um - 3.75) < 1e-9, "− steps it");
 
-  // V held: the area in 3D, the selection kept
-  await page.keyboard.down("v"); await frames();
-  const in3d = await look(), vHeld = (await legend(page)).find((r) => r.key === "V")?.lit, held3d = await page.evaluate(() => window.shellForTests.viewer.three.S.held);
-  await page.keyboard.up("v"); await frames();
+  // 5 held: the area in 3D, the selection kept; V is no key
+  await page.keyboard.press("v"); await frames();
+  check((await page.evaluate(() => window.vascular.model().view)) === "widths", "V does nothing");
+  await page.keyboard.down("5"); await frames();
+  const in3d = await page.evaluate(() => window.vascular.model()), held3d = await page.evaluate(() => window.shellForTests.viewer.three.S.held), lit3d = await lit();
+  await page.keyboard.up("5"); await frames();
   const back = await look();
-  check(in3d.flat === false && in3d.selected === even.n && !held3d && vHeld, `holding V shows the area in 3D, free to turn, the selection kept: ${JSON.stringify({ flat: in3d.flat, sel: in3d.selected, held3d, vHeld })}`);
-  check(back.flat && back.selected === even.n && JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.S.rot)) === JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.facing(0, 0))),
-    "letting V go gives the flat view from straight above back, the selection kept");
+  check(in3d.view === "overlay" && in3d.widths == null && in3d.selected === even.n && !held3d && lit3d === "5",
+    `holding 5 shows the area in 3D, free to turn, the selection kept: ${JSON.stringify({ view: in3d.view, sel: in3d.selected, held3d, lit3d })}`);
+  check(!!back && back.selected === even.n && JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.S.rot)) === JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.facing(0, 0))),
+    "letting 5 go gives the flat view from straight above back, the selection kept");
 
   // the drawn vessel starts from the median of the others' widths: 3.0 (estimate) and 3.75 (set)
   await page.mouse.click(...screen(100, 140, w));

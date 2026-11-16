@@ -1,8 +1,7 @@
-// An area's widths step of the ground-truth tasks (req/vascular/truth/widths): the area in the stack's own pixels,
-// every slice flattened, grey, from straight above, each vessel's one width drawn as two rims and written in µm. A click
-// selects a vessel, and the person's word on it is a step narrower or wider or the estimate put back. Resting the
-// pointer on a vessel opens a lens on it at its own depth, with the brightness across it. While away the area shows in
-// 3D, as the model's view draws it, the selection kept.
+// The widths view (req/vascular/truth/widths): a box of the stack in its own pixels, every slice flattened, grey, from
+// straight above, each vessel's one width drawn as two rims and written in µm, or the grey picture alone. In an area's
+// widths step a click selects a vessel, and the person's word on it is a step narrower or wider or the estimate put
+// back. Resting the pointer on a vessel opens a lens on it at its own depth, with the brightness across it.
 import * as Mo from './model.js';
 
 // magenta: the algorithm's estimate, a colour the grey picture never carries; amber: set by the person; grey dotted:
@@ -26,11 +25,12 @@ const today = () => new Date().toISOString().slice(0, 10);
 export const umText = (um) => `${um.toFixed(2).replace(/0$/, '')} µm`;
 
 // ctx: {V, model(), apply(next), canvas, plane(x, y): [sx, sy] screen at the stack's middle depth, msg(text), chose(): a
-// vessel selected}
+// vessel selected, selecting(): a click selects}
 export function widthsLook(ctx) {
   const { V } = ctx;
-  // chosen: the selected vessel's number; away: the area shown in 3D for now
-  let box = null, bare = false, away = false, hover = null, chosen = null, lens = null, timer = null, picture = null, vessels = null;
+  // box: the part of the stack, kept while shown or while the step is on it; shown: drawn now; chosen: the selected
+  // vessel's number
+  let box = null, shown = false, bare = false, hover = null, chosen = null, lens = null, timer = null, picture = null, vessels = null;
 
   // ---------- the area's vessels, each with its one width ----------
   function list() {
@@ -236,14 +236,13 @@ export function widthsLook(ctx) {
   // a press on a vessel selects it as it is let go, whatever the pointer did between; it sets nothing
   const still = { move() {}, up() {}, cancel() {} };
   function grab(e) {
-    if (e.button !== 0) return still;
+    if (e.button !== 0 || !ctx.selecting()) return still;
     const h = under(...at(e));
     if (!h) return still;
     return { move() {}, up() { if (chosen !== h.v.n) { chosen = h.v.n; ctx.chose(); } V.redraw(); }, cancel() {} };
   }
-  // the image alone or the marks again; the selected vessel a step narrower (-1) or wider (1), from its width, else its
+  // the selected vessel a step narrower (-1) or wider (1), from its width, else its
   // estimate, else, for a vessel the person drew, the median of the area's other widths; or its estimate again
-  function setBare(on) { if (bare !== on) { bare = on; V.redraw(); } }
   function nudge(dir) {
     const v = selected(); if (!v) return;
     const others = list().filter((x) => x !== v).map((x) => shape(x).um).filter((u) => u > 0).sort((a, b) => a - b);
@@ -256,25 +255,24 @@ export function widthsLook(ctx) {
   }
 
   return {
-    // on: the flat view shows; open: the step is on the area, flat or away in 3D
-    get on() { return !!box && !away; },
-    get open() { return !!box; },
-    // the step on the area box (µm), or off with null
-    show(b) {
-      box = b; bare = false; away = false; hover = null; chosen = null; lens = null; clearTimeout(timer);
-      if (b) Object.assign(V.S, { rot: V.facing(0, 0), held: true }); else V.S.held = false;
-      V.redraw();
+    // on: the view is drawn now
+    get on() { return !!box && shown; },
+    // the box (µm) it is of, or null; another box drops the selection
+    setBox(b) {
+      if (JSON.stringify(b) !== JSON.stringify(box)) { chosen = null; vessels = null; }
+      box = b; if (!b) shown = false;
+      hover = null; lens = null; clearTimeout(timer); V.redraw();
     },
-    // the area in 3D for now, or flat again, the selection kept; the caller frames the view
-    away(on) { if (!box || away === on) return; away = on; hover = null; lens = null; clearTimeout(timer); V.redraw(); },
+    // drawn or not, and with its rims or as the grey picture alone; the caller turns the view
+    display(on, alone = false) { shown = !!on && !!box; bare = alone; if (!shown) { hover = null; lens = null; clearTimeout(timer); } V.redraw(); },
     // the selected vessel: its number, segments, width in µm and what that width is
     selected() { const v = box && selected(); if (!v) return null; const s = shape(v); return { n: v.n, segs: v.segs, um: s.um, kind: s.kind, drawn: v.drawn }; },
-    draw, grab, move, bare: setBare, isBare: () => bare, nudge, reset,
+    draw, grab, move, nudge, reset,
     leave() { hover = null; clearTimeout(timer); if (lens) { lens = null; V.redraw(); } },
     inspect() {
-      if (!box) return null;
+      if (!box || !shown) return null;
       const r = rect();
-      return { rect: r, box, image: !!flattened(), marks: !bare, flat: !away, selected: chosen,
+      return { rect: r, box, image: !!flattened(), marks: !bare, selected: chosen,
         vessels: list().map((v) => {
           const s = shape(v), l = rims(v, s, r), t = label(v, s, r);
           return { n: v.n, mid: { x: v.path[v.path.length >> 1].x, y: v.path[v.path.length >> 1].y }, kind: s.kind, label: t.text, um: s.um,
