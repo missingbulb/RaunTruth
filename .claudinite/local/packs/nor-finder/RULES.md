@@ -40,6 +40,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   it should be, that it starts and that it ends in the right state, through `web-tests/page_motions.mjs`; never
   how it looks on the way. (testing-motion-ends)
 
+- **Waiting in a test for the page to have drawn** (a canvas, the 3D view) - wait for that surface's own draw,
+  through `web-tests/page_frames.mjs`; a count of frames says only that frames passed, and a view that draws on
+  demand may have drawn in none of them. (wait-for-the-draw)
+
 - **Testing code that needs a study's image** - draw a small one in the test (NoR's is
   `studies/nor/tests/synthetic_nor.py`); never a study's real data, which no test downloads.
   (tests-draw-images)
