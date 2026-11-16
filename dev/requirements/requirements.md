@@ -655,7 +655,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Ground truth box offers Load GT tagging. Only that click reads the image's subfolder and its newest
   file, then shows its final results on the image, with no algorithm run: none of the tagging tasks' marks
   (no blacked-out areas, no rejected candidates, no work areas). A summary follows: whose file, when it was
-  made, and its counts. Test: `web-tests/test_gt_drive_page.py`.
+  made, and its counts. Changed by the owner on 2026-11-16, an image shows its ground truth or the algorithm's results,
+  never both: once its ground truth is loaded, Processing is not shown, nor the Items view and its switch, until another
+  image opens. Test: `web-tests/test_gt_drive_page.py`.
   </details>
 
 - `req/shell/header` A header with the logo, the study switcher and a dark/light switch (remembered).

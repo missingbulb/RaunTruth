@@ -525,7 +525,7 @@ const roleChooser = roleMenu($("#role-menu"), (r) => {
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
 // has counted its items: count(total), null until it has any; on(fn) hears the view now shown, "image" or "items".
 // While the study makes ground truth there is none, its tasks being in the left bar. One marked data-shelved is never shown.
-const itemsView = () => { const v = $("#items-view"); return v && !v.hasAttribute("data-shelved") && !makesTruth() ? v : null; };
+const itemsView = () => { const v = $("#items-view"); return v && !v.hasAttribute("data-shelved") && !makesTruth() && !truthShown ? v : null; };
 const views = {
   now: "image", total: null, heard: [],
   show(v) {
@@ -1719,9 +1719,16 @@ const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.pha
   draftKey: () => (manifest && st.img && st.sha ? GT_DRAFT + manifest.id + "|" + st.fileName + "|" + st.sha : null) });
 // Load GT tagging (req/shell/ground-truth/view): for anyone but a tagger, an image from the remote store with curated ground truth
 // shows it through the study's showTruth(doc), which draws only its final results and returns a line of its counts
-let offered = 0;
+// truthShown: the open image shows its curated ground truth, which takes the place of Processing and the Items view
+let offered = 0, truthShown = false;
+function showingTruth(on) {
+  truthShown = on;
+  if (on) { $("#processing-box").hidden = true; views.show("image"); } else if (manifest) studyBoxes();
+  $("#switch").hidden = !itemsView();
+}
 async function offerTruth() {
   const box = $("#truth-box"), b = $("#load-gt"), say = $("#gt-summary"), mine = ++offered;
+  if (truthShown) showingTruth(false);
   box.hidden = true; b.hidden = false; say.hidden = true; $("#gt-offer").hidden = false;
   if (role === "tagger" || !study.showTruth || !remote.owns(st.source) || !st.sha) return;
   let got;
@@ -1739,6 +1746,7 @@ async function offerTruth() {
     if (!got) { say.hidden = false; say.textContent = "Its curated ground truth holds no file the page can read."; return; }
     const d = got.doc, when = d.created ? new Date(d.created).toLocaleString() : "an unknown time";
     const counts = study.showTruth(d);
+    showingTruth(true);
     b.hidden = true; $("#gt-offer").hidden = true; say.hidden = false;
     say.textContent = `Ground truth by ${d.tagger || "a tagger"}, made ${when}${d.accepted?.by ? `, accepted by ${d.accepted.by}` : ""}${counts ? ": " + counts : "."}`;
     log.add("Loaded the image's curated ground truth");
@@ -2238,7 +2246,7 @@ const keys = actions($("#image-view").appendChild(Object.assign(document.createE
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
-  lifetime.abort(); lifetime = new AbortController();
+  lifetime.abort(); lifetime = new AbortController(); truthShown = false;
   truth.leave(); algorithms.leave();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
