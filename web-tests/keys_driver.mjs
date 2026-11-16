@@ -56,8 +56,12 @@ await ctx.route("**/studies/fixture/study.json", async (route) => {
   const r = await route.fetch(), m = await r.json();
   m.files.from = ["local"];
   m.actions = [
-    { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn" },
-    { id: "grid", label: "Grid", keys: ["Alt+KeyG"], kind: "toggle", control: "#grid-btn" },
+    { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn", legend: true },
+    { id: "grid", label: "Grid", keys: ["Alt+KeyG"], kind: "toggle", control: "#grid-btn", legend: true },
+    // no state of the view: it acts and its button carries its key, with no row in the legend
+    { id: "zoom", label: "Zoom in", keys: ["KeyZ"], kind: "press", control: "#zoom-in", legend: false },
+    // saying nothing of the legend: refused, never wired
+    { id: "unsaid", label: "Zoom out", keys: ["KeyX"], kind: "press", control: "#zoom-out" },
   ];
   await route.fulfill({ response: r, body: JSON.stringify(m), contentType: "application/json" });
 });
@@ -65,6 +69,8 @@ await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
+const consoleErrors = [];
+page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
 page.setDefaultTimeout(10000);
 
 const BLUE = /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/;
@@ -102,6 +108,15 @@ try {
     "the legend lists the actions that act, in the study's order, at the image's bottom left, each key faded beside its label", rows);
   const hint = await page.evaluate(() => ({ text: $("#ruler-btn kbd")?.textContent, keys: $("#ruler-btn").getAttribute("aria-keyshortcuts") }));
   check(hint.text === "R" && hint.keys === "R", "the Ruler button carries its key", hint);
+  const z0 = await page.textContent("#zoom-label");
+  const zoomed = await press("KeyZ");
+  const zoom = await page.evaluate(() => ({ text: $("#zoom-in kbd")?.textContent, label: $("#zoom-label").textContent }));
+  check(zoomed && zoom.label !== z0 && zoom.text === "Z" && !rows.some((r) => r.label === "Zoom in"),
+    "an action that is no state of the view acts and its button carries its key, with no row in the legend", { z0, zoom, rows });
+  const x0 = await page.textContent("#zoom-label");
+  check(!(await press("KeyX")) && (await page.textContent("#zoom-label")) === x0 && !(await page.evaluate(() => $("#zoom-out kbd")))
+    && consoleErrors.some((t) => /unsaid/.test(t)),
+    "an action saying nothing of the legend is refused, never wired, with an error naming it", consoleErrors);
 
   check(await press("KeyR") && (await ruler()) && (await legend())[0].lit, "R presses Ruler, kept from the page, its row filled blue while it is on");
   check(!(await press("KeyR", { repeat: true })) && (await ruler()), "R held down presses it once");
