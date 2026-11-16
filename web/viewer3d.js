@@ -246,8 +246,6 @@ export function viewer3d(shell, flat) {
   const depthRows = () => { flat.rowsWith(mode3d ? depthRow : null); redraw(); };
   const stage = html("div", { id: "v3-stage", hidden: true });
   const cv = html("canvas", { id: "v3-gl" }), hudCv = html("canvas", { id: "v3-hud" });
-  const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  rulerSvg.id = "v3-ruler";
   // whether a plain drag pans rather than turns: its row's state in the keys legend, and shift held; kept only while
   // the page is open. Shift is heard here, wherever the focus is, its row only lit by it
   let panOn = false, shiftHeld = false;
@@ -262,6 +260,8 @@ export function viewer3d(shell, flat) {
     if (on) shell.actions.add({ id: "v3-pan", label: "Panning", title: "Press Shift to pan, or click to keep panning on", keys: ["ShiftLeft", "ShiftRight"],
       hint: "shift", kind: "toggle", wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
   }
+  const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  rulerSvg.id = "v3-ruler";
   stage.append(cv, hudCv, rulerSvg);
 
   // ---------- GL ----------
