@@ -33,10 +33,10 @@ The only near-perfect field figure, "up to 99%", comes from RFID (A*STAR's AuRoS
 - Trixi the Librarian (Wieczorek, Sygo, Liu, Koshil, Univ. Hamburg, arXiv:2210.10110, 2022; OA):
   - Platform: a PR-2 robot.
   - Pipeline: YOLOv5 spine detection, fine-tuned on 611 self-labelled images, then CRAFT text detection and a DTRB scene-text recognizer.
-  - Text matching was abandoned for **HSV colour histograms**, because text and SIFT were "not sufficiently reliable". Small text became illegible at the camera's resolution.
+  - Text matching was abandoned for **HSV colour histograms**, because neither text nor SIFT "showed sufficient performance": the text was too small and the camera gave too few clear images, and SIFT confused look-alike books (full text: [`wieczorek-2022-trixi-the-librarian.md`](../wieczorek-2022-trixi-the-librarian.md)).
   - It reports no quantitative accuracy; the demo sorts three books.
   - It notes **there is no standardized benchmark for book-spine recognition**.
-  - [ar5iv](https://ar5iv.labs.arxiv.org/html/2210.10110). Local: `wieczorek-2022-trixi-the-librarian.pdf` (only 2 pages; possibly short or truncated, not verified).
+  - [ar5iv](https://ar5iv.labs.arxiv.org/html/2210.10110). Local: `wieczorek-2022-trixi-the-librarian.pdf` (the complete 10-page arXiv v2).
 - DL On-shelf Books Recognition (GitHub, Boatsure): top-1 99.18%, top-5 99.91% when recognizing 3.6k IDs from 5.6k spine images, in **simulated** scenarios, with a prototype grasping robot. — [GitHub](https://github.com/Boatsure/DL-On-shelf-Books-Recognition)
 
 **Smartphone and vision research**
@@ -129,11 +129,11 @@ Manual shelf reading checks call-number order shelf by shelf. Cornell measured 2
   - Traditional shelf reading took 2.24 min per 3-ft shelf and found 1.18 shelving errors per shelf, for 274 h over 7,340 shelves.
   - "QuickRead": students check only the first half of each call number, 25–35 shelves per 15-minute stint. It finds **83%** of shelving errors (goal 90% in half the time) and catches every book misshelved several aisles away.
   - [Cornell](https://engineering.library.cornell.edu/space-optimization-and-inventory-control)
-- Electronic shelf reading, medium academic library, about 300,000 volumes:
+- Electronic shelf reading, about 305,000 volumes scanned (LC classes D–H, N, P and Q, two thirds of the monograph collection; Sung, Whisler & Sung 2009, reviewed by Newton Miller 2010):
   - Of 228 "missing" books, 30% were scanned in their correct location, 10% were found 26–100 books away and about 50% more than 100 books away.
-  - Re-shelving "missing" books was more cost-effective than buying them again.
+  - The labour of inventory control (2.2 ¢ per book scanned) cost less than repurchasing or borrowing the badly misshelved books it found.
   - [EBLIP evidence summary, Sep 2010](https://doaj.org/article/8d04ab196e384558971336867b7ef9eb) (search snippet; DOAJ returned 403 on fetch). OA. PDF https://journals.library.ualberta.ca/eblip/index.php/EBLIP/article/download/8214/7342/22440, local `newtonmiller-2010-inventory-cost-eblip.pdf`.
-  - The "sinclair" filename is a placeholder: I could not verify the summary's author or the original study it summarizes.
+  - Full text: [`newtonmiller-2010-inventory-cost-eblip.md`](../newtonmiller-2010-inventory-cost-eblip.md).
 - Edwardy & Pontius, "Monitoring book reshelving in libraries using statistical sampling and control charts", *LRTS* 45(2), 2001, DOI 10.5860/lrts.45n2.90; OA. It samples misshelving rates over time and uses a control chart to decide when to shelf-read. — [LRTS](https://journals.ala.org/index.php/lrts/article/view/5196). Local: `edwardy-2001-reshelving-control-charts.pdf`.
 - Other figures:
   - UW–Madison sample inventory: 1,225 items reported misshelved in 2 months (Van Gemert, 1996). — [search snippet, crln](https://crln.acrl.org/index.php/crlnews/article/view/18994/21903)
@@ -164,7 +164,7 @@ Detecting misplacement (order) is irrelevant for a home tool. "Missing" here mea
 - I have no quantitative error rates from manual shelf reading itself: how many errors a human shelf-reader misses.
 - No library-science source defines a standard "inventory accuracy" metric. Practice uses ad hoc read rates and missing counts.
 
-Downloaded but not text-verified: `niso-1997-z3941-printed-info-spines.pdf`, `newtonmiller-2010-inventory-cost-eblip.pdf`, `edwardy-2001-reshelving-control-charts.pdf`, `yang-2016-smart-library.pdf`, `wieczorek-2022-trixi-the-librarian.pdf`.
+Each of these is now summarised from its full text: [`niso-z3941-spines.md`](../niso-z3941-spines.md), [`newtonmiller-2010-inventory-cost-eblip.md`](../newtonmiller-2010-inventory-cost-eblip.md), [`edwardy-2001-reshelving-control-charts.md`](../edwardy-2001-reshelving-control-charts.md), [`yang-2016-smart-library.md`](../yang-2016-smart-library.md), [`wieczorek-2022-trixi-the-librarian.md`](../wieczorek-2022-trixi-the-librarian.md).
 
 Paywalled or failed downloads:
 - Li et al. IROS 2015 (AuRoSS): paywalled.
