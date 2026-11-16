@@ -24,10 +24,11 @@ the stack shown as a list. [`mockup.html`](mockup.html) / [`mockup.png`](mockup.
 | | Decision | Why |
 |---|---|---|
 | Name | A **change** (code), kept in the **change log**; the user sees **History**. Modules `web/truth_changes.js` (pure) and `web/truth_history.js` (the panel), spec ids `req/shell/ground-truth/history…` | "Action" is taken twice (`web/action_log.js`, the problem report's click log; `web/actions.js`, the keyboard) and "edit" once (`web/edit.js`, `web/image_edit.js`, Edit Image) [repo] |
-| Log | Append-only **journal**: `open`, `run`, `change`, `undo`, `redo`, `base`, `submit` entries. Undo appends an entry, it deletes nothing | Replay is then one forward pass; a redo tail the user cut off is still on record |
+| Log | A **stack** of `open`, `run`, `change`, `base`, `submit` entries and a pointer. Undo moves the pointer back; the entries above it are the redo tail, kept on the device until a new change deletes them. Drive and replay carry **only the surviving entries**, up to the pointer | The owner's call (question 1): the file records what the model is made of, not how the tagger got there |
 | Inverse | **Stored** in each change beside the forward payload, produced by the study's `apply` | The inverse of a delete or a junction split needs the state before it, which the forward payload does not hold |
 | Model + log | Both kept, the model the authority; replay is checked against it by hash | The owner's rule; an old op may not replay |
-| Undo model | **Linear**, redo cut off by a new change, down to the last `run` or `base` and no further | What every tool surveyed does by default; the ops address items by position in the model, so selective undo is unsafe |
+| Undo model | **Linear**, redo cut off by a new change, down to the first `run` or `base` and no further; a later re-run is itself undoable | What every tool surveyed does by default; ops name items that later ops create and destroy, so selective undo is unsafe |
+| Re-run | A new `run` **replays the surviving changes onto the new output**; a change that no longer fits is dropped and shown greyed under the run | The owner's call (question 4). Ops must therefore address items by what survives a re-run (a place, within a tolerance), never by an index or id the algorithm assigns |
 | Device storage | The journal in **IndexedDB**, one record per entry; today's `gt-draft|…` key stays as the small head | `localStorage` is 5 MiB an origin and rewrites the whole value on each change |
 | Drive | **One file**, the study's document as today plus a `history` key the shell adds; no new call | The owner's ask; a second file is a second write and can come apart from the first |
 | Panel | A folded **History** row at the foot of Ground Truth Tasks, Undo and Redo always on it; open, a list newest first | The left bar belongs to the tasks (`designing-ground-truth-tasks`) |
@@ -81,9 +82,8 @@ factor (`splitJunction`'s z scale) is payload, never read from the clock or the 
 | kind | carries | undoable |
 |---|---|---|
 | `open` | `image: {name, sha256, width, height}`, `study: {id, site_version}` | no |
-| `run` | `algorithm: {key, title, params}`; `output`, the model the algorithm emitted, deflated and base64'd; `output_sha256` | no: it is undo's floor |
+| `run` | `algorithm: {key, title, params}`; `output`, the model the algorithm emitted, deflated and base64'd; `output_sha256`; on a re-run, `dropped: [n…]`, the changes that did not fit | the first is undo's floor; a re-run undoes to the model before it |
 | `change` | `op`, `v`, `do`, `undo`, `say`; or `ops: [...]` for a compound gesture; `with: n` when it follows from entry n | yes |
-| `undo`, `redo` | `of: n` | (they are the undoing) |
 | `base` | `from: {kind: "submission" \| "device", created, tagger}`, `model`, `why` | no: a floor, for stored GT that has no replayable log |
 | `submit` | `model_sha256`, the file's name | no: a mark in the list, not a floor |
 
@@ -122,8 +122,8 @@ The shell owns the rest: `shell.changes.run({algorithm, output})`, `shell.change
 
 ## 2. Replay and its check
 
-`replay(entries, ops)`: `start(run.output)`, then each entry in order: a `change` applies `do`; an
-`undo` applies its target's stored `undo`; a `redo` applies its target's `do`. No algorithm, no DOM, no
+`replay(entries, ops)`: `start(run.output)` of the last `run`, then each `change` after it applies `do`,
+up to the pointer. No algorithm, no DOM, no
 clock. It runs under Node as it does in the page, which is what the lab would call (Vascular's model is
 already tested that way, `test_model_js.py`).
 
@@ -154,10 +154,18 @@ reference replay is the JavaScript one.
   and segments that later ops create and destroy, so undoing one from the middle is not safe.
   The per-item take-backs that exist (Reset measurements, Take back the verdict) stay: they are forward
   changes, and they are the selective undo the tasks need.
-- **The journal still holds what a cut-off redo lost** (unlike Photoshop and Blender). No control
-  brings it back in v1; the data is there for one.
-- **Not past the run.** Undo stops at the last `run` or `base`; before it there is no model.
-  Running the algorithm again over changes asks first (question 4).
+- **Undo moves a pointer; it writes no entry.** The undone entries stay on the device as the redo
+  tail, through a reload, until a new change deletes them, as in Photoshop and Blender. Submit sends
+  the entries up to the pointer only.
+- **Not past the first run.** Undo stops at the first `run` or `base`; before it there is no model.
+- **Running the algorithm again** appends a `run` and replays every surviving change after the
+  previous run onto the new output, through the same `apply`. A study's `apply` returns
+  `{misfit: "why"}` when its target is not in the model (no candidate near that place, no vessel
+  there); the shell drops that change, lists it greyed under the new run ("didn't carry over: …"),
+  and records its `n` in `dropped`. The carried changes are re-appended after the run with their
+  original `at`, so the surviving log replays from the new run alone. Undoing the re-run restores the
+  model before it, held on the device in the run entry, never sent. This is why ops address items by
+  place within a tolerance: an index or id the algorithm assigned means nothing in its next output.
 - **After a reload: yes.** The journal and its stored inverses are on the device, so Continue GT
   tagging comes back with History intact. Photoshop forgets its history when the document closes [S];
   tagging here spans sittings (`req/shell/ground-truth/draft`), so the log does too.
@@ -189,7 +197,7 @@ small record per entry and shares the disk-sized quota Cache Storage has (Chrome
 origin [fetch, MDN]). So: database `gt-history`, records keyed `[draft key, n]`, the `run` output a
 compressed blob (`CompressionStream`, already used by `previews_writer.js`). The existing
 `gt-draft|<study>|<image>|<sha>` key keeps its name (`req/shell/storage/keys-keep-names`) and becomes
-the head: `{n, model_sha256, replay, place}`, read synchronously by Continue GT tagging as today.
+the head: `{n, pointer, model_sha256, replay, place}`, read synchronously by Continue GT tagging as today.
 Manage storage lists the journal under the image's selections and deletes it with them; it is site
 data in the one place the user already clears, no second location. A failed write is said on the
 status line, not swallowed. No cap in v1: at ≈ 200 KB an image, fifty images are 10 MB.
@@ -223,7 +231,7 @@ So replaying a thousand changes on load is ≈ 0.15 s and a jump of a hundred ro
 checkpoints in v1.** The stored end model is the only snapshot; add periodic ones when a real log's
 replay is measured past ≈ 200 ms, and keep them in the in-memory form, since Vascular's file form
 renumbers (disagreement 6). In memory, Vascular's list of models may stay as a cache; what is persisted
-is inverses, because a list of 62 KB models cannot be. Each change is one IndexedDB `add`; the head is
+is inverses, because a list of 62 KB models cannot be. Each change is one IndexedDB `add` (deleting the redo tail first, if any); an undo or redo writes only the pointer; the head is
 written on a 500 ms trailing timer and on `pagehide`. The head is a cache of the journal: a head behind
 it is caught up by replaying the tail. NoR's cost is unmeasured; its ops set one field of one
 candidate, cheaper than Vascular's.
@@ -328,7 +336,7 @@ it is recorded, never recomputed; Not a book removes the box instead of recordin
 | `review-area` | `widthsRight`'s `reviewed_regions` push, compound with its decides and widths | `{region}` | `restore` |
 
 Not clean today: segments are named by array index and points by ids that `toJSON` renumbers
-(disagreement 6), so the ops replay only from the run's own parsed output, and `canonical()` must be
+(disagreement 6); because a re-run replays changes onto a new output (section 3), Vascular's ops must name a segment or point by place within a tolerance, not by index or id, and `canonical()` must be
 `toJSON` without its stamps; `widthsRight` and `truth()` read the clock; the drag records at the first
 move (disagreement 5); `corrections`, the count the file carries, would come from the journal.
 
@@ -343,7 +351,7 @@ The feature path each time: the requirement in the spec, a test that fails, then
    load as a base), and edits to `…/draft`, `…/clear`, `…/submit`, `req/shell/storage/manage`,
    `req/shell/image/keys`.
    Tests: `web-tests/test_truth_changes.py` (Node: replay equals the stored model; `undo` after `do` is
-   the model before, for every op; a cut-off redo stays in the journal), `test_truth_history_page.py`
+   the model before, for every op; a new change deletes the redo tail; a re-run carries fitting changes and drops the rest), `test_truth_history_page.py`
    (the list, a jump, the keys, a drag Escaped logs nothing, a reload keeps History), additions to
    `test_gt_drive_page.py` (the file carries `history`; a file without it loads) and
    `test_storage_page.py`. Fixture ops only; no study's image.
@@ -360,30 +368,25 @@ The feature path each time: the requirement in the spec, a test that fails, then
 Each phase is its own PR; the diff will reach `web/`, one study's `web/`, the specs and tests. The
 abstraction that keeps it there is the study's `changes.js`: the shell never learns an op's meaning.
 
-## 9. For the owner
+## 9. The owner's decisions (2026-11-16)
 
-1. **Is every undo kept in the file?** The journal as designed records undos, redos and cut-off
-   changes, with their times: a full record of how the tagger worked. *Recommended: yes*; it is cheap
-   and it is the provenance. The alternative keeps only the changes that survived.
-2. **Timestamps of every change go to Drive with the tagger's email.** That is new data leaving the
-   device, so the privacy page changes in the same commit. *Recommended: keep them, say so.*
-3. **One Drive file or a sidecar?** *Recommended: one file*, as asked; accept that Load GT tagging
-   downloads more.
-4. **Running the algorithm again over changes.** *Recommended:* ask first, start a new floor, and let
-   NoR carry votes over by position as one logged compound change, so today's behaviour stays and is on
-   record.
-5. **Continue from your own submission on another device** needs a Drive read at Continue (list the
-   image's subfolder, fetch your file): a new network call, its own approval. *Recommended: approve, as
-   phase 5*; without it the log in Drive is for the lab and for audit only.
-6. **Does "No missed NoRs here" belong to the GT model?** It is not in NoR's file today. *Recommended:
-   yes*, as an op, and add the checked areas to the file.
-7. **Undo only while tagging?** *Recommended: yes.*
-8. **NoR's candidate pixel masks** are left out of the `run` output, so a session resumed without a
-   re-run draws candidates without their outlines. *Recommended: leave them out* and show the outline
-   as unknown; the crops still come from the image.
-9. **The name:** "change" in code and spec, "History" on the page. *Recommended as written.*
-10. **Which study first after the shell:** *Vascular*, the only one with a pure model and an undo to
-    replace.
+1. **Only surviving changes are kept** in the file and in replay; undos and cut-off redos are not
+   recorded (the designer had recommended keeping them all). The redo tail lives on the device only.
+2. **Timestamps of every change go to Drive** with the tagger's email. That is new data leaving the
+   device, so the privacy page changes in the same commit.
+3. **One Drive file**, a `history` key in it; Load GT tagging downloads more.
+4. **Running the algorithm again replays the changes onto the new output**, dropping and showing
+   those that no longer fit (the designer had recommended asking and starting a new floor). Section 3
+   says how; it constrains every study's op addressing.
+5. **Continue from your own submission on another device** (a Drive read at Continue) is approved, as
+   phase 5.
+6. **"No missed NoRs here" is an op**, and the checked areas join NoR's file.
+7. **NoR's candidate pixel masks stay out of the `run` output**; outlines show as unknown after a
+   resume without a re-run.
+8. **Vascular is the first study** after the shell core.
+
+Not asked, taken as designed: undo only while tagging; the names "change" in code and "History" on
+the page.
 
 ## Sources
 
