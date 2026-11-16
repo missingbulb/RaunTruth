@@ -46,7 +46,7 @@ region, animal) that is summarised hierarchically, never a field average.
 | total process length | skeleton or filament length per cell (Young ≈610 µm fluorescence; Baek ≈185–255 µm; Green ≈1110 µm DAB) | Young, Green, Baek, Moser | values differ by method by up to 5×: compare only within one method |
 | Sholl | intersections vs radius, or area under the curve | Green, Moser | a soma centre; 3D preferred |
 | territory / span | convex hull area, span ratio (FracLac) | Young, Green, Kim | a per-cell mask with its whole arbor |
-| fractal dimension, lacunarity | FracLac box counting on 2D outlines (D_B ≈1.3–1.5) | Young, Green, Kim | 2D by design |
+| fractal dimension, lacunarity | FracLac box counting on 2D outlines (D_B ≈1.3–1.5) | Young, Green | 2D by design |
 | cell volume | Imaris surface voxels | Lind-Holm | a z-stack |
 | CD68 | % CD68⁺ cells (Moser, ~75% in young dentate gyrus); CD68⁺ area ÷ Iba1⁺ area (Baek, ≈10–15%) | Moser, Baek | a cell mask, per cell |
 | state | k-means on 27 features into ameboid / hypertrophic / rod-like / ramified (Kim) | Kim | the feature table |
@@ -86,7 +86,7 @@ never targets. **Never average across papers.**
 | endpoints per cell | ≈180 (fluorescence), ≈80–100 (DAB) | Young, whole-image ÷ somata, cortex |
 | process length per cell | ≈185–255 µm (Baek) · ≈610 µm (Young) · ≈1110 µm (Green) | method-dependent |
 | cells per image | 300–350 per 1020 µm confocal field | Lind-Holm |
-| Iba1⁺ cells per field (dentate gyrus) | ≈10 young, ≈13 aged, field ≈187 µm | Moser |
+| Iba1⁺ cells per field (dentate gyrus) | ≈10 young, ≈13 aged; the ≈187 µm is the figure panel measured off its scale bar, not a stated counting field | Moser |
 | CD68⁺ microglia | ≈75% young, ≈86% aged (dentate gyrus) | Moser |
 | plaque association | soma within 20 µm of the plaque edge; ≈2.5–4 cells per plaque | Baek |
 

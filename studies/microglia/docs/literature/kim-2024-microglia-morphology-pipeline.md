@@ -1,8 +1,4 @@
-# Reference digest — Kim, Pavlidis & Vogel Ciernia 2024, MicrogliaMorphology pipeline
-
-> Self-contained digest of the source paper. The method, every parameter the paper (and its
-> public macro) states, the 27 measure names, the reported numbers and every figure are captured
-> here and in [`figures/`](#figures). **No need to reopen the PDF.**
+# Kim, Pavlidis & Vogel Ciernia 2024 — MicrogliaMorphology pipeline
 
 - **Title:** *Development of a High-Throughput Pipeline to Characterize Microglia Morphological
   States at a Single-Cell Resolution*
@@ -16,569 +12,169 @@
 - **Licence (as printed in the PDF, p. 2):** "Copyright © 2024 Kim et al. This is an open-access
   article distributed under the terms of the **Creative Commons Attribution 4.0 International**
   license, which permits unrestricted use, distribution and reproduction in any medium provided
-  that the original work is properly attributed." → PDF and figures are redistributed here with
-  this attribution.
+  that the original work is properly attributed."
 - **PDF:** kept in the study's Drive `Literature` folder as `Development of a High-Throughput Pipeline to Characterize Microglia Morphological States at a Single-Cell Resolution.pdf`, not in the repo.
 - **Code:** <https://github.com/ciernialab/MicrogliaMorphology> (ImageJ macro),
   <https://github.com/ciernialab/MicrogliaMorphologyR> (R package). Data, input images,
   thresholded images and all single-cell images: OSF <https://osf.io/8t5c2/>. Video tutorial:
   <https://www.youtube.com/watch?v=YhLCdlFLzk8>.
-- **One-line thesis:** a free Fiji macro (threshold → split into single cells by area → skeleton
-  analysis) plus FracLac and an R package (PCA → (fuzzy) k-means) measure **27 morphology
-  features per cell** on 2D extended-depth-of-focus images of hundreds to tens of thousands of
-  microglia, and sort them into **ramified / hypertrophic / ameboid / rod-like** clusters whose
-  population shares shift with LPS.
 
----
+## What it gives the study
 
-## 1. Why this matters to our task ⭐
+The closest published regime to ours: mouse **hippocampus**, **Iba1**, a **20× slide scanner**
+(ZEISS Axioscan 7), per-cell geometry for every cell that passes a filter. Its stacks are
+max-projected to 2D before analysis, so its numbers are 2D numbers, like ours will be.
 
-Our owner images **mouse hippocampus** slices, **Iba1** (488 nm) + CD68 (555 nm), **20×
-objective, slide scanner, 3D**, and wants every microglia found and measured (processes,
-branching, volume, soma, territory). This paper is the **closest published analogue**: same
-species, same marker (Iba1 is one of its three), same region (hippocampus is one of its three),
-**same acquisition regime** (a **slide scanner at 20×** taking z-stacks, ZEISS Axioscan 7 here
-vs Olympus for us), and the same goal (every cell in a field, per-cell geometry).
+- **A baseline to beat, and the reason "find every cell" is new work.** A "cell" is a connected
+  component of a thresholded mask whose pixel area lies inside a user-set window. There are no
+  seeds, no soma detection and no splitting: touching cells fall above the window and fragments
+  below it, and both are **dropped**. The output is an isolated-cells-only sample, biased against
+  dense fields, hypertrophic cells and long-process cells that touch neighbours (our reading; the
+  authors do not state it). Every step is a few lines of scikit-image (§1).
+- **How far 2D falls short of 3D, measured on hippocampal cells** (§2). 2D and max-projected
+  branching counts correlate with 3D at r 0.91–0.97, but their absolute values are **~3× lower**
+  (read off plot axes), and junction voxels and quadruple points are not preserved. So a 2D
+  pipeline can **rank** cells by branching but cannot report absolute branch or endpoint numbers,
+  and has nothing to say about volume. Our single plane is weaker than their projection (§3).
+- **What to report per cell.** 27 features (9 AnalyzeSkeleton, 18 FracLac) collapse into about
+  **four correlated families** (branching complexity, territory span/area, branch length,
+  shape/circularity); the first 3 PCs explain **84.6%** of variance. One well-measured feature per
+  family carries most of the information.
+- **A state vocabulary** (ameboid, hypertrophic, rod-like, ramified) for the coarse-state call
+  DATA-REVIEW says in-focus cells support, with a warning about what "rod-like" can hide (§4).
+- **A possible external sample source**: OSF holds their input images, thresholded images and
+  every single-cell image, offered as a benchmarking set at our magnification. **Not fetched**, and
+  it carries no hand-annotated cell ground truth.
 
-| What we get | Consequence for what we build |
-|---|---|
-| **A complete, open, classical (non-ML) per-cell pipeline** at our magnification: 8-bit → enhance contrast → unsharp mask (r 3, 0.60) → despeckle → auto/auto-local threshold (radius 100 default) → despeckle → close → remove bright outliers (r 2, thr 50) → connected components filtered by an **area window** → skeletonize → AnalyzeSkeleton. (§2) | A ready **baseline to beat**. Each step is a few lines of scikit-image; the parameters are in §2.2. |
-| **Its cell "detection" is not detection.** A cell = one connected component of the thresholded mask whose pixel area falls inside a user-chosen [min, max]. Touching cells are **discarded** (too big), fragments are **discarded** (too small). No seeds, no soma detection, no splitting. | It cannot "find every microglia cell". Fig 3E shows many cells in the ROI left uncoloured. **Finding every cell — especially splitting touching neighbours — is our own contribution**, and their output is a *biased sample* (isolated cells only). |
-| **2D only, by design** (FracLac takes 2D). They compared **3D vs EDF (max-projection) vs single-plane 2D** on 20 hippocampal cells (§4.1): EDF keeps branching counts (r 0.91–0.97 vs 3D) but absolute counts drop ~3× and **junction voxels** and **quadruple points** are poorly preserved. | Evidence that a **2D max-projection baseline is defensible for counts and ranking**, but that **absolute** branch/endpoint numbers, volume and junction morphology need 3D. Our "volume" ask has no counterpart here. |
-| **The 27 measures, named** (§3) — 9 AnalyzeSkeleton + 18 FracLac — and the finding that they collapse into ~4 correlated groups: **branching complexity, territory span/area, branch length, shape/circularity**; 3 PCs explain **84.6%**. | A defensible, literature-standard metric set to report; and the insight that a handful of well-chosen measures (one per group) carries most of the information. |
-| **The four-state vocabulary with operational descriptions** (ameboid, hypertrophic, rod-like, ramified; §6) and how each looks in an Iba1 20× EDF image (figures). | The CATEGORIZE vocabulary if the owner wants states; rod-like cells are aligned/elongated and their processes overlap neighbours — a segmentation hazard. |
+**What it does not give:** any accuracy of the segmentation against hand annotation (none was
+measured; the only validation is that clusters look right when painted back and replicate in a
+second dataset); soma size or a soma object (every area is whole-mask area); a process *count*
+(only skeleton endpoints, branches, junctions); volume; CD68 (not used or discussed); the pixel
+size, threshold method or area window used on its own datasets; any hippocampal-subfield result.
 
-**What it does *not* give us:** soma size or soma segmentation as a separate object (all area
-measures are whole-cell mask area); volume; process *count* as such (only skeleton end points,
-branches, junctions); any accuracy/validation of the segmentation against hand annotation (none
-reported — validation is only that clusters "look right" via ColorByCluster and replicate in a
-second dataset); the threshold method or area window actually used in the paper's own datasets;
-pixel size.
+## 1. The pipeline, and the parameters a reimplementation needs
 
----
+Before the macro: Axioscan z-stack at 20×, **0.5 µm z-step** (Methods) → ZEN **Extended Depth of Focus** by **maximum projection**
+("only compile the pixels of highest intensity at any given position in a z-stack") → one .tiff
+per channel; region ROIs from atlas alignment (FASTMAP; the repo now recommends ROIMAPer).
 
-## 2. The pipeline, step by step ⭐
+Per-image steps, read on 2026-11-15 from the macro source
+(`macros-scripts/MicrogliaMorphology_Steps/MM_Step{1..4}_*.ijm`, HEAD
+`6efb58d1ec8c3f65b2935a767f404234061f29a4`). The step files say "Updated July 29, 2024", after
+the paper's acceptance, so the paper's datasets may have run on an earlier revision.
 
-### 2.1 As the paper describes it (Materials and Methods, Fig 1A)
-
-**Image preparation (before the macro).** Slide-scanner z-stack → ZEN builds an **Extended Depth
-of Focus (EDF)** image using **maximum projection** (the paper: "only compile the pixels of
-highest intensity at any given position in a z-stack ... which retains the 3D information") →
-saved in the .czi. In ImageJ, one **.tiff per fluorescent channel** is made, regions of interest
-cropped/saved; coronal sections aligned to the **Allen Brain Atlas** with the ImageJ macro
-**FASTMAP** (Terstege 2022) to define region/subregion ROIs (the repo now recommends their newer
-**ROIMAPer** plugin). File names carry metadata (`Cohort_AnimalID_Condition_Sex_Region.tiff`) for
-the R side.
-
-**Step 1 — dataset-specific parameters (user input).**
-- Threshold **method** and, for auto-local, the **radius**, chosen with **BioVoxxel Toolbox →
-  ThresholdCheck**, which shows a gallery of the **16 global auto-threshold** and **9 auto-local**
-  ImageJ methods. Criterion (paper): capture "full, single microglial cells without losing
-  branching connectivity"; (README): "capturing as many branches as possible that are connected to
-  cell bodies, while minimizing overlap between cells".
-- **Single-cell area range [min, max]**, to "exclude any artifacts of 2D representation in the
-  EDFs such as cell particles and incomplete cells or multiple cells that are overlapping".
-
-**Step 2 — threshold** (adapted from Young & Morrison 2018, JoVE): 8-bit/grayscale → enhance
-brightness/contrast → **unsharp mask** → **despeckle** → **auto-local or auto threshold** →
-second **despeckle** → **dilation and connection** ("Close-") "to connect branches" → **remove
-outliers**. Also writes `Areas.csv` (area of each image/ROI) for density = cells / area.
-
-**Step 3 — single cells:** **AnalyzeParticles** + ROI Manager; each particle whose area is within
-the Step-1 window is saved as its own image with a unique identifier (and its ROI, so it can be
-mapped back).
-
-**Step 4 — skeleton:** **Skeletonize (2D/3D)** (Lee et al. 1994 thinning) → **AnalyzeSkeleton**
-(Arganda-Carreras 2010) → per-cell .csv of the 9 skeleton measures.
-
-**Step 5 — FracLac** (Karperien 1999/2013), run by hand (not callable from the ImageJ macro
-language), box-counting (BC) mode in batch over the single-cell images, options "adapted from
-Young & Morrison 2018, Section 5.5", **"lock black background"** → the 18 hull/circle/shape
-measures. Cell IDs survive, so an R function merges Step 4 + Step 5 into one master .csv of **27
-features per cell**.
-
-**ColorByCluster** (macro + R helper): paints each cell in the original .tiff by its cluster —
-the paper's only visual validation route (Fig 3E).
-
-**MicrogliaMorphologyR** (R; wraps tidyverse, Hmisc, pheatmap, factoextra, lmerTest, lme4,
-Matrix, SciViews, ggpubr, glmmTMB, DHARMa, rstatix, gridExtra): feature QC ("values that dominate
-and disproportionately skew feature distributions"), normalization options, Spearman feature
-correlation, **PCA**, **k-means / fuzzy k-means** on the first PCs, cluster characterisation
-heatmaps, cluster-percentage per animal, and mixed models (below).
-
-### 2.2 Parameters actually in the macro source (read from GitHub, not stated in the paper)
-
-Read on 2026-11-15 from `macros-scripts/MicrogliaMorphology_Steps/MM_Step{1..4}_*.ijm` at
-`ciernialab/MicrogliaMorphology` HEAD `6efb58d1ec8c3f65b2935a767f404234061f29a4`. The step files
-say "Updated July 29, 2024" — i.e. **after** the paper's acceptance; the paper's datasets may have
-been run on an earlier revision.
-
-| Step | ImageJ call (verbatim parameters) | Note |
+| step | ImageJ call (verbatim) | note |
 |---|---|---|
-| measure | `Set Measurements... area`, `Measure` | image/ROI area → `Areas.csv` |
-| 8-bit | `run("8-bit")`, `run("Grays")` | |
-| contrast | `Enhance Contrast saturated=0.35` | no `normalize` → LUT only; macro comment: "pixel values are unchanged" |
+| 8-bit | `run("8-bit")` | |
+| contrast | `Enhance Contrast saturated=0.35` | LUT only; macro comment: "pixel values are unchanged" |
 | sharpen | `Unsharp Mask... radius=3 mask=0.60` | |
 | denoise | `Despeckle` | 3×3 median |
-| threshold (global) | `Auto Threshold method=<user> ignore_black white` | one of Huang, Huang2, Intermodes, IsoData, Li, MaxEntropy, Mean, MinError(I), Minimum, Moments, Otsu, Percentile, RenyiEntropy, Shanbhag, Triangle, Yen |
-| threshold (local) | `Auto Local Threshold method=<user> radius=<user, default 100> parameter_1=0 parameter_2=0 white` | one of Bernsen, Contrast, Mean, Median, MidGrey, Niblack, Otsu, Phansalkar, Sauvola. README: "A radius of 100 will typically work well". Radius is in **pixels**. |
-| ROI | `Clear Outside` if the image carries a traced ROI | |
+| threshold, global | `Auto Threshold method=<user> ignore_black white` | one of the 16 ImageJ global methods |
+| threshold, local | `Auto Local Threshold method=<user> radius=<user, default 100> parameter_1=0 parameter_2=0 white` | one of 9 local methods; README: "A radius of 100 will typically work well"; radius in **pixels** |
 | denoise | `Despeckle` | |
-| bridge gaps | `Close-` | macro comment: "connects two dark pixels if they are separated by up to 2 pixels" |
+| bridge gaps | `Close-` | "connects two dark pixels if they are separated by up to 2 pixels" |
 | outliers | `Remove Outliers... radius=2 threshold=50 which=Bright` | |
-| particles | `Analyze Particles... pixel add` | **areas in pixels** (not µm²); keep if `min < area < max` (strict) |
-| skeleton | `Skeletonize (2D/3D)`, `Analyze Skeleton (2D/3D) prune=none` | **no pruning**; `Summarize` per cell |
+| cells | `Analyze Particles... pixel add` | **areas in pixels**; keep if `min < area < max` (strict) |
+| skeleton | `Skeletonize (2D/3D)`, `Analyze Skeleton (2D/3D) prune=none` | **no pruning** |
 
-**How the area window is set (Step 1 macro):** the user clicks **5 particles "TOO SMALL to be a
-single microglia cell"** and **5 "TOO BIG"** (README: "2 obviously overlapping cells"), then
-`Summarize`. As I read the code, `area_min = getResult("Area")` takes the **last** Summarize row
-(Max) of the too-small set, and `area_max = getResult("Area", nResults-2)` takes the **Min** row of
-the too-big set — i.e. min = largest "too small" particle, max = smallest "too big" one. (This is
-my reading of ImageJ's Summarize row order — Mean, SD, Min, Max — not something the authors
-state.) Saved to `FinalDatasetParameters.txt`.
+The threshold is chosen per dataset from BioVoxxel ThresholdCheck's gallery of all 25 methods.
+The criterion (paper): capture "full, single microglial cells without losing branching
+connectivity"; (README): "capturing as many branches as possible that are connected to cell
+bodies, while minimizing overlap between cells". That trade-off, branches kept against cells
+merged, is the one our segmentation has to resolve per cell rather than per dataset.
 
-### 2.3 Clustering and statistics (as reported)
+**The area window** is set by the user clicking 5 particles "TOO SMALL to be a single microglia
+cell" and 5 "TOO BIG" (README: "2 obviously overlapping cells"). As we read the code, min = the
+largest "too small" particle and max = the smallest "too big" one; that reading of ImageJ's
+Summarize row order is ours, not the authors'.
 
-- **PCA** on the 27 features; first **3 PCs explain 84.6%** of variance (Extended Data Fig 4-1B,
-  not in the PDF). The PCA input normalization is not stated in the main text (R package offers
-  "data normalization options").
-- **Fuzzy k-means** (Cebeci 2019) on PCs 1–3; each cell gets a membership score per cluster and a
-  hard label = highest membership. Hard labels used throughout the paper. **k = 4** chosen by
-  **within-sum-of-squares and silhouette** (Extended Data Fig 4-1C). Clusters named by visual
-  check with ColorByCluster (§5.1).
-- Authors note hierarchical clustering or Gaussian mixture models could be swapped in.
-- **Cluster-shift statistics:** per brain region, GLMM with **beta** distribution (glmmTMB):
-  `percentage ~ Cluster*Treatment*Antibody + (1|MouseID)`; Type II Wald χ²; post-hoc PBS vs 2xLPS
-  per Cluster×Antibody, **Bonferroni**, q < 0.05. Regions fitted separately because the
-  4-way model did not converge.
-- **Single-measure statistics:** per region, `lmer`: `Value ~ Treatment*Antibody + (1|MouseID)`;
-  Bonferroni across antibodies, q < 0.05. Shown for cell area.
-- Feature correlations: Spearman, "highly correlated" = |R| ≥ 0.8, p < 0.05; PC–feature
-  correlations |R| ≥ 0.75, p < 0.05.
+FracLac runs by hand in box-counting mode with "lock black background", options "adapted from
+Young & Morrison 2018, Section 5.5". Clustering: PCA on the 27 features, fuzzy k-means on PCs 1–3,
+**k = 4** by within-sum-of-squares and silhouette, clusters named by painting them back on the
+image.
 
-### 2.4 Parameters NOT stated (gaps — do not re-hunt the PDF)
+**Unstated, where we would need them:** pixel size, objective NA and z-range of the stacks; the
+threshold method, radius and area window used for any dataset, and the window's units; the units
+of area, perimeter, radii and lengths in the results (FracLac defaults to pixels, so pixels is
+likely, **unconfirmed**); FracLac options beyond the above; whether features were scaled before
+PCA; how 3D skeletons were made for the 20-cell comparison (only that cells were "manually
+isolated from z-stack images" and AnalyzeSkeleton ran in 3D).
 
-- **Pixel size / µm per pixel** of the Axioscan 20× images; objective **NA**; camera; z-range
-  (number of slices) of the stacks; exposure.
-- **Which threshold method and radius** were used for the 2xLPS, 1xLPS or 3D-comparison datasets.
-- **The area window [min, max]** used for any dataset, and its units (the macro works in pixels).
-- Units of "Area", "Perimeter", radii, spans, branch lengths in the results (Fig 4C "Area" axis
-  runs ~7,000–11,000 with **no unit**; FracLac reports pixels by default, so pixels is likely but
-  **unconfirmed**).
-- FracLac options (only "adapted from Young & Morrison 2018 §5.5" and a screenshot in the repo
-  README, which I did not fetch).
-- Whether features were scaled before PCA, and how the four clusters map to cluster numbers in
-  the 1xLPS dataset.
-- How 3D skeletons were obtained for the 20-cell 3D comparison (thresholding in 3D? same
-  pipeline?) — only that cells were "manually isolated from z-stack images" and AnalyzeSkeleton
-  ran in 3D.
-- Any segmentation accuracy (precision/recall of cells, per-pixel overlap) — **never measured**.
-- Number of cells per region/animal/antibody (only the 43,332 total).
+## 2. 2D against 3D
 
----
+20 hippocampal cells from female mice, 5 per class, each measured as a 3D stack, as the EDF
+projection and as a single 2D plane. Pearson R (n = 20 each), read off Fig 2D:
 
-## 3. The 27 morphology measures ⭐
-
-The paper names them but **gives no formulae**; the definitions below are the paper's own words
-where it gives any (Results/Discussion) and otherwise only the name. Source plugin in brackets.
-Grouping = the correlation groups the paper reports (Spearman |R| ≥ 0.8, Fig 3A).
-
-| # | Measure (paper's name) | Plugin | Paper's group / what it says |
-|---|---|---|---|
-| 1 | # of end point voxels | AnalyzeSkeleton | branching complexity |
-| 2 | # of junction voxels | AnalyzeSkeleton | branching complexity; "the numbers of actual pixels which make up the junctions" |
-| 3 | # of triple points | AnalyzeSkeleton | branching complexity |
-| 4 | # of branches | AnalyzeSkeleton | branching complexity |
-| 5 | # of junctions | AnalyzeSkeleton | branching complexity |
-| 6 | # of quadruple points | AnalyzeSkeleton | "the most complex type of junction"; clusters near the complexity group but not starred |
-| 7 | # of slab voxels | AnalyzeSkeleton | area & territory span (correlation group) |
-| 8 | Maximum branch length | AnalyzeSkeleton | branch length |
-| 9 | Average branch length | AnalyzeSkeleton | branch length |
-| 10 | Width of bounding rectangle | FracLac | area & territory span |
-| 11 | Height of bounding rectangle | FracLac | area & territory span |
-| 12 | Maximum radius from hull's center of mass | FracLac | area & territory span |
-| 13 | Maximum span across hull | FracLac | area & territory span |
-| 14 | Diameter of bounding circle | FracLac | area & territory span |
-| 15 | Maximum radius from circle's center of mass | FracLac | area & territory span |
-| 16 | Perimeter | FracLac | area & territory span |
-| 17 | Mean radius | FracLac | area & territory span |
-| 18 | Mean radius from circle's center of mass | FracLac | area & territory span |
-| 19 | Area | FracLac | area & territory span |
-| 20 | Foreground pixels | FracLac | area & territory span |
-| 21 | Density of foreground pixels in hull area | FracLac | "describes a cell's occupancy within its territory and can be a proxy for soma and/or branch thickness" |
-| 22 | Circularity | FracLac | cell shape; "highly negatively correlated with span ratio of the bounding hull" |
-| 23 | Span ratio of hull (major/minor axis) | FracLac | cell shape; "higher value indicates greater cell oblongness" |
-| 24 | Max/min radii from circle's center of mass | FracLac | cell shape |
-| 25 | Relative variation (CV) in radii from circle's center of mass | FracLac | cell shape |
-| 26 | Max/min radii from hull's center of mass | FracLac | cell shape |
-| 27 | Relative variation (CV) in radii from hull's center of mass | FracLac | cell shape |
-
-The AnalyzeSkeleton vocabulary is drawn in Fig 2E (and Fig 1A): **end point** = skeleton pixel
-with one neighbour (drawn blue at branch tips), **junction** = pixels where branches meet (drawn
-purple), **quadruple point** = junction joining four branches, **branch length** = slab run
-between end/junction points, **"voxel"** = one skeleton pixel. Note that *branching complexity*
-features are counts; *territory* features are hull/circle/rectangle geometry of the binary mask —
-there is **no fractal dimension or lacunarity** among the 27 even though FracLac is a fractal
-tool.
-
-**PC loadings (Fig 3B, Spearman |R| ≥ 0.75):** **PC1** = branching complexity + territory span +
-density of foreground pixels in hull (paper says positively; on the heatmap that density row is
-blue on PC1 — see figures/README); **PC2** = circularity (+) vs the five shape/oblongness measures
-(−); **PC3** = average branch length (and maximum branch length, weaker).
-
----
-
-## 4. Reported numbers ⭐
-
-### 4.1 3D vs EDF vs single-plane 2D (Fig 2; 20 hippocampal cells, female mice, 5 per class)
-
-Pearson correlations between image types, read off Fig 2D (each n = 20 cells):
-
-| Feature | 3D vs 2D | EDF vs 2D | EDF vs 3D |
+| feature | 3D vs 2D | EDF vs 2D | EDF vs 3D |
 |---|---|---|---|
 | # of branches | R = 0.92, p = 1.3e-08 | R = 0.94, p = 1e-09 | R = 0.92, p = 6.7e-09 |
 | # of end point voxels | R = 0.93, p = 1.7e-09 | R = 0.95, p = 3.5e-10 | R = 0.97, p = 9.5e-13 |
 | # of junction voxels | **R = 0.36, p = 0.11** | R = 0.92, p = 1.4e-08 | **R = 0.53, p = 0.016** |
 | # of junctions | R = 0.91, p = 2.2e-08 | R = 0.92, p = 5.4e-09 | R = 0.91, p = 2.6e-08 |
 
-**Magnitudes (axis ranges of Fig 2D, read off the plots — approximate):** branches per cell up
-to ~230 in 3D vs ~75 in 2D and ~70 in EDF; end points up to ~70 (3D) vs ~22 (2D) / ~26 (EDF);
-junctions up to ~125 (3D) vs ~42 (2D) / ~36 (EDF); junction voxels up to ~3,000 in 3D vs ~75 in
-2D / ~65 in EDF. → **2D/EDF undercount branching roughly 3× relative to 3D** at this
-magnification; the authors: "the raw values of all skeletal measures quantified decreased
-considerably when measured from 3D to either of the 2D image forms" (Ext. Data Fig 2-1A).
+**Magnitudes, from the plot axis ranges (approximate):** branches per cell up to ~230 in 3D vs ~75
+in 2D and ~70 in EDF; endpoints up to ~70 vs ~22 / ~26; junctions up to ~125 vs ~42 / ~36. The
+authors: "the raw values of all skeletal measures quantified decreased considerably when measured
+from 3D to either of the 2D image forms". PC1 correlated across all three image types; PC2
+(mostly maximum branch length) correlated between 3D and EDF but **not between 3D and a single
+plane**. Hypertrophic and ramified cells, the most branched, "were better captured in 3D".
+Conclusion: relative differences between the four classes "are still maintained across image
+forms". (The caption says Spearman, the panel says Pearson.)
 
-- PC1 correlated across all three image types (starred, |R| ≥ 0.7, p < 0.05 in Fig 2C); **PC2
-  (mostly maximum branch length) correlated between 3D and EDF but not 3D and 2D.**
-- Quadruple points were "the least well captured in 2D representations".
-- Hypertrophic and ramified cells (the most branched) "were better captured in 3D".
-- Conclusion: "EDF images better retain 3D skeletal information than 2D forms do but ... relative
-  group differences between ameboid, hypertrophic, ramified, and rod-like morphologies are still
-  maintained across image forms."
-- Caption/heading inconsistency: Fig 2 caption says "Spearman's correlation of PCs 1–2"; the
-  panel title says "Pearson's correlation of PCs across Image Types".
+For us: this is the only evidence in the set on a **single plane**, which is what we have. It
+supports ranking by branching and a coarse class, and it says branch length behaves worse in a
+single plane than in a projection. These are 20 hand-isolated, presumably in-focus cells; our
+field also holds blurred cells from other depths, which this comparison never met.
 
-### 4.2 Datasets
+## 3. What their images look like, against ours
 
-| Dataset | Mice | Treatment | Collection | Stain | Cells |
-|---|---|---|---|---|---|
-| **2xLPS** (main) | Cx3cr1-GFP, C57BL/6J background, 8 wk, n = 3/condition (2 F, 1 M) | 0.5 mg/kg LPS (E. coli O55:B5) or PBS i.p., every 24 h × 2 | 3 h after last injection | Cx3cr1-GFP + Iba1 + P2ry12 + DAPI | **43,332** cells, FC + STR + HC |
-| **1xLPS** (replication, Ext. Data Fig 3-1) | C57BL/6J, 8 wk, n = 2/sex/condition; reversed light cycle | 1.0 mg/kg LPS or PBS, once | 24 h | Iba1 only | not stated |
-| **Image-type comparison** | female, hippocampus | — | — | not stated | 20 (5 per class) |
+Fig 1B (dorsal hippocampus, Iba1 yellow, DAPI blue) is the one image in the paper of our kind.
+Figure-image scales measured off the bars (200 µm = 143–144 px, inset 30 µm = 77 px) are figure
+scales, not the acquisition pixel size. By eye: several hundred evenly tiled cells with **no empty
+gaps** between territories, neighbours' processes meeting and crossing; a ramified PBS cell spans
+~50–60 µm tip to tip with 5–8 primary processes off a ~8–10 µm soma, branching 2–3 more times.
+That is more than our in-focus cells show (2–4 primaries, 1–2 orders): their projection collects
+the arbor from the whole stack, our plane cuts it. The thresholded field in Fig 1A is a carpet of
+fused multi-cell clumps and fragments, which is what the area window throws away.
 
-### 4.3 Model statistics (2xLPS)
+## 4. The four states, and the rod-like trap
 
-| Test | FC | HC | STR |
+| cluster | name | what drives it | README one-liner |
 |---|---|---|---|
-| Cluster×Treatment×Antibody (beta GLMM, Type II Wald) | χ²(6, n = 6) = 17.676, p = 0.007 | χ²(6, n = 6) = 50.684, p = 3.428 × 10⁻⁹ | χ²(6, n = 6) = 77.402, p = 1.228 × 10⁻¹⁴ |
-| Area: Treatment×Antibody (lmer, Type II Wald) | χ²(2, n = 6) = 46.489, p = 8.035 × 10⁻¹¹ | χ²(2, n = 6) = 189.851, p = 5.949 × 10⁻⁴² | χ²(2, n = 6) = 255.691, p = 3.002 × 10⁻⁵⁶ |
+| 1 | Ameboid | lowest branching complexity and territory span | "round, few processes" |
+| 2 | Rod-like | greatest oblongness and branching inhomogeneity | "elongated soma with bipolar processes" |
+| 3 | Hypertrophic | highest average/maximum branch length; average territory | "thicker, shorter processes with larger soma" |
+| 4 | Ramified | greatest branching complexity, territory span and circularity | "smaller soma with long, highly branched processes" |
 
-### 4.4 Cluster shares, hippocampus (Fig 4A; fraction of cells per animal, read off the box plots — approximate, n = 3 mice)
+- **Clusters are relative**, re-fit per dataset. In PBS hippocampus with Iba1 only ~30% of
+  retained cells are "ramified" and ~20% "ameboid" (read off box plots, n = 3 mice): a control
+  animal's "ameboid" cluster is its least-branched cells plus fragments that passed the window,
+  not round cells. "Ramified %" is not comparable across studies.
+- **Rod-like may be merged neighbours.** In the painted-back hippocampus (Fig 3E), some cells
+  inside the ROI stay unpainted (failed the window or fused), and one "rod-like" cell is a long
+  chain that looks like two or more aligned cells fused. Our top band holds elongated Iba1⁺ cells
+  aligned along a fibre tract: exactly where a merge would be called rod-like.
+- The painted masks are blobbier than the grayscale processes beneath: fine terminal branches are
+  lost at threshold.
+- **Iba1 also labels perivascular and infiltrating macrophages** (P2ry12 is the specific marker),
+  so an Iba1⁺ object is not necessarily a microglion, near vessels and meninges especially.
 
-| Marker | Ameboid PBS → LPS | Hypertrophic | Ramified | Rod-like |
-|---|---|---|---|---|
-| Cx3cr1 | ~0.19 → ~0.13 \* | ~0.11 → ~0.32 \* | ~0.40 → ~0.29 \* | ~0.31 → ~0.26 (n.s.) |
-| **Iba1** | ~0.20 → ~0.14 \* | ~0.20 → ~0.41 \* | ~0.30 → ~0.24 \* | ~0.30 → ~0.22 \* |
-| P2ry12 | ~0.41 → ~0.19 \* | ~0.15 → ~0.39 \* | ~0.21 → ~0.24 (n.s.) | ~0.23 → ~0.19 (n.s.) |
+## 5. Arguments and limitations that bear on us
 
-\* = Bonferroni q < 0.05 as starred in the figure. Text: in HC and STR, "LPS-induced decreases in
-ameboid cluster membership and increases in hypertrophic cluster membership were maintained across
-all three microglia antibodies"; in FC the ameboid change was seen only with Iba1 and P2ry12.
-Note the counter-intuitive direction (LPS *reduces* the ameboid share) — 3 h after the second
-injection.
+- One feature alone gives "an incomplete or biased representation"; the authors use all features
+  together. Manual cell picking biases the sample; their tool takes every cell that passes the
+  filter (and, unstated, none that do not).
+- Stated limitations: 2D only (FracLac is 2D); dataset parameters need user input; marker
+  comparisons are underpowered (n = 3/group); hard cluster boundaries are artificial. 3D is
+  acknowledged as finer but argued too slow.
+- Not stated (ours): no segmentation ground truth; a max projection fuses cells that overlap in
+  z, which a single plane avoids only by losing the arbor instead.
 
-**Baseline mix worth remembering:** in PBS hippocampus with Iba1, only ~30% of retained cells are
-"ramified"; ~20% fall in the "ameboid" cluster even in controls. These are *relative* k-means
-clusters, not absolute states — a control animal's "ameboid" cluster is the least-branched
-quarter-ish of a mostly-ramified population, plus fragments that passed the area window.
+**Not fetched, worth a look:** the Extended Data (variance per PC, subregion map, full tables) on
+the eNeuro page; MicrogliaMorphologyR's post-paper "Pipeline 2" tutorial
+(`ciernialab.github.io/MicrogliaMorphologyR/articles/MicrogliaMorphologyPipeline2.html`), possibly
+a different method; the OSF images.
 
-### 4.5 Cell area (Fig 4C; units not stated, likely pixels)
-
-Per-animal means span roughly **7,000–11,000** (axis units unstated). Hippocampus: Cx3cr1 ~10,100
-(PBS) vs ~9,900 (LPS); **Iba1 ~8,550 vs ~7,900 (n.s.)**; P2ry12 ~6,850 vs ~8,350 (\*). LPS
-increased area only for P2ry12 (HC and STR). Iba1-stained cells read smaller than Cx3cr1-GFP
-cells in every region.
-
----
-
-## 5. Biology worth keeping
-
-### 5.1 The four states as the paper uses them
-
-| Cluster (2xLPS) | Name | What drives it (Fig 3D, text) | README one-liner |
-|---|---|---|---|
-| 1 | **Ameboid** | lowest branching complexity and territory span | "round, few processes" |
-| 2 | **Rod-like** | greatest oblongness and "branching inhomogeneity" (high span ratio, max/min radii, CV of radii) | "elongated soma with bipolar processes" |
-| 3 | **Hypertrophic** | highest average/maximum branch length; (text:) highest density of foreground pixels in hull; average territory | "thicker, shorter processes with larger soma" |
-| 4 | **Ramified** | greatest branching complexity, territory span and circularity | "smaller soma with long, highly branched processes" |
-
-- Hypertrophic overlaps heavily with ameboid and rod-like in PC space — "a state between
-  ameboid and rod-like forms on the morphological spectrum".
-- Rod microglia (Taylor 2014, cited): "long, thin processes protruding from oval-shaped somas
-  that retract neuron-adjacent planar processes in response to diffuse brain injury".
-- Hyper-ramified forms reported in stress-induced depression, accelerated aging and AD models;
-  README also lists dystrophic and satellite as other described forms.
-- Microglia are "never truly quiescent", constantly extending and retracting processes (in vivo
-  two-photon), so a fixed-tissue snapshot is one instant of a dynamic shape.
-- Form–function is **not** dichotomous: ramified microglia phagocytose (adult neurogenesis),
-  ameboid ones can be *less* phagocytic (epilepsy). The paper argues against "resting/activated"
-  and for continuous states (hence fuzzy clustering).
-
-### 5.2 Markers
-
-- **P2ry12** is the most microglia-specific; **Cx3cr1 and Iba1 also label other macrophages**
-  (perivascular/infiltrating) — relevant to our Iba1 channel: an Iba1+ cell is not necessarily a
-  microglion, especially near vessels and meninges, or in disease with infiltration.
-- All three are "homeostatic" markers whose expression changes in disease/inflammation.
-- P2ry12 is "less concentrated in the cell bodies and more spread throughout the cell branches"
-  than Iba1/Cx3cr1 (Fig 4B) — so marker choice changes measured area and cluster shares.
-- **CD68** (our second channel) is not used or discussed in this paper.
-
-### 5.3 Regional notes
-
-- Regions: frontal cortex, striatum, hippocampus, with subregions (Ext. Data Fig 4-1D, not in the
-  PDF). Region-specific responses: striatum shows the strongest model effects, frontal cortex the
-  weakest. Microglial morphology and density are known to vary across regions (refs Lawson 1990;
-  Tan 2020; Mittelbronn 2001 — "differs by up to one order of magnitude" in human, title only).
-- No hippocampal-subfield-specific result is reported in the main text.
-
----
-
-## 6. Discussion arguments and the authors' limitations
-
-- Reporting one feature (e.g. branch number or area) gives "an incomplete or biased
-  representation"; consider all features together (PCA + clustering).
-- Manual cell picking introduces selection bias and limits n; their tool processes all cells
-  that pass the area filter.
-- **Limitations stated:** 2D only (FracLac); requires user input for dataset parameters; R
-  skills needed; large datasets need more compute; marker-comparison results are
-  "preliminary"/"proof-of-concept" (n = 3/group, underpowered; sex differences not testable);
-  hard cluster boundaries are artificial (continuum) — hence fuzzy k-means.
-- 3D is acknowledged as finer-grained but argued to be low-throughput because of data size and
-  processing time.
-- **Limitations they do not state (ours):** the area window silently drops touching cells and
-  large/small cells, biasing the sample against dense regions, hypertrophic cells and cells with
-  long processes that touch neighbours; no segmentation ground truth; a max projection merges
-  processes from different depths, so cells overlapping in z appear fused; cluster identities are
-  dataset-relative (k-means is re-fit per dataset), so "ramified %" is not comparable across
-  studies.
-
----
-
-## 7. What is not in this PDF
-
-- **Extended Data** (Figs 2-1, 3-1, 4-1; Tables 2-1, 2-2, 3-1 to 3-4, 4-1 to 4-4) — cited
-  throughout (variance explained per PC, WSS/silhouette plots, subregion map, full correlation
-  tables, post-hoc tables) but **not in this PDF**. Not fetched; would be on the eNeuro article
-  page.
-- **GitHub, MicrogliaMorphology** — README fetched 2026-11-15 from
-  `https://raw.githubusercontent.com/ciernialab/MicrogliaMorphology/main/README.md` (HTTP 200;
-  HEAD `6efb58d1…` by `git ls-remote`; README "Last updated: 7 January, 2026"). Contents:
-  install Fiji + **BioVoxxel Toolbox** + **FracLac**; three macros
-  (`MicrogliaMorphology_BioVoxxel.ijm`, `_Program.ijm`, `_ColorByCluster.ijm`) and four step
-  macros (`MM_Step1_DatasetParameters` … `MM_Step4_SkeletonAnalysis`); ROI integration
-  (ROIMAPer); Step 1 ThresholdCheck guidance (radius 100 typical; check all 25 methods visually;
-  example under/well/over-thresholded cells, shown as images I did not fetch); area-window
-  guidance (too small = "almost as big as a single-cell"; too big = "2 obviously overlapping
-  cells"); FracLac: BC mode, "lock black background", batch; note that very large batches may
-  exhaust ImageJ memory. The four step macros were also read (not vendored) for §2.2.
-- **GitHub, MicrogliaMorphologyR** — README fetched 2026-11-15 (HTTP 200; HEAD `c4cbc5b3…`;
-  "Last updated: 01 Oct, 2026"). Install via `devtools::install_github`; tutorial on the package
-  site; a **"Pipeline 2"** workflow tutorial now exists
-  (`ciernialab.github.io/MicrogliaMorphologyR/articles/MicrogliaMorphologyPipeline2.html`, not
-  fetched — **post-paper and possibly a different method; worth a look**); the four-class
-  one-liners in §5.1.
-- **GitHub REST API** (`api.github.com/repos/ciernialab/MicrogliaMorphology/commits`) → **403**
-  from the session's proxy (GitHub API access not enabled for this repo in this session). Not
-  retried; commit SHAs obtained with `git ls-remote` instead.
-- **OSF <https://osf.io/8t5c2/>** — input images, thresholded images and *all* single-cell images,
-  offered by the authors as a "benchmarking dataset". **Not fetched.** Potentially our best
-  external sample source at the same magnification (but no hand-annotated cell ground truth).
-- **YouTube tutorial** — not fetched.
-
----
-
-## 8. Extracted images
-
-All five embedded rasters are real figures (no logos/icons). Descriptions:
-[`figures/README.md`](#figures).
-
-| File | Paper item | Content |
-|---|---|---|
-| `figures/fig0_visual_abstract.png` | Visual Abstract (p. 1) | pipeline overview; Cx3cr1/Iba1/P2ry12/DAPI 50 µm panels; exemplar ameboid/hypertrophic/rod-like/ramified cells |
-| `figures/fig1_study_overview.png` | Figure 1 (p. 7) | A pipeline diagram; B LPS design + dorsal hippocampus Iba1 overviews (200 µm) and insets (30 µm) |
-| `figures/fig2_image_type_comparison.png` | Figure 2 (p. 8) | 3D vs EDF vs 2D: PCA, per-class boxplots, PC correlation, feature scatter plots, skeleton glossary |
-| `figures/fig3_morphology_clusters.png` | Figure 3 (p. 10) | 27-feature correlation matrix, PC loadings, clusters, cluster heatmap, ColorByCluster hippocampus |
-| `figures/fig4_lps_cluster_shifts.png` | Figure 4 (p. 12) | cluster shares by region × marker; same cells in 3 markers (50 µm); cell area |
-
----
-
-## Figures
-
-Every raster embedded in
-`../kim-2024-microglia-morphology-pipeline.pdf`,
-converted to PNG unchanged (CC BY 4.0, © 2024 Kim et al.). Each figure is one embedded image; there
-are five, all real figures. 
-Scale measured off the figures by me (white-bar pixel run in the embedded image): Fig 1B overview
-**200 µm = 143–144 px** (≈ 1.40 µm/px of this figure image; the 600-px-wide overview spans ≈ 840
-µm); Fig 1B insets **30 µm = 77 px** (≈ 0.39 µm/px). These are figure-image scales, **not** the
-acquisition pixel size, which the paper never states.
-
----
-
-### Visual abstract — `fig0_visual_abstract.png` (1534 × 1256)
-
-
-- **Top left (black):** "MicrogliaMorphology: ImageJ macro" — four icons of one cell: binary
-  mask, FracLac box-count grid (yellow), convex hull (teal) inside bounding circle (purple), and
-  the tagged skeleton (orange slabs, purple junctions). Caption: territory span, branching
-  complexity, cell circularity, cell shape.
-- **Bottom left:** "MicrogliaMorphologyR" — PC1/PC2 scatter with 4 cluster colours, cluster ×
-  feature heatmap, ColorByCluster crops (cells painted orange/teal/yellow/green), and a
-  boxplot of Ameboid/Hypertrophic/Ramified/Rod-like shares with stars.
-- **Right:** design (Cx3cr1-GFP mice, PBS vs 2xLPS; frontal cortex, hippocampus, striatum boxes
-  on coronal outlines); "Analysis of 3 different microglia markers": the same field in
-  **Cx3cr1** (green), **Iba1** (magenta), **P2ry12** (red), **DAPI** (blue), each with a **50 µm**
-  bar, plus a larger merge (50 µm bar); bottom strip: four grayscale exemplar cells labelled
-  **Ameboid, Hypertrophic, Rod-like, Ramified** (no bar).
-
-**What I see:** in the 50 µm single-marker tiles, roughly 6–10 cells per tile with clear somata
-and 4–8 primary processes each; processes from neighbouring cells interdigitate at the tile
-scale. The Iba1 tile shows bright somata and thinner, dimmer processes than P2ry12, whose signal
-is spread along the branches. The exemplars: "ameboid" here is still a cell with several short
-processes (not a round blob); "hypertrophic" has a big bright soma with thick short processes;
-"rod-like" is elongated with processes along one axis; "ramified" has a small soma and long,
-fine, highly branched processes. The "ameboid" exemplar is the one an algorithm could most
-easily confuse with a hypertrophic cell.
-
----
-
-### Figure 1 — `fig1_study_overview.png` (2000 × 2200)
-
-
-Caption: "Study overview. A, Outline of steps involved in MicrogliaMorphology and
-MicrogliaMorphologyR. B, Experimental mouse model ... Example images from the dorsal hippocampus
-with individual microglia insets for each treatment condition. Microglia (Iba1) in yellow and DAPI
-nuclear stain in blue. Full size images scale bar 200 µm, insets 30 µm."
-
-- **A, Step 1 (ImageJ macro):** "Microglia immunofluorescent staining" (grayscale field, dozens
-  of cells) → "8-bit conversion, clean-up, thresholding" (binary: white blobs with stubby
-  processes, many touching) → "Extract single-cell images of microglia" → two branches: **FracLac**
-  (box grid, hull + circle: "Territory span measures, Circularity, Cell shape measures") and
-  **Skeletonize (2D/3D) → Analyze Skeleton** (tagged skeleton plus glossary: End point,
-  Junction, Quadruple point, Branch length).
-  **Step 2 (R package):** I. correlation analysis and visualization of individual measures;
-  II. dimensionality reduction using PCA; III. K-means clustering; IV. cluster characterization and
-  analysis; V. data preparation for ColorByCluster.
-- **B, design:** 0.5 mg/kg LPS, Cx3cr1-GFP, 8 weeks old; PBS vs 2xLPS; "Brains collected 3hrs
-  after injections"; frontal cortex / hippocampus / striatum boxes. **Images:** PBS overview
-  (200 µm bar) + two insets (30 µm), 2xLPS overview (200 µm) + two insets (30 µm). Yellow =
-  Iba1 (per caption), blue = DAPI.
-
-**What I see — the most useful panel for us (same species, region, marker and magnification
-class as ours):**
-- *Binary in A:* the thresholded field is a carpet of blobs, many fused into multi-cell clumps
-  and many fragments — exactly the problem the area window is there to throw away.
-- *PBS overview (dorsal hippocampus, ≈ 840 µm wide):* several hundred evenly tiled yellow cells;
-  somata are separated by roughly 2–4 soma diameters with **no visible empty gaps** between
-  territories — the processes of neighbours fill the space between somata, so at this scale the
-  field reads as a continuous mesh with bright dots. The dense DAPI band of the granule/pyramidal
-  cell layer crosses the bottom and top edges; microglia are present inside it too but sparser.
-- *PBS insets (30 µm bar):* a ramified cell spans roughly 50–60 µm tip to tip (about twice the
-  bar); 5–8 primary processes leave a small (~8–10 µm) soma and branch 2–3 more times; the finest
-  terminal branches are 1–2 px wide in the figure and fade into background haze. **Processes of
-  neighbouring cells visibly meet and cross** — two cells per inset is typical, plus fragments of
-  others entering from the edges. Out-of-focus haze from the EDF is visible around cells.
-- *2xLPS overview and insets:* brighter, thicker cells with larger somata and shorter, thicker
-  processes; several elongated cells aligned roughly perpendicular to the cell layer (rod-like).
-  Overlap between neighbours is worse than in PBS.
-
----
-
-### Figure 2 — `fig2_image_type_comparison.png` (2000 × 2134)
-
-
-Comparison of **3D vs EDF vs single-plane 2D** for 20 hippocampal cells (5 per class).
-
-- **A:** two PC1–PC2 scatters of the 60 points (20 cells × 3 image types), coloured by **image
-  type** (2D purple, 3D teal, EDF yellow) and by **morphology class**. 3D points sit at higher
-  PC1 than 2D/EDF; ameboid cells sit at low PC1.
-- **B:** box plots of 9 skeleton measures (# branches, # end point voxels, # junction voxels,
-  # junctions, # quadruple points, # slab voxels, # triple points, average branch length, maximum
-  branch length), z-scored *within* image type, by class (ameboid, hypertrophic, ramified, rod) and
-  image type. The class ordering (ameboid lowest, ramified highest, hypertrophic second, rod
-  low-middle) is the same in all three image types for the count measures; branch-length
-  measures are noisy and do not separate classes cleanly.
-- **C:** heatmap of correlations among PC1/PC2 of each image type; stars (|R| ≥ 0.7, p < 0.05)
-  on all PC1 pairs and on PC2_3D–PC2_EDF only. Panel title says **Pearson**, caption says
-  **Spearman**.
-- **D:** 12 scatter plots with regression line and CI — # branches, # end point voxels,
-  # junction voxels, # junctions, each 3D-vs-2D, EDF-vs-2D, EDF-vs-3D. R and p transcribed in
-  §4.1 above. Axis ranges show 3D counts ~3× the 2D/EDF counts.
-- **E:** skeleton glossary drawing: blue end points, orange slab pixels, purple junction
-  ("quadruple point" where four arms meet), a boxed "1 single 'voxel'", and a bracket for
-  "Branch length".
-
----
-
-### Figure 3 — `fig3_morphology_clusters.png` (2000 × 2556)
-
-
-2xLPS dataset (43,332 cells).
-
-- **A — "Spearman correlations across features":** clustered 27 × 27 matrix, stars at |R| ≥ 0.8,
-  p < 0.05. A large red block covers the 5 complexity counts + 12 territory/area measures (incl.
-  # slab voxels); a small separate red block holds the five shape/oblongness measures; branch
-  lengths, circularity, density-in-hull and quadruple points are loosely attached. Circularity
-  vs span ratio is strongly negative (blue, starred).
-- **B — "Correlation between PCs and features":** 27 × 3 heatmap, stars at |R| ≥ 0.75. PC1: red
-  and starred for the complexity and territory features. PC2: red for circularity, blue
-  (starred) for the five shape measures. PC3: red (starred) for average branch length, orange for
-  maximum branch length. **Density of foreground pixels in hull area** is **blue on PC1** in the
-  heatmap, while the text says PC1 is "highly positively correlated" to it — an inconsistency (a
-  sign convention, or a text error) that I cannot resolve from the PDF.
-- **C — "Clusters in PC space":** PC1 (≈ −3.5…2.5) × PC2 (≈ −7…2.5); cluster 1 (green, upper
-  left), 2 (teal, lower), 3 (pale yellow, spread left/centre, overlapping 1 and 2), 4 (orange,
-  upper right); ellipses per cluster.
-- **D — "Cluster-specific morphology measures":** features × clusters 1–4, scaled. Cluster 1
-  blue on almost everything except density-in-hull (red) and circularity; cluster 2 red on the
-  five shape measures and blue on circularity; cluster 3 red on average and maximum branch
-  length; cluster 4 red on all complexity counts and orange on territory and circularity. By the
-  heatmap colours, **density-in-hull is highest for cluster 1 (ameboid)**, not cluster 3 as the
-  text says ("Cluster 3 had the highest branch lengths and density of foreground pixels in the
-  hull") — another text/figure discrepancy.
-- **E — ColorByCluster:** grayscale hippocampal section (Iba1/marker not stated; no scale bar)
-  with cells inside a traced subregion ROI painted by cluster; zoom crops labelled **Cluster 3
-  Hypertrophic, Cluster 2 Rod-like, Cluster 4 Ramified, Cluster 1 Ameboid**, each above its
-  grayscale original.
-
-**What I see in E:** outside the ROI, hundreds of small, evenly tiled white star-shaped cells —
-the density of the PBS overview of Fig 1B. Inside the ROI, painted cells are spaced so that they
-rarely touch, and **some cells inside the ROI stay unpainted** (those that failed the area window
-or fused with a neighbour). The rod-like (teal) cells are elongated and several are aligned along
-the same direction; in the zoom, one teal "cell" is a long chain that looks like two or more
-aligned cells fused — a hint that some rod-like calls are merged neighbours. The painted shapes
-are the thresholded masks, visibly blobbier than the grayscale processes beneath them (fine
-terminal branches lost).
-
----
-
-### Figure 4 — `fig4_lps_cluster_shifts.png` (2000 × 1882)
-
-
-- **A — "2xLPS mouse dataset: K-means clusters":** 3 × 3 grid (rows Cx3cr1 / Iba1 / P2ry12; columns
-  FC / HC / STR) of box plots, y = fraction of cells (0.1–0.5) per cluster (Ameboid, Hypertrophic,
-  Ramified, Rod-like), PBS (yellow) vs 2xLPS (purple), dots coloured by sex (F red, M teal), stars =
-  Bonferroni p < 0.05. Hippocampus values transcribed in §4.4 above.
-- **B:** the same field in PBS and 2xLPS, rows **Cx3cr1** (green), **Iba1** (magenta), **P2ry12**
-  (red), **DAPI**, merge; every tile has a **50 µm** bar.
-- **C:** box plots of **"Area"** (axis 7,000–11,000, **no unit**), PBS vs 2xLPS, for each region ×
-  marker; stars only for HC-P2ry12 and STR-P2ry12.
-
-**What I see in B (Iba1 row):** each tile (263 px wide, 50 µm bar = 72 px, so ≈ 180 µm
-across) holds roughly 8–12 cells with a visible soma. In
-PBS, small bright somata with thin branching processes; in 2xLPS, larger brighter somata, thicker
-processes, several elongated cells oriented the same way. Iba1 labels the soma most strongly;
-P2ry12 marks a dense lacework of fine processes that fills almost the whole tile in PBS, making
-individual cells far harder to separate than in Iba1. Cx3cr1-GFP shows the most diffuse
-background haze.
+**Left out:** the LPS design and its cluster-shift statistics, the per-feature definitions of the
+27 measures (names only in the paper, no formulae), cell-area values (no unit stated), marker and
+regional biology, and the R package's dependencies.
