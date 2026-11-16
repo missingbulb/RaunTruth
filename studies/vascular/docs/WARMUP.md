@@ -3,7 +3,7 @@
 Detect and quantify cerebral blood vessels in CD31 confocal images: **categorize** (caliber),
 **count** (branch segments) and **measure** (centerline length). Two inputs, two pipelines:
 
-- **Figure panels** (2D, RGB crops of published figures, `docs/literature/*/figures/panels/VESSEL_*.png`):
+- **Figure panels** (2D, RGB crops of published figures, `VESSEL_*.png`; not in the repo, rebuilt from the publishers' figures by the inventories in the paper summaries):
   `analysis/measure_vessels.py` and `analysis/annotate_overlays.py`.
 - **The owner's z-stacks** (3D, four Marianas 20× CD31 stacks on Google Drive, `data/README.md`):
   `analysis/extraction/` keeps every extraction version side by side (v5 the default), and its
