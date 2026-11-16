@@ -1,4 +1,4 @@
-# The ground-truth change log, with undo and a History panel (future direction)
+# The ground-truth change log, with undo and an Edit History window (future direction)
 
 A design, not a plan: nothing here is built, approved or tried on a person. The owner asked for a
 tagger's ground truth to be kept as a sequential log of every change to the GT model, from the image
@@ -6,7 +6,7 @@ opening, through the algorithm's run, to each correction; for that log to travel
 and back; for replay to reproduce the model without re-running the algorithm; and for undo and redo with
 the stack shown as a list. [`mockup.html`](mockup.html) / [`mockup.png`](mockup.png) draw the panel.
 
-![The History panel under Ground Truth Tasks](mockup.png)
+![The Edit History window at the image's bottom right](mockup.png)
 
 ## How to read the evidence
 
@@ -31,7 +31,7 @@ the stack shown as a list. [`mockup.html`](mockup.html) / [`mockup.png`](mockup.
 | Re-run | A new `run` **replays the surviving changes onto the new output**; a change that no longer fits is dropped and shown greyed under the run | The owner's call (question 4). Ops must therefore address items by what survives a re-run (a place, within a tolerance), never by an index or id the algorithm assigns |
 | Device storage | The journal in **IndexedDB**, one record per entry; today's `gt-draft|…` key stays as the small head | `localStorage` is 5 MiB an origin and rewrites the whole value on each change |
 | Drive | **One file**, the study's document as today plus a `history` key the shell adds; no new call | The owner's ask; a second file is a second write and can come apart from the first |
-| Panel | A folded **History** row at the foot of Ground Truth Tasks, Undo and Redo always on it; open, a list newest first | The left bar belongs to the tasks (`designing-ground-truth-tasks`) |
+| Panel | **Edit History**, a floating tool window at the image's bottom right, framed like the minimap, 2.5 × its height; shown or hidden by **Show Edit History** in Ground Truth Tasks. Undo and Redo stay buttons in Ground Truth Tasks; Clear all history moves into the window | The owner's call (2026-11-16): the left bar belongs to the tasks, and a long list there would push them away |
 
 ## Where the request and the code disagree [repo]
 
@@ -171,7 +171,7 @@ reference replay is the JavaScript one.
   tagging here spans sittings (`req/shell/ground-truth/draft`), so the log does too.
 - **Submit** appends a `submit` mark and changes nothing else; undo walks through it, and a later
   Submit replaces the file as today (Drive keeps the earlier revision).
-- **Clear progress** deletes the journal and head from the device after its confirm, as
+- **Clear all history** (today's Clear progress, now at the foot of the Edit History window) deletes the journal and head from the device after its confirm, as
   `req/shell/ground-truth/clear` says, and cannot be undone. "Back to the algorithm's output, undoably"
   is a click on the run's row in History.
 - **Undo moves the walk.** The shell hands the study the entry undone; the study opens that item and
@@ -236,11 +236,24 @@ written on a 500 ms trailing timer and on `pagehide`. The head is a cache of the
 it is caught up by replaying the tail. NoR's cost is unmeasured; its ops set one field of one
 candidate, cheaper than Vascular's.
 
-## 6. The History panel
+## 6. The Edit History window
 
-**Place.** A folded row at the foot of Ground Truth Tasks, under Submit and Clear progress: "History ·
-39", Undo and Redo on the row itself, usable while it is folded. It is not a task, takes no part of the
-bar, and never pushes the open item's picture. Open, it is a list capped at about nine rows, scrolling.
+**Place** (the owner's call, 2026-11-16). A floating tool window over the image, **Edit History · 212**,
+at its bottom right, framed and headed as the minimap is (white border, the minimap's header row and
+buttons, the same opacity at rest). Its height is **2.5 × the minimap's**, never taller than the view
+less its margins; its width is the minimap's × 1.4, so a label fits on one line. Ground Truth Tasks
+carries a **Show Edit History** switch that shows or hides it (remembered per device, like the
+minimap's fold), and its header's ✕ hides it the same way. **Undo** and **Redo** stay buttons in
+Ground Truth Tasks, under the tasks, usable with the window hidden. **Clear all history…** (today's
+Clear progress, the same confirm and the same effect) moves to the window's foot, beside "Click a row
+to go back to it". The window sits clear of the keys legend at the bottom left; NoR's selected box at
+the top right is the one thing it can meet, and the window's top yields to it.
+
+**A long history stays inside the window.** The list scrolls within its fixed height and never grows
+the window; the current row (the dot) is sticky, pinned to the top or bottom edge while scrolled away,
+so where you are is always on screen; runs of one op fold into one row ("Approved 31 finalists",
+13:12–13:39) and a day rule ("Yesterday") breaks long sittings. At ≈ 1,000 rows plain DOM rows are
+cheap; past that the list draws only the rows in view.
 
 **The list**, grounded in what the surveyed tools do:
 
@@ -253,7 +266,7 @@ bar, and never pushes the open item's picture. Open, it is a list capped at abou
   list takes the current status to that position" [exact]. Krita's docker is sold on the same point,
   going back "far more quickly than rapidly reusing the Ctrl + Z shortcut" [fetch]. A jump is itself
   undone by clicking the top row, until something changes.
-- **Runs of the same kind fold into one row** ("Approved 14 finalists · show each"), as Figma folds
+- **Runs of the same kind fold into one row** ("Approved 14 finalists", its chevron unfolds it), as Figma folds
   autosaves into a group that expands [S] and Krita merges strokes close in time [fetch]. The folding
   is display only: Ctrl+Z still takes one change at a time; a click on the folded row goes before all
   of it.
@@ -362,7 +375,7 @@ The feature path each time: the requirement in the spec, a test that fails, then
 3. **Shelves.** Ids for books, `changes.js`, the draft document replaced by the journal; a draft in the
    old shape loads as a `base`.
 4. **NoR.** The model pulled out of `st`, ids for added NoRs, the five keys read once into a `base` and
-   left in place until Clear progress.
+   left in place until Clear all history.
 5. **Resume from Drive**, if approved (question 5).
 
 Each phase is its own PR; the diff will reach `web/`, one study's `web/`, the specs and tests. The
