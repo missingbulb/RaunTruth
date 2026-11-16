@@ -16,6 +16,7 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
+import { frames } from "./page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -128,7 +129,8 @@ try {
   await page.click(".keys-legend .key-chip");
 
   // a control off takes its row away
-  await page.evaluate(() => { $("#ruler-btn").disabled = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  await page.evaluate(() => { $("#ruler-btn").disabled = true; });
+  await frames(page);
   rows = await legend();
   check(rows.map((r) => r.key).join() === "Alt+G", "a control turned off takes its row out of the legend", rows);
 } catch (e) {
