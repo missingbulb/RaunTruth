@@ -231,11 +231,16 @@ await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled,
 await page.waitForSelector("#load-gt:not([hidden])", { timeout: 5000 }).catch(() => {});
 await check(await page.isVisible("#load-gt"), "a viewer is offered Load GT tagging for an image with curated ground truth");
 await check(downloads.every((d) => d === png.id || d === settings.id), "before the click, only the image and the root's settings file are downloaded: the curated folder's listing alone offers it", downloads);
+const beforeGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden }));
+await check(beforeGt.processing && beforeGt.items, "before Load GT tagging, Processing and the Items switch show", beforeGt);
 await page.click("#load-gt");
 // only the click reads the image's ground truth (req/shell/ground-truth/view)
 await page.waitForFunction(() => document.querySelector("#gt-summary").textContent.trim());
 const summed = await page.textContent("#gt-summary"), shown = await page.textContent("#fx-result");
 await check(/tester@example\.com/.test(summed) && /accepted by/.test(summed) && /pixels counted/.test(summed), "its summary names who made it, who accepted it, and the study's counts", summed);
 await check(/^Ground truth: \d+ pixels/.test(shown) && await page.evaluate(() => !document.querySelector("#busy") || $("#busy").hidden), "the study shows the final result, with nothing run", shown);
+// ground truth loaded or the algorithm run, never both: Processing goes, and the Items view with it
+const afterGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden, view: $("#view").dataset.view }));
+await check(!afterGt.processing && !afterGt.items && afterGt.view === "image", "with its ground truth loaded, Processing and the Items switch are gone, the image in view", afterGt);
 await page.context().close();
 await done(0);
