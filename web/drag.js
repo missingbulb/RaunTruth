@@ -6,6 +6,8 @@
 //
 // These listeners are on the window, capturing, and added when the page first imports this module, ahead of the
 // page's own: they hear each event before any other listener can.
+import { after } from "./pacing.js";
+
 const live = new Map(); // pointerId → {el, move, drop, cancel}
 const cancelled = new Set(); // pointers whose press was cancelled and is not yet let go
 let eatClick = false;
@@ -26,7 +28,7 @@ addEventListener("pointerup", (e) => {
   if (cancelled.delete(e.pointerId)) {
     hush(e);
     // the click this release makes comes in the same task
-    eatClick = true; setTimeout(() => { eatClick = false; });
+    eatClick = true; after(0, () => { eatClick = false; });
     return;
   }
   if (live.has(e.pointerId)) end(e.pointerId).drop?.(e);
