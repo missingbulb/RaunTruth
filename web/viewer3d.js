@@ -394,14 +394,15 @@ export function viewer3d(shell, flat) {
 
   // ---------- turning, zooming and panning: drag turns about the screen's axes, a sideways scroll about the line of
   // sight, a drag pans while panning is on (or shift is held), as a right-drag does, wheel or pinch zooms ----------
-  // on any canvas that shows the stack's camera; grab(e), when given, sees each press first and may take that pointer
-  // for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where it began
+  // on any canvas that shows the stack's camera; an armed ruler takes each press first, then grab(e), when given, may
+  // take that pointer for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where
+  // it began
   function controls(el, grab, click) {
     const pts = new Map(), down = new Map();
     // the camera as the gesture's first press found it, for a cancelled gesture to put back
     let last = null, was = null;
     el.addEventListener("pointerdown", (e) => {
-      const g = grab && !pts.size ? grab(e) : null;
+      const g = pts.size ? null : rulerGrab(e, el) || grab?.(e);
       if (g) return drag(el, e, { move: g.move, drop: g.up, cancel: () => g.cancel?.() });
       if (e.button === 0 && !pts.size) down.set(e.pointerId, [e.clientX, e.clientY]); else down.clear();
       if (!pts.size) was = { rot: S.rot, pivot: S.pivot, dist: S.dist };
@@ -447,11 +448,11 @@ export function viewer3d(shell, flat) {
   const R = { armed: false, from: null, to: null, live: false }, rulerBtn = $("#ruler-btn");
   function rulerSet(on) {
     Object.assign(R, { armed: on, from: null, to: null, live: false });
-    rulerBtn.setAttribute("aria-pressed", on); cv.classList.toggle("measuring", on); redraw();
+    rulerBtn.setAttribute("aria-pressed", on); stage.classList.toggle("measuring", on); redraw();
   }
-  // where the line of sight through a pointer meets the plane z of the world, [x, y, z]; null where the view looks along it
-  function atDepth(e, z) {
-    const r = cv.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
+  // where the line of sight through a pointer on el meets the plane z of the world, [x, y, z]; null where the view looks along it
+  function atDepth(e, z, el = cv) {
+    const r = el.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
     const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height) * 2;
     const [a, b] = [-1, 1].map((d) => { const w = M.xf(iv, [nx, ny, d]); return w.slice(0, 3).map((v) => v / w[3]); });
     if (Math.abs(b[2] - a[2]) < 1e-9) return null;
@@ -476,21 +477,22 @@ export function viewer3d(shell, flat) {
       return [defs, mk("circle", { class: "orb", cx: a[0], cy: a[1], r: Math.hypot(rim[0] - a[0], rim[1] - a[1]), fill: "url(#v3-orb-fill)" })];
     });
   }
-  // an armed ruler takes a left press on the top slice shown for its drag; one let go within a few pixels measures nothing
-  function rulerGrab(e) {
+  // an armed ruler takes every left press for its drag, on the top slice shown; one let go within a few pixels, or where
+  // the view looks along that slice, measures nothing
+  function rulerGrab(e, el) {
     if (!R.armed || e.button !== 0 || !vol) return null;
-    const p = atDepth(e, topSlice());
-    if (!p) return null;
+    const p = atDepth(e, topSlice(), el);
+    if (!p) return { move() {}, up() {} };
     Object.assign(R, { from: p, to: p, live: true, at: [e.clientX, e.clientY] }); redraw();
     const drop = (e) => {
       R.live = false;
       if (!e || Math.hypot(e.clientX - R.at[0], e.clientY - R.at[1]) < CLICK_PX) R.from = R.to = null;
-      else { R.armed = false; cv.classList.remove("measuring"); }
+      else { R.armed = false; stage.classList.remove("measuring"); }
       redraw();
     };
-    return { move(e) { const q = atDepth(e, R.from[2]); if (q) { R.to = q; redraw(); } }, up: drop, cancel: () => drop(null) };
+    return { move(e) { const q = atDepth(e, R.from[2], el); if (q) { R.to = q; redraw(); } }, up: drop, cancel: () => drop(null) };
   }
-  controls(cv, rulerGrab);
+  controls(cv);
 
   // ---------- the tools ----------
   const ui = (id) => (tools.querySelector("#" + id) || slicesRow.querySelector("#" + id));

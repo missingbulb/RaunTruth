@@ -184,6 +184,29 @@ try {
       `Escape mid-drag takes the orb and the ruler away, the ruler still armed, the view unturned: ${JSON.stringify([esc, escUp])}`);
     await page.click("#ruler-btn");
     await page.click("#v3-reset");
+    // a study's own canvas over the stack, in its camera, its drags taking every press: an armed ruler measures on it,
+    // neither the study's drag nor the view's turn hears the press, and the ruler shows above that canvas
+    await page.evaluate(() => {
+      const v = window.shellForTests.viewer.three, el = document.createElement("canvas");
+      el.id = "test-study-cv"; window.studyGrabs = 0;
+      v.place(el); v.controls(el, () => { window.studyGrabs++; return { move() {}, up() {} }; });
+    });
+    const rotS = await rotNow();
+    await page.click("#ruler-btn");
+    await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down(); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 }); await page.mouse.up();
+    const onStudy = { ...(await rulerNow()), grabs: await page.evaluate(() => window.studyGrabs), turned: await rotNow() !== rotS,
+      above: await page.evaluate(([x, y]) => {
+        const svg = $("#v3-ruler"); svg.style.pointerEvents = "auto";
+        const hit = document.elementFromPoint(x, y); svg.style.pointerEvents = "";
+        return !!hit?.closest("#v3-ruler");
+      }, c3) };
+    check(onStudy.line && onStudy.text && !onStudy.grabs && !onStudy.turned && onStudy.above,
+      `over a study's canvas the armed ruler measures, the study's drag and the view's turn never hear it, the ruler above: ${JSON.stringify(onStudy)}`);
+    await page.mouse.move(c3[0] - 40, c3[1] + 30); await page.mouse.down(); await page.mouse.move(c3[0], c3[1] + 30, { steps: 4 }); await page.mouse.up();
+    check(await page.evaluate(() => window.studyGrabs) === 1, "with the ruler down, the study's canvas takes its drags again");
+    await page.click("#ruler-btn");
+    await page.evaluate(() => window.shellForTests.viewer.three.place(null));
+    await page.click("#v3-reset");
     const slicesRow = await page.evaluate(() => { const r = $("#channels .v3-slices"); return r && !!r.querySelector("#v3-z0") && !!r.querySelector("#v3-z1") && !!r.querySelector("#v3-zs"); });
     check(slicesRow, "the slices shown and their spacing are a row in the image box, under the channels' rows");
     // req/shell/viewer-3d: Colour by depth is each channel's, an icon tick on its own row beside its colour picker, with
