@@ -5,6 +5,9 @@ quality-per-version); the photos and ground truth come first from `python3 studi
 
     python3 studies/shelves/lab/finder_metrics.py            # every version
     python3 studies/shelves/lab/finder_metrics.py r5         # one, the others kept as recorded
+
+The page's numbers are the books people tagged; a dataset's ground truth (lab/open_shelves.py) is scored on its own,
+under `datasets`, never summed with them.
 """
 import glob
 import hashlib
@@ -32,6 +35,16 @@ def corpus():
     return [(by_id[os.path.basename(g).split('__')[0]], g) for g in sorted(glob.glob(os.path.join(RAW, 'gt', '*.json')))]
 
 
+def by_source(pairs):
+    """{None: the pairs people tagged, <dataset>: its pairs}: the shell names a tagger's file by their account, a
+    dataset's by the dataset."""
+    groups = {}
+    for photo, g in pairs:
+        tagger = os.path.basename(g).split('__', 1)[1][:-len('.json')]
+        groups.setdefault(None if '@' in tagger else tagger, []).append((photo, g))
+    return groups
+
+
 def dataset_sha256(pairs):
     h = hashlib.sha256()
     for _, g in pairs:
@@ -39,7 +52,7 @@ def dataset_sha256(pairs):
     return h.hexdigest()
 
 
-def score(version, pairs):
+def score(version, pairs, trust):
     per, tot = {}, dict(matched=0, truth=0, found=0)
     with tempfile.TemporaryDirectory() as tmp:
         for photo, g in pairs:
@@ -50,26 +63,39 @@ def score(version, pairs):
             for k in tot:
                 tot[k] += r[k]
     return dict(precision=round(tot['matched'] / max(1, tot['found']), 3), recall=round(tot['matched'] / max(1, tot['truth']), 3),
-                note=f"{tot['matched']} of them boxed, in {tot['found']} boxes; {TUNED[version]}", **tot, photos=per)
+                note=f"{tot['matched']} of them boxed, in {tot['found']} boxes; {trust}", **tot, photos=per)
 
 
 def main(argv=None):
     want = (argv if argv is not None else sys.argv[1:]) or list(finders.VERSIONS)
-    pairs = corpus()
+    groups = by_source(corpus())
+    pairs = groups.pop(None, [])
     doc = json.load(open(OUT)) if os.path.exists(OUT) else {}
     sha = dataset_sha256(pairs)
     if doc.get('dataset_sha256') not in (None, sha) and set(want) != set(finders.VERSIONS):
         sys.exit('the ground truth changed since the versions were scored: score them all again')
     versions = {k: v for k, v in doc.get('versions', {}).items() if k in finders.VERSIONS}
     for v in want:
-        versions[v] = score(v, pairs)
+        versions[v] = score(v, pairs, TUNED[v])
         print(v, versions[v]['precision'], versions[v]['recall'], file=sys.stderr)
     books = sum(versions[want[0]]['photos'][k]['truth'] for k in versions[want[0]]['photos'])
     doc = dict(dataset_sha256=sha, photos=len(pairs), books=books, measured=f"on {books} books in {len(pairs)} photos the owner tagged",
-               versions={k: versions[k] for k in finders.VERSIONS if k in versions})
+               versions={k: versions[k] for k in finders.VERSIONS if k in versions},
+               datasets={name: dataset(name, got, want, doc.get('datasets', {}).get(name, {})) for name, got in sorted(groups.items())})
     with open(OUT, 'w') as f:
         json.dump(doc, f, indent=1, ensure_ascii=False)
         f.write('\n')
+
+
+def dataset(name, pairs, want, was):
+    """One dataset's numbers for each version, the ones not asked for kept while its ground truth is unchanged."""
+    sha = dataset_sha256(pairs)
+    kept = {k: v for k, v in was.get('versions', {}).items() if k in finders.VERSIONS and was.get('dataset_sha256') == sha}
+    for v in want:
+        kept[v] = score(v, pairs, 'never tuned on')
+        print(name, v, kept[v]['precision'], kept[v]['recall'], file=sys.stderr)
+    books = sum(p['truth'] for p in next(iter(kept.values()))['photos'].values())
+    return dict(dataset_sha256=sha, photos=len(pairs), books=books, versions={k: kept[k] for k in finders.VERSIONS if k in kept})
 
 
 if __name__ == '__main__':

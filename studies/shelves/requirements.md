@@ -107,6 +107,20 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
+- `req/shelves/truth/datasets` A public dataset's labelled books join the study's Drive folders as ground truth, scored apart from the books people tagged.
+  <details>
+
+  Set by the owner on 2026-11-16, English books first, finding before reading: Open Shelves (Zenodo 10885753,
+  CC BY-NC 4.0), English home bookshelves with every book a polygon and no titles, is made into the study's own
+  layout (`lab/open_shelves.py`): its photos under `Data/Open Shelves/`, and for each one a ground truth under
+  `GT/` as the shell saves a tagger's, its tagger the dataset. Only the photos the dataset ships once, as taken,
+  are kept (49 of its 149; the rest exist only as rotated copies). Each book is right, its corners the four that
+  fit its polygon best, with how well they fit; its title and turn are unknown, so the dataset scores the finder
+  and no reader. The lab fetches it with the owner's (`lab/photos.py --pin --gt`); `lab/finder_metrics.py` scores
+  each dataset on its own, under `datasets`, and the page's numbers stay those of the books people tagged. Test:
+  `studies/shelves/tests/test_open_shelves.py`.
+  </details>
+
 - `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.
   <details>
 

@@ -16,6 +16,7 @@ py/r8_precise.py      R8, the precise finder, kept as it was (2026-11-10); it st
 py/r5_edges.py        R5, the edge-only finder, kept as it was (2026-11-07); it straightens with books.py
 lab/photos.py         the owner's photos from Drive (data/sources.json), and with --gt the ground truth
 lab/grade.py          the finder and the readers scored against a submitted ground truth
+lab/open_shelves.py   the Open Shelves dataset (English home shelves, no titles) made into the study's Drive layout
 lab/finder_metrics.py every version scored on every ground truth, on the page's path, into web/finder_metrics.json
 lab/perf.py           the performance pass: signature, time and peak of `find` over eight inputs (Performance)
 web/algorithms.json   the page's list of finders, the first its default: each one's title, icon, steps and reads_text
@@ -136,6 +137,13 @@ frame cuts at its left edge left untagged); and, new for R8, `1zktX1`, 60 books 
 bookcase of two cabinets side by side, and `16w5nW`, 8 books right (2 added as missed), **held out** since R8:
 scored once per iteration, never tuned on; new for R9, `16acjV`, 18 books right (3 added as missed), and `1sdDdH`,
 15 books right, all found (the two black Herbert spines of one series). The other five are the tuning photos.
+
+A public dataset joins the same folders (`req/shelves/truth/datasets`): Open Shelves, English home shelves, its 49
+photos taken as they were under `Data/Open Shelves/` and its ground truth under `GT/`, tagger `open-shelves`, made by
+`lab/open_shelves.py` from the dataset's export. Its books carry corners and how well they fit the dataset's polygon
+(`fit`, median 0.93, 8 of 1021 under 0.5), never a title: it scores Find, not Read. Its photos are 640x640, stretched
+from the phone's frame by the dataset, so it tests the finder at a smaller scale than our photos as well as on
+English spines. `finder_metrics.py` scores it on its own (`datasets`); nobody tuned on it, so it is held out.
 
 A score is the page's: `node studies/shelves/reading/find.mjs PHOTO OUT.json`, then
 `python3 studies/shelves/lab/grade.py GT.json --found OUT.json`. Robustness inputs come from
