@@ -85,6 +85,12 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   the owner does not review: never present a case there as approved, and bring each tentative or undecided case,
   and each change to what a state shows, to the owner as a question. (shell-states-unreviewed)
 
+## Pushing
+
+- **Pushing commits to a pull request's branch** - push once the batch of commits in hand is done,
+  not after each one: every push starts a Tests run, so a burst of pushes runs the suite once per
+  commit for a single result. (push-in-batches)
+
 ## Merging
 
 - **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
