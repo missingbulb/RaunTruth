@@ -691,6 +691,39 @@ nobody has decided: what the page does there is not a requirement yet.
   details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
   </details>
 
+- `req/shell/image/keys` A study declares its keyboard shortcuts as data; the shell wires them and lists those that act now at the image's bottom left.
+  <details>
+
+  Set by the owner on 2026-11-16: every study's shortcuts are the shell's, each study saying what it supports and the
+  shell wiring the keys, drawing the controls and adapting them. A study's `study.json` lists its `actions`, in the
+  order the legend shows them, each with:
+
+  - `id`, and `label`, what it does in a word or two, and optionally `title`, its tooltip;
+  - `keys`, each by its place on the keyboard (`KeyF`, `Digit1`, `Space`, `ArrowLeft`), after the modifiers held with
+    it (`Ctrl+Backspace`, `Alt+ArrowLeft`), which must be exactly those; and optionally `hint`, how the legend writes
+    them when it is not the first key's own name (`−/+`);
+  - `kind`: `press`, acting once as the key goes down; `toggle`, the same, keeping something on or off; `hold`, on
+    while the key is held and off when it is let go;
+  - optionally `control`, the button it mirrors: the key presses it, it acts only while that button is shown and on,
+    and the button carries the key, small, at its end; with none, the study's handler for it does what it does;
+  - optionally `when`, the states the study reports that must all hold for it to act (`area`, `!look`), and `on`, the
+    state that says a toggle or a hold is on (a toggle's control's own pressed or ticked state when none is named);
+  - optionally `inField`, an element inside which a text field with the focus still lets the key act, and
+    `ownControl`, that the key on a focused button, link or summary is that control's own.
+
+  The study hands the shell only its handlers, by id, and its states, as they change; it listens to no key of its
+  own for these. The shell hears every key once: a key acts only while its action does, never while typing in a field
+  (but as `inField` says), with a menu, popover or dialog open, or as an input method composes, and once per press
+  however long it is held, a held key let go wherever the focus went; only a key that acted is kept from the page.
+
+  At the image's bottom left, over the image in the 2D and 3D views alike, the keys legend lists one row for each
+  shortcut that acts just now, in the study's order, the viewer's own last (the 3D view's Panning,
+  `req/shell/viewer-3d`): what it does in a small label, its key beside it in a faded grey. A row is filled blue while
+  its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
+  a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
+  legend is empty. Test: `web-tests/test_keys_page.py`, and the vascular study's `req/vascular/truth/keys`.
+  </details>
+
 - `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.
   <details>
 
@@ -1565,7 +1598,7 @@ nobody has decided: what the page does there is not a requirement yet.
   2026-11-07), a faded grey "shift" right beside it (owner, 2026-11-08); clicking it turns panning on or off, so that a plain drag
   pans instead of turning. Holding shift turns it on until shift is let go, which returns it to the state
   the label holds. That state lives only while the page is open: it is never stored or restored (owner,
-  2026-11-05). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
+  2026-11-05). Panning is the bottom row of the image's keys legend (`req/shell/image/keys`, owner, 2026-11-16). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
   the view back to looking straight down; no menu of other views (owner, 2026-11-08), and the 2D view's Zoom, which zooms the 3D view (owner,
   2026-11-04) and its Ruler, measuring on the top slice shown (`req/shell/tools/ruler`, owner, 2026-11-15); the 2D view's other tools step aside. Brightest shows the brightest point along each
   ray, Surface a lit surface where the signal crosses a level, and colour by depth paints by the

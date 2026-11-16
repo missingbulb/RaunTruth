@@ -1,0 +1,189 @@
+// Drives the vascular study's page in a GT stage (web/) in headless Chromium against a stand-in worker
+// (stand_in.mjs) whose Execute answers with a model fixture, over a drawn stack. Checks req/vascular/truth/keys: F and J
+// judge the area's junction as Junction and They cross do, Space does the area once Area is right is on, S skips it;
+// no key acts out of tagging, typing in a field, with a menu open, held down, or when its button is off, and a key that
+// did not act is left to the page; each button shows its key. The image's keys legend (req/shell/image/keys) lists exactly the keys that act,
+// each filled blue while held; the number keys switch the views (req/vascular/model/view): 1 held shows the model
+// alone as Ctrl did, Ctrl no longer does, 2 hides and shows the lines over the stack with the Show menu following, and a
+// digit typed in a field does nothing. Exits 1 on a failed check, 2 when it cannot run.
+//   node studies/vascular/tests/vessel_keys_driver.mjs STUDIES
+import { createRequire } from "node:module";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+import { offSite } from "../../../web-tests/off_site.mjs";
+import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { asTagger } from "../../../web-tests/tagger.mjs";
+import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+
+const require = createRequire(import.meta.url);
+let pw;
+try { pw = require("playwright"); } catch {
+  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
+}
+const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
+const [studies] = process.argv.slice(2);
+const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
+const site = await serve(repo, studies, model, "GT");
+
+const browser = await pw[ENGINE].launch(LAUNCH);
+let failed = false;
+const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+await asTagger(ctx);
+await ctx.route(offSite(site.origin), (r) => r.abort());
+await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+await standInDrive(ctx);
+const page = await ctx.newPage();
+page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
+page.setDefaultTimeout(10000);
+
+const tasks = () => page.evaluate(() => window.vascular.tasks());
+const doc = () => page.evaluate(() => window.vascular.model().model);
+// a key pressed where the page hears it, on the element given or the page: whether the page kept it to itself
+const press = (code, { on = null, repeat = false } = {}) => page.evaluate(({ code, on, repeat }) => {
+  const key = { Space: " ", Backspace: "Backspace" }[code] || code.replace(/^(Key|Digit|Numpad)/, "").toLowerCase();
+  const e = new KeyboardEvent("keydown", { code, key, repeat, bubbles: true, cancelable: true });
+  (on ? document.querySelector(on) : document.body).dispatchEvent(e);
+  document.body.dispatchEvent(new KeyboardEvent("keyup", { code, key, bubbles: true }));
+  return e.defaultPrevented;
+}, { code, on, repeat });
+const state = async () => { const t = await tasks(), m = await doc(); return { area: t.area, key: t.key, junctions: t.junctions.length,
+  checked: (m.checked_junctions || []).length, regions: (m.reviewed_regions || []).length, nodes: m.nodes.length }; };
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// what the main view shows, as the Show menu's views say; a row of the keys legend by its key
+const mode = () => page.evaluate(() => $("#model-mode [aria-pressed=true]")?.dataset.v);
+const row = async (key) => (await legend(page)).find((r) => r.key === key);
+
+try {
+  await page.goto(site.origin + "/web/vascular");
+  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
+  await page.waitForFunction(() => !$("#vm-run").disabled);
+  await page.evaluate(() => { $("#notice").hidden = true; });
+  await page.click("#vm-run");
+  await page.waitForFunction(() => !$("#model-on").hidden);
+
+  // out of tagging no key acts
+  let s0 = await state();
+  const outF = await press("KeyF");
+  check(!outF && same(await state(), s0), "out of GT tagging F does nothing and is left to the page");
+
+  // the legend out of tagging: the views that act on the whole stack, and Panning
+  let keys = await legendKeys(page);
+  check(keys === "1 2 3 5 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
+  // 2 hides the lines over the stack and shows them again, the Show menu's views following
+  const m0 = await mode();
+  check(await press("Digit2") && (await mode()) === "image" && !(await row("2")).lit, `2 hides the lines over the stack, the Show menu on Image: ${m0} → ${await mode()}`);
+  check(await press("Numpad2") && (await mode()) === "overlay" && (await row("2")).lit, `2 on the number pad shows them again, Overlay, its row filled: ${await mode()}`);
+  check(!(await press("Digit2", { repeat: true })) && (await mode()) === "overlay", "2 held down toggles once");
+  check(!(await press("Digit2", { on: "#area-grid" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
+  await page.evaluate(() => { $("#vm-show").open = true; });
+  check(!(await press("Digit2")) && (await mode()) === "overlay", "2 with the Show menu open does nothing");
+  await page.evaluate(() => { $("#vm-show").open = false; });
+  // 3: Vessel widths, the Show menu's box following; 5: Missed, and back to Everything
+  const w0 = await page.evaluate(() => $("#m-widths").checked);
+  await press("Digit3");
+  check((await page.evaluate(() => $("#m-widths").checked)) === !w0 && (await row("3")).lit === !w0, `3 switches Vessel widths, the Show menu's box following: ${w0} → ${!w0}`);
+  await press("Digit3");
+  await press("Digit5");
+  const missed = await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v), missedLit = (await row("5")).lit;
+  await press("Digit5");
+  check(missed === "missed" && missedLit && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
+    `5 shows Missed, its row filled, and again Everything: ${missed}`);
+
+  await page.click("#gt-start");
+  await page.waitForFunction(() => window.vascular.tasks().key);
+  // tagging, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
+  keys = await legendKeys(page);
+  check(keys === "F J S W 1 2 3 shift", `tagging a junction, the keys legend lists F, J, S, W, the views and Panning: ${keys}`);
+  const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
+  check(labels.F === "Junction" && labels.J === "They cross" && labels.S === "Skip" && labels["1"] === "Model", `each row says what its key does: ${JSON.stringify(labels)}`);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const hints = await page.evaluate(() => ({ yes: $("#task-card .verdict .yes kbd")?.textContent, no: $("#task-card .verdict .no kbd")?.textContent,
+    ok: $("#area-ok kbd")?.textContent, skip: $("#task-skip kbd")?.textContent }));
+  check(same(hints, { yes: "F", no: "J", ok: "Space", skip: "S" }), `each button shows its key: ${JSON.stringify(hints)}`);
+
+  // 1 held: the model alone, its row filled, as Ctrl did; let go, the lines over the stack; Ctrl does nothing now
+  await page.keyboard.down("1");
+  const held = await mode(), heldRow = await row("1");
+  await page.keyboard.up("1");
+  check(held === "model" && heldRow.lit && (await mode()) === "overlay" && !(await row("1")).lit,
+    `holding 1 shows the model alone, its row filled blue, letting go the lines over the stack: ${held} → ${await mode()}`);
+  await page.keyboard.down("Control");
+  const ctrl = await mode();
+  await page.keyboard.up("Control");
+  check(ctrl === "overlay", `Ctrl no longer shows the model alone: ${ctrl}`);
+  await page.click("#key-model");
+  const kept = await mode();
+  await page.click("#key-model");
+  check(kept === "model" && (await mode()) === "overlay", `clicking the Model row keeps the model alone on, again off: ${kept} → ${await mode()}`);
+  // 2 in an area: the lines hidden and back
+  await press("Digit2");
+  const bare = await mode(), bareRow = await row("2");
+  await press("Digit2");
+  check(bare === "image" && !bareRow.lit && (await mode()) === "overlay" && (await row("2")).lit, `2 in an area hides the lines over the stack and shows them again: ${bare}`);
+
+  // F: Junction, the junction found right and the next one current
+  s0 = await state();
+  const fKept = await press("KeyF");
+  let s1 = await state();
+  check(fKept && s1.checked === s0.checked + 1 && s1.key !== s0.key && (await doc()).checked_junctions.includes(+s0.key.slice(1)),
+    `F gives the junction Junction's verdict, kept from the page: ${JSON.stringify([s0, s1])}`);
+  // J: They cross, the junction split
+  s0 = s1;
+  const jKept = await press("KeyJ");
+  s1 = await state();
+  check(jKept && s1.junctions < s0.junctions && s1.checked === s0.checked && !(await tasks()).junctions.some((j) => j.key === s0.key),
+    `J gives They cross's verdict, the junction split: ${JSON.stringify([s0, s1])}`);
+
+  // held down, in a field, with a menu open: nothing
+  s0 = s1;
+  check(!(await press("KeyF", { repeat: true })) && same(await state(), s0), "F held down judges no second junction");
+  check(!(await press("KeyF", { on: "#area-grid" })) && same(await state(), s0), "F in a field does nothing");
+  await page.evaluate(() => { $("#task-menu").hidden = false; $("#task-menu").open = true; });
+  check(!(await press("KeyF")) && same(await state(), s0), "F with a menu open does nothing");
+  await page.evaluate(() => { $("#task-menu").open = false; });
+
+  // Space while Area is right is off, Backspace with no Back, a key of no task: nothing, left to the page
+  check(await page.evaluate(() => $("#area-ok").disabled), "a junction is still to judge, so Area is right is off");
+  check(!(await press("Space")) && same(await state(), s0), "Space does nothing while Area is right is off, and is left to the page");
+  check(!(await press("Backspace")) && same(await state(), s0), "Backspace does nothing: these tasks have no Back");
+  check(!(await press("KeyQ")) && same(await state(), s0), "a key of no task is left to the page");
+
+  // every junction of this area judged with F, Space does it
+  // a key held fills its row blue, let go it is grey again
+  await page.keyboard.down("f");
+  const fDown = (await row("F"))?.lit;
+  await page.keyboard.up("f");
+  check(fDown && !(await row("F"))?.lit, "F held fills its row blue, let go it is grey again");
+  for (let k = 0; k < 200 && (await tasks()).key; k++) await press("KeyF");
+  check(!(await page.evaluate(() => $("#area-ok").disabled)), "every junction judged by F, Area is right is on");
+  keys = await legendKeys(page);
+  check(keys === "Space S W 1 2 3 shift", `no junction left, F and J leave the legend and Space joins it: ${keys}`);
+  s0 = await state();
+  // Space on a focused button presses that button, not Area is right
+  check(!(await press("Space", { on: "#task-skip" })) && same(await state(), s0), "Space on a focused button is that button's");
+  const spaceKept = await press("Space");
+  s1 = await state();
+  check(spaceKept && s1.regions === s0.regions + 1 && s1.area !== s0.area, `Space does the area and moves on: ${JSON.stringify([s0, s1])}`);
+
+  // S: Skip, the next area
+  s0 = s1;
+  const skipKept = await press("KeyS");
+  s1 = await state();
+  check(skipKept && s1.area !== s0.area && s1.regions === s0.regions, `S skips the area: ${s0.area} → ${s1.area}`);
+
+  // stopped, no key acts
+  await page.click("#gt-start");
+  s0 = await state();
+  check(!(await press("KeyS")) && same(await state(), s0), "after Stop tagging S does nothing");
+  keys = await legendKeys(page);
+  check(keys === "1 2 3 5 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
+} catch (e) {
+  failed = true; console.error(e);
+}
+await browser.close(); site.close();
+process.exit(failed ? 1 : 0);

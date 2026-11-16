@@ -16,7 +16,7 @@ import { writeTiff } from "../../../web/split.js";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve } from "./stand_in.mjs";
+import { serve, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
@@ -98,10 +98,15 @@ try {
   await page.waitForFunction(() => window.vascular.tasks().focused);
   [cx, cy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left, r.top]; });
   check(await look() == null, "an area opens with the lines over the stack, not the widths look");
+  // req/vascular/truth/keys: an area with no junction and a drawn vessel without a width: no F, J or Space in the legend
+  let keys = await legendKeys(page);
+  check(keys === "S W 1 2 3 shift", `in an area without junctions the keys legend lists S, W, the views and Panning: ${keys}`);
 
   // W: the widths look, the area from above in the stack's own pixels, flattened, grey
   await page.keyboard.press("w"); await frames();
   let w = await look();
+  keys = await legendKeys(page);
+  check(keys === "S W I U −/+ ⌫ shift", `with the widths look on the legend lists its keys, the views gone: ${keys}`);
   check(!!w && w.vessels.length === 3 && w.image, `W shows the widths look over the area's three vessels: ${JSON.stringify(w && w.vessels.map((v) => v.label))}`);
   const binned = await page.evaluate(() => window.shellForTests.viewer.three.meta.um_per_px);
   {
@@ -124,9 +129,10 @@ try {
 
   // I held: the image alone
   await page.keyboard.down("i"); await frames();
-  const bare = await look(), rgbBare = await pixel(...est.rims[0]);
+  const bare = await look(), rgbBare = await pixel(...est.rims[0]), iHeld = (await legend(page)).find((r) => r.key === "I")?.lit;
   await page.keyboard.up("i"); await frames();
   check(bare.image && bare.marks === false && !near(rgbBare, MAGENTA) && (await look()).marks, `holding I shows the image alone, letting go the rims again: ${rgbBare}`);
+  check(iHeld && !(await legend(page)).find((r) => r.key === "I").lit, "I held fills its row of the legend blue, let go it is grey");
 
   // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
   const [ex, ey] = screen(70, 40, w);
@@ -166,13 +172,17 @@ try {
   w = await look();
   check(e.width?.how === "cannot" && !("um" in e.width) && vesselAt(w, 140).kind === "cannot" && vesselAt(w, 140).label === "?", `U says the width cannot be told: ${JSON.stringify(e.width)}`);
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "... and Area is right is on again");
+  keys = await legendKeys(page);
+  check(keys === "Space S W I U −/+ ⌫ shift", `... and Space joins the legend: ${keys}`);
 
   // Backspace puts back the estimate
   await page.mouse.move(...screen(110, 40, w)); await frames();
   await page.keyboard.press("Backspace");
   e = edgeAt(await doc(), 40);
   check(!("width" in e) && vesselAt(await look(), 40).kind === "estimate", `Backspace puts back the estimate: ${JSON.stringify(e.width)}`);
-  if (shots) { await page.mouse.move(...screen(60, 90, w)); await page.keyboard.press("+"); await page.keyboard.press("-"); await page.mouse.move(cx + 5, cy + 5); await frames(); await page.screenshot({ path: path.join(shots, "built-widths.png") }); }
+  if (shots) { await page.mouse.move(...screen(60, 90, w)); await page.keyboard.press("+"); await page.keyboard.press("-"); await page.mouse.move(cx + 5, cy + 5); await frames(); await page.screenshot({ path: path.join(shots, "built-widths.png") });
+    await page.setViewportSize({ width: 1440, height: 900 }); await frames(); await page.screenshot({ path: path.join(shots, "legend.png") });
+    await page.setViewportSize({ width: 1400, height: 900 }); await frames(); }
 
   // W again: the lines over the stack
   await page.keyboard.press("w"); await frames();

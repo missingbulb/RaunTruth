@@ -19,7 +19,7 @@ const PROBES = 4;
 const MIN_PX = 160;
 
 // tools: the open area's cogwheel and Skip, for its row; work: what is done in it, under its row
-let V = null, T = null, n = GRID, st = null, items = null, heard = () => {}, tools = null, work = null;
+let V = null, keys = null, T = null, n = GRID, st = null, items = null, heard = () => {}, tools = null, work = null;
 const fresh = () => ({ area: null, submit: false, junction: null, focused: true, dir: 0 });
 
 // ---------- the areas, in the order they are worked through ----------
@@ -221,7 +221,7 @@ function show(moved) {
   // rows made anew for another grid take what was on the open one with them
   $('vm-tasks').append(tools, work);
   T.list(m ? rows() : null);
-  if (!m) { MV.mark(null, null); MV.focusArea(null); map(null, false); return; }
+  if (!m) { keys?.report({ tagging: on, area: false }); MV.mark(null, null); MV.focusArea(null); map(null, false); return; }
   items = itemsOf(m);
   $('area-grid').value = String(n);
   for (let a = 0; a < count(); a++) { const p = progress(m, a); T.count(keyOf(a), p.did, p.of, p.done, ''); }
@@ -249,7 +249,7 @@ function show(moved) {
   if (was && card_ && was.dataset.key !== card_.dataset.key && st.dir) slideIn(was, card_, st.dir);
   st.dir = 0;
   const box = open ? areaBox(m, st.area) : null;
-  if (!on) { MV.mark(null, null); if (MV.focusedArea()) MV.focusArea(null); heard(); return; }
+  if (!on) { MV.mark(null, null); if (MV.focusedArea()) MV.focusArea(null); keys?.report({ tagging: on, area: open }); heard(); return; }
   MV.mark(j ? { node: j.id } : null, box);
   // the area alone in the main view, or the whole stack once it is left
   const focus = st.focused && box, f = MV.focusedArea();
@@ -258,6 +258,7 @@ function show(moved) {
   $('vm-focus').textContent = focus ? 'Back to image' : 'Back to task';
   $('vm-focus').title = focus ? 'The whole stack, as the Show menu sets it' : 'The task again: its area alone';
   $('vm-focus').disabled = !box;
+  keys?.report({ tagging: on, area: open });
   heard();
 }
 // the next junction's card slides in over the last one's, which slides out the other way
@@ -278,9 +279,10 @@ export function open() {
   return [{ level: 'warn', grade: true, ok: !left, text: left ? `Areas: ${left} of ${count()} left` : 'Areas: every one done' }];
 }
 
-// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them
-export function init(view, tasks, changed, submit) {
-  V = view; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
+// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them;
+// actions: the shell's keys, which press the tasks' buttons while an area is open (the study's declared actions)
+export function init(view, tasks, changed, submit, actions) {
+  V = view; keys = actions; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
   $('area-grid').replaceChildren(...GRIDS.map((k) => new Option(k === 1 ? 'The whole field' : `${k} × ${k}`, String(k))));
