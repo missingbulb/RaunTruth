@@ -687,7 +687,8 @@ nobody has decided: what the page does there is not a requirement yet.
   pinned version only when such an image is first opened (owner, 2026-11-16, as libheif is for a HEIC). A stack
   opens in 3D, a single plane in 2D, both through `req/shell/image/open`'s contrast and channel rows. A `.vsi`
   whose pixels are stored otherwise (JPEG, PNG, a slide scanner's tiled pyramid) says why it cannot be read.
-  Opening one from this computer is not offered yet (owner, 2026-11-16: Google Drive only for now). Test:
+  Opening one from this computer is not offered yet (owner, 2026-11-16: Google Drive only for now): a `.vsi` opened
+  from this computer says it opens from Google Drive, beside its folder. Test:
   `web-tests/test_cellsens.py`.
   </details>
 

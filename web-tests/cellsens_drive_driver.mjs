@@ -6,10 +6,26 @@
 //   node web-tests/cellsens_drive_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
 import { pressDrive } from "./drive_open.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// jsDelivr's OpenJPEG, served from web-tests/node_modules: its /+esm wrapper stood in for by the package's own file
+// with the export the wrapper adds
+const OPENJPEG = "https://cdn.jsdelivr.net/npm/@cornerstonejs/codec-openjpeg@1.3.6/dist/";
+const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "node_modules", "@cornerstonejs", "codec-openjpeg", "dist");
+if (!fs.existsSync(dist)) { console.error("no OpenJPEG: npm i --prefix web-tests @cornerstonejs/codec-openjpeg@1.3.6"); process.exit(2); }
+const openjpeg = (ctx) => ctx.route(OPENJPEG + "**", (r) => {
+  const file = new URL(r.request().url()).pathname.split("/dist/")[1].replace(/\/\+esm$/, "");
+  const body = fs.readFileSync(path.join(dist, file));
+  return r.request().url().endsWith("/+esm")
+    ? r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "text/javascript", body: body + "\nexport default OpenJPEGWASM;\n" })
+    : r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/wasm", body });
+});
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { open, check, done } = await standIn({ answers, studies, rootDir });
-const page = await open(false, { study: { files: { from: ["drive"], accept: ".vsi,.tif,.tiff" } } });
+const page = await open(false, { study: { files: { from: ["drive"], accept: ".vsi,.tif,.tiff" } }, prepare: openjpeg });
 
 await pressDrive(page);
 await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length > 0);

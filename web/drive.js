@@ -9,6 +9,7 @@
 // like one loaded from the computer.
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
+import { isVsi, pairBytes } from "./vsi.js";
 
 const GOOGLE = (window.NOR_CONFIG && window.NOR_CONFIG.google) || {};
 // what a study's image from Drive is, as its source records it on this device and in the documents it writes
@@ -97,6 +98,7 @@ export const remote = (() => {
   // the bytes so far at the start of buffer; total is null when Drive does not say
   async function file(id, name, onStart, onChunk) {
     need();
+    if (pairs.has(id)) return pair(id, name || pairs.get(id).name, onStart);
     const at = `${API}/${encodeURIComponent(id)}`;
     if (!name) {
       const r = await get(`${at}?fields=name,mimeType`);
@@ -148,11 +150,41 @@ export const remote = (() => {
     const q = encodeURIComponent(`'${id}' in parents and trashed = false`);
     const r = await get(`${API}?q=${q}&fields=files(id,name,mimeType,size,createdTime,thumbnailLink,sha256Checksum)&pageSize=1000&orderBy=folder,name`);
     if (!r.ok) throw refused(r, "folder");
-    return (await r.json()).files
+    const all = (await r.json()).files
       .map((f) => ({ id: f.id, name: f.name, folder: f.mimeType === "application/vnd.google-apps.folder",
         size: f.size == null ? null : +f.size, created: f.createdTime ? new Date(f.createdTime) : null,
         preview: driveThumb(f), sha: f.sha256Checksum || null }))
       .filter((f) => f.folder || opens(f.name));
+    // a cellSens image is one row: its .vsi, its _<name>_ folder not listed (req/shell/image/cellsens); its size is
+    // the pixels', unknown until its folder is read
+    const held = new Set();
+    for (const f of all) {
+      const folder = !f.folder && isVsi(f.name) && all.find((g) => g.folder && g.name === `_${f.name.replace(/\.vsi$/i, "")}_`);
+      if (!folder) continue;
+      pairs.set(f.id, { name: f.name, folder: folder.id });
+      held.add(folder.id); f.size = null;
+    }
+    return all.filter((f) => !held.has(f.id));
+  }
+
+  // the cellSens images listed so far, by their .vsi's id: {name, folder} (req/shell/image/cellsens)
+  const pairs = new Map();
+  // a folder's one entry named name, whatever its kind
+  async function child(folder, name) {
+    const q = encodeURIComponent(`'${folder}' in parents and trashed = false`);
+    const r = await get(`${API}?q=${q}&fields=files(id,name)&pageSize=1000`);
+    if (!r.ok) throw refused(r, "folder");
+    const f = (await r.json()).files.find((x) => x.name === name);
+    if (!f) throw new Error(`${name} is missing from this cellSens image's folder.`);
+    return f.id;
+  }
+  // a cellSens image as one file: its .vsi, then its folder's stack1 and the .ets in it, the three reads its .vsi
+  // adds, zipped together
+  async function pair(id, name, onStart) {
+    const at = pairs.get(id), vsi = await download(id);
+    if (onStart) onStart(name);
+    const ets = await download(await child(await child(at.folder, "stack1"), "frame_t_0.ets"));
+    return { name, bytes: (await pairBytes(name, new Uint8Array(await vsi.arrayBuffer()), new Uint8Array(await ets.arrayBuffer()))).buffer };
   }
 
   // [{id, name, folder, size, sha, modified, properties, preview}] every file and folder in a folder, whatever its kind,
