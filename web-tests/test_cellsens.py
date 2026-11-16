@@ -104,4 +104,4 @@ def test_the_drive_dialog_lists_the_pair_as_one_image_and_opens_it(answers, tmp_
 def test_a_vsi_without_its_folder_says_where_it_opens_from(tmp_path):
     write_pair(str(tmp_path), 'scan', noise((1, 2, 16, 16), 5), um=0.5, zstep=1.0, names=NAMES, colours=COLOURS)
     got, = run(tmp_path, tmp_path / 'scan.vsi')
-    assert 'Google Drive' in got.get('error', ''), got
+    assert 'its _name_ folder' in got.get('error', ''), got

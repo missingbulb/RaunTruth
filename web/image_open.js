@@ -34,7 +34,7 @@ const isTiff = (b) => b.length >= 4 && ((b[0] === 0x49 && b[1] === 0x49 && b[2] 
 // the image in bytes (an ArrayBuffer or Uint8Array) as the viewers show it; view: the study's study.json view
 export async function openImage(bytes, view = {}) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  if (isVsiAlone(b)) throw new Error("A cellSens .vsi opens from Google Drive, beside its _name_ folder, which holds its pixels.");
+  if (isVsiAlone(b)) throw new Error("A cellSens .vsi opens only together with its _name_ folder, which holds its pixels.");
   if (isTiff(b)) return withDetails(b, await openTiff(b, view), view);
   if (pairFiles(b)) return withDetails(b, await openVsi(b, view), view, "vsi");
   if (isHeif(b)) return withDetails(b, await openHeif(b, view), view);
