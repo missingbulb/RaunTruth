@@ -714,7 +714,7 @@ nobody has decided: what the page does there is not a requirement yet.
   The study hands the shell only its handlers, by id, and its states, as they change; it listens to no key of its
   own for these. The shell hears every key once: a key acts only while its action does, never while typing in a field
   (but as `inField` says), with a menu, popover or dialog open, or as an input method composes, and once per press
-  however long it is held, a held key let go wherever the focus went; only a key that acted is kept from the page.
+  however long it is held, a held key let go wherever the focus went; only a key that acted is kept from the page, and its repeats while it is held, so a held Alt+← never takes the browser back.
 
   At the image's bottom left, over the image in the 2D and 3D views alike, the keys legend lists one row for each
   shortcut that acts just now, in the study's order, the viewer's own last (the 3D view's Panning,

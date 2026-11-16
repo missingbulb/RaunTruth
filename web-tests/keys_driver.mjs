@@ -115,12 +115,21 @@ try {
   check(await press("KeyG", { altKey: true }) && (await grid()), "Alt+G presses Grid");
 
 
-  // a key held fills its row blue until let go
+  // a key held fills its row blue until let go; Grid's popup, open since Grid was pressed, closed first, as it takes
+  // the keys while open
+  await page.evaluate(() => document.querySelector(":popover-open")?.hidePopover());
   await page.keyboard.down("r");
   const held = (await legend())[0].lit;
+  // the key held after it acted: its repeats are kept from the page too, and press nothing more
+  const repeatKept = await page.evaluate(() => {
+    const e = new KeyboardEvent("keydown", { code: "KeyR", key: "r", repeat: true, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(e); return e.defaultPrevented;
+  });
+  const stillOn = await ruler();
   await page.keyboard.up("r");
   await page.keyboard.press("r");
   check(held, "a key held fills its row blue");
+  check(repeatKept && stillOn, "a held key that acted keeps its repeats from the page, pressing once", { repeatKept, stillOn });
 
   // clicking a row does what its key does
   await page.click(".keys-legend .key-chip");
