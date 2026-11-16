@@ -24,7 +24,7 @@ export const MINIMAP = "nor-minimap";
 // waits on its transition, and the end of it closes the popup unless the user came back (keep())
 export function closesOnLeave(pop, keep = () => false) {
   pop.classList.add("hover-pop");
-  pop.addEventListener("transitionend", (e) => {
+  pop.addEventListener("transitionend", (e) => { // ends with animations off: its grace keeps a rule there in style.css
     if (e.target !== pop || e.propertyName !== "opacity" || !pop.classList.contains("leaving")) return;
     pop.classList.remove("leaving");
     if (!keep() && pop.matches(":popover-open")) pop.hidePopover();
