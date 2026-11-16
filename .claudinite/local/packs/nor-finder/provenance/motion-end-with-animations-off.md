@@ -10,3 +10,9 @@
   nothing listens to rides on timers-in-one-file's fix text instead.
 - **Retire when:** animations off no longer cancels motions wholesale (an allow-list replaces `* {
   … !important }`).
+
+## 2026-11-16 · reworded · the fix cut to the 32 words a declared check's message may run
+- **Reason:** basics/declared-check-messages caps a fix at 32 words; the first run of the checks on
+  a pull request (#974) found it past.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
