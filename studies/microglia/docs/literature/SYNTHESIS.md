@@ -5,12 +5,12 @@ measure each one's geometry (processes, branching, soma, territory, volume), wit
 Each claim links to the digest it comes from; numbers there carry their caveats. Our own image:
 [`../DATA-REVIEW.md`](../DATA-REVIEW.md).
 
-Short names used below: **Young** = [young-2018](young-2018-imagej-microglia-morphology/digest.md) ·
-**Green** = [green-2022](green-2022-microglia-morphology-comparisons/digest.md) ·
-**Kim** = [kim-2024](kim-2024-microglia-morphology-pipeline/digest.md) ·
-**Lind-Holm** = [lind-holm-mogensen-2024](lind-holm-mogensen-2024-microglia-morphology-protocol/digest.md) ·
-**Moser** = [moser-2025](moser-2025-ipsc-mononuclear-phagocytes/digest.md) ·
-**Baek** = [baek-2026](baek-2026-opc-microglia-bmp4/digest.md).
+Short names used below: **Young** = [young-2018](young-2018-imagej-microglia-morphology.md) ·
+**Green** = [green-2022](green-2022-microglia-morphology-comparisons.md) ·
+**Kim** = [kim-2024](kim-2024-microglia-morphology-pipeline.md) ·
+**Lind-Holm** = [lind-holm-mogensen-2024](lind-holm-mogensen-2024-microglia-morphology-protocol.md) ·
+**Moser** = [moser-2025](moser-2025-ipsc-mononuclear-phagocytes.md) ·
+**Baek** = [baek-2026](baek-2026-opc-microglia-bmp4.md).
 
 ## 1. Nobody in this set finds every cell
 

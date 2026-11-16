@@ -2,7 +2,7 @@
 
 > Self-contained digest of the source paper. The method, every stated parameter, the metric
 > list, the troubleshooting cases and every embedded image are captured here and in
-> [`figures/`](figures/README.md). **No need to reopen the PDF.**
+> [`figures/`](#figures). **No need to reopen the PDF.**
 
 - **Title:** *Protocol for immunofluorescence staining and large-scale analysis to quantify
   microglial cell morphology at single-cell resolution in mice*
@@ -21,7 +21,7 @@
   the authors applied **CC BY 4.0** to any Author Accepted Manuscript. **CC BY permits
   redistribution and derivatives → the PDF and the extracted figures are committed here, with
   attribution.**
-- **PDF:** [`lind-holm-mogensen-2024-microglia-morphology-protocol.pdf`](lind-holm-mogensen-2024-microglia-morphology-protocol.pdf)
+- **PDF:** `lind-holm-mogensen-2024-microglia-morphology-protocol.pdf`
 - **Builds on / for complete details:** Lind-Holm Mogensen et al. 2024 (*J. Neuroinflammation*
   21:174, PARK7/DJ-1 + LPS) and Fixemer et al. 2022 (*Acta Neuropathol. Commun.* 10:36,
   human hippocampus). The computational pipeline is **MIC-MAC** (Salamanca et al. 2019, *Glia*
@@ -105,7 +105,7 @@ Triton X-100 may be replaced by Tween 20 throughout.
 
 ## 2. The method, step by step (numbering as in the paper)
 
-Overall timeline (graphical abstract, [fig01](figures/fig01_workflow_overview.png)): dissection
+Overall timeline (graphical abstract, fig01): dissection
 3 h → fixation & macrosectioning 3 days → cryosectioning 1 day → staining 2 days → confocal
 imaging 1 day → image analysis 1 day.
 
@@ -113,10 +113,10 @@ imaging 1 day → image analysis 1 day.
 1. Weigh mice for dose.
 2. i.p. **ketamine (100 mg/mL, Nimatek Vet) + medetomidine (1 mg/mL, Dorbene Vet)** in saline
    (final dose per kg not stated). Dim light; clean bench with Bacillol then 70% ethanol; three
-   tissue papers laid out ([fig02](figures/fig02_dissection_bench.png)).
+   tissue papers laid out (fig02).
 3. No reflexes → open chest, **transcardial perfusion with cold PBS**.
 4. Dissect brain (cuts 1–5 along intraparietal, midline, parietal/frontal bones;
-   [fig03](figures/fig03_brain_dissection_cuts.png)); 5 mm midline cut. Place in 15 mL Falcon.
+   fig03); 5 mm midline cut. Place in 15 mL Falcon.
    If the whole brain goes to histology, perfuse directly with cold 4% PFA instead.
 5. Optionally wash in cold PBS and halve in the brain matrix: **one hemisphere drop-fixed in cold
    4% PFA 24 h at 4 °C**; the other kept in PBS for RNA/protein/-omics.
@@ -127,7 +127,7 @@ imaging 1 day → image analysis 1 day.
 8. 3× cold PBS wash; **30% sucrose at 4 °C until the brain sinks (~48 h)**.
 9–10. Blot, place in brain matrix, insert **5 blades** (middle blade pressed 2 mm first to fix the
    brain on the midline), cut into **sagittal macro-sections** L3 L2 L1 | R1 R2 R3
-   ([fig04](figures/fig04_brain_matrix_macrosections.png)); up to ten macro-sections with nine
+   (fig04); up to ten macro-sections with nine
    blades is possible but harder to cryosection.
 11–12. Zip bag, **−80 °C ≥ 48 h** before cutting.
 
@@ -136,7 +136,7 @@ imaging 1 day → image analysis 1 day.
 14. Label slides: `MouseID_Genotype_Sex_Hemisphere_Macrosection_Section`, e.g.
    `DO007_WT_M_L_3/18`. Orient with the Allen Mouse Brain Atlas.
 15–18. Embed macro-section in OCT without bubbles, fresh straight blade
-   ([fig05](figures/fig05_cryostat_oct.png), [fig06](figures/fig06_cryostat_chuck.png)).
+   (fig05, fig06).
 19. Trim at **10 µm** until the full face is exposed.
 20–21. Cut **50 µm** sections directly onto Superfrost Plus slides (slide-mounted, not
    free-floating).
@@ -189,39 +189,39 @@ imaging 1 day → image analysis 1 day.
    tile misalignment, **dim signal in more than four z-slices**, or strongly uneven cell
    distribution (troubleshooting 1–5).
 45. **Image Processing → Normalize Layers** (per-slice intensity correction), **then Gaussian
-   Filter, width 0.300 µm**, on the Iba1 channel ([fig07](figures/fig07_imaris_normalize_gaussian.png)).
+   Filter, width 0.300 µm**, on the Iba1 channel (fig07).
    In the screenshot the Iba1 channel is **Channel 3 (red)**; Ch1 blue and Ch2 green are the
    other channels.
-46. **Surfaces creation wizard** ([fig08](figures/fig08_imaris_surfaces_button.png)):
+46. **Surfaces creation wizard** (fig08):
    - a. Deselect *Classify Surfaces* and *Object-Object Statistics*; no ROI; no tracking
-     ([fig09](figures/fig09_imaris_surfaces_step1.png)).
+     (fig09).
    - b. Source = Iba1 channel. **Smooth ON, Surfaces Detail 0.500 µm.** Thresholding =
      **Background Subtraction (Local Contrast)** with **"Diameter of largest sphere which fits
-     into the object" = 0.500 µm** ([fig10](figures/fig10_imaris_surfaces_step2_smooth_localcontrast.png)).
+     into the object" = 0.500 µm** (fig10).
    - c. **Background-subtraction threshold between 0.5 and 1.5, set manually per image** (the
      screenshot shows **1.00** on a histogram axis running 0–34(.5)). Criterion: the gray surface
      must be "wide enough to have the microglia branches connected to the soma, while at the same
      time not overestimating the microglia size with respect to the signal". **Split touching
      objects (region growing): DISABLED** (its greyed default seed-point diameter shows 2.21 µm)
-     ([fig11](figures/fig11_imaris_surfaces_step3_threshold.png)).
+     (fig11).
    - d. **Filter surfaces by "Number of Voxels Img=1" between 18,000 and 180,000** — "usually …
      for mouse microglia at 20x". In the example screenshot this keeps **139 of 8159 objects
      (2%)**; the histogram axis maximum reads **69847**
-     ([fig12](figures/fig12_imaris_surfaces_step4_voxel_filter.png)). Tune interactively to
+     (fig12). Tune interactively to
      remove **isolated branches**, **cells cut by the first or last z-slice**, and **aggregates
      of microglia not identified as individual cells**.
      > ⚠️ **Text-extraction trap:** the extracted text reads "180000 and 1800000" — the rendered
      > page reads **18’000 and 180’000**, and the screenshot fields say 18000 / 180000. The
      > apostrophes are thousands separators. **18,000–180,000 is correct.**
 47. Select the surface → Edit → **Mask All** → mask the Iba1 channel: **outside = 0, inside =
-   255**, "duplicate channel before applying mask" checked ([fig13](figures/fig13_imaris_mask_channel.png),
-   [fig14](figures/fig14_imaris_edit_mask_all.png)).
-48. **Delete all channels except the new "Masked Iba1+ Channel"** ([fig17](figures/fig17_imaris_delete_channels.png));
-   save as **Imaris 5.5 `.ims`** ([fig15](figures/fig15_imaris_save_ims.png)).
+   255**, "duplicate channel before applying mask" checked (fig13,
+   fig14).
+48. **Delete all channels except the new "Masked Iba1+ Channel"** (fig17);
+   save as **Imaris 5.5 `.ims`** (fig15).
 
 ### Feature extraction — MATLAB
 49. Run **`FeatureExtract.m`** from https://github.com/CorradoAmeliLU/MIC-MAC-2.1. Parameters
-   at the top of the script ([fig16](figures/fig16_matlab_featureextract_parameters.png)):
+   at the top of the script (fig16):
    ```matlab
    %% Parameters
    folder_path = ''; %INPUT FOLDER
@@ -330,11 +330,11 @@ gives are procedural:
 
 | Problem | Cause | Solution | Figure |
 |---|---|---|---|
-| 1. Holes in tissue | over/under-fixation; too strong permeabilization | adjust 4% PFA time (24–48 h at 4 °C; PFA penetrates ≈ 1 mm/h at RT, slower at 4 °C; mouse brain ≈ 1 cm³ → hemisphere ≈ 24 h, whole brain 24–48 h); lower Triton to 1% or 0.5% (also for sections thinner than 50 µm) or use 1.5% Tween 20; or perfuse with cold 4% PFA | [fig18](figures/fig18_trouble_tissue_holes.png) |
-| 2. Striped lines | cryostat cutting | change blade often, better OCT mounting, keep everything at −20 °C, one smooth stroke; vibratome free-floating sections also acceptable | [fig19](figures/fig19_trouble_cutting_stripes.png) |
-| 3. Tile misalignment (processes cut between tiles) | stage mechanics or Zen processing | always tile with 10% overlap; Zeiss guide §5.2.19–5.2.20; a Methods video S1 is referenced | [fig20](figures/fig20_trouble_tile_misalignment.png) |
-| 4. Non-specific binding at a tissue tear | tear/border | manually delete non-specific surfaces in Imaris, or (preferred) exclude the image | [fig21](figures/fig21_trouble_tear_nonspecific.png) |
-| 5. No/dim signal in > 4 z-slices | uneven antibody penetration through 30 µm | exclude the image; longer permeabilization or Triton 2%; do **not** raise antibody concentration | [fig22](figures/fig22_trouble_dim_stacks.png) |
+| 1. Holes in tissue | over/under-fixation; too strong permeabilization | adjust 4% PFA time (24–48 h at 4 °C; PFA penetrates ≈ 1 mm/h at RT, slower at 4 °C; mouse brain ≈ 1 cm³ → hemisphere ≈ 24 h, whole brain 24–48 h); lower Triton to 1% or 0.5% (also for sections thinner than 50 µm) or use 1.5% Tween 20; or perfuse with cold 4% PFA | fig18 |
+| 2. Striped lines | cryostat cutting | change blade often, better OCT mounting, keep everything at −20 °C, one smooth stroke; vibratome free-floating sections also acceptable | fig19 |
+| 3. Tile misalignment (processes cut between tiles) | stage mechanics or Zen processing | always tile with 10% overlap; Zeiss guide §5.2.19–5.2.20; a Methods video S1 is referenced | fig20 |
+| 4. Non-specific binding at a tissue tear | tear/border | manually delete non-specific surfaces in Imaris, or (preferred) exclude the image | fig21 |
+| 5. No/dim signal in > 4 z-slices | uneven antibody penetration through 30 µm | exclude the image; longer permeabilization or Triton 2%; do **not** raise antibody concentration | fig22 |
 
 ---
 
@@ -378,33 +378,260 @@ gives are procedural:
 
 All 22 embedded images, extracted at native resolution, converted to PNG. The paper has no
 numbered figures; numbering here is page order. Full panel-by-panel descriptions:
-[`figures/README.md`](figures/README.md).
+[`figures/README.md`](#figures).
 
 | # | File | PDF page | What it is |
 |---|---|---|---|
-| 01 | [fig01_workflow_overview.png](figures/fig01_workflow_overview.png) | cover | Graphical abstract: 6-step timeline + Imaris render of one segmented cell (yellow) among others (red) |
-| 02 | [fig02_dissection_bench.png](figures/fig02_dissection_bench.png) | 6 | Photo: dissection tray and instruments |
-| 03 | [fig03_brain_dissection_cuts.png](figures/fig03_brain_dissection_cuts.png) | 6 | Schematic: skull cuts 1–5 |
-| 04 | [fig04_brain_matrix_macrosections.png](figures/fig04_brain_matrix_macrosections.png) | 8 | Brain matrix, sagittal macro-sections L3–R3 |
-| 05 | [fig05_cryostat_oct.png](figures/fig05_cryostat_oct.png) | 9 | Photo: OCT on chuck |
-| 06 | [fig06_cryostat_chuck.png](figures/fig06_cryostat_chuck.png) | 9 | Photo: chuck in cryostat |
-| 07 | [fig07_imaris_normalize_gaussian.png](figures/fig07_imaris_normalize_gaussian.png) | 12 | Imaris: Normalize Layers + Gaussian 0.300 µm |
-| 08 | [fig08_imaris_surfaces_button.png](figures/fig08_imaris_surfaces_button.png) | 13 | Imaris: Surfaces tool button |
-| 09 | [fig09_imaris_surfaces_step1.png](figures/fig09_imaris_surfaces_step1.png) | 13 | Surfaces wizard 1/4 |
-| 10 | [fig10_imaris_surfaces_step2_smooth_localcontrast.png](figures/fig10_imaris_surfaces_step2_smooth_localcontrast.png) | 14 | Wizard 2/4: smooth 0.5 µm, local contrast 0.5 µm |
-| 11 | [fig11_imaris_surfaces_step3_threshold.png](figures/fig11_imaris_surfaces_step3_threshold.png) | 14 | Wizard 3/4: threshold 1.00, split off |
-| 12 | [fig12_imaris_surfaces_step4_voxel_filter.png](figures/fig12_imaris_surfaces_step4_voxel_filter.png) | 15 | Wizard 4/4: voxels 18000–180000, 139/8159 kept |
-| 13 | [fig13_imaris_mask_channel.png](figures/fig13_imaris_mask_channel.png) | 16 | Mask channel 0 / 255 |
-| 14 | [fig14_imaris_edit_mask_all.png](figures/fig14_imaris_edit_mask_all.png) | 16 | Edit tab, Mask All |
-| 15 | [fig15_imaris_save_ims.png](figures/fig15_imaris_save_ims.png) | 17 | Save as Imaris 5.5 .ims |
-| 16 | [fig16_matlab_featureextract_parameters.png](figures/fig16_matlab_featureextract_parameters.png) | 17 | MATLAB parameters block |
-| 17 | [fig17_imaris_delete_channels.png](figures/fig17_imaris_delete_channels.png) | 17 | Delete all but masked Iba1 |
-| 18 | [fig18_trouble_tissue_holes.png](figures/fig18_trouble_tissue_holes.png) | 19 | Problem 1: holes (Iba1 red + DAPI), bar 50 µm |
-| 19 | [fig19_trouble_cutting_stripes.png](figures/fig19_trouble_cutting_stripes.png) | 20 | Problem 2: stripes, bar 50 µm |
-| 20 | [fig20_trouble_tile_misalignment.png](figures/fig20_trouble_tile_misalignment.png) | 20 | Problem 3: tile seam, bar 50 µm |
-| 21 | [fig21_trouble_tear_nonspecific.png](figures/fig21_trouble_tear_nonspecific.png) | 21 | Problem 4: tear, bar 100 µm |
-| 22 | [fig22_trouble_dim_stacks.png](figures/fig22_trouble_dim_stacks.png) | 22 | Problem 5: dim region, bar 100 µm |
+| 01 | fig01_workflow_overview.png | cover | Graphical abstract: 6-step timeline + Imaris render of one segmented cell (yellow) among others (red) |
+| 02 | fig02_dissection_bench.png | 6 | Photo: dissection tray and instruments |
+| 03 | fig03_brain_dissection_cuts.png | 6 | Schematic: skull cuts 1–5 |
+| 04 | fig04_brain_matrix_macrosections.png | 8 | Brain matrix, sagittal macro-sections L3–R3 |
+| 05 | fig05_cryostat_oct.png | 9 | Photo: OCT on chuck |
+| 06 | fig06_cryostat_chuck.png | 9 | Photo: chuck in cryostat |
+| 07 | fig07_imaris_normalize_gaussian.png | 12 | Imaris: Normalize Layers + Gaussian 0.300 µm |
+| 08 | fig08_imaris_surfaces_button.png | 13 | Imaris: Surfaces tool button |
+| 09 | fig09_imaris_surfaces_step1.png | 13 | Surfaces wizard 1/4 |
+| 10 | fig10_imaris_surfaces_step2_smooth_localcontrast.png | 14 | Wizard 2/4: smooth 0.5 µm, local contrast 0.5 µm |
+| 11 | fig11_imaris_surfaces_step3_threshold.png | 14 | Wizard 3/4: threshold 1.00, split off |
+| 12 | fig12_imaris_surfaces_step4_voxel_filter.png | 15 | Wizard 4/4: voxels 18000–180000, 139/8159 kept |
+| 13 | fig13_imaris_mask_channel.png | 16 | Mask channel 0 / 255 |
+| 14 | fig14_imaris_edit_mask_all.png | 16 | Edit tab, Mask All |
+| 15 | fig15_imaris_save_ims.png | 17 | Save as Imaris 5.5 .ims |
+| 16 | fig16_matlab_featureextract_parameters.png | 17 | MATLAB parameters block |
+| 17 | fig17_imaris_delete_channels.png | 17 | Delete all but masked Iba1 |
+| 18 | fig18_trouble_tissue_holes.png | 19 | Problem 1: holes (Iba1 red + DAPI), bar 50 µm |
+| 19 | fig19_trouble_cutting_stripes.png | 20 | Problem 2: stripes, bar 50 µm |
+| 20 | fig20_trouble_tile_misalignment.png | 20 | Problem 3: tile seam, bar 50 µm |
+| 21 | fig21_trouble_tear_nonspecific.png | 21 | Problem 4: tear, bar 100 µm |
+| 22 | fig22_trouble_dim_stacks.png | 22 | Problem 5: dim region, bar 100 µm |
 
 Figures were created by the authors (schematics with BioRender.com); reproduced under CC BY 4.0
 with attribution to Lind-Holm Mogensen, Ameli, Skupin & Michelucci, *STAR Protocols* 5:103467
 (2024).
+
+---
+
+## Figures
+
+Every image embedded in
+`../lind-holm-mogensen-2024-microglia-morphology-protocol.pdf`,
+extracted at native resolution and converted to PNG. Licence **CC BY 4.0** (stated on p. 1 of the PDF); © the authors, schematics made with BioRender.
+
+The paper has **no numbered figures and no captions** — images sit inline beside the step they
+illustrate. Numbering below is page order. Nothing was dropped: the only non-content image is the
+cover's graphical abstract, kept because it carries the only 3D render of a segmented cell.
+
+**Scale bars on the micrographs** were measured off these extracted images (bar length in pixels
+of the PNG, ±1–2 px). They describe the *printed* image, not the acquisition sampling (0.221
+µm/px), and are given only to judge what is visible.
+
+| Fig | Bar | Bar length (px) | ≈ µm/px of this PNG | ≈ field width |
+|---|---|---|---|---|
+| 18 | 50 µm | 100 | 0.50 | ≈ 490 µm |
+| 19 | 50 µm | 50 | 1.0 | ≈ 970 µm |
+| 20 | 50 µm | 146 | 0.34 | ≈ 330 µm |
+| 21 | 100 µm | 94 | 1.06 | ≈ 1,030 µm |
+| 22 | 100 µm | 93 | 1.08 | ≈ 1,050 µm |
+
+Figs 21–22 come out at ≈ 1,030–1,050 µm across — consistent with the stated 1020.23 µm full
+3×3-tile acquisition, so those two are whole acquisitions (rendered with the Imaris frame grid).
+
+---
+
+### fig01 — `fig01_workflow_overview.png` (1325 × 1325), cover / graphical abstract
+
+
+Six-step timeline: **Step 1** mouse brain dissection (3 hours); **Step 2** fixation &
+macrosectioning — 4% PFA 24 h, 30% sucrose 48 h, three coloured blades, sagittal cut lines
+L3 L2 L1 R1 R2 R3 (3 days); **Step 3** tissue cryosectioning, two photos + slides (1 day);
+**Step 4** tissue staining, slides + antibody + Coplin jar (2 days); **Step 5** confocal imaging,
+microscope + a small purple/blue overview thumbnail (1 day); **Step 6** imaging analyses (1 day).
+
+**What we see in Step 6:** an Imaris 3D surface render on black — one cell highlighted **yellow**
+in the centre, neighbouring cell surfaces in **red**. Scale bar "10 µm" (text barely legible).
+The yellow cell is a typical ramified (homeostatic) microglia: small soma, many thin, tortuous,
+beaded processes radiating ≈ 2–3 bar-lengths in each direction. The red neighbours are mostly
+**fragments of processes** — short disconnected tubes — which is exactly what the voxel filter
+later throws away. Processes of neighbours come close to the yellow cell but do not visibly fuse
+with it in this render.
+
+### fig02 — `fig02_dissection_bench.png` (972 × 1296), p. 6
+
+
+Photo: white drip tray with a red rubber board and pins; below, on tissue paper, a syringe,
+two insulin syringes, small scissors, bone trimmer (rongeur-like cutter) and two forceps. Bench
+layout for step 2 — no analysis content.
+
+### fig03 — `fig03_brain_dissection_cuts.png` (972 × 622), p. 6
+
+
+BioRender schematic of dissection: 70% ethanol spray; scalp midline cut; skull exposed; skull
+diagram with numbered cuts **1** and **2** (along intraparietal bone, right then left), **3**
+(midline to frontal/nasal bone), **4** and **5** (between parietal and frontal bones toward the
+eye sockets); brain lifted out with forceps; dropped into a **PFA 4%** Falcon tube.
+
+### fig04 — `fig04_brain_matrix_macrosections.png` (972 × 744), p. 8
+
+
+Left: photo of the brain in the rodent brain matrix with forceps and pipette tips holding it,
+three blade colours mapped to **Midline (red)**, **Blade 2 (green)**, **Blade 3 (black)**, labels
+"L = Left", "R = Right". Centre: matrix with blades inserted; a blade with tissue on it. Right:
+dorsal brain schematic with six **sagittal** cut lines **L3 L2 L1 R1 R2 R3** and a sagittal
+slab on glass. **So sections are sagittal**, not coronal — relevant if we compare hippocampal
+appearance with the owner's slices.
+
+### fig05 — `fig05_cryostat_oct.png` (972 × 729), p. 9
+
+
+Photo: gloved hand applying Tissue-Tek OCT from a bottle onto a specimen chuck next to a blade,
+in front of a cryostat (Thermo branding visible on the instrument). Step 15.
+
+### fig06 — `fig06_cryostat_chuck.png` (972 × 729), p. 9
+
+
+Photo: inside the cryostat — chuck mounted in the holder, blade holder and anti-roll plate,
+gloved hands. Steps 16–18.
+
+### fig07 — `fig07_imaris_normalize_gaussian.png` (797 × 824), p. 12
+
+
+Imaris *Image Processing* panel: channels **Ch1 (blue)**, **Ch2 (green)**, **Iba1+ Channel
+(red)**. Commands queued on Iba1: **Normalize Layers**, then **Gaussian Filter**. Gaussian
+parameters: **Filter Width 0.300 µm**. (Confirms the step-45 text "width = 0.3" is in µm.)
+
+### fig08 — `fig08_imaris_surfaces_button.png` (797 × 294), p. 13
+
+
+Imaris Surpass toolbar with the **Surfaces** creation icon boxed in red; scene tree shows Light
+Source 1, Frame 1, Volume.
+
+### fig09 — `fig09_imaris_surfaces_step1.png` (797 × 946), p. 13
+
+
+Surfaces wizard **1/4**, Favorite parameters "Default \*". All unchecked: Segment only a Region of
+Interest, Process entire Image finally (greyed), Track Surfaces (greyed), **Classify Surfaces**,
+**Object-Object Statistics**, Start creation with Slicer view.
+
+### fig10 — `fig10_imaris_surfaces_step2_smooth_localcontrast.png` (797 × 957), p. 14
+
+
+Wizard **2/4**. Source Channel **"Channel 3 - Iba1+ Channel"**. **Smooth ✓, Surfaces Detail
+0.500 µm.** Thresholding: Absolute Intensity ○, **Background Subtraction (Local Contrast) ●**,
+**Diameter of largest Sphere which fits into the Object: 0.500 µm**; Labkit for Pixel
+Classification (greyed). (Note the Imaris label: the local-contrast diameter is meant as the
+*largest sphere fitting in the object* — i.e. the expected thickness of the thinnest structures
+to keep, here processes.)
+
+### fig11 — `fig11_imaris_surfaces_step3_threshold.png` (797 × 1040), p. 14
+
+
+Wizard **3/4**. **Threshold (Background Subtraction) = 1.00** (lower bound, enabled); upper bound
+disabled, greyed value **34.5**. Histogram axis 0 to 34, monotonically decreasing, everything
+right of the yellow line at 1.00 selected — i.e. most of the local-contrast range is kept and the
+cut sits just above the background peak. **Split touching Objects (Region Growing): Enable ☐**
+(off); greyed defaults Seed Points Diameter **2.21 µm**, Intensity Based.
+
+### fig12 — `fig12_imaris_surfaces_step4_voxel_filter.png` (797 × 1164), p. 15
+
+
+Wizard **4/4**, Filter Surfaces: filter **"Number of Voxels Img=1" between 18000 and 180000**.
+Histogram of object sizes: a tall peak of small objects on the left (grey, rejected) decaying into
+a long flat tail (yellow, kept). Footer: **"139 of 8159 selected (2%)"**, right-end axis value
+**69847**. **What this says about the data:** after thresholding, ~98% of connected components
+are fragments (isolated process pieces, debris) below 18,000 voxels; only a small minority are
+whole cells. The same page is rendered as text in the PDF with "18’000 and 180’000" — the
+extracted text dropped the apostrophes and became "180000 and 1800000", which is wrong.
+
+### fig13 — `fig13_imaris_mask_channel.png` (972 × 841), p. 16
+
+
+*Mask Channel* dialog: Channel 3 - Iba1+ Channel; **Duplicate channel before applying mask ✓**;
+**Constant inside/outside** — outside **0.00**, inside **255**; Apply to all time points ✓.
+
+### fig14 — `fig14_imaris_edit_mask_all.png` (797 × 700), p. 16
+
+
+Surfaces *Edit* tab (pencil): Cut, Selection, and **Edit → Mask All…** highlighted;
+Object-Object Statistics unchecked.
+
+### fig15 — `fig15_imaris_save_ims.png` (972 × 765), p. 17
+
+
+Windows *Save As*: file name `test_image`, type **Bitplane: Imaris 5.5 (\*.ims)**.
+
+### fig16 — `fig16_matlab_featureextract_parameters.png` (797 × 273), p. 17
+
+
+MATLAB code: `%% Parameters` / `folder_path = ''; %INPUT FOLDER` / `folder_output = ''; %OUTPUT
+FOLDER` / `reprocess_samples = false;`. The only user-set parameters of `FeatureExtract.m`
+shown in the paper — no morphology parameters are exposed here.
+
+### fig17 — `fig17_imaris_delete_channels.png` (797 × 722), p. 17
+
+
+*Delete Channels*: Channel 1 - Ch1 ✓, Channel 2 - Ch2 ✓, Channel 3 - Iba1+ Channel ✓ deleted;
+**Channel 4 - Masked Iba1+ Channel** kept. So the raw image had **three channels** (blue,
+green, Iba1-red) plus the created mask.
+
+### fig18 — `fig18_trouble_tissue_holes.png` (972 × 637), p. 19 — Problem 1, holes
+
+
+Maximum-projection-style confocal image, **Iba1 red, DAPI blue**, scale bar **50 µm** (100 px →
+≈ 0.5 µm/px of this PNG, field ≈ 490 µm). Four white arrows point to **dark holes** in the tissue
+(round voids, by eye ≈ 25–50 µm, and a long dark vertical crack).
+**What microglia look like:** this is the best view in the paper of normal ramified microglia at
+roughly whole-field scale. Cells are **dense and evenly tiled** — a soma every few tens of µm —
+each a small bright red/magenta soma (often overlapping a blue nucleus, giving magenta) with
+**several (by eye ≈ 4–8) thin, branching processes** radiating out. At this display scale the processes of
+neighbouring cells **interdigitate and appear to touch** in projection; the gaps between cells
+are filled with fine red process fragments whose parent cell is not obvious. Many DAPI nuclei
+(non-microglial) are interspersed. A few brighter, more compact cells occur near the holes.
+Expect an algorithm on a projection to struggle to assign processes to cells; in 3D they separate
+better.
+
+### fig19 — `fig19_trouble_cutting_stripes.png` (972 × 494), p. 20 — Problem 2, stripes
+
+
+Lower-magnification field (bar **50 µm** = 50 px → ≈ 1 µm/px, field ≈ 970 µm) at a tissue edge
+(black top-right = outside tissue), **Iba1 red + DAPI blue**. Faint parallel diagonal **striations**
+across the tissue (cryostat chatter; one arrow top-left). A dark shadow on the right.
+**What microglia look like here:** at ≈ 1 µm/px only somata (bright magenta dots) and a diffuse
+red haze are visible; processes are barely resolved, and the red background is strong. A
+cortex-like layered band with denser blue nuclei is visible near the pial edge. **Instructive for
+our 20× slide-scanner data:** at this sampling individual process tracing would not be possible.
+
+### fig20 — `fig20_trouble_tile_misalignment.png` (972 × 482), p. 20 — Problem 3, tile seam
+
+
+Higher zoom (bar **50 µm** = 146 px → ≈ 0.34 µm/px, field ≈ 330 µm), **Iba1 red, DAPI blue**.
+A horizontal **tile seam** about one third down (five arrows) with a lateral shift: processes
+crossing it are cut and offset; a dark band to the left where tiles do not meet.
+**What microglia look like:** the clearest single-cell view. Somata are bright, oval, roughly
+**5–10 µm** across by eye (the saturated cores alone measure ≈ 4–6 µm equivalent diameter by
+thresholding this PNG at red > 240 — an underestimate of the soma, quoted only as a magnitude);
+processes are **very thin (≈ 1 µm, near the resolution limit), tortuous and beaded**, and break
+up into **dotted fragments** wherever they leave the focal range — many isolated red dots in the
+field are process pieces, not cells. DAPI nuclei are as large as or larger than microglial somata
+and far more numerous.
+
+### fig21 — `fig21_trouble_tear_nonspecific.png` (972 × 947), p. 21 — Problem 4, tear
+
+
+Imaris 3D view (frame grid) of a whole acquisition (bar **100 µm** = 94 px → field ≈ 1,030 µm),
+**Iba1 red only**. Bottom-left: a black **tear** (arrow) bordered by large, bright, blobby,
+**non-specific** red structures along its edge — these would pass a size filter and be mistaken
+for (amoeboid) cells. The rest of the field shows evenly spaced small microglia (soma + short
+processes) with a grainy red background; upper-left is hazier.
+**Density at whole-field scale:** several hundred somata across the field, regularly spaced
+(consistent with the paper's 300–350 analysable cells per image).
+
+### fig22 — `fig22_trouble_dim_stacks.png` (972 × 946), p. 22 — Problem 5, dim region
+
+
+Imaris 3D view of a whole acquisition (bar **100 µm** = 93 px → field ≈ 1,050 µm), **Iba1 red**
+(a few tiny green specks top-left). Strong **intensity gradient**: the upper-left third is bright
+with a dense, interconnected-looking meshwork of ramified cells; toward lower right the signal
+fades, processes become faint dotted lines and somata dim (arrows mark dim cells).
+**What it means for an algorithm:** a global threshold would over-segment the bright corner
+(cells merging into one network) and lose the dim corner — the reason for per-slice normalisation
+and local-contrast thresholding, and for the "exclude if > 4 dim z-slices" rule.

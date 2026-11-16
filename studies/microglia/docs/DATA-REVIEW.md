@@ -118,9 +118,9 @@ produces elongated, ambiguous soma detections [by eye].
 Process counts, branching and volume, the measurements the owner named, need **a z-stack through
 the section**. The literature's route is confocal or spinning-disk at 40×/≥0.95 or 60× oil,
 ~0.1–0.2 µm/px, z-step ≤ 0.5–1 µm, through 30–50 µm sections (see
-[`literature/lind-holm-mogensen-2024-microglia-morphology-protocol/digest.md`](literature/lind-holm-mogensen-2024-microglia-morphology-protocol/digest.md)).
+[`literature/lind-holm-mogensen-2024-microglia-morphology-protocol.md`](literature/lind-holm-mogensen-2024-microglia-morphology-protocol.md)).
 The 20× slide-scanner route of
-[`literature/kim-2024-microglia-morphology-pipeline/digest.md`](literature/kim-2024-microglia-morphology-pipeline/digest.md)
+[`literature/kim-2024-microglia-morphology-pipeline.md`](literature/kim-2024-microglia-morphology-pipeline.md)
 also takes a z-stack, then projects it. The IX83 here has a motorised focus drive (IX3-ZDC) and
 cellSens can acquire a z-series, so a widefield z-stack with deconvolution is a possible, weaker
 middle route on the same instrument.
