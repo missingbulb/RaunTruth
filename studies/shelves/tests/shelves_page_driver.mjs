@@ -20,6 +20,7 @@ import { repoFile } from "../../../web-tests/repo_file.mjs";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
+import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
@@ -84,6 +85,7 @@ async function load(page, name = "shelf.png") {
 }
 async function open(role, seed = {}, finder = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  await keepStudyKeyListeners(ctx);
   await asTagger(ctx);
   await ctx.route(offSite(origin), (r) => r.abort());
   await prepare(ctx, finder);
@@ -201,15 +203,25 @@ try {
   }, spec);
   const ENTER = { key: "Enter", code: "Enter" };
   check(!(await press(ENTER)), "out of tagging, Enter is left to the page");
+  // req/shell/image/keys: the legend lists the keys that act now, none out of tagging
+  check(await legendRows(page) === "", "out of tagging the keys legend is empty", await legendRows(page));
   await page.click("#gt-start");
   await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  const BOOK = "Right Enter, Back Alt+←, Next Alt+→, Flip Ctrl+↑, Not a book Ctrl+Backspace";
+  check(await legendRows(page) === BOOK, "a book open, the legend lists Right, Back, Next, Flip and Not a book with their keys", await legendRows(page));
+  const KEYS = [{ code: "Enter" }, { code: "ArrowLeft", altKey: true }, { code: "ArrowRight", altKey: true }, { code: "ArrowUp", ctrlKey: true }, { code: "Backspace", ctrlKey: true }];
+  const heard = await studyTakes(page, KEYS);
+  check(heard.listeners >= 1 && heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
   const hints = await page.evaluate(() => Object.fromEntries(["right", "wrong", "flip", "back", "next"].map((k) => [k, $(`.bs-item [data-do="${k}"] kbd`)?.textContent])));
   check(hints.right === "Enter" && hints.wrong === "Ctrl+Backspace" && hints.flip === "Ctrl+↑" && hints.back === "Alt+←" && hints.next === "Alt+→",
     "each button shows its key", hints);
   const confirm = () => page.evaluate(() => { const p = $(".bs-item .bs-confirm"); return p && !p.hidden ? p.textContent : ""; });
   check(await press({ ...ENTER, isComposing: true }) === false && (await rowsOf(page))[0] === "0/3 Books" && await confirm() === "",
     "an Enter ending a word being composed approves nothing", await rowsOf(page));
-  await page.keyboard.press("Enter");
+  await page.keyboard.down("Enter");
+  const enterRow = (await legend(page))[0];
+  await page.keyboard.up("Enter");
+  check(enterRow.lit && !(await legend(page))[0].lit, "Right's row is blue while Enter is held, grey once let go", [enterRow, await legend(page)]);
   check((await rowsOf(page))[0] === "0/3 Books" && await valueOf(page) === "Title 260x40" && /^Left as read: Enter again if it is exactly right/.test(await confirm()),
     "Enter on a title left as the reader read it approves nothing yet, and says so", [await rowsOf(page), await confirm()]);
   await page.keyboard.press("Enter");
@@ -229,6 +241,7 @@ try {
   check(await page.evaluate((n) => tess.reads - n, reads0) === 1, "Ctrl+↑ is Flip");
   await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = true; });
   check(!(await press({ key: "Backspace", code: "Backspace", ctrlKey: true })) && (await books(page)).length === 3, "a key does nothing while its button is off");
+  check(await legendRows(page) === BOOK.replace(", Not a book Ctrl+Backspace", ""), "and its row leaves the legend", await legendRows(page));
   await page.evaluate(() => { $('.bs-item [data-do="wrong"]').disabled = false; });
   await page.keyboard.press("Control+Backspace");
   check((await books(page)).length === 2 && (await rowsOf(page))[0] === "2/2 Books", "Ctrl+Backspace is Not a book", [await books(page), await rowsOf(page)]);

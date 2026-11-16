@@ -117,7 +117,9 @@ read for a title matcher; matching the titles is not part of it.
   Alt+← is Back, Alt+→ Next, Ctrl+↑ Flip and Ctrl+Backspace Not a book. The keys are read by where they sit on the
   keyboard, so they work in any layout (Hebrew too); they act only while tagging with a book open, a key held down
   acts once, a key does nothing while its button is hidden or off, and an Enter that ends a word being composed (an
-  IME) approves nothing. Each button shows its key in small type. Test: `studies/shelves/tests/test_shelves_page.py`.
+  IME) approves nothing. Each button shows its key in small type. Changed by the owner on 2026-11-16: the keys are the
+  shell's (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
+  bottom left while a book is open, the study listening to no key itself. Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/truth/task` One ground-truth task: each book in turn, in the order they stand, has its corners, turn and title set right, and the missed books are added.

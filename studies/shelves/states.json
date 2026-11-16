@@ -30,6 +30,13 @@
         ]
       }
     ]},
+    {"under": "Keys legend", "tree": [
+      {"name": "Right's key", "select": "#key-right", "made": "by the shell, from the study's actions", "control": true, "req": "req/shelves/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Back's key", "select": "#key-back", "made": "by the shell, from the study's actions", "control": true, "req": "req/shelves/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Next's key", "select": "#key-next", "made": "by the shell, from the study's actions", "control": true, "req": "req/shelves/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Flip's key", "select": "#key-flip", "made": "by the shell, from the study's actions", "control": true, "req": "req/shelves/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Not a book's key", "select": "#key-wrong", "made": "by the shell, from the study's actions", "control": true, "req": "req/shelves/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]}
+    ]},
     {"under": "Image view", "after": "Minimap", "tree": [
       {"name": "Drawing hint", "select": "#bs-draw-hint", "req": "req/shelves/truth/task", "steady": "shows only while a book is drawn",
         "rule": [
