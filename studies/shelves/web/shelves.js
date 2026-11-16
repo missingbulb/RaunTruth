@@ -426,22 +426,23 @@ export function mount(shell) {
     if (e.button !== 0 || !opened) return;
     if (drawing) { e.preventDefault(); drawing.pts.push(at(e)); if (drawing.pts.length === 4) drew(drawing.pts); else draw(); return; }
     const k = e.target.closest?.(".bs-corner");
-    if (k && cur) { e.preventDefault(); sc.setPointerCapture(e.pointerId); dragging = +k.dataset.corner; }
+    if (!k || !cur) return;
+    e.preventDefault(); dragging = +k.dataset.corner;
+    const book = cur, was = book.corners.map((p) => [...p]);
+    shell.drag(sc, e, { move, drop, cancel: () => { dragging = null; book.corners = was; drawBoxes(); repaint(); } });
   }, here);
-  sc.addEventListener("pointermove", (e) => {
+  function move(e) {
     if (dragging === null || !cur) return;
     const [x, y] = at(e);
     cur.corners[dragging] = [past(x, st.W), past(y, st.H)];
     drawBoxes(); repaint();
-  }, here);
-  const drop = () => {
+  }
+  function drop() {
     if (dragging === null) return;
     dragging = null; cur.corners = clockwise(cur.corners); save();
     // the reading follows the corners
     reread(cur);
-  };
-  sc.addEventListener("pointerup", drop, here);
-  sc.addEventListener("pointercancel", drop, here);
+  }
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (drawing) endDrawing(); hideMenu(); } }, here);
 
   return {

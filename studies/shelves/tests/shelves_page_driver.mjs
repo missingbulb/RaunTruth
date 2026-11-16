@@ -275,6 +275,16 @@ try {
   const before = await scrolled();
   const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
   const zoom = await page.evaluate(() => st.zoom);
+  // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
+  {
+    const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
+    const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value);
+    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
+    const mid = await corners();
+    await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
+    check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read,
+      "Escape mid-drag puts a corner back where it was, the book unchanged", { kept, mid, after: await corners() });
+  }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
   await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
   const live = await page.$eval(".bs-item canvas", (c) => c.width);
