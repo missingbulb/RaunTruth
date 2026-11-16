@@ -645,20 +645,19 @@ export function mount(shell) {
     // a handle goes wherever it is dragged; the result is kept in image coordinates
     svg.addEventListener("pointerdown", (e) => {
       const h = e.target.closest(".handle"); if (!h) return;
-      e.preventDefault(); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
+      e.preventDefault(); e.stopPropagation();
       const k = h.dataset.k, j = +h.dataset.j, from = L;
       const move = (ev) => {
         const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
         const q = pt.matrixTransform(svg.getScreenCTM().inverse());
         L = dragLines(from, k, j, g.toXY([q.x, q.y])); draw();
       };
-      const up = () => {
-        svg.removeEventListener("pointermove", move); svg.removeEventListener("pointerup", up);
+      const drop = () => {
         if (L === from) return;
         const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), lines = { length: r2(L.length), red: r2(L.red), width: r2(L.width) };
         c.added ? setAdded(c.k, { lines }) : edit(c.i, lines);
       };
-      svg.addEventListener("pointermove", move); svg.addEventListener("pointerup", up);
+      shell.drag(svg, e, { move, drop, cancel: () => { L = from; draw(); } });
     });
     return svg;
   }
@@ -1223,25 +1222,25 @@ export function mount(shell) {
     sc.addEventListener("pointerdown", (e) => {
       if (!st.lasso || e.button !== 0) return;
       // no text selection or native drag may start under the lasso: either would cancel the pointer
-      e.preventDefault(); sc.setPointerCapture(e.pointerId);
+      e.preventDefault();
       st.lasso.pts = [at(e)]; st.lasso.line = el("polyline", { class: "lasso-live" }); $("#overlay").append(st.lasso.line);
+      shell.drag(sc, e, { move, drop, cancel: endLasso });
     }, here);
-    sc.addEventListener("pointermove", (e) => {
+    function move(e) {
       const L = st.lasso; if (!L || !L.pts) return;
       const p = at(e), q = L.pts[L.pts.length - 1];
       if (Math.hypot(p[0] - q[0], p[1] - q[1]) * st.zoom < 3) return;
       L.pts.push(p.map((v) => Math.round(v * 10) / 10));
       L.line.setAttribute("points", L.pts.map((q) => q.join(",")).join(" "));
-    }, here);
-    sc.addEventListener("pointerup", () => {
+    }
+    function drop() {
       const L = st.lasso; if (!L || !L.pts) return;
       const pts = L.pts.map(([x, y]) => [Math.min(Math.max(x, 0), st.W), Math.min(Math.max(y, 0), st.H)]);
       const area = Math.abs(pts.reduce((a, [x, y], i) => { const [p, q] = pts[(i + 1) % pts.length]; return a + x * q - p * y; }, 0)) / 2;
       endLasso();
       // a lasso smaller than a NoR's footprint is a slip, not an area
       if (pts.length >= 3 && area * st.zoom * st.zoom >= 100) setMask([...st.mask, pts]);
-    }, here);
-    sc.addEventListener("pointercancel", () => { if (st.lasso) endLasso(); }, here);
+    }
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.lasso) endLasso(); }, here);
   }
 

@@ -19,6 +19,7 @@ import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -43,11 +44,12 @@ page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.me
 page.setDefaultTimeout(10000);
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
-const brightness = () => page.evaluate(async () => {
-  const v = window.shellForTests.viewer.three;
-  Object.assign(v.S, { rot: v.facing(0, 0), dist: v.FIT_DIST, pivot: [0, 0, 0], clip: null }); v.redraw();
-  // the view draws in the frame after it is changed: two frames on, the change is on the canvas
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+const brightness = async () => {
+  await page.evaluate(() => { const v = window.shellForTests.viewer.three; Object.assign(v.S, { rot: v.facing(0, 0), dist: v.FIT_DIST, pivot: [0, 0, 0], clip: null }); });
+  await viewDrawn(page);
+  return brightnessNow();
+};
+const brightnessNow = () => page.evaluate(() => {
   const gl = document.querySelector("#v3-gl"), c = document.createElement("canvas"); c.width = gl.width; c.height = gl.height;
   const g = c.getContext("2d"); g.drawImage(gl, 0, 0);
   const d = g.getImageData(0, 0, c.width, c.height).data; let s = 0;
@@ -105,9 +107,11 @@ try {
   check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.mode === "overlay", `drawn, the whole stack stays in view as the Show menu sets it, no task open: ${JSON.stringify({ focused: t.focused, clip: v.clip, show: v.show, focus: v.focus, open: v.open })}`);
   check(v.start === "Start GT tagging" && v.cut.off, `Start GT tagging heads the tasks, and Cut out what is done is off out of tagging: ${JSON.stringify(v)}`);
   // out of tagging the model's points carry no handles on the main view, zoomed in or not; tagging, they do
-  const zoomedHandles = () => page.evaluate(async () => { const v = window.shellForTests.viewer.three, d = v.S.dist; v.S.dist = v.FIT_DIST / 4; v.redraw();
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const h = window.vascular.model().handles; v.S.dist = d; v.redraw(); return h; });
+  const zoomedHandles = async () => {
+    const d = await page.evaluate(() => { const v = window.shellForTests.viewer.three, d = v.S.dist; v.S.dist = v.FIT_DIST / 4; return d; });
+    await viewDrawn(page);
+    return page.evaluate((d) => { const v = window.shellForTests.viewer.three, h = window.vascular.model().handles; v.S.dist = d; v.redraw(); return h; }, d);
+  };
   check(await zoomedHandles() === false, "out of GT tagging, the model's points have no handles on the main view, even zoomed in");
   await page.click("#gt-start");
   check(await page.evaluate(() => window.vascular.model().handles) === true, "... and once tagging starts, they do");
@@ -208,8 +212,7 @@ try {
   // the area turns in 3D
   await page.mouse.move(cx + 5, cy + ch - 5); await page.mouse.down(); await page.mouse.move(cx + 80, cy + ch - 60, { steps: 6 }); await page.mouse.up();
   check(JSON.stringify((await view()).rot) !== JSON.stringify(rot0), "a drag where no point is turns the area");
-  const flat = () => page.evaluate(async () => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0, 0); v.redraw();
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  const flat = async () => { await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0, 0); }); await viewDrawn(page); };
 
   // a right-click on the image where no line is offers to draw a missed vessel, from that spot
   {
@@ -289,13 +292,19 @@ try {
     const onScreen = (p) => p && p[0] > 20 && p[0] < cw - 20 && p[1] > 20 && p[1] < ch - 20;
     const at0 = (await page.evaluate(() => window.vascular.model())).at;
     const menuNow = () => page.evaluate(() => (document.querySelector("#ctx").hidden ? [] : [...document.querySelectorAll("#ctx .item")].map((b) => b.textContent)));
+    // req/vascular/model/correct: one list on every vessel, what does not apply greyed with why, never hidden
+    const menuState = () => page.evaluate(() => [...document.querySelectorAll("#ctx .item")].map((b) => ({ label: b.textContent, off: b.disabled, why: b.title })));
+    let pointMenu = null;
     const bend = Object.keys(kinds).find((k) => kinds[k] === "candidate-curve" && onScreen(points[k]) && inArea(at0[k], 10));
     check(!!bend, "a low-confidence vessel's curve point in the area");
     if (bend) {
       const n0 = (await doc()).edges.length, segs0 = (await page.evaluate(() => window.vascular.model())).kinds;
       await page.mouse.click(cx + points[bend][0], cy + points[bend][1], { button: "right" });
       const menu = await menuNow(), k = menu.findIndex((x) => /^Remove this point/.test(x));
+      pointMenu = await menuState();
       check(k >= 0, `a curve point's menu offers to remove it from its line: ${menu}`);
+      const split = pointMenu.find((x) => x.label === "Split this segment here");
+      check(k >= 0 && !pointMenu[k].off && split?.off && !!split.why, `... with a segment's options there too, greyed with why: ${JSON.stringify(pointMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model());
@@ -320,6 +329,10 @@ try {
       await page.mouse.click(cx + mid[0], cy + mid[1], { button: "right" });
       const menu = await menuNow(), k = menu.indexOf("Split this segment here");
       check(k >= 0 && menu.includes("Delete this segment"), `a segment's menu offers Split this segment here beside Delete this segment: ${menu}`);
+      const segMenu = await menuState(), remove = segMenu.find((x) => /^Remove this point/.test(x.label));
+      check(!!pointMenu && JSON.stringify(segMenu.map((x) => x.label)) === JSON.stringify(pointMenu.map((x) => x.label)),
+        `a segment's menu lists the same options, in the same order, as a point's: ${segMenu.map((x) => x.label)} | ${pointMenu?.map((x) => x.label)}`);
+      check(k >= 0 && !segMenu[k].off && remove?.off && !!remove.why, `... a point's options greyed with why: ${JSON.stringify(segMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model()), fresh = Object.keys(after.at).filter((id) => !m1.at[id]);

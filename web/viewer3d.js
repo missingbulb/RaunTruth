@@ -12,6 +12,7 @@
 // slice of every channel, channel by channel.
 "use strict";
 import { asLoaded } from "./as_loaded.js";
+import { drag } from "./drag.js";
 import { rulerMarks, rulerText } from "./viewer2d.js";
 
 const MAX_SIDE = 640; // the GPU's budget: a ray samples every voxel it crosses, so a wider volume is binned to this
@@ -187,7 +188,7 @@ function binned(planes, at, C, Z, W, H, bin) {
 export function viewer3d(shell, flat) {
   const { $, page } = shell;
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
-  let active = false, gl = null, U = {}, tex = [], dirty = true, vol = null, mode3d = false;
+  let active = false, gl = null, U = {}, tex = [], frame = 0, vol = null, mode3d = false;
   // clip: [x0, y0, x1, y1] in world units, the part of the stack shown, or null for all; spot: {x, y, r}, the part of the
   // screen kept clear while the rest dims (x and y fractions of the width and height, r of the height), or null;
   // held: a drag neither turns nor pans the view, which only zooms
@@ -320,7 +321,6 @@ export function viewer3d(shell, flat) {
 
   // ---------- drawing ----------
   function render() {
-    dirty = false;
     if (!vol || stage.hidden || !gl) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (S.dragging ? 0.6 : 1);
     const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
@@ -386,9 +386,9 @@ export function viewer3d(shell, flat) {
     for (const [t, , b] of ends) c.fillText(t, b[0] + 3, b[1] - 3);
     c.restore();
   }
-  const redraw = () => { dirty = true; };
-  const loop = () => { if (dirty) render(); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
+  // drawn on the next frame after a change, a run of changes drawn once, and no frame drawn with nothing changed
+  const redraw = () => { frame ||= requestAnimationFrame(() => { frame = 0; render(); }); };
+  redraw();
   new ResizeObserver(redraw).observe(stage);
   flat.onDrawn(redraw);
 
@@ -397,26 +397,28 @@ export function viewer3d(shell, flat) {
   // on any canvas that shows the stack's camera; grab(e), when given, sees each press first and may take that pointer
   // for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where it began
   function controls(el, grab, click) {
-    const pts = new Map(), own = new Map(), down = new Map();
-    let last = null;
+    const pts = new Map(), down = new Map();
+    // the camera as the gesture's first press found it, for a cancelled gesture to put back
+    let last = null, was = null;
     el.addEventListener("pointerdown", (e) => {
-      el.setPointerCapture(e.pointerId);
       const g = grab && !pts.size ? grab(e) : null;
-      if (g) { own.set(e.pointerId, g); return; }
+      if (g) return drag(el, e, { move: g.move, drop: g.up, cancel: () => g.cancel?.() });
       if (e.button === 0 && !pts.size) down.set(e.pointerId, [e.clientX, e.clientY]); else down.clear();
+      if (!pts.size) was = { rot: S.rot, pivot: S.pivot, dist: S.dist };
       pts.set(e.pointerId, [e.clientX, e.clientY]); S.dragging = true; last = null;
+      drag(el, e, { move, drop: end, cancel });
     });
-    const end = (e) => {
-      const g = own.get(e.pointerId);
-      if (g) { own.delete(e.pointerId); if (e.type === "pointerup") g.up(e); else g.cancel?.(); return; }
+    function end(e) {
       const d = down.get(e.pointerId); down.delete(e.pointerId);
       pts.delete(e.pointerId); if (!pts.size) { S.dragging = false; redraw(); } last = null;
-      if (click && d && e.type === "pointerup" && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
-    };
-    el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
-    el.addEventListener("pointermove", (e) => {
-      const g = own.get(e.pointerId);
-      if (g) return g.move(e);
+      if (click && d && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
+    }
+    function cancel() {
+      if (!pts.size) return;
+      pts.clear(); down.clear(); last = null;
+      Object.assign(S, was, { dragging: false }); redraw();
+    }
+    function move(e) {
       if (!pts.has(e.pointerId)) return;
       const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
       const dx = e.clientX - prev[0], dy = e.clientY - prev[1], k = 2.2 / el.clientHeight;
@@ -428,7 +430,7 @@ export function viewer3d(shell, flat) {
       else if (panning() || e.shiftKey || e.buttons === 2) pan((-dx * k * S.dist) / 3, (dy * k * S.dist) / 3);
       else { S.rot = turn(S.rot, 1, -dx * TURN_PER_PX); S.rot = turn(S.rot, 0, -dy * TURN_PER_PX); }
       redraw();
-    });
+    }
     el.addEventListener("contextmenu", (e) => e.preventDefault());
     el.addEventListener("wheel", (e) => {
       e.preventDefault();

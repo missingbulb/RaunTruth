@@ -20,6 +20,7 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
+import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -238,12 +239,15 @@ try {
   const toScreen = (x, y) => page.evaluate(([x, y]) => { const r = $("#base").getBoundingClientRect(); return [r.left + x * st.zoom, r.top + y * st.zoom]; }, [x, y]);
   const viewOf = () => page.evaluate(() => [st.zoom, $("#scroller").scrollLeft, $("#scroller").scrollTop]);
   // the page's next n frames drawn, by when a smooth scroll begun has moved the view
-  const frames = (n) => page.evaluate((n) => new Promise((done) => { const f = (k) => (k ? requestAnimationFrame(() => f(k - 1)) : done()); f(n); }), n);
+  const frames = (n) => framesOf(page, n);
   // the view still for a frame, a smooth scroll that framed the last book over
-  const settled = () => page.waitForFunction(() => new Promise((done) => {
-    const sc = $("#scroller"), at = [sc.scrollLeft, sc.scrollTop];
-    requestAnimationFrame(() => requestAnimationFrame(() => done(sc.scrollLeft === at[0] && sc.scrollTop === at[1])));
-  }));
+  const settled = async () => {
+    for (let at = null, n = 0; n < 300; n++) {
+      const now = await viewOf();
+      if (at && now[1] === at[1] && now[2] === at[2]) return;
+      at = now; await framesOf(page);
+    }
+  };
   // zoomed in, the cover's left edge alone in view, at the view's right
   await settled();
   for (let i = 0; i < 4; i++) await page.click("#zoom-in");
@@ -271,6 +275,16 @@ try {
   const before = await scrolled();
   const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
   const zoom = await page.evaluate(() => st.zoom);
+  // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
+  {
+    const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
+    const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value);
+    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
+    const mid = await corners();
+    await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
+    check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read,
+      "Escape mid-drag puts a corner back where it was, the book unchanged", { kept, mid, after: await corners() });
+  }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
   await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
   const live = await page.$eval(".bs-item canvas", (c) => c.width);
