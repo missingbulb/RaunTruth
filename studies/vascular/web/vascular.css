@@ -101,3 +101,32 @@
 .chip.candidate { border-color: var(--warn); color: var(--warn); }
 .chip.accepted { border-color: var(--yes); color: var(--yes); }
 .chip.rejected { border-color: var(--no); color: var(--no); }
+
+/* Summary: the mask's buttons, the numbers and their histograms */
+.mask-btns { display: flex; gap: 6px; margin-bottom: 8px; }
+.mask-btns button { padding: 3px 10px; font-size: 12px; }
+.mask-btns button[hidden], #mask-hint[hidden] { display: none; }
+#vm-summary { margin-bottom: 10px; }
+.vm-metrics { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 8px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.vm-metrics dt { color: var(--dim); }
+.vm-metrics dd { margin: 0; }
+.vm-metrics b, #vm-summary .hist b { color: var(--text); font-weight: 600; }
+#vm-summary .dim { color: var(--dim); }
+.vm-metrics dd .dim { display: block; font-size: 11px; }
+#vm-summary .hists { display: flex; flex-direction: column; gap: 10px; }
+#vm-summary .hist { font-size: 12px; color: var(--dim); }
+#vm-summary .hist svg { display: block; width: 100%; height: auto; }
+#vm-summary .hist text { fill: currentColor; font-size: 10px; }
+#vm-summary .hist .bar { fill: var(--pink, #e86ab0); opacity: .75; }
+#vm-summary .hist .grid { stroke: var(--line); }
+#vm-summary .hist .sd { fill: var(--text); opacity: .1; }
+#vm-summary .hist .mean { stroke: var(--text); stroke-width: 1.5; }
+
+/* the mask over the 3D view: its borders as a pulsing dashed line, and the lasso as it is drawn */
+#vm-mask { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
+#vm-mask path { fill: none; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 6 4; animation: vm-mask-pulse 1.6s ease-in-out infinite alternate; }
+#vm-mask path.under { stroke: #000; stroke-dasharray: none; stroke-width: 2.5; stroke-opacity: .5; animation: none; }
+#vm-mask path.live { animation: none; stroke-dasharray: 4 3; }
+@keyframes vm-mask-pulse { from { stroke-opacity: 1; } to { stroke-opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { #vm-mask path { animation-duration: 6s; } }
+#v3-stage.lassoing, #v3-stage.lassoing * { cursor: crosshair; }
