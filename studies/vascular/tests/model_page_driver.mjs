@@ -75,6 +75,40 @@ try {
   await page.click("#vm-run");
   await page.waitForFunction(() => !$("#model-on").hidden);
   check(/vessel edges/.test(await facts()), `Execute opens the model it draws: ${(await facts()).slice(0, 80)}`);
+  // req/vascular/summary/metrics and req/vascular/summary/mask: the eight numbers, over the whole field and then inside a lassoed mask
+  await page.waitForFunction(() => !!window.vascular.summary().summary);
+  const sum = () => page.evaluate(() => ({ s: window.vascular.summary().summary, text: $("#vm-summary").textContent }));
+  const whole = await sum();
+  const NAMES = ["Vascular volume fraction", "Vessel length density", "Branch point density", "Branch density", "Mean branch length",
+    "Vessel diameter", "Vessel tortuosity", "Nearest-vessel distance"];
+  check(NAMES.every((n) => whole.text.includes(n)) && whole.s.junctions > 0 && whole.s.volumeFraction > 0 && whole.s.nearest.n > 0,
+    `Summary gives the eight numbers over the whole field: ${whole.s.junctions} junctions, ${(100 * whole.s.volumeFraction).toFixed(2)}% vessel`);
+  await page.click("#mask-add");
+  check(await page.evaluate(() => window.vascular.summary().lassoing && !$("#mask-hint").hidden), "Add mask arms a lasso on the stack from straight above");
+  // the left half of the field, lassoed by dragging on the view
+  const corners = await page.evaluate(() => {
+    const T = window.shellForTests.viewer.three, r = T.stage.getBoundingClientRect(), { W: w, H: h } = window.shellForTests.page.get("image");
+    const at = (x, y) => { const p = T.toScreen(x, y); return [r.left + p[0], r.top + p[1]]; };
+    return [at(1, 1), at(w / 2, 1), at(w / 2, h - 1), at(1, h - 1), at(1, 2)];
+  });
+  await page.mouse.move(...corners[0]); await page.mouse.down();
+  for (let c = 1; c < corners.length; c++) for (let k = 1; k <= 10; k++) {
+    const [x0, y0] = corners[c - 1], [x1, y1] = corners[c];
+    await page.mouse.move(x0 + ((x1 - x0) * k) / 10, y0 + ((y1 - y0) * k) / 10);
+  }
+  await page.mouse.up();
+  await page.waitForFunction((t) => window.vascular.summary().summary?.tissueMm3 < t * 0.6, whole.s.tissueMm3);
+  const half = await sum();
+  check(Math.abs(half.s.tissueMm3 / whole.s.tissueMm3 - 0.5) < 0.05 && half.s.junctions < whole.s.junctions && /inside the mask/.test(half.text) && !(await page.evaluate(() => $("#mask-clear").hidden)),
+    `the summary counts only inside the mask: tissue ×${(half.s.tissueMm3 / whole.s.tissueMm3).toFixed(2)}, ${whole.s.junctions} → ${half.s.junctions} junctions`);
+  // the border drawn where the lasso went: its corners where the drag turned them
+  const border = await page.evaluate(() => { const r = $("#vm-stage, #v3-stage").getBoundingClientRect(), b = $("#vm-mask path.edge:not(.under)")?.getBBox();
+    return b && [r.left + b.x, r.top + b.y, r.left + b.x + b.width, r.top + b.y + b.height]; });
+  check(!!border && [border[0] - corners[0][0], border[1] - corners[0][1], border[2] - corners[2][0], border[3] - corners[2][1]].every((d) => Math.abs(d) < 3),
+    `the mask's border shows over the view where it was lassoed: ${JSON.stringify(border)} for ${JSON.stringify([corners[0], corners[2]])}`);
+  await page.click("#mask-clear");
+  await page.waitForFunction((t) => window.vascular.summary().summary?.tissueMm3 === t, whole.s.tissueMm3);
+  check(true, "Clear mask counts the whole field again");
   // req/vascular/model/view: every choice of how the model shows is in one Show menu at the toolbar's left, as NoR's
   // (outside a ground-truth stage the tasks' Back to image button is not shown)
   const menu = await page.evaluate(() => { const m = $("#vm-show");

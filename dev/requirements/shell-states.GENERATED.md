@@ -4136,6 +4136,10 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ▸ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Add mask | ⋯ | ⋯ | ⋯ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear mask | ⋯ | ⋯ | ⋯ | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The lasso's hint | ⋯ | ⋯ | ⋯ | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's numbers | ⋯ | ⋯ | ⋯ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;What the model holds | ⋯ | ⋯ | ⋯ | ● | ● | ● |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● |
@@ -4328,6 +4332,10 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Add mask | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear mask | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The lasso's hint | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's numbers | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;What the model holds | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
