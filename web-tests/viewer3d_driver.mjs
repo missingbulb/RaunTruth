@@ -170,6 +170,19 @@ try {
     await page.click("#ruler-btn");
     const gone = await rulerNow();
     check(!gone.line && !gone.text && gone.pressed === "false", `pressing the Ruler again takes it away: ${JSON.stringify(gone)}`);
+    // Escape mid-drag (req/shell/drag/escape) takes the orb and the ruler away, the ruler still armed, and the release
+    // after it neither measures nor turns the view
+    await page.click("#v3-reset");
+    const rotE = await rotNow();
+    await page.click("#ruler-btn");
+    await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down(); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 });
+    await page.keyboard.press("Escape");
+    const esc = await rulerNow();
+    await page.mouse.move(c3[0] + 80, c3[1] + 30, { steps: 4 }); await page.mouse.up();
+    const escUp = await rulerNow();
+    check(!esc.orb && !esc.line && !escUp.orb && !escUp.line && escUp.pressed === "true" && await rotNow() === rotE,
+      `Escape mid-drag takes the orb and the ruler away, the ruler still armed, the view unturned: ${JSON.stringify([esc, escUp])}`);
+    await page.click("#ruler-btn");
     await page.click("#v3-reset");
     const slicesRow = await page.evaluate(() => { const r = $("#channels .v3-slices"); return r && !!r.querySelector("#v3-z0") && !!r.querySelector("#v3-z1") && !!r.querySelector("#v3-zs"); });
     check(slicesRow, "the slices shown and their spacing are a row in the image box, under the channels' rows");
