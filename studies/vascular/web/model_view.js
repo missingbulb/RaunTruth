@@ -1,7 +1,8 @@
 // The vessel model over the stack, beside it or on its own, in the stack's own camera, and the owner's
 // corrections to it: drag a point to move it, and a tip onto another vessel to attach it there, right-click a segment
 // or a point to delete it, split it in two or split a junction, right-drag from one piece to another to connect them, click a faded
-// low-confidence vessel to approve or decline it. The corrected model goes to the shell's Submit Ground Truth as JSON.
+// low-confidence vessel to approve or decline it. Every edit is one GT action in the shell's log (shell.gt): the model here is
+// whatever the shell last handed over, and the corrected model goes to the shell's Submit Ground Truth from it.
 //
 // The review narrows the stack to what the model accounts for: Detected keeps only the signal around
 // the model's vessels, to check and measure them; Missed keeps only the signal away from them, to find
@@ -15,7 +16,8 @@ import { widthsLook } from './widths.js';
 const $ = (id) => document.getElementById(id);
 // the shell's 3D view (viewer3d.js `three`): its camera, the stack's place in it and its hooks
 let V = null;
-const SAVED = 'mv-model:';
+// the shell's GT actions (shell.gt): act(action), count(), on(fn)
+let gt = null;
 const PICK_POINT_PX = 9, PICK_SEGMENT_PX = 6, DRAG_PX = 5;
 // The overlay draws the model in magenta: neither the depth colours nor the hot scale of the stack
 // carry it, so a line never vanishes into the signal it is laid over.
@@ -42,7 +44,7 @@ const SPLIT_GAP_PX = 12;
 // its neighbours, times SPOT_REACH, and at least SPOT_MIN_PX) stays clear, the rest drops to FADED.
 const SPOT_REACH = 1.25, SPOT_MIN_PX = 60, FADED = .15;
 
-let model = null, loaded = null, history = [], future = [], edits = 0, savedKey = null;
+let model = null;
 // mode: what the main view shows, "image" (the stack alone), "model" (the model alone), "overlay", "side", or from straight
 // above in the stack's own pixels "widths", "grey" (the picture alone) or "wside" (the widths beside the model)
 let mode = 'image', hover = null, rubber = null, showWidths = true;
@@ -61,11 +63,6 @@ const held = new Set(), kept = new Set();
 // after it
 let look = null, widthStep = false, widthPicked = () => {}, flatSaved = null;
 const FLAT = new Set(['widths', 'grey', 'wside']);
-const store = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* no storage: edits live until the page closes */ } },
-  del(k) { try { localStorage.removeItem(k); } catch { /* no storage */ } },
-};
 
 // ---------- the model's place in the stack's camera ----------
 const slices = () => V.meta.shape[0];
@@ -377,11 +374,13 @@ const screenOf = (h) => {
 };
 
 // ---------- edits ----------
-function apply(next, keepFuture) {
-  if (next === model) return;
-  history.push(model); if (!keepFuture) future = [];
-  model = next; edits++; changed();
-}
+// A GT action of the shell's log; the model that comes back through gt.on is the one drawn. The model returned, or null when
+// the action changed nothing, as the log refused it.
+export function act(action) { closeMenu(); return gt.act(action); }
+// the ids of segments i, which stay the same through every edit and the file; an action names a segment by them
+export const ids = (segs) => segs.map((i) => model.segments[i].id);
+// what an item picked on the view, {node} or {segment: i, t}, is called in an action
+const ref = (h, m = model) => (h.node != null ? { node: h.node } : h.point ? { point: h.point } : { segment: m.segments[h.segment].id, t: h.t });
 const listeners = [];
 // Other views of the model (the item cards) hear every change to it, a new model included.
 export const onChange = (fn) => listeners.push(fn);
@@ -389,17 +388,23 @@ export const onChange = (fn) => listeners.push(fn);
 export function leave() { listeners.length = 0; V?.place(null); wcv?.remove(); V = null; }
 const tell = () => listeners.forEach((fn) => fn(model));
 export const current = () => model;
-// an edit made from another view, undoable like any other
-export function edit(next) { closeMenu(); apply(next); }
 function changed() {
-  tell();
-  if (savedKey) {
-    if (edits) store.set(savedKey, { edits, model: Mo.toJSON(model) }); else store.del(savedKey);
-  }
-  facts(); refreshMask(); V.redraw();
+  tell(); facts(); refreshMask(); V.redraw();
 }
-function undo() { if (!history.length) return; future.push(model); model = history.pop(); edits--; changed(); }
-function redo() { if (!future.length) return; history.push(model); model = future.pop(); edits++; changed(); }
+// the shell handed over a model: the algorithm's, a draft's or an edit's, or none as another image opens
+function handed(m, why) {
+  if (!m) { if (model) stackOpened(); return; }
+  const first = !model || why === 'run' || why === 'load';
+  model = m;
+  if (drawing && why !== 'act') drawing.from = null;
+  if (!first) return changed();
+  msg('');
+  if (V.meta && m.slices !== slices()) msg(`This model has ${m.slices} slices and the stack has ${slices()}: they are probably not the same stack.`, true);
+  $('vm-review').hidden = false;
+  maskKey = null; refreshMask(true);
+  setMode(mode === 'image' ? 'overlay' : mode);
+  facts(); tell();
+}
 
 function grab(e) {
   if (look?.on) return mode === 'wside' ? null : look.grab(e);
@@ -410,7 +415,8 @@ function grab(e) {
   const h = pick(e);
   if (e.button === 0 && !e.shiftKey && !V.panning && h?.node != null && !drawing && handles()) {
     const base = model, id = h.node, ndcZ = view.pts.get(id)[3], tip = Mo.neighbours(base, id).length === 1;
-    let moved = false;
+    // moved: the point has been dragged; to: where it was last, which the log hears only at the drop
+    let moved = false, to = null;
     const done = () => { moving = null; V.S.spot = null; if (tip) hover = null; };
     return {
       move(ev) {
@@ -419,12 +425,11 @@ function grab(e) {
         const far = Math.max(0, ...Mo.neighbours(base, id).map((k) => view.pts.get(k)).filter(Boolean).map((q) => Math.hypot(q[0] - x, q[1] - y)));
         moving = id; V.S.spot = { x: x / view.W, y: y / view.H, r: Math.max(SPOT_MIN_PX, SPOT_REACH * far) / view.H };
         const w = V.M.xf(V.M.inv(view.vp), [nx, ny, ndcZ]);
-        const to = fromWorld([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
+        to = fromWorld([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
         // in an area seen from straight above a point moves across the picture, never in depth
         if (focused && Math.abs(V.S.rot[2][2]) > 0.999) to.z = base.nodes.get(id).z;
-        const next = Mo.moveNode(base, id, to);
-        if (!moved) { moved = true; history.push(base); future = []; edits++; }
-        model = next;
+        // the point shown where it would land; nothing is recorded until it is let go
+        moved = true; model = Mo.moveNode(base, id, to);
         // a tip over another vessel shows where it would attach
         if (tip) hover = pick(ev, false, id);
         V.redraw();
@@ -433,11 +438,12 @@ function grab(e) {
         // a tip let go over another vessel attaches there
         const onto = moved && tip ? pick(ev, false, id) : null;
         done();
-        if (onto) { const joined = Mo.attach(base, id, onto); if (joined !== base) model = joined; }
-        if (moved) changed(); else clicked(ev);
-        V.redraw();
+        model = base;
+        if (!moved) { V.redraw(); return clicked(ev); }
+        const there = onto && Mo.attach(Mo.moveNode(base, id, to), id, onto) !== Mo.moveNode(base, id, to) ? ref(onto, base) : null;
+        if (!act(there ? { type: 'attach', node: id, to, onto: there } : { type: 'move-node', node: id, to })) changed();
       },
-      cancel() { done(); if (moved) changed(); V.redraw(); },
+      cancel() { done(); model = base; V.redraw(); },
     };
   }
   if (e.button === 2) {
@@ -456,7 +462,7 @@ function grab(e) {
         if (rubber) {
           rubber = null;
           const to = pick(ev);
-          if (to && !(to.segment != null && to.segment === h.segment)) apply(Mo.connect(model, h, to));
+          if (to && !(to.segment != null && to.segment === h.segment)) act({ type: 'connect', from: ref(h), to: ref(to) });
           V.redraw();
         } else if (h) openMenu(h, ev.clientX, ev.clientY);
         else if (makingTruth && focused && !drawing) offerDrawing(ev);
@@ -478,14 +484,14 @@ function clicked(e) {
   if (isCandidate(h)) return openMenu(h, e.clientX, e.clientY);
 }
 
-// A menu of buttons at the pointer: items are [label, fn returning the next model], [label, null, why it does not apply
-// here], greyed, or [note, null].
+// A menu of buttons at the pointer: items are [label, fn doing it], [label, null, why it does not apply here], greyed, or
+// [note, null].
 export function showMenu(items, x, y) {
   const m = $('ctx');
   m.replaceChildren(...items.map(([label, fn, why]) => {
     if (!fn && !why) { const p = document.createElement('div'); p.className = 'note'; p.textContent = label; return p; }
     const b = document.createElement('button'); b.type = 'button'; b.className = 'item'; b.textContent = label;
-    if (fn) b.onclick = () => { closeMenu(); apply(fn()); V.redraw(); };
+    if (fn) b.onclick = () => { closeMenu(); fn(); V.redraw(); };
     else { b.disabled = true; b.title = why; }
     return b;
   }));
@@ -503,17 +509,17 @@ function openMenu(h, x, y) {
   const onSeg = 'Right-click the vessel’s line, between its points';
   const onPoint = handles() ? 'Right-click one of the vessel’s points' : 'Zoom in to pick a vessel’s points';
   const opt = (label, ok, why, fn) => items.push(ok ? [label, fn] : [label, null, why]);
-  opt('Approve this vessel (A)', cand, 'Only for a faded vessel still to decide', () => Mo.review(model, h.segment, 'accepted'));
-  opt('Decline this vessel (D)', cand, 'Only for a faded vessel still to decide', () => Mo.review(model, h.segment, 'rejected'));
+  opt('Approve this vessel (A)', cand, 'Only for a faded vessel still to decide', () => act({ type: 'review', segment: ref(h).segment, verdict: 'accepted' }));
+  opt('Decline this vessel (D)', cand, 'Only for a faded vessel still to decide', () => act({ type: 'review', segment: ref(h).segment, verdict: 'rejected' }));
   if (cand) { const c = model.segments[h.segment].confidence; if (c != null) items.push([`low confidence: ${c.toFixed(2)}`, null]); }
-  opt('Delete this segment', seg, onSeg, () => Mo.deleteSegment(model, h.segment));
+  opt('Delete this segment', seg, onSeg, () => act({ type: 'delete-segment', segments: [ref(h).segment] }));
   opt('Split this segment here', seg, onSeg, () => splitAt(h));
-  opt('Add a curve point here', seg, onSeg, () => Mo.splitSegment(model, h.segment, h.t)[0]);
+  opt('Add a curve point here', seg, onSeg, () => act({ type: 'split', segment: ref(h).segment, t: h.t }));
   const junction = seg ? onPoint : 'Only where three or more vessels meet';
-  opt('Look at it from the side: crossing or split?', d >= 3, junction, () => { lookAt(h.node); return model; });
-  opt('Wrong junction: these vessels cross, split them', d >= 3, junction, () => Mo.splitJunction(model, h.node, zScale));
-  opt('Remove this point: its two lines become one', d === 2, seg ? onPoint : 'Only on a point between two lines', () => Mo.removeBend(model, h.node));
-  opt(d === 1 ? 'Delete this tip and its segment' : 'Delete this point and its segments', !seg, onPoint, () => Mo.deleteNode(model, h.node));
+  opt('Look at it from the side: crossing or split?', d >= 3, junction, () => lookAt(h.node));
+  opt('Wrong junction: these vessels cross, split them', d >= 3, junction, () => act({ type: 'split-junction', node: h.node, zScale }));
+  opt('Remove this point: its two lines become one', d === 2, seg ? onPoint : 'Only on a point between two lines', () => act({ type: 'remove-bend', node: h.node }));
+  opt(d === 1 ? 'Delete this tip and its segment' : 'Delete this point and its segments', !seg, onPoint, () => act({ type: 'delete-node', node: h.node }));
   showMenu(items, x, y);
   hover = h; V.redraw();
 }
@@ -525,7 +531,7 @@ function splitAt(h) {
   let L = 0;
   for (let k = 1; k < line.length; k++) L += Math.hypot(line[k][0] - line[k - 1][0], line[k][1] - line[k - 1][1]);
   const d = Math.min(SPLIT_GAP_PX / 2 / (L || 1), h.t / 2, (1 - h.t) / 2);
-  return Mo.cutSegment(model, h.segment, h.t - d, h.t + d);
+  act({ type: 'cut', segment: ref(h).segment, ta: h.t - d, tb: h.t + d });
 }
 
 // ---------- looking closer ----------
@@ -696,7 +702,7 @@ function setDrawing(on) {
   cv.classList.toggle('connecting', !!on);
   if (on && peeks.includes('bare')) { held.delete('bare'); kept.delete('bare'); peeks = peeks.filter((n) => n !== 'bare'); }
   if (on && mode !== 'overlay') setMode('overlay');
-  $('draw-note').textContent = on ? 'Click along the vessel, a point at a time; each point goes to the brightest spot under the pointer. Click an existing vessel, press Enter or Escape to end. Ctrl-Z takes back a point.' : '';
+  $('draw-note').textContent = on ? 'Click along the vessel, a point at a time; each point goes to the brightest spot under the pointer. Click an existing vessel, press Enter or Escape to end. Undo takes back a point.' : '';
   V.redraw();
 }
 // the brightest shown voxel under the pointer, as a point of the model; null where the pointer meets none
@@ -709,7 +715,7 @@ function brightestAt(e) {
 function offerDrawing(e) {
   const at = brightestAt(e);
   if (!at) return;
-  showMenu([['Draw a missed vessel', () => { setDrawing(true); drawing.from = at; return model; }]], e.clientX, e.clientY);
+  showMenu([['Draw a missed vessel', () => { setDrawing(true); drawing.from = at; }]], e.clientX, e.clientY);
 }
 function drawClick(e) {
   const h = pick(e, false, drawnFrom());
@@ -718,9 +724,9 @@ function drawClick(e) {
   // an undo can take away the point the line was drawing from
   if (drawing.from?.node != null && !model.nodes.has(drawing.from.node)) drawing.from = null;
   if (!drawing.from) { drawing.from = to; return V.redraw(); }
-  const [next, id] = Mo.drawSegment(model, drawing.from, to);
-  if (id == null) return;
-  apply(next);
+  // the point drawn to: the action does what drawSegment does, and the point is the one it gives
+  const [, id] = Mo.drawSegment(model, drawing.from, to);
+  if (id == null || !act({ type: 'draw', from: ref(drawing.from), to: ref(to) })) return;
   if (h) return setDrawing(false);
   drawing.from = { node: id };
 }
@@ -764,54 +770,36 @@ function facts() {
     (model.excluded_regions?.length ? `${model.excluded_regions.length} damaged area${model.excluded_regions.length === 1 ? '' : 's'} ` +
       `(${(100 * Mo.excludedFraction(model)).toFixed(1)}% of the field, hatched) left out of the analysis, with the ${v.excluded} ` +
       `vessel edge${v.excluded === 1 ? '' : 's'} in ${model.excluded_regions.length === 1 ? 'it' : 'them'}. ` : '') +
-    (edits ? `${edits} edit${edits === 1 ? '' : 's'} so far, kept in this browser until you submit them as ground truth.` : 'No edits yet.');
-  $('m-undo').disabled = !history.length; $('m-redo').disabled = !future.length; $('m-reset').disabled = !edits;
+    (edits() ? `${edits()} edit${edits() === 1 ? '' : 's'} so far.` : 'No edits yet.');
 }
+// how many edits the log holds
+const edits = () => gt?.count() ?? 0;
 const msg = (t, err) => { $('model-msg').textContent = t; $('model-msg').classList.toggle('err', !!err); };
 
-// a short fingerprint of the file as loaded, so saved edits never attach to a different model
-function fingerprint(text) { let h = 2166136261; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619); return (h >>> 0).toString(36); }
-
-function open(text, name) {
-  let m, j;
-  try { j = JSON.parse(text); m = Mo.parse(j); } catch (err) {
+// a model shown for looking at only, with no log behind it: the curated ground truth a viewer is shown
+export function drawn(text, name) {
+  let m;
+  try { m = Mo.parse(JSON.parse(text)); } catch (err) {
     return msg(`Could not read ${name}: ${err instanceof Mo.ModelError ? err.message : 'it is not valid JSON'}.`, true);
   }
-  loaded = m; model = m; history = []; future = []; edits = 0;
-  // a run's time is no part of the model it drew: the same model run again picks up the edits made to it
-  savedKey = SAVED + fingerprint(JSON.stringify(j.score ? { ...j, score: { ...j.score, seconds: null } } : j));
-  const saved = store.get(savedKey);
-  msg('');
-  if (saved?.edits) {
-    try { model = Mo.parse(saved.model); history = [loaded]; edits = saved.edits; msg(`Picked up ${edits} edits you made earlier in this browser. Discard edits starts over from the file.`); }
-    catch { store.del(savedKey); }
-  }
-  if (V.meta && m.slices !== slices()) msg(`This model has ${m.slices} slices and the stack has ${slices()}: they are probably not the same stack.`, true);
-  $('model-on').hidden = false; $('vm-review').hidden = false;
-  maskKey = null; refreshMask(true);
-  setMode(mode === 'image' ? 'overlay' : mode);
-  facts(); tell();
+  handed(m, 'load');
 }
-// a model the study's algorithm drew, as the JSON text of its file
-export const drawn = (text, name) => open(text, name);
 
-// The corrected model, as ground truth: the document, its file name, how many edits it carries and what is
-// still open in it, for the shell's Submit Ground Truth.
+// The corrected model, as ground truth: its file name, how many edits it carries and what is still open in it, for the
+// shell's Submit Ground Truth, which writes the file from the log.
 export function truth() {
   if (!model) return null;
-  const doc = Mo.toJSON(model, { status: edits || model.status === 'corrected' ? 'corrected' : model.status,
-    corrected_at: new Date().toISOString(), corrections: (model.corrections || 0) + edits, unchecked: Mo.WIDTHS });
   const stem = String(model.source || 'vessels').replace(/\.tiff?$/i, ''), v = Mo.pieceCounts(model);
-  return { doc, file: `${stem}.vessels.corrected.json`, edits: edits + (model.corrections || 0), stem,
+  return { file: `${stem}.vessels.corrected.json`, edits: edits(), stem,
     items: [{ level: 'warn', ok: !v.candidate, text: v.candidate ? `${v.candidate} low-confidence vessel${v.candidate === 1 ? '' : 's'} still to approve or decline` : 'Every low-confidence vessel has your verdict' }] };
 }
 
 // Called whenever a stack opens: it opens with no model until the algorithm draws one.
 export function stackOpened() {
   widthStep = false; dropFlat();
-  model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; task = null; area = null; focused = null; peeks = []; kept.clear();
+  model = null; task = null; area = null; focused = null; peeks = []; kept.clear();
   $('vm-show').hidden = false;
-  $('model-on').hidden = true; $('vm-review').hidden = true; msg(''); setMode('image');
+  $('vm-review').hidden = true; msg(''); setMode('image');
   $('model-facts').textContent = 'No vessel model yet: Execute the algorithm.';
   if (drawing) setDrawing(false);
   maskKey = null; refreshMask(true);
@@ -820,12 +808,10 @@ export function stackOpened() {
 export { msg };
 
 // The model as it stands and where each of its points was last drawn, for scripts driving the page.
-// the edits kept on this device for the model on show, forgotten
-export function forget() { if (savedKey) store.del(savedKey); }
 // at: each point in µm; kinds: each point's state and whether it is a curve point inside one vessel or an end
 // handles: the points are handles to drag now; drawing: while a missed vessel is drawn, where the line ends on screen and
 // what a click there joins it to
-export const inspect = () => ({ model: model && Mo.toJSON(model), points: view && Object.fromEntries(view.pts), edits, widths: look?.inspect() ?? null, view: mode, selected: look?.selected()?.n ?? null,
+export const inspect = () => ({ model: model && Mo.toJSON(model), points: view && Object.fromEntries(view.pts), edits: edits(), widths: look?.inspect() ?? null, view: mode, selected: look?.selected()?.n ?? null,
   handles: !!V && handles(), drawing: drawing && { end: drawEnd(), onto: hover },
   at: model && Object.fromEntries([...model.nodes].map(([id, n]) => [id, { x: n.x, y: n.y, z: n.z }])),
   kinds: model && Object.fromEntries([...model.nodes.keys()].map((id) => {
@@ -847,12 +833,13 @@ const tellKeys = () => keys?.report({ model: !!model, focused: !!focused, look: 
   ...Object.fromEntries(Object.keys(PEEKS).map((n) => [n, mode === peekMode(n)])), truthTagging: makingTruth && tagOn });
 
 // view: the shell's 3D view; signal ends the listeners outside the study's own panels when the study leaves;
-// makesTruth: the study makes ground truth, so what is decided is cut out of the stack; actions: the shell's keys
-export function init(view, signal, makesTruth, actions) {
-  V = view; keys = actions; keys?.handle(HANDLERS); makingTruth = !!makesTruth; tagOn = false; cutOn = true;
+// makesTruth: the study makes ground truth, so what is decided is cut out of the stack; actions: the shell's keys;
+// gts: the shell's GT actions (shell.gt)
+export function init(view, signal, makesTruth, actions, gts) {
+  V = view; keys = actions; gt = gts; keys?.handle(HANDLERS); makingTruth = !!makesTruth; tagOn = false; cutOn = true;
   $('m-cut-row').hidden = !makingTruth; $('m-cut').checked = true; $('m-cut').disabled = true;
   $('m-cut').onchange = (e) => { cutOn = e.target.checked; refreshMask(true); tellKeys(); };
-  model = null; loaded = null; history = []; future = []; edits = 0; savedKey = null; mode = 'image'; task = null; area = null; picked = null;
+  model = null; mode = 'image'; task = null; area = null; picked = null;
   focused = null; outside = 'overlay'; peeks = []; held.clear(); kept.clear();
   cv = document.createElement('canvas'); cv.id = 'mcv';
   wcv = document.createElement('canvas'); wcv.id = 'wcv';
@@ -862,7 +849,7 @@ export function init(view, signal, makesTruth, actions) {
   // the stack's middle depth on that canvas, from straight above, for the widths view
   const plane = (x, y) => { const el = wCanvas(), v = V.M.xf(V.camera(el.clientWidth / el.clientHeight), toWorld({ x, y, z: (model.slices - 1) / 2 }));
     return [(v[0] / v[3] + 1) / 2 * el.clientWidth, (1 - v[1] / v[3]) / 2 * el.clientHeight]; };
-  look = widthsLook({ V, get canvas() { return wCanvas(); }, model: () => model, apply: (next) => apply(next), plane, msg: (t) => msg(t), chose: () => widthPicked(), selecting: () => widthStep });
+  look = widthsLook({ V, get canvas() { return wCanvas(); }, model: () => model, act: (action) => act(action), ids, plane, msg: (t) => msg(t), chose: () => widthPicked(), selecting: () => widthStep });
   V.onDraw(draw, signal);
   V.controls(cv, grab, clicked);
   V.controls(wcv, (e) => look.grab(e));
@@ -885,21 +872,15 @@ export function init(view, signal, makesTruth, actions) {
   reachOut();
   V.onSpacing(() => refreshMask(), signal);
   $('m-widths').onchange = (e) => { showWidths = e.target.checked; V.redraw(); tellKeys(); };
-  $('m-undo').onclick = undo; $('m-redo').onclick = redo;
-  $('m-reset').onclick = () => { if (!edits || !confirm(`Discard all ${edits} edits and go back to the model as loaded?`)) return;
-    store.del(savedKey); model = loaded; history = []; future = []; edits = 0; msg(''); changed(); };
+  gt.on(handed, signal);
   document.addEventListener('keydown', (e) => {
     if (!model || e.target.closest('input, textarea, select')) return;
     if (e.key === 'Escape') closeMenu();
     if (drawing && (e.key === 'Escape' || e.key === 'Enter')) { setDrawing(false); return; }
     const k0 = e.key.toLowerCase();
     if (!(e.ctrlKey || e.metaKey || e.altKey) && (k0 === 'a' || k0 === 'd') && isCandidate(hover)) {
-      const h = hover; closeMenu(); hover = null; apply(Mo.review(model, h.segment, k0 === 'a' ? 'accepted' : 'rejected')); return;
+      const h = hover; closeMenu(); hover = null; act({ type: 'review', segment: ref(h).segment, verdict: k0 === 'a' ? 'accepted' : 'rejected' });
     }
-    if (!(e.ctrlKey || e.metaKey)) return;
-    const k = e.key.toLowerCase();
-    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
-    else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
   }, { signal });
   V.onReset(() => { if (!focused || !model) return false; frameFocus(); if (FLAT.has(mode)) V.S.held = true; return true; }, signal);
   document.addEventListener('pointerdown', (e) => { if (!$('ctx').contains(e.target) && e.target !== cv) closeMenu(); }, { signal });

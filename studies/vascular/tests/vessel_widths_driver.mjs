@@ -93,7 +93,7 @@ try {
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#model-on").hidden);
+  await page.waitForFunction(() => !$("#vm-review").hidden);
   await page.click("#gt-start");
   await page.waitForFunction(() => window.vascular.tasks().focused);
   [cx, cy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left, r.top]; });

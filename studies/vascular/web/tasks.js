@@ -41,8 +41,6 @@ function areaOf(m, p) {
   const r = cell(p.y, H), k = cell(p.x, W);
   return r * n + (r % 2 ? n - 1 - k : k);
 }
-// an area done, as the model's reviewed_regions keep it: through every slice, with the day and the step
-const region = (m, b) => ({ x: [b.x0, b.x1], y: [b.y0, b.y1], z: [0, m.slices - 1], on: new Date().toISOString().slice(0, 10), step: STEP });
 // a box kept before the steps had names was an area checked for missed vessels
 const stepOf = (g) => g.step || 'missed';
 function covered(m, a, step) {
@@ -105,23 +103,14 @@ function areaRight() {
   st.widths = true; st.junction = null; show(false);
 }
 // These widths look right: the area done, each vessel whose middle lies in it, confident ones accepted, low-confidence
-// ones not kept declined, and each one's width the person said nothing of looked at (never measured); it waits while
-// a vessel the person drew there has no width
+// ones not kept declined, and each one's width the person said nothing of looked at (never measured), all one GT action
+// (gt_actions.js); it waits while a vessel the person drew there has no width
 function widthsRight() {
   const m = MV.current(); if (!m || st.area == null || drawnWithout(m, st.area).length) return;
-  let o = { ...m, reviewed_regions: [...(m.reviewed_regions || []), region(m, areaBox(m, st.area))] };
-  const on = new Date().toISOString().slice(0, 10);
-  for (const v of items.vessels) {
-    if (areaOf(m, v.at) !== st.area) continue;
-    const open = v.proposed ? v.segments.filter((i) => o.segments[i].state === v.proposed) : [];
-    if (open.length) o = Mo.decide(o, open, v.proposed === 'vessel' ? 'accepted' : 'rejected');
-    if (Mo.live(o.segments[v.segments[0]]) && !v.said && v.width != null) o = Mo.setWidth(o, v.segments, { how: 'looked', on });
-  }
-  MV.edit(o); moveOn();
+  if (MV.act({ type: 'widths-right', area: st.area, box: areaBox(m, st.area), slices: [0, m.slices - 1] })) moveOn();
 }
 function verdict(j, v) {
-  const m = MV.current();
-  MV.edit(v === 'cross' ? Mo.splitJunction(m, j.id, V.S.zs) : Mo.checkJunction(m, j.id, true));
+  MV.act(v === 'cross' ? { type: 'split-junction', node: j.id, zScale: V.S.zs } : { type: 'check-junction', node: j.id, on: true });
   st.junction = null; st.dir = 1; show(false);
 }
 
@@ -225,11 +214,11 @@ function map(m, on) {
 }
 // the current junction's options, under the cogwheel
 function options(j) {
-  const m = MV.current(), out = [];
+  const out = [];
   const item = (label, fn) => { const b = button(label, () => { $('task-menu').open = false; fn(); }); b.className = 'item'; out.push(b); };
   if (j) {
     item('Look at it from the side', () => MV.lookAt(j.id));
-    if (j.done) item('Take back the verdict', () => MV.edit(Mo.checkJunction(m, j.id, false)));
+    if (j.done) item('Take back the verdict', () => MV.act({ type: 'check-junction', node: j.id, on: false }));
   }
   $('task-opts').replaceChildren(...out);
   $('task-menu').hidden = !out.length;

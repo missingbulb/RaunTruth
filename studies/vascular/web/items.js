@@ -154,16 +154,12 @@ function card(m, it) {
       `<dt>Width</dt><dd>${it.width == null ? 'not in the model' : `${fmt(it.width)} µm <span class="dim">(${fmt(it.wmin)}–${fmt(it.wmax)})</span>`}</dd>` +
       `<dt>Depth</dt><dd>slices ${fmt(Math.min(...z) + 1, 0)}–${fmt(Math.max(...z) + 1, 0)}</dd></dl>`;
     if (it.state === 'candidate') {
-      actions.append(button('Approve', () => MV.edit(Mo.review(MV.current(), it.segments[0], 'accepted')), 'yes'),
-        button('Decline', () => MV.edit(Mo.review(MV.current(), it.segments[0], 'rejected')), 'no'));
+      const [first] = MV.ids(it.segments);
+      actions.append(button('Approve', () => MV.act({ type: 'review', segment: first, verdict: 'accepted' }), 'yes'),
+        button('Decline', () => MV.act({ type: 'review', segment: first, verdict: 'rejected' }), 'no'));
     }
     actions.append(button('Show in 3D', () => { select(key); MV.frame(it.ids); show3d(); }));
-    if (it.state !== 'rejected') actions.append(button('Delete', () => {
-      let o = MV.current();
-      // later segments first, so the earlier indices stay valid
-      for (const i of [...it.segments].sort((a, b) => b - a)) o = Mo.deleteSegment(o, i);
-      MV.edit(o);
-    }));
+    if (it.state !== 'rejected') actions.append(button('Delete', () => MV.act({ type: 'delete-segment', segments: MV.ids(it.segments) })));
     requestAnimationFrame(() => V.meta && vesselPicture(cv, m, it));
   } else {
     body.innerHTML = `<div class="card-head"><b>Junction ${Mo.pointName(it.id)}</b>${it.pending ? ' <span class="chip candidate">Waits on review</span>' : ''}</div>` +
@@ -171,7 +167,7 @@ function card(m, it) {
       `<dl><dt>Depth</dt><dd>slice ${fmt(it.z + 1)}</dd><dt>Width</dt><dd>${Number.isFinite(it.r) ? `${fmt(2 * it.r)} µm` : 'not in the model'}</dd>` +
       `<dt>Nearby</dt><dd class="${it.crowd ? 'warn' : ''}">${it.crowd ? `${it.crowd} other junction${it.crowd === 1 ? '' : 's'} within ${CROWD_UM} µm` : `no other junction within ${CROWD_UM} µm`}</dd></dl>`;
     actions.append(button('Side view', () => { select(key); MV.lookAt(it.id); show3d(); }),
-      button('They cross: split', () => MV.edit(Mo.splitJunction(MV.current(), it.id, V.S.zs))));
+      button('They cross: split', () => MV.act({ type: 'split-junction', node: it.id, zScale: V.S.zs })));
     requestAnimationFrame(() => V.meta && junctionPicture(cv, m, it));
   }
   body.append(actions);

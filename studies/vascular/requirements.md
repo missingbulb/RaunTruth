@@ -49,9 +49,12 @@ owner's decisions on the stacks and the vessel model, are
   whole stack, only the signal within reach of the model's vessels, or only what lies away from them, within a
   reach that is a share of each vessel's own width (`req/vascular/model/view`). Damaged sample is marked in Data
   Management, as an imperfection of the stack (`req/shell/data/edit`), never in the model (owner, 2026-11-07); a model
-  file whose `excluded_regions` mark damage still shows it hatched and leaves it out of the counts. Every edit can be undone,
-  and the edits stay in the browser, tied to the model as drawn, until it is submitted. Test:
-  `studies/vascular/tests/test_model_page.py`.
+  file whose `excluded_regions` mark damage still shows it hatched and leaves it out of the counts. Every edit is one GT
+  action in the shell's log (`req/shell/ground-truth/history`): a point dragged is one action at its drop, and Escape leaves
+  the model as it was; a tagger undoes, redoes and saves them with the shell's Undo, Redo and Save Draft, and Clear all
+  history goes back to the algorithm's model. Edits made earlier in this browser under the study's own key are offered once as
+  a draft (`req/shell/ground-truth/legacy`). Test: `studies/vascular/tests/test_model_page.py`,
+  `studies/vascular/tests/test_vessel_gt_actions_page.py`.
   </details>
 
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
@@ -81,9 +84,9 @@ owner's decisions on the stacks and the vessel model, are
   page's Python on the stack open, as the lab runs it (scored, with the spacing between slices the
   page shows), and the model it draws opens over the stack. The study ships no drawn models: a
   stack opens with none until Execute, and no model file is loaded in its place: an image, then the
-  algorithm, as NoR's (owner, 2026-11-07). Once a model is open, Undo, Redo and Discard edits are under
-  Execute; what the model holds is in Summary (owner, 2026-11-07: the left bar
-  is the shell's, `req/shell/left-bar/shells`). Draw a missed vessel is a ground-truth action, offered only by a
+  algorithm, as NoR's (owner, 2026-11-07). What the model holds is in Summary (owner, 2026-11-07: the left bar
+  is the shell's, `req/shell/left-bar/shells`); its edits are undone and redone in the Ground Truth Tasks box
+  (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
   (`req/nor/find/settings`). Each algorithm in the list carries its own icon and its name, and its
   precision and recall against the provisional labels (`analysis/extraction/labels/`, a model's
