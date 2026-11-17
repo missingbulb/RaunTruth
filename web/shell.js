@@ -522,6 +522,7 @@ function showRole() {
 // opening the menu, in the user's click, renews a token that ran out: the store is then asked for the roles again
 $("#role-menu summary").addEventListener("click", () => { if (storeRoles.stale) signIn.renew(); });
 const roleChooser = roleMenu($("#role-menu"), (r) => {
+  if (role === "tagger" && !gtSession.leaving("change your role")) return;
   try { localStorage.setItem(ROLE, r); } catch { /* private mode: this page only */ }
   signIn.changed(ROLE);
   log.add(`Chose the role ${ROLE_NAMES[r]}`);
@@ -2211,7 +2212,7 @@ $("#study-search").onkeydown = (e) => {
 let swapping = Promise.resolve();
 function goTo(id) {
   $("#study-menu").open = false;
-  if (studyOf(location) === id) return;
+  if (studyOf(location) === id || !gtSession.leaving("choose another study")) return;
   history.pushState(null, "", addressOf(id));
   swap();
 }
@@ -2328,6 +2329,8 @@ const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, no
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
+  // tagging ends while the study's panels are still there for it to put away
+  tasks.tagging(false);
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();

@@ -180,9 +180,36 @@ await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileNam
 asked = await ask(page, false, async () => { await page.click("#load-remote"); await page.waitForFunction(() => document.querySelector("#remote-dlg").open); await page.dblclick(`#remote-list .item[data-id="${png.id}"]`); });
 await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name && !(await label(page)).hidden, "opening an image over an unsaved action asks, and dismissing keeps the model", asked);
 await page.evaluate(() => { const d = $("#remote-dlg"); if (d.open) d.close(); });
+// choosing another study, or changing role away from Ground Truth Tagger, with an action unsaved asks first
+const studyIs = (page) => page.evaluate(() => st.fileName + "|" + document.title);
+const before = await studyIs(page);
+asked = await ask(page, false, async () => { await page.click("#study-menu summary"); await page.click('#study-list a[data-id="viewer"]'); });
+await check(/unsaved/.test(asked || "") && (await studyIs(page)) === before && new URL(page.url()).pathname.endsWith("/fixture") && !(await label(page)).hidden,
+  "choosing another study with an unsaved action asks, and dismissing keeps the study, its image and the action", asked);
+asked = await ask(page, false, async () => { await page.click("#role-menu summary"); await page.click('#role-list .item:text-is("Viewer")'); });
+await check(/unsaved/.test(asked || "") && (await page.textContent("#role-name")).trim() === "Ground Truth Tagger" && (await studyIs(page)) === before && !(await label(page)).hidden,
+  "changing role away from Ground Truth Tagger with an unsaved action asks, and dismissing keeps the role and the action", asked);
 await page.click("#gt-save-draft");
 await until(page, () => $("#gt-unsaved").hidden);
 
+await page.context().close();
+// the browser's Back and Forward cannot be cancelled: the study is swapped with an action unsaved, and nothing is asked
+page = await open(true);
+let dialogs = 0;
+page.on("dialog", (d) => { dialogs++; d.dismiss(); });
+await tagger(page);
+await page.click("#study-menu summary"); await page.click('#study-list a[data-id="viewer"]');
+await page.waitForFunction(() => document.title === "Image Viewer" && !st.img);
+await page.goBack();
+await page.waitForFunction(() => /\/fixture$/.test(location.pathname) && !!window.fixture);
+await ready(page);
+await tagger(page);
+await counted(page);
+await moved(page, "m1", 12, 12);
+await check(!(await label(page)).hidden, "an action is unsaved before Forward");
+await page.goForward();
+await page.waitForFunction(() => document.title === "Image Viewer");
+await check(dialogs === 0, "Forward swapped the study over an unsaved action while tagging, without a question and without an error: the action is lost there", dialogs);
 await page.context().close();
 // a write that fails is said, and the unsaved count stays
 page = await open(true, { prepare: (ctx) => ctx.addInitScript(() => {
