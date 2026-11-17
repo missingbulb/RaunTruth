@@ -402,6 +402,12 @@ try {
   check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
     "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");
+  // a row of Edit History hovered rings its book on the photo, in a colour the book's own outline and corners are not drawn in
+  await page.hover("#eh-list li.go");
+  await page.waitForFunction(() => !!document.querySelector('#overlay g[data-layer="ring"]')?.dataset.box);
+  const ringed = await page.evaluate(() => { const g = document.querySelector('#overlay g[data-layer="ring"]'); return { box: g.dataset.box, colour: getComputedStyle(g.querySelector("ellipse")).stroke }; });
+  check(ringed.box === "120,100,420,280" && ringed.colour === "rgb(255, 0, 255)", "a row's hover rings the book it is about, in the study's own colour, round the corners as dragged", ringed);
+  await page.mouse.move(5, 5);
   for (let i = 0; i < 3; i++) await page.click("#zoom-out");
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "3/3 Books" && await page.evaluate(() => $("#gt-submit").disabled && !!document.querySelector('[data-do="none"]')),
