@@ -15,8 +15,9 @@ const SAY = {
 export const LOCAL_GT = (remote) => `Ground truth cannot be sent from local files, only from ${remote.label}.`;
 
 // account: the sign-in; remote: the remote store; place: the study's place in it (study_root.js studyPlace); image() the image open, {name, sha256, source} or null; on() whether the user makes ground truth now;
-// cleared() opens the image afresh once the study has forgotten its progress on it
-export function truthTagger({ account, remote, place, image, on, cleared }) {
+// cleared() opens the image afresh once the study has forgotten its progress on it; history(): whether the study keeps its
+// ground truth as GT actions, whose Clear all history is the Edit History window's (req/shell/ground-truth/clear)
+export function truthTagger({ account, remote, place, image, on, cleared, history }) {
   const sd = remote.writer(account);
   const reader = place.reader;
   const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark };
@@ -49,7 +50,7 @@ export function truthTagger({ account, remote, place, image, on, cleared }) {
       });
     }
     for (const el of document.querySelectorAll("#left .gt-clear-slot")) {
-      el.hidden = !on() || !clear || !im;
+      el.hidden = !on() || !clear || !im || history();
       el.innerHTML = el.hidden ? "" : `<button type="button" class="gt-clear link" title="Forget your ${clear.what} on this image, on this device">Clear progress</button>`;
       el.querySelector(".gt-clear")?.addEventListener("click", () => {
         const name = image()?.name;

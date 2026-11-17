@@ -9,6 +9,7 @@
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until } from "./page_until.mjs";
+import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
@@ -17,48 +18,8 @@ approved.add(GT.submissions);
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
-const ready = (page) => page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-const asTagger = async (page) => { if ((await page.textContent("#role-name")).trim() !== "Ground Truth Tagger") await role(page, "Ground Truth Tagger"); };
-const openImage = async (page) => {
-  await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
-  await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-  await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-};
-const tagger = async (page) => { await asTagger(page); await openImage(page); };
-const reopen = async (page) => { await page.reload(); await ready(page); await tagger(page); };
-const model = (page) => page.evaluate(() => window.fixture.model());
-const marks = async (page) => JSON.stringify((await model(page))?.marks ?? null);
-const counted = async (page) => { await page.click("#fx-count"); await until(page, () => !!window.fixture.model()); await page.click("#gt-start"); };
-const label = (page) => page.evaluate(() => ({ hidden: $("#gt-unsaved").hidden, text: $("#gt-unsaved").textContent }));
-const center = (page, id) => page.evaluate((id) => { const r = document.querySelector(`#fx-marks circle[data-mark="${id}"]`).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, id);
-// a mark pressed, moved by (dx, dy) screen pixels and, unless held, let go
-const dragMark = async (page, id, dx, dy, { hold = false } = {}) => {
-  const [x, y] = await center(page, id);
-  await page.mouse.move(x, y); await page.mouse.down();
-  await page.mouse.move(x + dx / 2, y + dy / 2); await page.mouse.move(x + dx, y + dy);
-  if (!hold) await page.mouse.up();
-};
-const moved = async (page, id, dx, dy) => {
-  const before = await marks(page);
-  await dragMark(page, id, dx, dy);
-  await until(page, (b) => JSON.stringify(window.fixture.model().marks) !== b, before);
-};
-const records = (page) => page.evaluate(() => new Promise((ok, bad) => {
-  const q = indexedDB.open("gt-drafts", 1);
-  q.onupgradeneeded = () => { q.transaction.abort(); ok([]); };
-  q.onsuccess = () => { const r = q.result.transaction("drafts").objectStore("drafts").getAll(); r.onsuccess = () => { q.result.close(); ok(r.result); }; r.onerror = () => bad(r.error); };
-}));
+const { ready, tagger, reopen, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 const unloadAsks = (page) => page.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); dispatchEvent(e); return e.defaultPrevented; });
-// a question the page asks, answered as told; its text
-const ask = async (page, accept, act) => {
-  const asked = page.waitForEvent("dialog");
-  const acting = act();
-  const dlg = await asked, text = dlg.message();
-  await (accept ? dlg.accept() : dlg.dismiss());
-  await acting;
-  return text;
-};
 const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
@@ -122,7 +83,7 @@ await check(l.text === "· 1 unsaved", "undoing a saved action counts as unsaved
 await page.click("#gt-redo");
 await check((await marks(page)) === m2 && (await label(page)).hidden, "Redo puts it back, and the count with it");
 const keys = await page.evaluate(() => ({ undo: $("#gt-undo kbd.key-on")?.textContent, redo: $("#gt-redo kbd.key-on")?.textContent, tip: $("#gt-undo").title }));
-await check(/Z/.test(keys.undo) && /Z/.test(keys.redo) && /^Undo: Moved mark m2/.test(keys.tip), "each button carries its key, and Undo says what it undoes", keys);
+await check(/Z/.test(keys.undo) && /Y/.test(keys.redo) && /^Undo: Moved mark m2/.test(keys.tip), "each button carries its key, and Undo says what it undoes", keys);
 await page.keyboard.press("Control+KeyZ");
 await check((await marks(page)) === m1, "Ctrl+Z undoes");
 await page.keyboard.press("Control+Shift+KeyZ");

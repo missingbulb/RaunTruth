@@ -373,6 +373,14 @@
                             }
                           ]
                         },
+                        {"name": "Show Edit History row", "select": "#gt-history-row", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Show Edit History", "select": "#gt-history-on", "control": true, "req": "req/shell/ground-truth/history"}
+                          ]
+                        },
                         {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
                           "rule": [
                             {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
@@ -542,6 +550,18 @@
                     {"name": "Fold the minimap", "select": "#minimap-fold", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
+                  ]
+                },
+                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only a tagger has a log to show"},
+                    {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                  ],
+                  "children": [
+                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
+                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history"},
+                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history"},
+                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear"}
                   ]
                 },
                 {"name": "Keys legend", "select": "#keys-legend", "made": "by the shell, as the page starts", "req": "req/shell/image/keys",

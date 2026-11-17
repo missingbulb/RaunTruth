@@ -1,9 +1,10 @@
 // The tagger's session of GT actions on the image open (req/shell/ground-truth/history): the log and its model live in
 // the page while the tagger works, the GT box's Undo, Redo and Save Draft controls drive it, and a draft on this device
 // is offered back by Load draft. The study reaches it as shell.gt. The log itself, and what replays it, are
-// truth_actions.js; the drafts' storage is truth_drafts.js.
+// truth_actions.js; the drafts' storage is truth_drafts.js; the Edit History window is edit_history.js.
 "use strict";
 import { actionLog, check, pack, bare, HISTORY_FORMAT } from "./truth_actions.js";
+import { editHistory } from "./edit_history.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const clock = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -13,13 +14,15 @@ const sig = (a) => `${a.type}@${a.at}`;
 
 // image(): {name, sha256, width, height} of the image open, null while none; studyId(): the study on show;
 // makesTruth(): whether the tagger tags now; dragging(): whether a drag is under way; keys: the viewer's actions
-// (add(spec)); drafts: truth_drafts.js's store; status and notice: the page's say; confirmBox: its question to the user
-export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth }) {
+// (add(spec)); drafts: truth_drafts.js's store; status and notice: the page's say; confirmBox: its question to the user;
+// viewer(): the viewer, which rings an item; remoteLabel(): the remote store's name; readJSON and writeJSON: the shell's storage
+export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth, viewer, remoteLabel, readJSON, writeJSON }) {
   let module = null, log = null, replayState = "verified";
   // what the device's draft of the image open held when last seen, the saved time of the one this visit loaded or saved,
   // and the actions in force then
   let stored = null, lastSaved = null, savedSigs = [], opening = 0;
   const listeners = new Set();
+  const rooted = () => !!log && active().some((a) => a.type === "run" || a.type === "base");
 
   const notify = (model, why) => { for (const l of [...listeners]) l.fn(model, why); };
   const active = () => (log ? log.actions : []);
@@ -40,7 +43,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   const describe = (a) => (module?.describe ? module.describe(a, 1, log.model) : a.type);
 
   function paint() {
-    const on = !!log && active().some((a) => a.type === "run" || a.type === "base");
+    const on = rooted();
     $("#gt-edits").hidden = !on;
     const undo = $("#gt-undo"), redo = $("#gt-redo"), n = on ? unsaved() : 0;
     undo.disabled = !on || !log.canUndo; redo.disabled = !on || !log.canRedo;
@@ -51,7 +54,11 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved;
     $("#gt-offers").hidden = !offered;
     if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
+    editWindow?.paint();
   }
+
+  const editWindow = editHistory({ $, log: () => log, study: () => module, viewer, shown: () => rooted() && makesTruth(),
+    goto: (n) => session.api.goto(n), clearAll: () => clearAll(), readJSON, writeJSON });
 
   const mutated = (why) => { paint(); notify(log.model, why); };
 
@@ -85,7 +92,20 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     return true;
   }
 
+  async function clearAll() {
+    const img = image();
+    if (!log || !img) return;
+    if (!confirmBox(`Clear all history on ${img.name}? This forgets your draft of this image on this device and goes back to the algorithm's output; anything you submitted stays in ${remoteLabel()}.`)) return;
+    try { if (img.sha256) await drafts.delete(studyId(), img.sha256); } catch (e) { notice(`The draft could not be cleared: ${e?.message || e}`); return; }
+    log.clear();
+    stored = null; replayState = "verified"; markSaved(null);
+    status("History cleared: back to the algorithm's output.");
+    mutated("clear");
+  }
+
   const session = {
+    // the controls and the window drawn again, as the role or the image changed what shows
+    paint,
     mount(m) {
       module = m; log = m ? actionLog(m) : null; replayState = "verified";
       stored = null; lastSaved = null; savedSigs = [];
@@ -155,9 +175,10 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   $("#gt-redo").onclick = () => session.redo();
   $("#gt-save-draft").onclick = () => save();
   $("#gt-load-draft").onclick = () => { if (stored) load(stored); };
-  const spec = (id, label, codes, control) => ({ id, label, keys: codes, kind: "press", legend: false, control, active: () => !dragging() });
+  const spec = (id, label, codes, control, hint) => ({ id, label, keys: codes, kind: "press", legend: false, control, hint, active: () => !dragging() });
   keys.add(spec("gt-undo", "Undo", ["Ctrl+KeyZ", "Meta+KeyZ"], "#gt-undo"));
-  keys.add(spec("gt-redo", "Redo", ["Ctrl+Shift+KeyZ", "Meta+Shift+KeyZ", "Ctrl+KeyY"], "#gt-redo"));
+  // Ctrl+Y is the one its button says, the shortest of the three
+  keys.add(spec("gt-redo", "Redo", ["Ctrl+Shift+KeyZ", "Meta+Shift+KeyZ", "Ctrl+KeyY"], "#gt-redo", "Ctrl+Y"));
   addEventListener("beforeunload", (e) => { if (makesTruth() && unsaved() > 0) { e.preventDefault(); e.returnValue = ""; } });
   return session;
 }

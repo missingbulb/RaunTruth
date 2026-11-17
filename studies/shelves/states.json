@@ -55,6 +55,18 @@
         {"is": "hidden", "req": "req/shell/ground-truth/history", "approval": "tentative", "about": "the study keeps no GT actions yet"}
       ]
     },
+    "Edit History": {
+      "steady": "hidden in every state of this study: it keeps no GT actions yet",
+      "rule": [
+        {"is": "hidden", "req": "req/shell/ground-truth/history", "approval": "tentative", "about": "the study keeps no GT actions yet"}
+      ]
+    },
+    "Show Edit History row": {
+      "steady": "hidden in every state of this study: it keeps no GT actions yet",
+      "rule": [
+        {"is": "hidden", "req": "req/shell/ground-truth/history", "approval": "tentative", "about": "the study keeps no GT actions yet"}
+      ]
+    },
     "Continue tagging": {
       "steady": "hidden in every state of this study: no path keeps a draft",
       "rule": [

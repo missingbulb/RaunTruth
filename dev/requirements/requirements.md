@@ -474,14 +474,18 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_throttle_page.py`.
   </details>
 
-- `req/shell/ground-truth/clear` Clear progress, in the Ground Truth Tasks, forgets the open image's tagging on this device.
+- `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
   Set by the owner on 2026-11-05. A tagger's progress on an image (votes, added items, masks, the areas
   checked) is kept in the browser, so they can come back to it. Clear progress, at the Ground Truth Tasks
   box's end beside Submit Ground Truth (owner, 2026-11-07), asks first, naming what goes ("your votes, added items and checked areas on <image>"), then forgets
   only the open image's progress: other images keep theirs, and anything already submitted stays in Drive.
-  Test: `web-tests/test_gt_drive_page.py`.
+  Changed by the owner on 2026-11-17: for a study with GT actions (`req/shell/ground-truth/history`) it is Clear all
+  history…, at the foot of the Edit History window. It asks first, naming the image, then forgets this image's draft on
+  this device and returns the model to the algorithm's output; other images keep theirs and anything submitted stays in
+  Drive. A study without GT actions keeps Clear progress beside Submit Ground Truth. Test:
+  `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/curate` A Study Manager accepts or rejects each pending submission into the curated folder.
@@ -554,7 +558,21 @@ nobody has decided: what the page does there is not a requirement yet.
   undo and redo are the shell's, the same in every study. Undo takes the last action off the log and replays the rest
   (`req/shell/ground-truth/history-replay`); Redo puts it back; a new action forgets what was undone. Undo stops at the
   first run or base, and there is none to undo before one; undoing a later run goes back to the model on the run before.
-  Two runs with no action between them are one, the later. Tests: `web-tests/test_truth_actions.py`.
+  Two runs with no action between them are one, the later.
+
+  The log is shown as Edit History, a tool window floating over the image at its bottom right, framed and headed as the
+  minimap is, 2.5 times the minimap's height and never taller than the view less its margins, 1.4 times its width. Show
+  Edit History, in Ground Truth Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
+  has a run or a base. Newest on top, a dot at the current state; what was undone sits above the dot, dimmed and struck,
+  until a new action clears it. A click on a row goes to it, the run's row back to the algorithm's output; the image's
+  opening closes the list and is no row to go to. A row's words are the study's `describe`, its time at the right. Runs
+  of one type fold into one row with its count and its span of time, unfolded by its chevron; Undo still takes one
+  action. A day rule breaks sittings. The list scrolls inside the window, the current row pinned to its edge while
+  scrolled away, and past 1,000 rows only those in view are drawn. An action a later run could not carry is greyed
+  ("didn't carry over"), and so is a log a mismatch set aside ("earlier history, not replayable in this version").
+  Hovering a row rings its item on the image, from the study's `where`; a click pans there when it is out of view
+  (Tentative: in the 3D view the ring sits at the stack's middle depth and nothing pans). Undo's tooltip names what it
+  will undo. Tests: `web-tests/test_truth_actions.py`, `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.

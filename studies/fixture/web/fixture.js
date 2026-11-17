@@ -22,9 +22,6 @@ export function mount(shell) {
   const pick = (key) => { if (model()) shell.tasks.open(key).querySelector(".task-body").append($("#fx-check"), $("#fx-marks-tools")); };
   shell.tasks.list([{ key: "check", name: "Count checked", title: "Whether the count is right" }], { submit, pick, tagging: () => task(model()) });
 
-  // its progress on the image, the count, is kept nowhere but the page
-  shell.clearable("count", () => {});
-
   // the layer's two groups: the counted pixels of this visit's Count, and a ring per mark
   const groups = () => {
     const g = shell.viewer.layer("fx");
