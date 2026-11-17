@@ -131,7 +131,8 @@ export function mount(shell) {
       const key = `fx-legacy:${shell.state.fileName}`;
       let old = null;
       try { old = JSON.parse(localStorage.getItem(key)); } catch { /* no old store */ }
-      if (old?.model) shell.gt.legacy({ model: old.model, count: old.edits, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
+      if (old?.actions) shell.gt.legacy({ actions: old.actions, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
+      else if (old?.model) shell.gt.legacy({ model: old.model, count: old.edits, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
       shell.status("Counted.");
     },
   };

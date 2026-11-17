@@ -76,4 +76,34 @@ await page.click("#gt-load-draft");
 await until(page, () => window.fixture.model().marks.length === 3);
 await check(/verified/.test(await page.textContent("#status")) && (await page.evaluate(() => window.fixture.model().marks.map((m) => m.id).join())) === "m1,m2,m9", "the draft brings the base back, its replay verified");
 await page.context().close();
+
+// an old store handed over as the GT actions it implies: recorded on the run's model at the click, each the tagger's own
+{
+  const page = await open(true);
+  await tagger(page);
+  const ACTIONS = [{ type: "move-mark", mark: "m1", to: [40, 41] }, { type: "delete-mark", mark: "m7" }, { type: "check", on: true }];
+  await page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify(v)), [KEY, { actions: ACTIONS }]);
+  const there = () => kept(page);
+  await page.click("#fx-count");
+  await until(page, () => !!window.fixture.model());
+  await until(page, () => !$("#gt-offers").hidden);
+  let o = await offers(page);
+  await check(o.legacy && /3 actions/.test(o.title) && !(await page.evaluate(() => window.fixture.model().checked)), "actions of an old store are offered, and none is done unasked", o);
+  await page.click("#gt-start");
+  await page.click("#gt-load-legacy");
+  await until(page, () => window.fixture.model().checked);
+  const m = await page.evaluate(() => window.fixture.model());
+  const rows = await page.evaluate(() => [...document.querySelectorAll("#eh-list .what")].map((x) => x.textContent));
+  const l = await label(page);
+  o = await offers(page);
+  await check(m.marks.find((x) => x.id === "m1").x === 40 && m.marks.length === 2 && l.text === "· 2 unsaved" && !o.legacy && await there()
+    && /Count checked/.test(rows[0]) && /Moved mark m1/.test(rows[1]) && !rows.some((r) => /marks kept in this browser/.test(r)),
+    "Load earlier edits records each as a GT action of the tagger's, leaving out the one whose mark is not there, with no base", { m, rows, l, o });
+  await page.click("#gt-undo");
+  await check(!(await page.evaluate(() => window.fixture.model().checked)) && (await page.evaluate(() => window.fixture.model().marks.find((x) => x.id === "m1").x)) === 40, "and Undo takes back the last of them alone");
+  await page.click("#gt-save-draft");
+  await until(page, () => $("#gt-unsaved").hidden);
+  await check(!(await there()), "Save Draft keeps them and only then forgets the old store");
+  await page.context().close();
+}
 await done(0);

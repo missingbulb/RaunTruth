@@ -621,7 +621,12 @@ nobody has decided: what the page does there is not a requirement yet.
   withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
   beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
   when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
-  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit. Tentative: the offer has no path in the
+  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
+  A study whose old store means something only on the run's items (the NoR Finder's votes, kept by a candidate's place) hands
+  over `actions` in place of `model` and `count`: the GT actions the store implies. The click then records each on the model as
+  it stands, stamped then, as the tagger's own: nothing is replaced, so nothing is asked; each is a row of Edit History, undone
+  like any other, and counted unsaved; one whose item is not there is left out, and with none recorded the offer stays (tentative:
+  the owner set the base, for Vascular; the actions are the validator's of the NoR Finder's move, 2026-11-17). Tentative: the offer has no path in the
   shell's states, the studies that keep an old store being offered it by their own code. Test: `web-tests/test_gt_history_page.py`.
   </details>
 

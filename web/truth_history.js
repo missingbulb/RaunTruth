@@ -58,7 +58,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     offer.hidden = !offered;
     if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
     $("#gt-load-legacy").hidden = !earlier;
-    if (earlier) $("#gt-load-legacy").title = `${old.count ? `${nameOfCount(old.count)}, ` : ""}${old.from}`;
+    if (earlier) $("#gt-load-legacy").title = `${old.said ? `${nameOfCount(old.said)}, ` : ""}${old.from}`;
     editWindow?.paint();
   }
 
@@ -182,10 +182,12 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       },
       // what the study kept of the tagger's edits before it kept GT actions, offered as Load earlier edits: {model: the study's
       // document, count: how many edits it holds, from: what to call it, forget(): removes the old store, which the shell calls
-      // once a draft holds it}; null withdraws the offer
+      // once a draft holds it}, or {actions, from, forget} where the store is the GT actions it implies; null withdraws the offer
       legacy(offer) {
         if (!log) return;
-        old = offer && offer.model ? { model: offer.model, count: offer.count ?? 1, from: String(offer.from ?? "an earlier store"), forget: offer.forget } : null;
+        const from = String(offer?.from ?? "an earlier store");
+        old = offer?.actions?.length ? { actions: offer.actions, said: offer.actions.length, count: 0, from, forget: offer.forget }
+          : offer?.model ? { model: offer.model, said: offer.count ?? 1, count: offer.count ?? 1, from, forget: offer.forget } : null;
         oldTaken = false;
         paint();
       },
@@ -194,9 +196,21 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     },
   };
 
+  // the old store's GT actions recorded on the model as it stands, each the tagger's own from now; one that does not fit is left out
+  const takeActions = () => {
+    let n = 0;
+    for (const a of old.actions) {
+      try { if (!log.act({ ...a, at: undefined }).skip) n++; } catch (e) { console.warn("shell.gt.legacy:", e.message); }
+    }
+    if (!n) { status(`None of the earlier edits fits what is here now: ${old.from}.`, true); return; }
+    oldTaken = true;
+    status(`Earlier edits loaded, ${nameOfCount(n)}: ${old.from}.`);
+    mutated("act");
+  };
   // the old store taken as the log's base, after asking when actions are not saved
   const takeOld = () => {
     if (!log || !old || oldTaken) return;
+    if (old.actions) return takeActions();
     if (unsaved() > 0 && !confirmBox(`Loading the earlier edits replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load them?`)) return;
     log.load([...active(), { type: "base", at: new Date().toISOString(), model: bare(old.model), from: { note: old.from } }]);
     oldTaken = true; replayState = "verified"; markSaved(null);
