@@ -415,7 +415,7 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 .eh-foot { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
 .eh-foot .link { border: 0; background: none; padding: 0; font-size: 12px; color: var(--err); cursor: pointer; }
 .eh-foot .link:hover { text-decoration: underline; }
-.v3-ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 2px solid #ffd400; border-radius: 50%; box-shadow: 0 0 0 3px #ffd40040; pointer-events: none; z-index: 1; }
+.v3-ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 2px solid var(--gt-ring, #ffd400); border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--gt-ring, #ffd400) 25%, transparent); pointer-events: none; z-index: 1; }
 .v3-ring[hidden] { display: none; }
 /* the minimap folding into its toolbar button and unfolding out of it: one shape morphing between the two
    places along an arc, the minimap folding over its header like paper as it shrinks, the button lighting

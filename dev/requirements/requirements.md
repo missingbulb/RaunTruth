@@ -571,7 +571,9 @@ nobody has decided: what the page does there is not a requirement yet.
   scrolled away, and past 1,000 rows only those in view are drawn. An action a later run could not carry is greyed
   ("didn't carry over"), and so is a log a mismatch set aside ("earlier history, not replayable in this version").
   Hovering a row rings its item on the image, from the study's `where`; a click pans there when it is out of view
-  (Tentative: in the 3D view the ring sits at the stack's middle depth and nothing pans). Undo's tooltip names what it
+  (Tentative: in the 3D view the ring sits at the stack's middle depth and nothing pans). The ring is yellow, or the
+  colour a study names for it in its `study.json` (`groundTruth.ring`) where its image or its own marks carry yellow.
+  Undo's tooltip names what it
   will undo. Tests: `web-tests/test_truth_actions.py`, `web-tests/test_gt_history_page.py`.
   </details>
 

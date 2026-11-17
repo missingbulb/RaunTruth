@@ -12,7 +12,7 @@ import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, drawnStack } from "./stand_in.mjs";
+import { serve, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
@@ -25,6 +25,8 @@ try { pw = require("playwright"); } catch {
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
+// the model in the pixels of the stack the stand-in draws, so that a place in the image's pixels is one place in both
+model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK_PX];
 const site = await serve(repo, studies, model, "GT");
 
 const browser = await pw[ENGINE].launch(LAUNCH);
@@ -79,6 +81,19 @@ try {
   check(JSON.stringify(await doc()) === before && (await count()) === 0, "the shell's Undo puts the point back");
   await page.click("#gt-redo");
   check((await nodeOf(node.id)).x === after.x && (await count()) === 1, "and its Redo moves it again");
+
+  // Edit History over the stack, and its ring in the study's own colour, which the stack and the model do not carry
+  const shown = await page.evaluate(() => { const w = $("#edit-history"), r = w.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + 8);
+    return { v3: $("#view").dataset.v3 !== undefined, seen: !w.hidden && getComputedStyle(w).display !== "none" && r.width > 0 && r.height > 0, onTop: w.contains(top),
+      rows: [...document.querySelectorAll("#eh-list .what")].map((x) => x.textContent) }; });
+  check(shown.v3 && shown.seen && shown.onTop && shown.rows[0] === "Moved a point", `Edit History shows over the 3D view, the move its newest row: ${JSON.stringify(shown)}`);
+  await page.hover("#eh-list li.go");
+  await page.waitForFunction(() => !document.querySelector(".v3-ring").hidden);
+  const ringed = await page.evaluate((id) => { const r = document.querySelector(".v3-ring"), b = r.getBoundingClientRect(), c = $("#mcv").getBoundingClientRect(), p = window.vascular.model().points[id];
+    return { in3d: !r.hidden, colour: getComputedStyle(r).borderTopColor, off: Math.hypot(b.left + b.width / 2 - c.left - p[0], b.top + b.height / 2 - c.top - p[1]) }; }, node.id);
+  check(ringed.in3d && ringed.colour === "rgb(0, 255, 0)" && ringed.off < 6, `the row's ring is drawn over the stack round the point moved, in the study's green: ${JSON.stringify(ringed)}`);
+  await page.mouse.move(cv[0] + 5, cv[1] + 5);
+
 
   // the file: every id kept, no clock, the log with it
   await page.click("#gt-submit");

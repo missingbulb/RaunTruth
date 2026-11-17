@@ -2287,6 +2287,8 @@ async function mountStudy(id) {
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
   gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  // the colour of Edit History's ring, where the study's image or marks carry the shell's
+  if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);
   study = (await mod.mount(shell)) || {};
   view.use(study);
@@ -2333,6 +2335,7 @@ function leaveStudy() {
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
   css?.remove(); css = null;
+  $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();
   for (const k of Object.keys(st)) if (!SHELL_STATE.has(k)) delete st[k];
   for (const k of SHELL_STATE) if (!PYTHON_STATE.includes(k)) st[k] = ST_LOADED[k];

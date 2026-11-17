@@ -332,7 +332,8 @@ export function viewer(shell) {
     const g = layer("ring"), [x0, y0, x1, y1] = ringAt, pad = 8 / st.zoom;
     g.dataset.box = ringAt.join(","); g.style.pointerEvents = "none";
     const one = (attrs) => make("ellipse", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, rx: (x1 - x0) / 2 * 1.2 + pad, ry: (y1 - y0) / 2 * 1.2 + pad, fill: "none", "vector-effect": "non-scaling-stroke", ...attrs });
-    g.replaceChildren(one({ stroke: "#ffd400", "stroke-opacity": 0.3, "stroke-width": 7 }), one({ stroke: "#ffd400", "stroke-width": 2 }));
+    g.style.stroke = "var(--gt-ring, #ffd400)";
+    g.replaceChildren(one({ "stroke-opacity": 0.3, "stroke-width": 7 }), one({ "stroke-width": 2 }));
   }
   function ring(box, { pan = false } = {}) {
     ringAt = box && st.img ? box.slice(0, 4) : null;
