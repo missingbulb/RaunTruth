@@ -70,12 +70,11 @@ const THUMBS = "nor-drive-thumbs";
 const AUTO_SAVE = "nor-drive-autosave";
 // Auto-save images (req/shell/drive/kept-images): an image downloaded from the remote store is kept on this device
 const autoSave = () => readJSON(AUTO_SAVE, "on") !== "off";
-// + remote id: a JPEG data URL of the image, saved when it was opened
-const SAVED_THUMB = "nor-drive-thumb:";
-// [remote id], oldest first: which images have one
-const SAVED_THUMBS = "nor-drive-thumbs-saved";
-// {remote id: file name}: the image each saved thumbnail shows
-const THUMB_NAMES = "nor-drive-thumb-names";
+// where thumbnails were kept before they moved to cache storage, which moves each found here over (req/shell/storage/manage):
+// + remote id: a JPEG data URL of the image; [remote id], oldest first; {remote id: file name}
+const LEGACY_THUMB = "nor-drive-thumb:";
+const LEGACY_THUMBS = "nor-drive-thumbs-saved";
+const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 // a tagger's ground-truth draft of an image, by study, image name and SHA-256 (req/shell/ground-truth/draft)
 const GT_DRAFT = "gt-draft|";
 // {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
@@ -98,6 +97,9 @@ const IMAGE_PATH = "x-nor-path", IMAGE_STUDY = "x-nor-study";
 const FOLDER_PREVIEWS = "nor-previews-v1", PREVIEWS_SHA = "x-nor-sha256";
 // the paths each of those caches keeps its entries under, + remote id
 const PREVIEWS_PATH = "drive-previews/";
+const THUMB_PATH = "drive-thumb/";
+// Cache Storage, + remote id: a JPEG of an image opened from the remote store, its file name (URI-encoded) and when it was saved in the headers
+const THUMBS_CACHE = "nor-thumbs-v1";
 const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
@@ -663,6 +665,7 @@ async function start() {
     offlineCopy.keepSite().then(diskBar, (e) => console.warn("no copy of the site for offline:", e));
   }
   status("Ready. Load an image."); statusBar(); diskBar();
+  moveThumbs().catch((e) => console.warn("the thumbnails kept before could not be moved:", e));
   keepPython();
   if (navigator.deviceMemory <= LOW_GB) memoryTip();
 }
@@ -1158,8 +1161,8 @@ function remoteDialog() {
       const meta = [sizeText(f.size), [remote.label, ...f.path].join(" / ")].join(" · ");
       b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
       markOffline(b.querySelector(".kept"), "image", true);
-      const pic = readJSON(SAVED_THUMB + f.id, "");
-      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic }));
+      const pic = await thumbUrl(f.id);
+      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic, onload: () => URL.revokeObjectURL(pic), onerror: () => URL.revokeObjectURL(pic) }));
       b.onclick = () => choose(f, b);
       b.ondblclick = () => enter(f);
       b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
@@ -1270,7 +1273,11 @@ function remoteDialog() {
     // asked, done and bytes count the thumbnails, which the note beside the checkbox reports; a header read for
     // what a file holds is not one
     let ctl = new AbortController(), running = 0, rows = [], epoch = 0, ready, frame = 0, asked = 0, done = 0, bytes = 0, dir = null;
-    const put = (pic, url) => { const i = new Image(); i.alt = ""; i.src = url; pic.replaceChildren(i); };
+    const put = (pic, url, own) => {
+      const i = new Image(); i.alt = "";
+      if (own) i.addEventListener("load", () => URL.revokeObjectURL(url), { once: true }), i.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+      i.src = url; pic.replaceChildren(i);
+    };
     const tell = () => {
       const t = asked ? `${done} of ${asked} · ${sizeText(bytes)}` : "";
       loading = running && t ? "Thumbnails " + t : ""; say();
@@ -1332,8 +1339,10 @@ function remoteDialog() {
       const of = epoch, pv = await covered, e = pv?.entry(f.name, f.sha);
       if (of !== epoch) return;
       if (e) return fromPreviews(pic, e, pv);
-      const url = made.get(f.id) || readJSON(SAVED_THUMB + f.id, "") || f.preview;
-      if (url) put(pic, url);
+      const saved = made.get(f.id) ? "" : await thumbUrl(f.id);
+      if (of !== epoch) { if (saved) URL.revokeObjectURL(saved); return; }
+      const url = made.get(f.id) || saved || f.preview;
+      if (url) put(pic, url, !!saved);
       const holds = isTiff(f.name) && remote.ready && !offlineCopy.offline() && !(f.id in readJSON(HOLDS)), thumb = !url && (await ready).has(f.id);
       if (of !== epoch || !(thumb || holds)) return;
       rows.push({ at, row: pic.closest(".item"), f, thumb, holds, asked: false, done: false }); later();
@@ -1402,17 +1411,42 @@ function saveThumb(id, name) {
   const gain = Math.min(GAIN, 255 / Math.max(1, v[Math.floor(0.995 * (v.length - 1))]));
   for (let j = 0; j < p.length; j += 4) { p[j] *= gain; p[j + 1] *= gain; p[j + 2] *= gain; }
   x.putImageData(small, 0, 0);
-  keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
+  return keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
 }
+const thumbUrlOf = (id) => new URL(THUMB_PATH + encodeURIComponent(id), location.href).href;
+// the thumbnail kept for a remote image, as an object URL to revoke once shown; "" when none is kept
+async function thumbUrl(id) {
+  try {
+    const kept = await (await caches.open(THUMBS_CACHE)).match(thumbUrlOf(id));
+    return kept ? URL.createObjectURL(await kept.blob()) : "";
+  } catch { return ""; }
+}
+// when each thumbnail was saved: strictly increasing, so the latest are told apart within one millisecond
+let thumbClock = 0;
 // a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept
-function keepThumb(id, name, url) {
+async function keepThumb(id, name, url) {
   const KEEP = 100;
-  const kept = readJSON(SAVED_THUMBS, []).filter((i) => i !== id).concat(id);
-  for (const old of kept.splice(0, Math.max(0, kept.length - KEEP))) try { localStorage.removeItem(SAVED_THUMB + old); } catch { /* nothing kept */ }
-  const names = readJSON(THUMB_NAMES);
-  for (const k of Object.keys(names)) if (!kept.includes(k)) delete names[k];
-  writeJSON(SAVED_THUMB + id, url); writeJSON(SAVED_THUMBS, kept); writeJSON(THUMB_NAMES, { ...names, [id]: name });
+  try {
+    const cache = await caches.open(THUMBS_CACHE), blob = await (await fetch(url)).blob();
+    thumbClock = Math.max(Date.now(), thumbClock + 1);
+    await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
+    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
+    all.sort((x, y) => x.at - y.at);
+    for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
+  } catch (e) { console.warn("the thumbnail could not be kept:", e); }
   diskBar();
+}
+// thumbnails an earlier page kept in the settings' storage move to the cache, once: each, then the three key families, go
+async function moveThumbs() {
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_THUMB)); } catch { return; }
+  const names = readJSON(LEGACY_THUMB_NAMES), order = readJSON(LEGACY_THUMBS, []);
+  const rank = (k) => order.indexOf(k.slice(LEGACY_THUMB.length));
+  for (const k of keys.sort((a, b) => rank(a) - rank(b))) {
+    const id = k.slice(LEGACY_THUMB.length);
+    await keepThumb(id, names[id] || "", readJSON(k, ""));
+  }
+  for (const k of [...keys, LEGACY_THUMBS, LEGACY_THUMB_NAMES]) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
 }
 
 // what each remote file holds, remembered so it is read once; the latest KEEP. Returns its words for the row.
@@ -1534,17 +1568,8 @@ async function inventory() {
   const images = stores.find((c) => c.name === IMAGES);
   if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q)).headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
 
-  const names = readJSON(THUMB_NAMES), selections = new Map();
+  const selections = new Map();
   for (const k of keys) {
-    if (k === SAVED_THUMBS || k === THUMB_NAMES) { overhead += bytesOf(k); continue; }
-    if (k.startsWith(SAVED_THUMB)) {
-      const id = k.slice(SAVED_THUMB.length);
-      thumb(sectionOf(studyOf[id]), bytesOf(k), () => {
-        drop(k); writeJSON(SAVED_THUMBS, readJSON(SAVED_THUMBS, []).filter((i) => i !== id));
-        const n = readJSON(THUMB_NAMES); delete n[id]; writeJSON(THUMB_NAMES, n);
-      });
-      continue;
-    }
     if (OWN_SETTINGS[k]) { settings += bytesOf(k); continue; }
     const masked = summaryMasks.keyOf(k);
     if (masked) {
@@ -1584,6 +1609,10 @@ async function inventory() {
         if (id && sections.some((x) => x.study === id)) code[id] = (code[id] || 0) + size;
         else { site.size += size; site.files++; }
         site.del = () => caches.delete(c);
+        continue;
+      }
+      if (c === THUMBS_CACHE) {
+        thumb(sectionOf(studyOf[idOf(req.url)]), size, del);
         continue;
       }
       if (c === FOLDER_PREVIEWS) {

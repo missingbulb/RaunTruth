@@ -65,15 +65,11 @@ let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // what a browser that has used the page keeps: the shell's keys and the NoR study's, as their code writes them
-const PIC = JSON.stringify("data:image/jpeg;base64," + "A".repeat(4000));
+const PIC = "data:image/jpeg;base64," + "A".repeat(4000);
 const SEED = {
   "nor-theme": "dark",
   "nor-drive-link": JSON.stringify(`https://drive.google.com/drive/folders/${ROOT}`),
   "nor-load-source": JSON.stringify("drive"),
-  "nor-drive-thumb:ID1": PIC,
-  "nor-drive-thumb:ID2": PIC,
-  "nor-drive-thumbs-saved": JSON.stringify(["ID2", "ID1"]),
-  "nor-drive-thumb-names": JSON.stringify({ ID1: "slide 1.tif" }),
   "nor-filter-settings-v1": JSON.stringify({ values: { min_len: 3 }, off: [] }),
   "nor-marks-v1:slide 1.tif|ridge": JSON.stringify({ "10,20": "in" }),
   "nor-mask-v1:slide 1.tif": JSON.stringify([[[0, 0], [5, 0], [5, 5]]]),
@@ -137,6 +133,9 @@ try {
     const im = await caches.open("nor-images-v1"), url = (id) => new URL("drive-image/" + id, location.href).href;
     await im.put(url("ID1"), new Response(new Uint8Array(2048), { headers: { "x-nor-name": "slide%201.tif", "x-nor-study": "nor" } }));
     await im.put(url("ID9"), new Response(new Uint8Array(2048), { headers: { "x-nor-name": "old.tif" } }));
+    const th = await caches.open("nor-thumbs-v1");
+    for (const [id, name] of [["ID1", "slide%201.tif"], ["ID2", "other.tif"]])
+      await th.put(new URL("drive-thumb/" + id, location.href).href, new Response(new Uint8Array(2048), { headers: { "content-type": "image/jpeg", "x-nor-name": name, "x-nor-saved-at": String(Date.now()) } }));
   }, { core: CORE, shared: [...SHARED, PILLOW], own: OWN });
 
   // req/shell/offline/mark: a study whose Python is all here is marked in the switcher, green, a state rather than a
@@ -205,11 +204,11 @@ try {
   check(!k.some((x) => x.includes("slide 1.tif|") || x.endsWith(":slide 1.tif")) && k.includes("nor-edits-v1:other.tif|ridge"), `deleting an image removes its selections only: ${k}`);
   check(await page.isVisible("#storage-reload"), "and offers to reload the page, which still holds them");
 
-  // deleting the thumbnails removes each, its place in the list and its name
+  // deleting the thumbnails empties their cache and touches no setting
   await page.click('#storage-list .group[data-group="study:nor"] .entry[data-kind=thumb] .del');
   await page.waitForFunction(() => !document.querySelector('#storage-list .entry[data-kind=thumb]'));
-  const thumbs = await page.evaluate(() => [localStorage.getItem("nor-drive-thumb:ID1"), localStorage.getItem("nor-drive-thumb:ID2"), localStorage.getItem("nor-drive-thumbs-saved"), localStorage.getItem("nor-drive-thumb-names")]);
-  check(thumbs[0] === null && thumbs[1] === null && thumbs[2] === "[]" && thumbs[3] === "{}", `deleting the thumbnails removes them from every list: ${thumbs}`);
+  const thumbs = await page.evaluate(async () => (await (await caches.open("nor-thumbs-v1")).keys()).length);
+  check(thumbs === 0, `deleting the thumbnails empties their cache: ${thumbs} left`);
 
   // a study's Clear cache purges it, leaving what other studies use
   page.once("dialog", (d) => d.accept());
@@ -235,12 +234,23 @@ try {
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
 
-  // a thumbnail saved from now on keeps its image's name
-  await page.evaluate(() => {
+  // a thumbnail saved from now on is a JPEG in the cache, keeping its image's name, and no key in the settings' storage
+  await page.evaluate(async () => {
     Object.assign(st, { W: 4, H: 4, img: { planes: new Uint8Array(48).fill(100), n: 3 } });
-    shellForTests.saveThumb("ID3", "new slide.tif");
+    await shellForTests.saveThumb("ID3", "new slide.tif");
   });
-  check((await page.evaluate(() => JSON.parse(localStorage.getItem("nor-drive-thumb-names")).ID3)) === "new slide.tif", "a thumbnail saved now keeps its image's name");
+  const kept = await page.evaluate(async () => {
+    const r = await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/ID3", location.href).href);
+    return r && { name: decodeURIComponent(r.headers.get("x-nor-name")), type: r.headers.get("content-type"), keys: Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs") };
+  });
+  check(kept && kept.name === "new slide.tif" && /jpeg/.test(kept.type) && !kept.keys.length, `a thumbnail saved now is a JPEG in the cache with its image's name, and no key: ${JSON.stringify(kept)}`);
+  // only the latest 100 are kept
+  const cap = await page.evaluate(async () => {
+    for (let i = 0; i < 101; i++) await shellForTests.saveThumb("CAP" + i, "cap " + i + ".tif");
+    const ids = (await (await caches.open("nor-thumbs-v1")).keys()).map((q) => q.url.split("/").pop());
+    return { n: ids.length, oldest: ids.includes("CAP0") || ids.includes("ID3"), newest: ids.includes("CAP100") };
+  });
+  check(cap.n === 100 && !cap.oldest && cap.newest, `saving 101 leaves the latest 100: ${JSON.stringify(cap)}`);
   await page.click("#usage-dlg button[value=close]");
 
   // ---- req/shell/drive/kept-images: the Drive dialog's options, and images kept on this device ----
@@ -344,6 +354,24 @@ try {
   check(other === 0, `another study lists none of the images opened in this one: ${other}`);
   const back = await inStudy("nor");
   check(back === 3, `back in the study, its own are listed again: ${back}`);
+
+  // thumbnails kept in the settings' storage by an earlier page move to the cache when the page opens
+  await page.evaluate(({ pic }) => {
+    for (const id of ["L1", "L2", "L3"]) localStorage.setItem("nor-drive-thumb:" + id, JSON.stringify(pic));
+    localStorage.setItem("nor-drive-thumbs-saved", JSON.stringify(["L1", "L2", "L3"]));
+    localStorage.setItem("nor-drive-thumb-names", JSON.stringify({ L1: "legacy 1.tif" }));
+  }, { pic: PIC });
+  await page.reload();
+  await until(page, async () => {
+    const c = await caches.open("nor-thumbs-v1"), has = async (id) => !!(await c.match(new URL("drive-thumb/" + id, location.href).href));
+    return (await has("L1")) && (await has("L2")) && (await has("L3"));
+  });
+  const moved = await page.evaluate(async () => ({
+    left: Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs"),
+    name: decodeURIComponent((await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/L1", location.href).href)).headers.get("x-nor-name")),
+    type: (await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/L2", location.href).href)).headers.get("content-type"),
+  }));
+  check(!moved.left.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}`);
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }

@@ -365,7 +365,7 @@ nobody has decided: what the page does there is not a requirement yet.
   is shown only while it is still the folder asked for. One fetched stays for the page's life:
   closing the dialog stops the rest, and reopening it shows those at once and fetches what the rows
   in view still lack. Test: `web-tests/test_drive_thumbs_page.py`. An image opened from Drive saves its own in the browser (the latest 100), shown from then
-  on without a download. All but Drive's own are in the colours the page gives the
+  on without a download; set by the owner on 2026-11-17, it is kept as a JPEG in cache storage, not in the settings' storage (`req/shell/storage/manage`). All but Drive's own are in the colours the page gives the
   channels. Show thumbnails in Settings (on at first, `req/shell/account/settings`) turns the downloads off; set by the
   owner on 2026-11-07, the dialog itself holds no such checkbox. The status bar's message says, while they load ("Thumbnails 3 of 10 ·
   1.2 MB"), how many have arrived and their size; once they are in, the message says again what it said
@@ -1487,6 +1487,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   A browser key an existing study saves under keeps its name across the split and every later
   change to the shell, so a person's settings, decisions and measurements survive a release.
+  The thumbnails' keys are the exception: they left for cache storage (owner, 2026-11-17), their pictures carried over.
   </details>
 
 - `req/shell/storage/manage` The user sees, and can clear, what this device keeps, study by study.
@@ -1499,7 +1500,7 @@ nobody has decided: what the page does there is not a requirement yet.
   takes to work offline (`req/shell/offline/default`, `req/shell/offline/per-study`): one per study, whose title says whether the study is
   available offline (`req/shell/offline/mark`), holding its Python packages no other study uses, by package; its own
   pages and code, part of the site's copy; the images kept from Google Drive in it, by name; one
-  record for all their thumbnails and its Drive folders' previews; and, for the study on show, the
+  record for all their thumbnails and its Drive folders' previews (set by the owner on 2026-11-17, a thumbnail is kept as a JPEG in the browser's cache storage beside the folders' previews, the latest 100, never in the settings' storage; one kept there before moves over the first time the page opens); and, for the study on show, the
   selections per image, by image name. An image, a thumbnail or a preview kept before images were
   told apart by study, and opened in none of them since, is listed with the study on show. The study sections sit under a
   **Studies** heading; then, under a **Shared** heading, the **Shared** section (set by the owner on 2026-11-07): the site itself, Python itself, the packages two studies or more use,
