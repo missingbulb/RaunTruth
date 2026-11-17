@@ -475,6 +475,7 @@ try {
     && kinds.includes("none-missed") && kinds.includes("read") && !kinds.includes("set-text-per-key"), "the file's history replays to it, every GT action in order", kinds);
   const typedOnce = gt.doc.history.actions.filter((a) => a.text?.startsWith("הארי"));
   check(typedOnce.length === 1 && typedOnce[0].type === "approve", "the Hebrew title filled in and marked right is one GT action, whatever the keys it took", typedOnce);
+  check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
   // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again
   await page.click("#gt-close");
   await page.click("#gt-save-draft");
