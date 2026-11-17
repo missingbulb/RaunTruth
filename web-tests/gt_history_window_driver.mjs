@@ -76,6 +76,9 @@ await page.click("#gt-undo"); await page.click("#gt-undo");
 rows = real(await rowsOf(page));
 await check(/undone/.test(rows[0].cls) && /undone/.test(rows[1].cls) && /here/.test(rows[2].cls) && /Moved mark m1/.test(rows[2].text) && rows.length === 5,
   "after two undos the two undone rows sit above the dot", rows);
+const ink = (sel) => page.evaluate((s) => { const c = getComputedStyle(document.querySelector(s)); return { line: c.textDecorationLine, colour: c.color }; }, sel);
+const [struck, plain] = [await ink("#eh-list li.undone .what"), await ink("#eh-list li.here .what")];
+await check(struck.line === "line-through" && struck.colour !== plain.colour && plain.line === "none", "an undone row is struck through and dimmed, the current one neither", { struck, plain });
 await check(/^Undo: Moved mark m1/.test(await page.getAttribute("#gt-undo", "title")), "Undo's tooltip names what it will undo", await page.getAttribute("#gt-undo", "title"));
 await page.evaluate(() => $("#fx-done").click());
 await until(page, () => !document.querySelector("#eh-list .undone"));
@@ -94,6 +97,10 @@ const before = await marks(page);
 await click(page, "Image opened");
 rows = real(await rowsOf(page));
 await check((await marks(page)) === before && rows.at(-1).go === null && !/\bgo\b/.test(rows.at(-1).cls), "the image's opening is no row to go to", rows.at(-1));
+await click(page, "Count checked");
+await until(page, () => !document.querySelector("#eh-list .undone"));
+rows = real(await rowsOf(page));
+await check(/here/.test(rows[0].cls) && /Count checked/.test(rows[0].text) && (await model(page)).checked === true && (await marks(page)) !== runMarks, "a click on an undone row goes forward to it, what was undone done again", rows);
 await page.context().close();
 
 // runs of one type fold into one row, unfolded by its chevron; Undo still takes one action
@@ -163,6 +170,15 @@ const hover = async (text) => { const r = await page.evaluate((t) => { const b =
 await hover("Moved mark m2");
 await until(page, () => !!document.querySelector('#overlay g[data-layer="ring"]'));
 await check((await ringBox()) === [m2.x - 3, m2.y - 3, m2.x + 3, m2.y + 3].join(","), "hovering a row rings its item on the image, in the image's pixels, as the study's where says", await ringBox());
+// the ring as drawn on the screen, and the mark it is for
+const drawnRing = await page.evaluate((id) => {
+  const mid = (r) => [r.x + r.width / 2, r.y + r.height / 2];
+  const rings = [...document.querySelectorAll('#overlay g[data-layer="ring"] ellipse')].map((e) => ({ r: e.getBoundingClientRect(), stroke: getComputedStyle(e).stroke, width: parseFloat(getComputedStyle(e).strokeWidth), scaled: e.getAttribute("vector-effect") !== "non-scaling-stroke" }));
+  const m = document.querySelector(`#fx-marks circle[data-mark="${id}"]`).getBoundingClientRect(), line = rings.at(-1);
+  return line ? { at: mid(line.r), mark: mid(m), wide: line.r.width, markWide: m.width, stroke: line.stroke, width: line.width, scaled: line.scaled } : null;
+}, "m2");
+await check(drawnRing && Math.abs(drawnRing.at[0] - drawnRing.mark[0]) < 1 && Math.abs(drawnRing.at[1] - drawnRing.mark[1]) < 1 && drawnRing.wide > drawnRing.markWide
+  && drawnRing.stroke === "rgb(255, 212, 0)" && drawnRing.width >= 2 && !drawnRing.scaled, "the ring is drawn round the mark, wider than it, in a yellow line no zoom thins below two screen pixels", drawnRing);
 await page.mouse.move(700, 300);
 await until(page, () => !document.querySelector('#overlay g[data-layer="ring"]'));
 await check(true, "the ring goes when the pointer leaves the list");
