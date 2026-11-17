@@ -20,7 +20,7 @@ import nor_lab
 import fetch_data
 
 # /2 lists its marked candidates as `labels`; /3 is the page's model (candidates that remain, added NoRs, checked
-# areas) with the GT history that made it, and the candidates it lacks are read from that history's last run
+# areas) with the GT history that made it, and the candidates the tagger rejected are read from that history
 FORMATS = ('norfinder-ground-truth/2', 'norfinder-ground-truth/3')
 # an added NoR is found when a candidate lies within this distance of its middle (the page's MISSING_RADIUS)
 MISSING_RADIUS = 12
@@ -88,11 +88,16 @@ def _unpacked(output):
     return output
 
 
-def _last_run(doc):
-    """The output of the last run in the file's history, or None."""
-    actions = (doc.get('history') or {}).get('actions') or []
-    runs = [a for a in actions if isinstance(a, dict) and a.get('type') == 'run']
-    return _unpacked(runs[-1].get('output')) if runs else None
+def _rejected(doc):
+    """The candidates the tagger rejected: those of the last run in the file's history that a `delete` in it names and
+    the file no longer lists. One the file lacks with no delete to say why is not known, and is no label."""
+    actions = [a for a in (doc.get('history') or {}).get('actions') or [] if isinstance(a, dict)]
+    runs = [a for a in actions if a.get('type') == 'run']
+    if not runs:
+        return []
+    deleted = {a.get('cand') for a in actions if a.get('type') == 'delete'}
+    have = {c.get('id') for c in doc.get('candidates') or []}
+    return [c for c in _unpacked(runs[-1].get('output')).get('cands') or [] if c.get('id') in deleted and c.get('id') not in have]
 
 
 def _mark(c, label, **more):
@@ -101,8 +106,8 @@ def _mark(c, label, **more):
 
 def labels_of(doc):
     """The marked spots of a ground-truth file, as the lab scores them: /2's `labels`; /3's approved candidates (label 1,
-    on the lengths the tagger left), approved added NoRs (kind `missing`) and, when the history is there, a label 0 for
-    each candidate of its last run that the file no longer lists, which is how a rejection is kept."""
+    on the lengths the tagger left), approved added NoRs (kind `missing`) and a label 0 for each candidate the history
+    says the tagger rejected (_rejected)."""
     if doc.get('format') != FORMATS[1]:
         return doc.get('labels')
     out = []
@@ -124,11 +129,7 @@ def labels_of(doc):
         out.append(dict(id=a.get('id'), kind='missing', origin='added by user', x=(p + r) / 2, y=(q + t) / 2, label=1, source='user',
                         radius_px=MISSING_RADIUS, decision='approved', measured='adjusted', length_px=_length(L['length']),
                         red_length_px=_length(L['red']), width_px=_length(L['width']), lines=L))
-    run = _last_run(doc)
-    if run:
-        have = {c.get('id') for c in doc.get('candidates') or []}
-        out += [_mark(c, 0, decision='rejected', measured=None) for c in run.get('cands') or [] if c.get('id') not in have]
-    return out
+    return out + [_mark(c, 0, decision='rejected', measured=None) for c in _rejected(doc)]
 
 
 def validate(doc):

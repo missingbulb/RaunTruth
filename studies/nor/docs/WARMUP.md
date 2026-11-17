@@ -145,7 +145,7 @@ docs/
 the readers are the old ones. A refilter's answer that moves a candidate's pass or fail, or the filters, is a new `run`; the run's output holds
 no pixel masks, so a draft loaded with no Find Candidates draws each candidate from its box with no outline. The lab reads the file
 through `ground_truth.labels_of`: `/2` as it always was, `/3` as its approved candidates and added NoRs, and a label 0 for each candidate of the
-history's last run that the file no longer lists.
+history's last run that a `delete` in the history names and the file no longer lists (one absent with no delete is not known, and no label).
 
 `detection/` is **the pipeline**: the finders the page runs, the R1 baseline they grew from, and
 the lab tooling around them; [`../detection/STATE.md`](../detection/STATE.md) says which file does what.

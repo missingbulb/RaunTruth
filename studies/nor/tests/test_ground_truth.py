@@ -261,8 +261,21 @@ def test_a_three_file_with_no_history_gives_positives_only():
     assert [(L['label'], L['x']) for L in ground_truth.labels_of(doc)] == [(1, 10.0)]
     assert ground_truth.validate(doc) is None
     # an unpacked run reads as well as a packed one
-    both = [L['label'] for L in ground_truth.labels_of(three(kept('c1', approved=('c1',)), pack=False))]
-    assert sorted(both) == [0, 0, 0, 1]
+    both = [(L['label'], L['x']) for L in ground_truth.labels_of(three(kept('c1', 'c3', 'c4', approved=('c1',)), pack=False))]
+    assert sorted(both) == [(0, 50.0), (1, 10.0)]
+
+
+def test_a_candidate_the_file_lacks_is_a_negative_only_where_the_history_deleted_it():
+    # c2 was deleted; c3 and c4 are absent with no delete to say why (a file taken as a base lists only what it held): not known
+    doc = three(kept('c1', approved=('c1',)))
+    assert sorted((L['label'], L['x']) for L in ground_truth.labels_of(doc)) == [(0, 50.0), (1, 10.0)]
+    # a delete taken back leaves the candidate in the file, and it is no label
+    doc = three(kept('c1', 'c2', approved=('c1',)))
+    assert [(L['label'], L['x']) for L in ground_truth.labels_of(doc)] == [(1, 10.0)]
+    # a delete of a candidate the last run does not hold marks nothing
+    doc = three(kept('c1', approved=('c1',)))
+    doc['history']['actions'].append({'type': 'delete', 'cand': 'c9'})
+    assert sorted(L['label'] for L in ground_truth.labels_of(doc)) == [0, 1]
 
 
 def test_a_two_file_is_read_as_it_always_was():
@@ -282,7 +295,7 @@ def test_the_lab_reads_a_three_file_through_its_labels():
 def test_a_three_file_joins_the_curated_set(tmp_path):
     doc = dict(three(kept('c1', approved=('c1',))), created='2026-11-05T10:00:00Z', tagger='jane@acme.example')
     got = ground_truth.collect(Curated({'ROOT': under('GT', {f'{SUB}/gt_jane@acme.example.json': json.dumps(doc)})}), 'ROOT', dirpath=str(tmp_path))
-    assert [(e['labels'], e['missing']) for e in got['files']] == [(4, 0)]
+    assert [(e['labels'], e['missing']) for e in got['files']] == [(2, 0)]
 
 
 def main():

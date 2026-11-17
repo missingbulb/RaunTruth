@@ -134,7 +134,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
   added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
   cuts the image into them. A candidate the tagger rejected is absent, and is read from the file's `history`: its
-  `delete`, and the output of the run it was in. The lab's `nor_lab.py --labels` reads it, and the `/2` files already
+  `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's `nor_lab.py --labels` reads it, and the `/2` files already
   curated, which list `labels` (every candidate voted up or down, and every added NoR approved, kind `missing`, with its
   radius): the labels score detection and the checked lengths score measurement
   (`studies/nor/tests/test_ground_truth.py`). A candidate nobody voted on is ambiguous: in `candidates` without
