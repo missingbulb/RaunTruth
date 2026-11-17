@@ -76,7 +76,13 @@
       </section>
       <div class="data-head"><h2>Folders</h2><button id="data-approve" type="button" class="link" data-needs-network hidden></button></div>
       <div id="data-tree" role="tree" aria-label="The study's folders" data-log-as="a folder or image in the Data Management tree"></div>
+      <section id="data-unlisted" aria-labelledby="data-unlisted-title" hidden>
+        <h3 id="data-unlisted-title">Not in the study</h3>
+        <div id="data-unlisted-list" data-log-as="a folder of the root not in the study"></div>
+      </section>
+      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="Paste a folder's link to add it" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
       <p id="data-msg" class="hint" role="status"></p>
+      <p id="data-index" class="hint" role="status"></p>
     </div>
   </aside>
   <aside id="left">

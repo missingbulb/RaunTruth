@@ -1,6 +1,7 @@
 // Data Management (req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
 // req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the Study Manager role's
-// view, for a signed-in user the store lets write to the study's root: its data folder as a tree in a column left of the left bar, its chevron folding
+// view, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
+// left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
 // it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
 // chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
 // files it creates.
@@ -13,7 +14,7 @@ import { CONNECTION, holdOwns } from "./offline.js";
 import { asLoaded } from "./as_loaded.js";
 import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
-import { setup as setUp, switchMode, previewsFolder, previewsName } from "./study_root.js";
+import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, writeIndex, INDEX as INDEX_NAME } from "./study_root.js";
 
 const MAX_FOLDERS = 200;
 // what each access means beside a folder
@@ -42,11 +43,13 @@ export function dataMode(ctx) {
   const sd = remote.writer(account);
   // the study's ground-truth folders (req/shell/ground-truth/folders), read with no sign-in and written by the user
   const reader = place.reader;
-  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark, share: sd.share };
+  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark, share: sd.share, ours: sd.ours };
   // gt: {submissions, curated, same}; gtNodes: those folders with their access, outside the tree
   let gt = { submissions: null, curated: null, same: false }, gtNodes = [];
   const root = document.documentElement;
   // the study's folders, by id: {id, name, parent, files, folders (ids), access, el}; roots their ids
+  // unlisted: the root's folders no listed folder is, [{id, name}]
+  let unlisted = [];
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
   const on = () => root.dataset.mode === "data";
   // the study's ground-truth folders are not its data: the tree leaves them out
@@ -70,7 +73,7 @@ export function dataMode(ctx) {
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
       const top = place.root();
-      roots = top ? [s?.data || top] : [];
+      roots = top ? (s?.folders || [s?.data || top]) : [];
       gt = tf.folders(s); previewsId = s?.previews || null;
       gtNodes = [...new Set([gt.curated, gt.submissions].filter(Boolean))].map((id) => ({ id, name: "Ground truth", access: null }));
       drawSetup(s); drawTruthBox(null); truthStatus();
@@ -90,7 +93,14 @@ export function dataMode(ctx) {
       await Promise.all(roots.map(async (id) => {
         try { const n = nodes.get(id), r = await remote.name(id); if (n && r) n.name = r; } catch { /* keeps "Study folder" */ }
       }));
+      // the root's own folders that no listed folder is, to add (the root listed holds them all)
+      unlisted = [];
+      if (top && !roots.includes(top)) {
+        try { unlisted = (await remote.all(top)).filter((f) => f.folder && !roots.includes(f.id) && !isTruth(f.id)).map((f) => ({ id: f.id, name: f.name })); } catch (e) { console.warn("the root's folders were not listed:", e); }
+        if (of !== epoch) return;
+      }
       await checkAccess();
+      await index(of, nodes.size >= MAX_FOLDERS);
     })());
   }
   async function checkAccess() {
@@ -111,6 +121,59 @@ export function dataMode(ctx) {
     } catch (e) { msg($("#data-msg"), e.message || String(e), true); }
   }
   $("#data-approve").onclick = approve;
+
+  // ---------- the study's listed folders and its index (req/shell/data/folders, req/shell/data/index) ----------
+  // every image of the listed folders, in their order, each folder's images then its subfolders', with its path
+  function indexOf() {
+    const images = [];
+    const walk = (id, path) => {
+      const n = nodes.get(id);
+      if (!n) return;
+      const here = [...path, n.name];
+      for (const f of imagesOf(n)) images.push({ id: f.id, name: f.name, folder: n.id, path: here, size: f.size, sha: f.sha, modified: f.modified });
+      for (const c of n.folders) walk(c, here);
+    };
+    for (const id of roots) walk(id, []);
+    return { folders: roots.map((id) => ({ id, name: nodes.get(id)?.name || "Folder" })), images };
+  }
+  // the index written when it differs from the one there; never from a listing cut short or one a folder failed in
+  async function index(of, cut) {
+    const top = place.root(), say = (t, err) => msg($("#data-index"), t, err);
+    if (!top || of !== epoch) return;
+    if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
+    const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    try {
+      const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
+      if (of !== epoch) return;
+      place.forgetIndex();
+      say(done === "not ours" ? `Study index: ${INDEX_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
+        : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+    } catch (e) { if (of === epoch) say("Study index: not written: " + (e.message || e), true); }
+  }
+  // the listed folders changed in the study file, the tree read again, and anything to say after
+  async function setListed(next, said = "") {
+    const top = place.root();
+    if (!top || offline()) return;
+    $("#data-tree").classList.add("busy");
+    try { await setFolders({ reader, writer, root: top, folders: next }); }
+    catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
+    nodes = new Map(); loaded = null; chosen = null; roots = next; msg($("#data-index"), "");
+    await load();
+    $("#data-tree").classList.remove("busy");
+    if (said) msg($("#data-msg"), said);
+  }
+  async function addLink() {
+    const ref = remote.parse($("#data-add-link").value || "");
+    if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);
+    if (roots.includes(ref.id)) return msg($("#data-msg"), "That folder is in the study already.");
+    let open = null;
+    try { open = await remote.publicly(ref.id); } catch { open = null; }
+    $("#data-add-link").value = "";
+    await setListed([...roots, ref.id], open === false ? `Added. It is not shared as "Anyone with the link", so a viewer cannot read its images: share it so in ${remote.label}.` : "");
+  }
+  $("#data-add").onclick = addLink;
+  $("#data-add-link").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } };
+
 
   // ---------- Set up ground truth (req/shell/ground-truth/setup) ----------
   // offered while the study's root names no ground-truth folders, and nudged while it has none at all
@@ -213,7 +276,26 @@ export function dataMode(ctx) {
       el.querySelector(".tree-children").replaceChildren(...n.folders.map(make));
       return el;
     };
-    $("#data-tree").replaceChildren(...roots.map(make));
+    $("#data-tree").replaceChildren(...roots.map((id) => {
+      const el = make(id), row = el.querySelector?.(":scope > .row");
+      if (row && !row.querySelector(".unlist")) {
+        const b = Object.assign(document.createElement("button"), { type: "button", className: "unlist", title: "Remove from study: take this folder out of the study's folders" });
+        b.setAttribute("aria-label", "Remove from study");
+        b.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+        b.dataset.needsNetwork = "";
+        b.onclick = (e) => { e.stopPropagation(); setListed(roots.filter((r) => r !== id)); };
+        row.querySelector(".name").after(b);
+      }
+      return el;
+    }));
+    $("#data-unlisted").hidden = !unlisted.length;
+    $("#data-unlisted-list").replaceChildren(...unlisted.map((f) => {
+      const d = Object.assign(document.createElement("div"), { className: "unlisted-folder" });
+      d.innerHTML = `<span class="name"></span><button type="button" class="link add" data-needs-network>Add to study</button>`;
+      d.querySelector(".name").textContent = f.name;
+      d.querySelector(".add").onclick = () => setListed([...roots, f.id]);
+      return d;
+    }));
     const allowed = lacking().length;
     $("#data-approve").hidden = !allowed; $("#data-approve").textContent = `Approve ${allowed === 1 ? "1 folder" : allowed + " folders"}…`;
   }
@@ -473,9 +555,9 @@ export function dataMode(ctx) {
       epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
       if (on()) enter(false);
       asStarted(); delete root.dataset.tree;
-      roots = []; gt = tf.folders(null); gtNodes = [];
+      roots = []; unlisted = []; gt = tf.folders(null); gtNodes = [];
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
-      $("#data-tree").replaceChildren(); msg($("#data-msg"), "");
+      $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true;
     },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },

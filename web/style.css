@@ -572,6 +572,10 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
   border: 1px solid var(--line); border-radius: var(--r-ctl); }
 #remote-list .item { display: flex; gap: 12px; align-items: center; flex: none; text-align: left; border: 0; border-radius: 0; background: none; padding: 6px 10px; }
 #remote-list .item .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Load study images: each group's head, its folder's path and how many images it holds, held at the top while its rows scroll */
+#remote-list .group { display: flex; gap: 8px; align-items: baseline; flex: none; position: sticky; top: 0; z-index: 1; padding: 6px 10px 4px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+#remote-list .group .group-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#remote-list .group .group-count { color: var(--dim); font-weight: 400; }
 #remote-list .item .shape { color: var(--dim); font-size: 11px; white-space: nowrap; padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r-chip); }
 #remote-list .item .shape:empty { display: none; }
 /* an image the folder did not hold when last listed here (req/shell/drive/dialog) */
@@ -883,7 +887,17 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-box h2 { font-size: 14px; margin: 0 0 4px; } #gt-box p { margin: 2px 0; }
 #data-tree { overflow: auto; flex: 1; min-height: 0; font-size: 13px; }
 .tree-folder .row { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.tree-folder .name { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; border: 0; background: transparent; padding: 3px 4px; text-align: left; border-radius: var(--r-chip); }
+/* the study's listed folders: Remove beside each, the root's other folders under them to add, a pasted link to add another */
+.tree-folder .row .unlist { flex: none; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; border-radius: var(--r-chip); }
+.tree-folder .row .unlist svg { stroke: var(--dim); stroke-width: 1.6; fill: none; }
+.tree-folder .row .unlist:hover svg { stroke: var(--err); }
+#data-unlisted h3 { font-size: 12px; margin: 10px 4px 4px; color: var(--dim); font-weight: 600; }
+.unlisted-folder { display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 13px; }
+.unlisted-folder .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#data-add-row { display: flex; gap: 6px; padding: 8px 4px 0; }
+#data-add-link { flex: 1; min-width: 0; }
+#data-tree.busy { opacity: .6; pointer-events: none; }
+.tree-folder .name { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 4em; border: 0; background: transparent; padding: 3px 4px; text-align: left; border-radius: var(--r-chip); }
 .tree-folder .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-folder .name svg { flex: none; fill: var(--dim); }
 .tree-folder.chosen > .row .name { background: color-mix(in srgb, var(--accent) 22%, transparent); }

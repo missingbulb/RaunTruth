@@ -1090,7 +1090,7 @@ function remoteDialog() {
   // what browsing changes in the dialog, as the page loaded; its choices (thumbnails, auto-save) are the user's and stay
   const asStarted = asLoaded(["#remote-path", "#remote-list", "#remote-msg", "#remote-open"].map((s) => $(s)), holdOwns);
   // the study leaving: what the dialog was browsing goes with it
-  remoteLeft = () => { thumbs.stop(); trail = []; chosen = null; keptOn = false; listing++; asStarted(); $("#remote-dlg").classList.remove("folders"); };
+  remoteLeft = () => { groupsSeen?.disconnect(); thumbs.stop(); trail = []; chosen = null; keptOn = false; listing++; asStarted(); $("#remote-dlg").classList.remove("folders"); };
   // path: the folders the image is in under the link it was opened from; sha: its SHA-256 as the listing gave
   // it (null when the store gave none), undefined when not yet asked; recent: whether it was chosen from the recents.
   // A recent image opens from its kept copy; one chosen from the remote store does only once its SHA-256 matches the store's.
@@ -1134,7 +1134,7 @@ function remoteDialog() {
   };
   // where an image is: the folders under the one it was opened from, the study's own list of folders no folder
   const enter = (f) => (f.folder ? (trail.push(f), show()) : f.kept ? take(f.id, f.name, f.path, undefined, true)
-    : take(f.id, f.name, trail.filter((t) => !t.roots).slice(1).map((t) => t.name), f.sha));
+    : take(f.id, f.name, f.path ? f.path.slice(1) : trail.filter((t) => !t.roots).slice(1).map((t) => t.name), f.sha));
   // offline, in place of a remote folder: the images kept on this device, the study's own first (req/shell/offline/default)
   showKept = async () => {
     keptOn = true; thumbs.stop(); trail = []; choose(null);
@@ -1187,25 +1187,61 @@ function remoteDialog() {
       return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
     })());
     msg(items.length ? "" : "No TIFF or PNG images here.");
-    for (const [k, f] of items.entries()) {
-      const b = document.createElement("button"); b.type = "button"; b.className = "item" + (f.folder ? " folder" : "");
-      b.setAttribute("aria-selected", "false");
-      const meta = f.size == null ? "" : sizeText(f.size);
-      const added = f.created ? `Added to ${remote.label} on ${f.created.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : `When it was added to ${remote.label} is not known`;
-      const fresh = !f.folder && seen && !seen.has(f.id) ? `<span class="new" title="${esc(added)}">new</span>` : "";
-      // what only some rows show sits inward, what every image shows at the row's edge
-      b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span>${fresh}${f.folder ? "" : agoTag(opened[f.id])}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
-      if (!f.folder) { b.dataset.id = f.id; markOffline(b.querySelector(".kept"), "image", kept.has(f.id)); }
-      if (off && (f.folder ? !listings[f.id] : !kept.has(f.id))) {
-        b.disabled = true; b.title = f.folder ? "Not listed on this device yet: it needs the internet." : "Not kept on this device: it needs the internet.";
-      }
-      b.onclick = () => choose(f, b);
-      b.ondblclick = () => enter(f);
-      b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
-      $("#remote-list").append(b);
-      if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, k);
-    }
+    for (const f of items) row(f, { kept, opened, listings, off, seen });
     if (!off) markTruth(items, asked);
+  };
+  // one row of the list, appended: a folder or an image; seen as draw takes it
+  const row = (f, { kept, opened, listings, off, seen = null }) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "item" + (f.folder ? " folder" : "");
+    b.setAttribute("aria-selected", "false");
+    const meta = f.size == null ? "" : sizeText(f.size);
+    const added = f.created ? `Added to ${remote.label} on ${f.created.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : `When it was added to ${remote.label} is not known`;
+    const fresh = !f.folder && seen && !seen.has(f.id) ? `<span class="new" title="${esc(added)}">new</span>` : "";
+    // what only some rows show sits inward, what every image shows at the row's edge
+    b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span>${fresh}${f.folder ? "" : agoTag(opened[f.id])}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
+    if (!f.folder) { b.dataset.id = f.id; markOffline(b.querySelector(".kept"), "image", kept.has(f.id)); }
+    if (off && (f.folder ? !listings[f.id] : !kept.has(f.id))) {
+      b.disabled = true; b.title = f.folder ? "Not listed on this device yet: it needs the internet." : "Not kept on this device: it needs the internet.";
+    }
+    b.onclick = () => choose(f, b);
+    b.ondblclick = () => enter(f);
+    b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
+    const list = $("#remote-list");
+    list.append(b);
+    if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, list.childElementCount - 1);
+  };
+  // Load study images (req/shell/load/study-images): the study index's images, a group per folder headed by its path,
+  // each folder's previews file read once its group scrolls into view
+  let groupsSeen = null;
+  const showIndex = async (ix) => {
+    keptOn = false; trail = [{ index: true, name: "The study's images" }];
+    const asked = ++listing, kept = await keptIds();
+    if (asked !== listing) return;
+    $("#remote-path").textContent = "The study's images";
+    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
+    groupsSeen?.disconnect();
+    const groups = new Map();
+    for (const im of ix.images) {
+      if (!groups.has(im.folder)) groups.set(im.folder, { path: im.path.join(" / "), items: [] });
+      groups.get(im.folder).items.push({ id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path });
+    }
+    const covers = new Map(), shown = new Map();
+    groupsSeen = new IntersectionObserver((seen) => { for (const e of seen) if (e.isIntersecting) { shown.get(e.target)?.(); groupsSeen.unobserve(e.target); } }, { root: $("#remote-list") });
+    thumbs.cover((f) => covers.get(f.dir));
+    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
+    msg(groups.size ? "" : "No images in the study's index.");
+    for (const [dir, g] of groups) {
+      const head = Object.assign(document.createElement("div"), { className: "group" });
+      head.innerHTML = `<span class="group-name">${esc(g.path)}</span><span class="group-count">${g.items.length}</span>`;
+      $("#remote-list").append(head);
+      covers.set(dir, new Promise((ok) => shown.set(head, ok)).then(async () => {
+        const file = await place.previewsOf(dir), at = { id: dir };
+        return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
+      }).catch(() => null));
+      groupsSeen.observe(head);
+      for (const f of g.items) { row(f, { kept, opened, listings, off: false }); items.push(f); }
+    }
+    markTruth(items, asked);
   };
   // which images have ground truth, and to a tagger or study manager which have it pending (req/shell/ground-truth/pending)
   const markTruth = async (items, asked) => {
@@ -1230,6 +1266,7 @@ function remoteDialog() {
     if (named.some((f, k) => f.name !== roots[k].name)) await draw(trail[0], named, false, asked);
   };
   const show = async () => {
+    groupsSeen?.disconnect();
     if (trail[trail.length - 1].roots) return showRoots();
     keptOn = false;
     const at = trail[trail.length - 1], off = offlineCopy.offline(), before = keptListing(at.id);
@@ -1315,7 +1352,8 @@ function remoteDialog() {
       if (own !== dir) { dir = own; ready = null; }
       ready = ready || (dir ? fetch(dir + "index.json").then((r) => r.json()).then((ids) => new Set(ids)).catch(() => new Set()) : Promise.resolve(new Set()));
     };
-    // the folder's previews file, once read; an image it covers is shown from it with no read of its own
+    // the folder's previews file, once read, or for a list of several folders the image's folder's, by a function of
+    // the image; an image it covers is shown from it with no read of its own
     let covered = Promise.resolve(null);
     const cover = (p) => { covered = p || Promise.resolve(null); };
     const fromPreviews = async (pic, e, pv) => {
@@ -1325,7 +1363,7 @@ function remoteDialog() {
       if (e.kind === "stack") turning(row, pic, pv.volume(e));
     };
     const watch = async (pic, f, at) => {
-      const of = epoch, pv = await covered, e = pv?.entry(f.name, f.sha);
+      const of = epoch, pv = await (typeof covered === "function" ? covered(f) : covered), e = pv?.entry(f.name, f.sha);
       if (of !== epoch) return;
       if (e) return fromPreviews(pic, e, pv);
       const url = made.get(f.id) || readJSON(SAVED_THUMB + f.id, "") || f.preview;
@@ -1347,6 +1385,10 @@ function remoteDialog() {
   const open = async () => {
     // a study's own folders: straight into the one, else a list of them
     const roots = studyFolders().length ? await place.dataFolders() : [];
+    if (roots.length && !offlineCopy.offline()) {
+      const ix = await place.index().catch((e) => { console.warn("the study index was not read:", e); return null; });
+      if (ix?.images.length) return showIndex(ix);
+    }
     if (roots.length) {
       if (offlineCopy.offline() && !roots.some((id) => keptListing(id))) return showKept();
       keptOn = false; $("#remote-list").replaceChildren(); choose(null); msg("");

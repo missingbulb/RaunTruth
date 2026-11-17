@@ -1,4 +1,4 @@
-"""req/shell/data/roles, req/shell/ground-truth/folders, req/shell/ground-truth/setup, req/shell/ground-truth/switch: a study's root and its settings
+"""req/shell/data/roles, req/shell/data/folders, req/shell/data/index, req/shell/ground-truth/folders, req/shell/ground-truth/setup, req/shell/ground-truth/switch: a study's root and its settings
 file (web/study_root.js, under Node by study_root_driver.mjs against an in-memory store). The store stands in for
 Google's, so these cases cannot catch Drive refusing a write; the page test against the stand-in Drive does."""
 import json
@@ -81,3 +81,16 @@ def test_the_previews_folder_is_found_by_name_and_made_once(out):
     assert p['none'] is None and p['made'] and p['found']
     assert p['folders'] == [['folder', 'Previews']]
     assert p['name'] == '1AbCdataFolderId.tiff'
+
+
+def test_the_listed_folders_default_to_the_data_folder_and_are_written_keeping_every_other_key(out):
+    assert out['folders'] == {'implicit': True, 'rootOnly': True, 'writes': [['replace', 'rauntruth-study.json']], 'listed': True,
+                              'keysKept': True, 'afterSwitchAndSetup': True, 'made': {'format': 'rauntruth-study/1', 'folders': 1},
+                              'refused': True, 'handWrites': 0}
+
+
+def test_the_index_is_written_only_when_it_differs_and_never_over_one_made_by_hand(out):
+    assert out['index'] == {'first': 'written', 'same': 'same', 'changed': 'written', 'format': 'rauntruth-index/1',
+                            'by': 'dm@acme.example', 'at': '2026-11-07T10:00:00.000Z', 'images': 2,
+                            'writes': [['create', 'rauntruth-index.json'], ['replace', 'rauntruth-index.json']],
+                            'hand': 'not ours', 'handWrites': 0, 'none': None}

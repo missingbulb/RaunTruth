@@ -70,14 +70,14 @@ await check(true, "the list button lays the images out as a list");
 
 await page.click("#update-previews");
 await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
-await check(!writes.length, "a previews file the page did not make is left alone", writes);
+await check(!writes.filter(([, name]) => name !== "rauntruth-index.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "1");
 await page.click("#update-previews");
 await page.waitForFunction(() => /3 previews made/.test($("#folder-msg").textContent), null, { timeout: 30000 });
-await check(JSON.stringify(writes) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
+await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-index.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
 await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, truth: 0, pending: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
