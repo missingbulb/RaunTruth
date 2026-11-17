@@ -10,3 +10,11 @@
   and research scripts are Python the page never loads, and page-python-imports already polices what
   the page does load.
 - **Retire when:** the build or the page tests leave Python, which narrows it instead.
+
+## 2026-11-17 · scope-changed · every tool under dev/tools, not three named ones
+- **Reason:** a hand-run tool for the page's guide screenshots (dev/tools/google_guide) landed
+  beside the check and failed main; dev/tools is where the repo's tools live, so it is allowed as a
+  folder.
+- **Actor:** Claude, fixing its own check's break of main.
+- **Mechanism:** the same declared check, its allowlist widened from three dev/tools folders to
+  dev/tools.
