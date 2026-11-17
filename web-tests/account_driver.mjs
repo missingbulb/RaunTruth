@@ -238,11 +238,14 @@ try {
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
     drive.validFrom = Date.now();
+    // off the page first: a sync still running on it would write the sign-in back, an hour long
+    const at = b.page.url();
+    await b.page.goto(origin + "/web/no-page-here");
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
       localStorage.removeItem("nor-seen-version"); // the page writes it again as it loads: a setting that changes with no click
     });
-    await b.page.reload();
+    await b.page.goto(at);
     await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden && window.tokenClient);
   };
   const askedNow = () => b.page.evaluate(() => window.tokenClient.asked.length);

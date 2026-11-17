@@ -59,3 +59,11 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** the manifest's `githubActions` grant.
+
+## 2026-11-16 · scope-changed · env installs every library the page tests run
+- **Reason:** the setup installed Pyodide alone after libheif and OpenJPEG joined CI's hand-copied
+  list, so a session's full suite failed on two tests CI passed.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
+- **Mechanism:** setup and probe call `web-tests/page_libraries.py`, which reads the versions from
+  the page's own jsDelivr URLs, as CI now does.

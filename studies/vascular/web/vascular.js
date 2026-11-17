@@ -5,6 +5,7 @@
 import * as MV from "./model_view.js";
 import * as items from "./items.js";
 import * as tasks from "./tasks.js";
+import * as summary from "./summary_view.js";
 import { order } from "./channel_order.js";
 
 export function mount(shell) {
@@ -15,6 +16,8 @@ export function mount(shell) {
   shell.views.on((v) => { items.visibleNow(v === "items"); if (v === "image") V.redraw(); });
   items.init(V, () => shell.views.show("image"), shell.views.count);
   if (truth) tasks.init(V, shell.tasks, steps, submit, shell.actions);
+  // the summary and its mask show only while the study does not make ground truth
+  else summary.init(V, shell, MV.current);
 
   // ---------- Processing: Execute, with the algorithm chosen above it (the shell's) ----------
   const chosen = () => algorithms.find((a) => a.key === shell.algorithm.key);
@@ -35,7 +38,7 @@ export function mount(shell) {
     const open = truth && tasks.open(), left = (open || []).filter((t) => !t.ok).map((t) => t.text + ".");
     shell.step("review", !!m && (!truth || (!!open && !left.length)), left.join(" ") || "Every task is done.");
   }
-  MV.onChange((m) => { if (truth) shell.tasks.ready(!!m); if (!m) ran = null; steps(); });
+  MV.onChange((m) => { if (truth) shell.tasks.ready(!!m); else summary.changed(); if (!m) ran = null; steps(); });
 
   // the tagger's progress on the stack: the model's edits, kept on this device (req/shell/ground-truth/clear)
   shell.clearable("edits to the vessel model", () => MV.forget());
@@ -48,7 +51,7 @@ export function mount(shell) {
   // a stack already open when the study comes in (a switch from another study)
   if (shell.page.get("image")) MV.stackOpened();
   // edit: an edit of the model from a page test, fn(model) the next model
-  window.vascular = { tasks: tasks.inspect, model: MV.inspect, edit: (fn) => MV.edit(fn(MV.current())) };
+  window.vascular = { tasks: tasks.inspect, model: MV.inspect, summary: summary.inspect, edit: (fn) => MV.edit(fn(MV.current())) };
 
   shell.algorithm.ready.then((list) => { algorithms = list; canRun(); });
 

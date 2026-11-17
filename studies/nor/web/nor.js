@@ -20,7 +20,6 @@ export function mount(shell) {
   // where the finder proposed none
   const ADDED = "nor-added-v1:";
   const MISSING = "nor-missing-v1:"; // + file name: [[x, y]], what ADDED replaced; read once and converted
-  const MASK = "nor-mask-v1:"; // + file name: [[[x, y]...]...], the lassoed areas the summary counts, combined by exclusive or
   const AREAS_KEY = "nor-areas-v1:"; // + file name: [area], the image's areas the user checked for missed NoRs
   // while the study makes ground truth its tasks are in the left bar, one candidate at a time, and the image is the only view
   const TRUTH = shell.makesTruth;
@@ -56,7 +55,7 @@ export function mount(shell) {
     meta: null, seg: null, cands: [],
     fails: [], alone: null, forced: new Map(), edits: new Map(), defaults: {}, values: {}, off: new Set(),
     about: {}, detectValues: {}, lastRun: null, filtersFor: null, seq: 0, inflight: false, pending: false,
-    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], lasso: null, numbers: new Map(), order: [], sel: null, tab: "pass",
+    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null, tab: "pass",
     show: { ...SHOW_DEFAULTS, ...readJSON(SHOW) }, opt: readOpts(), sort: { pass: "number", fail: "number", ...readJSON(SORT) }, crops: new Map(),
   });
 
@@ -73,7 +72,7 @@ export function mount(shell) {
 
   // what each of the study's browser keys holds, for the shell's Manage storage dialog
   const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [SORT]: "Sort menus of the item views", [CARDS]: "Options menus of the item views" };
-  const PER_FILE = [[MARKS, "keepers and removals"], [EDITS, "measurements"], [ADDED, "added NoRs"], [MISSING, "added NoRs"], [MASK, "mask"], [AREAS_KEY, "areas checked for missed NoRs"]];
+  const PER_FILE = [[MARKS, "keepers and removals"], [EDITS, "measurements"], [ADDED, "added NoRs"], [MISSING, "added NoRs"], [AREAS_KEY, "areas checked for missed NoRs"]];
   function stored(key) {
     if (SETTINGS[key]) return { group: "settings", what: SETTINGS[key] };
     const [prefix, what] = PER_FILE.find(([p]) => key.startsWith(p)) || [];
@@ -85,7 +84,7 @@ export function mount(shell) {
   }
 
   // the tagger's progress on the image open, every per-file key of it, forgotten (req/shell/ground-truth/clear)
-  shell.clearable("votes, measurements, added NoRs, mask and checked areas", () => {
+  shell.clearable("votes, measurements, added NoRs and checked areas", () => {
     const name = st.fileName, keys = [];
     try { for (let k = 0; k < localStorage.length; k++) keys.push(localStorage.key(k)); } catch { return; }
     for (const key of keys) {
@@ -226,7 +225,7 @@ export function mount(shell) {
       .sort((a, b) => a.cy - b.cy || a.cx - b.cx);
     st.numbers = new Map(st.order.map((c, k) => [c.i, k + 1]));
     loadMarks();
-    buildOverlay(); drawAdded(); drawMask();
+    buildOverlay(); drawAdded();
     refilter();
   }
 
@@ -237,7 +236,8 @@ export function mount(shell) {
   };
 
   function buildOverlay() {
-    const svg = $("#overlay"); svg.innerHTML = "";
+    // its own drawing goes; the shell's layers (the summary's mask) stay
+    const svg = $("#overlay"); for (const n of [...svg.children]) if (!n.matches?.("g[data-layer]")) n.remove();
     svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
     const frag = document.createDocumentFragment();
     for (const c of st.order) {
@@ -874,11 +874,19 @@ export function mount(shell) {
     $("#summary").innerHTML = `<div>${passes.length} NoRs${st.mask.length ? " inside the mask" : ""}. ${scale}</div>
       <div class="density">Density: <b>${fmt(D.value, 0)}</b> ${D.unit} (${passes.length} in ${fmt(D.area, 4)} ${D.areaUnit})</div>
       <div class="hists">${rows.map(([l, s]) => hist(l, s)).join("")}</div>`;
+    // the summary as the shell's Download Summary saves it (req/shell/summary/download)
+    shell.summary.set({ over: st.mask.length ? `a mask of ${st.mask.length} lassoed area${st.mask.length === 1 ? "" : "s"}` : "the whole image", rows: [
+      { measurement: "Finalists", unit: "count", value: passes.length },
+      { measurement: "Density", unit: D.unit, value: D.value },
+      { measurement: "Area counted", unit: D.areaUnit, value: D.area },
+      ...rows.map(([, s], k) => ({ measurement: MEASURES[k][1], unit: MEASURES[k][2] ? unitName() : "ratio", n: s.n, mean: s.mean, sd: s.sd, median: s.med, min: s.min, max: s.max })),
+      ...Object.entries(counts).map(([k, n]) => ({ measurement: `Rejected: ${reasonOf(k).letter} ${reasonOf(k).title}`, unit: "count", value: n }))] });
   }
 
   // ---------- downloads ----------
   function downloads(on) {
-    for (const id of ["#dl-cands", "#dl-summary"]) $(id).disabled = !on || !st.meta;
+    $("#dl-cands").disabled = !on || !st.meta;
+    if (!on) shell.summary.set(null);
     gtButton();
   }
   const base = () => st.fileName.replace(/\.[^.]+$/, "") || "nors";
@@ -894,15 +902,6 @@ export function mount(shell) {
         ...measures(c).map(([, v]) => fmt(v, 3))];
     });
     saveFile(base() + "_candidates.csv", csv([head, ...rows]), "text/csv");
-  };
-  $("#dl-summary").onclick = () => {
-    const { passes } = counted(), D = density(passes.length), u = D.unit.replace("per ", "").replace("mm²", "mm2").replace(" px²", "_px2").replace(/ /g, "_");
-    const rows = [["measurement", "n", "mean", "sd", "median", "min", "max"],
-      ...summaryRows(passes).map(([l, s]) => [l, s.n, fmt(s.mean, 3), fmt(s.sd, 3), fmt(s.med, 3), fmt(s.min, 3), fmt(s.max, 3)]),
-      [], ["density", "value"], [`finalists_per_${u}`, fmt(D.value, 3)], [`area_${u}`, fmt(D.area, 6)], ["finalists", passes.length],
-      [], ["rejected", "count"], ...Object.entries(st.counts).map(([k, n]) => [`${reasonOf(k).letter} ${reasonOf(k).title}`, n]),
-      ...(st.mask.length ? [[], ["counted", `inside a mask of ${st.mask.length} lassoed areas`]] : [])];
-    saveFile(base() + "_summary.csv", csv(rows), "text/csv");
   };
   // What a person decided on this image, for scoring finders in the lab (detection/nor_lab.py reads it
   // with --labels) and for the repo's ground truth (detection/ground_truth.py): only what the user marked.
@@ -1159,42 +1158,9 @@ export function mount(shell) {
     shell.tasks.row("missed").querySelector(".task-body").append($("#nor-tasks .missed-slot"), $("#area-check"));
   }
 
-  // ---------- the summary mask: areas lassoed on the image, combined by exclusive or ----------
-  // a point is inside a polygon when a ray from it crosses the border an odd number of times
-  function inPoly(poly, x, y) {
-    let k = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const [xi, yi] = poly[i], [xj, yj] = poly[j];
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) k = !k;
-    }
-    return k;
-  }
-  const inMask = (c) => !st.mask.length || st.mask.reduce((k, poly) => k !== inPoly(poly, c.cx, c.cy), false);
-  function crosses([a, b], [c, d]) {
-    const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
-    return side(a, b, c) !== side(a, b, d) && side(c, d, a) !== side(c, d, b);
-  }
-  // whether any two areas overlap or one holds another: only then is the inside tinted, to show the holes
-  function complexMask() {
-    const edges = (p) => p.map((q, i) => [q, p[(i + 1) % p.length]]);
-    for (let i = 0; i < st.mask.length; i++) for (let j = i + 1; j < st.mask.length; j++) {
-      const A = st.mask[i], B = st.mask[j];
-      if (inPoly(B, ...A[0]) || inPoly(A, ...B[0])) return true;
-      const eb = edges(B);
-      if (edges(A).some((e) => eb.some((f) => crosses(e, f)))) return true;
-    }
-    return false;
-  }
-  function drawMask() {
-    const svg = $("#overlay"); svg.querySelector(".mask-marks")?.remove();
-    $("#mask-add").disabled = !st.img; $("#mask-clear").hidden = !st.mask.length;
-    // the mask belongs to the summary: shown only while it is
-    if (TRUTH || !st.W || !st.mask.length) return;
-    const g = el("g", { class: "mask-marks" }), d = (p) => "M" + p.map((q) => q.join(" ")).join("L") + "Z";
-    if (complexMask()) g.append(el("path", { class: "fill", d: st.mask.map(d).join(""), "fill-rule": "evenodd" }));
-    for (const p of st.mask) g.append(el("path", { class: "edge under", d: d(p) }), el("path", { class: "edge", d: d(p) }));
-    svg.append(g);
-  }
+  // ---------- the summary mask: the shell's (req/shell/summary/mask), a candidate counted where its centre lies ----------
+  const inMask = (c) => shell.mask.inside(c.cx, c.cy);
+  shell.mask.on(() => { st.mask = shell.mask.polygons(); renderSummary(); }, shell.signal);
   // the area the summary counts over, in pixels: the whole image, or the mask's pixels (filled by exclusive or,
   // as inMask tests a point), counted once per mask
   function countedArea() {
@@ -1215,50 +1181,6 @@ export function mount(shell) {
     return st.um ? { value: px ? n / (px * st.um * st.um * 1e-6) : null, unit: "per mm²", area: px * st.um * st.um * 1e-6, areaUnit: "mm²" }
       : { value: px ? n / (px * 1e-6) : null, unit: "per million px²", area: px * 1e-6, areaUnit: "million px²" };
   }
-  function setMask(mask) {
-    st.mask = mask; writeJSON(MASK + st.fileName, mask); drawMask(); renderSummary();
-  }
-  // Add mask: the whole image in view, then a lasso drawn by dragging; a click or Esc draws nothing
-  function startLasso() {
-    showView("image");
-    shell.viewer.fit();
-    const sc = $("#scroller");
-    st.lasso = { pts: null }; sc.classList.add("lassoing"); $("#lasso-hint").hidden = false;
-  }
-  function endLasso() {
-    st.lasso = null; $("#scroller").classList.remove("lassoing"); $("#lasso-hint").hidden = true;
-    $("#overlay").querySelector(".lasso-live")?.remove();
-  }
-  $("#mask-add").onclick = startLasso;
-  $("#mask-clear").onclick = () => setMask([]);
-  {
-    const sc = $("#scroller");
-    const at = (e) => shell.viewer.toImage(e);
-    sc.addEventListener("pointerdown", (e) => {
-      if (!st.lasso || e.button !== 0) return;
-      // no text selection or native drag may start under the lasso: either would cancel the pointer
-      e.preventDefault();
-      st.lasso.pts = [at(e)]; st.lasso.line = el("polyline", { class: "lasso-live" }); $("#overlay").append(st.lasso.line);
-      shell.drag(sc, e, { move, drop, cancel: endLasso });
-    }, here);
-    function move(e) {
-      const L = st.lasso; if (!L || !L.pts) return;
-      const p = at(e), q = L.pts[L.pts.length - 1];
-      if (Math.hypot(p[0] - q[0], p[1] - q[1]) * st.zoom < 3) return;
-      L.pts.push(p.map((v) => Math.round(v * 10) / 10));
-      L.line.setAttribute("points", L.pts.map((q) => q.join(",")).join(" "));
-    }
-    function drop() {
-      const L = st.lasso; if (!L || !L.pts) return;
-      const pts = L.pts.map(([x, y]) => [Math.min(Math.max(x, 0), st.W), Math.min(Math.max(y, 0), st.H)]);
-      const area = Math.abs(pts.reduce((a, [x, y], i) => { const [p, q] = pts[(i + 1) % pts.length]; return a + x * q - p * y; }, 0)) / 2;
-      endLasso();
-      // a lasso smaller than a NoR's footprint is a slip, not an area
-      if (pts.length >= 3 && area * st.zoom * st.zoom >= 100) setMask([...st.mask, pts]);
-    }
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.lasso) endLasso(); }, here);
-  }
-
   // ---------- the image view ----------
   const focusOn = (c) => shell.viewer.focus(c.cx, c.cy);
   function candAt(e) {
@@ -1350,7 +1272,7 @@ export function mount(shell) {
   window.nor = { taskItems, walk, goTo, focusOn, truth, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
-  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands", "#dl-summary"]) slow($(id));
+  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
 
   // each finder's controls, as detection/finder_list.py lists them, so they never wait for Python; the finder itself
   // is chosen above them, in the shell's list
@@ -1377,7 +1299,7 @@ export function mount(shell) {
     painter: (canvas, shown, onSize) => NorPeek.painter(canvas, shown, onSize),
     order,
     opening(name) {
-      st.added = loadAdded(name); st.mask = readJSON(MASK + name, []); st.areas = new Set(readJSON(AREAS_KEY + name, [])); st.task = null; st.area = null; st.cur = undefined; st.back = []; endLasso(); st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
+      st.added = loadAdded(name); st.mask = []; st.areas = new Set(readJSON(AREAS_KEY + name, [])); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
       $("#list").replaceChildren(); $("#summary").textContent = "No candidates yet.";
       downloads(false); renderSelected(); renderTasks();
     },
@@ -1398,7 +1320,7 @@ export function mount(shell) {
       return `${nors.length} NoR${nors.length === 1 ? "" : "s"} (${added} added by hand), ${not} candidate${not === 1 ? "" : "s"} judged not NoRs`;
     },
     opened() {
-      updateFind(); drawAdded(); drawMask();
+      updateFind(); drawAdded();
       status("Image loaded. Press Find Candidates.");
     },
     result(action, meta, bytes, seq) {
@@ -1427,7 +1349,6 @@ export function mount(shell) {
     pick: (c) => (TRUTH ? c && tagging() && takeUp(c) : select(c && st.sel !== c.i ? c.i : null)),
     open: (c) => (TRUTH ? tagging() && takeUp(c) : (select(c.i), showView("items"))),
     step,
-    capturesPointer: () => !!st.lasso,
     zoomed: placeRing,
     stored,
     memory: () => (st.seg ? [{ name: "The candidates", what: `${st.cands.length} candidates' outlines`, size: st.seg.byteLength }] : []),

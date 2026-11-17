@@ -62,6 +62,7 @@
       }
     ]},
     {"under": "Summary", "tree": [
+      {"name": "The model's numbers", "select": "#vm-summary", "req": "req/vascular/summary/metrics"},
       {"name": "What the model holds", "select": "#model-facts", "req": "req/vascular/model/run"}
     ]},
     {"under": "Image view", "after": "Minimap", "tree": [

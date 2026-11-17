@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 
-# Pyodide for the tests that run the shell's Python runtime under Node (npm i --prefix web-tests pyodide@314.0.7)
+# the page's libraries for the tests that run them under Node (python3 web-tests/page_libraries.py)
 /web-tests/node_modules/
 /web-tests/package*.json
 # the page's vendored wheels (python3 dev/tools/build/build.py)

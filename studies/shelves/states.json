@@ -25,6 +25,7 @@
     {"under": "Summary", "tree": [
       {"name": "Titles", "select": "#bs-titles", "req": "req/shelves/read/readers",
         "children": [
+          {"name": "Books counted", "select": "#bs-count", "req": "req/shelves/summary"},
           {"name": "Titles' list", "select": "#bs-list", "req": "req/shelves/read/readers"},
           {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export"}
         ]

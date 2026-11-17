@@ -54,7 +54,7 @@ Processing, Summary and Ground Truth Tasks boxes, and the toolbar's left with ho
 (`web/model_view.js`, drawing through the 3D viewer's `three`, whose Colour by depth it follows; `req/vascular/model/view`,
 `req/vascular/model/correct`), the Ground Truth Tasks while the study makes ground
 truth (`web/tasks.js`; `req/vascular/truth/tasks`, `req/vascular/truth/order`, `req/vascular/truth/marks`), the item cards outside it (`web/items.js`,
-`req/vascular/model/cards`) and Submit Ground Truth (`req/vascular/model/ground-truth`). Tests:
+`req/vascular/model/cards`), Summary's eight numbers over a lassoed mask (`web/summary_view.js`, the numbers `web/summary.js`; `req/vascular/summary/metrics`, `req/vascular/summary/mask`) and Submit Ground Truth (`req/vascular/model/ground-truth`). Tests:
 `tests/test_model_page.py` (PreGT: views and cards), `tests/test_vessel_tasks_page.py` (GT: Execute
 and the tasks), both against the stand-in worker in `tests/stand_in.mjs`, and
 `tests/test_extract_bridge.py` (the real Python in Pyodide). The model's format and edits are

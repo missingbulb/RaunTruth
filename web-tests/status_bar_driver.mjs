@@ -457,8 +457,13 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
     const squeezed = await page.evaluate(() => {
       const bar = document.querySelector("#statusbar").getBoundingClientRect(), box = (s) => document.querySelector(s).getBoundingClientRect();
       const whole = (e) => { const r = e.getBoundingClientRect(); return r.width >= e.scrollWidth - 1 && r.left >= bar.left && r.right <= bar.right; };
+      // a crumb's own words inside it: its scrollWidth also counts the shine sweeping past its clipped edge
+      const wordsWhole = (e) => {
+        const r = e.getBoundingClientRect(), w = document.createRange(); w.selectNodeContents(e); const t = w.getBoundingClientRect();
+        return t.left >= r.left - 0.5 && t.right <= r.right + 0.5 && r.left >= bar.left && r.right <= bar.right;
+      };
       const right = ["#sb-res-icon", "#sb-online", "#sb-report", "#sb-version"];
-      return { steps: [...document.querySelectorAll("#sb-steps .crumb")].every(whole), right: right.filter((id) => !whole(document.querySelector(id))),
+      return { steps: [...document.querySelectorAll("#sb-steps .crumb")].every(wordsWhole), right: right.filter((id) => !whole(document.querySelector(id))),
         overlap: right.slice(1).filter((id, k) => box(right[k]).right > box(id).left),
         outside: box("#sb-res-icon").right > box("#sb-res").right + 0.5,
         status: box("#sb-now").width < document.querySelector("#status").scrollWidth };
