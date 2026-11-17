@@ -1,15 +1,13 @@
 // The study's ground-truth tasks in the shell's Ground Truth Tasks box (req/shell/ground-truth/tasks): a bar of one
 // part per task, a row per task, and Submit Ground Truth last. The study says what its tasks are and how far each has
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
-// only while the tagger tags, from Start GT tagging, or Continue GT tagging, to Stop tagging
-// (req/shell/ground-truth/tagging, req/shell/ground-truth/draft).
+// only while the tagger tags, from Start GT tagging to Stop tagging (req/shell/ground-truth/tagging).
 "use strict";
 
 // started(): whether the study's first step is done; until it is, Submit stays off whatever the study says; heardBy(on):
-// the shell's own listener, told as the study is each time tagging starts or stops; draftKey(): where the image open's
-// draft is kept on this device, null while none is open; readJSON and writeJSON, the shell's storage
-export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writeJSON }) {
-  let pick = null, submit = null, heard = null, resume = null, wants = false, on = false;
+// the shell's own listener, told as the study is each time tagging starts or stops
+export function truthTasks({ $, icon, started, heardBy }) {
+  let pick = null, submit = null, heard = null, wants = false, on = false;
   const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit" && li.dataset.task !== "edits");
   const row = (key) => rows().find((li) => li.dataset.task === key) || null;
   const part = (key) => [...$("#gt-bar").children].find((p) => p.dataset.task === key);
@@ -18,20 +16,10 @@ export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writ
 
   $("#gt-submit").onclick = () => submit?.();
   $("#gt-start").onclick = () => api.tagging(!on);
-  // the tagger's progress on the image open, as the study last gave it: what Continue GT tagging hands back
-  const draft = () => { const k = draftKey(); return k ? readJSON(k, null) : null; };
-  const kept = () => (resume && draftKey() ? draft() : null);
-  // tagging begun again: from the draft where one is kept, afresh where none is
-  function begin() {
-    const d = kept();
-    if (d) resume(d);
-    api.tagging(true);
-  }
-  $("#gt-continue").onclick = () => { if (!on) begin(); };
   $("#gt-tasks").addEventListener("click", (e) => {
     const t = e.target.closest("button.t"), li = t?.closest("li");
     if (!li || li.parentElement !== $("#gt-tasks")) return;
-    if (!on) begin();
+    if (!on) api.tagging(true);
     pick?.(li.dataset.task);
   });
   function tagged(now) {
@@ -39,7 +27,6 @@ export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writ
     $("#gt-start").title = now ? "Back to viewing the image" : "Work through the tasks, one item at a time";
     $("#gt-start").classList.toggle("primary", !now);
     if (!now) for (const li of rows()) li.classList.remove("now");
-    api.offer();
   }
 
   const api = {
@@ -47,8 +34,7 @@ export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writ
     // tagging(on)}, tagging heard each time tagging starts or stops. The same tasks again keep their rows, and what the
     // study put on them.
     list(tasks, hooks = {}) {
-      pick = hooks.pick || pick; submit = hooks.submit || submit; heard = hooks.tagging || heard; resume = hooks.resume || resume;
-      api.offer();
+      pick = hooks.pick || pick; submit = hooks.submit || submit; heard = hooks.tagging || heard;
       if (!tasks) api.tagging(false);
       $("#gt-list").hidden = !tasks;
       if (!tasks || rows().map((li) => li.dataset.task).join() === tasks.map((t) => t.key).join()) return;
@@ -103,23 +89,12 @@ export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writ
       if (state) b.dataset.state = state; else delete b.dataset.state;
       if (title) b.title = title; else b.removeAttribute("title");
     },
-    // the study's progress on the image open, as data it takes back in its resume hook: kept on this device until
-    // Clear progress forgets it
-    draft(doc) { const k = draftKey(); if (k) { writeJSON(k, doc); api.offer(); } },
-    forget() { const k = draftKey(); if (k) try { localStorage.removeItem(k); } catch { /* no storage */ } api.offer(); },
-    // one tagging button at a time: Stop tagging while tagging; out of it, Continue GT tagging in Start GT tagging's
-    // place while a draft of the image is kept, and true then
-    offer() {
-      const d = kept();
-      $("#gt-continue").hidden = on || !d; $("#gt-start").hidden = !on && !!d;
-      return !!d;
-    },
     // the study's steps moved: Submit follows its first one
     stepped() { $("#gt-submit").disabled = !wants || !started(); },
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);
-      pick = submit = heard = resume = null; api.offer();
+      pick = submit = heard = null;
       for (const li of rows()) li.remove();
       $("#gt-bar").replaceChildren(); $("#gt-list").hidden = true; api.ready(false);
     },

@@ -132,7 +132,7 @@ try {
   // a tall spine reads across once turned a quarter, so its crop is read as its height by its width
   check(titles.join() === "Title 240x35,Title 260x40,Title 180x180", "each book is read at the turn that reads across, listed in the order found", titles);
   check(await page.evaluate(() => $("#tasks-box").hidden && !$("#summary-box").hidden), "a viewer has no ground-truth box: Summary lists the titles");
-  check(await page.evaluate(() => !document.querySelector("#bs-continue") && !$("#gt-continue").checkVisibility()), "a viewer is offered no ground truth to continue");
+  check(await page.evaluate(() => !document.querySelector("#bs-continue") && !document.querySelector("#gt-continue")), "a viewer is offered no ground truth to continue");
   check(await page.evaluate(() => ["#ruler-btn", "#grid-btn"].every((s) => getComputedStyle($(s)).display === "none") && getComputedStyle($("#zoom-in")).display !== "none"),
     "a photo has no ruler or grid in the toolbar, its zoom kept (req/shell/image/toolbar)");
   check(await page.evaluate(() => $("#channels").children.length === 0), "a photo shows no channel rows (req/shell/channels/rows)");
@@ -196,7 +196,7 @@ try {
 
   // the box's one tagging button: Start GT tagging, Stop tagging while tagging; Continue GT tagging is gone, a draft
   // being brought back by Load draft (req/shell/ground-truth/draft-offer)
-  const offered = (page) => page.evaluate(() => ["#gt-start", "#gt-continue"].filter((s) => !$(s).hidden).map((s) => $(s).textContent.trim()).join());
+  const offered = (page) => page.evaluate(() => ["#gt-start"].filter((s) => !$(s).hidden).map((s) => $(s).textContent.trim()).join());
   const rowsOf = (page) => page.$$eval("#gt-tasks > li:not([data-task=edits]) .t", (h) => h.map((x) => x.textContent.trim()));
   // the GT actions made, newest first, as Edit History words them, and how many of them are not yet saved
   const history = (page) => page.$$eval("#eh-list .what", (h) => h.map((x) => x.textContent.trim()));
@@ -484,7 +484,7 @@ try {
   await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
   await load(page);
   await until(page, () => !$("#gt-load-draft").hidden);
-  check(await offered(page) === "Start GT tagging" && await page.evaluate(() => !$("#gt-load-draft").hidden && getComputedStyle($("#gt-continue")).display === "none"),
+  check(await offered(page) === "Start GT tagging" && await page.evaluate(() => !$("#gt-load-draft").hidden),
     "with a draft kept for the photo, Load draft is offered and Start GT tagging is the one tagging button", await offered(page));
   check((await books(page)).length === 0, "and no book is shown before it is loaded: Find books has not run");
   await page.click("#gt-load-draft");

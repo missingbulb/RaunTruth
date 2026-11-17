@@ -477,15 +477,13 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
-  Set by the owner on 2026-11-05. A tagger's progress on an image (votes, added items, masks, the areas
-  checked) is kept in the browser, so they can come back to it. Clear progress, at the Ground Truth Tasks
-  box's end beside Submit Ground Truth (owner, 2026-11-07), asks first, naming what goes ("your votes, added items and checked areas on <image>"), then forgets
-  only the open image's progress: other images keep theirs, and anything already submitted stays in Drive.
-  Changed by the owner on 2026-11-17: for a study with GT actions (`req/shell/ground-truth/history`) it is Clear all
-  history…, at the foot of the Edit History window. It asks first, naming the image, then forgets this image's draft on
-  this device and returns the model to the algorithm's output, or to the base the log stands on when a run is not its root
-  (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the status line say which; other images keep theirs and anything submitted stays in
-  Drive. A study without GT actions keeps Clear progress beside Submit Ground Truth. Test:
+  Set by the owner on 2026-11-05, as Clear progress, beside Submit Ground Truth: a tagger's progress on an image is kept in
+  the browser so they can come back to it, and clearing forgets only the open image's. Changed by the owner on 2026-11-17:
+  every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`), so it is Clear all history…, at
+  the foot of the Edit History window, and there is no Clear progress. It asks first, naming the image, then forgets this
+  image's draft on this device and returns the model to the algorithm's output, or to the base the log stands on when a
+  run is not its root (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the
+  status line say which; other images keep theirs and anything submitted stays in Drive. Test:
   `web-tests/test_gt_history_page.py`.
   </details>
 
@@ -502,22 +500,18 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/ground-truth/draft` Continue tagging brings back a tagger's draft of the image open, where the study takes drafts.
+- `req/shell/ground-truth/draft` A tagger's draft of the image open is their GT actions kept on this device, saved by Save Draft and offered by Load draft.
   <details>
 
-  Set by the owner on 2026-11-10, a shell feature, not a study's. A study that takes drafts hands the shell its
-  progress on the image open as data each time the tagger changes something, and the shell keeps it in the browser
-  by the study, the image's name and its SHA-256. Beside Start GT tagging, Continue tagging shows while an image is
-  open in such a study, and is on only while a draft of that image is kept, the box then open as the image opens: it hands the draft back to the study,
-  which puts its results and the tagger's progress back with no step run again, and starts tagging. Manage storage
-  lists a draft among its image's selections, and Clear progress forgets it with the rest. Changed by the owner on
-  2026-11-10: in such a study the box offers one of three, never two at once. Start GT tagging, while no draft
-  of the image is kept, before the study's algorithm has run or after; Continue GT tagging, once one is, which
-  goes back to the item the tagger last had open; and Stop tagging while the tagger tags. Clear progress
-  brings back Start GT tagging. Changed by the owner on 2026-11-17: a study that keeps its ground truth as GT actions
-  (`req/shell/ground-truth/history`) hands the shell no draft; its work is saved by Save Draft and offered by Load
-  draft (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`), and it is offered Start GT
-  tagging, never Continue. Test: `studies/shelves/tests/test_shelves_page.py`.
+  Set by the owner on 2026-11-10, a shell feature, not a study's: a tagger comes back to an image with their progress on
+  it. Changed by the owner on 2026-11-17: every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`),
+  so the shell keeps no progress of a study's own and there is no Continue GT tagging. The draft is the log and its model,
+  saved by Save Draft (`req/shell/ground-truth/save-draft`) and offered by Load draft (`req/shell/ground-truth/draft-offer`);
+  the box offers Start GT tagging, or Stop tagging while the tagger tags, never two at once, and tagging then begins at the
+  first item not done. Manage storage lists a draft among its image's selections, and still lists a key an earlier version
+  kept (`gt-draft|…`), which a study offers once as its old store (`req/shell/ground-truth/legacy`). Clear all history forgets
+  the draft (`req/shell/ground-truth/clear`). Tests: `web-tests/test_gt_history_page.py`,
+  `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/ground-truth/draft-offer` Opening an image that has a draft on this device offers Load draft; nothing is loaded unasked.
@@ -775,7 +769,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
   last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
-  the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) and Clear progress (`req/shell/ground-truth/clear`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
+  the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
   the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
   ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's

@@ -33,6 +33,7 @@ const submit = async (page) => {
 // nothing is saved before Save Draft: two actions made, no record, and after a reload no offer
 let page = await open(true);
 await tagger(page);
+await check(await page.evaluate(() => !document.querySelector("#gt-continue, .gt-clear-slot, .gt-clear")), "a study with GT actions has no Continue GT tagging and no Clear progress: the draft is Load draft, the clearing Clear all history");
 await counted(page);
 await moved(page, "m1", 20, 14); await moved(page, "m2", -16, 10);
 await check((await records(page)).length === 0, "counted and two actions made, the device keeps no draft: nothing saves before Save Draft");

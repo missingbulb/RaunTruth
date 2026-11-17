@@ -143,7 +143,7 @@ $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
 $("#save-remote").textContent = `Save to ${remote.label}`;
 
-// the tagger's side of the study's ground-truth folders: the line in its ground-truth box, Clear progress and Submit
+// the tagger's side of the study's ground-truth folders: the line in its ground-truth box and Submit
 // the study on show's root in the remote store: its settings, the folders Load browses, the roles the store gives
 const place = studyPlace(remote, () => manifest);
 // what the store lets the signed-in user write in the study on show (req/shell/data/roles), read as the study comes in
@@ -163,8 +163,7 @@ async function readRoles() {
   }
 }
 const truth = truthTagger({ account: signIn, remote, place,
-  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth(),
-  cleared: () => restudy(true), history: () => gtSession.on() });
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth() });
 
 function readJSON(key, fallback = {}) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
@@ -769,8 +768,6 @@ function imageOpened(m) {
   study.opened?.(m.meta);
   // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
   gtSession.opened().then((offered) => { if (offered && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); } });
-  // a draft to continue opens Ground Truth Tasks with the image, Continue GT tagging in view
-  if (tasks.offer() && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
   truth.paint(); offerTruth();
   if (st.source && st.source.kind === "local" && makesTruth()) notice(LOCAL_GT(remote));
   if (remote.owns(st.source) && st.pictured !== st.source.id) saveThumb(st.source.id, st.fileName);
@@ -1782,8 +1779,7 @@ function saveFile(name, text, type) {
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
 // the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
 const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.phases[0]?.key; return !first || !!steps.find((p) => p.key === first)?.done; },
-  heardBy: (on) => view?.tagged?.(on), readJSON, writeJSON,
-  draftKey: () => (manifest && st.img && st.sha ? GT_DRAFT + manifest.id + "|" + st.fileName + "|" + st.sha : null) });
+  heardBy: (on) => view?.tagged?.(on) });
 // Load GT tagging (req/shell/ground-truth/view): for anyone but a tagger, an image from the remote store with curated ground truth
 // shows it through the study's showTruth(doc), which draws only its final results and returns a line of its counts
 // truthShown: the open image shows its curated ground truth, which takes the place of Processing and the Items view
@@ -2350,7 +2346,7 @@ function leaveStudy() {
 
 const shell = {
   $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
-  clearable: (what, fn) => truth.clearable(what, () => { tasks.forget(); fn(); }), showImage, boxDone, outline,
+  showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
   // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)

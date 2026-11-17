@@ -1000,8 +1000,6 @@ html:not(.offline) #welcome-offline { display: none; }
 .gt-access[hidden] { display: none; }
 .gt-access[data-access="none"], .gt-access[data-access="view"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
-.gt-clear-slot[hidden] { display: none; }
-.gt-clear-slot .gt-clear { font-size: 12px; white-space: nowrap; }
 /* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
 #folder-items .tag.pending { color: var(--accent); }
 .curate-list { list-style: none; margin: 8px 0; padding: 0; min-width: 360px; }
@@ -1018,8 +1016,7 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
-#gt-start, #gt-continue { display: block; width: 100%; margin: 0 0 10px; }
-#gt-start[hidden], #gt-continue[hidden] { display: none; }
+#gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
