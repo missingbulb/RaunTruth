@@ -98,5 +98,34 @@
         "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*ends with animations off:/"
       }
     ]
+  },
+  {
+    "id": "python-only-where-allowed",
+    "on_fail": "block",
+    "failureMessage": "Python belongs to the studies, their tests and research, the page tests' fixtures and the build tools; anywhere else it is a second language for a part of the repo that is JavaScript",
+    "fix": "write it in JavaScript, or move it into the study, test or build tool it serves",
+    "scanFiles": "/^(?!\\.claudinite\\/|studies\\/[^/]+\\/(?!web\\/)|web-tests\\/|dev\\/tools\\/(build|trick_pool|previews)\\/).*\\.py$/",
+    "scanTracked": true,
+    "checkEachFile": [
+      {
+        "whenFileMatches": "/[\\s\\S]?/",
+        "require": "/(?!)/",
+        "what": "is Python outside the folders Python is allowed in"
+      }
+    ]
+  },
+  {
+    "id": "python-started-in-one-place",
+    "on_fail": "block",
+    "failureMessage": "the page reaches a study's Python only through the worker, which answers ready() and Session.call(action, args); page code that starts or drives Pyodide itself is a second way in that nothing else knows of",
+    "fix": "add the action to the study's Session.call and ask for it through the worker",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!(worker|bridge|tiff_codecs)\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/\\bloadPyodide\\(|\\.runPython(Async)?\\(|\\.pyimport\\(|\\.globals\\.(set|get)\\(/",
+        "what": "starts or drives Python outside the worker: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
   }
 ]
