@@ -712,7 +712,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
   last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
-  the study's ground truth, with Save Draft beside it, and above them Undo and Redo, Clear progress beside it (`req/shell/ground-truth/clear`). A task is open only while
+  the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) and Clear progress (`req/shell/ground-truth/clear`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
   the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
   ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's
