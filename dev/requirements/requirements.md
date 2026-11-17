@@ -523,8 +523,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Start GT tagging, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
-  asks first. Tentative: the button stays while the draft on the device is not the one loaded. Test:
-  `web-tests/test_gt_history_page.py`.
+  asks first. A draft that could not be looked up is said on the status line. Tentative: the button stays while the
+  draft on the device is not the one loaded. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/folders` A study's ground truth lives in a submissions folder and a curated folder under its root; one folder for both is free submission.
@@ -617,7 +617,8 @@ nobody has decided: what the page does there is not a requirement yet.
   not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
   said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
-  actions it holds. Test: `web-tests/test_gt_history_page.py`.
+  actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
+  image, or unloading this one, with actions not yet saved asks first. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's settings file.

@@ -76,6 +76,7 @@ await counted(page);
 await moved(page, "m1", 20, 14); await moved(page, "m2", -16, 10);
 await check((await records(page)).length === 0, "counted and two actions made, the device keeps no draft: nothing saves before Save Draft");
 let l = await label(page);
+let asked = null;
 await check(!l.hidden && l.text === "· 2 unsaved", "the two actions are counted beside Undo", l);
 await check(await unloadAsks(page), "leaving the page with unsaved actions asks first");
 await reopen(page);
@@ -112,7 +113,6 @@ await check((await page.textContent("#fx-result")).includes("pixels") && await p
 
 // Undo and Redo, by button and by key
 const m2 = await marks(page);
-let asked = null;
 await check((await label(page)).hidden, "a loaded draft has nothing unsaved");
 await page.click("#gt-undo");
 const m1 = await marks(page);
@@ -197,12 +197,38 @@ const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));
 await check(shown.includes("labels") && !shown.includes("history"), "a viewer's Load GT tagging hands the study the file without its history", shown);
 await page.context().close();
 
+page = await open(true);
+await tagger(page);
+await counted(page);
+await moved(page, "m1", 12, 12);
+await page.click("#gt-save-draft");
+await until(page, () => $("#gt-unsaved").hidden);
+// a run after the draft was saved is unsaved too
+await page.evaluate(() => $("#fx-count").click());
+await until(page, () => !$("#gt-save-draft").disabled);
+l = await label(page);
+await check(l.text === "· 1 unsaved" && !(await page.isDisabled("#gt-save-draft")), "a run after Save Draft counts as unsaved, and Save Draft is on", l);
+if ((await page.textContent("#gt-start")).trim() === "Start GT tagging") await page.click("#gt-start");
+await until(page, () => !document.activeViewTransition);
+// opening another image, or unloading this one, with an action unsaved asks first
+await moved(page, await page.evaluate(() => window.fixture.model().marks[0].id), 9, 9);
+asked = await ask(page, false, () => page.evaluate(() => $("#unload").click()));
+await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name, "Unload with an unsaved action asks, and dismissing keeps the image", asked);
+asked = await ask(page, false, async () => { await page.click("#load-remote"); await page.waitForFunction(() => document.querySelector("#remote-dlg").open); await page.dblclick(`#remote-list .item[data-id="${png.id}"]`); });
+await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name && !(await label(page)).hidden, "opening an image over an unsaved action asks, and dismissing keeps the model", asked);
+await page.evaluate(() => { const d = $("#remote-dlg"); if (d.open) d.close(); });
+await page.click("#gt-save-draft");
+await until(page, () => $("#gt-unsaved").hidden);
+
+await page.context().close();
 // a write that fails is said, and the unsaved count stays
 page = await open(true, { prepare: (ctx) => ctx.addInitScript(() => {
   const real = IDBFactory.prototype.open;
   IDBFactory.prototype.open = function (name, ...rest) { if (name === "gt-drafts") throw new Error("storage refused"); return real.call(this, name, ...rest); };
 }) });
 await tagger(page);
+await page.waitForFunction(() => /could not be read/.test($("#status").textContent));
+await check(true, "a draft that cannot be looked up is said on the status line", await page.textContent("#status"));
 await counted(page);
 await moved(page, "m1", 12, 12);
 await page.click("#gt-save-draft");

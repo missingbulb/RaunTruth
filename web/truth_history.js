@@ -30,7 +30,11 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     const now = active();
     let k = 0;
     while (k < now.length && k < savedSigs.length && sig(now[k]) === savedSigs[k]) k++;
-    return userCount(now.slice(k)) + savedSigs.slice(k).filter((s) => !/^(open|run|base)@/.test(s)).length;
+    const tail = savedSigs.slice(k), fresh = now.slice(k);
+    const runs = (list) => list.filter((x) => /^(run|base)@/.test(typeof x === "string" ? x : sig(x))).length;
+    // once something was saved, a run or base after it is a change to it, and a run is counted once however many it replaced
+    const kept = savedSigs.some((x) => /^(run|base)@/.test(x)) ? Math.max(runs(fresh), runs(tail)) : 0;
+    return userCount(fresh) + tail.filter((x) => !/^(open|run|base)@/.test(x)).length + kept;
   };
   const markSaved = (when) => { lastSaved = when; savedSigs = active().map(sig); };
   const describe = (a) => (module?.describe ? module.describe(a, 1, log.model) : a.type);
@@ -87,7 +91,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       stored = null; lastSaved = null; savedSigs = [];
       paint();
     },
-    leave() { module = null; log = null; stored = null; listeners.clear(); paint(); },
+    leave() { module = null; log = null; stored = null; lastSaved = null; savedSigs = []; listeners.clear(); paint(); },
     // the image is open: the log starts with it, and a draft of it on this device is looked up; true when one is to offer
     async opened() {
       const mine = ++opening, img = image();
@@ -96,10 +100,15 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       replayState = "verified"; stored = null; markSaved(null);
       paint(); notify(null, "open");
       if (!img.sha256) return false;
-      try { stored = await drafts.get(studyId(), img.sha256); } catch (e) { console.warn("the draft was not looked up:", e); }
+      try { stored = await drafts.get(studyId(), img.sha256); } catch (e) { console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true); }
       if (mine !== opening) return false;
       paint();
       return !!stored;
+    },
+    // whether the image open may be left: actions not yet saved are asked about first
+    leaving(what) {
+      const n = makesTruth() ? unsaved() : 0;
+      return !n || confirmBox(`Your ${n} unsaved action${n === 1 ? "" : "s"} on ${image()?.name || "this image"} will be lost${what ? ` if you ${what}` : ""}. Go on?`);
     },
     undo() { if (log?.undo()) mutated("undo"); },
     redo() { if (log?.redo()) mutated("redo"); },

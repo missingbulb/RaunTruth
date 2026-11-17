@@ -827,6 +827,7 @@ page.watch("image", imageBox); page.watch("opening", imageBox);
 
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 async function openBytes(name, bytes, source) {
+  if (st.img && !gtSession.leaving("open another image")) return;
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
   for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
@@ -903,7 +904,7 @@ function dropImage() {
 }
 // Unload: no image open, the study starting over as one that has just come in
 $("#unload").onclick = () => {
-  if (!st.img || loadHolder().classList.contains("working")) return;
+  if (!st.img || loadHolder().classList.contains("working") || !gtSession.leaving("unload it")) return;
   restudy(false);
 };
 // the study mounted again in place, Python kept; again: the image open, opened again in it
