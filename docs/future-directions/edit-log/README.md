@@ -242,7 +242,7 @@ by id; checked areas.
 | `approve` | A NoR | `{cand}` |
 | `delete` | Not a NoR; Remove Added NoR | `{cand}` |
 | `set-lines` | a length or width end dropped; Reset measurements | `{cand, lines \| null}` |
-| `add` | right-click Add a NoR Here | `{cand: "u3", at: [x, y], lines}` |
+| `add` | right-click Add a NoR Here | `{cand: "u3", to: [x, y], lines}` |
 | `check-area` | No missed NoRs here | `{area, on}` |
 | `undecide` | a verdict pressed again | `{cand}` (for a deleted one, `run` restores it from the run's output) |
 
