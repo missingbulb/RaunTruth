@@ -572,7 +572,8 @@ nobody has decided: what the page does there is not a requirement yet.
   of one type fold into one row with its count and its span of time, unfolded by its chevron; Undo still takes one
   action. A day rule breaks sittings. The list scrolls inside the window, the current row pinned to its edge while
   scrolled away, and past 1,000 rows only those in view are drawn. An action a later run could not carry is greyed
-  ("didn't carry over"), and so is a log a mismatch set aside ("earlier history, not replayable in this version").
+  ("didn't carry over"), and so is a log a mismatch set aside ("earlier history, not replayable in this version"), the
+  image's opening apart: it was never history to replay.
   Hovering a row rings its item on the image, from the study's `where`; when the item is out of view the row's title says
   "Off screen — click to go there" and nothing is ringed, and a click pans there
   (Tentative: in the 3D view the ring sits at the stack's middle depth and nothing pans). The ring is yellow, or the

@@ -253,6 +253,8 @@ rows = await rowsOf(page);
 const text = rows.map((r) => r.text);
 await check(JSON.stringify((await model(page)).marks) === JSON.stringify([{ id: "m1", x: 1, y: 2 }]) && /^Ground truth/.test(text[0]) && text.includes("Earlier history, not replayable in this version")
   && rows.filter((r) => /dead/.test(r.cls)).length >= 2, "a draft whose log does not replay says so, the stored model wins, its earlier rows are greyed and set aside", { rows });
+const opening = await page.evaluate(() => { const li = [...document.querySelectorAll("#eh-list > li")].find((l) => l.querySelector(".what")?.textContent === "Image opened"); return { cls: li.className, title: li.title }; });
+await check(!/dead/.test(opening.cls) && opening.title === "", "the image's opening is not among the rows set aside: it was never history to replay", opening);
 await ask(page, true, () => page.click("#eh-clear"));
 await until(page, () => /History cleared/.test($("#status").textContent));
 await check(/back to the stored ground truth/.test(await page.textContent("#status")) && JSON.stringify((await model(page)).marks) === JSON.stringify([{ id: "m1", x: 1, y: 2 }]),

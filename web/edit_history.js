@@ -51,7 +51,7 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
     const acts = lg.actions, undone = lg.undone, skipped = lg.skipped, floor = lg.floor, dead = lg.dead, cur = acts.length - 1;
     const seq = [...acts, ...undone];
     const out = [];
-    const classes = (i) => [i > cur ? "undone" : "", i === cur ? "here" : "", i <= floor ? "floor" : "", i < dead ? "dead" : "", skipped.has(i) ? "skipped" : ""].filter(Boolean);
+    const classes = (i) => [i > cur ? "undone" : "", i === cur ? "here" : "", i <= floor ? "floor" : "", i < dead && seq[i].type !== "open" ? "dead" : "", skipped.has(i) ? "skipped" : ""].filter(Boolean);
     const one = (i, extra = {}) => {
       const a = seq[i];
       const row = { kind: "row", i, a, cls: classes(i), when: clock(a.at), at: a.at, go: i + 1 > floor ? i + 1 : null, dot: i === cur };
@@ -70,7 +70,7 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
         row.what = text(a, 1);
         if (skipped.has(i)) { row.title = `didn't carry over: ${skipped.get(i)}`; row.what += " (didn't carry over)"; }
       }
-      if (i < dead) { row.go = null; row.title = "earlier history, not replayable in this version"; }
+      if (i < dead) { row.go = null; if (a.type !== "open") row.title = "earlier history, not replayable in this version"; }
       return Object.assign(row, extra);
     };
     // the actions in force that fold: consecutive, of one type, taken whole by the current run's replay
