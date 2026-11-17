@@ -32,6 +32,8 @@
   .tools { display: flex; gap: 12px; font-size: 12px; color: var(--accent); margin-top: 6px; }
   .edits { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
   .edits .grow { flex: 1; }
+  .save { display: flex; gap: 8px; }
+  .unsaved { font-size: 12px; color: #b26b00; }
   .toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; }
   .link { border: 0; background: none; color: var(--accent); padding: 0; font-size: 12px; }
 
@@ -88,9 +90,10 @@
   <div class="edits">
     <button title="Undo: Approved #23">Undo<kbd>Ctrl+Z</kbd></button>
     <button title="Redo: Width of #23 set to 4.1 px">Redo<kbd>Ctrl+Y</kbd></button>
+    <span class="unsaved">· 6 unsaved</span>
   </div>
   <label class="toggle"><input type="checkbox" checked> Show Edit History</label>
-  <div><button disabled>Submit Ground Truth</button></div>
+  <div class="save"><button>Save Draft</button><button>Submit Ground Truth</button></div>
 </aside>
 <main id="main">
   <div class="cand" style="left:22%;top:18%"></div><div class="cand" style="left:63%;top:24%"></div>
@@ -103,25 +106,24 @@
   <section id="history" class="float" aria-label="Edit History">
     <div class="head"><span class="title">Edit History <small>· 212</small></span><button class="mm-btn" title="Hide (Show Edit History in Ground Truth Tasks brings it back)">✕</button></div>
     <ol>
-      <li class="undone"><span class="dot"></span><span class="what">Rejected #31</span><span class="when">14:09</span></li>
+      <li class="undone"><span class="dot"></span><span class="what">Deleted #31</span><span class="when">14:09</span></li>
       <li class="undone"><span class="dot"></span><span class="what">Width of #23 set to 4.1 px</span><span class="when">14:08</span></li>
       <li class="here"><span class="dot">●</span><span class="what">Approved #23</span><span class="when">14:08</span></li>
-      <li><span class="dot"></span><span class="what">Moved a length end of #23 (+4, −2)</span><span class="when">14:07</span></li>
+      <li><span class="dot"></span><span class="what">Moved a length end of #23</span><span class="when">14:07</span></li>
       <li><span class="dot"></span><span class="what">Added a NoR at 812, 440</span><span class="when">14:06</span></li>
       <li><span class="dot"></span><span class="what">No missed NoRs in area 8</span><span class="when">14:05</span></li>
-      <li class="mark"><span class="dot"></span><span class="what">Submitted to Drive</span><span class="when">14:02</span></li>
       <li><span class="dot"></span><span class="what">Approved 14 finalists</span><span class="when">13:51–14:01</span></li>
-      <li><span class="dot"></span><span class="what">Rejected #4</span><span class="when">13:50</span></li>
-      <li><span class="dot"></span><span class="what">Rejected 9 candidates</span><span class="when">13:41–13:49</span></li>
-      <li><span class="dot"></span><span class="what">Moved a width end of #12 (−1, +3)</span><span class="when">13:40</span></li>
+      <li><span class="dot"></span><span class="what">Deleted #4</span><span class="when">13:50</span></li>
+      <li><span class="dot"></span><span class="what">Deleted 9 candidates</span><span class="when">13:41–13:49</span></li>
+      <li><span class="dot"></span><span class="what">Moved a width end of #12</span><span class="when">13:40</span></li>
       <li><span class="dot"></span><span class="what">Approved 31 finalists</span><span class="when">13:12–13:39</span></li>
-      <li><span class="dot"></span><span class="what">Rejected #2</span><span class="when">13:11</span></li>
-      <li><span class="dot"></span><span class="what">Moved a length end of #7 (+2, 0)</span><span class="when">13:09</span></li>
+      <li><span class="dot"></span><span class="what">Deleted #2</span><span class="when">13:11</span></li>
+      <li><span class="dot"></span><span class="what">Moved a length end of #7</span><span class="when">13:09</span></li>
       <li><span class="dot"></span><span class="what">Approved 8 finalists</span><span class="when">13:00–13:08</span></li>
       <li class="day">Yesterday</li>
       <li><span class="dot"></span><span class="what">Added a NoR at 1204, 96</span><span class="when">17:22</span></li>
       <li><span class="dot"></span><span class="what">Approved 52 finalists</span><span class="when">16:40–17:20</span></li>
-      <li><span class="dot"></span><span class="what">Rejected 18 candidates</span><span class="when">16:02–16:39</span></li>
+      <li><span class="dot"></span><span class="what">Deleted 18 candidates</span><span class="when">16:02–16:39</span></li>
       <li class="floor"><span class="dot"></span><span class="what">Algorithm ran: walk, Balanced · 140 candidates</span><span class="when">16:01</span></li>
       <li class="floor"><span class="dot"></span><span class="what">Image opened</span><span class="when">16:00</span></li>
     </ol>
