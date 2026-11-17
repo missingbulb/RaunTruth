@@ -96,7 +96,7 @@ await page.click("#fx-count");
 await page.waitForFunction(() => !$("#gt-submit").disabled);
 // req/shell/ground-truth/tagging: counted, no task opens until Start GT tagging; Stop tagging closes it; a task's name starts it there
 const tagging = () => page.evaluate(() => ({ open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null, check: !!document.querySelector("#gt-tasks li.now #fx-check"),
-  start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, first: $("#gt-list").firstElementChild === $("#gt-start") }));
+  start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, first: [...$("#gt-list").children].find((e) => !e.hidden) === $("#gt-start") }));
 let tg = await tagging();
 await check(!tg.open && !tg.check && tg.start === "Start GT tagging" && tg.first, "counted, no task is open, and Start GT tagging heads the tasks", tg);
 await page.click("#gt-start");

@@ -1006,6 +1006,13 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
+#gt-save-draft { flex: 0 0 auto; }
+#gt-offers { margin: 0 0 10px; }
+#gt-offers[hidden], #gt-edits[hidden] { display: none; }
+#gt-load-draft { display: block; width: 100%; }
+#gt-tasks li[data-task="edits"] .gt-edit-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+#gt-tasks .unsaved { color: var(--dim); font-variant-numeric: tabular-nums; }
+#gt-tasks .unsaved[hidden] { display: none; }
 #gt-submit { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 #gt-tasks li:not(.now) .task-body { display: none; }
 #gt-tasks .task-body { padding: 0 0 10px; }

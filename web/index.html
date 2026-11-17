@@ -150,10 +150,11 @@
       <div class="gt-access" hidden></div>
       <slot-here data-slot-for="tasks"></slot-here>
       <div id="gt-list" hidden>
+        <div id="gt-offers" hidden><button id="gt-load-draft" type="button"></button></div>
         <button id="gt-start" type="button" class="primary" title="Work through the tasks, one item at a time">Start GT tagging</button>
         <button id="gt-continue" type="button" class="primary" hidden title="Back to your ground truth drafted on this image on this device">Continue GT tagging</button>
         <div id="gt-bar"></div>
-        <ol id="gt-tasks"><li data-task="submit"><div class="task-head"><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button><span class="gt-clear-slot"></span></div></li></ol>
+        <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled>Undo</button><button id="gt-redo" type="button" disabled>Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled>Save Draft</button><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button><span class="gt-clear-slot"></span></div></li></ol>
       </div>
     </section>
     <section class="box foldable study-box" id="summary-box" hidden>

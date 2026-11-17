@@ -1,7 +1,7 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report), the ground truth it keeps as GT actions (gt: act, ran, model, document, count, on) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
 // submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js) with its Preprocessing (Split into parts), the resources dialog (storage, memory,
 // network and CPU) and the version history.
 //
@@ -16,7 +16,7 @@
 // study's own large holdings for the Memory tab, [{name, what, size}]; and the viewer's hooks (viewer2d.js).
 // A listener a study adds outside its own panels takes shell.signal, which ends it when the study leaves.
 "use strict";
-import { drag } from "./drag.js";
+import { drag, dragging } from "./drag.js";
 import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
 import { viewer3d } from "./viewer3d.js";
@@ -39,6 +39,8 @@ import { replacedBy } from "./edit.js";
 import { dialogMotion } from "./dialog_motion.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthTasks } from "./truth_tasks.js";
+import { truthHistory } from "./truth_history.js";
+import { truthDrafts } from "./truth_drafts.js";
 import { subfolderName } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
@@ -764,6 +766,8 @@ function imageOpened(m) {
   status("Image loaded."); // the study's opened hook says what comes next, if anything
   summaryMasks.opened();
   study.opened?.(m.meta);
+  // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
+  gtSession.opened().then((offered) => { if (offered && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); } });
   // a draft to continue opens Ground Truth Tasks with the image, Continue GT tagging in view
   if (tasks.offer() && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
   truth.paint(); offerTruth();
@@ -1795,7 +1799,8 @@ async function offerTruth() {
     if (mine !== offered) return;
     if (!got) { say.hidden = false; say.textContent = "Its curated ground truth holds no file the page can read."; return; }
     const d = got.doc, when = d.created ? new Date(d.created).toLocaleString() : "an unknown time";
-    const counts = study.showTruth(d);
+    const { history: _, ...plain } = d;
+    const counts = study.showTruth(plain);
     showingTruth(true);
     b.hidden = true; $("#gt-offer").hidden = true; say.hidden = false;
     say.textContent = `Ground truth by ${d.tagger || "a tagger"}, made ${when}${d.accepted?.by ? `, accepted by ${d.accepted.by}` : ""}${counts ? ": " + counts : "."}`;
@@ -1820,15 +1825,18 @@ function submitTruth(gt) {
   // the blue button is the next step: Submit when it can, else the export; Close once either is done
   const next = (b) => { for (const id of ["#gt-export", "#gt-send", "#gt-close"]) $(id).classList.toggle("primary", $(id) === b); };
   next(send.disabled ? $("#gt-export") : send);
-  $("#gt-export").onclick = () => {
-    saveFile(gt.file, JSON.stringify(gt.doc, null, 1), "application/json");
+  // a study with GT actions submits the model's document with its history
+  const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
+  $("#gt-export").onclick = async () => {
+    saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
     $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
     if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not submitted`); next($("#gt-close")); }
   };
   send.onclick = async () => {
     send.disabled = true; $("#gt-msg").textContent = "Submitting…";
     try {
-      await truth.submit(gt.doc);
+      await truth.submit(await docOf());
+      if (gtSession.on()) await gtSession.save({ ask: false });
       $("#gt-msg").textContent = `Submitted to the study's submissions folder, as your ground truth for ${st.fileName}.`;
       step("submit", true, `Submitted the ground truth of ${st.fileName}`);
       log.add("Submitted ground truth");
@@ -2265,6 +2273,7 @@ async function mountStudy(id) {
   views.mount();
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
+  gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
   const mod = await import(base + manifest.web.module);
   study = (await mod.mount(shell)) || {};
   view.use(study);
@@ -2299,6 +2308,10 @@ const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get(
   shows: () => !$("#summary-box").hidden, drag, readJSON, writeJSON, views });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
+// the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
+const gtDrafts = truthDrafts();
+const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth,
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
@@ -2313,7 +2326,7 @@ function leaveStudy() {
   for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(new Error("the study left")));
   busy(false); $("#notice").hidden = true; $("#tip").hidden = true;
   $("#image-view").hidden = false; delete $("#view").dataset.view; $("#switch").hidden = true; views.now = "image";
-  tasks.leave(); remoteLeft();
+  tasks.leave(); gtSession.leave(); remoteLeft();
   restoreLoaded();
 }
 
@@ -2322,6 +2335,8 @@ const shell = {
   clearable: (what, fn) => truth.clearable(what, () => { tasks.forget(); fn(); }), showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
+  // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)
+  gt: gtSession.api,
   // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
   summary: summaryCsv.api,
   // the summary's mask (req/shell/summary/mask): polygons(), inside(x, y), on(fn, signal)

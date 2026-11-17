@@ -509,7 +509,22 @@ nobody has decided: what the page does there is not a requirement yet.
   2026-11-10: in such a study the box offers one of three, never two at once. Start GT tagging, while no draft
   of the image is kept, before the study's algorithm has run or after; Continue GT tagging, once one is, which
   goes back to the item the tagger last had open; and Stop tagging while the tagger tags. Clear progress
-  brings back Start GT tagging. Test: `studies/shelves/tests/test_shelves_page.py`.
+  brings back Start GT tagging. Changed by the owner on 2026-11-17: a study that keeps its ground truth as GT actions
+  (`req/shell/ground-truth/history`) hands the shell no draft; its work is saved by Save Draft and offered by Load
+  draft (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`), and it is offered Start GT
+  tagging, never Continue. Test: `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shell/ground-truth/draft-offer` Opening an image that has a draft on this device offers Load draft; nothing is loaded unasked.
+  <details>
+
+  Set by the owner on 2026-11-17. When the image open has a draft on this device, by the study and the image's SHA-256
+  (`req/shell/ground-truth/save-draft`), the Ground Truth Tasks box opens with the image and shows Load draft above
+  Start GT tagging, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
+  Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
+  (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
+  asks first. Tentative: the button stays while the draft on the device is not the one loaded. Test:
+  `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/folders` A study's ground truth lives in a submissions folder and a curated folder under its root; one folder for both is free submission.
@@ -540,6 +555,16 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/ground-truth/history-replay`); Redo puts it back; a new action forgets what was undone. Undo stops at the
   first run or base, and there is none to undo before one; undoing a later run goes back to the model on the run before.
   Two runs with no action between them are one, the later. Tests: `web-tests/test_truth_actions.py`.
+  </details>
+
+- `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
+  <details>
+
+  Set by the owner on 2026-11-17. Submit and Export write the study's document of the model and add
+  `history: {format: "rauntruth-gt-history/1", replay, actions}`: the actions still in force, in order, each with its
+  time, the runs with their outputs deflated; what was undone is not written. A reader that knows only the study's own
+  fields is not disturbed, and the shell takes `history` off before it hands a file to a study. A file without
+  `history` loads as a base, with no history. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/history-replay` The model and its log are both kept; replaying the log must give the stored model, and where it does not the stored model wins.
@@ -583,6 +608,18 @@ nobody has decided: what the page does there is not a requirement yet.
   truth. Tests: `web-tests/test_truth_folders.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
+- `req/shell/ground-truth/save-draft` Save Draft, beside Submit Ground Truth, keeps the tagger's work on this device; until it is pressed nothing is saved.
+  <details>
+
+  Set by the owner on 2026-11-17. The log and its model live in the page while the tagger works, so they can try
+  things without touching what is saved. Save Draft writes the log and the model to this device (IndexedDB database
+  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Submit saves the draft too. Actions
+  not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
+  said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
+  Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
+  actions it holds. Test: `web-tests/test_gt_history_page.py`.
+  </details>
+
 - `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's settings file.
   <details>
 
@@ -608,7 +645,9 @@ nobody has decided: what the page does there is not a requirement yet.
   the image's subfolder in the submissions folder (`req/shell/ground-truth/layout`), creating the
   subfolder when it lacks one. The popup says when the file landed, or why it did not, the export still
   there to keep a copy. Submit is off, saying why, for an image opened from the computer and for a tagger
-  Drive does not let write there (`req/shell/ground-truth/tagger-access`).
+  Drive does not let write there (`req/shell/ground-truth/tagger-access`). Set by the owner on 2026-11-17: for a study
+  with GT actions the file is the model's document with its `history` (`req/shell/ground-truth/history-file`), and
+  Submit saves the draft.
   Tests: `studies/nor/tests/test_ground_truth_page.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
@@ -673,7 +712,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
   last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
-  the study's ground truth, Clear progress beside it (`req/shell/ground-truth/clear`). A task is open only while
+  the study's ground truth, with Save Draft beside it, and above them Undo and Redo, Clear progress beside it (`req/shell/ground-truth/clear`). A task is open only while
   the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
   ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's
@@ -785,7 +824,10 @@ nobody has decided: what the page does there is not a requirement yet.
   `req/shell/viewer-3d`): what it does in a small label, its key beside it in a faded grey. A row is filled blue while
   its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
   a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
-  legend is empty. Test: `web-tests/test_keys_page.py`, and the vascular study's `req/vascular/truth/keys`.
+  legend is empty. Set by the owner on 2026-11-17, the shell's own: Undo (Ctrl+Z, ⌘Z) and Redo (Ctrl+Shift+Z, ⌘⇧Z, Ctrl+Y)
+  press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
+  browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
+  study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.

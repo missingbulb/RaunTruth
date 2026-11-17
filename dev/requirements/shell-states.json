@@ -330,6 +330,16 @@
               "children": [
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
+                    {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
+                      "steady": "hidden while no draft of the image is on this device, which no path makes",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device"}
+                      ],
+                      "children": [
+                        {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
+                          "unwalked": "its parent is hidden in every path, no draft being on this device"}
+                      ]
+                    },
                     {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
                     {"name": "Continue tagging", "select": "#gt-continue", "control": true, "req": "req/shell/ground-truth/draft",
                       "steady": "hidden for a study that takes no drafts, the only kind a path opens",
@@ -340,6 +350,34 @@
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                       "children": [
+                        {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft",
+                              "steady": "hidden while no GT action is unsaved, which no path makes",
+                              "rule": [
+                                {"is": "hidden", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            }
+                          ]
+                        },
+                        {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
+                          "rule": [
+                            {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                          ]
+                        },
                         {"name": "Submit Ground Truth", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                           "rule": [
                             {"when": {"counted": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}

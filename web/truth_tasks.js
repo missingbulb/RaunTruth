@@ -10,7 +10,7 @@
 // draft is kept on this device, null while none is open; readJSON and writeJSON, the shell's storage
 export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writeJSON }) {
   let pick = null, submit = null, heard = null, resume = null, wants = false, on = false;
-  const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit");
+  const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit" && li.dataset.task !== "edits");
   const row = (key) => rows().find((li) => li.dataset.task === key) || null;
   const part = (key) => [...$("#gt-bar").children].find((p) => p.dataset.task === key);
   const ico = $("#gt-submit .gt-ico");
@@ -61,7 +61,7 @@ export function truthTasks({ $, icon, started, heardBy, draftKey, readJSON, writ
         const b = li.querySelector(".t");
         b.append(t.name);
         if (t.title) b.title = t.title;
-        $("#gt-submit").closest("li").before(li);
+        $("#gt-edits").before(li);
         const p = document.createElement("span");
         p.dataset.task = t.key; p.title = t.name;
         $("#gt-bar").append(p);

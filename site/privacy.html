@@ -38,7 +38,7 @@ your browser's storage on this device:</p>
   <li>in Chrome and Edge, for each file you open from your computer in the Image Viewer, its name and the
     browser's reference to it, so the recent list opens it again, never a copy of the file;</li>
   <li>your settings, such as the theme, the tips you closed and your last Google Drive links;</li>
-  <li>your work on each image, such as your selections and corrections;</li>
+  <li>your work on each image, such as your selections and corrections, and, when you press Save Draft while tagging ground truth, your draft of that image: each correction in order, with the time you made it, and what the algorithm proposed;</li>
   <li>your last 200 actions on the page, such as the buttons you clicked, and the errors it met, never
     what you type or an image's name, so that Report a problem can list the last few in the GitHub issue it
     opens for you to read and submit;</li>
@@ -117,7 +117,7 @@ folders it shows you. The settings file holds only the settings listed in the av
     after about an hour) are kept in your browser on this device until you sign out, and so is which study folders
     Google last said you may add files to, so your roles show while the token is renewed. The settings file
     stays in your own Google Drive, and the files the site adds stay in the study's folders. We keep no copy of any of it, anywhere.</li>
-  <li><b>Shared:</b> your email address is in the ground-truth files you submit, which anyone with the study's
+  <li><b>Shared:</b> your email address is in the ground-truth files you submit, with the time of each correction, which anyone with the study's
     folder links can read. Otherwise Google user data goes only between your browser and Google, never to
     us or to any third party. It is not used for advertising, sold, or used to train any model.</li>
 </ul>
@@ -131,7 +131,7 @@ Google's sign-in window) and choose Delete hidden app data. To withdraw the site
 
 <h2>Ground truth</h2>
 <p>Submit saves your ground truth into the study's submissions folder in Google Drive, as a file named with your
-email address that holds your marks, your email address and when you made it. A study's data manager may copy it
+email address that holds your marks, your email address, when you made it and its history: each correction you kept, in order, with the time you made it, and what the algorithm proposed. Corrections you undid are not written. A study's data manager may copy it
 into the study's curated folder, which the study's algorithms are scored on. Setting up the study's ground truth shares
 the curated folder with anyone with its link, and the submissions folder is shared as the study's root is; anyone with
 their links can read the files, and Google Drive shows each file's owner, your name and
