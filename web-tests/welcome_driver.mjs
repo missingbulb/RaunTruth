@@ -158,7 +158,8 @@ try {
   check(!!g1 && g1.asked === 0 && !(await signedIn(b.page)), "no one signed in here, Sign in with Google first opens the guide to Google's screens, asking Google nothing yet");
   check(!!g1 && /Advanced/.test(g1.text) && /unsafe/.test(g1.text) && /Continue/.test(g1.text) && g1.drawn.length >= 3 && g1.drawn.every(Boolean),
     "it shows the unverified-app screen's Advanced and Go to (unsafe), the boxes to tick and Continue, each in a screenshot: " + JSON.stringify(g1 && { drawn: g1.drawn }));
-  if (shots) await b.page.waitForTimeout(400); await shot(b.page, "consent_guide");
+  if (shots) await b.page.waitForFunction(() => !document.querySelector("#guide-dlg").getAnimations({ subtree: true }).some((a) => a.playState === "running"));
+  await shot(b.page, "consent_guide");
   await b.page.click("#guide-cancel");
   check(!(await guide(b.page)) && await b.page.evaluate(() => !window.tokenClient?.asked?.length) && await popup(b.page) && !(await signedIn(b.page)), "the guide's Cancel asks Google nothing and leaves the popup up");
   await b.page.click("#welcome-sign-in");
