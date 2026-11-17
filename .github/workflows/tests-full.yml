@@ -36,6 +36,7 @@ jobs:
       - run: echo ~/venv/bin >> "$GITHUB_PATH"
       - name: Read the page's libraries
         id: libs
+        shell: bash
         run: echo "list=$(python3 web-tests/page_libraries.py --list | tr '\n' '_')" >> "$GITHUB_OUTPUT"
       - name: Restore Pyodide and Chromium
         id: browser
