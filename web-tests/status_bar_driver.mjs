@@ -308,7 +308,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await steps(page, ["Load image", "Count", "Submit GT"], []);
   await check(/squares_gt\.json/.test(await tip(page, "Submit GT")), "Submit GT says what was exported");
   await shot(page, "3-done");
-  // another image starts over
+  // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
+  page.once("dialog", (d) => d.accept());
   await loadImage(page);
   await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
 
