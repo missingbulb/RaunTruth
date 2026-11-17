@@ -24,7 +24,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   // an old store the study hands over (api.legacy): {model, count, from, forget}, and whether the log holds it as its base now
   let old = null, oldTaken = false;
   const listeners = new Set();
-  // the page's root says whether the look for the open image's draft is under way or over, for tests and drivers to wait on
+  // the page's root says whether the look for the open image's draft is under way or over, for a test to wait on
   const lookup = (state) => { document.documentElement.dataset.gtLookup = state; };
   const rooted = () => !!log && active().some((a) => a.type === "run" || a.type === "base");
 
