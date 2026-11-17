@@ -1040,6 +1040,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-history-row { padding: 8px 0; font-size: 13px; }
 #gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #gt-save-draft { flex: 0 0 auto; }
+/* the two share one line of the box */
+#gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
 #gt-offers[hidden], #gt-edits[hidden] { display: none; }
 #gt-load-draft { display: block; width: 100%; }
