@@ -1,6 +1,10 @@
-# The ground-truth action log, with undo and an Edit History window (future direction)
+# The ground-truth action log, with undo and an Edit History window (built)
 
-A design, not a plan: nothing here is built. The owner asked for a tagger's ground truth to be kept as
+Built, in one pull request, for the fixture and the three studies (Vascular, Shelves, NoR). The spec is the
+`req/shell/ground-truth/history…` entries of [`dev/requirements/requirements.md`](../../../dev/requirements/requirements.md)
+and each study's own requirements; the code is `web/truth_actions.js` (the log), `web/truth_history.js` (the session),
+`web/edit_history.js` (the window) and each study's `web/gt_actions.js`. What follows is the design as it was reviewed,
+kept for its reasoning; where it and the spec differ, the spec is right. The owner asked for a tagger's ground truth to be kept as
 a sequential log of every action on the GT model, from the image opening, through the algorithm's run,
 to each correction; for that log to travel with the model to Drive and back; for a replay to reproduce
 the model without re-running the algorithm; and for undo and redo, the stack shown as a list.
