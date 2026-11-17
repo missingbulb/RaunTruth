@@ -16,6 +16,24 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/shell` The shell, whichever study it runs
 
+- `req/shell/account/consent-guide` Before the page opens a Google window that will ask the user something, a guide shows its screens, framing what to click, and stays until Google answers.
+  <details>
+
+  Set by the owner on 2026-11-17, since while the site is unverified Google hides the way in. Signing in when no
+  one is signed in on this device (the welcome popup's Sign in with Google, the avatar menu's), and approving a
+  study's folders (`req/shell/data/drive-access`, the ground-truth setup, the Tagger's Approve…), first open the
+  guide: numbered steps, each with a screenshot of Google's screen and what to click framed. Signing in: choose the
+  account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (Drive
+  among them) and Continue. Approving folders: the same unverified-app steps and the per-file Drive box, unless
+  that permission was given already, then Google's picker: tick the study's folders and press Select. The guide's
+  Open Google's window asks Google in that click; the guide stays, saying it waits for Google, until Google
+  answers, then closes; its Cancel asks Google nothing. Over the picker, which opens in the page, the guide steps
+  aside to the page's left edge, under the picker. A renewal Google answers by itself shows no guide. The
+  screenshots are of other apps' screens on Google, published on help pages (owner, 2026-11-17, the source under
+  each), and served from the site; the picker's step is drawn. Test: `web-tests/test_welcome_page.py`,
+  `web-tests/test_data_mode_page.py`.
+  </details>
+
 - `req/shell/account/role` Beside the study's name, a menu picks the role the user works in; the page shows that role's own view.
   <details>
 

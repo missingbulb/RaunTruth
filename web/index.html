@@ -297,6 +297,12 @@
     <label class="hint"><input type="checkbox" id="welcome-remember"> Remember this choice</label>
   </form>
 </dialog>
+<dialog id="guide-dlg" aria-labelledby="guide-title">
+  <h2 id="guide-title"></h2>
+  <ol id="guide-steps"></ol>
+  <p class="hint" id="guide-wait" role="status"></p>
+  <div class="dlg-row end"><span class="grow"></span><button type="button" id="guide-cancel">Cancel</button><button type="button" id="guide-go" class="primary" autofocus></button></div>
+</dialog>
 <dialog id="usage-dlg" aria-labelledby="usage-title">
   <form method="dialog">
     <h2 id="usage-title">Resource Usage</h2>
