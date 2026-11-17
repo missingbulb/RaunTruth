@@ -108,14 +108,22 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     return true;
   }
 
+  // what Clear all history goes back to: the run it keeps, or the base that stands in for one
+  const rootName = () => {
+    const root = active().findLast((a) => a.type === "run" || a.type === "base");
+    if (root?.type !== "base") return "the algorithm's output";
+    return root.from?.earlier ? "the earlier edits" : root.from?.note ? root.from.note : "the stored ground truth";
+  };
+
   async function clearAll() {
     const img = image();
     if (!log || !img) return;
-    if (!confirmBox(`Clear all history on ${img.name}? This forgets your draft of this image on this device and goes back to the algorithm's output; anything you submitted stays in ${remoteLabel()}.`)) return;
+    const goes = rootName();
+    if (!confirmBox(`Clear all history on ${img.name}? This forgets your draft of this image on this device and goes back to ${goes}; anything you submitted stays in ${remoteLabel()}.`)) return;
     try { if (img.sha256) await drafts.delete(studyId(), img.sha256); } catch (e) { notice(`The draft could not be cleared: ${e?.message || e}`); return; }
     log.clear();
     stored = null; replayState = "verified"; markSaved(null);
-    status("History cleared: back to the algorithm's output.");
+    status(`History cleared: back to ${goes}.`);
     mutated("clear");
   }
 
@@ -221,7 +229,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     if (!log || !old || oldTaken) return;
     if (old.actions) return takeActions();
     if (unsaved() > 0 && !confirmBox(`Loading the earlier edits replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load them?`)) return;
-    log.load([...active(), { type: "base", at: new Date().toISOString(), model: bare(old.model), from: { note: old.from } }]);
+    log.load([...active(), { type: "base", at: new Date().toISOString(), model: bare(old.model), from: { note: old.from, earlier: true } }]);
     oldTaken = true; replayState = "verified"; markSaved(null);
     status(`Earlier edits loaded as a base: ${old.from}.`);
     mutated("load");

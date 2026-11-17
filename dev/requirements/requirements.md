@@ -483,7 +483,8 @@ nobody has decided: what the page does there is not a requirement yet.
   only the open image's progress: other images keep theirs, and anything already submitted stays in Drive.
   Changed by the owner on 2026-11-17: for a study with GT actions (`req/shell/ground-truth/history`) it is Clear all
   history…, at the foot of the Edit History window. It asks first, naming the image, then forgets this image's draft on
-  this device and returns the model to the algorithm's output; other images keep theirs and anything submitted stays in
+  this device and returns the model to the algorithm's output, or to the base the log stands on when a run is not its root
+  (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the status line say which; other images keep theirs and anything submitted stays in
   Drive. A study without GT actions keeps Clear progress beside Submit Ground Truth. Test:
   `web-tests/test_gt_history_page.py`.
   </details>

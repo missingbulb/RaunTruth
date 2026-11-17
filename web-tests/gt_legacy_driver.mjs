@@ -12,7 +12,7 @@ const drive = await standIn({ answers, studies, rootDir });
 const { GT, approved, FILES, open, check, done } = drive;
 approved.add(GT.submissions);
 const png = FILES.find((f) => /\.png$/.test(f.name));
-const { tagger, reopen, marks, label, records } = kit({ drive, png });
+const { tagger, reopen, marks, label, records, ask } = kit({ drive, png });
 
 const KEY = `fx-legacy:${png.name}`;
 const OLD = { edits: 3, model: { labels: [{ threshold: 5, count: 3 }], marks: [{ id: "m1", x: 11, y: 12 }, { id: "m2", x: 30, y: 31 }, { id: "m9", x: 5, y: 5 }], checked: true } };
@@ -45,6 +45,12 @@ await check(loaded === "m1,m2,m9" && !o.box && l.text === "· 3 unsaved" && !(aw
 await check(await page.isDisabled("#gt-undo"), "there is nothing to undo before the base");
 const rows = await page.evaluate(() => [...document.querySelectorAll("#eh-list .what")].map((x) => x.textContent));
 await check(rows.some((r) => /marks kept in this browser/.test(r)), "Edit History names where the base came from", rows);
+
+// Clear all history keeps the base it was loaded as, and says so
+await ask(page, true, () => page.click("#eh-clear"));
+await until(page, () => /History cleared/.test($("#status").textContent));
+await check(/back to the earlier edits/.test(await page.textContent("#status")) && (await page.evaluate(() => window.fixture.model().marks.length)) === 3,
+  "Clear all history goes back to the earlier edits, not to the algorithm's output, and says so", await page.textContent("#status"));
 
 // closing the page before it is saved loses nothing: it is offered again at the next visit
 await reopen(page);
