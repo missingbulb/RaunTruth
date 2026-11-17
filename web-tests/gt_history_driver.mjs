@@ -3,7 +3,7 @@
 // and guarded; a failed write said; replacing an unloaded draft asks), req/shell/ground-truth/draft-offer (Load draft is
 // offered, never loaded unasked, and asks before it replaces unsaved actions), req/shell/ground-truth/history (Undo and
 // Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Submit's file carries the log in
-// force, and a viewer's copy is handed the study without it).
+// force, and a viewer's copy is handed the study without it) and req/shell/storage/manage (a draft listed and deleted).
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
@@ -207,5 +207,23 @@ await page.click("#gt-save-draft");
 await page.waitForFunction(() => /could not be saved/.test($("#notice").textContent));
 l = await label(page);
 await check(l.text === "· 1 unsaved" && await unloadAsks(page), "a draft that cannot be written is said, and the action stays unsaved", l);
+await page.context().close();
+// a draft is listed in Manage storage, under its image, and deleted there
+page = await open(true);
+await tagger(page);
+await counted(page);
+await moved(page, "m1", 12, 12);
+await page.click("#gt-save-draft");
+await until(page, () => $("#gt-unsaved").hidden);
+await page.click("#user-menu summary");
+await page.click("#manage-storage");
+await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
+for (const s of await page.$$("#storage-list .group > summary")) await s.click();
+const entry = `#storage-list .entry[data-kind=selections][data-name="${png.name}"]`;
+const listed = await page.textContent(entry, { timeout: 2000 }).catch(async () => "none: " + JSON.stringify(await page.$$eval("#storage-list .group", (g) => g.map((x) => [x.dataset.group, x.textContent.slice(0, 200)]))));
+await check(/ground-truth draft/.test(listed), "Manage storage lists the draft among the image's selections", listed);
+await ask(page, true, () => page.click(entry + " .del"));
+await page.waitForFunction((e) => !document.querySelector(e), entry);
+await check((await records(page)).length === 0, "deleting it removes the record from this device");
 await page.context().close();
 await done(0);

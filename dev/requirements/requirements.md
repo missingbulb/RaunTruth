@@ -1543,7 +1543,7 @@ nobody has decided: what the page does there is not a requirement yet.
   available offline (`req/shell/offline/mark`), holding its Python packages no other study uses, by package; its own
   pages and code, part of the site's copy; the images kept from Google Drive in it, by name; one
   record for all their thumbnails and its Drive folders' previews (set by the owner on 2026-11-17, a thumbnail is kept as a JPEG in the browser's cache storage beside the folders' previews, the latest 100, never in the settings' storage; one kept there before moves over the first time the page opens, and one the cache would not take stays where it was for the next opening, while what was kept there and is no picture is dropped); and, for the study on show, the
-  selections per image, by image name. An image, a thumbnail or a preview kept before images were
+  selections per image, by image name, a ground-truth draft among them, in any study's section (`req/shell/ground-truth/save-draft`, set by the owner on 2026-11-17). An image, a thumbnail or a preview kept before images were
   told apart by study, and opened in none of them since, is listed with the study on show. The study sections sit under a
   **Studies** heading; then, under a **Shared** heading, the **Shared** section (set by the owner on 2026-11-07): the site itself, Python itself, the packages two studies or more use,
   and, as one record, code no study uses now. Each entry can be deleted, but a study's pages, kept

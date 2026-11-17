@@ -1,5 +1,5 @@
 """req/shell/ground-truth/save-draft, req/shell/ground-truth/draft-offer, req/shell/ground-truth/history-file, req/shell/ground-truth/history,
-req/shell/image/keys (the shell's Undo and Redo): the fixture study's GT actions, in
+req/shell/image/keys (the shell's Undo and Redo), req/shell/storage/manage (a draft listed and deleted): the fixture study's GT actions, in
 headless Chromium against a stand-in Google (gt_history_driver.mjs), as a Ground Truth Tagger: Save Draft and Load draft, Undo and Redo,
 and the history in Submit's file."""
 import os

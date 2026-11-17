@@ -1606,7 +1606,18 @@ async function inventory() {
     } else if (s) settings += bytesOf(k);
     else overhead += bytesOf(k);
   }
-  for (const im of selections.values()) sectionOf(manifest?.id).entries.push({ kind: "selections", name: im.name, what: "Your selections: " + [...im.whats].join(", "), size: im.size, del: () => drop(...im.keys), held: true, ask: true });
+  // a draft of ground truth kept in IndexedDB joins its image's selections, in its study's section (req/shell/ground-truth/save-draft)
+  let kept = [];
+  try { kept = await gtDrafts.all(); } catch (e) { console.warn("the ground-truth drafts could not be read:", e); }
+  for (const r of kept) {
+    const size = JSON.stringify(r).length, del = () => gtDrafts.delete(r.study, r.sha256);
+    if (r.study === manifest?.id) {
+      const im = selections.get(r.name) || { name: r.name, whats: new Set(), keys: [], size: 0 };
+      im.whats.add("ground-truth draft"); im.size += size; (im.dels ||= []).push(del); selections.set(r.name, im);
+    } else sectionOf(r.study).entries.push({ kind: "selections", name: r.name, what: "Your selections: ground-truth draft", size, del, held: true, ask: true });
+  }
+  for (const im of selections.values()) sectionOf(manifest?.id).entries.push({ kind: "selections", name: im.name, what: "Your selections: " + [...im.whats].join(", "), size: im.size,
+    del: () => { drop(...im.keys); return Promise.all((im.dels || []).map((f) => f())); }, held: true, ask: true });
 
   // the packages: whose they are; Python itself, the lock naming its packages and the build's vendored list, shared
   const users = new Map();
