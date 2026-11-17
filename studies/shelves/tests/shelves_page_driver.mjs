@@ -5,7 +5,7 @@
 // req/shelves/truth/task (one book at a time in the order the books stand, Back and Next, a book picked on the photo
 // whatever its verdict, its title ready to retype, a book marked not a book or deleted gone from the photo, a corner dragged past the photo, a book flipped, books added and
 // deleted from the right-click menu, a missed book drawn, what is approved cut out of the photo, Submit's export, the
-// draft continued after a reload, one tagging button at a time), req/shelves/truth/keys (the verdicts from the
+// draft kept and loaded after a reload, every change one GT action in the shell's log), req/shelves/truth/keys (the verdicts from the
 // keyboard), req/shell/image/toolbar (no ruler or grid on a photo) and
 // req/shell/waiting/visible (the light sweeping the photo while the study works). The real
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
@@ -23,6 +23,7 @@ import { asTagger } from "../../../web-tests/tagger.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
+import { until } from "../../../web-tests/page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -96,6 +97,8 @@ async function open(role, seed = {}, finder = {}) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
   page.setDefaultTimeout(10000);
+  // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
+  page.on("dialog", (d) => d.accept());
   await page.goto(origin + "/web/shelves");
   await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
   await load(page);
@@ -191,10 +194,13 @@ try {
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
   await page.context().close();
 
-  // the box's one tagging button: Start GT tagging with no draft kept, Continue GT tagging with one, Stop tagging
-  // while tagging (req/shell/ground-truth/draft)
+  // the box's one tagging button: Start GT tagging, Stop tagging while tagging; Continue GT tagging is gone, a draft
+  // being brought back by Load draft (req/shell/ground-truth/draft-offer)
   const offered = (page) => page.evaluate(() => ["#gt-start", "#gt-continue"].filter((s) => !$(s).hidden).map((s) => $(s).textContent.trim()).join());
-  const rowsOf = (page) => page.$$eval("#gt-tasks > li .t", (h) => h.map((x) => x.textContent.trim()));
+  const rowsOf = (page) => page.$$eval("#gt-tasks > li:not([data-task=edits]) .t", (h) => h.map((x) => x.textContent.trim()));
+  // the GT actions made, newest first, as Edit History words them, and how many of them are not yet saved
+  const history = (page) => page.$$eval("#eh-list .what", (h) => h.map((x) => x.textContent.trim()));
+  const unsaved = (page) => page.evaluate(() => +(/\d+/.exec($("#gt-unsaved").textContent)?.[0] ?? 0));
   const valueOf = (page) => page.evaluate(() => $(".bs-item input")?.value);
 
   // a tagger taking books off the photo: Not a book and Delete this book leave nothing behind on it
@@ -205,6 +211,7 @@ try {
   check(await offered(page) === "Start GT tagging", "the books found, Start GT tagging is still the one offered", await offered(page));
   await page.click("#gt-start");
   check(await offered(page) === "Stop tagging", "while tagging, Stop tagging alone: no Continue beside it", await offered(page));
+  check(await unsaved(page) === 0 && (await history(page)).join() === "Algorithm ran: 3 books,Image opened", "Find books and its first reading are one run in the log, no action yet", await history(page));
   await page.click('.bs-verdicts [data-do="wrong"]');
   check((await books(page)).length === 2 && (await rowsOf(page))[0] === "0/2 Books" && await valueOf(page) === "Title 240x35",
     "Not a book takes the box off the photo and out of the walk, and moves on", [await books(page), await rowsOf(page)]);
@@ -215,11 +222,15 @@ try {
   await page.click('#bs-menu [data-do="delete"]');
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books" && !(await page.$$eval("#overlay g.bs-book.wrong", (g) => g.length)),
     "Delete this book takes a found book off the photo too, nothing left faint", [await books(page), await rowsOf(page)]);
+  check((await history(page)).slice(0, 2).join() === "Deleted 2 books,Algorithm ran: 3 books" && await unsaved(page) === 2,
+    "Not a book and Delete this book are one GT action each, Edit History folding the two deletions", [await history(page), await unsaved(page)]);
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.press("Control+z");
+  check((await books(page)).length === 2 && (await rowsOf(page))[0] === "0/2 Books", "Ctrl+Z brings back the book deleted last", [await books(page), await rowsOf(page)]);
+  await page.click("#gt-undo");
+  check((await books(page)).length === 3 && (await rowsOf(page))[0] === "0/3 Books" && await unsaved(page) === 0, "and Undo the one marked not a book", [await books(page), await rowsOf(page)]);
   await page.click("#gt-start");
-  check(await offered(page) === "Continue GT tagging", "tagging stopped with a draft kept, Continue GT tagging alone is offered", await offered(page));
-  await page.click("#gt-continue");
-  check(await valueOf(page) === "Title 180x180" && (await books(page)).length === 1 && await offered(page) === "Stop tagging",
-    "Continue GT tagging goes back to the book that was open, the books taken off still gone", [await valueOf(page), await offered(page)]);
+  check(await offered(page) === "Start GT tagging", "tagging stopped, Start GT tagging alone is offered: there is no Continue", await offered(page));
   await page.context().close();
 
   // req/shelves/truth/keys: the verdicts from the keyboard, the title's text box keeping its letters
@@ -255,11 +266,20 @@ try {
   check((await rowsOf(page))[0] === "1/3 Books" && await valueOf(page) === "Title 240x35" && await confirm() === "",
     "a second Enter approves it as read and moves on, as Right does", [await rowsOf(page), await valueOf(page)]);
   await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  check(await unsaved(page) === 1, "the verdict is one GT action", await history(page));
   await page.keyboard.type("Dune");
+  check(await unsaved(page) === 1, "a title typed is no GT action a key: nothing is recorded while the field is typed in", await history(page));
   await page.keyboard.press("Enter");
   check((await rowsOf(page))[0] === "2/3 Books" && await valueOf(page) === "Title 180x180", "Enter on a title typed approves it at once", await rowsOf(page));
+  check((await history(page)).slice(0, 3).join() === "Approved a book,Set a title: Dune,Approved a book",
+    "Enter committed the title as one GT action, then the verdict", await history(page));
   await page.keyboard.press("Alt+ArrowLeft");
   check(await valueOf(page) === "Dune", "Alt+← is Back", await valueOf(page));
+  await page.fill(".bs-item input", "Dune II");
+  check(await unsaved(page) === 3, "a title filled in is still no GT action", await history(page));
+  await page.keyboard.press("Alt+ArrowRight");
+  check(await unsaved(page) === 4 && (await history(page))[0] === "Set a title: Dune II", "going to another book commits the title: one GT action", await history(page));
+  await page.keyboard.press("Alt+ArrowLeft");
   await page.keyboard.down("Alt"); await page.keyboard.down("ArrowRight"); await page.keyboard.down("ArrowRight"); await page.keyboard.up("ArrowRight"); await page.keyboard.up("Alt");
   check(await valueOf(page) === "Title 180x180", "Alt+→ is Next, and held down it moves one book", await valueOf(page));
   const reads0 = await page.evaluate(() => tess.reads);
@@ -364,12 +384,12 @@ try {
   // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
   {
     const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
-    const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value);
+    const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value), logged = await history(page);
     await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
     const mid = await corners();
     await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
-    check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read,
-      "Escape mid-drag puts a corner back where it was, the book unchanged", { kept, mid, after: await corners() });
+    check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read && (await history(page)).join() === logged.join(),
+      "Escape mid-drag puts a corner back where it was, the book unchanged and no GT action made", { kept, mid, after: await corners() });
   }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
   await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
@@ -379,12 +399,16 @@ try {
   const after = await scrolled();
   check(before[0] > 0 && after.join() === before.join(), "dragging a corner moves the corner alone, never the photo under it", { before, after });
   await page.waitForFunction(() => $(".bs-item input")?.value === "Title 300x180");
+  check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
+    "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");
   for (let i = 0; i < 3; i++) await page.click("#zoom-out");
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "3/3 Books" && await page.evaluate(() => $("#gt-submit").disabled && !!document.querySelector('[data-do="none"]')),
     "every book decided, the task asks for the missed ones before Submit", await rows());
   // right-click on the photo: a book added where no box is, sized as the books found, and one deleted from inside it
+  // Edit History floats over the photo's right side, where the next clicks are: it is switched off
+  await page.uncheck("#gt-history-on");
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add", "right-click off every book offers only Add a book");
   await page.click('#bs-menu [data-do="add"]');
@@ -408,29 +432,72 @@ try {
   check((await rows()).join() === "4/4 Books" && !(await page.evaluate(() => $("#gt-submit").disabled)), "None missed ends the task, and Submit opens", await rows());
   await page.click("#gt-start");
   check(!(await cutShown()), "out of tagging the photo is whole again");
-  await page.click("#gt-continue");
+  await page.click("#gt-start");
   await page.click("#gt-submit");
   const gt = await saved(page, "#gt-export");
   const [b1, b2, b3, b4] = gt.doc.books;
   check(gt.name === "shelf_books_gt.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
     && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[1][0] === 420 && b3.proposed.corners[1][0] === 300 && b4.source === "missed" && b4.corners[0].join() === "330,60" && !b4.proposed,
   "Submit's file carries each book in the order they stand: its verdict, corners (past the photo's edge where dragged there), turn and text, and what the finder and the reader proposed", gt.doc);
-  // the page reloaded, the photo opened again: the draft continues where the tagger left off, without finding again
+  check(gt.doc.books.map((b) => b.id).join() === "b2,b1,b3,u2" && gt.doc.none_missed === true && gt.doc.books.every((b) => b.verdict === "right"),
+    "each book carries its id, the finder's b1, b2, b3 and the tagger's own kind, u1 taken by the book added and deleted again; none missed is in the file", gt.doc.books.map((b) => b.id));
+  const kinds = gt.doc.history.actions.map((a) => a.type);
+  check(gt.doc.history.replay === "verified" && kinds[0] === "open" && kinds[1] === "run" && kinds.includes("move-corners") && kinds.includes("flip") && kinds.includes("add") && kinds.includes("delete")
+    && kinds.includes("none-missed") && kinds.includes("read") && !kinds.includes("set-text-per-key"), "the file's history replays to it, every GT action in order", kinds);
+  const typedOnce = gt.doc.history.actions.filter((a) => a.type === "set-text" && a.text.startsWith("הארי"));
+  check(typedOnce.length === 1, "the Hebrew title filled in is one set-text, whatever the keys it took", typedOnce.length);
+  // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again
+  await page.click("#gt-close");
+  await page.click("#gt-save-draft");
+  await until(page, () => $("#gt-unsaved").hidden);
   await page.reload();
   await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
   await load(page);
-  check(await offered(page) === "Continue GT tagging", "with a draft kept for the photo, Continue GT tagging alone is offered", await offered(page));
-  await page.click("#gt-continue");
-  await page.waitForFunction(() => document.querySelector("#gt-tasks > li.now"));
-  check((await rows()).join() === "4/4 Books" && (await books(page)).length === 4 && await page.evaluate(() => $("#gt-start").textContent === "Stop tagging" && !$("#gt-submit").disabled),
-    "Continue tagging brings back every book, verdict and title, and tagging, with no Find books", await rows());
+  check(await offered(page) === "Start GT tagging" && await page.evaluate(() => !$("#gt-load-draft").hidden && getComputedStyle($("#gt-continue")).display === "none"),
+    "with a draft kept for the photo, Load draft is offered and Start GT tagging is the one tagging button", await offered(page));
+  check((await books(page)).length === 0, "and no book is shown before it is loaded: Find books has not run");
+  await page.click("#gt-load-draft");
+  await page.waitForFunction(() => $("#gt-tasks > li:not([data-task=edits]) .t")?.textContent.includes("4/4"));
+  check((await rows()).join() === "4/4 Books" && (await books(page)).length === 4 && await page.evaluate(() => !$("#gt-submit").disabled),
+    "Load draft brings back every book, verdict and title, with no Find books", await rows());
+  await page.click("#gt-start");
+  await page.click("#gt-submit");
+  const back = await saved(page, "#gt-export");
+  check(JSON.stringify(back.doc.books) === JSON.stringify(gt.doc.books) && back.doc.history.replay === "verified" && back.doc.history.actions.length === gt.doc.history.actions.length,
+    "the file made from the loaded draft is the file made before, books and log", back.doc.books);
+  await page.click("#gt-close");
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
   const kept = await page.$$eval('#storage-list .entry[data-kind="selections"]', (es) => es.map((e) => [e.querySelector(".name").textContent, e.querySelector(".what").textContent]));
   check(kept.length === 1 && kept[0][0] === "shelf.png" && /ground-truth draft/.test(kept[0][1]), "Manage storage lists the draft under its photo", kept);
   await page.keyboard.press("Escape");
   await load(page, "other.png");
-  check(await offered(page) === "Start GT tagging", "another photo has no draft to continue: Start GT tagging alone", await offered(page));
+  check(await page.evaluate(() => $("#gt-load-draft").hidden), "another photo has no draft to load", await offered(page));
+  await page.context().close();
+
+  // a draft kept before Edit History, under its own key: offered once after Find books, as a base, and forgotten once a draft holds it
+  page = await open("tagger", KEPT);
+  const key = await page.evaluate(() => "gt-draft|shelves|" + st.fileName + "|" + st.sha);
+  const old = { books: [{ corners: BOOKS[1].corners, view: "spine", text: "Old title", confidence: .9, reader: "tesseract", turn: 3, turnSet: false, typed: true, source: "found", verdict: "right",
+    proposed: { corners: BOOKS[1].corners, text: "Title 260x40" } }, { corners: BOOKS[0].corners, view: "spine", text: "Title 240x35", reader: "tesseract", turn: 3, source: "found", verdict: null,
+    proposed: { corners: BOOKS[0].corners, text: "Title 240x35" } }], noneMissed: false, open: 0 };
+  await page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify(v)), [key, old]);
+  await page.reload();
+  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
+  await load(page);
+  check(await page.evaluate(() => $("#gt-load-legacy").hidden) && await offered(page) === "Start GT tagging", "a draft kept before Edit History is not offered before Find books has run, nor as Continue GT tagging");
+  await page.click("#bs-find");
+  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && !$("#gt-load-legacy").hidden);
+  const earlier = await page.evaluate(() => ({ text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));
+  check(/^Load earlier edits/.test(earlier.text) && /a draft kept before Edit History/.test(earlier.title) && await page.evaluate((k) => localStorage.getItem(k) !== null, key),
+    "the old draft is offered once, its key kept", earlier);
+  check((await rowsOf(page))[0] === "0/3 Books", "and not loaded unasked", await rowsOf(page));
+  await page.click("#gt-load-legacy");
+  check((await rowsOf(page))[0] === "1/2 Books" && (await history(page))[0].startsWith("Ground truth from a draft kept before Edit History"),
+    "Load earlier edits makes it the base: the books it held, one of them decided", [await rowsOf(page), await history(page)]);
+  await page.click("#gt-save-draft");
+  await until(page, () => $("#gt-unsaved").hidden);
+  check(await page.evaluate((k) => localStorage.getItem(k) === null, key), "Save Draft keeps the base, and only then forgets the old key");
   await page.context().close();
 } catch (e) { failed = true; console.error(e); }
 await browser.close(); server.close();

@@ -139,6 +139,6 @@ def test_an_action_keeps_its_time_or_takes_the_clock_given(out):
 def test_every_studys_gt_actions_load_without_a_page_and_export_the_six(out):
     found = out['studies']
     # raised as each study names its GT actions
-    assert len(found) >= 2 and {'fixture', 'vascular'} <= set(found)
+    assert len(found) >= 3 and {'fixture', 'vascular', 'shelves'} <= set(found)
     for study, fns in found.items():
         assert fns == {n: 'function' for n in ['start', 'run', 'describe', 'where', 'document', 'load']}, study

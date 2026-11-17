@@ -4470,12 +4470,12 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ○* |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ○* |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
@@ -4520,11 +4520,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Book menu | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ |

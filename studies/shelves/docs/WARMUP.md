@@ -21,11 +21,13 @@ lab/perf.py           the performance pass: signature, time and peak of `find` o
 web/algorithms.json   the page's list of finders, the first its default: each one's title, icon, steps and reads_text
 lab/words.py          the names list from one dated dump of Hebrew Wikipedia's titles, into web/words/
 web/shelves.js        the page: Find books, Read titles, the titles in Summary, the ground-truth task and its pictures
+web/gt_actions.js     the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: each book has an id (b1, b2, … the finder's, u1, u2, … the tagger's), never shown
+web/old_draft.js      the draft kept before Edit History, offered once through shell.gt.legacy
 web/reading.js        the three readers, the same module in the page and in the sandbox
 web/words/names.txt   Hebrew Wikipedia titles' words the readings are spelled by after the subtitle list (CC BY-SA 4.0, lab/words.py)
 web/tessdata/         Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
 reading/              the sandbox: read.mjs, find.mjs, perf_pyodide.mjs and the pinned engine builds (package.json)
-tests/                test_books.py and test_grade.py (fast), test_reading.py and test_shelves_page.py (full)
+tests/                test_books.py and test_grade.py (fast), test_reading.py, test_shelves_page.py, test_gt_actions.py (the GT actions and the ring's colour under Node) (full)
 docs/literature/      what spine detection, dense-shelf detection and library science already know (start at its README)
 ```
 
@@ -120,13 +122,16 @@ ground truth). R7 scored 0.75 / 0.62 and differed from R8 on one photo alone, so
 ## Ground truth
 
 One task, Books (`req/shelves/truth/task`): every book, found or added, its corners, turn and text set right or
-the book dropped, walked in the order the books stand (`inPlace` in `shelves.js`), then the missed ones added (the
-photo's right-click menu, or Draw a book), each one more book to review. The tagger's work is the draft the shell keeps
-(`shell.tasks.draft`, `resume`) and Continue tagging brings back; the approved books are cut out of the photo by
+the book dropped, walked in the order the books stand (`inPlace` in `gt_actions.js`), then the missed ones added (the
+photo's right-click menu, or Draw a book), each one more book to review. Every change of the books is a GT action in the
+shell's log (`shell.gt`; `gt_actions.js`): a corner dropped, Flip, a title committed (one `set-text`, not one a key), Right, Not a book,
+a book added, None missed, and each answer of the reader landing on a book (`read`, which carries the answer). The find and its first
+reading are the log's `run`; the page draws the model it hands over. Save Draft and Load draft are the shell's; a draft kept before Edit
+History is offered once (`old_draft.js`). The approved books are cut out of the photo by
 the viewer (`viewer.doneMask`). The book's picture in the task is
 the page's own, warped in JS from the photo the viewer shows (`picture` in `shelves.js`), so it follows a dragged
 corner at once; what the reader reads is still Python's straightening of the file, run behind it with the photo
-never covered. Flip reads the book again at that turn alone, in both languages. The submitted `<photo>_books_gt.json` keeps, for each found book, what the
+never covered. Flip reads the book again at that turn alone, in both languages. The submitted `<photo>_books_gt.json` lists every book with its id and verdict (right, or null), the log in `history`, and keeps, for each found book, what the
 finder and the reader proposed beside the corrected values, so one file scores both the finder (corners, view) and
 each reader (text), which `lab/grade.py` does. The ground truth is in the study's GT folder on Drive
 (`GT/<photo>__<sha8>/gt_<tagger>.json` under the study's root), fetched by `python3 studies/shelves/lab/photos.py --gt`
