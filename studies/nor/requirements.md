@@ -114,13 +114,18 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
-  (`norfinder-ground-truth/2`): a JSON file naming the image (its SHA-256, and where it was loaded
-  from: its Google Drive id and link, or "local") that lists only what the user marked: every
-  candidate voted up (label 1, with its lengths and length lines, marked adjusted or approved) or
-  down (label 0), and every added NoR the user approved (kind `missing`, label 1, with its radius,
-  `origin: "added by user"`, its measurements and lines). A candidate nobody voted on is ambiguous
-  and left out. The lab's `nor_lab.py --labels` reads it: the labels score detection and the
-  checked lengths score measurement (`studies/nor/tests/test_ground_truth.py`).
+  (`norfinder-ground-truth/3`, the model of the tagger's work as the shell's GT actions leave it,
+  `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
+  from: its Google Drive id and link, or "local") and the finder and filters it was run with, with
+  `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
+  approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
+  added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
+  cuts the image into them. A candidate the tagger rejected is absent, and is read from the file's `history`: its
+  `delete`, and the output of the run it was in. The lab's `nor_lab.py --labels` reads it, and the `/2` files already
+  curated, which list `labels` (every candidate voted up or down, and every added NoR approved, kind `missing`, with its
+  radius): the labels score detection and the checked lengths score measurement
+  (`studies/nor/tests/test_ground_truth.py`). A candidate nobody voted on is ambiguous: in `candidates` without
+  `approved`, and no label.
   </details>
 
 - `req/nor/filters/live` Filters are live dials: each can be switched off, and every marking follows it at once.

@@ -13,13 +13,17 @@ slide. The data set is named by one SHA (dataset_sha, R11).
     python3 detection/ground_truth.py score [SPEC ...]          every finder on every image, vs the baseline
     python3 detection/ground_truth.py record                    a new version's quality, written (R9, R11)
 """
-import argparse, hashlib, json, math, os, re, sys
+import argparse, base64, hashlib, json, math, os, re, sys, zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import nor_lab
 import fetch_data
 
-FORMAT = 'norfinder-ground-truth/2'
+# /2 lists its marked candidates as `labels`; /3 is the page's model (candidates that remain, added NoRs, checked
+# areas) with the GT history that made it, and the candidates it lacks are read from that history's last run
+FORMATS = ('norfinder-ground-truth/2', 'norfinder-ground-truth/3')
+# an added NoR is found when a candidate lies within this distance of its middle (the page's MISSING_RADIUS)
+MISSING_RADIUS = 12
 STUDY = os.path.join(HERE, '..', 'study.json')
 RAW = os.path.join(HERE, '..', 'data', 'raw', 'ground-truth')
 DIR = os.path.join(RAW, 'truth')
@@ -73,17 +77,71 @@ def entries(dataset=DATASET):
         return json.load(f)['files']
 
 
+def _length(seg):
+    (a, b), (c, d) = seg
+    return math.hypot(c - a, d - b)
+
+
+def _unpacked(output):
+    if isinstance(output, dict) and isinstance(output.get('deflate'), str):
+        return json.loads(zlib.decompress(base64.b64decode(output['deflate'])))
+    return output
+
+
+def _last_run(doc):
+    """The output of the last run in the file's history, or None."""
+    actions = (doc.get('history') or {}).get('actions') or []
+    runs = [a for a in actions if isinstance(a, dict) and a.get('type') == 'run']
+    return _unpacked(runs[-1].get('output')) if runs else None
+
+
+def _mark(c, label, **more):
+    return dict(id=c.get('id'), x=c['x'], y=c['y'], label=label, source='user', **more)
+
+
+def labels_of(doc):
+    """The marked spots of a ground-truth file, as the lab scores them: /2's `labels`; /3's approved candidates (label 1,
+    on the lengths the tagger left), approved added NoRs (kind `missing`) and, when the history is there, a label 0 for
+    each candidate of its last run that the file no longer lists, which is how a rejection is kept."""
+    if doc.get('format') != FORMATS[1]:
+        return doc.get('labels')
+    out = []
+    for c in doc.get('candidates') or []:
+        if not c.get('approved'):
+            continue
+        lines = dict(c.get('lines') or {}, **(c.get('edited') or {}))
+        m = c.get('m') or {}
+        px = {k: (_length(lines[k]) if k in (c.get('edited') or {}) else m.get(k + '_length' if k == 'red' else k))
+              for k in ('length', 'red', 'width')}
+        out.append(_mark(c, 1, decision='approved', measured='adjusted' if c.get('edited') else 'approved',
+                         length_px=px['length'], red_length_px=px['red'], width_px=px['width'],
+                         lines={k: lines[k] for k in ('length', 'red', 'width')} if lines else None))
+    for a in doc.get('added') or []:
+        if not a.get('approved'):
+            continue
+        L = a['lines']
+        (p, q), (r, t) = L['length']
+        out.append(dict(id=a.get('id'), kind='missing', origin='added by user', x=(p + r) / 2, y=(q + t) / 2, label=1, source='user',
+                        radius_px=MISSING_RADIUS, decision='approved', measured='adjusted', length_px=_length(L['length']),
+                        red_length_px=_length(L['red']), width_px=_length(L['width']), lines=L))
+    run = _last_run(doc)
+    if run:
+        have = {c.get('id') for c in doc.get('candidates') or []}
+        out += [_mark(c, 0, decision='rejected', measured=None) for c in run.get('cands') or [] if c.get('id') not in have]
+    return out
+
+
 def validate(doc):
     """The reason a submission cannot join the data set, or None."""
-    if not isinstance(doc, dict) or doc.get('format') != FORMAT:
-        return f'not a {FORMAT} file (export it again from the page)'
+    if not isinstance(doc, dict) or doc.get('format') not in FORMATS:
+        return f'not a {FORMATS[-1]} file (export it again from the page)'
     img = doc.get('image') or {}
     loc = img.get('location') or {}
     if loc.get('source') != 'drive' or not loc.get('drive_id'):
         return 'the image was not loaded from Google Drive, so the lab cannot fetch it'
     if not re.fullmatch(r'[0-9a-f]{64}', str(img.get('sha256', ''))):
         return 'the image has no SHA-256'
-    labels = doc.get('labels')
+    labels = labels_of(doc)
     if not isinstance(labels, list) or not labels:
         return 'no marked candidates'
     W, H = img.get('width'), img.get('height')
@@ -211,7 +269,7 @@ def collect(transport, root, dirpath=DIR):
             img = doc['image']
             kept.append(dict(file=name, from_path=path, created=doc['created'], tagger=doc.get('tagger'), image=img['name'],
                              sha256=img['sha256'], drive_id=img['location']['drive_id'], gt_sha256=hashlib.sha256(raw).hexdigest(),
-                             labels=len(doc['labels']), missing=sum(L.get('kind') == 'missing' for L in doc['labels'])))
+                             labels=len(labels_of(doc)), missing=sum(L.get('kind') == 'missing' for L in labels_of(doc))))
     with open(os.path.join(dirpath, 'dataset.json'), 'w') as f:
         json.dump({'format': 'norfinder-ground-truth-dataset/2', 'folder': folder, 'files': kept}, f, indent=1)
         f.write('\n')
