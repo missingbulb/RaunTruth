@@ -675,7 +675,7 @@
    },
    {
     "name": "Load your submission",
-    "select": "#gt-load-drive",
+    "select": "#gt-load-submission",
     "control": true,
     "box": false,
     "parent": "Drafts offered"
@@ -1979,7 +1979,7 @@
    },
    {
     "name": "Load your submission",
-    "select": "#gt-load-drive",
+    "select": "#gt-load-submission",
     "control": true,
     "box": false,
     "parent": "Drafts offered"
@@ -3360,7 +3360,7 @@
    },
    {
     "name": "Load your submission",
-    "select": "#gt-load-drive",
+    "select": "#gt-load-submission",
     "control": true,
     "box": false,
     "parent": "Drafts offered"
@@ -4699,7 +4699,7 @@
    },
    {
     "name": "Load your submission",
-    "select": "#gt-load-drive",
+    "select": "#gt-load-submission",
     "control": true,
     "box": false,
     "parent": "Drafts offered"
@@ -6017,7 +6017,7 @@
    },
    {
     "name": "Load your submission",
-    "select": "#gt-load-drive",
+    "select": "#gt-load-submission",
     "control": true,
     "box": false,
     "parent": "Drafts offered"

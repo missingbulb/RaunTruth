@@ -1041,8 +1041,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
 #gt-offers[hidden], #gt-edits[hidden] { display: none; }
-#gt-load-draft, #gt-load-legacy, #gt-load-drive { display: block; width: 100%; }
-#gt-load-draft[hidden], #gt-load-legacy[hidden], #gt-load-drive[hidden] { display: none; }
+#gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
+#gt-load-draft[hidden], #gt-load-legacy[hidden], #gt-load-submission[hidden] { display: none; }
 #gt-offers button + button { margin-top: 4px; }
 #gt-tasks li[data-task="edits"] .gt-edit-row { display: flex; align-items: center; gap: 4px; padding: 6px 0; font-size: 13px; }
 #gt-tasks li[data-task="edits"] .gt-edit-row button { white-space: nowrap; padding-inline: 5px; }

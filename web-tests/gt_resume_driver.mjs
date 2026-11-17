@@ -49,7 +49,7 @@ const submit = async (page) => {
   await page.waitForFunction(() => /Submitted|not submitted/.test($("#gt-msg").textContent));
   await page.click("#gt-close");
 };
-const offer = (page) => page.evaluate(() => ({ shown: !$("#gt-load-drive").hidden && !$("#gt-offers").hidden, text: $("#gt-load-drive").textContent.trim(), draft: !$("#gt-load-draft").hidden,
+const offer = (page) => page.evaluate(() => ({ shown: !$("#gt-load-submission").hidden && !$("#gt-offers").hidden, text: $("#gt-load-submission").textContent.trim(), draft: !$("#gt-load-draft").hidden,
   above: $("#gt-offers").nextElementSibling?.id }));
 const submitted = () => FILES.find((f) => f.parent === FILES.find((g) => g.folder && g.name === sub && g.parent === GT.submissions)?.id);
 const rows = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list li")].map((li) => ({ text: li.textContent.trim(), cls: li.className })));
@@ -80,7 +80,7 @@ await check(JSON.stringify(seen.lists) === JSON.stringify([GT.submissions, subFo
   "the image's opening made two listings, the submissions folder then the image's subfolder, and downloaded no file", seen);
 await check((await model(page)) === null && !(await page.evaluate(() => $("#tasks-box").classList.contains("folded"))), "nothing is loaded unasked, and the box is open with the image");
 seen.lists.length = 0; seen.reads.length = 0;
-await page.click("#gt-load-drive");
+await page.click("#gt-load-submission");
 await until(page, () => !!window.fixture.model());
 await check((await marks(page)) === edited && JSON.stringify(seen.reads) === JSON.stringify([file.id]) && seen.lists.length === 0,
   "the click downloads the one file, lists nothing, and brings the submitted moves back", seen);
@@ -101,7 +101,7 @@ await check(seen.lists.length === 2 && seen.reads.length === 0 && (await offer(p
 await counted(page);
 await moved(page, "m1", 12, 12);
 const mid = await marks(page);
-const asked = await ask(page, false, () => page.click("#gt-load-drive"));
+const asked = await ask(page, false, () => page.click("#gt-load-submission"));
 await check(/unsaved/.test(asked || "") && (await marks(page)) === mid, "Load your submission over an unsaved action asks first, and dismissing keeps the model", asked);
 await page.context().close();
 
@@ -110,7 +110,7 @@ const { history: _, ...plain } = original;
 file.bytes = Buffer.from(JSON.stringify(plain));
 page = await open(true);
 await tagger(page);
-await page.click("#gt-load-drive");
+await page.click("#gt-load-submission");
 await until(page, () => !!window.fixture.model());
 let list = await rows(page);
 await check((await marks(page)) === edited && await page.isDisabled("#gt-undo") && /no history/.test(await page.textContent("#status")), "a file with no history loads as a base: its marks, no Undo, and the status line says it held no history", await page.textContent("#status"));
@@ -122,7 +122,7 @@ const far = { ...plain, marks: [{ id: "m1", x: 5, y: 55 }, { id: "m2", x: 75, y:
 file.bytes = Buffer.from(JSON.stringify(far));
 page = await open(true);
 await tagger(page);
-await page.click("#gt-load-drive");
+await page.click("#gt-load-submission");
 await until(page, () => !!window.fixture.model());
 await page.click("#fx-count");
 await until(page, () => window.fixture.model().marks.some((m) => m.x > 8 && m.x < 22));
@@ -139,7 +139,7 @@ altered.marks[0].x += 9;
 file.bytes = Buffer.from(JSON.stringify(altered));
 page = await open(true);
 await tagger(page);
-await page.click("#gt-load-drive");
+await page.click("#gt-load-submission");
 await until(page, () => !!window.fixture.model());
 list = await rows(page);
 await check(JSON.stringify((await model(page)).marks) === JSON.stringify(altered.marks.map((m) => ({ ...m }))) && /did not replay/.test(await page.textContent("#status")),

@@ -338,7 +338,7 @@
                       "unwalked": "its parent is hidden in every path, no draft being on this device"},
                     {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
                       "unwalked": "its parent is hidden in every path, no study's old store being offered"},
-                    {"name": "Load your submission", "select": "#gt-load-drive", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
+                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
                       "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
                   ]
                 },

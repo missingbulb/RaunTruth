@@ -29,7 +29,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   // an old store the study hands over (api.legacy): {model, count, from, forget}, and whether the log holds it as its base now
   let old = null, oldTaken = false;
   // the tagger's own submission in the remote store, as the image's opening found it: {id, modified}
-  let drive = null;
+  let filed = null;
   const listeners = new Set();
   // the page's root says whether the look for the open image's draft is under way or over, for a test to wait on
   const lookup = (state) => { document.documentElement.dataset.gtLookup = state; };
@@ -62,10 +62,10 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     redo.title = !redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo";
     $("#gt-unsaved").hidden = !n; $("#gt-unsaved").textContent = n ? `· ${n} unsaved` : "";
     $("#gt-save-draft").disabled = !on || !n;
-    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!drive;
+    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!filed;
     $("#gt-offers").hidden = !offered && !earlier && !sent;
-    $("#gt-load-drive").hidden = !sent;
-    if (sent) $("#gt-load-drive").textContent = `Load your submission${drive.modified ? ` · submitted ${stamp(drive.modified)}` : ""}`;
+    $("#gt-load-submission").hidden = !sent;
+    if (sent) $("#gt-load-submission").textContent = `Load your submission${filed.modified ? ` · submitted ${stamp(filed.modified)}` : ""}`;
     offer.hidden = !offered;
     if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
     $("#gt-load-legacy").hidden = !earlier;
@@ -125,13 +125,13 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   // the tagger's own submission, read now, the one download
   async function loadSubmission() {
-    if (!module || !log || !drive || !mayReplace("your submission")) return false;
-    const { id, modified } = drive;
+    if (!module || !log || !filed || !mayReplace("your submission")) return false;
+    const { id, modified } = filed;
     let doc;
     try { doc = await readSubmission(id); } catch (e) { notice(`Your submission could not be read: ${e?.message || e}`); return false; }
     const h = doc?.history;
     const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your submission");
-    if (taken) { drive = null; paint(); }
+    if (taken) { filed = null; paint(); }
     return taken;
   }
 
@@ -159,15 +159,15 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     paint,
     mount(m) {
       module = m; log = m ? actionLog(m) : null; replayState = "verified";
-      stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; drive = null;
+      stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; filed = null;
       paint();
     },
-    leave() { delete document.documentElement.dataset.gtLookup; module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; drive = null; listeners.clear(); paint(); },
+    leave() { delete document.documentElement.dataset.gtLookup; module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; filed = null; listeners.clear(); paint(); },
     // the image is open: the log starts with it, and a draft of it on this device is looked up, and for a tagger their own
     // submission in the remote store (req/shell/ground-truth/draft-offer); true when either is to offer
     async opened() {
       const mine = ++opening, img = image();
-      drive = null;
+      filed = null;
       if (!module || !img) { stored = null; lookup("done"); paint(); return false; }
       log.open({ name: img.name, sha256: img.sha256, width: img.width, height: img.height }, studyId());
       replayState = "verified"; stored = null; markSaved(null); old = null; oldTaken = false;
@@ -184,13 +184,13 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       });
       const [d, s] = await Promise.all([device, sent]);
       if (mine !== opening) return false;
-      stored = d; drive = s;
+      stored = d; filed = s;
       lookup("done");
       paint();
-      return !!stored || !!drive;
+      return !!stored || !!filed;
     },
     // the tagger's submission has just landed in the remote store: nothing there is older than the work, so it is not offered
-    submitted() { drive = null; paint(); },
+    submitted() { filed = null; paint(); },
     // whether the image open may be left: actions not yet saved are asked about first
     leaving(what) {
       const n = makesTruth() ? unsaved() : 0;
@@ -279,7 +279,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   $("#gt-redo").onclick = () => session.redo();
   $("#gt-save-draft").onclick = () => save();
   $("#gt-load-draft").onclick = () => { if (stored) load(stored); };
-  $("#gt-load-drive").onclick = () => loadSubmission();
+  $("#gt-load-submission").onclick = () => loadSubmission();
   const spec = (id, label, codes, control, hint) => ({ id, label, keys: codes, kind: "press", legend: false, control, hint, active: () => !dragging() });
   keys.add(spec("gt-undo", "Undo", ["Ctrl+KeyZ", "Meta+KeyZ"], "#gt-undo"));
   // Ctrl+Y is the one its button says, the shortest of the three
