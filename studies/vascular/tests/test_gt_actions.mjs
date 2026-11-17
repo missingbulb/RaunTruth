@@ -227,6 +227,18 @@ Object.assign(tests, {
     const later = S.run(m, { ...act({ type: 'widths-right', area: 2, box: boxes[2], slices: [0, 3] }), at: '2027-01-02T00:00:00.000Z' });
     assert.equal(later.reviewed_regions.at(-1).on, '2027-01-02');
   },
+  'a width said carries the day of its action, whatever day the page computed and whatever day it is'() {
+    const m = start();
+    const got = S.run(m, { type: 'set-width', segments: ['s1', 's2'], width: { um: 3, how: 'nudge', on: '2000-01-01' }, at: '2027-01-02T23:00:00.000Z' });
+    assert.deepEqual(Mo.widthOf(got, [0, 1]), { um: 3, how: 'nudge', on: '2027-01-02' });
+  },
+  'where is in the image\'s pixels, whatever a pixel measures'() {
+    const m = start({ um_per_px: .5 }), n = m.nodes.get(3);
+    assert.deepEqual([n.x, n.y], [20, 20], 'the point is at 20 µm, pixel 40');
+    assert.deepEqual(S.where(act({ type: 'delete-node', node: 3 }), m), [35, 35, 45, 45, 0]);
+    assert.deepEqual(S.where(act({ type: 'move-node', node: 3, to: { x: 30, y: 10, z: 2 } }), m), [55, 15, 65, 25, 2]);
+    assert.deepEqual(S.where(act({ type: 'widths-right', area: 0, box: { x0: 0, y0: 0, x1: 25, y1: 25 }, slices: [0, 3] }), m), [0, 0, 50, 50, 1.5]);
+  },
   'the file has no clock: the same model is the same document a day apart'() {
     const m = start(), real = Date;
     const at = (iso) => { globalThis.Date = class extends real { constructor(...a) { super(...(a.length ? a : [iso])); } static now() { return new real(iso).getTime(); } }; };
@@ -259,4 +271,4 @@ Object.assign(tests, {
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 18);
+assert.equal(n, 20);
