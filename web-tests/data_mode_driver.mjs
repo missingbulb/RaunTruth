@@ -26,10 +26,10 @@ approved.add(GT.curated);
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered as a viewer's, with no Preprocessing
+// not signed in: the drawers numbered as a viewer's
 let page = await open(false);
 await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2,3",
-  "the drawers on show, a viewer's without the postprocessing, are numbered without Preprocessing");
+  "the drawers on show, a viewer's without the postprocessing, are numbered");
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
@@ -43,6 +43,8 @@ const turned = () => frames(page);
 await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
 await role(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
+// Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
+await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
 await slid(true);
 await check((await width()) > 200, "choosing Study Manager slides the column out, open", await width());
 await page.click("#data-open");
@@ -149,10 +151,10 @@ await page.context().setOffline(false);
 await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 
 await role(page, "Viewer");
-const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !$("#preprocessing-box").checkVisibility() && !document.documentElement.dataset.mode;
+const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
 await page.waitForFunction(leftMode, null, { timeout: 5000 }).catch(() => {});
 await check(await page.evaluate(leftMode),
-  "another role leaves the mode: the column gone, Load back, Preprocessing gone");
+  "another role leaves the mode: the column gone, Load back");
 // offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode)
 await page.context().setOffline(true);
 await page.waitForFunction(() => document.documentElement.classList.contains("offline"));

@@ -1,6 +1,6 @@
 // The TIFF compressions Python's tifffile reads only through imagecodecs, which Pyodide does not carry, decoded
 // in Python by the page's own TIFF reader instead: LZW, what ImageJ and bfconvert write when asked to compress.
-import { lzw } from "./split.js";
+import { lzw } from "./tiff_file.js";
 
 // into a Python, taking hold of tifffile when it is first imported, so a study that never reads a TIFF pays nothing
 export function tiffCodecs(py) {

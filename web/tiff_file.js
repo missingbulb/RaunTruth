@@ -1,14 +1,6 @@
-// Splitting an image into parts, so each part can be annotated on its own: the TIFF read whole (an ImageJ
-// hyperstack, an OME-TIFF in one file, or plain pages; uncompressed, LZW, Deflate or PackBits, in strips or
-// tiles), cut along a grid, each part written as an ImageJ TIFF with the channels and slices chosen. A part keeps
-// the image's scale, its channels' colours, names and display ranges, and records in its Info where it lay in the
-// image it came from (SPLIT_KEY), which is what joins the parts' ground truth back into the whole image's.
+// A TIFF read whole (an ImageJ hyperstack, an OME-TIFF in one file, or plain pages; uncompressed, LZW, Deflate or
+// PackBits, in strips or tiles), and a TIFF written as ImageJ reads it.
 "use strict";
-
-// the line of a part's ImageJ Info that holds its record, "rauntruth.split={…}", and the record's version
-export const SPLIT_KEY = "rauntruth.split", SPLIT_VERSION = 1;
-// the suffix a part's file name takes at first: _r1c2 for the first row's second part
-export const DEFAULT_PATTERN = "_r{row}c{col}";
 
 // ---------- reading ----------
 const SIZE = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
@@ -33,7 +25,7 @@ function ifds(buf) {
   const mark = v.getUint16(0), little = mark === 0x4949;
   if (!little && mark !== 0x4d4d) throw new Error("not a TIFF file");
   const magic = v.getUint16(2, little);
-  if (magic === 43) throw new Error("BigTIFF files cannot be split here yet");
+  if (magic === 43) throw new Error("BigTIFF files cannot be opened here yet");
   if (magic !== 42) throw new Error("not a TIFF file");
   const out = [], seen = new Set();
   for (let at = v.getUint32(4, little); at && !seen.has(at) && at + 2 <= v.byteLength; at = v.getUint32(at + 2 + 12 * v.getUint16(at, little), little)) {
@@ -171,8 +163,7 @@ function readIJ(counts, data, little) {
 const keyed = (text) => Object.fromEntries(text.split("\n").map((l) => l.match(/^([^=]+)=(.*)$/)).filter(Boolean).map((m) => [m[1].trim(), m[2].trim()]));
 
 // What a TIFF holds and how to read any one plane of it: {W, H, bps, sampleFormat, C, Z, T, names, xres, yres,
-// resUnit, ij (the ImageJ header's fields), meta (ImageJ's metadata), record (the split record it carries, if it
-// is a part itself), plane(c, z, t) -> its pixels, little-endian}
+// resUnit, ij (the ImageJ header's fields), meta (ImageJ's metadata), plane(c, z, t) -> its pixels, little-endian}
 export function readTiff(input) {
   const buf = input instanceof ArrayBuffer ? new Uint8Array(input) : input;
   const { v, little, pages: raw } = ifds(buf);
@@ -183,7 +174,7 @@ export function readTiff(input) {
       offsets: t[324] || t[273] || [], counts: t[325] || t[279] || [], sampleFormat: t[339]?.[0] || 1, sub: t[254]?.[0] || 0 };
   };
   const t0 = raw[0], p0 = page(t0);
-  if (![1, 2, 4, 8].includes(p0.bps)) throw new Error(`${p0.bits}-bit images cannot be split here`);
+  if (![1, 2, 4, 8].includes(p0.bps)) throw new Error(`${p0.bits}-bit images cannot be opened here`);
   // the full-size planes: reduced-resolution copies and thumbnails are left out
   let pages = raw.map(page).filter((p) => !(p.sub & 1) && p.W === p0.W && p.H === p0.H);
   const desc = typeof t0[270] === "string" ? t0[270] : "", ij = desc.startsWith("ImageJ=") ? keyed(desc) : null;
@@ -223,12 +214,9 @@ export function readTiff(input) {
     }
   }
   if (C * Z * T > pages.length * (p0.spp === 1 ? 1 : p0.spp)) throw new Error("this TIFF has fewer planes than its header says");
-  const recLine = (meta.info || "").split("\n").find((l) => l.startsWith(SPLIT_KEY + "="));
-  let record = null;
-  try { record = recLine ? JSON.parse(recLine.slice(SPLIT_KEY.length + 1)) : null; } catch { record = null; }
   let cache = { at: -1, planes: null };
   return {
-    W: p0.W, H: p0.H, bps: p0.bps, sampleFormat: p0.sampleFormat, C, Z, T, names, ij, meta, record, tags: t0,
+    W: p0.W, H: p0.H, bps: p0.bps, sampleFormat: p0.sampleFormat, C, Z, T, names, ij, meta, tags: t0,
     xres: t0[282]?.[0] || null, yres: t0[283]?.[0] || null, resUnit: t0[296]?.[0] || null,
     async plane(c, z, t) {
       const [i, s] = index(c, z, t);
@@ -240,36 +228,8 @@ export function readTiff(input) {
 
 // An image already in memory as 8-bit planes (a PNG the browser decoded), in the shape readTiff gives
 export function fromPlanes(W, H, planes) {
-  return { W, H, bps: 1, sampleFormat: 1, C: planes.length, Z: 1, T: 1, names: [], ij: null, meta: {}, record: null,
+  return { W, H, bps: 1, sampleFormat: 1, C: planes.length, Z: 1, T: 1, names: [], ij: null, meta: {},
     xres: null, yres: null, resUnit: null, plane: async (c) => planes[c] };
-}
-
-// ---------- the grid ----------
-// n parts of a side of `size` pixels, as the n + 1 places they are cut at, from 0 to size
-export const evenCuts = (size, n) => Array.from({ length: n + 1 }, (_, i) => Math.round((size * i) / n));
-
-// the parts a grid cuts, row by row: {row, col (from 1), n (from 1, counted over every part of the grid), x, y, w, h,
-// left (true for a part left out)}; left: a Set of "row,col"
-export function gridParts(xs, ys, left = new Set()) {
-  const out = [];
-  for (let r = 0; r < ys.length - 1; r++) for (let c = 0; c < xs.length - 1; c++) {
-    out.push({ row: r + 1, col: c + 1, n: r * (xs.length - 1) + c + 1, x: xs[c], y: ys[r], w: xs[c + 1] - xs[c], h: ys[r + 1] - ys[r], left: left.has(`${r + 1},${c + 1}`) });
-  }
-  return out;
-}
-
-// a part's file name: the image's name without its extension, the pattern with its fields filled, ".tif".
-// The fields: {name} {row} {col} {n} {x} {y} {rows} {cols}; anything else stays as written.
-export function partName(pattern, name, p, rows, cols) {
-  const fields = { name: name.replace(/\.[^.]+$/, ""), row: p.row, col: p.col, n: p.n, x: p.x, y: p.y, rows, cols };
-  const suffix = pattern.replace(/\{(\w+)\}/g, (m, k) => (k in fields ? String(fields[k]) : m));
-  return (pattern.includes("{name}") ? suffix : fields.name + suffix).replace(/[\\/:*?"<>|]/g, "_") + ".tif";
-}
-
-// why a pattern would not give every part its own name, or "" when it does
-export function patternProblem(pattern, names) {
-  if (!pattern.trim()) return "Give the file names a pattern.";
-  return new Set(names).size < names.length ? "Two parts would get the same name: use {row} and {col}, {n}, or {x} and {y}." : "";
 }
 
 // ---------- writing ----------
@@ -341,117 +301,4 @@ export function writeTiff({ w, h, bps, sampleFormat = 1, planes, xres, yres, res
     v.setUint32(start + 2 + 12 * e.length, i + 1 < planes.length ? at : 0, true);
   });
   return out;
-}
-
-// a LUT of 3 × 256 bytes from black to the colour #rrggbb, as ImageJ keeps one
-function lutOf(colour) {
-  const lut = new Uint8Array(768), rgb = [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16));
-  for (let k = 0; k < 3; k++) for (let i = 0; i < 256; i++) lut[k * 256 + i] = Math.round((rgb[k] * i) / 255);
-  return lut;
-}
-
-// ImageJ's header for a part: its shape, and what it keeps of the image's (its unit, slice spacing, timing)
-const KEEP = ["unit", "cf", "c0", "c1", "vunit", "spacing", "finterval", "fps", "loop", "xunit", "yunit", "zunit", "tunit"];
-function description(src, C, Z, T, x0, y0, z0, ranges) {
-  const ij = src.ij || {}, lines = [`ImageJ=${ij.ImageJ || "1.54f"}`, `images=${C * Z * T}`];
-  if (C > 1) lines.push(`channels=${C}`);
-  if (Z > 1) lines.push(`slices=${Z}`);
-  if (T > 1) lines.push(`frames=${T}`);
-  if (C > 1 || (Z > 1 && T > 1)) lines.push("hyperstack=true");
-  if (C > 1) lines.push(`mode=${ij.mode || "composite"}`);
-  for (const k of KEEP) if (k in ij) lines.push(`${k}=${ij[k]}`);
-  // ImageJ moves the origin as it crops, so a point keeps its calibrated place
-  if (ij.xorigin) lines.push(`xorigin=${+ij.xorigin - x0}`);
-  if (ij.yorigin) lines.push(`yorigin=${+ij.yorigin - y0}`);
-  if (ij.zorigin) lines.push(`zorigin=${+ij.zorigin - z0}`);
-  if (C === 1 && ranges) lines.push(`min=${ranges[0]}`, `max=${ranges[1]}`);
-  else if (C === 1 && "min" in ij && "max" in ij) lines.push(`min=${ij.min}`, `max=${ij.max}`);
-  return lines.join("\n") + "\n";
-}
-
-// The parts, each an ImageJ TIFF: src from readTiff or fromPlanes; parts from gridParts (those left out are
-// skipped); channels, the image's channels to keep, by place; slices, [first, last] of the slices to keep (from
-// 0, both kept); look, each channel's [{name, colour}] as the page shows it, for a channel the file neither names
-// nor colours; source, {name, sha256, ...where it came from}; removed, polygons ([[x, y], ...] in the image's pixels)
-// left blank in every plane, with mask (W × H, 1 where they are) to blank by. progress(done, of) after each plane
-// read, awaited. Gives [{name, bytes, record}], record what the part's Info says of where it came from.
-export async function splitImage(src, { xs, ys, parts, channels, slices, look = [], pattern = DEFAULT_PATTERN, source, progress, removed = [], mask = null }) {
-  const keep = parts.filter((p) => !p.left), [z0, z1] = slices || [0, src.Z - 1], Z = z1 - z0 + 1, C = channels.length, T = src.T;
-  if (!keep.length) throw new Error("every part is left out");
-  if (!C) throw new Error("keep at least one channel");
-  if (z0 < 0 || z1 >= src.Z || Z < 1) throw new Error(`the slices kept must be between 1 and ${src.Z}`);
-  const rows = ys.length - 1, cols = xs.length - 1, bps = src.bps, meta = src.meta || {};
-  const out = keep.map((p) => ({ p, planes: [] }));
-  let done = 0;
-  for (let t = 0; t < T; t++) for (let z = z0; z <= z1; z++) for (const c of channels) {
-    const plane = await src.plane(c, z, t);
-    for (const o of out) {
-      const { x, y, w, h } = o.p, part = new Uint8Array(w * h * bps);
-      for (let r = 0; r < h; r++) part.set(plane.subarray(((y + r) * src.W + x) * bps, ((y + r) * src.W + x + w) * bps), r * w * bps);
-      if (mask) for (let r = 0; r < h; r++) for (let q = 0; q < w; q++) if (mask[(y + r) * src.W + x + q]) part.fill(0, (r * w + q) * bps, (r * w + q + 1) * bps);
-      o.planes.push(part);
-    }
-    await progress?.(++done, T * Z * C);
-  }
-  // what the image says of each plane and channel, carried over for the ones kept
-  const planeIndex = (c, z, t) => (t * src.Z + z) * src.C + c;
-  const labels = [];
-  for (let t = 0; t < T; t++) for (let z = z0; z <= z1; z++) for (const c of channels) {
-    const own = meta.labels?.length === src.C * src.Z * src.T ? meta.labels[planeIndex(c, z, t)] : null;
-    labels.push(own || src.names[c] || look[c]?.name || "");
-  }
-  const ranges = meta.ranges?.length >= 2 * src.C ? channels.flatMap((c) => [meta.ranges[2 * c], meta.ranges[2 * c + 1]]) : null;
-  const luts = channels.map((c) => meta.luts?.[c] || (look[c]?.colour ? lutOf(look[c].colour) : null));
-  const otherInfo = (meta.info || "").split("\n").filter((l) => !l.startsWith(SPLIT_KEY + "=")).join("\n").trim();
-  const shape = { width: src.W, height: src.H, channels: src.C, slices: src.Z, frames: src.T };
-  // a part of a part: where it lies in the image the first split began from
-  const parent = src.record;
-  return out.map(({ p, planes }) => {
-    const record = {
-      version: SPLIT_VERSION,
-      source: { ...source, ...shape },
-      grid: { rows, cols, xs, ys },
-      part: { row: p.row, col: p.col, n: p.n, x: p.x, y: p.y, width: p.w, height: p.h },
-      channels, slices: [z0, z1],
-      ...(removed.length && { removed }),
-      ...(parent && { root: { ...(parent.root || parent.source), x: (parent.root || parent.part).x + p.x, y: (parent.root || parent.part).y + p.y } }),
-    };
-    const info = (otherInfo ? otherInfo + "\n" : "") + `${SPLIT_KEY}=${JSON.stringify(record)}`;
-    const bytes = writeTiff({
-      w: p.w, h: p.h, bps, sampleFormat: src.sampleFormat, planes,
-      xres: src.xres, yres: src.yres, resUnit: src.resUnit,
-      description: description(src, C, Z, T, p.x, p.y, z0, C === 1 ? ranges : null),
-      software: "rauntruth.com",
-      ijmeta: { info, labels, ranges: C > 1 ? ranges : null, luts: luts.every(Boolean) ? luts : null, props: meta.props },
-    });
-    return { name: partName(pattern, source.name, p, rows, cols), bytes, record };
-  });
-}
-
-// ---------- the download ----------
-const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-function crc32(b) { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
-
-// a ZIP of files [{name, bytes}], stored as they are: TIFF planes barely compress, and storing keeps it quick
-export function zip(files) {
-  const enc = new TextEncoder(), local = [], central = [];
-  let at = 0;
-  for (const f of files) {
-    const name = enc.encode(f.name), crc = crc32(f.bytes), size = f.bytes.length;
-    if (at + 30 + name.length + size > 2 ** 32 - 1) throw new Error("the parts come to more than 4 GB: download fewer at a time");
-    const h = new Uint8Array(30 + name.length), v = new DataView(h.buffer);
-    v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(6, 0x0800, true);
-    v.setUint32(14, crc, true); v.setUint32(18, size, true); v.setUint32(22, size, true); v.setUint16(26, name.length, true);
-    h.set(name, 30);
-    const c = new Uint8Array(46 + name.length), cv = new DataView(c.buffer);
-    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true);
-    cv.setUint32(16, crc, true); cv.setUint32(20, size, true); cv.setUint32(24, size, true); cv.setUint16(28, name.length, true);
-    cv.setUint32(42, at, true); c.set(name, 46);
-    local.push(h, f.bytes); central.push(c);
-    at += h.length + size;
-  }
-  const dir = central.reduce((a, b) => a + b.length, 0), end = new Uint8Array(22), ev = new DataView(end.buffer);
-  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
-  ev.setUint32(12, dir, true); ev.setUint32(16, at, true);
-  return new Blob([...local, ...central, end], { type: "application/zip" });
 }

@@ -33,7 +33,7 @@ and the corrected model is *recomposed* by replaying those verdicts onto the dra
 | **Caliber bin** per edge | bin verdict where the measured width is near a bin edge, measured width elsewhere | Same tier for the bin; no corrected radius value (the desktop has no radius edit either) |
 | **Centerline geometry**, so length per edge | checked ("the line is on the vessel"), never corrected | **Weaker**: "verified, not corrected". An edge whose line is judged off is listed for the desktop, and its length is left out of the certified total until fixed |
 | **Misses** (recall), `reviewed_regions` | a tap seeds a traced proposal; the tile check closes the area | **Weaker for faint vessels**: a 165 µm tile on a phone in daylight is a worse detector than the desktop's Missed view. Marked `reviewed_regions[].by: "phone"` so a consumer can tell |
-| Damaged sample (`excluded_regions`) | flag only | Not made on the phone (Data Management's, `req/shell/data/edit`) |
+| Damaged sample (`excluded_regions`) | flag only | Not made on the phone (Data Management's, `req/shell/data/damaged`) |
 
 So: **topology and caliber bins at the desktop's tier; geometry and recall one tier down, with the
 remainder routed to a short desktop queue** rather than faked. The honest name is a two-device
