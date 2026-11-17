@@ -11,6 +11,8 @@ GT = dict(W=400, H=300, books=[
     dict(verdict='right', corners=RECT(20, 20, 60, 280), text='Two Towers'),
     dict(verdict='right', corners=RECT(60, 20, 100, 280), text='מעוף הדרקון'),
     dict(verdict='wrong', corners=RECT(200, 20, 240, 280), text=''),
+    # a file kept with every book: an id on each, and a book not yet decided has no verdict
+    dict(id='u1', verdict=None, corners=RECT(300, 20, 340, 280), text='Undecided'),
 ])
 
 
@@ -22,6 +24,12 @@ def test_a_box_on_its_book_matches_and_one_beside_it_does_not():
     r = grade.boxes(GT, [on, beside, dict(corners=RECT(200, 20, 240, 280))])
     assert (r['matched'], r['truth'], r['found'], r['missed']) == (1, 2, 3, [1])
     assert abs(r['precision'] - 1 / 3) < 1e-9 and r['recall'] == 0.5
+
+
+def test_only_the_books_marked_right_are_the_truth_whatever_else_the_file_lists():
+    assert [b['text'] for b in grade.truth(GT)] == ['Two Towers', 'מעוף הדרקון']
+    r = grade.boxes(GT, [dict(corners=RECT(300, 20, 340, 280))])
+    assert (r['matched'], r['truth']) == (0, 2)
 
 
 def test_one_box_over_two_books_is_neither():
