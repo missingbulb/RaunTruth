@@ -96,15 +96,6 @@ const ACTIONS = {
   async preview(page) { await previewOf(page, 0); },
   // the folder's z-stack previewed
   async zpreview(page) { await previewOf(page, 1); },
-  async edit(page) {
-    await page.click("#edit-open");
-    await page.waitForFunction(() => !document.querySelector("#edit-box").hidden && document.querySelector("#edit-open").disabled
-      && shellForTests.page.get("image")?.source.kind === "drive" && document.querySelector("#busy").hidden);
-  },
-  async done(page) {
-    await page.click("#edit-done");
-    await page.waitForFunction(() => document.querySelector("#edit-box").hidden);
-  },
   async offline(page) {
     await page.context().setOffline(true);
     await page.waitForFunction(() => document.documentElement.classList.contains("offline"));

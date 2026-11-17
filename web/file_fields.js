@@ -3,7 +3,7 @@
 // PNG's chunks. Each field is [label, text]; binary blobs (a maker note, a profile's bytes, a thumbnail, a list of more
 // than MOST values) are left out.
 "use strict";
-import { ifdAt } from "./split.js";
+import { ifdAt } from "./tiff_file.js";
 
 const MOST = 16, LONGEST = 500;
 

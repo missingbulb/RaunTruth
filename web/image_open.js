@@ -1,5 +1,5 @@
 // Opening an image for the viewers, the same way in every study and with no Python (req/shell/image/open): a TIFF
-// read by split.js's reader, a HEIC (a phone's photo) by libheif, any other image as the browser decodes it. Each channel is shown under the name the file
+// read by the page's own TIFF reader, a HEIC (a phone's photo) by libheif, any other image as the browser decodes it. Each channel is shown under the name the file
 // gives it and in the colour the file displays it in; its contrast is set once over the whole stack, between its 0.5%
 // quantile and its upper one (the study's view.upper, else 99.8%), its black point then lifted where the black-point
 // method says (BLACK_POINT), or left as stored where the study's view.stretch is false; a stack comes flattened (each pixel the brightest of every slice) and slice by slice.
@@ -7,7 +7,7 @@
 // file's own samples], images: one buffer, the viewers' whole image: planes, the channels' 8-bit flattened planes
 // one after another, then volume, every slice of every channel, channel by channel, 8-bit, for a stack (Z > 1);
 // planes and volume (null for a flat image) are views into it}.
-import { readTiff, fromPlanes } from "./split.js";
+import { readTiff, fromPlanes } from "./tiff_file.js";
 import { fileFields } from "./file_fields.js";
 import { isVsiAlone, pairFiles, readPair } from "./vsi.js";
 
@@ -86,7 +86,7 @@ async function browserPixels(b) {
   return { W, H, rgba };
 }
 
-// the image in bytes as split.js's reader gives it, read by the decoder the viewers use for it: a TIFF's own
+// the image in bytes as the TIFF reader gives it, read by the decoder the viewers use for it: a TIFF's own
 // planes, a photo's red, green and blue
 export async function readImage(bytes) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);

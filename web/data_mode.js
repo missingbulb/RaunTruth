@@ -7,12 +7,11 @@
 "use strict";
 import { PREVIEWS } from "./previews.js";
 import { makePreview, buildPreviews } from "./previews_writer.js";
-import { writeTiff } from "./split.js";
+import { writeTiff } from "./tiff_file.js";
 import { readImage } from "./image_open.js";
 import { CONNECTION, holdOwns } from "./offline.js";
 import { asLoaded } from "./as_loaded.js";
 import { accepts, isTiff } from "./accepts.js";
-import { replacedBy, stemOf } from "./edit.js";
 import * as tf from "./truth_folders.js";
 import { setup as setUp, switchMode, previewsFolder, previewsName } from "./study_root.js";
 
@@ -187,11 +186,10 @@ export function dataMode(ctx) {
   };
 
   // ---------- the tree ----------
-  // a folder's images, the kinds the study opens, but those an edit replaced (req/shell/data/edit-save)
+  // a folder's images, the kinds the study opens
   const imagesOf = (n) => {
-    const edited = replacedBy([...n.files, ...n.folders.map((id) => ({ name: nodes.get(id)?.name, folder: true }))]);
     const opens = accepts(manifest.files.accept);
-    return n.files.filter((f) => opens(f.name) && f.name !== PREVIEWS && !edited(f));
+    return n.files.filter((f) => opens(f.name) && f.name !== PREVIEWS);
   };
   function drawTree() {
     if (!on()) return;
@@ -429,7 +427,7 @@ export function dataMode(ctx) {
       console.warn(`${f.name}'s preview could not be read:`, err);
       ctx.status(`${f.name}'s preview could not be read: opening the image itself.`); return ctx.loadOriginal(source);
     }
-    ctx.openPreview(stemOf(f.name) + ".preview.tif", previewTiff(e, pages), { ...source, kind: "preview" });
+    ctx.openPreview(f.name.replace(/\.[^.]*$/, "") + ".preview.tif", previewTiff(e, pages), { ...source, kind: "preview" });
   }
 
 
@@ -484,23 +482,5 @@ export function dataMode(ctx) {
     // the Study Manager role chosen, or left (req/shell/account/role)
     role(open) { $("#data-col").hidden = !open; enter(open); },
     get on() { return on(); },
-    // the access to the folder an image is in, as the tree knows it ("write", "view", "none", or null when unknown)
-    accessOf: (folder) => nodes.get(folder)?.access ?? null,
-    // Edit Image's files into the folder named after the image, beside it: the page's own one when it made it
-    // before, else a new one; the tree read again after (req/shell/data/edit-save)
-    async saveEdits(folder, image, files, say) {
-      const n = nodes.get(folder);
-      if (!n || n.access !== "write") throw new Error(ACCESS[n?.access || "unknown"][1]);
-      const name = stemOf(image), there = (await remote.all(folder)).find((f) => f.folder && f.name === name);
-      if (there && !(await sd.ours(there.id))) throw new Error(`This folder already holds a folder named ${name} that this page did not make.`);
-      const into = there ? there.id : await sd.folder(folder, name);
-      for (const [k, f] of files.entries()) {
-        say(`Saving ${k + 1} of ${files.length}, ${f.name}…`);
-        await sd.create(into, f.name, new Blob([f.bytes], { type: "image/tiff" }));
-      }
-      nodes = new Map(); loaded = null; chosen = null;
-      await load();
-      if (nodes.has(folder)) await chooseFolder(nodes.get(folder));
-    },
   };
 }
