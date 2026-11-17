@@ -79,8 +79,8 @@ let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
 const PNG = noisePng(W, H);
-async function load(page, name = "shelf.png") {
-  await page.setInputFiles("#file", { name, mimeType: "image/png", buffer: PNG });
+async function load(page, name = "shelf.png", png = PNG) {
+  await page.setInputFiles("#file", { name, mimeType: "image/png", buffer: png });
   await page.waitForFunction(() => !$("#bs-find").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
 }
@@ -483,6 +483,7 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
   await load(page);
+  await until(page, () => !$("#gt-load-draft").hidden);
   check(await offered(page) === "Start GT tagging" && await page.evaluate(() => !$("#gt-load-draft").hidden && getComputedStyle($("#gt-continue")).display === "none"),
     "with a draft kept for the photo, Load draft is offered and Start GT tagging is the one tagging button", await offered(page));
   check((await books(page)).length === 0, "and no book is shown before it is loaded: Find books has not run");
@@ -501,8 +502,16 @@ try {
   const kept = await page.$$eval('#storage-list .entry[data-kind="selections"]', (es) => es.map((e) => [e.querySelector(".name").textContent, e.querySelector(".what").textContent]));
   check(kept.length === 1 && kept[0][0] === "shelf.png" && /ground-truth draft/.test(kept[0][1]), "Manage storage lists the draft under its photo", kept);
   await page.keyboard.press("Escape");
-  await load(page, "other.png");
-  check(await page.evaluate(() => $("#gt-load-draft").hidden), "another photo has no draft to load", await offered(page));
+  // another photo, of other bytes: a draft is its photo's by what the photo holds, not by its name
+  await load(page, "other.png", noisePng(W, H, 2));
+  await page.waitForFunction(() => st.fileName === "other.png" && !document.querySelector("#overlay g.bs-book"));
+  // the shell's look for a draft of it has ended: a write on the drafts starts only once every read begun before it is done
+  await page.evaluate(() => new Promise((ok, bad) => {
+    const q = indexedDB.open("gt-drafts", 1);
+    q.onerror = () => bad(q.error);
+    q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").count(); t.oncomplete = () => { q.result.close(); ok(); }; t.onerror = () => bad(t.error); };
+  }));
+  check(await page.evaluate(() => $("#gt-load-draft").hidden), "another photo has no draft to load", await page.evaluate(() => $("#gt-load-draft").textContent));
   await page.context().close();
 
   // a book added before Find books has run: the log starts from the photo alone, and Find books carries the book over
