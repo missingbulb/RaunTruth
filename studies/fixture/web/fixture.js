@@ -16,7 +16,7 @@ export function mount(shell) {
     shell.tasks.count("check", done ? 1 : 0, 1);
     shell.tasks.ready(!!m, m ? (done ? "done" : "todo") : undefined);
     $("#fx-check").hidden = $("#fx-marks-tools").hidden = !m;
-    const body = shell.tasks.open(m ? "check" : null)?.querySelector(".task-body");
+    const body = shell.tasks.open(m && !done ? "check" : null)?.querySelector(".task-body");
     if (body) body.append($("#fx-check"), $("#fx-marks-tools"));
   };
   const pick = (key) => { if (model()) shell.tasks.open(key).querySelector(".task-body").append($("#fx-check"), $("#fx-marks-tools")); };

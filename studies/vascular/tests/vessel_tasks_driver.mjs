@@ -58,7 +58,7 @@ const brightnessNow = () => page.evaluate(() => {
 });
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
-const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
+const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
 
 try {

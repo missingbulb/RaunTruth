@@ -278,7 +278,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
-    const rows = [...document.querySelectorAll("#gt-tasks > li")], part = document.querySelector('#gt-bar > span[data-task="check"]'), s = document.querySelector("#gt-submit");
+    const rows = [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")], part = document.querySelector('#gt-bar > span[data-task="check"]'), s = document.querySelector("#gt-submit");
     return { rows: rows.map((li) => (li.querySelector(".t") || li.querySelector("#gt-submit")).textContent.trim()), last: rows.at(-1).contains(s),
       open: rows[0].classList.contains("now"), done: rows[0].classList.contains("done"), tick: getComputedStyle(rows[0].querySelector(".tick")).display !== "none",
       body: !!document.querySelector("#fx-done").offsetParent && rows[0].querySelector(".task-body").contains(document.querySelector("#fx-done")),
