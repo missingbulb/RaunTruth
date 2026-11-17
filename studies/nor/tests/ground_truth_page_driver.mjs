@@ -342,8 +342,9 @@ async function mask(page) {
   await check((await csvRows(page, "#dl-cands")).length === want.length, "the Candidates CSV holds only the candidates inside the mask");
   // density: the finalists inside over the lassoed square's area, a quarter of the image, per mm²
   const n = want.filter(([, p]) => p).length, sq = await page.evaluate(() => 0.25 * st.W * st.H * st.um * st.um * 1e-6);
-  const dens = (await csvRows(page, "#dl-summary")).find((r) => r.startsWith("finalists_per_mm2,"));
-  const got = dens && parseFloat(dens.split(",")[1]);
+  // the shell's Download Summary (req/shell/summary/download): measurement, unit and value in its fourth to sixth columns
+  const dens = (await csvRows(page, "#summary-dl")).map((r) => r.split(",")).find((r) => r[3] === "Density" && r[4] === "per mm²");
+  const got = dens && parseFloat(dens[5]);
   await check(got && Math.abs(got / (n / sq) - 1) < 0.05, `the Summary CSV gives the finalists' density inside the mask (${got} vs ${(n / sq).toFixed(0)} per mm²)`);
   await check((await page.textContent("#summary .density")).includes(Math.round(got).toString()), `the summary shows the density: "${await page.textContent("#summary .density")}"`);
   // a second lasso inside the first cuts a hole
@@ -418,7 +419,7 @@ async function mask(page) {
   await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
-    return ["#dl-cands", "#dl-summary"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });
+    return ["#dl-cands", "#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });
   });
   await check(!/Rejected/.test(await page.textContent("#summary")), "the summary lists no filter reasons");
   const hists = await page.evaluate(() => {

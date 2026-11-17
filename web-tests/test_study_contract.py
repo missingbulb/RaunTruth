@@ -105,6 +105,20 @@ def test_a_study_names_its_stage_and_steps(path):
 
 
 @pytest.mark.parametrize('path', STUDIES, ids=lambda p: os.path.basename(os.path.dirname(p)))
+def test_a_study_filling_the_summary_says_whether_it_counts_inside_a_mask(path):
+    """req/shell/summary/mask: a study filling the Summary box says whether it can count inside the shell's mask, true or
+    false, never left to a default; one not filling it offers no mask."""
+    m = manifest(path)
+    panels = m.get('web', {}).get('panels')
+    fills = bool(panels) and 'data-slot="summary"' in open(os.path.join(os.path.dirname(path), panels), encoding='utf-8').read()
+    mask = (m.get('summary') or {}).get('mask')
+    if fills:
+        assert mask in (True, False), 'summary.mask: true when the study counts inside the shell\'s mask, false when it cannot'
+    else:
+        assert mask is not True, 'a study with no Summary box offers no mask'
+
+
+@pytest.mark.parametrize('path', STUDIES, ids=lambda p: os.path.basename(os.path.dirname(p)))
 def test_a_study_offering_algorithms_lists_them_for_the_shell(path):
     """req/shell/processing/algorithms: a study offering several algorithms names, as data, the file listing them, each
     with its key, title, icon and how it works, and its numbers in a file of their own, what they were measured on and

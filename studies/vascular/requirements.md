@@ -139,6 +139,40 @@ owner's decisions on the stacks and the vessel model, are
   Test: `studies/vascular/tests/test_stack_page.py`.
   </details>
 
+- `req/vascular/summary/mask` The shell's summary mask, lassoed on the stack from straight above, limits the summary to the tissue inside it, through every slice.
+  <details>
+
+  Set by the owner on 2026-11-16, as NoR's; the mask itself is the shell's (`req/shell/summary/mask`), turned to µm by
+  the image's scale. Tissue counts where it lies from above, a junction where it lies, a branch and a piece of tube
+  where their middle lies. Test: `studies/vascular/tests/test_model_page.py`,
+  `studies/vascular/tests/test_vessel_summary.mjs`.
+  </details>
+
+- `req/vascular/summary/metrics` Summary gives the model's eight numbers over the tissue counted: the mask, else the whole field.
+  <details>
+
+  Set by the owner on 2026-11-16. Over the confirmed vessels, the extractor's confident ones and those approved (a
+  low-confidence one still to judge or declined is not counted),
+  outside a ground-truth stage (`req/shell/left-bar/shells`). The tissue is the field the mask leaves, minus the damaged
+  areas a model marks, through all its slices at the spacing the view shows. Guessed where the owner gave only a name
+  (the owner: "if you don't understand something, guess"):
+  1. Vascular volume fraction: the model's tubes, πr² along each vessel, over the tissue's volume, in %.
+  2. Vessel length density: the vessels' length through the model's points, over the tissue's volume, in mm/mm³.
+  3. Branch point density: the junctions (owner, 2026-11-16: "# of junctions"), three or more vessels meeting, per mm³.
+  4. Branch density: the branches, junction to junction or junction to a tip (`locked-metric-definitions`), per mm³.
+  5. Mean branch length: junction to junction along the vessel (owner, 2026-11-16: not the model's own segments), in µm.
+  6. Vessel diameter distribution: each branch's diameter, a person's width where one was set, else the model's.
+  7. Vessel tortuosity: each branch's length through its points over its straight span, end to end.
+  8. Nearest-vessel distance: from an even lattice of about 2,000 points in the tissue to the nearest vessel wall, any
+     vessel, the mask's or not; a point inside a vessel has none.
+
+  A branch counts where its middle lies, a junction where it lies, a piece of tube where its middle lies. 6, 7, 8 and
+  the branch lengths show as histograms, as NoR's (`req/nor/summary/histograms`). 1 to 7 are sums and counts over the
+  model's points and segments, under a millisecond on a whole stack's model (owner, 2026-11-16). The shell's Download
+  Summary saves them, a row each, the four distributions with their statistics (`req/shell/summary/download`). Test:
+  `studies/vascular/tests/test_vessel_summary.mjs`, `studies/vascular/tests/test_model_page.py`.
+  </details>
+
 - `req/vascular/truth/keys` While an area is tagged, keys give the verdicts: F and J judge the junction, Space does the area, S skips it.
   <details>
 

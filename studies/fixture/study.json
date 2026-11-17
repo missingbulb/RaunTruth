@@ -3,6 +3,7 @@
   "title": "Fixture",
   "visibility": "unlisted",
   "stage": "GT",
+  "summary": {"mask": false},
   "icon": "web/icon.svg",
   "phases": [
     {
