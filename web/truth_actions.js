@@ -65,13 +65,16 @@ export function replay(study, actions, upto = actions.length) {
   return { model: s.model, skipped: s.skipped, dead: s.dead };
 }
 
-export async function check(study, actions, stored) {
-  const asBase = () => ({ type: "base", at: new Date().toISOString(), model: bare(stored), from: { tagger: stored.tagger, created: stored.created } });
+export async function check(study, actions, stored, { now = () => new Date().toISOString() } = {}) {
+  const asBase = () => ({ type: "base", at: now(), model: bare(stored), from: { tagger: stored.tagger, created: stored.created } });
   if (!actions?.length) return { replay: "none", actions: [asBase()] };
-  const plain = await unpack(actions);
-  const { model } = replay(study, plain);
-  if (model && await sha256(study.document(model)) === await sha256(stored)) return { replay: "verified", actions: plain };
-  return { replay: "mismatch", actions: [...plain, asBase()] };
+  let plain = actions, error;
+  try {
+    plain = await unpack(actions);
+    const { model } = replay(study, plain);
+    if (model && await sha256(study.document(model)) === await sha256(stored)) return { replay: "verified", actions: plain };
+  } catch (e) { error = String(e); }
+  return { replay: "mismatch", actions: [...plain, asBase()], ...(error && { error }) };
 }
 
 const EVERY = 25;
@@ -104,7 +107,7 @@ export function actionLog(study, { now = () => new Date().toISOString() } = {}) 
     get dead() { return cur.dead; },
     get floor() { return floor(); },
     get count() { return actions.filter((a, i) => isUser(a) && i > cur.dead).length; },
-    get canUndo() { return actions.length - 1 > floor(); },
+    get canUndo() { return floor() >= 0 && actions.length - 1 > floor(); },
     get canRedo() { return undone.length > 0; },
     open(image, studyId) { reset([{ type: "open", at: now(), image, study: studyId }]); },
     ran({ algorithm, output }) {
@@ -115,6 +118,7 @@ export function actionLog(study, { now = () => new Date().toISOString() } = {}) 
     },
     act(action) {
       if (cur.model === null) throw new Error("a GT action needs a run or a base first");
+      if (action.at !== undefined && typeof action.at !== "string") throw new Error("a GT action's `at` is its time: name a place otherwise");
       const a = { ...action, at: action.at ?? now() };
       const r = study.run(cur.model, a);
       if (isSkip(r)) return { skip: r.skip };
@@ -138,6 +142,7 @@ export function actionLog(study, { now = () => new Date().toISOString() } = {}) 
       return a;
     },
     goto(n) {
+      if (floor() < 0) return;
       const all = actions.concat(undone);
       const k = Math.min(Math.max(n, floor() + 1), all.length);
       actions = all.slice(0, k); undone = all.slice(k);

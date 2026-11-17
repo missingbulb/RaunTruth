@@ -29,7 +29,7 @@ export function run(model, a) {
       return has(a.mark) ? { ...model, marks: model.marks.map((m) => (m.id === a.mark ? { id: m.id, x: a.to[0], y: a.to[1] } : m)) } : GONE;
     case "add-mark":
       return a.mark === "m" + model.next && !has(a.mark)
-        ? { ...model, marks: [...model.marks, { id: a.mark, x: a.at[0], y: a.at[1] }], next: model.next + 1 }
+        ? { ...model, marks: [...model.marks, { id: a.mark, x: a.to[0], y: a.to[1] }], next: model.next + 1 }
         : { skip: "its id is taken" };
     case "delete-mark":
       return has(a.mark) ? { ...model, marks: model.marks.filter((m) => m.id !== a.mark) } : GONE;

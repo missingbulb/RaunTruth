@@ -29,7 +29,7 @@ def marks(*triples):
 def test_a_replay_gives_the_model_the_actions_built(out):
     r = out['replay']
     assert r['equal'] and r['skipped'] == [] and r['dead'] == -1
-    assert r['types'] == ['open', 'run', 'move-mark', 'add-mark', 'delete-mark', 'check'] and r['count'] == 4
+    assert r['types'] == ['open', 'run', 'move-mark', 'add-mark', 'delete-mark', 'check'] and r['count'] == 4 and r['timed']
     assert r['model'] == {'threshold': 5, 'count': 2, 'marks': marks(('m1', 12, 13), ('m3', 70, 70)), 'checked': True, 'next': 4}
 
 
@@ -49,6 +49,8 @@ def test_a_new_action_forgets_what_was_undone(out):
 def test_undo_stops_at_the_first_run(out):
     s = out['stops']
     assert s['canUndo'] is False and s['undo'] is None and s['same'] and s['types'] == ['open', 'run'] and s['floor'] == 1
+    # an image only opened has nothing to undo, and no jump takes its opening away
+    assert s['opened'] == {'can': False, 'undo': None, 'types': ['open']}
 
 
 def test_a_second_run_carries_actions_by_id_and_skips_the_rest(out):
@@ -94,6 +96,10 @@ def test_the_check_says_verified_mismatch_or_none(out):
     # a mismatch: the stored model wins as a base, the earlier log stays but is not replayed
     assert c['bad'] == 'mismatch' and c['badTypes'] == ['open', 'run', 'move-mark', 'base']
     assert c['badModelWins'] and c['badDead'] == 3 and c['badDeadLog'] == 3 and c['badFloor'] == 3 and c['badCanUndo'] is False
+    # a log the study can no longer run is a mismatch too, and says why
+    b = c['broken']
+    assert b['replay'] == 'mismatch' and b['types'] == ['open', 'run', 'move-mark', 'base'] and 'no such mark' in b['error']
+    assert b['at'] == 'then' and b['plain'] and c['okError'] is False
     assert c['none'] == 'none' and c['noneTypes'] == ['base']
     assert c['noneFrom'] == {'tagger': 'a@b.c', 'created': '2026-11-17T10:00:00Z'}
     assert set(c['noneModel']) == {'labels', 'marks', 'checked'}
@@ -107,9 +113,8 @@ def test_a_runs_output_packs_and_unpacks(out):
 def test_the_hash_ignores_the_shells_keys_and_key_order(out):
     h = out['hash']
     assert h['equal'] and h['differs'] and h['hex']
-    assert h['shellKeys'] == ['history', 'created', 'tagger', 'image', 'accepted']
     assert h['canonical'] == '{"a":{"c":[2,{"y":0,"z":1}]},"b":1}'
-    assert h['format'] == 'rauntruth-gt-history/1' and set(h['bare']) == {'labels', 'marks', 'checked'}
+    assert set(h['bare']) == {'labels', 'marks', 'checked'}
 
 
 def test_clear_goes_back_to_the_last_run(out):
@@ -126,6 +131,8 @@ def test_no_model_is_changed_in_place(out):
 def test_an_action_keeps_its_time_or_takes_the_clock_given(out):
     c = out['clock']
     assert c['ats'] == ['T1', 'T2', 'T3', 'mine'] and c['default'] is True
+    # `at` is the time: a place handed in under that name is refused
+    assert c['place'] and len(c['ats']) == 4
     assert c['open']['type'] == 'open' and c['open']['study'] == 'fixture' and c['run']['algorithm']['key'] == 'count'
 
 

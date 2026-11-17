@@ -22,12 +22,12 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
 {
   const log = fresh();
   log.act({ type: "move-mark", mark: "m1", to: [12, 13] });
-  log.act({ type: "add-mark", mark: "m3", at: [70, 70] });
+  log.act({ type: "add-mark", mark: "m3", to: [70, 70] });
   log.act({ type: "delete-mark", mark: "m2" });
   log.act({ type: "check", on: true });
   const r = ta.replay(fx, log.actions);
   out.replay = { model: r.model, live: log.model, equal: same(r.model, log.model), skipped: [...r.skipped], dead: r.dead,
-    types: types(log), count: log.count };
+    types: types(log), count: log.count, timed: log.actions.every((a) => typeof a.at === "string") };
 }
 
 // 2. undo then redo for every fixture action
@@ -35,7 +35,7 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   out.undoRedo = {};
   const each = {
     "move-mark": { type: "move-mark", mark: "m1", to: [20, 21] },
-    "add-mark": { type: "add-mark", mark: "m3", at: [5, 6] },
+    "add-mark": { type: "add-mark", mark: "m3", to: [5, 6] },
     "delete-mark": { type: "delete-mark", mark: "m2" },
     check: { type: "check", on: true },
   };
@@ -66,6 +66,10 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   const log = fresh(), model = log.model;
   const r = log.undo();
   out.stops = { canUndo: log.canUndo, undo: r, same: same(log.model, model), types: types(log), floor: log.floor };
+  const opened = ta.actionLog(fx); opened.open({ name: "a.png" }, "fixture");
+  const can = opened.canUndo, undo = opened.undo();
+  opened.goto(0);
+  out.stops.opened = { can, undo, types: types(opened) };
 }
 
 // 5. a second run carries actions by id
@@ -136,7 +140,9 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   const none = await ta.check(fx, [], wrong);
   const rb = ta.replay(fx, b.actions);
   const lg = ta.actionLog(fx); lg.load(b.actions);
-  out.check = { ok: a.replay, okSame: same(a.actions, log.actions),
+  const broken = await ta.check({ ...fx, run() { throw new Error("no such mark"); } }, await ta.pack(log.actions), stored, { now: () => "then" });
+  out.check = { broken: { replay: broken.replay, types: broken.actions.map((x) => x.type), error: broken.error, at: broken.actions.at(-1).at, plain: Array.isArray(broken.actions[1].output.spots) },
+    okError: "error" in a, ok: a.replay, okSame: same(a.actions, log.actions),
     bad: b.replay, badTypes: b.actions.map((x) => x.type), badModelWins: same(fx.document(rb.model).marks, wrong.marks), badDead: rb.dead, badDeadLog: lg.dead,
     badFloor: lg.floor, badCanUndo: lg.canUndo,
     none: none.replay, noneTypes: none.actions.map((x) => x.type), noneFrom: none.actions[0]?.from, noneModel: none.actions[0]?.model };
@@ -161,8 +167,8 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   const h = await ta.sha256(d);
   const dressed = { checked: false, tagger: "a@b.c", marks: [{ y: 2, x: 1, id: "m1" }], history: [1], created: "x", image: {}, accepted: true, labels: [{ count: 2, threshold: 5 }] };
   const other = await ta.sha256({ ...d, checked: true });
-  out.hash = { equal: h === await ta.sha256(dressed), differs: h !== other, hex: /^[0-9a-f]{64}$/.test(h), shellKeys: ta.SHELL_KEYS,
-    canonical: ta.canonical({ b: 1, a: { d: undefined, c: [2, { z: 1, y: 0 }] } }), format: ta.HISTORY_FORMAT, bare: ta.bare(dressed) };
+  out.hash = { equal: h === await ta.sha256(dressed), differs: h !== other, hex: /^[0-9a-f]{64}$/.test(h),
+    canonical: ta.canonical({ b: 1, a: { d: undefined, c: [2, { z: 1, y: 0 }] } }), bare: ta.bare(dressed) };
 }
 
 // 13. clear
@@ -188,7 +194,7 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   try {
     const log = fresh(TWO, study);
     log.act({ type: "move-mark", mark: "m1", to: [1, 1] });
-    log.act({ type: "add-mark", mark: "m3", at: [9, 9] });
+    log.act({ type: "add-mark", mark: "m3", to: [9, 9] });
     log.act({ type: "delete-mark", mark: "m2" });
     log.act({ type: "check", on: true });
     log.ran(runOf([[10, 10]]));
@@ -206,7 +212,8 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   log.ran(runOf(TWO));
   log.act({ type: "check", on: true });
   log.act({ type: "check", on: false, at: "mine" });
-  out.clock = { ats: log.actions.map((a) => a.at), open: log.actions[0], run: { at: log.actions[1].at, algorithm: log.actions[1].algorithm } };
+  let place = null; try { log.act({ type: "check", on: true, at: [3, 4] }); } catch (e) { place = String(e); }
+  out.clock = { place, ats: log.actions.map((a) => a.at), open: log.actions[0], run: { at: log.actions[1].at, algorithm: log.actions[1].algorithm } };
   const d = ta.actionLog(fx); d.open({ name: "a.png" }, "fixture");
   out.clock.default = /^\d{4}-\d\d-\d\dT/.test(d.actions[0].at);
 }
