@@ -1849,7 +1849,7 @@ function submitTruth(gt) {
     send.disabled = true; $("#gt-msg").textContent = "Submitting…";
     try {
       await truth.submit(await docOf());
-      if (gtSession.on()) await gtSession.save({ ask: false });
+      if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
       $("#gt-msg").textContent = `Submitted to the study's submissions folder, as your ground truth for ${st.fileName}.`;
       step("submit", true, `Submitted the ground truth of ${st.fileName}`);
       log.add("Submitted ground truth");
@@ -2326,7 +2326,9 @@ const keys = actions($("#image-view").appendChild(Object.assign(document.createE
 // the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
 const gtDrafts = truthDrafts();
 const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth, viewer: () => view, remoteLabel: () => remote.label, readJSON, writeJSON,
-  image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id });
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
+  // offline there is nothing to ask the store
+  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.readMine(id) });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {

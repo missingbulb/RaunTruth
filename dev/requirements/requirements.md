@@ -529,14 +529,14 @@ nobody has decided: what the page does there is not a requirement yet.
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
   asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
-  `pending` from the image's opening and `done` once the look for its draft has ended, for tests to wait on. Tentative: the button stays while the
+  `pending` from the image's opening and `done` once the looks for its draft, and for a tagger's own submission, have ended, for tests to wait on. Tentative: the button stays while the
   draft on the device is not the one loaded. Approved by the owner on 2026-11-16: for a Ground Truth Tagger, on an image
   from the remote store, the offer also names their own submission there ("Load your submission · submitted 12 Nov,
-  14:08"), found from two listings as the image opens (the submissions folder, then the image's subfolder), the
+  14:08"), found from two listings as the image opens (the submissions folder, then the image's subfolder, when it has one), the
   file read only on that click, checked as a draft is, and one from before the log loaded as a base with no history.
   Nothing is cached, and no other call is made. Set by the owner on 2026-11-17: those two listings, and the one download
   on the click, are the only calls this adds. Tentative: both offers show when the device holds a draft too, and
-  a submission made in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
+  a submission made or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
   `web-tests/test_gt_resume_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 

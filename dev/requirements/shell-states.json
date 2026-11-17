@@ -329,15 +329,17 @@
               ],
               "children": [
                 {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
-                  "steady": "hidden while no draft of the image is on this device and no study offers an old store, which no path makes",
+                  "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
                   "rule": [
-                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, and no old store is offered"}
+                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
                   ],
                   "children": [
                     {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
                       "unwalked": "its parent is hidden in every path, no draft being on this device"},
                     {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
-                      "unwalked": "its parent is hidden in every path, no study's old store being offered"}
+                      "unwalked": "its parent is hidden in every path, no study's old store being offered"},
+                    {"name": "Load your submission", "select": "#gt-load-drive", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
                   ]
                 },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",

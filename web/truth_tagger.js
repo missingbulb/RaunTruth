@@ -3,7 +3,7 @@
 // and how to get there (req/shell/ground-truth/tagger-access), Clear progress beside Submit (every `.gt-clear-slot`,
 // req/shell/ground-truth/clear), and Submit (req/shell/ground-truth/submit).
 "use strict";
-import { folders, submit, status, current, subfolderName } from "./truth_folders.js";
+import { folders, submit, status, current, subfolderName, own } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
@@ -85,6 +85,14 @@ export function truthTagger({ account, remote, place, image, on, cleared, histor
       const f = await gt();
       return !!f.curated && (await reader.all(f.curated)).some((x) => x.folder && x.name === subfolderName(img.name, img.sha256));
     },
+    // the tagger's own submission for the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
+    // file read, for an image from the remote store only (req/shell/ground-truth/draft-offer)
+    async mine() {
+      const im = image(), email = account.email(), folder = im && email && remote.owns(im.source) && im.sha256 ? await where() : null;
+      return folder ? own(reader, folder, im, email) : null;
+    },
+    // a submission's file, read now and parsed: the one download
+    async readMine(id) { return JSON.parse(await reader.text(id)); },
     // the image's curated ground truth, {name, doc}, or null, its files read now (req/shell/ground-truth/view)
     async curated(img) { const f = await gt(); return f.curated ? current(reader, f.curated, img) : null; },
     // why Submit is off for the image open, "" when it is on

@@ -11,18 +11,25 @@ const clock = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:$
 const isUser = (a) => a.type !== "open" && a.type !== "run" && a.type !== "base";
 const nameOfCount = (n) => `${n} action${n === 1 ? "" : "s"}`;
 const sig = (a) => `${a.type}@${a.at}`;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const stamp = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${clock(iso)}`; };
 
 // image(): {name, sha256, width, height} of the image open, null while none; studyId(): the study on show;
 // makesTruth(): whether the tagger tags now; dragging(): whether a drag is under way; keys: the viewer's actions
 // (add(spec)); drafts: truth_drafts.js's store; status and notice: the page's say; confirmBox: its question to the user;
-// viewer(): the viewer, which rings an item; remoteLabel(): the remote store's name; readJSON and writeJSON: the shell's storage
-export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth, viewer, remoteLabel, readJSON, writeJSON }) {
+// viewer(): the viewer, which rings an item; remoteLabel(): the remote store's name; readJSON and writeJSON: the shell's storage;
+// submission(): the tagger's own submission of the image open in the remote store, {id, modified} or null, looked up as the
+// image opens; readSubmission(id): its file, parsed
+export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth, viewer, remoteLabel, readJSON, writeJSON,
+  submission = async () => null, readSubmission = async () => { throw new Error("no store"); } }) {
   let module = null, log = null, replayState = "verified";
   // what the device's draft of the image open held when last seen, the saved time of the one this visit loaded or saved,
   // and the actions in force then
   let stored = null, lastSaved = null, savedSigs = [], opening = 0;
   // an old store the study hands over (api.legacy): {model, count, from, forget}, and whether the log holds it as its base now
   let old = null, oldTaken = false;
+  // the tagger's own submission in the remote store, as the image's opening found it: {id, modified}
+  let drive = null;
   const listeners = new Set();
   // the page's root says whether the look for the open image's draft is under way or over, for a test to wait on
   const lookup = (state) => { document.documentElement.dataset.gtLookup = state; };
@@ -55,8 +62,10 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     redo.title = !redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo";
     $("#gt-unsaved").hidden = !n; $("#gt-unsaved").textContent = n ? `· ${n} unsaved` : "";
     $("#gt-save-draft").disabled = !on || !n;
-    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken;
-    $("#gt-offers").hidden = !offered && !earlier;
+    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!drive;
+    $("#gt-offers").hidden = !offered && !earlier && !sent;
+    $("#gt-load-drive").hidden = !sent;
+    if (sent) $("#gt-load-drive").textContent = `Load your submission${drive.modified ? ` · submitted ${stamp(drive.modified)}` : ""}`;
     offer.hidden = !offered;
     if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
     $("#gt-load-legacy").hidden = !earlier;
@@ -95,17 +104,35 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     try { forget?.(); } catch (e) { console.warn("shell.gt.legacy: the old store was not forgotten:", e); }
   }
 
-  async function load(record) {
-    if (!module || !log) return false;
-    if (unsaved() > 0 && !confirmBox(`Loading the draft replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load it?`)) return false;
+  // a stored log and model taken as the image's, the replay checked; what: how the status line names it
+  async function take(record, what) {
     const { replay, actions, error } = await check(module, record.log, record.model);
-    log.load(actions);
+    try { log.load(actions); } catch (e) { notice(`${what} could not be loaded: ${e?.message || e}`); return false; }
     replayState = replay; markSaved(record.saved); oldTaken = false;
-    status(replay === "verified" ? `Draft loaded: replay verified, ${nameOfCount(userCount(actions))}.`
-      : replay === "none" ? "Draft loaded as a base: it held no history."
-        : `Draft loaded as a base: its history did not replay to what was saved${error ? ` (${error})` : ""}.`, replay === "mismatch");
+    status(replay === "verified" ? `${what} loaded: replay verified, ${nameOfCount(userCount(actions))}.`
+      : replay === "none" ? `${what} loaded as a base: it held no history.`
+        : `${what} loaded as a base: its history did not replay to what was saved${error ? ` (${error})` : ""}.`, replay === "mismatch");
     mutated("load");
     return true;
+  }
+  // whether what is in the log may be replaced, unsaved actions being asked about first
+  const mayReplace = (what) => unsaved() === 0 || confirmBox(`Loading ${what} replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load it?`);
+
+  async function load(record) {
+    if (!module || !log || !mayReplace("the draft")) return false;
+    return take(record, "Draft");
+  }
+
+  // the tagger's own submission, read now, the one download
+  async function loadSubmission() {
+    if (!module || !log || !drive || !mayReplace("your submission")) return false;
+    const { id, modified } = drive;
+    let doc;
+    try { doc = await readSubmission(id); } catch (e) { notice(`Your submission could not be read: ${e?.message || e}`); return false; }
+    const h = doc?.history;
+    const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your submission");
+    if (taken) { drive = null; paint(); }
+    return taken;
   }
 
   // what Clear all history goes back to: the run it keeps, or the base that stands in for one
@@ -132,25 +159,38 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     paint,
     mount(m) {
       module = m; log = m ? actionLog(m) : null; replayState = "verified";
-      stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false;
+      stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; drive = null;
       paint();
     },
-    leave() { delete document.documentElement.dataset.gtLookup; module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; listeners.clear(); paint(); },
-    // the image is open: the log starts with it, and a draft of it on this device is looked up; true when one is to offer
+    leave() { delete document.documentElement.dataset.gtLookup; module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; drive = null; listeners.clear(); paint(); },
+    // the image is open: the log starts with it, and a draft of it on this device is looked up, and for a tagger their own
+    // submission in the remote store (req/shell/ground-truth/draft-offer); true when either is to offer
     async opened() {
       const mine = ++opening, img = image();
+      drive = null;
       if (!module || !img) { stored = null; lookup("done"); paint(); return false; }
       log.open({ name: img.name, sha256: img.sha256, width: img.width, height: img.height }, studyId());
       replayState = "verified"; stored = null; markSaved(null); old = null; oldTaken = false;
       lookup("pending");
       paint(); notify(null, "open");
       if (!img.sha256) { lookup("done"); return false; }
-      try { stored = await drafts.get(studyId(), img.sha256); } catch (e) { console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true); }
+      const device = drafts.get(studyId(), img.sha256).catch((e) => {
+        console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true);
+        return null;
+      });
+      const sent = !makesTruth() ? null : submission().catch((e) => {
+        console.warn("the submission was not looked up:", e); status(`Your submission of this image could not be looked up: ${e?.message || e}`, true);
+        return null;
+      });
+      const [d, s] = await Promise.all([device, sent]);
       if (mine !== opening) return false;
+      stored = d; drive = s;
       lookup("done");
       paint();
-      return !!stored;
+      return !!stored || !!drive;
     },
+    // the tagger's submission has just landed in the remote store: nothing there is older than the work, so it is not offered
+    submitted() { drive = null; paint(); },
     // whether the image open may be left: actions not yet saved are asked about first
     leaving(what) {
       const n = makesTruth() ? unsaved() : 0;
@@ -239,6 +279,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   $("#gt-redo").onclick = () => session.redo();
   $("#gt-save-draft").onclick = () => save();
   $("#gt-load-draft").onclick = () => { if (stored) load(stored); };
+  $("#gt-load-drive").onclick = () => loadSubmission();
   const spec = (id, label, codes, control, hint) => ({ id, label, keys: codes, kind: "press", legend: false, control, hint, active: () => !dragging() });
   keys.add(spec("gt-undo", "Undo", ["Ctrl+KeyZ", "Meta+KeyZ"], "#gt-undo"));
   // Ctrl+Y is the one its button says, the shortest of the three
