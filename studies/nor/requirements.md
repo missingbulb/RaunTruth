@@ -75,7 +75,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
-  blue included). Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
   Test: `studies/nor/tests/test_nor_gt_actions.py`, `studies/nor/tests/test_gt_actions_page.py`, `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 

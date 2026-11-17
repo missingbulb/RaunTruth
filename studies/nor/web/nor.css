@@ -118,6 +118,8 @@
 /* the Edit History window (req/shell/ground-truth/history) is the one thing this card can meet: its top yields, nor.js telling
    how much of the top right the card holds */
 #edit-history { max-height: calc(100% - 24px - var(--eh-yield, 0px)); }
+/* its ring is mint, near enough the image's green that it needs an edge: the glow under it is a dark casing here */
+#overlay g[data-layer="ring"] > :first-child { stroke: #000; stroke-opacity: .8; }
 #selected .card { background: var(--panel); margin: 0; }
 .stepper { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; background: var(--panel); }
 .stepper button { border: 0; border-radius: 0; background: transparent; width: 32px; padding: 2px 0; font-size: 16px; line-height: 1.2; }

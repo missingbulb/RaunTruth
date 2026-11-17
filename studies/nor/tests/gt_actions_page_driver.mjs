@@ -196,9 +196,11 @@ try {
   const rowAt = await page.evaluate((word) => { const li = [...document.querySelectorAll("#eh-list > li")].find((l) => l.textContent.includes(word)); li.scrollIntoView({ block: "nearest" }); const r = li.getBoundingClientRect(); return [r.left + 20, r.top + r.height / 2]; }, `Approved #${t}`);
   await page.mouse.move(...rowAt);
   await page.waitForFunction(() => document.querySelector('#overlay g[data-layer="ring"] *'));
-  const ring = await page.evaluate(() => { const g = document.querySelector('#overlay g[data-layer="ring"]'); return { box: g.dataset.box.split(",").map(Number), stroke: getComputedStyle(g.firstElementChild).stroke }; });
+  const ring = await page.evaluate(() => { const g = document.querySelector('#overlay g[data-layer="ring"]'), line = getComputedStyle(g.lastElementChild), under = getComputedStyle(g.firstElementChild);
+    return { box: g.dataset.box.split(",").map(Number), stroke: line.stroke, casing: under.stroke, over: parseFloat(under.strokeWidth) - parseFloat(line.strokeWidth), solid: +under.strokeOpacity }; });
   const wanted = await page.evaluate((i) => nor.candOf(i).bb, target);
   await check(JSON.stringify(ring.box) === JSON.stringify(wanted) && ring.stroke === "rgb(0, 255, 150)", `hovering the row of an approval rings its candidate's box in the study's colour: ${JSON.stringify(ring)}`, { wanted });
+  await check(ring.casing === "rgb(0, 0, 0)" && ring.over >= 3 && ring.solid >= .7, "on a dark casing wider than it, so it reads over the image's own green", ring);
   await page.mouse.move(5, 5);
 
   // the window yields to the selected candidate's card at the top right, which shows only outside tagging: forced on here to see it
