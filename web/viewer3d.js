@@ -683,6 +683,8 @@ export function viewer3d(shell, flat) {
     ...flat,
     three,
     // rings a box of the image (viewer2d.js's ring): at the stack's middle depth while the stack is shown in 3D, with no pan
+    // the 3D view has no pan, so what it rings is always in view
+    inView: (box) => (mode3d ? true : flat.inView(box)),
     ring(box, opts) {
       ringBox = box ? box.slice(0, 4) : null;
       flat.ring(mode3d ? null : box, opts);

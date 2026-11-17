@@ -156,7 +156,13 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
     if (!a || a.type === "open" || a.type === "run" || a.type === "base") return null;
     try { return s?.where?.(a, lg.model) ?? null; } catch { return null; }
   };
-  list.addEventListener("mouseover", (e) => { const el = rowOf(e); viewer()?.ring?.(el ? boxOf(el) : null); });
+  const OFF = "Off screen — click to go there";
+  list.addEventListener("mouseover", (e) => {
+    const el = rowOf(e), box = el ? boxOf(el) : null, off = !!box && viewer()?.inView && !viewer().inView(box);
+    if (el && off && el.title !== OFF) { el.dataset.was = el.title; el.title = OFF; }
+    else if (el && !off && el.title === OFF) { el.title = el.dataset.was ?? ""; delete el.dataset.was; }
+    viewer()?.ring?.(off ? null : box);
+  });
   list.addEventListener("mouseleave", () => viewer()?.ring?.(null));
   list.addEventListener("click", (e) => {
     const chev = e.target.closest?.(".eh-fold");

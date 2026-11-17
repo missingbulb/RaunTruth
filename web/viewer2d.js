@@ -11,7 +11,7 @@
 //
 // ring(box | null, {pan}) rings a box of the image, [x0, y0, x1, y1] in its pixels, in a layer of its own that no zoom
 // thins below two screen pixels (the Edit History window's hover, req/shell/ground-truth/history); pan scrolls to it when
-// its middle is out of view; null takes the ring away. The 3D viewer's ring sits at the stack's middle depth and never pans.
+// its middle is out of view (inView(box) says so); null takes the ring away. The 3D viewer's ring sits at the stack's middle depth and never pans.
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
@@ -335,13 +335,16 @@ export function viewer(shell) {
     g.style.stroke = "var(--gt-ring, #ffd400)";
     g.replaceChildren(one({ "stroke-opacity": 0.3, "stroke-width": 7 }), one({ "stroke-width": 2 }));
   }
+  // whether the middle of a box of the image is in view
+  function inView(box) {
+    const r = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect();
+    const x = b.left + ((box[0] + box[2]) / 2) * st.zoom, y = b.top + ((box[1] + box[3]) / 2) * st.zoom;
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
   function ring(box, { pan = false } = {}) {
     ringAt = box && st.img ? box.slice(0, 4) : null;
     ringDraw();
-    if (!ringAt || !pan) return;
-    const sc = $("#scroller"), r = sc.getBoundingClientRect(), b = $("#base").getBoundingClientRect();
-    const x = b.left + ((ringAt[0] + ringAt[2]) / 2) * st.zoom, y = b.top + ((ringAt[1] + ringAt[3]) / 2) * st.zoom;
-    if (x < r.left || x > r.right || y < r.top || y > r.bottom) focus((ringAt[0] + ringAt[2]) / 2, (ringAt[1] + ringAt[3]) / 2);
+    if (ringAt && pan && !inView(ringAt)) focus((ringAt[0] + ringAt[2]) / 2, (ringAt[1] + ringAt[3]) / 2);
   }
   // a pointer event's place on the image, in its pixels
   function toImage(e) {
@@ -528,7 +531,7 @@ export function viewer(shell) {
     rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
     doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
-    draw, setZoom, fit, focus, ring, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
+    draw, setZoom, fit, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
     get overlay() { return $("#overlay"); }, get scroller() { return $("#scroller"); },
   };
 }

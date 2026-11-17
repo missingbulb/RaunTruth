@@ -190,6 +190,9 @@ const scrolled = await page.evaluate(() => document.querySelector("#scroller").s
 await page.evaluate(() => { document.querySelector("#scroller").scrollTop = 0; });
 const mid = await page.evaluate((x) => { const s = document.querySelector("#scroller"), b = document.querySelector("#base").getBoundingClientRect(), r = s.getBoundingClientRect(); return b.left + x * st.zoom > r.right || b.left + x * st.zoom < r.left; }, m2.x);
 await check(scrolled === 0 && mid, "zoomed in, the second mark is out of view");
+await hover("Moved mark m2");
+const offTitle = await page.evaluate(() => [...document.querySelectorAll("#eh-list > li")].find((li) => li.textContent.includes("Moved mark m2")).title);
+await check(offTitle === "Off screen — click to go there" && (await ringBox()) === null, "hovering the row of an item out of view rings nothing, and its title says to click to go there", { offTitle, ring: await ringBox() });
 await click(page, "Moved mark m2");
 await until(page, () => { const s = document.querySelector("#scroller"), b = document.querySelector("#base").getBoundingClientRect(), r = s.getBoundingClientRect(); const x = b.left + 60 * st.zoom; return x >= r.left && x <= r.right; });
 await check(true, "a click on its row pans to it");
