@@ -4,6 +4,8 @@
 // user's settings, decisions and measurements, and asks Python to refilter. It runs in the shell's page
 // (web/shell.js), which hands it the services below.
 import "./peek.js";
+import * as N from "./gt_actions.js";
+import { oldMarks, OLD_KEYS } from "./old_marks.js";
 
 export function mount(shell) {
   const { $, status, busy, slow, until, readJSON, writeJSON, esc, saveFile } = shell, st = shell.state;
@@ -11,23 +13,16 @@ export function mount(shell) {
   const here = { signal: shell.signal };
   const SVGNS = "http://www.w3.org/2000/svg";
   const STORE = "nor-filter-settings-v1"; // {values: {param: number}, off: [filter key]}; only what the user changed
-  const MARKS = "nor-marks-v1:"; // + file name + "|" + finder: {"x,y": "in" | "out"}, the user's keepers and removals
-  const EDITS = "nor-edits-v1:"; // + file name + "|" + finder: {"x,y": {length, red, approved}}, the user's measurements
   const SHOW = "nor-show-v1"; // the image view's Show menu
   const SORT = "nor-sort-v1"; // the item views' Sort menu, one per view: {pass, fail}
   const CARDS = "nor-cards-v3"; // the item views' Options menu, one per view: {pass: {...}, fail: {...}}, only what the user changed
-  // + file name: [{lines: {length, red, width}, verdict: "in" | "out" | null}], the NoRs the user added
-  // where the finder proposed none
-  const ADDED = "nor-added-v1:";
-  const MISSING = "nor-missing-v1:"; // + file name: [[x, y]], what ADDED replaced; read once and converted
-  const AREAS_KEY = "nor-areas-v1:"; // + file name: [area], the image's areas the user checked for missed NoRs
   // while the study makes ground truth its tasks are in the left bar, one candidate at a time, and the image is the only view
   const TRUTH = shell.makesTruth;
   // the tagger tags now: the walk's item is ringed, its area framed and what is done cut out only then
   // (req/shell/ground-truth/tagging)
   const tagging = () => TRUTH && shell.tasks.tagging();
   // the image cut into GRID × GRID areas, each task's candidates taken area by area so the review fills one area after another
-  const GRID = 10;
+  const GRID = N.GRID;
   // an added NoR counts as found when a candidate lies within this distance of its middle: about half a
   // NoR's length on the lab's slide (median 26 px)
   const MISSING_RADIUS = 12;
@@ -72,27 +67,17 @@ export function mount(shell) {
 
   // what each of the study's browser keys holds, for the shell's Manage storage dialog
   const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [SORT]: "Sort menus of the item views", [CARDS]: "Options menus of the item views" };
-  const PER_FILE = [[MARKS, "keepers and removals"], [EDITS, "measurements"], [ADDED, "added NoRs"], [MISSING, "added NoRs"], [AREAS_KEY, "areas checked for missed NoRs"]];
+  // what the page kept per image before the tagger's work was GT actions (old_marks.js): listed, so it can be seen and deleted, for as
+  // long as a browser still holds it
   function stored(key) {
     if (SETTINGS[key]) return { group: "settings", what: SETTINGS[key] };
-    const [prefix, what] = PER_FILE.find(([p]) => key.startsWith(p)) || [];
+    const [prefix, what, byFinder] = OLD_KEYS.find(([p]) => key.startsWith(p)) || [];
     if (!prefix) return null;
-    const rest = key.slice(prefix.length), bar = rest.lastIndexOf("|"), byFinder = prefix === MARKS || prefix === EDITS;
+    const rest = key.slice(prefix.length), bar = rest.lastIndexOf("|");
     return byFinder && bar >= 0
-      ? { group: "images", image: rest.slice(0, bar), what: `${what} (${rest.slice(bar + 1)})` }
-      : { group: "images", image: rest, what };
+      ? { group: "images", image: rest.slice(0, bar), what: `earlier ${what} (${rest.slice(bar + 1)})` }
+      : { group: "images", image: rest, what: `earlier ${what}` };
   }
-
-  // the tagger's progress on the image open, every per-file key of it, forgotten (req/shell/ground-truth/clear)
-  shell.clearable("votes, measurements, added NoRs and checked areas", () => {
-    const name = st.fileName, keys = [];
-    try { for (let k = 0; k < localStorage.length; k++) keys.push(localStorage.key(k)); } catch { return; }
-    for (const key of keys) {
-      const [prefix] = PER_FILE.find(([p]) => key.startsWith(p)) || [];
-      const rest = prefix && key.slice(prefix.length);
-      if (prefix && (rest === name || rest.startsWith(name + "|"))) try { localStorage.removeItem(key); } catch { /* no storage */ }
-    }
-  });
 
   // ---------- saved filter settings ----------
   const loadSaved = () => readJSON(STORE, { values: {}, off: [] });
@@ -135,37 +120,101 @@ export function mount(shell) {
     });
   }
 
-  // ---------- the user's decisions and measurements: saved per file and finder, tied to each candidate's position ----------
-  const posKey = (c) => `${Math.round(c.cx)},${Math.round(c.cy)}`;
-  const fileKey = () => st.fileName + "|" + st.meta.finder;
-  function loadMarks() {
-    st.forced = new Map(); st.edits = new Map();
-    const marks = readJSON(MARKS + fileKey()), edits = readJSON(EDITS + fileKey());
-    for (const c of st.cands) {
-      const m = marks[posKey(c)], e = edits[posKey(c)];
-      if (m) st.forced.set(c.i, m);
-      if (e) st.edits.set(c.i, e);
-    }
-  }
-  function saveMap(prefix, map) {
-    const out = {};
-    for (const [j, v] of map) out[posKey(st.cands[j])] = v;
-    writeJSON(prefix + fileKey(), out);
-  }
-  // the user's word on a candidate: "approve" (a NoR, with the lengths shown), "reject" (not one), or null (the filters decide)
+  // ---------- the tagger's work: GT actions, which the page draws (req/shell/ground-truth/history) ----------
+  // The shell's log holds the decisions, the lengths moved, the NoRs added and the areas checked, as GT actions on candidates named
+  // by id (gt_actions.js). The page reads them as st.forced (a candidate's index -> "in" | "out"), st.edits (-> {length, red, width,
+  // approved}), st.added ([{id, lines, verdict}]) and st.areas, which sync() derives from the log's model after every change.
+  const act = (action) => shell.gt.act(action);
+  // the user's word on a candidate: "approve" (a NoR, with the lengths shown), "reject" (not one: it is taken out of the candidates
+  // that remain), or null (back to the filters' word)
   function decide(i, d) {
-    d ? st.forced.set(i, d === "approve" ? "in" : "out") : st.forced.delete(i);
-    const e = { ...(st.edits.get(i) || {}) };
-    d === "approve" ? (e.approved = true) : delete e.approved;
-    Object.keys(e).length ? st.edits.set(i, e) : st.edits.delete(i);
-    saveMap(MARKS, st.forced); saveMap(EDITS, st.edits); render();
+    const c = candOf(i);
+    if (c) act({ type: d === "approve" ? "approve" : d === "reject" ? "delete" : "undecide", cand: c.id });
   }
-  function edit(i, change) {
-    const e = { ...(st.edits.get(i) || {}), ...change };
-    for (const k of Object.keys(e)) if (e[k] == null || e[k] === false) delete e[k];
-    Object.keys(e).length ? st.edits.set(i, e) : st.edits.delete(i);
-    saveMap(EDITS, st.edits); drawLines(st.cands[i]); render();
+  const imageInfo = () => {
+    const src = st.source || { kind: "local" };
+    return { name: st.fileName, sha256: st.sha, width: st.W, height: st.H, um_per_px: st.um || null, location: shell.remote.owns(src) ? shell.remote.locate(src) : { source: "local" } };
+  };
+  // the model's candidates as the page's, with no outline: its masks are not in the log (the run's output holds none)
+  function adopt(m) {
+    const all = [...m.cands, ...m.deleted];
+    st.meta = { finder: m.meta.finder, drafted: true }; st.seg = null; st.alone = null; st.crops = new Map(); st.cands = []; st.fails = [];
+    for (const c of all) {
+      st.cands[c.i] = { i: c.i, id: c.id, cx: c.x, cy: c.y, bb: c.bb, fail0: null, x0: 0, y0: 0, h: 0, w: 0, blk: [], ...(c.lines ? { lines: c.lines, m: c.m } : {}) };
+      st.fails[c.i] = c.fail ?? null;
+    }
+    st.order = [...all].sort((a, b) => a.n - b.n).map((c) => st.cands[c.i]);
+    st.numbers = new Map(all.map((c) => [c.i, c.n]));
+    st.sel = null; st.task = null; st.cur = undefined; st.back = []; st.runOverrides = m.meta.finder_settings || {};
+    if (st.about?.[m.meta.finder]) st.reasons = st.about[m.meta.finder].reasons;
+    for (const id of ["#filters", "#presets"]) $(id).inert = true;
+    buildOverlay();
+    shell.statusBar();
   }
+  // whether the page's candidates are those the model holds
+  const aligned = (m) => N.holds(m, st.order.map((c) => ({ i: c.i, id: c.id, x: c.cx, y: c.cy })));
+  // the filters as the log's run had them, in the dials; true when that moved one
+  function followFilters(m) {
+    const f = m.meta.filters;
+    if (!f?.values || st.filtersFor !== m.meta.finder || !st.defaults) return false;
+    const values = { ...st.defaults, ...f.values }, off = new Set(f.off || []);
+    if (JSON.stringify([values, [...off]]) === JSON.stringify([st.values, [...st.off]])) return false;
+    st.values = values; st.off = off; showFilterValues(); save();
+    return true;
+  }
+  // the run recorded last for this detection, by what it holds of the filters' word: a fresh one only when that moves
+  let recorded = null;
+  const filtersKey = (fails, values, off) => JSON.stringify([fails, values, off]);
+  const modelKey = (m) => filtersKey([...m.cands, ...m.deleted].sort((a, b) => a.i - b.i).map((c) => c.fail ?? null), m.meta.filters?.values, m.meta.filters?.off);
+  // the model's word on the page: what the tagger decided, measured, added and checked
+  function sync(m, why) {
+    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.areas = new Set(); recorded = null; return; }
+    if (!aligned(m)) adopt(m);
+    if (why !== "act" && why !== "run") recorded = modelKey(m);
+    const was = st.edits;
+    st.forced = new Map(); st.edits = new Map();
+    for (const c of m.cands) {
+      if (c.approved) st.forced.set(c.i, "in");
+      const e = { ...c.edited, ...(c.approved ? { approved: true } : {}) };
+      if (Object.keys(e).length) st.edits.set(c.i, e);
+    }
+    for (const c of m.deleted) { st.forced.set(c.i, "out"); if (c.edited) st.edits.set(c.i, { ...c.edited }); }
+    for (const c of [...m.cands, ...m.deleted]) st.fails[c.i] = c.fail ?? null;
+    st.added = m.added.map((a) => ({ id: a.id, lines: a.lines, verdict: a.approved ? "in" : null }));
+    st.areas = new Set(m.areas);
+    if (isAdded(st.sel) && !candOf(st.sel)) st.sel = null;
+    const refilterToo = why !== "act" && why !== "run" && followFilters(m);
+    for (const c of st.order) if (JSON.stringify(was.get(c.i)) !== JSON.stringify(st.edits.get(c.i)) && c.lineEl) drawLines(c);
+    drawAdded(); drawReveal();
+    if (st.meta) render();
+    if (refilterToo && st.meta && !st.meta.drafted) refilter();
+  }
+  shell.gt.on(sync, shell.signal);
+
+  // the run, as the log keeps it: the numbered candidates, each with its place, box, lines and the filters' word on it
+  function outputOf() {
+    const cands = [...st.order].sort((a, b) => a.i - b.i).map((c) => ({ i: c.i, n: st.numbers.get(c.i), x: c.cx, y: c.cy, bb: c.bb, ...(c.lines ? { lines: c.lines, m: c.m } : {}), fail: st.fails[c.i] ?? null }));
+    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, grid: GRID, numbered: cands.length, cands };
+  }
+  // Recorded once the filters' word on the candidates is known after a detection, and again when a later answer moves it
+  function recordRun() {
+    if (!st.meta || st.meta.drafted) return;
+    const out = outputOf(), key = filtersKey(out.cands.map((c) => c.fail), out.filters.values, out.filters.off);
+    if (key === recorded) return;
+    const first = recorded === null;
+    recorded = key;
+    const output = N.identify(out, shell.gt.model());
+    for (const c of output.cands) st.cands[c.i].id = c.id;
+    shell.gt.ran({ algorithm: { key: st.meta.finder, params: st.runOverrides || {} }, output });
+    if (first) shell.gt.legacy(oldMarks(readJSON, { name: st.fileName, finder: st.meta.finder, output, typical: (x, y) => typicalLines(x, y) }));
+  }
+  // the log's first entry where no finder has run: the image alone, with no candidate
+  function rooted() {
+    if (shell.gt.model()) return true;
+    shell.gt.base(N.blank(imageInfo(), { finder: shell.algorithm.key }), { note: "the image alone, before Find Candidates" });
+    return !!shell.gt.model();
+  }
+  function edit(c, lines) { act({ type: "set-lines", cand: c.id, lines }); }
 
   const fmt = (v, d = 2) => (v == null || !isFinite(v) ? "–" : Number(v).toFixed(d));
 
@@ -177,7 +226,7 @@ export function mount(shell) {
   }
 
   function refilter() {
-    if (!st.meta) return;
+    if (!st.meta || st.meta.drafted) return;
     if (st.inflight) { st.pending = true; return; }
     st.inflight = true;
     shell.call("refilter", { spec: { values: st.values, off: [...st.off] } }, ++st.seq);
@@ -211,6 +260,8 @@ export function mount(shell) {
 
   function onDetected(meta, seg) {
     st.meta = meta; st.seg = seg; st.crops = new Map(); st.sel = null; st.alone = null; st.task = null; st.cur = undefined; st.back = [];
+    st.forced = new Map(); st.edits = new Map(); recorded = null;
+    for (const id of ["#filters", "#presets"]) $(id).inert = false;
     if (st.filtersFor !== meta.finder) useFilters(meta.finder);
     st.cands = meta.cands.map((c) => {
       const blk = seg.subarray(c.off, c.off + c.h * c.w);
@@ -224,7 +275,6 @@ export function mount(shell) {
     st.order = st.cands.filter((c) => c.bb[2] > c.bb[0] && (c.fail0 === null || st.reasons[c.fail0]))
       .sort((a, b) => a.cy - b.cy || a.cx - b.cx);
     st.numbers = new Map(st.order.map((c, k) => [c.i, k + 1]));
-    loadMarks();
     buildOverlay(); drawAdded();
     refilter();
   }
@@ -272,17 +322,8 @@ export function mount(shell) {
   }
 
   // ---------- added candidates: NoRs the user added where the finder proposed none ----------
-  // Each has measuring lines the user corrects on its card, and lists first among the finalists until
-  // thumbed down. Until the user gives a verdict, a glowing circle marks it on the image.
-  function loadAdded(name) {
-    const added = readJSON(ADDED + name, null);
-    if (added) return added;
-    return readJSON(MISSING + name, []).map(([x, y]) => ({ lines: typicalLines(x, y), verdict: null }));
-  }
-  function saveAdded() {
-    writeJSON(ADDED + st.fileName, st.added);
-    try { localStorage.removeItem(MISSING + st.fileName); } catch { /* private mode */ }
-  }
+  // Each has measuring lines the user corrects on its card, and lists first among the finalists until it is removed. Until the
+  // user gives a verdict, a glowing circle marks it on the image. It has an id of its own kind, u1, u2, …, that stays its own.
   // level lines centred on (x, y), as long and wide as this image's finalists' medians
   function typicalLines(x, y) {
     const med = (k) => { const s = stats((st.passes || []).filter((c) => !c.added).map((c) => c.m && c.m[k])); return s.n ? s.med : TYPICAL[k]; };
@@ -297,29 +338,28 @@ export function mount(shell) {
     const L = a.lines, pts = [...L.length, ...L.red, ...L.width], [[p, q], [r, t]] = L.length;
     const m = { length: dist(L.length), red_length: dist(L.red), width: dist(L.width) };
     m.red_over_length = m.red_length / m.length; m.length_over_width = m.length / m.width;
-    return { i: "u" + (k + 1), k, added: true, lines: L, cx: (p + r) / 2, cy: (q + t) / 2, m, x0: 0, y0: 0, h: 0, w: 0, blk: [],
+    return { i: a.id, id: a.id, k, added: true, lines: L, cx: (p + r) / 2, cy: (q + t) / 2, m, x0: 0, y0: 0, h: 0, w: 0, blk: [],
       bb: [Math.min(...pts.map((v) => v[0])), Math.min(...pts.map((v) => v[1])), Math.max(...pts.map((v) => v[0])), Math.max(...pts.map((v) => v[1]))] };
   }
-  const candOf = (i) => (i == null ? null : isAdded(i) ? addedCand(+i.slice(1) - 1) : st.cands[i]);
+  const candOf = (i) => (i == null ? null : isAdded(i) ? addedCand(st.added.findIndex((a) => a.id === i)) : st.cands[i]);
   const addedCands = () => st.added.map((_, k) => addedCand(k));
   // a candidate's one number: the finder's top to bottom, then the added NoRs in the order added
   const numOf = (c) => (c.added ? st.order.length + c.k + 1 : st.numbers.get(c.i));
   const nameOf = (c) => "#" + numOf(c);
-  function addedChanged() {
-    saveAdded(); drawAdded();
-    if (st.meta) render(); else { renderSelected(); placeRing(); }
-  }
   function addAdded(x, y) {
-    st.added.push({ lines: typicalLines(Math.round(x * 10) / 10, Math.round(y * 10) / 10), verdict: null });
-    st.sel = "u" + st.added.length;
-    addedChanged(); if (tagging() && st.meta) goTo("c:" + st.sel);
+    if (!rooted()) return;
+    const id = N.nextAdded(shell.gt.model()), r1 = (v) => Math.round(v * 10) / 10, to = [r1(x), r1(y)];
+    if (!act({ type: "add", cand: id, to, lines: typicalLines(...to) })) return;
+    st.sel = id;
+    if (tagging() && st.meta) goTo("c:" + st.sel);
   }
+  // thumbing an added NoR down removes it, as its card's Remove does
   function removeAdded(k) {
-    const was = st.sel; st.added.splice(k, 1);
-    if (isAdded(was)) { const j = +was.slice(1) - 1; st.sel = j === k ? null : j > k ? "u" + j : was; }
-    addedChanged();
+    const id = st.added[k]?.id;
+    if (id == null) return;
+    if (st.sel === id) st.sel = null;
+    act({ type: "delete", cand: id });
   }
-  function setAdded(k, change) { st.added[k] = { ...st.added[k], ...change }; addedChanged(); }
   const radiusOf = (c) => Math.max(MISSING_RADIUS, dist(c.lines.length) / 2 + 4);
   // on the image: the lines, and until the user decides, the circle, glowing
   function drawAdded() {
@@ -329,7 +369,7 @@ export function mount(shell) {
     svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
     const g = el("g", { class: "added-marks" });
     for (const c of addedCands()) {
-      const v = st.added[c.k].verdict, a = el("g", { "data-i": c.i, class: "added" + (v === "out" ? " out" : "") + (TRUTH ? " " + reviewed(v) : "") });
+      const v = st.added[c.k].verdict, a = el("g", { "data-i": c.i, class: "added" + (TRUTH ? " " + reviewed(v) : "") });
       const t = el("text", { x: c.cx + radiusOf(c) + 1, y: c.cy - radiusOf(c) }); t.textContent = numOf(c);
       if (!v) a.append(el("circle", { class: "glow", cx: c.cx, cy: c.cy, r: radiusOf(c) }));
       const lines = el("g", { class: "lines" });
@@ -368,7 +408,7 @@ export function mount(shell) {
 
   // the result shown for candidate i: null = pass, else a failure reason
   function result(i) {
-    if (isAdded(i)) return st.added[+i.slice(1) - 1]?.verdict === "out" ? BY_YOU : null;
+    if (isAdded(i)) return null;
     const f = st.forced.get(i);
     if (f === "in") return null;
     if (f === "out") return BY_YOU;
@@ -570,6 +610,7 @@ export function mount(shell) {
     let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
     const take = (p) => { const [u, v] = toUV(p); u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); };
     for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) if (c.blk[y * c.w + x]) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) take([c.x0 + x + dx, c.y0 + y + dy]);
+    if (!c.blk.length) for (const p of [[c.bb[0], c.bb[1]], [c.bb[2], c.bb[1]], [c.bb[0], c.bb[3]], [c.bb[2], c.bb[3]]]) take(p);
     if (L) for (const k of ["length", "red", "width"]) L[k].forEach(take);
     u0 -= pad; u1 += pad; v0 -= pad; v1 += pad;
     const uw = u1 - u0, vw = v1 - v0, s = Math.max(2, Math.min(size / 10, size / Math.max(uw, vw))), dpr = devicePixelRatio || 1;
@@ -654,8 +695,10 @@ export function mount(shell) {
       };
       const drop = () => {
         if (L === from) return;
-        const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), lines = { length: r2(L.length), red: r2(L.red), width: r2(L.width) };
-        c.added ? setAdded(c.k, { lines }) : edit(c.i, lines);
+        // only the lines that moved are the action's
+        const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), moved = {};
+        for (const k of ["length", "red", "width"]) if (JSON.stringify(r2(L[k])) !== JSON.stringify(r2(from[k]))) moved[k] = r2(L[k]);
+        if (Object.keys(moved).length) edit(c, moved);
       };
       shell.drag(svg, e, { move, drop, cancel: () => { L = from; draw(); } });
     });
@@ -670,7 +713,7 @@ export function mount(shell) {
   const COG = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
   const GOTO = `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" class="dot"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>`;
   function card(c, where) {
-    const r = result(c.i), f = c.added ? st.added[c.k].verdict : st.forced.get(c.i), d = document.createElement("div");
+    const r = result(c.i), f = verdictOf(c), d = document.createElement("div");
     d.className = "card " + (r === null ? "pass" : "fail") + (f === "in" ? " approved" : f === "out" ? " byyou" : "") + (c.added ? " added" : "") +
       (where === "list" && c.i === st.sel ? " selected" : "");
     d.dataset.i = c.i;
@@ -685,10 +728,10 @@ export function mount(shell) {
       // on a task's card, a verdict moves on to the task's next candidate
       b.onclick = (e) => { e.stopPropagation(); st.sel = c.i; fn(); if (where === "task" && verdictOf(c)) moveOn(); }; acts.append(b);
     };
-    const say = (v) => (c.added ? setAdded(c.k, { verdict: v === "approve" ? "in" : v === "reject" ? "out" : null }) : decide(c.i, v));
+    const say = (v) => decide(c.i, v);
     btn("up", f === "in", f === "in" ? "You said this is a NoR. Click to undo" : "A NoR: keep it, with its lengths as shown (saved as ground truth)",
       () => say(f === "in" ? null : "approve"));
-    btn("down", f === "out", f === "out" ? (c.added ? "You said this is not a NoR. Click to undo" : "You said this is not a NoR. Click to let the filters decide again") : "Not a NoR: reject it (saved as ground truth)",
+    btn("down", f === "out", f === "out" ? "You said this is not a NoR. Click to let the filters decide again" : c.added ? "Not a NoR: remove it" : "Not a NoR: reject it (saved as ground truth)",
       () => say(f === "out" ? null : "reject"));
     if (c.added) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
@@ -712,7 +755,7 @@ export function mount(shell) {
     if (e.length || e.red || e.width) {
       d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button">Reset measurements</button>`
         : `<div class="tag">Lengths adjusted <button class="link">reset</button></div>`);
-      d.querySelector(".reset-lines, .tag button").onclick = () => edit(c.i, { length: null, red: null, width: null });
+      d.querySelector(".reset-lines, .tag button").onclick = () => edit(c, null);
     }
     // a task's card: the crop, the thumbs under it; no number or state
     if (where === "task") {
@@ -731,7 +774,7 @@ export function mount(shell) {
 
   // ---------- the item views' order ----------
   const SORTS = [["number", "By number"], ["verified-first", "Verified first"], ["verified-last", "Verified last"], ["filters", "Most filters first", "fail"]];
-  const verified = (c) => !!(c.added ? st.added[c.k].verdict : st.forced.get(c.i));
+  const verified = (c) => !!verdictOf(c);
   // the cards of the view on show, in its chosen order; ties go by number
   function listed() {
     const items = [...((st.tab === "pass" ? st.passes : st.rejects) || [])], how = st.sort[st.tab];
@@ -896,45 +939,19 @@ export function mount(shell) {
     const u = st.um ? "um" : "px";
     const head = ["n", "x_px", "y_px", "status", "reason", "rejected_by", "decision", "lengths", ...MEASURES.map(([k, , s]) => (s ? `${k}_${u}` : k))];
     const rows = [...addedCands(), ...st.order].filter(inMask).map((c) => {
-      const r = result(c.i), f = c.added ? st.added[c.k].verdict : st.forced.get(c.i);
+      const r = result(c.i), f = verdictOf(c);
       return [numOf(c), fmt(c.cx, 1), fmt(c.cy, 1), r === null ? "finalist" : "rejected", r === null ? "" : reasonOf(r).title,
         whyAll(c).map((k) => reasonOf(k).letter).join(" "), { in: "approved", out: "rejected by you" }[f] || (c.added ? "added by you" : ""), measured(c) || "",
         ...measures(c).map(([, v]) => fmt(v, 3))];
     });
     saveFile(base() + "_candidates.csv", csv([head, ...rows]), "text/csv");
   };
-  // What a person decided on this image, for scoring finders in the lab (detection/nor_lab.py reads it
-  // with --labels) and for the repo's ground truth (detection/ground_truth.py): only what the user marked.
-  // A candidate nobody voted on is ambiguous, so it is left out.
-  function truth() {
-    const labels = [];
-    for (const c of st.order) {
-      const f = st.forced.get(c.i); if (!f) continue;
-      const L = linesOf(c), px = measuresPx(c);
-      labels.push({ id: numOf(c), x: c.cx, y: c.cy, label: f === "in" ? 1 : 0, source: "user",
-        decision: f === "in" ? "approved" : "rejected", measured: f === "in" ? measured(c) : null,
-        length_px: px.length ?? null, red_length_px: px.red_length ?? null, width_px: px.width ?? null,
-        lines: L ? { length: L.length, red: L.red, width: L.width } : null });
-    }
-    // an added NoR the user approved, with its measurements; until then it is only a suggestion
-    for (const c of addedCands()) {
-      if (st.added[c.k].verdict !== "in") continue;
-      labels.push({ id: numOf(c), kind: "missing", origin: "added by user", x: c.cx, y: c.cy, label: 1, source: "user",
-        radius_px: MISSING_RADIUS, decision: "approved", measured: "adjusted", length_px: c.m.length, red_length_px: c.m.red_length,
-        width_px: c.m.width, lines: { length: c.lines.length, red: c.lines.red, width: c.lines.width } });
-    }
-    const src = st.source || { kind: "local" };
-    const location = shell.remote.owns(src) ? shell.remote.locate(src) : { source: "local" };
-    return { format: "norfinder-ground-truth/2", exported: new Date().toISOString(),
-      image: { name: st.fileName, sha256: st.sha, width: st.W, height: st.H, um_per_px: st.um || null, location },
-      finder: st.meta ? st.meta.finder : null, finder_settings: st.runOverrides || {}, filters: { values: st.values, off: [...st.off] }, labels };
-  }
   // How finished the user's ground truth is, as a checklist of every issue it can have, each resolved or not
   // (the graded ones set the button's state):
   // "done" when every finalist has a verdict, "part" when some candidates have one but a finalist does not,
   // "todo" when none has one yet or an added NoR still waits for one
   function gtState() {
-    const verdict = (c) => (c.added ? st.added[c.k].verdict : st.forced.get(c.i));
+    const verdict = verdictOf;
     const waiting = st.added.filter((a) => !a.verdict).length, voted = st.forced.size + st.added.length - waiting;
     const finalists = TRUTH ? taskItems("pass") : (st.passes || []).filter((c) => !c.added), open = finalists.filter((c) => !verdict(c)).length;
     const rejected = TRUTH ? taskItems("fail") : [], left = rejected.filter((c) => !verdict(c)).length;
@@ -958,9 +975,12 @@ export function mount(shell) {
       (open.length ? open.map((t) => t.text + ".").join(" ") : TRUTH ? "Every task is done." : "Every finalist has your verdict.") + " Click to export or submit.");
     steps();
   }
+  // The file Submit Ground Truth gives is the shell's: the log's model as gt_actions.js's document, with the history that made it. What it
+  // marks, for the popup: each candidate approved or rejected, each added NoR approved. A candidate nobody voted on is ambiguous and
+  // is only listed.
   const submit = () => {
-    const doc = truth();
-    shell.submitTruth({ doc, count: doc.labels.length, file: base() + "_ground_truth.json", items: gtState().items,
+    const m = shell.gt.model(), count = m ? m.cands.filter((c) => c.approved).length + m.deleted.length + m.added.filter((a) => a.approved).length : 0;
+    shell.submitTruth({ count, file: base() + "_ground_truth.json", items: gtState().items,
       empty: "Vote on candidates with the thumbs, or right-click the image to add a NoR the finder missed." });
   };
 
@@ -970,7 +990,7 @@ export function mount(shell) {
   // current item; a verdict moves on to the next with none. What is done is cut out of the image.
   const TASKS = ["pass", "fail", "missed", "submit"];
   const AREAS = GRID * GRID;
-  const verdictOf = (c) => (c.added ? st.added[c.k]?.verdict : st.forced.get(c.i));
+  const verdictOf = (c) => (c.added ? st.added.find((a) => a.id === c.id)?.verdict : st.forced.get(c.i));
   const reviewed = (v) => (v === "in" ? "yes" : v === "out" ? "no" : "todo");
   // the image's areas by their place in the walk: rows of areas top to bottom, each the way back from the
   // last, so the next area always borders the one before
@@ -1046,7 +1066,7 @@ export function mount(shell) {
   };
   $("#area-ok").onclick = () => {
     if (st.area == null) return;
-    st.areas.add(st.area); writeJSON(AREAS_KEY + st.fileName, [...st.areas]); drawReveal(); gtButton();
+    act({ type: "check-area", area: st.area, on: true });
     moveOn();
   };
   // the image pans to the candidate only when it is out of the middle of the view
@@ -1268,8 +1288,17 @@ export function mount(shell) {
     if (v === "image") { lazy.seen?.disconnect(); lazy.near.clear(); $("#list").replaceChildren(); shell.viewer.minimapView(); }
   });
 
+  // the Edit History window yields to the selected candidate's card at the top right: how much of that corner the card holds, and the gap under it
+  {
+    const box = $("#selected-box"), view = $("#view");
+    const hold = () => view.style.setProperty("--eh-yield", box.hidden ? "0px" : `${box.offsetHeight + 12}px`);
+    const watch = new ResizeObserver(hold);
+    watch.observe(box); hold();
+    shell.signal.addEventListener("abort", () => { watch.disconnect(); view.style.removeProperty("--eh-yield"); if (!view.getAttribute("style")) view.removeAttribute("style"); });
+  }
+
   // for the study's page tests, which drive it from outside
-  window.nor = { taskItems, walk, goTo, focusOn, truth, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
+  window.nor = { taskItems, walk, goTo, focusOn, model: () => shell.gt.model(), document: () => shell.gt.document(), imageInfo, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
   for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
@@ -1299,25 +1328,36 @@ export function mount(shell) {
     painter: (canvas, shown, onSize) => NorPeek.painter(canvas, shown, onSize),
     order,
     opening(name) {
-      st.added = loadAdded(name); st.mask = []; st.areas = new Set(readJSON(AREAS_KEY + name, [])); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
+      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
       $("#list").replaceChildren(); $("#summary").textContent = "No candidates yet.";
       downloads(false); renderSelected(); renderTasks();
     },
     // a curated ground truth's final results (req/shell/ground-truth/view): each NoR it marks, ringed, numbered as in its
-    // file, and none of the tasks' marks (no areas, no rejected candidates, nothing blacked out)
+    // file, and none of the tasks' marks (no areas, no rejected candidates, nothing blacked out). A /3 file's NoRs are its approved
+    // candidates and added NoRs; a /2 file's, its labels marked right, and what it judged not NoRs
     showTruth(doc) {
-      const svg = $("#overlay"), labels = doc.labels || [];
+      const svg = $("#overlay");
       svg.querySelector(".truth-marks")?.remove();
       svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
       const g = el("g", { class: "truth-marks" });
-      for (const L of labels.filter((x) => x.label === 1)) {
-        const r = L.radius_px || MISSING_RADIUS, t = el("text", { x: L.x + r + 1, y: L.y - r });
+      let nors, added, not = null;
+      if (doc.format === N.FORMAT) {
+        const m = N.load(doc);
+        nors = [...m.cands.filter((c) => c.approved).map((c) => ({ id: c.n, x: c.x, y: c.y })),
+          ...m.added.filter((a) => a.approved).map((a) => { const [[p, q], [r, t]] = a.lines.length; return { id: N.numberOf(m, a.id), x: (p + r) / 2, y: (q + t) / 2, added: true }; })];
+        added = nors.filter((x) => x.added).length;
+      } else {
+        const labels = doc.labels || [];
+        nors = labels.filter((x) => x.label === 1).map((L) => ({ id: L.id, x: L.x, y: L.y, r: L.radius_px, added: L.kind === "missing" }));
+        added = nors.filter((x) => x.added).length; not = labels.filter((x) => x.label === 0).length;
+      }
+      for (const L of nors) {
+        const r = L.r || MISSING_RADIUS, t = el("text", { x: L.x + r + 1, y: L.y - r });
         t.textContent = L.id ?? "";
         g.append(el("circle", { cx: L.x, cy: L.y, r }), t);
       }
       svg.append(g);
-      const nors = labels.filter((x) => x.label === 1), added = nors.filter((x) => x.kind === "missing").length, not = labels.filter((x) => x.label === 0).length;
-      return `${nors.length} NoR${nors.length === 1 ? "" : "s"} (${added} added by hand), ${not} candidate${not === 1 ? "" : "s"} judged not NoRs`;
+      return `${nors.length} NoR${nors.length === 1 ? "" : "s"} (${added} added by hand)${not == null ? "" : `, ${not} candidate${not === 1 ? "" : "s"} judged not NoRs`}`;
     },
     opened() {
       updateFind(); drawAdded();
@@ -1331,7 +1371,7 @@ export function mount(shell) {
         status(meta.exact_refilter ? "Done." : "This finder picks between alternatives using the filters, so after a filter change press Find Candidates again for its exact result.");
       } else if (action === "refilter") {
         st.inflight = false;
-        if (seq === st.seq) { st.fails = meta.fails; st.alone = meta.alone; shell.statusBar(); render(); }
+        if (seq === st.seq) { st.fails = meta.fails; st.alone = meta.alone; recordRun(); shell.statusBar(); render(); }
         if (st.pending) { st.pending = false; refilter(); }
       }
     },

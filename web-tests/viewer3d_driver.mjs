@@ -356,6 +356,14 @@ try {
     check(/^\d+(\.\d+)? µm$/.test(zs0) && parseFloat(zsUp) > parseFloat(zs0) && zsDown === zs0 && zsTyped === "2.5 µm" && await zs() === zs0,
       `the spacing reads in µm and steps: ${JSON.stringify([zs0, zsUp, zsDown, zsTyped])}`);
 
+    // req/shell/ground-truth/history: the Edit History window's ring sits over the stack at its middle depth, and not in the flat layer
+    const ringed = await page.evaluate(([x, y]) => {
+      const v = window.shellForTests.viewer; v.ring([x - 4, y - 4, x + 4, y + 4]);
+      const el = document.querySelector("#v3-stage .v3-ring"), at = v.three.toScreen(x, y);
+      return { shown: !el.hidden, left: parseFloat(el.style.left), top: parseFloat(el.style.top), at, flat: !!document.querySelector('#overlay g[data-layer="ring"]') };
+    }, [40, 30]);
+    check(ringed.shown && !ringed.flat && Math.abs(ringed.left - ringed.at[0]) < 0.5 && Math.abs(ringed.top - ringed.at[1]) < 0.5, `in the 3D view a ring is placed where the stack's middle depth shows the box: ${JSON.stringify(ringed)}`);
+    check(await page.evaluate(() => { window.shellForTests.viewer.ring(null); return document.querySelector("#v3-stage .v3-ring").hidden; }), "and ring(null) takes it away");
   } else console.log(`not checked in this ${ENGINE}: the 3D view, which needs the WebGL2 it lacks`);
 
   // the Image Viewer, at the bare address: the viewer follows the image, and its one step leaves the Image box open

@@ -222,10 +222,10 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     scopes: "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file" };
   // scopes: what the signed-in user's token may do, in place of SIGNED_IN's; email: who is signed in, in place of the
   // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
-  // named; study: what its study.json says otherwise for this page (its stage, say); prepare(ctx): routes of a
+  // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
   // driver's own, taking precedence over these
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare } = {}) {
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1 } = {}) {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
     await ctx.route("https://www.googleapis.com/**", google);
     await ctx.route(DRIVE_THUMB + "*", (r) => {
       thumbs.push(FILES.find((f) => r.request().url().endsWith(f.id))?.name);

@@ -61,6 +61,8 @@ addEventListener("keydown", (e) => {
   for (const id of [...live.keys()]) { cancelled.add(id); end(id).cancel?.(); }
 }, true);
 
+export const dragging = () => live.size > 0;
+
 export function drag(el, down, { move, drop, cancel } = {}) {
   if (live.has(down.pointerId)) end(down.pointerId);
   el.setPointerCapture(down.pointerId);

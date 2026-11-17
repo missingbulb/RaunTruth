@@ -49,6 +49,10 @@ def test_a_study_names_files_that_exist(path):
     for u in m['web'].get('offline', []):
         assert (re.fullmatch(r'https://cdn\.jsdelivr\.net/npm/(@[\w.-]+/)?[\w.-]+@\d+\.\d+\.\d+/[\w./-]+\.\w+', u)
                 or re.fullmatch(r'https://cdn\.jsdelivr\.net/gh/[\w.-]+/[\w.-]+@[0-9a-f]{40}/[\w./-]+\.\w+', u)), u
+    # req/shell/ground-truth/history: the module of the study's pure GT actions is a file under its web/
+    actions = m.get('groundTruth', {}).get('actions')
+    if actions:
+        assert actions.startswith('web/') and os.path.isfile(os.path.join(base, actions)), actions
     py = m['python']
     assert any(os.path.isfile(os.path.join(base, d, py['entry'] + '.py')) for d in py['paths']), py
     for c in m['channels']:

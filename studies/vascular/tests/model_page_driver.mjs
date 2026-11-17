@@ -1,7 +1,7 @@
 // Drives the vascular study's page (web/) in a PreGT stage in headless Chromium against a stand-in worker
 // (stand_in.mjs) whose Execute answers with a model fixture. Checks req/vascular/model/view: Image, Model, Overlay and
 // Side by side, colour by depth painting the model too, and vessel widths; req/vascular/model/correct: Detected keeps
-// only the signal near the model, Undo takes an edit back; req/vascular/model/cards: Items shows the model's cards
+// only the signal near the model; req/vascular/model/cards: Items shows the model's cards
 // outside a ground-truth stage and approves a low-confidence vessel from one; and the model's canvas leaves the 3D
 // view with the study. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/model_page_driver.mjs STUDIES
@@ -68,12 +68,12 @@ try {
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
-  check(await page.evaluate(() => $("#v3-stage #mcv") === null && $("#model-on").hidden), "a stack opens with no model");
+  check(await page.evaluate(() => $("#v3-stage #mcv") === null && $("#vm-review").hidden), "a stack opens with no model");
   // req/vascular/model/run: the Processing box runs the algorithm on the image open, as NoR's; no model file is loaded
   check(await page.evaluate(() => !$("#model-load") && !$("#model-file") && !/model file/i.test($("#model-set").textContent + $("#model-facts").textContent)),
     "the Processing box offers no model file to load, only Execute");
   await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#model-on").hidden);
+  await page.waitForFunction(() => !$("#vm-review").hidden);
   check(/vessel edges/.test(await facts()), `Execute opens the model it draws: ${(await facts()).slice(0, 80)}`);
   // req/vascular/summary/metrics and req/vascular/summary/mask: the eight numbers, over the whole field and then inside a lassoed mask
   await page.waitForFunction(() => !!window.vascular.summary().summary);
@@ -182,8 +182,7 @@ try {
   await page.click("#item-list .card:not(.placeholder) button.yes");
   check(/1 approved/.test(await facts()), "a card's Approve approves the vessel");
   await page.click("#switch");
-  await page.keyboard.press("Control+z");
-  check(/0 approved/.test(await facts()), "Undo takes the approval back");
+  check(await page.evaluate(() => !document.querySelector("#m-undo, #m-redo, #m-reset") && !/Discard edits/.test($("#model-set").textContent)), "the model has no Undo, Redo or Discard edits of its own: the shell's log undoes its edits");
 
   // the switcher lists the studies once it has read them
   await page.waitForFunction(() => [...document.querySelectorAll("#study-list a")].some((x) => x.textContent.includes("Image Viewer")));

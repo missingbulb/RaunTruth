@@ -184,14 +184,33 @@ read for a title matcher; matching the titles is not part of it.
   - Flip alone turns the picture: no Turn 90°, and no language choice, the title's language being plain from what is
     typed; a book read again is read in Hebrew and English.
   - The approved books are cut out of the photo while tagging (`req/shell/ground-truth/tagging`).
-  - The tagger's work on a photo (each book's corners, turn, text, verdict and what was proposed) is the draft the
-    shell keeps and Continue tagging brings back (`req/shell/ground-truth/draft`).
-  - The file lists the books in the walk's order.
+  - Each book has an id, kept in the model and in the file and never shown; a book the tagger adds has an id of its
+    own kind, so that finding again never gives two books one id. The tagger's work is the shell's GT actions
+    (`req/shell/ground-truth/history`): a corner's drop (one action, none while it is dragged or when Escape cancels
+    it), Flip, a title committed (another book opened or the field left: one action, not one a key), Right, Not a
+    book or Delete this book, a book added, None missed, and each answer of the reader landing on a book, which
+    carries the answer and is never read again when the history is replayed. Right on a title typed and not yet
+    committed, by Enter or by its button, is one action, the approval carrying the title: Undo takes the verdict and
+    the title back together. A book may be added before Find books has run: the log then starts from the photo
+    alone, with no book, and the books added are carried over when Find books runs. Save Draft keeps them and
+    Load draft brings them back (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`); a draft
+    kept before Edit History is offered once (`req/shell/ground-truth/legacy`).
+    A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new books: a verdict, a
+    typed title, a turn and moved corners go to the book with the same id (a book moved since is found by the corners the
+    finder proposed for it), the books added and None missed stand as they were, and a book the tagger had worked on that
+    the run does not find is left out and counted on the status line. The file keeps `next`, the ids the finder's books and
+    the added ones are given next, so an id given up is not given again after the file is read.
+    Test: `studies/shelves/tests/test_gt_actions.mjs`.
+  - The file lists every book with its id and its verdict (right, or none while it is not decided), in the walk's
+    order; the readers and the lab take the books marked right.
 
   Changed by the owner on 2026-11-10, replacing what is above where the two differ: Not a book, and Delete this
   book, take a box off the photo and out of the walk, found or added alike; nothing is left faint on the photo,
-  and Back no longer brings it back. The file keeps only the books marked right. Continue GT tagging opens the
-  book the tagger last had open.
+  and Back no longer brings it back.
+
+  Changed on 2026-11-17 with the GT action log (`docs/future-directions/edit-log/README.md`), replacing what is above
+  where the two differ: Undo brings a book taken off back. Continue GT tagging is gone: Load draft, then Start GT
+  tagging, begins the walk at the first book not yet decided. The file lists every book, not only those marked right.
 
   Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>

@@ -49,9 +49,23 @@ owner's decisions on the stacks and the vessel model, are
   whole stack, only the signal within reach of the model's vessels, or only what lies away from them, within a
   reach that is a share of each vessel's own width (`req/vascular/model/view`). Damaged sample is marked in Data
   Management, as a damaged area of the stack (`req/shell/data/damaged`), never in the model (owner, 2026-11-07); a model
-  file whose `excluded_regions` mark damage still shows it hatched and leaves it out of the counts. Every edit can be undone,
-  and the edits stay in the browser, tied to the model as drawn, until it is submitted. Test:
-  `studies/vascular/tests/test_model_page.py`.
+  file whose `excluded_regions` mark damage still shows it hatched and leaves it out of the counts. Every edit is one GT
+  action in the shell's log (`req/shell/ground-truth/history`): a point dragged is one action at its drop, and Escape leaves
+  the model as it was; a tagger undoes, redoes and saves them with the shell's Undo, Redo and Save Draft, and Clear all
+  history goes back to the algorithm's model, or to the earlier edits once they were loaded. Edits made earlier in this
+  browser under the study's own key are offered once as a draft (`req/shell/ground-truth/legacy`). A tip dropped where
+  it cannot attach, on its own vessel's next point, has only moved, and its action says so. The ring Edit History draws
+  round an action's item is green (`groundTruth.ring`), not the shell's yellow: the depth palettes pass through yellow
+  and the model's knots and set widths are amber, and green is the colour furthest from every palette and every colour
+  the model is drawn in. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
+  model: a verdict or a width goes to the segment between the same two points (points matched by place, then, for a point the
+  tagger moved, within 3 µm), a moved point stays where it was put, the points and vessels the tagger drew or split stand
+  as they were (replacing the run's vessel between the same two points), and so do the areas and junctions checked. A
+  verdict or width on a vessel the run has none for, and a junction it has no point for, is left out and counted on the
+  status line; a vessel the tagger deleted is not recorded by a file, and the run draws it again. A file keeps its point and
+  segment ids, so a model read again counts on from its largest.
+  Test: `studies/vascular/tests/test_gt_actions.mjs`, `studies/vascular/tests/test_model_page.py`,
+  `studies/vascular/tests/test_vessel_gt_actions_page.py`, `studies/vascular/tests/test_model_js.py`.
   </details>
 
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
@@ -59,13 +73,17 @@ owner's decisions on the stacks and the vessel model, are
 
   Submit Ground Truth (`req/shell/ground-truth/submit`), the last of the Ground Truth Tasks
   (`req/vascular/truth/tasks`), exports the corrected `vessel-model/2` file, `status` corrected and
-  its corrections counted, labelled `vascular-ground-truth`; it is off until the model carries a
+  labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
   a vessel's `state` (`accepted` or `rejected`) beside `proposed`, the state the extractor gave it;
   a junction found right in `checked_junctions`; each area done in `reviewed_regions`, the area's box
   with its `step`, `area`. Nothing in the tasks sets or confirms a width, so the widths stay the algorithm's
   estimates, kept but named in the file's `unchecked` list (`r`, `r_a`, `r_b`, `taper_known`), never claimed
-  as corrected. Test: `studies/vascular/tests/test_vessel_tasks_page.py`.
+  as corrected. The file keeps every point's and segment's id (a curve point's `id`, an edge's `segment_ids`), so an action
+  names the same item after saving and loading; a point a person adds takes its id from 1,000,000 up and a segment from
+  `u1`, apart from the algorithm's, so a run again never gives them to something else. The file has no clock and no
+  count of corrections (`corrected_at` and `corrections` are no longer written): the day an area or a width was said
+  is the day of its action. Test: `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
   </details>
 
 - `req/vascular/model/run` Processing picks an extraction algorithm, says how it works and how well, and Execute draws the vessel model in the browser.
@@ -77,9 +95,9 @@ owner's decisions on the stacks and the vessel model, are
   page's Python on the stack open, as the lab runs it (scored, with the spacing between slices the
   page shows), and the model it draws opens over the stack. The study ships no drawn models: a
   stack opens with none until Execute, and no model file is loaded in its place: an image, then the
-  algorithm, as NoR's (owner, 2026-11-07). Once a model is open, Undo, Redo and Discard edits are under
-  Execute; what the model holds is in Summary (owner, 2026-11-07: the left bar
-  is the shell's, `req/shell/left-bar/shells`). Draw a missed vessel is a ground-truth action, offered only by a
+  algorithm, as NoR's (owner, 2026-11-07). What the model holds is in Summary (owner, 2026-11-07: the left bar
+  is the shell's, `req/shell/left-bar/shells`); its edits are undone and redone in the Ground Truth Tasks box
+  (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
   (`req/nor/find/settings`). Each algorithm in the list carries its own icon and its name, and its
   precision and recall against the provisional labels (`analysis/extraction/labels/`, a model's

@@ -8,6 +8,10 @@
 // drag, landed on it, pick(null) when it landed on nothing; open(it) when a double click did; step(dir) on a sideways swipe; capturesPointer() while the study's own tool (a
 // lasso, say) takes the pointer; zoomed() after every zoom. A study's press listener that calls preventDefault()
 // takes that press, which then never pans the view nor picks.
+//
+// ring(box | null, {pan}) rings a box of the image, [x0, y0, x1, y1] in its pixels, in a layer of its own that no zoom
+// thins below two screen pixels (the Edit History window's hover, req/shell/ground-truth/history); pan scrolls to it when
+// its middle is out of view (inView(box) says so); null takes the ring away. The 3D viewer's ring sits at the stack's middle depth and never pans.
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
@@ -72,7 +76,7 @@ export function viewer(shell) {
   const { $, state: st, page } = shell;
   // what an image changes on the page, as it loaded: put back when none is open
   const asBuilt = asLoaded(["#stage", "#minimap .mm-body", "#zoom-label"].map((s) => $(s)));
-  let hooks = {}, declared = [], chans = [];
+  let hooks = {}, declared = [], chans = [], ringAt = null;
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
 
 
@@ -301,7 +305,7 @@ export function viewer(shell) {
     svg.style.fontSize = 12 / st.zoom + "px";
     sc.scrollLeft = ix * st.zoom - ax; sc.scrollTop = iy * st.zoom - ay;
     $("#zoom-label").textContent = Math.round(st.zoom * 100) + "%";
-    ruler.draw(); grid.draw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
+    ruler.draw(); grid.draw(); ringDraw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
   }
   // the whole image in view, at most at 100%; a view another one covers (the 3D view, say) has no size, and the
   // image is fitted once it has
@@ -320,6 +324,27 @@ export function viewer(shell) {
   function focus(x, y) {
     const sc = $("#scroller");
     sc.scrollTo({ left: x * st.zoom - sc.clientWidth / 2, top: y * st.zoom - sc.clientHeight / 2, behavior: "smooth" });
+  }
+  // the ring round a box of the image, drawn again at every zoom
+  function ringDraw() {
+    const svg = $("#overlay");
+    if (!ringAt) { svg.querySelector(':scope > g[data-layer="ring"]')?.remove(); return; }
+    const g = layer("ring"), [x0, y0, x1, y1] = ringAt, pad = 8 / st.zoom;
+    g.dataset.box = ringAt.join(","); g.style.pointerEvents = "none";
+    const one = (attrs) => make("ellipse", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, rx: (x1 - x0) / 2 * 1.2 + pad, ry: (y1 - y0) / 2 * 1.2 + pad, fill: "none", "vector-effect": "non-scaling-stroke", ...attrs });
+    g.style.stroke = "var(--gt-ring, #ffd400)";
+    g.replaceChildren(one({ "stroke-opacity": 0.3, "stroke-width": 7 }), one({ "stroke-width": 2 }));
+  }
+  // whether the middle of a box of the image is in view
+  function inView(box) {
+    const r = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect();
+    const x = b.left + ((box[0] + box[2]) / 2) * st.zoom, y = b.top + ((box[1] + box[3]) / 2) * st.zoom;
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+  function ring(box, { pan = false } = {}) {
+    ringAt = box && st.img ? box.slice(0, 4) : null;
+    ringDraw();
+    if (ringAt && pan && !inView(ringAt)) focus((ringAt[0] + ringAt[2]) / 2, (ringAt[1] + ringAt[3]) / 2);
   }
   // a pointer event's place on the image, in its pixels
   function toImage(e) {
@@ -453,11 +478,11 @@ export function viewer(shell) {
     st.peek?.stop?.(); st.peeked = false;
     return (st.peek = painter($("#base"), shown, (W, H) => {
       st.img = null; st.plain = null; st.W = W; st.H = H; st.peeked = true; ruler.reset(); rows();
-      $("#overlay").innerHTML = ""; $("#empty").hidden = true; $("#stage").hidden = false;
+      $("#overlay").innerHTML = ""; ringAt = null; $("#empty").hidden = true; $("#stage").hidden = false;
       fit(); tools();
     }));
   }
-  function clear() { $("#overlay").innerHTML = ""; done = []; }
+  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; }
 
   // ---------- what the tagger has done, cut out of the image ----------
   // The study gives the shapes its tagger has decided ([[x, y], ...] in image pixels); the viewer cuts them out of the
@@ -506,7 +531,7 @@ export function viewer(shell) {
     rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
     doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
-    draw, setZoom, fit, focus, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
+    draw, setZoom, fit, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
     get overlay() { return $("#overlay"); }, get scroller() { return $("#scroller"); },
   };
 }

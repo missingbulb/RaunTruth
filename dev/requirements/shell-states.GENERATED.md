@@ -76,11 +76,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
@@ -119,6 +132,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ● |
@@ -224,11 +242,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ⊘ |
@@ -267,6 +298,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -372,11 +408,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ |
@@ -415,6 +464,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -520,11 +574,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ |
@@ -563,6 +630,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -668,11 +740,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● |
@@ -711,6 +796,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -816,11 +906,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
@@ -859,6 +962,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ● |
@@ -964,11 +1072,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
@@ -1007,6 +1128,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ● |
@@ -1112,11 +1238,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1155,6 +1294,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -1260,11 +1404,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1303,6 +1460,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ⊘ | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ⊘ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ | ○ |
@@ -1408,11 +1570,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1451,6 +1626,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -1556,11 +1736,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1599,6 +1792,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ⊘ | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ⊘ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -1704,11 +1902,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ |
@@ -1747,6 +1958,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ |
@@ -1852,11 +2068,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ⋯ | ○* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ⋯ | ● | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ⋯ | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ⋯ | ○* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ⋯ | ◐* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1895,6 +2124,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ● | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ | ○ |
@@ -2000,11 +2234,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ◐* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ▸ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⋯ |
@@ -2043,6 +2290,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -2148,11 +2400,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2191,6 +2456,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -2296,11 +2566,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⊘ | ⊘ |
@@ -2339,6 +2622,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -2444,11 +2732,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ▸ | ▸ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⊘ | ⋯ | ⋯ | ⊘ |
@@ -2487,6 +2788,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ | ○ |
@@ -2592,11 +2898,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ▸ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ⋯ |
@@ -2635,6 +2954,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
@@ -2740,11 +3064,24 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: postprocessing | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: the count is right | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its tick | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: its marks' tools | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Add a mark | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: Delete mark | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ |
@@ -2783,6 +3120,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ |
@@ -2894,11 +3236,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task now | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task's stage | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task's card | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The NoR summary | ⋯ | ⋯ | ● |
@@ -2950,6 +3302,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Previous candidate | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Next candidate | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The candidate | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Finalists' key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rejected's key | ○* | ○* | ○* |
@@ -3066,11 +3423,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task now | ⋯ | ⋯ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task's stage | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The task's card | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The NoR summary | ⊘ | ⊘ | ⊘ |
@@ -3122,6 +3489,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Previous candidate | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Next candidate | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The candidate | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Finalists' key | ○* | ○* | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rejected's key | ○* | ○* | ● |
@@ -3231,11 +3603,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Books found | ⋯ | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The books' task | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Titles | ⋯ | ⋯ | ● |
@@ -3279,6 +3661,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Book menu | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ |
@@ -3381,11 +3768,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Books found | ⋯ | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The books' task | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Titles | ⊘ | ⊘ | ⊘ |
@@ -3429,6 +3826,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Book menu | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ |
@@ -3526,11 +3928,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;About the algorithm | ⋯ | ● | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model | ⋯ | ● | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Run algorithm | ⋯ | ● | ● | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's controls | ⋯ | ○ | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edits | ⋯ | ⊘ | ⊘ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo | ⋯ | ⊘ | ⊘ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo | ⋯ | ⊘ | ⊘ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Discard edits | ⋯ | ⊘ | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model's message | ⋯ | ● | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The tasks | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3545,11 +3942,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's card | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Area is right | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing's note | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ▸ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's numbers | ⋯ | ⋯ | ⋯ | ● | ● | ● |
@@ -3594,6 +4001,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Map of the areas | ○* | ○* | ○* | ○* | ⊘ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The flattened stack | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ○* | ⊘ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image alone's key | ○* | ○* | ○* | ○* | ⊘ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model's key | ○* | ○* | ○* | ● | ⊘ | ● |
@@ -3702,11 +4114,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;About the algorithm | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Run algorithm | ⋯ | ● | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's controls | ⋯ | ○ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edits | ⋯ | ⊘ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo | ⋯ | ⊘ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo | ⋯ | ⊘ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Discard edits | ⋯ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model's message | ⋯ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The tasks | ⋯ | ⋯ | ● |
@@ -3721,11 +4128,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The junction's card | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Area is right | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing's note | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⋯ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⋯ | ⋯ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⋯ | ⋯ | ◐* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⋯ | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⋯ | ⋯ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⋯ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's numbers | ⊘ | ⊘ | ⊘ |
@@ -3770,6 +4187,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Map of the areas | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The flattened stack | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The areas | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image alone's key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model's key | ○* | ○* | ● |
@@ -3877,11 +4299,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Algorithm | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;About the algorithm | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⊘ | ⊘ |
@@ -3919,6 +4351,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ |
@@ -4015,11 +4452,21 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Algorithm | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;About the algorithm | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ground Truth Tasks | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drafts offered | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load draft | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load earlier edits | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load your submission | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Start GT tagging | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Continue tagging | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks' bar | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo and Redo | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Redo a GT action | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History row | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Submit Ground Truth | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4057,6 +4504,11 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fold the minimap | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hide Edit History | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's rows | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear all history | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keys legend | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ | ○ |

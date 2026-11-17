@@ -78,6 +78,8 @@
     "detect": "Finding candidates (the slow part)…"
   },
   "groundTruth": {
+    "actions": "web/gt_actions.js",
+    "ring": "#00ff96",
     "reveal": "https://urbananimal.co.in/wp-content/uploads/2025/04/image-6.jpg.webp"
   },
   "actions": [

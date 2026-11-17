@@ -75,10 +75,13 @@ def score(cands, labels):
     return dict(tp=tp, fp=fp, fn=fn, prec=tp / max(1, tp + fp), rec=tp / max(1, tp + fn)), missed
 
 def read_labels(path):
-    """Reference labels: the lab's own list, or the ground truth the page saves (its 'labels'; a
+    """Reference labels: the lab's own list, or the ground truth the page saves (ground_truth.labels_of; a
     missing-candidate mark is a real NoR with its own radius_px)."""
     L = json.load(open(path))
-    return L['labels'] if isinstance(L, dict) else L
+    if not isinstance(L, dict):
+        return L
+    import ground_truth  # the page's file formats; it imports this module, so only now
+    return ground_truth.labels_of(L)
 
 def missing_found(cands, labels):
     """The missing-candidate marks some candidate now lies on, passed or not: whether the finder

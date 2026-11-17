@@ -19,7 +19,6 @@
 
 /* Processing: the algorithm, how it works, and Execute at the box's end */
 #model-set .row { align-items: center; }
-#model-on { margin-top: 10px; }
 #vm-marks { margin-top: 10px; }
 
 /* the toolbar's Show menu, as NoR's: what the main view shows and how the model is drawn over the stack */
@@ -31,7 +30,7 @@
 #vm-show #reach-o { min-width: 9ch; font-size: 12px; color: var(--dim); }
 
 /* the open area's tools on its row, and its work under it */
-#model-on[hidden], #vm-tasks[hidden], #task-now[hidden], #task-menu[hidden], #task-tools[hidden], #vm-focus[hidden], #gt-mini[hidden] { display: none; }
+#vm-tasks[hidden], #task-now[hidden], #task-menu[hidden], #task-tools[hidden], #vm-focus[hidden], #gt-mini[hidden] { display: none; }
 #vm-tasks { display: flex; flex-direction: column; gap: 8px; }
 #task-now { display: flex; flex-direction: column; gap: 8px; }
 #task-now .hint, #task-now .note { margin: 0; }

@@ -123,6 +123,9 @@ This study is one of the page's studies; the repo's own map, and what the shell 
 
 ```
 web/         the study's page: panels, script, style, finder_metrics.json
+web/gt_actions.js  the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: a candidate has an id
+             (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/3`)
+web/old_marks.js   what the page kept in five browser keys before the log, offered once through shell.gt.legacy as the GT actions it implies
 detection/   the finders, nor.py (the R1 baseline), harness.py (invariance), fetch_data.py; STATE.md
 data/        sources.json: the Drive images by checksum (the images stay out of git)
 tests/       every requirement that can be executed, on drawn images (synthetic_nor.py), never the study's own
@@ -136,6 +139,13 @@ docs/
   figures/                           overview figures — ILLUSTRATIONS, not analysis inputs
   literature/                        the review; start at its README
 ```
+
+**Ground truth.** The tagger's work (approve, reject = delete, lengths moved, NoRs added, areas checked) is GT actions in the shell's log
+(`shell.gt`, `gt_actions.js`); the page derives `st.forced`, `st.edits`, `st.added` and `st.areas` from the log's model (`sync` in `nor.js`), so
+the readers are the old ones. A refilter's answer that moves a candidate's pass or fail, or the filters, is a new `run`; the run's output holds
+no pixel masks, so a draft loaded with no Find Candidates draws each candidate from its box with no outline. The lab reads the file
+through `ground_truth.labels_of`: `/2` as it always was, `/3` as its approved candidates and added NoRs, and a label 0 for each candidate of the
+history's last run that a `delete` in the history names and the file no longer lists (one absent with no delete is not known, and no label).
 
 `detection/` is **the pipeline**: the finders the page runs, the R1 baseline they grew from, and
 the lab tooling around them; [`../detection/STATE.md`](../detection/STATE.md) says which file does what.

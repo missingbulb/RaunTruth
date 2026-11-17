@@ -68,8 +68,15 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   image's file (`open`) and runs each action (by its name).
 - `generated` — optional, files under `web/` the site's build writes from the study's own scripts (output path:
   script), for what the page needs before any Python (Vascular's algorithm list).
-- `groundTruth` — for a GT or PostGT study: its `button`. Its folders are made by Data Management's Set up ground
-  truth, under the root; the layout and the reader's rule are `web/truth_folders.js`'s.
+- `groundTruth` — for a GT or PostGT study: its `button`, its `actions` (the module of pure functions that keeps its
+  ground truth as GT actions: `start`, `run`, `describe`, `where`, `document`, `load`) and optionally its `ring`
+  colour. Its folders are made by Data Management's Set up ground truth, under the root; the layout and the reader's
+  rule are `web/truth_folders.js`'s. Every study records what its tagger does through `shell.gt` (`act`, `ran`, `model`,
+  `on`, and `legacy` for a store from before the log; its own status line about a run goes before `ran`, which may say
+  what the run could not carry over): the log, Undo and Redo, Save Draft and Load draft, the Edit
+  History window, the file's `history` and the tagger's own submission offered back from Drive are the shell's
+  (`req/shell/ground-truth/history` and its neighbours, `web/truth_actions.js`, `web/truth_history.js`,
+  `web/edit_history.js`); the study draws the model it is handed.
 - `driveThumbs` — optional, the folder of ready-made thumbnails for the Google Drive dialog.
 
 The shell's controls draw from one page state (`web/page_state.js`: the image open, the minimap) and

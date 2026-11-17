@@ -16,6 +16,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { until } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -138,7 +139,12 @@ const inView = () => page.evaluate(() => {
   const box = $("#remote-list").getBoundingClientRect();
   return [...document.querySelectorAll("#remote-list .item")].flatMap((b, k) => { const r = b.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom ? [k] : []; });
 });
-const thumbOf = (k) => page.evaluate((id) => localStorage.getItem("nor-drive-thumb:" + id), FILES[k].id);
+// a saved thumbnail as a data URL, "" before it is saved
+const thumbOf = (k) => page.evaluate(async (id) => {
+  const r = await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href);
+  return r ? new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); r.blob().then((b) => f.readAsDataURL(b)); }) : "";
+}, FILES[k].id);
+const thumbSaved = (k, timeout = 3000) => until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }).then(() => true, () => false);
 
 try {
   await page.goto(origin + "/web/");
@@ -181,19 +187,19 @@ try {
   await page.dblclick("#remote-list .item:nth-child(3)");
   await page.waitForFunction(() => !$("#remote-dlg").open);
   await page.waitForFunction(() => st.fileName === "c stack.tif");
-  await page.waitForFunction((id) => localStorage.getItem("nor-drive-thumb:" + id), FILES[2].id, { timeout: 3000 }).catch(() => {});
+  await thumbSaved(2);
   const pic = await thumbOf(2);
   check(reads.some((r) => r.k === 2 && !r.range), "opening the stack downloads the whole file");
-  check(!!pic && JSON.parse(pic).startsWith("data:image/"), "and saves a thumbnail of it as it opens");
-  const size = pic && await page.evaluate((u) => new Promise((ok) => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.src = u; }), JSON.parse(pic));
+  check(!!pic && pic.startsWith("data:image/"), "and saves a thumbnail of it as it opens");
+  const size = pic && await page.evaluate((u) => new Promise((ok) => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.src = u; }), pic);
   check(size && size[0] > 0 && size[0] <= 128 && size[1] <= 128, `a small picture: ${size}`);
-  if (shots && pic) fs.writeFileSync(path.join(shots, "stack_preview.png"), Buffer.from(JSON.parse(pic).split(",")[1], "base64"));
+  if (shots && pic) fs.writeFileSync(path.join(shots, "stack_preview.png"), Buffer.from(pic.split(",")[1], "base64"));
   await open();
   check(await page.evaluate(() => !!document.querySelector("#remote-list .item:nth-child(3) .pic img")), "the dialog shows it on the stack's row");
   // a two-channel stack: each channel in its own colour
   await page.dblclick("#remote-list .item:nth-child(4)");
   await page.waitForFunction(() => st.fileName === "c two.tif");
-  await page.waitForFunction((id) => localStorage.getItem("nor-drive-thumb:" + id), FILES[3].id, { timeout: 3000 }).catch(() => {});
+  await thumbSaved(3);
   const two = await thumbOf(3);
   const hues = two && await page.evaluate((u) => new Promise((ok) => {
     const i = new Image();
@@ -205,16 +211,16 @@ try {
       ok({ green, magenta });
     };
     i.src = u;
-  }), JSON.parse(two));
+  }), two);
   check(hues && hues.green > 10 && hues.magenta > 10, `a two-channel stack's thumbnail shows one channel green and the other magenta: ${JSON.stringify(hues)}`);
-  if (shots && two) fs.writeFileSync(path.join(shots, "two_preview.png"), Buffer.from(JSON.parse(two).split(",")[1], "base64"));
+  if (shots && two) fs.writeFileSync(path.join(shots, "two_preview.png"), Buffer.from(two.split(",")[1], "base64"));
   await open();
   await page.dblclick("#remote-list .item:nth-child(1)");
   await page.waitForFunction(() => st.fileName === "a flat.tif");
   // its shape remembered last: the moment, as it opens, that a stack's thumbnail is saved
   await page.waitForFunction((id) => Object.keys(JSON.parse(localStorage.getItem("nor-drive-holds") || "{}")).at(-1) === id, FILES[0].id);
-  const shownFirst = await page.evaluate((id) => !localStorage.getItem("nor-drive-thumb:" + id) || !!st.img, FILES[0].id);
-  const thumbed = await page.waitForFunction((id) => !!localStorage.getItem("nor-drive-thumb:" + id), FILES[0].id, { timeout: 10000 }).then(() => true, () => false);
+  const shownFirst = (await thumbOf(0)) === "" || (await page.evaluate(() => !!st.img));
+  const thumbed = await thumbSaved(0, 10000);
   check(shownFirst && thumbed, "a flat image's thumbnail is saved once it shows, never before");
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);

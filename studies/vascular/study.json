@@ -81,6 +81,8 @@
     "spacingSource": "the owner (2026-10-29)"
   },
   "groundTruth": {
+    "actions": "web/gt_actions.js",
+    "ring": "#00ff00"
   },
   "actions": [
     {"id": "junction", "label": "Junction", "keys": ["KeyF"], "kind": "press", "legend": false, "control": "#task-card .verdict .yes", "when": ["tagging", "area"]},

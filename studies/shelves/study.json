@@ -93,6 +93,8 @@
     "straighten": "Straightening each book…"
   },
   "groundTruth": {
+    "actions": "web/gt_actions.js",
+    "ring": "#ff00ff"
   },
   "view": {
     "stretch": false,

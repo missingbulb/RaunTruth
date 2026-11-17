@@ -25,7 +25,7 @@
 .lt, .filter .badge { color: color-mix(in srgb, var(--c), #000 var(--ink-amt)); }
 :root { --pad: 12px; --r-panel: 12px; --r-ctl: 8px; --r-chip: 6px; }
 /* the minimap's width, which a study's own floating map over the image takes too */
-:root { --mm-width: 200px; }
+:root { --mm-width: 200px; --mm-height: calc(var(--mm-width) + 24px); }
 * { box-sizing: border-box; }
 /* the browser's own [hidden] rule reaches HTML elements only */
 svg[hidden] { display: none; }
@@ -375,8 +375,9 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
   background: var(--panel); box-shadow: 0 4px 14px #0008; overflow: hidden; opacity: var(--mm-opacity, 1); transition: opacity .15s; }
 #minimap:hover, #minimap:focus-within { opacity: 1; }
 #minimap[hidden] { display: none; }
-#minimap .mm-head { display: flex; align-items: center; gap: 4px; height: 24px; padding: 0 2px; font-size: 12px; font-weight: 600; color: var(--dim); user-select: none; }
-#minimap .mm-title { flex: 1; }
+#minimap .mm-head, #edit-history .mm-head { display: flex; align-items: center; gap: 4px; height: 24px; padding: 0 2px; font-size: 12px; font-weight: 600; color: var(--dim); user-select: none; }
+#minimap .mm-title, #edit-history .mm-title { flex: 1; }
+#edit-history .mm-title small { font-weight: 400; }
 .mm-btn { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; color: var(--dim); }
 .mm-btn[hidden] { display: none; }
 .mm-btn:not(:disabled):hover { background: var(--bg); color: var(--text); }
@@ -387,6 +388,35 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 #minimap .mm-body { position: relative; line-height: 0; background: #000; cursor: crosshair; }
 #minimap-canvas { width: 100%; height: auto; }
 #minimap-view { position: absolute; border: 1.5px solid #fff; border-radius: 2px; box-shadow: 0 0 0 1px #0008; pointer-events: none; }
+
+/* the Edit History window: the minimap's frame at the image's bottom right, 2.5 times its height and never taller than the
+   view allows, 1.4 times its width (req/shell/ground-truth/history); the 3D view keeps it */
+#edit-history { position: absolute; right: 12px; bottom: 12px; z-index: 5; width: calc(var(--mm-width) * 1.4);
+  height: min(calc(var(--mm-height) * 2.5), calc(100% - 24px)); display: flex; flex-direction: column;
+  border: 2px solid #fff; border-radius: var(--r-ctl); background: var(--panel); box-shadow: 0 4px 14px #0008; overflow: hidden; }
+#edit-history[hidden] { display: none; }
+#eh-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); overscroll-behavior: contain; }
+#eh-list li { display: flex; gap: 6px; align-items: center; height: 26px; padding: 0 8px; font-size: 12px; border-top: 1px solid var(--line); white-space: nowrap; }
+#eh-list li:first-child { border-top: 0; }
+#eh-list li.go { cursor: pointer; }
+#eh-list li.go:hover { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+#eh-list .dot { width: 8px; flex: none; color: var(--accent); }
+#eh-list .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#eh-list .when { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+#eh-list li.undone .what { color: var(--dim); text-decoration: line-through; text-decoration-color: var(--line); }
+#eh-list li.here { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); font-weight: 600; position: sticky; top: 0; bottom: 0; z-index: 1; box-shadow: 0 1px 0 var(--line), 0 -1px 0 var(--line); }
+#eh-list li.floor:not(.here), #eh-list li.dead, #eh-list li.skipped { color: var(--dim); }
+#eh-list li.dead .what, #eh-list li.skipped .what { color: var(--dim); opacity: .7; }
+#eh-list li.member { padding-left: 22px; }
+#eh-list li.mark { color: var(--dim); font-size: 11px; background: var(--bg); }
+#eh-list li.day { height: 22px; font-size: 11px; color: var(--dim); background: var(--bg); }
+#eh-list li.spacer { padding: 0; border: 0; }
+#eh-list .eh-fold { width: 14px; height: 18px; flex: none; padding: 0; border: 0; background: none; color: var(--dim); font-size: 11px; cursor: pointer; }
+.eh-foot { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+.eh-foot .link { border: 0; background: none; padding: 0; font-size: 12px; color: var(--err); cursor: pointer; }
+.eh-foot .link:hover { text-decoration: underline; }
+.v3-ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 2px solid var(--gt-ring, #ffd400); border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--gt-ring, #ffd400) 25%, transparent); pointer-events: none; z-index: 1; }
+.v3-ring[hidden] { display: none; }
 /* the minimap folding into its toolbar button and unfolding out of it: one shape morphing between the two
    places along an arc, the minimap folding over its header like paper as it shrinks, the button lighting
    up as it lands; the rest of the page holds still */
@@ -965,8 +995,6 @@ html:not(.offline) #welcome-offline { display: none; }
 .gt-access[hidden] { display: none; }
 .gt-access[data-access="none"], .gt-access[data-access="view"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
-.gt-clear-slot[hidden] { display: none; }
-.gt-clear-slot .gt-clear { font-size: 12px; white-space: nowrap; }
 /* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
 #folder-items .tag.pending { color: var(--accent); }
 .curate-list { list-style: none; margin: 8px 0; padding: 0; min-width: 360px; }
@@ -983,8 +1011,7 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
-#gt-start, #gt-continue { display: block; width: 100%; margin: 0 0 10px; }
-#gt-start[hidden], #gt-continue[hidden] { display: none; }
+#gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
@@ -1001,6 +1028,21 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
+#gt-history-row[hidden] { display: none; }
+#gt-history-row { padding: 8px 0; font-size: 13px; }
+#gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+#gt-save-draft { flex: 0 0 auto; }
+/* the two share one line of the box */
+#gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
+#gt-offers { margin: 0 0 10px; }
+#gt-offers[hidden], #gt-edits[hidden] { display: none; }
+#gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
+#gt-load-draft[hidden], #gt-load-legacy[hidden], #gt-load-submission[hidden] { display: none; }
+#gt-offers button + button { margin-top: 4px; }
+#gt-tasks li[data-task="edits"] .gt-edit-row { display: flex; align-items: center; gap: 4px; padding: 6px 0; font-size: 13px; }
+#gt-tasks li[data-task="edits"] .gt-edit-row button { white-space: nowrap; padding-inline: 5px; }
+#gt-tasks .unsaved { font-size: 12px; color: var(--warn); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#gt-tasks .unsaved[hidden] { display: none; }
 #gt-submit { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 #gt-tasks li:not(.now) .task-body { display: none; }
 #gt-tasks .task-body { padding: 0 0 10px; }

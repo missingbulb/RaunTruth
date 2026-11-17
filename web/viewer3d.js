@@ -4,7 +4,8 @@
 // of the 3D view's own under them shows part of the depth and sets the spacing between slices. Each channel may be
 // coloured by depth instead of in its colour: an icon tick on its row, and its colour picker then a palette picker
 // (the channel's `depth`, a palette's key; a study's channels may set it, true taking a palette no other channel has).
-// The 2D view's Ruler measures here too, on the plane of the top slice shown.
+// The 2D view's Ruler measures here too, on the plane of the top slice shown. ring(box) rings a box of the image over the
+// stack at its middle depth, and never pans.
 // The study's `view` in study.json sets what the 3D view opens with: render ("brightest" | "surface") and the
 // spacing between slices when the file does not say, with who stated it (spacingSource).
 //
@@ -14,6 +15,7 @@
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
 import { rulerMarks, rulerText } from "./viewer2d.js";
+import { PALETTES, paletteAt, rgb } from "./depth_palettes.js";
 
 const MAX_SIDE = 640; // the GPU's budget: a ray samples every voxel it crosses, so a wider volume is binned to this
 const CHANNELS = 4;   // the most channels the 3D view adds together
@@ -143,30 +145,6 @@ void main(){
   o = vec4(0.,0.,0.,1.);
 }`;
 
-const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-// the Turbo palette's colours, a depth (0..1) to [r, g, b] of 0 to 1
-function turbo(x) {
-  x = 0.12 + 0.8 * Math.min(Math.max(x, 0), 1);
-  const p = (k, k2) => k[0] + k[1] * x + k[2] * x * x + k[3] * x ** 3 + k2[0] * x ** 4 + k2[1] * x ** 5;
-  return [p([0.13572138, 4.6153926, -42.66032258, 132.13108234], [-152.94239396, 59.28637943]),
-    p([0.09140261, 2.19418839, 4.84296658, -14.18503333], [4.27729857, 2.82956604]),
-    p([0.1066733, 12.64194608, -60.58204836, 110.36276771], [-89.90310912, 27.34824973])].map((v) => Math.min(Math.max(v, 0), 1));
-}
-
-// the palettes a channel coloured by depth is painted in, from its first slice shown to its last: eight stops each,
-// the shader blending between them
-const hexes = (...h) => h.map((x) => rgb("#" + x));
-const PALETTES = {
-  turbo: { name: "Turbo", stops: Array.from({ length: 8 }, (_, i) => turbo(i / 7)) },
-  viridis: { name: "Viridis", stops: hexes("440154", "46327e", "365c8d", "277f8e", "1fa187", "4ac16d", "a0da39", "fde725") },
-  plasma: { name: "Plasma", stops: hexes("0d0887", "5302a3", "8b0aa5", "b83289", "db5c68", "f48849", "febd2a", "f0f921") },
-  cool: { name: "Cool", stops: Array.from({ length: 8 }, (_, i) => [i / 7, 1 - i / 7, 1]) },
-};
-// a palette's colour at x, 0..1 through the slices shown, [r, g, b] of 0 to 1, as the shader blends it
-function paletteAt(key, x) {
-  const st = PALETTES[key].stops, t = Math.min(Math.max(x, 0), 1) * 7, i = Math.min(Math.floor(t), 6), f = t - i;
-  return st[i].map((v, c) => v + (st[i + 1][c] - v) * f);
-}
 const gradient = (key) => `linear-gradient(90deg, ${PALETTES[key].stops.map((c) => `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`).join(",")})`;
 
 // planes: C channel volumes of Z × H × W, channel by channel, binned in x and y by `bin` (block mean), slice by slice
@@ -262,7 +240,10 @@ export function viewer3d(shell, flat) {
   }
   const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   rulerSvg.id = "v3-ruler";
-  stage.append(cv, hudCv, rulerSvg);
+  // the ring the Edit History window hovers, over the stage: a box of the image, [x0, y0, x1, y1], at the stack's middle depth
+  const ringEl = html("div", { className: "v3-ring", hidden: true });
+  let ringBox = null;
+  stage.append(cv, hudCv, rulerSvg, ringEl);
 
   // ---------- GL ----------
   function initGL() {
@@ -555,6 +536,7 @@ export function viewer3d(shell, flat) {
     flat.zoomWith(mode3d ? (k) => { S.dist = Math.min(Math.max(S.dist / k, MIN_DIST), 12); redraw(); } : null);
     rulerSet(false); flat.rulerWith(mode3d ? () => rulerSet(rulerBtn.getAttribute("aria-pressed") !== "true") : null);
     if (mode3d) $("#view").dataset.v3 = ""; else delete $("#view").dataset.v3;
+    if (ringBox) { flat.ring(mode3d ? null : ringBox); placeRing(); }
     redraw();
   }
 
@@ -687,9 +669,24 @@ export function viewer3d(shell, flat) {
     },
   };
 
+  function placeRing() {
+    const at = ringBox && mode3d ? three.toScreen((ringBox[0] + ringBox[2]) / 2, (ringBox[1] + ringBox[3]) / 2) : null;
+    ringEl.hidden = !at;
+    if (at) { ringEl.style.left = `${at[0]}px`; ringEl.style.top = `${at[1]}px`; }
+  }
+  drawers.push(placeRing);
+
   return {
     ...flat,
     three,
+    // rings a box of the image (viewer2d.js's ring): at the stack's middle depth while the stack is shown in 3D, with no pan
+    // the 3D view has no pan, so what it rings is always in view
+    inView: (box) => (mode3d ? true : flat.inView(box)),
+    ring(box, opts) {
+      ringBox = box ? box.slice(0, 4) : null;
+      flat.ring(mode3d ? null : box, opts);
+      placeRing();
+    },
     // the shell says whether this is the viewer of the study on the page; the 3D parts go when it is not
     active(on) { active = on; panKey(on); placed(on); take(on ? page.get("image") : null); },
     get overlay() { return flat.overlay; }, get scroller() { return flat.scroller; },

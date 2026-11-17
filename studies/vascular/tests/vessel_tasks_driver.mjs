@@ -58,7 +58,7 @@ const brightnessNow = () => page.evaluate(() => {
 });
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
-const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
+const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
 
 try {
@@ -83,7 +83,7 @@ try {
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
-  const before = await page.evaluate(() => ({ model: !$("#model-on").hidden, tasks: !$("#vm-tasks").hidden,
+  const before = await page.evaluate(() => ({ model: !$("#vm-review").hidden, tasks: !$("#vm-tasks").hidden,
     modes: [...document.querySelectorAll("#model-mode button")].filter((b) => !b.disabled).map((b) => b.dataset.v),
     switch: !$("#switch").hidden, items: !!$("#items-view") && !$("#items-view").hidden }));
   check(!before.model && !before.tasks && before.modes.join() === "image", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
@@ -91,7 +91,7 @@ try {
 
   await page.selectOption("#algorithm", "v4");
   await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#model-on").hidden);
+  await page.waitForFunction(() => !$("#vm-review").hidden);
   const ran = await doc();
   check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
     `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
@@ -397,7 +397,7 @@ try {
   await page.click("#area-ok");
   check((await tasks()).widths && (await tasks()).area === 0, "Area is right opens the area's widths step, in the same area");
   check(await page.evaluate(() => $("#area-ok").disabled), "These widths look right waits while a vessel drawn there has no width");
-  await page.evaluate(() => window.vascular.edit((m) => { const w = { um: 3, how: "nudge" }; return { ...m, segments: m.segments.map((s) => (s.proposed ? s : { ...s, width: w })) }; }));
+  await page.evaluate(() => { for (const e of window.vascular.model().model.edges) if (!e.proposed) window.vascular.act({ type: "set-width", segments: e.segment_ids, width: { um: 3, how: "nudge" } }); });
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "These widths look right is on once every vessel drawn there has a width");
   await page.click("#area-ok");
   m = await doc(); t = await tasks();
@@ -481,10 +481,19 @@ try {
   check(!(await doc()).reviewed_regions.length && !(await doneRows()).length, "Undo takes the area back");
 
   // a file from the three steps: an area whose lines, missed and junctions boxes all cover it is done
-  await page.evaluate(() => window.vascular.edit((m) => ({ ...m, reviewed_regions: ["lines", "missed", "junctions"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) })));
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed", "junctions"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
   check((await doneRows()).join() === "a0", `an area its earlier lines, missed and junctions steps all cover is done: ${await doneRows()}`);
-  await page.evaluate(() => window.vascular.edit((m) => ({ ...m, reviewed_regions: ["lines", "missed"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) })));
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
   check(!(await doneRows()).length, "... and one missing its junctions step is not");
+
+  // req/shell/ground-truth/history-carry: a run after a base that holds a junction the run has no point for says so, and the
+  // study's own line about the run does not take that away
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, checked_junctions: [987654] }); });
+  // Execute's box is folded while the tagger tags
+  await page.evaluate(() => { $("#status").textContent = ""; $("#vm-run").click(); });
+  await page.waitForFunction(() => $("#status").textContent.trim() !== "" && $("#busy").hidden);
+  const left = await page.textContent("#status");
+  check(/no item for 1 earlier decision or edit, which was left out/.test(left), `a run that cannot carry a checked junction over says so on the status line: ${left}`);
 } catch (e) {
   failed = true; console.error(e);
 }
