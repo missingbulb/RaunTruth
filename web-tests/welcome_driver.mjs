@@ -5,7 +5,8 @@
 // popup, and anonymously opens with no popup but a tip beside the avatar, until closed; signing out from the menu
 // brings the popup back; Escape changes nothing; Google's script loads only once the user reaches for its button;
 // offline, Sign in with Google is held and a line says it can wait for the network; with no Google client there is
-// no popup.
+// no popup. And req/shell/account/consent-guide: signing in with no one signed in here first opens the guide to Google's
+// screens, which asks Google only in its own button's click, asks nothing on Cancel, and closes once Google answers.
 // Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/welcome_driver.mjs [SHOTS]
@@ -38,7 +39,7 @@ const SCRIPT = `window.google = { accounts: { oauth2: { initTokenClient(o) {
     queueMicrotask(() => answer === "cancel" ? o.callback({ error: "access_denied" }) : answer === "blocked" ? o.error_callback?.({ type: "popup_failed_to_open" }) : o.callback({ access_token: "tok", expires_in: 3599 }));
   } };
 } } } };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
@@ -93,6 +94,14 @@ const signInTip = (page) => page.evaluate(() => {
   const arrow = t.contains(document.elementFromPoint((ar.left + ar.right) / 2, ar.bottom + 5)); s.remove();
   return { text: t.textContent, inside: r.left >= 0 && r.right <= innerWidth, below: r.top >= ar.bottom && r.top - ar.bottom < 30, under: r.left < ar.right && r.right > ar.left, arrow };
 });
+// Google's guide (req/shell/account/consent-guide), while it is open: its words, whether each screenshot drew, and
+// how often Google was asked so far
+const guide = (page) => page.evaluate(() => {
+  const d = document.querySelector("#guide-dlg");
+  return d?.open ? { text: d.textContent, drawn: [...d.querySelectorAll("img")].map((i) => i.complete && i.naturalWidth > 0), asked: window.tokenClient?.asked?.length || 0 } : null;
+});
+// a sign-in that opens the guide: on through its Open Google's window
+const throughGuide = async (page) => { await page.waitForSelector("#guide-dlg[open]", { timeout: 3000 }).catch(() => {}); if (await guide(page)) await page.click("#guide-go"); };
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png") }); };
 
 try {
@@ -143,11 +152,28 @@ try {
   await b.page.mouse.down();
   check(await b.page.waitForFunction(() => window.google).then(() => true, () => false), "pressing Sign in with Google loads Google's script");
   await b.page.mouse.up();
+  const g1 = await b.page.waitForSelector("#guide-dlg[open]", { timeout: 3000 })
+    .then(() => b.page.waitForFunction(() => [...document.querySelectorAll("#guide-dlg img")].every((i) => i.complete), null, { timeout: 5000 }).catch(() => {}))
+    .then(() => guide(b.page), () => null);
+  check(!!g1 && g1.asked === 0 && !(await signedIn(b.page)), "no one signed in here, Sign in with Google first opens the guide to Google's screens, asking Google nothing yet");
+  check(!!g1 && /Advanced/.test(g1.text) && /unsafe/.test(g1.text) && /Continue/.test(g1.text) && g1.drawn.length >= 3 && g1.drawn.every(Boolean),
+    "it shows the unverified-app screen's Advanced and Go to (unsafe), the boxes to tick and Continue, each in a screenshot: " + JSON.stringify(g1 && { drawn: g1.drawn }));
+  if (shots) await b.page.waitForTimeout(400); await shot(b.page, "consent_guide");
+  await b.page.click("#guide-cancel");
+  check(!(await guide(b.page)) && await b.page.evaluate(() => !window.tokenClient?.asked?.length) && await popup(b.page) && !(await signedIn(b.page)), "the guide's Cancel asks Google nothing and leaves the popup up");
+  await b.page.click("#welcome-sign-in");
+  await b.page.waitForSelector("#guide-dlg[open]");
+  await b.page.click("#guide-go");
+  check(await b.page.evaluate(() => window.tokenClient?.asked?.length === 1), "its Open Google's window asks Google in that click");
   check(await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden).then(() => true, () => false) && !(await popup(b.page)),
     "Sign in with Google signs the user in and closes the popup");
   await b.open();
   check(await popup(b.page) && await signedIn(b.page), "unticked, the next visit, still signed in, shows the popup again");
   check(/Ada Lovelace/.test(await b.page.textContent("#welcome-dlg")), "naming who is signed in");
+  await b.page.click("#welcome-sign-in");
+  check(await b.page.waitForFunction(() => !document.querySelector("#welcome-dlg").open).then(() => true, () => false) && !(await guide(b.page)) && await signedIn(b.page),
+    "signed in already, Sign in with Google goes on as the user with no guide");
+  await b.open();
   await b.page.click("#welcome-anonymous");
   check(!(await signedIn(b.page)) && await b.page.evaluate(() => localStorage.getItem("nor-google-sign-in")) === null, "there Continue anonymously signs out");
 
@@ -155,6 +181,7 @@ try {
   await b.open();
   await b.page.check("#welcome-remember");
   await b.page.click("#welcome-sign-in");
+  await throughGuide(b.page);
   await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
   await b.open();
   check(!(await popup(b.page)) && await signedIn(b.page), "ticked, the next visit opens signed in with no popup");
@@ -169,6 +196,8 @@ try {
   await b.page.click("#user-menu summary");
   await b.page.waitForFunction(() => window.tokenClient);
   await b.page.click("#sign-in");
+  check(await b.page.waitForSelector("#guide-dlg[open]", { timeout: 3000 }).then(() => true, () => false), "the menu's Sign in with Google opens the guide too");
+  await b.page.click("#guide-go");
   await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
   await b.open();
   check(!(await popup(b.page)) && await signedIn(b.page), "signing in from the menu counts as remembered");
@@ -204,14 +233,18 @@ try {
   const f = await device();
   await f.page.evaluate(() => { window.googleAnswer = "cancel"; });
   await f.page.click("#welcome-sign-in");
+  await throughGuide(f.page);
+  check(await f.page.waitForFunction(() => !document.querySelector("#guide-dlg").open).then(() => true, () => false), "Google answering closes the guide");
   check(await f.page.waitForFunction(() => /did not finish/i.test(document.querySelector("#welcome-failed")?.textContent) && !document.querySelector("#welcome-failed").hidden).then(() => true, () => false)
     && await popup(f.page) && !(await signedIn(f.page)), "a cancelled Google window leaves the popup up, saying sign-in did not finish");
   await f.page.evaluate(() => { window.googleAnswer = "blocked"; });
   await f.page.click("#welcome-sign-in");
+  await throughGuide(f.page);
   await f.page.waitForSelector("#welcome-failed", { state: "visible" }).catch(() => {});
   check(await popup(f.page) && await f.page.isVisible("#welcome-failed") && !(await signedIn(f.page)), "and so does a blocked one");
   await f.page.evaluate(() => { window.googleAnswer = "token"; });
   await f.page.click("#welcome-sign-in");
+  await throughGuide(f.page);
   check(await f.page.waitForFunction(() => !document.querySelector("#sign-out").hidden).then(() => true, () => false) && !(await popup(f.page)), "trying again signs in and closes it");
 
   // the tip follows the avatar when the window is resized
