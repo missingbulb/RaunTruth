@@ -194,6 +194,45 @@ Object.assign(tests, {
     const ids = more.segments.map((x) => x.id);
     assert.equal(new Set(ids).size, ids.length);
   },
+  'a run after a base carries its verdicts, widths, a moved point, a point and a vessel drawn, a split vessel, the areas and the junctions checked'() {
+    let m = start();
+    for (const a of [{ type: 'review', segment: 's5', verdict: 'accepted' }, { type: 'set-width', segments: ['s3'], width: { um: 3, how: 'nudge' } },
+      { type: 'move-node', node: 4, to: { x: 42, y: 0, z: 0 } }, { type: 'draw', from: { node: 4 }, to: { point: { x: 60, y: 20, z: 0 } } }, { type: 'split', segment: 's7', t: .5 },
+      { type: 'check-junction', node: 2, on: true }, { type: 'widths-right', area: 0, box: { x0: 0, y0: 0, x1: 50, y1: 50 }, slices: [0, 3] }]) m = S.run(m, act(a));
+    const base = S.load(JSON.parse(JSON.stringify(S.document(m))));
+    const got = S.start(drawn(), base);
+    const by = (id) => got.segments.find((x) => x.id === id);
+    assert.deepEqual(got.segments.map((x) => x.id).sort(), ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 'u1', 'u2'], 'the split vessel replaces the algorithm\'s one, the drawn one is kept');
+    assert.deepEqual(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 'u2'].map((id) => by(id).state), Array(8).fill('accepted'), 'the verdicts');
+    assert.equal(by('s3').width.um, 3, 'a width the tagger set');
+    assert.deepEqual([got.nodes.get(4).x, got.nodes.get(4).y], [42, 0], 'a moved point stays where the tagger put it, and keeps its id');
+    assert.deepEqual([got.nodes.get(1000000), by('u1').proposed], [{ id: 1000000, x: 60, y: 20, z: 0 }, undefined]);
+    assert.deepEqual([by('s7').b, by('u2').a], [1000001, 1000001]);
+    assert.deepEqual([got.checked_junctions, got.reviewed_regions.length, got.dropped], [[2], 1, undefined]);
+    assert.equal(got.nodes.size, 11);
+  },
+  'a run after a base lists a decision or a width the run has no vessel for, and a run after a run carries nothing'() {
+    let m = start();
+    for (const a of [{ type: 'review', segment: 's5', verdict: 'accepted' }, { type: 'set-width', segments: ['s3'], width: { um: 3, how: 'nudge' } }, { type: 'check-junction', node: 8, on: true }]) m = S.run(m, act(a));
+    const base = S.load(JSON.parse(JSON.stringify(S.document(m))));
+    const o = drawn(); o.edges.splice(3, 2); o.edges.splice(1, 1); // 5 - 6, 2 - 3 and 3 - 8 are gone
+    const got = S.start(o, base);
+    assert.deepEqual(got.dropped.sort(), ['junction 8', 's3', 's5', 's6']);
+    assert.ok(got.segments.every((x) => x.state === 'vessel'), 'what was decided has nothing to be carried to');
+    const quiet = S.start(o, start());
+    assert.deepEqual([quiet.dropped, quiet.nodes.size, quiet.segments.length], [undefined, S.start(o).nodes.size, S.start(o).segments.length], 'a model of the algorithm alone is not carried');
+  },
+  'a model read again counts its ids on from its largest, so no point or segment id is given twice'() {
+    let m = start();
+    m = S.run(m, act({ type: 'split', segment: 's3', t: .5 }));
+    m = S.run(m, act({ type: 'split', segment: 's3', t: .3 }));
+    const back = S.load(JSON.parse(JSON.stringify(S.document(m))));
+    const more = S.run(back, act({ type: 'split', segment: 's4', t: .5 }));
+    const nodes = [...more.nodes.keys()], segs = more.segments.map((x) => x.id);
+    assert.equal(new Set(nodes).size, nodes.length);
+    assert.equal(new Set(segs).size, segs.length);
+    assert.ok(Math.max(...nodes) > Math.max(...back.nodes.keys()));
+  },
   'widths right does what the page does today, from the model alone, and writes the day of its action'() {
     const m = start();
     // the page's path before, as tasks.js wrote it: the area's vessels by the grid's cell of their middle point
@@ -271,4 +310,4 @@ Object.assign(tests, {
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 20);
+assert.equal(n, 23);

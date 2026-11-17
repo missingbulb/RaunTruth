@@ -5,6 +5,8 @@ import * as Mo from './model.js';
 import { build, inBox, region } from './model_items.js';
 
 const MATCH_UM = .5, MATCH_SLICES = .5;
+// how far a point the tagger moved may now be from where the run puts it; scale-dependent: micrometres
+const MOVED_UM = 3;
 const GONE_VESSEL = { skip: 'its vessel is gone' }, GONE_POINT = { skip: 'its point is gone' }, SAME = { skip: 'nothing to change' };
 const isSkip = (r) => !!r && typeof r === 'object' && 'skip' in r;
 const largest = (values, from) => values.reduce((n, v) => Math.max(n, v), from);
@@ -14,35 +16,90 @@ const largest = (values, from) => values.reduce((n, v) => Math.max(n, v), from);
 const lastPoint = (m) => largest([...m.nodes.keys()].filter((k) => k < Mo.USER_NODE), 0);
 const number = (id) => { const k = /^s(\d+)$/.exec(id); return k ? +k[1] : 0; };
 const lastSegment = (m) => largest(m.segments.map((s) => number(s.id)), 0);
+const pair = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+const person = (id) => id >= Mo.USER_NODE;
+// whether the tagger's own work is in a model: a verdict, a width, a point or a vessel of their own, an area or a junction checked
+const worked = (m) => m.segments.some((s) => Mo.decided(s) || s.width || !s.proposed) || [...m.nodes.keys()].some(person)
+  || !!m.reviewed_regions?.length || !!m.checked_junctions?.length;
 
 // The algorithm's output as a model. With the model before it, a point within MATCH_UM in x and y and MATCH_SLICES in z of
 // one of its points takes that point's id, and a segment whose two ends are then those of one of its segments takes its id;
-// the rest take ids above both models' largest, so no id in a log means two things.
+// the rest take ids above both models' largest, so no id in a log means two things. When the model before holds the tagger's
+// work (a base), a point the run has none within MATCH_UM of but one within MOVED_UM of is the tagger's moved point, and the
+// work is carried: see `carried`.
 export function start(output, previous) {
   const m = Mo.identify(Mo.parse(output));
   if (!previous) return m;
-  const free = new Map(previous.nodes), name = new Map();
-  for (const n of [...m.nodes.values()].sort((p, q) => p.id - q.id)) {
-    let best = null, near = Infinity;
-    for (const p of free.values()) {
-      if (Math.abs(p.x - n.x) > MATCH_UM || Math.abs(p.y - n.y) > MATCH_UM || Math.abs(p.z - n.z) > MATCH_SLICES) continue;
-      const d = Math.hypot(p.x - n.x, p.y - n.y, p.z - n.z);
-      if (d < near) { best = p; near = d; }
+  const free = new Map([...previous.nodes].filter(([id]) => !person(id))), name = new Map(), work = worked(previous);
+  const claim = (reach) => {
+    for (const n of [...m.nodes.values()].sort((p, q) => p.id - q.id)) {
+      if (name.has(n.id)) continue;
+      let best = null, near = Infinity;
+      for (const p of free.values()) {
+        if (Math.abs(p.x - n.x) > reach || Math.abs(p.y - n.y) > reach || Math.abs(p.z - n.z) > MATCH_SLICES) continue;
+        const d = Math.hypot(p.x - n.x, p.y - n.y, p.z - n.z);
+        if (d < near) { best = p; near = d; }
+      }
+      if (best) { free.delete(best.id); name.set(n.id, best.id); }
     }
-    if (best) { free.delete(best.id); name.set(n.id, best.id); }
-  }
+  };
+  claim(MATCH_UM);
+  const moved = new Set();
+  if (work) { const before = new Set(name.keys()); claim(MOVED_UM); for (const k of name.keys()) if (!before.has(k)) moved.add(name.get(k)); }
   let point = Math.max(lastPoint(previous), lastPoint(m));
   for (const n of [...m.nodes.values()].sort((p, q) => p.id - q.id)) if (!name.has(n.id)) name.set(n.id, ++point);
-  const nodes = new Map([...m.nodes.values()].map((n) => [name.get(n.id), { ...n, id: name.get(n.id) }]));
-  const pair = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const nodes = new Map([...m.nodes.values()].map((n) => {
+    const id = name.get(n.id);
+    return [id, moved.has(id) ? { ...previous.nodes.get(id) } : { ...n, id }];
+  }));
   const before = new Map();
-  for (const s of previous.segments) before.set(pair(s.a, s.b), [...(before.get(pair(s.a, s.b)) ?? []), s.id]);
+  for (const s of previous.segments) before.set(pair(s.a, s.b), [...(before.get(pair(s.a, s.b)) ?? []), s]);
   let segment = Math.max(lastSegment(previous), lastSegment(m));
   const segments = m.segments.map((s) => {
     const a = name.get(s.a), b = name.get(s.b), own = before.get(pair(a, b))?.shift();
-    return { ...s, a, b, id: own ?? null };
+    const now = { ...s, a, b, id: own?.id ?? null };
+    return own && work ? { ...now, ...(Mo.decided(own) ? { state: own.state } : {}), ...(own.width ? { width: own.width } : {}) } : now;
   }).map((s) => (s.id == null ? { ...s, id: `s${++segment}` } : s));
-  return Mo.identify({ ...m, nodes, segments });
+  const out = { ...m, nodes, segments };
+  return Mo.identify(work ? carried(previous, out, before) : out);
+}
+
+// What the tagger did in the model before, put onto a run's model whose points have taken its ids: the vessels the tagger
+// drew or split, and the points they added, stand as they were (a vessel the run has between the same two points is
+// replaced by them), and so do the areas checked and the junctions found right. A verdict or a width on a segment the run
+// has none for, and a junction it has no point for, is listed in `dropped` and left out; `leftover` holds the segments of
+// the model before no segment of the run took.
+function carried(previous, m, leftover) {
+  const nodes = new Map(m.nodes), segments = [...m.segments], dropped = [];
+  const mine = (s) => person(s.a) || person(s.b) || !s.proposed;
+  const kept = previous.segments.filter(mine);
+  const placeable = kept.filter((s) => [s.a, s.b].every((n) => nodes.has(n) || person(n)));
+  for (const s of kept) if (!placeable.includes(s)) dropped.push(s.id);
+  const have = new Set(segments.map((s) => pair(s.a, s.b)));
+  // the vessels of the run that a chain of the tagger's own points now stands in for
+  const links = new Map();
+  for (const s of placeable) for (const [x, y] of [[s.a, s.b], [s.b, s.a]]) links.set(x, [...(links.get(x) ?? []), y]);
+  const chained = (a, b) => {
+    const seen = new Set([a]), todo = [a];
+    while (todo.length) {
+      const from = todo.pop();
+      for (const n of links.get(from) ?? []) {
+        if (n === b && from !== a) return true;
+        if (person(n) && !seen.has(n)) { seen.add(n); todo.push(n); }
+      }
+    }
+    return false;
+  };
+  const rest = segments.filter((s) => !(!person(s.a) && !person(s.b) && chained(s.a, s.b)));
+  for (const s of placeable) {
+    for (const n of [s.a, s.b]) if (person(n) && !nodes.has(n)) nodes.set(n, { ...previous.nodes.get(n) });
+    if (!have.has(pair(s.a, s.b)) || person(s.a) || person(s.b)) rest.push({ ...s });
+  }
+  for (const list of leftover.values()) for (const s of list) if (!mine(s) && (Mo.decided(s) || s.width)) dropped.push(s.id);
+  const checked = (previous.checked_junctions ?? []).filter((id) => nodes.has(id) || (dropped.push(`junction ${id}`), false));
+  return { ...m, nodes, segments: rest,
+    ...(previous.reviewed_regions?.length ? { reviewed_regions: [...previous.reviewed_regions] } : {}),
+    ...(checked.length ? { checked_junctions: checked } : {}), ...(dropped.length ? { dropped } : {}) };
 }
 
 // ---------- the model and its file ----------

@@ -57,7 +57,14 @@ owner's decisions on the stacks and the vessel model, are
   it cannot attach, on its own vessel's next point, has only moved, and its action says so. The ring Edit History draws
   round an action's item is green (`groundTruth.ring`), not the shell's yellow: the depth palettes pass through yellow
   and the model's knots and set widths are amber, and green is the colour furthest from every palette and every colour
-  the model is drawn in. Test: `studies/vascular/tests/test_model_page.py`,
+  the model is drawn in. A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new
+  model: a verdict or a width goes to the segment between the same two points (points matched by place, then, for a point the
+  tagger moved, within 3 µm), a moved point stays where it was put, the points and vessels the tagger drew or split stand
+  as they were (replacing the run's vessel between the same two points), and so do the areas and junctions checked. A
+  verdict or width on a vessel the run has none for, and a junction it has no point for, is left out and counted on the
+  status line; a vessel the tagger deleted is not recorded by a file, and the run draws it again. A file keeps its point and
+  segment ids, so a model read again counts on from its largest.
+  Test: `studies/vascular/tests/test_gt_actions.mjs`, `studies/vascular/tests/test_model_page.py`,
   `studies/vascular/tests/test_vessel_gt_actions_page.py`, `studies/vascular/tests/test_model_js.py`.
   </details>
 
