@@ -164,7 +164,12 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
         mutated("act");
         return r.model;
       },
-      ran(run) { if (!log) return; log.ran(run); mutated("run"); },
+      ran(run) {
+        if (!log) return;
+        log.ran(run); mutated("run");
+        const left = log.model?.dropped?.length ?? 0;
+        if (left) status(`This run has no item for ${left} earlier decision${left === 1 ? "" : "s"} or edit${left === 1 ? "" : "s"}, which ${left === 1 ? "was" : "were"} left out.`, true);
+      },
       model: () => log?.model ?? null,
       document: () => (log?.model ? module.document(log.model) : null),
       count: () => log?.count ?? 0,

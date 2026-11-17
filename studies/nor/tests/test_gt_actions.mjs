@@ -153,15 +153,29 @@ const tests = {
     const m = N.load(doc(run(run(start(), { type: 'add', cand: 'u1', to: [1, 1], lines: linesAt(1, 1) }), { type: 'delete', cand: 'c1' })));
     assert.deepEqual([ids(m.cands), m.deleted, ids(m.added), m.nextC, m.nextU], [['c2', 'c3', 'c4'], [], ['u1'], 5, 2]);
   },
-  'a /2 file is read: what was marked right is approved, an added NoR is added, what was marked wrong is nothing kept'() {
+  'a /2 file is read: what was marked right is approved, an added NoR is added, what was marked wrong is a rejected candidate'() {
     const labels = [
       { id: 3, x: 80, y: 80, label: 1, source: 'user', decision: 'approved', measured: 'approved', lines: linesAt(80, 80) },
       { id: 2, x: 50, y: 50, label: 0, source: 'user', decision: 'rejected', measured: null, lines: linesAt(50, 50) },
-      { id: 5, kind: 'missing', origin: 'added by user', x: 200, y: 100, label: 1, source: 'user', radius_px: 12, lines: linesAt(200, 100) }];
+      { id: 5, kind: 'missing', origin: 'added by user', x: 200, y: 100, label: 1, source: 'user', radius_px: 12, lines: linesAt(200, 100) },
+      { id: 6, kind: 'missing', origin: 'added by user', x: 220, y: 100, label: 0, source: 'user', radius_px: 12, lines: linesAt(220, 100) }];
     const m = N.load({ format: 'norfinder-ground-truth/2', image: IMAGE, finder: 'tl', finder_settings: {}, filters: { values: {}, off: [] }, labels });
-    assert.deepEqual([m.cands.length, m.cands[0].approved, m.cands[0].n, m.deleted, ids(m.added), m.added[0].approved], [1, true, 3, [], ['u1'], true]);
+    assert.deepEqual([ids(m.cands), m.cands[0].approved, m.cands[0].n, ids(m.deleted), m.deleted[0].approved, m.deleted[0].n, ids(m.added), m.added[0].approved], [['c1'], true, 3, ['c2'], undefined, 2, ['u1'], true]);
     assert.deepEqual(m.meta.size, [400, 300]);
+    assert.deepEqual([m.nextC, m.nextU], [3, 2], 'a rejected candidate\'s id is taken; an added NoR marked wrong is not kept');
+    assert.deepEqual(N.document(m).candidates.map((c) => c.id), ['c1'], 'its file keeps what remains');
     assert.equal(N.document(m).format, 'norfinder-ground-truth/3');
+    // a run after it: the rejected candidate stays rejected, and the approved one is approved
+    const got = N.start(output(), m);
+    assert.deepEqual([ids(got.deleted), got.deleted[0].x, cand_(got, 'c1').approved, got.dropped], [['c2'], 50, true, undefined]);
+  },
+  'a file keeps the next ids, so a id given up before it was written is not given again after it is read'() {
+    let m = start();
+    m = run(run(run(m, { type: 'add', cand: 'u1', to: [1, 1], lines: linesAt(1, 1) }), { type: 'add', cand: 'u2', to: [2, 2], lines: linesAt(2, 2) }), { type: 'delete', cand: 'u2' });
+    m = run(m, { type: 'delete', cand: 'c4' });
+    const back = N.load(JSON.parse(JSON.stringify(doc(m))));
+    assert.deepEqual([ids(back.cands), ids(back.added), back.nextC, back.nextU], [['c1', 'c2', 'c3'], ['u1'], 5, 3]);
+    assert.deepEqual(N.load({ ...doc(m), next: undefined }).nextC, 4, 'a file without them counts on from its largest ids');
   },
   'undo and redo take each action back and forward'() {
     const l = log();
@@ -214,6 +228,39 @@ const tests = {
     l.ran({ algorithm: { key: 'tl' }, output: N.identify(output(), l.model) });
     assert.deepEqual([ids(l.model.cands), ids(l.model.added), l.skipped.size], [['c1', 'c2', 'c3', 'c4'], ['u1'], 0]);
     assert.equal(N.nextAdded(l.model), 'u2');
+  },
+  'a run after a base carries its approvals, edited lines, rejections, added NoRs and checked areas, by id and then by place'() {
+    let m = start();
+    for (const a of [{ type: 'approve', cand: 'c1' }, { type: 'set-lines', cand: 'c3', lines: { length: seg(80, 80, 14) } }, { type: 'delete', cand: 'c4' },
+      { type: 'add', cand: 'u1', to: [200, 100], lines: linesAt(200, 100) }, { type: 'approve', cand: 'u1' }, { type: 'check-area', area: 4, on: true }]) m = run(m, a);
+    const base = doc(m);
+    const l = actionLog(N);
+    l.open({ name: 'slide.tif' }, 'nor');
+    l.load([...l.actions, { type: 'base', at: DAY, model: base, from: {} }]);
+    // the finder runs again, the candidates in another order and one new
+    l.ran({ algorithm: { key: 'tl' }, output: N.identify(output({ cands: [cand(0, 30, 70), cand(1, 150, 150), cand(2, 80, 80), cand(3, 10, 10)] }), l.model) });
+    const got = l.model;
+    assert.deepEqual([ids(got.cands), ids(got.deleted)], [['c5', 'c6', 'c3', 'c1'], []], 'a file keeps no rejected candidate: the finder\'s at that place is its own, with an id the file never gave');
+    assert.equal(cand_(got, 'c1').approved, true);
+    assert.deepEqual(cand_(got, 'c3').edited, { length: seg(80, 80, 14) });
+    assert.equal(cand_(got, 'c6').approved, undefined, 'a candidate the base did not have is the finder\'s, undecided');
+    assert.equal(cand_(got, 'c5').approved, undefined);
+    assert.deepEqual([ids(got.added), got.added[0].approved, got.areas, got.nextU, got.dropped], [['u1'], true, [4], 2, undefined]);
+    assert.deepEqual(got.cands.find((c) => c.id === 'c3').lines, linesAt(80, 80), 'the lines are the run\'s own; the edit sits over them');
+  },
+  'a run after a base finds a candidate by its place when the output\'s id is another, and lists a decision whose candidate is gone'() {
+    const m = run(run(run(start(), { type: 'approve', cand: 'c1' }), { type: 'approve', cand: 'c3' }), { type: 'delete', cand: 'c2' });
+    const out = output({ cands: [{ ...cand(0, 10.2, 9.8), id: 'c9' }, { ...cand(1, 200, 200), id: 'c10' }] });
+    const got = N.start(out, m);
+    assert.deepEqual([ids(got.cands), got.cands[0].approved, got.cands[1].approved], [['c9', 'c10'], true, undefined]);
+    assert.deepEqual(got.dropped, ['c3', 'c2'], 'the approval of c3 and the rejection of c2 have no candidate in this run');
+    assert.ok(got.nextC > 10);
+    const again = N.start(output({ cands: [cand(0, 10, 10), cand(1, 50, 50)] }), m);
+    assert.deepEqual([ids(again.cands), ids(again.deleted)], [['c1'], ['c2']], 'a rejection a model holds is carried');
+  },
+  'a run after a run carries nothing: the earlier model holds no ground truth'() {
+    const got = N.start(output({ cands: [cand(0, 10, 10)] }), start());
+    assert.deepEqual([got.cands[0].approved, got.deleted, got.added, got.areas, got.dropped], [undefined, [], [], [], undefined]);
   },
   'describe names the candidate by its number, and every action reads'() {
     const m = run(run(start(), { type: 'add', cand: 'u1', to: [812.4, 440.2], lines: linesAt(812, 440) }), { type: 'delete', cand: 'c4' });

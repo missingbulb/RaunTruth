@@ -577,6 +577,20 @@ nobody has decided: what the page does there is not a requirement yet.
   will undo. Tests: `web-tests/test_truth_actions.py`, `web-tests/test_gt_history_page.py`.
   </details>
 
+- `req/shell/ground-truth/history-carry` A run after stored ground truth, or after earlier work, carries that work onto its new output; only what no longer fits is left out, and said.
+  <details>
+
+  Set by the owner on 2026-11-17 (the design's decision 4). Ground truth read from a file with no log, a draft that did not
+  replay, or Load earlier edits is a base; the algorithm then runs, and the study's `start(output, previous)` is handed that
+  base as `previous`. It puts the base's ground truth onto the new output: decisions (approvals, rejections, verdicts),
+  edited lines, widths, corners and titles, the areas and junctions checked, and the items the tagger added, each matched
+  to the new output by its id and then by its place within the study's tolerance. An added item is kept as added. A decision
+  or edit on an item the new output does not have is dropped, and the model lists what was dropped, in `dropped`; the shell
+  says how many on the status line. An item the base does not hold but the new output does is the output's own, undecided.
+  Run after run with no base, `previous` holds no ground truth and nothing is carried. Tests: `web-tests/test_truth_actions.py`,
+  and each study's `tests/test_gt_actions.mjs`.
+  </details>
+
 - `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
   <details>
 

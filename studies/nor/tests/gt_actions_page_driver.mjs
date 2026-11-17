@@ -312,5 +312,38 @@ try {
   await page.waitForFunction(() => $("#gt-unsaved").hidden);
   await check((await keys(page)).every((k) => k.startsWith("gt-draft|")), "Save Draft keeps it and only then forgets the old keys", await keys(page));
   await ctx2.close();
+
+  // a /2 file read as a draft with no log is a base; Find Candidates after it keeps its votes, rejections, added NoR and lengths
+  const ctx3 = await newContext();
+  page = await open(ctx3);
+  await find(page);
+  const file = await page.evaluate(() => {
+    const [a, b] = st.order, info = nor.imageInfo(), lab = (c, label) => ({ id: nor.numOf(c), x: c.cx, y: c.cy, label, source: "user", lines: nor.linesOf(c) });
+    return { format: "norfinder-ground-truth/2", image: info, finder: st.meta.finder, finder_settings: {}, filters: { values: {}, off: [] },
+      labels: [lab(a, 1), lab(b, 0), { id: 99, kind: "missing", x: 40, y: 40, label: 1, source: "user", radius_px: 12, lines: { length: [[30, 40], [50, 40]], red: [[34, 40], [46, 40]], width: [[40, 36], [40, 44]] } }],
+      first: [a.i, b.i] };
+  });
+  await page.evaluate((f) => new Promise((ok, bad) => {
+    const q = indexedDB.open("gt-drafts", 1);
+    q.onupgradeneeded = () => q.result.createObjectStore("drafts", { keyPath: ["study", "sha256"] });
+    q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").put({ study: "nor", sha256: f.image.sha256, name: f.image.name, saved: new Date().toISOString(), log: [], model: f, replay: "none" }); t.oncomplete = ok; t.onerror = () => bad(t.error); };
+  }), file);
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await loadImage(page);
+  await page.waitForFunction(() => !$("#gt-load-draft").hidden);
+  await unfold(page, "#tasks-box");
+  await page.click("#gt-load-draft");
+  await page.waitForFunction(() => st.meta?.drafted);
+  const loaded = await read(page);
+  await check(loaded.forced.length === 2 && JSON.stringify(loaded.forced.map(([, v]) => v).sort()) === JSON.stringify(["in", "out"]) && JSON.stringify(loaded.added) === JSON.stringify([["u1", "in"]]),
+    "a /2 file read as a draft brings its approval, its rejection and its added NoR", loaded);
+  await find(page);
+  const kept2 = await read(page), lm2 = await page.evaluate(() => nor.model());
+  const places = lm2.cands.filter((c) => c.approved).concat(lm2.deleted).map((c) => `${Math.round(c.x)},${Math.round(c.y)}`);
+  await check(JSON.stringify(kept2.forced.map(([, v]) => v).sort()) === JSON.stringify(["in", "out"]) && JSON.stringify(kept2.added) === JSON.stringify(loaded.added) && lm2.deleted.length === 1 && lm2.cands.filter((c) => c.approved).length === 1
+    && JSON.stringify(places) === JSON.stringify(file.labels.slice(0, 2).map((l) => `${Math.round(l.x)},${Math.round(l.y)}`)) && !(await page.evaluate(() => $("#status").textContent)).includes("left out"),
+    "Find Candidates after it keeps the votes, the rejection and the added NoR: the loaded work is carried onto the new candidates", { loaded, kept2, deleted: lm2.deleted.length });
+  await ctx3.close();
   await done(0);
 } catch (e) { console.error(e); await done(1); }

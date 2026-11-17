@@ -76,7 +76,13 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
   blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
-  Test: `studies/nor/tests/test_nor_gt_actions.py`, `studies/nor/tests/test_gt_actions_page.py`, `studies/nor/tests/test_ground_truth_page.py`.
+  A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
+  `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
+  candidate's id and then by its rounded place: an approval, a rejection (the candidate stays among the rejected), the
+  tagger's lines, the NoRs added and the areas checked. An approval or a rejection of a candidate the run does not have
+  is left out and counted on the status line. A `/2` file read again gives a candidate marked wrong back as a rejected
+  one, and its lines as the tagger's; a `/3` file keeps `next`, the ids it will give next, so one given up is not given again.
+  Test: `studies/nor/tests/test_gt_actions.mjs`, `studies/nor/tests/test_nor_gt_actions.py`, `studies/nor/tests/test_gt_actions_page.py`, `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/nor/cards/adjusters` A card's adjusters correct its lengths and width by dragging.
@@ -137,7 +143,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
   added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
-  cuts the image into them. A candidate the tagger rejected is absent, and is read from the file's `history`: its
+  cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
   `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's `nor_lab.py --labels` reads it, and the `/2` files already
   curated, which list `labels` (every candidate voted up or down, and every added NoR approved, kind `missing`, with its
   radius): the labels score detection and the checked lengths score measurement

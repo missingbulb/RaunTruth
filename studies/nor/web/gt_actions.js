@@ -44,10 +44,32 @@ export function start(output, previous) {
   const { cands } = given ? output : identify(output, previous);
   const { cands: _, ...rest } = output;
   const meta = { ...rest, size: [rest.image.width, rest.image.height] };
+  const fresh = cands.map(({ id, i, n, x, y, bb, lines, m, fail }) => ({ id, i, n, x, y, bb: [...bb], ...(lines ? { lines: copyLines(lines), m: { ...m } } : {}), fail: fail ?? null }));
   return {
-    meta, cands: cands.map(({ id, i, n, x, y, bb, lines, m, fail }) => ({ id, i, n, x, y, bb: [...bb], ...(lines ? { lines: copyLines(lines), m: { ...m } } : {}), fail: fail ?? null })),
-    deleted: [], added: [], areas: [], nextC: Math.max(previous?.nextC ?? 1, largest(cands, "c") + 1), nextU: 1,
+    meta, ...carried(previous, fresh), nextC: Math.max(previous?.nextC ?? 1, largest(cands, "c") + 1),
   };
+}
+
+// The ground truth of the model before, put onto a run's candidates: a decision or an edit goes to the candidate with the
+// same id, else the one at the same place; an added NoR and a checked area stand as they were. What the run has no
+// candidate for is listed in `dropped`, by id, and left out.
+function carried(previous, cands) {
+  const none = { cands, deleted: [], added: [], areas: [], nextU: 1 };
+  if (!previous) return none;
+  const byId = new Map(cands.map((c) => [c.id, c])), byPlace = new Map(cands.map((c) => [place(c), c])), taken = new Set();
+  const rejected = new Set(previous.deleted.map((c) => c.id)), dropped = [], gone = [];
+  const now = new Map(cands.map((c) => [c.id, c]));
+  for (const p of [...previous.cands, ...previous.deleted]) {
+    if (!rejected.has(p.id) && !p.approved && !p.edited) continue;
+    const hit = [byId.get(p.id), byPlace.get(place(p))].find((c) => c && !taken.has(c.id));
+    if (!hit) { dropped.push(p.id); continue; }
+    taken.add(hit.id);
+    now.set(hit.id, { ...hit, ...(p.approved ? { approved: true } : {}), ...(p.edited ? { edited: copyLines(p.edited) } : {}) });
+    if (rejected.has(p.id)) gone.push(hit.id);
+  }
+  const all = cands.map((c) => now.get(c.id));
+  return { cands: all.filter((c) => !gone.includes(c.id)), deleted: all.filter((c) => gone.includes(c.id)).map(without), added: previous.added.map((a) => ({ ...a, lines: copyLines(a.lines) })),
+    areas: [...previous.areas], nextU: Math.max(previous.nextU ?? 1, largest(previous.added, "u") + 1), ...(dropped.length ? { dropped } : {}) };
 }
 
 // the file of an image on which no finder has run, with no candidate: what the log starts from when a NoR is added before Find Candidates
@@ -60,6 +82,7 @@ export function document(model) {
   return {
     format: FORMAT, image, size, finder, finder_settings, filters, grid, numbered,
     candidates: model.cands.map((c) => ({ ...c })), added: model.added.map((a) => ({ ...a })), areas: [...model.areas],
+    next: { c: model.nextC, u: model.nextU },
   };
 }
 
@@ -71,23 +94,25 @@ const boxOf = (lines) => { const pts = Object.values(lines).flat(); return [Math
 export function load(doc) {
   if (doc.format === OLD_FORMAT) {
     let c = 0, u = 0;
-    const cands = [], added = [];
+    const cands = [], deleted = [], added = [];
     for (const L of doc.labels ?? []) {
-      if (L.label !== 1) continue;
-      if (L.kind === "missing") { added.push({ id: `u${++u}`, lines: copyLines(L.lines), approved: true }); continue; }
+      const right = L.label === 1;
+      if (L.kind === "missing") { if (right) added.push({ id: `u${++u}`, lines: copyLines(L.lines), approved: true }); continue; }
+      if (!right && L.label !== 0) continue;
       const lines = copyLines(L.lines);
       ++c;
-      cands.push({ id: `c${c}`, i: c - 1, n: typeof L.id === "number" ? L.id : c, x: L.x, y: L.y, bb: lines ? boxOf(lines).map(Math.round) : [L.x - 8, L.y - 8, L.x + 8, L.y + 8],
-        ...(lines ? { lines, m: { length: dist(lines.length), red_length: dist(lines.red), width: dist(lines.width) } } : {}), fail: null, approved: true });
+      // the lines a /2 file holds are the tagger's own: they stand over the finder's
+      (right ? cands : deleted).push({ id: `c${c}`, i: c - 1, n: typeof L.id === "number" ? L.id : c, x: L.x, y: L.y, bb: lines ? boxOf(lines).map(Math.round) : [L.x - 8, L.y - 8, L.x + 8, L.y + 8],
+        ...(lines ? { lines, m: { length: dist(lines.length), red_length: dist(lines.red), width: dist(lines.width) }, edited: copyLines(lines) } : {}), fail: null, ...(right ? { approved: true } : {}) });
     }
     const { name, sha256, width, height, um_per_px, location } = doc.image ?? {};
     return { meta: { image: { name, sha256, width, height, um_per_px, location }, size: [width, height], finder: doc.finder ?? null, finder_settings: doc.finder_settings ?? {}, filters: doc.filters ?? {},
-      grid: GRID, numbered: cands.length }, cands, deleted: [], added, areas: [], nextC: c + 1, nextU: u + 1 };
+      grid: GRID, numbered: cands.length + deleted.length }, cands, deleted, added, areas: [], nextC: c + 1, nextU: u + 1 };
   }
-  const { format: _f, candidates, added, areas, ...meta } = doc;
+  const { format: _f, candidates, added, areas, next, ...meta } = doc;
   const cands = candidates.map((c) => ({ ...c, bb: [...c.bb], ...(c.lines ? { lines: copyLines(c.lines) } : {}) })).sort(byRun);
   return { meta, cands, deleted: [], added: (added ?? []).map((a) => ({ ...a, lines: copyLines(a.lines) })), areas: [...(areas ?? [])].sort((p, q) => p - q),
-    nextC: largest(cands, "c") + 1, nextU: largest(added ?? [], "u") + 1 };
+    nextC: Math.max(next?.c ?? 1, largest(cands, "c") + 1), nextU: Math.max(next?.u ?? 1, largest(added ?? [], "u") + 1) };
 }
 
 // ---------- the image's areas ----------
