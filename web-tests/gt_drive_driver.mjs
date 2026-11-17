@@ -57,7 +57,7 @@ await check(!!CUR && !!SUBS && doc?.curated === CUR && doc?.submissions === SUBS
 await check(JSON.stringify(sharedOut) === JSON.stringify([["GT curated", { type: "anyone", role: "reader" }]]), "and shares the curated folder with anyone with the link to view", sharedOut);
 const tree = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder .name")].map((n) => n.textContent));
 await check(!tree.some((n) => /^GT/.test(n)), "the tree leaves the ground-truth folders out of the data", tree);
-await check(await page.isHidden("#gt-setup"), "set up, nothing offers to set it up again");
+await check(await page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 }).then(() => true, () => false), "set up, nothing offers to set it up again");
 await page.waitForFunction(() => /No image/.test($("#gt-box").textContent));
 const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!($("#gt-box").compareDocumentPosition($("#data-tree")) & Node.DOCUMENT_POSITION_FOLLOWING) }));
 await check(box.above && /review/i.test(box.text), "a Ground Truth box above the folders says submissions are reviewed and that no image has ground truth yet", box);

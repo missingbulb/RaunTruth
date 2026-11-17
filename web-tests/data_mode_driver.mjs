@@ -8,6 +8,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { frames } from "./page_frames.mjs";
+import { click } from "./page_click.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
@@ -136,7 +137,7 @@ await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .c
 const before = writes.length;
 await page.context().setOffline(true);
 await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.click(cell("e plain.tif") + " .mark-gt", { force: true });
+await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
 await turned();
 await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
 // Data Management as a whole needs the network: its column's chevron does nothing
