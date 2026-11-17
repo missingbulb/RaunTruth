@@ -505,12 +505,7 @@ try {
   // another photo, of other bytes: a draft is its photo's by what the photo holds, not by its name
   await load(page, "other.png", noisePng(W, H, 2));
   await page.waitForFunction(() => st.fileName === "other.png" && !document.querySelector("#overlay g.bs-book"));
-  // the shell's look for a draft of it has ended: a write on the drafts starts only once every read begun before it is done
-  await page.evaluate(() => new Promise((ok, bad) => {
-    const q = indexedDB.open("gt-drafts", 1);
-    q.onerror = () => bad(q.error);
-    q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").count(); t.oncomplete = () => { q.result.close(); ok(); }; t.onerror = () => bad(t.error); };
-  }));
+  await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done");
   check(await page.evaluate(() => $("#gt-load-draft").hidden), "another photo has no draft to load", await page.evaluate(() => $("#gt-load-draft").textContent));
   await page.context().close();
 

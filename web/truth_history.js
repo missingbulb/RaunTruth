@@ -24,6 +24,8 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   // an old store the study hands over (api.legacy): {model, count, from, forget}, and whether the log holds it as its base now
   let old = null, oldTaken = false;
   const listeners = new Set();
+  // the page's root says whether the look for the open image's draft is under way or over, for tests and drivers to wait on
+  const lookup = (state) => { document.documentElement.dataset.gtLookup = state; };
   const rooted = () => !!log && active().some((a) => a.type === "run" || a.type === "base");
 
   const notify = (model, why) => { for (const l of [...listeners]) l.fn(model, why); };
@@ -125,17 +127,19 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false;
       paint();
     },
-    leave() { module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; listeners.clear(); paint(); },
+    leave() { delete document.documentElement.dataset.gtLookup; module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; listeners.clear(); paint(); },
     // the image is open: the log starts with it, and a draft of it on this device is looked up; true when one is to offer
     async opened() {
       const mine = ++opening, img = image();
-      if (!module || !img) { stored = null; paint(); return false; }
+      if (!module || !img) { stored = null; lookup("done"); paint(); return false; }
       log.open({ name: img.name, sha256: img.sha256, width: img.width, height: img.height }, studyId());
       replayState = "verified"; stored = null; markSaved(null); old = null; oldTaken = false;
+      lookup("pending");
       paint(); notify(null, "open");
-      if (!img.sha256) return false;
+      if (!img.sha256) { lookup("done"); return false; }
       try { stored = await drafts.get(studyId(), img.sha256); } catch (e) { console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true); }
       if (mine !== opening) return false;
+      lookup("done");
       paint();
       return !!stored;
     },

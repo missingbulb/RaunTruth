@@ -41,7 +41,8 @@ let asked = null;
 await check(!l.hidden && l.text === "· 2 unsaved", "the two actions are counted beside Undo", l);
 await check(await unloadAsks(page), "leaving the page with unsaved actions asks first");
 await reopen(page);
-await check(await page.isHidden("#gt-offers") && (await model(page)) === null, "after a reload nothing was kept: no offer, nothing counted");
+await until(page, () => document.documentElement.dataset.gtLookup === "done");
+await check(await page.isHidden("#gt-offers") && (await model(page)) === null, "after a reload nothing was kept: no offer, nothing counted, and the shell says its look for a draft has ended");
 
 // Save Draft keeps the log and the model on this device
 await counted(page);

@@ -527,7 +527,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Start GT tagging, before the study has listed its tasks too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
-  asks first. A draft that could not be looked up is said on the status line. Tentative: the button stays while the
+  asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
+  `pending` from the image's opening and `done` once the look for its draft has ended, for tests to wait on. Tentative: the button stays while the
   draft on the device is not the one loaded. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
