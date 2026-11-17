@@ -115,6 +115,9 @@
    over the bottom of its crop */
 #selected-box { position: absolute; top: 12px; right: 24px; z-index: 5; max-width: calc(100% - 260px); box-shadow: 0 4px 14px #0008; border-radius: var(--r-ctl); }
 #selected-box[hidden] { display: none; }
+/* the Edit History window (req/shell/ground-truth/history) is the one thing this card can meet: its top yields, nor.js telling
+   how much of the top right the card holds */
+#edit-history { max-height: calc(100% - 24px - var(--eh-yield, 0px)); }
 #selected .card { background: var(--panel); margin: 0; }
 .stepper { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; background: var(--panel); }
 .stepper button { border: 0; border-radius: 0; background: transparent; width: 32px; padding: 2px 0; font-size: 16px; line-height: 1.2; }

@@ -68,9 +68,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   id (u3) is never reused. What the five older browser keys hold for a file (decisions, lengths, added NoRs, a
   pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as a draft the tagger
   loads, and the keys go when it is saved. The candidates' pixel masks are not in the log, so a draft loaded with no
-  Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Tentative: outside
-  the Ground Truth Tagger role nothing is kept across visits.
-  Test: `studies/nor/tests/test_gt_actions.py`, `studies/nor/tests/test_ground_truth_page.py`.
+  Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
+  window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
+  ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
+  blue included). Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  Test: `studies/nor/tests/test_nor_gt_actions.py`, `studies/nor/tests/test_gt_actions_page.py`, `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/nor/cards/adjusters` A card's adjusters correct its lengths and width by dragging.

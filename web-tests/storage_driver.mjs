@@ -71,9 +71,8 @@ const SEED = {
   "nor-drive-link": JSON.stringify(`https://drive.google.com/drive/folders/${ROOT}`),
   "nor-load-source": JSON.stringify("drive"),
   "nor-filter-settings-v1": JSON.stringify({ values: { min_len: 3 }, off: [] }),
-  "nor-marks-v1:slide 1.tif|ridge": JSON.stringify({ "10,20": "in" }),
   "nor-mask-v1:slide 1.tif": JSON.stringify([[[0, 0], [5, 0], [5, 5]]]),
-  "nor-edits-v1:other.tif|ridge": JSON.stringify({ "1,2": { length: 20 } }),
+  "nor-mask-v1:other.tif": JSON.stringify([[[1, 1], [6, 1], [6, 6]]]),
   "acme-key": "x",
 };
 // Python as the CDN holds it: itself, a lock naming a stand-in file per package, the packages two studies or more
@@ -188,7 +187,7 @@ try {
   check(pics.length === 1 && /2 images/.test(pics[0].what), `the study's thumbnails, one record for all: ${JSON.stringify(pics)}`);
   check(names("study:nor", "selections").sort().join() === "other.tif,slide 1.tif", `the study on show's selections, by image: ${names("study:nor", "selections")}`);
   const slide = g["study:nor"].find((e) => e.kind === "selections" && e.name === "slide 1.tif");
-  check(slide && /keep/i.test(slide.what) && /mask/i.test(slide.what), `an image's row says what is kept for it: "${slide && slide.what}"`);
+  check(slide && /mask/i.test(slide.what), `an image's row says what is kept for it: "${slide && slide.what}"`);
   check(names("shared").sort().join() === "Python itself,numpy", `what two studies or more use is shared: ${names("shared")}`);
   const all = Object.values(g).flat();
   check(!all.some((e) => ["Theme", "Last Google Drive link", "Filter settings"].includes(e.name)), "no setting is listed: Settings keeps them");
@@ -201,7 +200,7 @@ try {
   await page.click('#storage-list .group[data-group="study:nor"] .entry[data-kind=selections][data-name="slide 1.tif"] .del');
   await page.waitForFunction(() => !document.querySelector('#storage-list .entry[data-kind=selections][data-name="slide 1.tif"]'));
   const k = await page.evaluate(() => Object.keys(localStorage));
-  check(!k.some((x) => x.includes("slide 1.tif|") || x.endsWith(":slide 1.tif")) && k.includes("nor-edits-v1:other.tif|ridge"), `deleting an image removes its selections only: ${k}`);
+  check(!k.some((x) => x.includes("slide 1.tif|") || x.endsWith(":slide 1.tif")) && k.includes("nor-mask-v1:other.tif"), `deleting an image removes its selections only: ${k}`);
   check(await page.isVisible("#storage-reload"), "and offers to reload the page, which still holds them");
 
   // deleting the thumbnails empties their cache and touches no setting
@@ -216,7 +215,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('#storage-list .group[data-group="study:nor"] .entry'));
   const left = await page.evaluate(async ({ own, shared }) => ({ own: !!(await caches.match(own)), shared: (await Promise.all(shared.map((u) => caches.match(u)))).every(Boolean),
     image: !!(await caches.match(new URL("drive-image/ID1", location.href).href)) || !!(await caches.match(new URL("drive-image/ID9", location.href).href)),
-    selections: Object.keys(localStorage).filter((x) => x.startsWith("nor-edits-v1:")).length, other: localStorage.getItem("acme-key") }), { own: OWN, shared: SHARED });
+    selections: Object.keys(localStorage).filter((x) => x.startsWith("nor-mask-v1:")).length, other: localStorage.getItem("acme-key") }), { own: OWN, shared: SHARED });
   check(!left.own && !left.image && !left.selections && left.shared && left.other === "x", `a study's Clear cache deletes its own packages, images and selections, and keeps the shared and what nobody names: ${JSON.stringify(left)}`);
   g = await groups();
   check(names("shared").length === 2, "and leaves the shared section alone", names("shared"));

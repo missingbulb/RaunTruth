@@ -187,7 +187,7 @@ export function numberOf(m, id) {
 }
 const LINE = { length: "length", red: "red length", width: "width" };
 export function describe(a, count = 1, model = null) {
-  const n = model && a.cand != null ? numberOf(model, a.cand) : null, who = n == null ? "a candidate" : `#${n}`;
+  const n = model && a.cand != null ? numberOf(model, a.cand) : null, who = n != null ? `#${n}` : String(a.cand ?? "")[0] === "u" ? "an added NoR" : "a candidate";
   const many = (one, more) => (count > 1 ? more : one);
   switch (a.type) {
     case "run": return `${a.output?.cands?.length ?? 0} candidates`;

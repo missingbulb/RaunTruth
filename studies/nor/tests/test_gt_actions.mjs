@@ -229,6 +229,7 @@ const tests = {
     assert.equal(N.describe(act({ type: 'check-area', area: 7, on: false }), 1, m), 'Took back no missed NoRs in area 8');
     assert.equal(N.describe(act({ type: 'undecide', cand: 'c3' }), 1, m), 'Took back the verdict on #3');
     assert.equal(N.describe(act({ type: 'approve', cand: 'c9' }), 1, m), 'Approved a candidate');
+    assert.equal(N.describe(act({ type: 'delete', cand: 'u1' }), 1, run(m, { type: 'delete', cand: 'u1' })), 'Deleted an added NoR', 'a removed NoR has no number left to name');
     assert.equal(N.describe({ type: 'run', output: output() }), '4 candidates');
     for (const a of [{ type: 'approve', cand: 'c1' }, { type: 'undecide', cand: 'c1' }, { type: 'delete', cand: 'c1' }, { type: 'set-lines', cand: 'c1', lines: null },
       { type: 'add', cand: 'u1', to: [1, 1] }, { type: 'check-area', area: 1, on: true }]) assert.notEqual(N.describe(act(a), 3, m), N.describe(act(a), 1, m), a.type);

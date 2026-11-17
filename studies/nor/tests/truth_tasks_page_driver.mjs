@@ -302,7 +302,9 @@ await check(changed.edits && /^Reset measurements\b/.test(changed.reset) && !/Le
 await page.click("#task-card .reset-lines");
 await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "Reset measurements puts the finder's lengths back");
 
-// a candidate clicked on the image becomes the current one
+// a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
+// tagger's own switch puts it away first
+await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));
