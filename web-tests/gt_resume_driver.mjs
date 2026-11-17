@@ -30,12 +30,16 @@ const watch = (page) => {
   });
   return seen;
 };
+// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, so what is counted after
+// is the image's opening alone
+const quiet = (page) => until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
 // the image opened from the Drive dialog, the page's calls to Drive from the double click counted, and the look for the
 // image's drafts and submission over
 const openImage = async (page, seen) => {
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
   await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
+  await quiet(page);
   seen.lists.length = 0; seen.reads.length = 0;
   await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
   await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
@@ -159,6 +163,7 @@ seen = watch(page);
 await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
+await quiet(page);
 seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);

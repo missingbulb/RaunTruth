@@ -675,9 +675,9 @@ nobody has decided: what the page does there is not a requirement yet.
   said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
   actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
-  image, or unloading this one, with actions not yet saved asks first. Set by the owner on 2026-11-17, so do choosing
-  another study from the study menu, and the user's own change of role away from Ground Truth Tagger. What no question
-  can stop gives up the unsaved actions without asking, and the page says so plainly here: the browser's Back and
+  image, or unloading this one, with actions not yet saved asks first. Tentative: so does choosing another study from the
+  study menu, and the user's own change of role away from Ground Truth Tagger. What no question can stop gives up the
+  unsaved actions without asking, and the spec says so plainly here: the browser's Back and
   Forward buttons, which swap the study at once, and a sign-in that runs out, which changes the roles held and so the
   role shown. The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
