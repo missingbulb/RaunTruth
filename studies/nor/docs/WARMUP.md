@@ -125,7 +125,7 @@ This study is one of the page's studies; the repo's own map, and what the shell 
 web/         the study's page: panels, script, style, finder_metrics.json
 web/gt_actions.js  the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: a candidate has an id
              (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/3`)
-web/old_marks.js   what the page kept in five browser keys before the log, offered once through shell.gt.legacy
+web/old_marks.js   what the page kept in five browser keys before the log, offered once through shell.gt.legacy as the GT actions it implies
 detection/   the finders, nor.py (the R1 baseline), harness.py (invariance), fetch_data.py; STATE.md
 data/        sources.json: the Drive images by checksum (the images stay out of git)
 tests/       every requirement that can be executed, on drawn images (synthetic_nor.py), never the study's own

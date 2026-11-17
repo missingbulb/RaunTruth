@@ -141,8 +141,12 @@ export function mount(shell) {
     buildOverlay();
     shell.statusBar();
   }
-  // whether the page's candidates are those the model holds
-  const aligned = (m) => [...m.cands, ...m.deleted].every((c) => st.cands[c.i]?.id === c.id);
+  // whether the page's candidates are those the model holds: each by its id at its place, and none the model does not know
+  const spot = (x, y) => `${Math.round(x)},${Math.round(y)}`;
+  const aligned = (m) => {
+    const all = [...m.cands, ...m.deleted];
+    return all.length === st.order.length && all.every((c) => st.cands[c.i]?.id === c.id && spot(st.cands[c.i].cx, st.cands[c.i].cy) === spot(c.x, c.y));
+  };
   // the filters as the log's run had them, in the dials; true when that moved one
   function followFilters(m) {
     const f = m.meta.filters;
@@ -159,19 +163,16 @@ export function mount(shell) {
   // the model's word on the page: what the tagger decided, measured, added and checked
   function sync(m, why) {
     if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.areas = new Set(); recorded = null; return; }
-    if (m.cands.length + m.deleted.length && !aligned(m)) adopt(m);
+    if (!aligned(m)) adopt(m);
     if (why !== "act" && why !== "run") recorded = modelKey(m);
     const was = st.edits;
     st.forced = new Map(); st.edits = new Map();
-    const known = new Set([...m.cands, ...m.deleted].map((c) => c.id));
     for (const c of m.cands) {
       if (c.approved) st.forced.set(c.i, "in");
       const e = { ...c.edited, ...(c.approved ? { approved: true } : {}) };
       if (Object.keys(e).length) st.edits.set(c.i, e);
     }
     for (const c of m.deleted) { st.forced.set(c.i, "out"); if (c.edited) st.edits.set(c.i, { ...c.edited }); }
-    // a candidate the file does not list was rejected
-    for (const c of st.order) if (c.id && !known.has(c.id)) st.forced.set(c.i, "out");
     for (const c of [...m.cands, ...m.deleted]) st.fails[c.i] = c.fail ?? null;
     st.added = m.added.map((a) => ({ id: a.id, lines: a.lines, verdict: a.approved ? "in" : null }));
     st.areas = new Set(m.areas);

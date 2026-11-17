@@ -2,8 +2,8 @@
 // (req/nor/candidates/remembered): a thumbs down takes a candidate out and Ctrl+Z brings it back, a length end dragged and
 // dropped is one GT action and Escape records none, an added NoR keeps its id, the checked areas are actions, none of it is
 // written to the browser's per-file keys, Save Draft keeps it and Load draft brings it back with no Find Candidates (each
-// candidate drawn from its box, no outline), what the five older keys held is offered once after Find Candidates and forgotten
-// when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
+// candidate drawn from its box, no outline), what the five older keys held is offered once after Find Candidates, recorded as GT
+// actions at the click and forgotten when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
 //   node tests/gt_actions_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
@@ -259,11 +259,27 @@ try {
   const offer = await page.evaluate(() => ({ text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));
   await check(/^Load earlier edits/.test(offer.text) && /your earlier work in this browser/.test(offer.title) && (await read(page)).forced.length === 0 && (await keys(page)).length === 4,
     "it is offered once, not loaded unasked, its keys kept", { offer, keys: await keys(page) });
+  await check(/7 actions/.test(offer.title), "saying how many GT actions it makes", offer);
+  await page.click("#gt-start");
+  await settle(page);
   await page.click("#gt-load-legacy");
-  const got = await read(page);
+  await page.waitForFunction(() => st.areas.size === 2);
+  const got = await read(page), lm = await page.evaluate(() => nor.model()), lrows = await rows(page);
   await check(JSON.stringify(got.forced.map(([, v]) => v).sort()) === JSON.stringify(["in", "out"]) && got.edits.length === 2 && JSON.stringify(got.added) === JSON.stringify([["u1", "in"]]) && JSON.stringify(got.areas) === "[3,7]",
     "Load earlier edits brings the votes, the lengths, the added NoR approved (the one thumbed down is gone) and the areas", got);
-  await check((await rows(page))[0].startsWith("Ground truth from your earlier work in this browser"), "as the log's base", await rows(page));
+  await check(lm.deleted.length === 1 && Math.round(lm.deleted[0].x) === seen.order[1][0] && await unsaved(page) === 7 && lrows.some((r) => /^Deleted #\d+$/.test(r)) && !lrows.some((r) => /^Ground truth/.test(r))
+    && await page.evaluate(() => st.order.length === nor.model().cands.length + nor.model().deleted.length),
+    "each as a GT action of the log, the old thumbs down a delete of its candidate, and no candidate out of the model", { lrows, deleted: lm.deleted.map((c) => c.id) });
+  await check((await keys(page)).length === 4, "the old keys are kept until a draft holds them", await keys(page));
+  // a filter moved is a run again: what was loaded stays, by id
+  const ran = await page.evaluate(() => nor.model().meta.filters.off.length);
+  await page.evaluate(() => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = !c.checked; c.dispatchEvent(new Event("change")); });
+  await page.waitForFunction((n) => nor.model().meta.filters.off.length !== n, ran);
+  const after = await read(page);
+  await check(JSON.stringify(after) === JSON.stringify(got) && await page.evaluate(() => nor.model().deleted.length) === 1, "a filter switched after it runs again and keeps every earlier vote, length, added NoR and area", { after, got });
+  await page.click("#gt-undo");
+  await page.click("#gt-undo");
+  await check(JSON.stringify((await read(page)).areas) === "[3]", "and Undo takes back the last of them alone", await read(page));
   await page.click("#gt-save-draft");
   await page.waitForFunction(() => $("#gt-unsaved").hidden);
   await check((await keys(page)).every((k) => k.startsWith("gt-draft|")), "Save Draft keeps it and only then forgets the old keys", await keys(page));

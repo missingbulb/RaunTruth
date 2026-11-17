@@ -66,8 +66,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   (c87), and a run again, whether from Find Candidates or a filter or preset change, gives each candidate at the
   same place the same id and carries the tagger's actions over, skipping any whose candidate has gone; an added NoR's
   id (u3) is never reused. What the five older browser keys hold for a file (decisions, lengths, added NoRs, a
-  pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as a draft the tagger
-  loads, and the keys go when it is saved. The candidates' pixel masks are not in the log, so a draft loaded with no
+  pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as Load earlier edits
+  (`req/shell/ground-truth/legacy`): the GT actions they imply on the run's candidates, an old thumbs down a delete of
+  its candidate, recorded when the tagger loads them and undone like any other; the keys go when a draft holds them,
+  and until then Manage storage lists them under their image, as earlier work, to see and delete
+  (`web-tests/test_storage_page.py`). A draft whose candidates are not the page's, each by its id at its place, takes
+  the page's place whole: no candidate the model does not hold is shown as decided. The candidates' pixel masks are not in the log, so a draft loaded with no
   Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
