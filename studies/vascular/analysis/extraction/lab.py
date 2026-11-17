@@ -117,7 +117,7 @@ def main():
     elif a.cmd == 'cmp':
         cmp(a.versions or list(VERSIONS), a.stacks)
     elif a.cmd == 'render':
-        import render
+        import render  # native only: the lab's command line, which the page never runs
         versions, out = a.versions, a.out
         path = stacks([a.stack])[a.stack]
         models = [cached(v, a.stack, path)[0] for v in versions]
@@ -127,7 +127,7 @@ def main():
         titles = [f"{m['algorithm']} · plausibility {m['score']['plausibility']}" for m in models]
         render.render(flat, models, cards, a.box, a.scale, a.ids, titles).save(out)
     elif a.cmd == 'grade':
-        import fake_truth
+        import fake_truth  # native only: the lab's command line, which the page never runs
         fake_truth.grade_versions(a.versions or list(VERSIONS), a.json)
 
 
