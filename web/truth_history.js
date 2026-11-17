@@ -21,6 +21,8 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   // what the device's draft of the image open held when last seen, the saved time of the one this visit loaded or saved,
   // and the actions in force then
   let stored = null, lastSaved = null, savedSigs = [], opening = 0;
+  // an old store the study hands over (api.legacy): {model, count, from, forget}, and whether the log holds it as its base now
+  let old = null, oldTaken = false;
   const listeners = new Set();
   const rooted = () => !!log && active().some((a) => a.type === "run" || a.type === "base");
 
@@ -37,7 +39,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     const runs = (list) => list.filter((x) => /^(run|base)@/.test(typeof x === "string" ? x : sig(x))).length;
     // once something was saved, a run or base after it is a change to it, and a run is counted once however many it replaced
     const kept = savedSigs.some((x) => /^(run|base)@/.test(x)) ? Math.max(runs(fresh), runs(tail)) : 0;
-    return userCount(fresh) + tail.filter((x) => !/^(open|run|base)@/.test(x)).length + kept;
+    return userCount(fresh) + tail.filter((x) => !/^(open|run|base)@/.test(x)).length + kept + (oldTaken ? old.count : 0);
   };
   const markSaved = (when) => { lastSaved = when; savedSigs = active().map(sig); };
   const describe = (a) => (module?.describe ? module.describe(a, 1, log.model) : a.type);
@@ -51,9 +53,12 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     redo.title = !redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo";
     $("#gt-unsaved").hidden = !n; $("#gt-unsaved").textContent = n ? `· ${n} unsaved` : "";
     $("#gt-save-draft").disabled = !on || !n;
-    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved;
-    $("#gt-offers").hidden = !offered;
+    const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken;
+    $("#gt-offers").hidden = !offered && !earlier;
+    offer.hidden = !offered;
     if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
+    $("#gt-load-legacy").hidden = !earlier;
+    if (earlier) $("#gt-load-legacy").title = `${old.count ? `${nameOfCount(old.count)}, ` : ""}${old.from}`;
     editWindow?.paint();
   }
 
@@ -74,9 +79,18 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       log: await pack(active()), model: module.document(log.model), replay: replayState };
     try { await drafts.put(record); } catch (e) { return fail(e); }
     stored = record; markSaved(record.saved);
+    keepOld();
     paint();
     status(`Draft saved: ${nameOfCount(userCount(record.log))}.`);
     return true;
+  }
+
+  // the old store is let go once a draft holds its base
+  function keepOld() {
+    if (!old || !oldTaken) return;
+    const { forget } = old;
+    old = null; oldTaken = false;
+    try { forget?.(); } catch (e) { console.warn("shell.gt.legacy: the old store was not forgotten:", e); }
   }
 
   async function load(record) {
@@ -84,7 +98,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     if (unsaved() > 0 && !confirmBox(`Loading the draft replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load it?`)) return false;
     const { replay, actions, error } = await check(module, record.log, record.model);
     log.load(actions);
-    replayState = replay; markSaved(record.saved);
+    replayState = replay; markSaved(record.saved); oldTaken = false;
     status(replay === "verified" ? `Draft loaded: replay verified, ${nameOfCount(userCount(actions))}.`
       : replay === "none" ? "Draft loaded as a base: it held no history."
         : `Draft loaded as a base: its history did not replay to what was saved${error ? ` (${error})` : ""}.`, replay === "mismatch");
@@ -108,16 +122,16 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     paint,
     mount(m) {
       module = m; log = m ? actionLog(m) : null; replayState = "verified";
-      stored = null; lastSaved = null; savedSigs = [];
+      stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false;
       paint();
     },
-    leave() { module = null; log = null; stored = null; lastSaved = null; savedSigs = []; listeners.clear(); paint(); },
+    leave() { module = null; log = null; stored = null; lastSaved = null; savedSigs = []; old = null; oldTaken = false; listeners.clear(); paint(); },
     // the image is open: the log starts with it, and a draft of it on this device is looked up; true when one is to offer
     async opened() {
       const mine = ++opening, img = image();
       if (!module || !img) { stored = null; paint(); return false; }
       log.open({ name: img.name, sha256: img.sha256, width: img.width, height: img.height }, studyId());
-      replayState = "verified"; stored = null; markSaved(null);
+      replayState = "verified"; stored = null; markSaved(null); old = null; oldTaken = false;
       paint(); notify(null, "open");
       if (!img.sha256) return false;
       try { stored = await drafts.get(studyId(), img.sha256); } catch (e) { console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true); }
@@ -166,11 +180,30 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
         log.load([...active(), { type: "base", at: new Date().toISOString(), model: bare(doc), from: from ?? {} }]);
         mutated("load");
       },
+      // what the study kept of the tagger's edits before it kept GT actions, offered as Load earlier edits: {model: the study's
+      // document, count: how many edits it holds, from: what to call it, forget(): removes the old store, which the shell calls
+      // once a draft holds it}; null withdraws the offer
+      legacy(offer) {
+        if (!log) return;
+        old = offer && offer.model ? { model: offer.model, count: offer.count ?? 1, from: String(offer.from ?? "an earlier store"), forget: offer.forget } : null;
+        oldTaken = false;
+        paint();
+      },
       goto(n) { if (log) { log.goto(n); mutated("goto"); } },
       clear() { if (log) { log.clear(); mutated("clear"); } },
     },
   };
 
+  // the old store taken as the log's base, after asking when actions are not saved
+  const takeOld = () => {
+    if (!log || !old || oldTaken) return;
+    if (unsaved() > 0 && !confirmBox(`Loading the earlier edits replaces your ${unsaved()} unsaved action${unsaved() === 1 ? "" : "s"}. Load them?`)) return;
+    log.load([...active(), { type: "base", at: new Date().toISOString(), model: bare(old.model), from: { note: old.from } }]);
+    oldTaken = true; replayState = "verified"; markSaved(null);
+    status(`Earlier edits loaded as a base: ${old.from}.`);
+    mutated("load");
+  };
+  $("#gt-load-legacy").onclick = takeOld;
   $("#gt-undo").onclick = () => session.undo();
   $("#gt-redo").onclick = () => session.redo();
   $("#gt-save-draft").onclick = () => save();

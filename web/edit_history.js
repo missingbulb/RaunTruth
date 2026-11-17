@@ -50,7 +50,8 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
       else if (a.type === "run") { const d = text(a, 1); row.what = d && d !== "run" ? `Algorithm ran: ${d}` : "Algorithm ran"; }
       else if (a.type === "base") {
         const f = a.from || {};
-        row.what = f.tagger || f.created ? `Ground truth by ${[f.tagger, f.created && f.created.replace("T", " ").slice(0, 16)].filter(Boolean).join(", ")}, no history` : "Ground truth as stored, no history";
+        row.what = f.note ? `Ground truth from ${f.note}, no history`
+          : f.tagger || f.created ? `Ground truth by ${[f.tagger, f.created && f.created.replace("T", " ").slice(0, 16)].filter(Boolean).join(", ")}, no history` : "Ground truth as stored, no history";
         row.title = row.what;
       } else {
         row.what = text(a, 1);

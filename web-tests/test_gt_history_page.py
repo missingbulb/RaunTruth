@@ -25,3 +25,10 @@ def test_the_edit_history_window_shows_the_log(answers, png, tmp_path):
     root = tmp_path / 'drive'
     folder(root, png)
     run('gt_history_window_driver.mjs', answers[0], answers[1], str(root), timeout=300)
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_study_s_old_store_is_offered_once_as_a_base(answers, png, tmp_path):
+    root = tmp_path / 'drive'
+    folder(root, png)
+    run('gt_legacy_driver.mjs', answers[0], answers[1], str(root), timeout=240)

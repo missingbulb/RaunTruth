@@ -610,6 +610,19 @@ nobody has decided: what the page does there is not a requirement yet.
   computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`.
   </details>
 
+- `req/shell/ground-truth/legacy` What a study kept of a tagger's edits before it kept GT actions is offered once, as a base, and never loaded unasked.
+  <details>
+
+  Set by the owner on 2026-11-17, for the edits Vascular kept in this browser. A study that kept them somewhere of its own
+  hands them over with `shell.gt.legacy({model, count, from, forget})` once its run is in the log: `model` is the study's
+  document, `count` how many edits it holds, `from` what to call it, `forget` removes the old store; `shell.gt.legacy(null)`
+  withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
+  beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
+  when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
+  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit. Tentative: the offer has no path in the
+  shell's states, the studies that keep an old store being offered it by their own code. Test: `web-tests/test_gt_history_page.py`.
+  </details>
+
 - `req/shell/ground-truth/pending` Taggers and Study Managers see which images have ground truth, and which have it pending, in two listings.
   <details>
 

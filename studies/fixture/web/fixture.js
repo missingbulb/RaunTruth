@@ -127,6 +127,11 @@ export function mount(shell) {
       mask = bytes;
       shell.gt.ran({ algorithm: { key: shell.algorithm.key, params: { threshold: +$("#fx-threshold").value } },
         output: { threshold: +$("#fx-threshold").value, count: meta.count, spots } });
+      // an old store of this study's own, for the tests of shell.gt.legacy
+      const key = `fx-legacy:${shell.state.fileName}`;
+      let old = null;
+      try { old = JSON.parse(localStorage.getItem(key)); } catch { /* no old store */ }
+      if (old?.model) shell.gt.legacy({ model: old.model, count: old.edits, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
       shell.status("Counted.");
     },
   };
