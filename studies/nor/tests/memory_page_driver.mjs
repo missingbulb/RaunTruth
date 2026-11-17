@@ -178,7 +178,8 @@ await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
 await open(); await find(); await tune();
 const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
-  await act(); await act();
+  // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
+  for (let r = 0; r < 10; r++) await act();
   const base = await measure();
   for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
   const m = await measure();
