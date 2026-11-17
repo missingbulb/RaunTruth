@@ -187,9 +187,11 @@ read for a title matcher; matching the titles is not part of it.
   - Each book has an id, kept in the model and in the file and never shown; a book the tagger adds has an id of its
     own kind, so that finding again never gives two books one id. The tagger's work is the shell's GT actions
     (`req/shell/ground-truth/history`): a corner's drop (one action, none while it is dragged or when Escape cancels
-    it), Flip, a title committed (Enter, a verdict, another book opened or the field left: one action, not one a
-    key), Right, Not a book or Delete this book, a book added, None missed, and each answer of the reader landing on
-    a book, which carries the answer and is never read again when the history is replayed. Save Draft keeps them and
+    it), Flip, a title committed (another book opened or the field left: one action, not one a key), Right, Not a
+    book or Delete this book, a book added, None missed, and each answer of the reader landing on a book, which
+    carries the answer and is never read again when the history is replayed. Right on a title typed and not yet
+    committed, by Enter or by its button, is one action, the approval carrying the title: Undo takes the verdict and
+    the title back together. Save Draft keeps them and
     Load draft brings them back (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`); a draft
     kept before Edit History is offered once (`req/shell/ground-truth/legacy`).
   - The file lists every book with its id and its verdict (right, or none while it is not decided), in the walk's

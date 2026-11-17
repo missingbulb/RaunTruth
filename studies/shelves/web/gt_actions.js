@@ -94,7 +94,11 @@ function apply(m, a) {
     }
     case "flip": return edit(m, a.book, (b) => ({ ...b, turn: ((b.turn || 0) + 2) % 4, turnSet: true }));
     case "set-text": return edit(m, a.book, (b) => (b.text === a.text && b.typed ? b : { ...b, text: a.text, typed: true }));
-    case "approve": return edit(m, a.book, (b) => (b.verdict === "right" ? b : { ...b, verdict: "right" }));
+    // Right on a title typed and not yet committed carries the title: the two are one action
+    case "approve": return edit(m, a.book, (b) => {
+      const titled = a.text !== undefined && !(b.text === a.text && b.typed);
+      return b.verdict === "right" && !titled ? b : { ...b, ...(titled ? { text: a.text, typed: true } : {}), verdict: "right" };
+    });
     case "read": return withReader(edit(m, a.book, (b) => {
       const text = b.typed ? b.text : a.text;
       const proposed = b.proposed ?? (b.source === "found" ? { corners: copy(b.corners), text: a.text } : null);
@@ -129,7 +133,7 @@ export function describe(a, count = 1) {
     case "move-corners": return plural(count, "Moved a book's corner", `Moved ${count} books' corners`);
     case "flip": return plural(count, "Flipped a book", `Flipped ${count} books`);
     case "set-text": return count === 1 ? (a.text ? `Set a title: ${a.text}` : "Cleared a title") : `Set ${count} titles`;
-    case "approve": return plural(count, "Approved a book", `Approved ${count} books`);
+    case "approve": return count === 1 ? (a.text ? `Approved a book: ${a.text}` : "Approved a book") : `Approved ${count} books`;
     case "add": return plural(count, "Added a missed book", `Added ${count} missed books`);
     case "delete": return plural(count, "Deleted a book", `Deleted ${count} books`);
     case "none-missed": return count > 1 ? `Judged none missed ${count} times` : a.on ? "Said no book was missed" : "Took back none missed";

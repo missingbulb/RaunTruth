@@ -257,7 +257,7 @@ preset change is a `run`.
 | `move-corners` | a corner's drop | `{book, corners}` |
 | `flip` | Flip | `{book}` |
 | `set-text` | typing, committed | `{book, text}` |
-| `approve` | Right | `{book}` |
+| `approve` | Right; with a title typed and not yet committed, Enter or the button carries it | `{book, text}` |
 | `add` | Draw a book, Add a book here | `{book, corners}` |
 | `delete` | Not a book, Delete this book | `{book}` |
 | `none-missed` | None missed | `{on}` |

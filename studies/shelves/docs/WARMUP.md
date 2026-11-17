@@ -124,7 +124,8 @@ ground truth). R7 scored 0.75 / 0.62 and differed from R8 on one photo alone, so
 One task, Books (`req/shelves/truth/task`): every book, found or added, its corners, turn and text set right or
 the book dropped, walked in the order the books stand (`inPlace` in `gt_actions.js`), then the missed ones added (the
 photo's right-click menu, or Draw a book), each one more book to review. Every change of the books is a GT action in the
-shell's log (`shell.gt`; `gt_actions.js`): a corner dropped, Flip, a title committed (one `set-text`, not one a key), Right, Not a book,
+shell's log (`shell.gt`; `gt_actions.js`): a corner dropped, Flip, a title committed (one `set-text`, not one a key), Right (one `approve`,
+carrying the title when one was typed and not yet committed: Enter or the button is one gesture), Not a book,
 a book added, None missed, and each answer of the reader landing on a book (`read`, which carries the answer). The find and its first
 reading are the log's `run`; the page draws the model it hands over. Save Draft and Load draft are the shell's; a draft kept before Edit
 History is offered once (`old_draft.js`). The ring Edit History draws is magenta (`groundTruth.ring`), the shell's yellow being the open

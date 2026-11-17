@@ -62,6 +62,21 @@ const tests = {
     assert.equal(book(o, 'b3').verdict, 'right');
     assert.deepEqual(S.run(o, act({ type: 'approve', book: 'b3' })), { skip: 'nothing to change' });
   },
+  'approve carrying a title sets it as typed and marks the book right in one action, undone whole'() {
+    const m = start(), o = S.run(m, act({ type: 'approve', book: 'b1', text: 'Dune' }));
+    assert.deepEqual([book(o, 'b1').text, book(o, 'b1').typed, book(o, 'b1').verdict], ['Dune', true, 'right']);
+    assert.deepEqual(S.run(o, act({ type: 'approve', book: 'b1', text: 'Dune' })), { skip: 'nothing to change' });
+    assert.equal(book(S.run(o, act({ type: 'approve', book: 'b1', text: 'Dune II' })), 'b1').text, 'Dune II', 'a book already right takes a title typed since');
+    assert.equal(book(S.run(m, act({ type: 'approve', book: 'b1', text: '' })), 'b1').text, '', 'a title cleared is a title typed');
+    assert.equal(S.describe(act({ type: 'approve', book: 'b1', text: 'Dune' }), 1), 'Approved a book: Dune');
+    assert.equal(S.describe(act({ type: 'approve', book: 'b1', text: 'Dune' }), 2), 'Approved 2 books');
+    const log = actionLog(S);
+    log.open({ name: 'shelf.png' }, 'shelves');
+    log.ran({ algorithm: { key: 'r9' }, output: output() });
+    log.act(act({ type: 'approve', book: 'b1', text: 'Dune' }));
+    log.undo();
+    assert.deepEqual([book(log.model, 'b1').text, book(log.model, 'b1').typed, book(log.model, 'b1').verdict], ['Title 1', false, null]);
+  },
   'add makes a book of the tagger\'s own kind of id, missed, undecided, and takes back none missed'() {
     let m = S.run(start(), act({ type: 'none-missed', on: true }));
     assert.equal(m.noneMissed, true);

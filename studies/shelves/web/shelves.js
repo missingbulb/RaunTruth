@@ -125,6 +125,11 @@ export function mount(shell) {
     quiet = true;
     try { act({ type: "set-text", book: id, text: value }); } finally { quiet = false; }
   }
+  // Right pressed with the pointer takes the field's focus before its click lands: the title typed waits for that click,
+  // and goes with the verdict as one GT action; let go anywhere else, it is committed as the field left is
+  let rightDown = false;
+  const released = (e) => { if (!rightDown) return; rightDown = false; if (!e.target.closest?.('.bs-item [data-do="right"]')) commitTitle(); };
+  document.addEventListener("pointerup", released, here); document.addEventListener("pointercancel", released, here);
   shell.gt.on((m, why) => {
     books = m ? m.books : [];
     if (m) found = true;
@@ -342,8 +347,10 @@ export function mount(shell) {
   function verdict(v) {
     if (!curId) return;
     if (v === "wrong") return remove(curId);
-    commitTitle();
-    act({ type: "approve", book: curId });
+    // the title typed and not yet committed goes with the approval
+    const b = byId(curId), typed = pending?.id === curId && pending.value !== b.text ? { text: pending.value } : {};
+    pending = null;
+    act({ type: "approve", book: curId, ...typed });
     next();
   }
   function tasks(rebuild = true) {
@@ -396,10 +403,11 @@ export function mount(shell) {
     box.querySelector(".bs-confirm").hidden = asked !== b.id;
     const t = box.querySelector("input"); t.value = pending?.id === b.id ? pending.value : b.text || "";
     t.oninput = () => { pending = { id: b.id, value: t.value }; asked = null; box.querySelector(".bs-confirm").hidden = true; };
-    t.onblur = commitTitle;
+    t.onblur = () => { if (!rightDown) commitTitle(); };
     for (const v of ["right", "wrong"]) {
       const k = box.querySelector(`[data-do="${v}"]`);
       k.setAttribute("aria-pressed", String(b.verdict === v)); k.onclick = () => verdict(v);
+      if (v === "right") k.onpointerdown = () => { rightDown = true; };
     }
     box.querySelector('[data-do="next"]').onclick = () => step(1);
     box.querySelector('[data-do="back"]').onclick = () => step(-1);

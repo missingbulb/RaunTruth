@@ -271,15 +271,38 @@ try {
   check(await unsaved(page) === 1, "a title typed is no GT action a key: nothing is recorded while the field is typed in", await history(page));
   await page.keyboard.press("Enter");
   check((await rowsOf(page))[0] === "2/3 Books" && await valueOf(page) === "Title 180x180", "Enter on a title typed approves it at once", await rowsOf(page));
-  check((await history(page)).slice(0, 3).join() === "Approved a book,Set a title: Dune,Approved a book",
-    "Enter committed the title as one GT action, then the verdict", await history(page));
+  check(await unsaved(page) === 2 && (await history(page)).slice(0, 2).join() === "Approved 2 books,Algorithm ran: 3 books",
+    "Enter on a title typed is one GT action, the approval carrying the title: no title set apart from it", await history(page));
+  await page.click("#eh-list .eh-fold");
+  check((await history(page)).slice(0, 3).join() === "Approved 2 books,Approved a book: Dune,Approved a book", "and Edit History's row names the title it carried", await history(page));
+  await page.click("#eh-list .eh-fold");
+  await page.click("#gt-undo");
+  await page.keyboard.press("Alt+ArrowLeft");
+  check((await rowsOf(page))[0] === "1/3 Books" && await valueOf(page) === "Title 240x35" && await unsaved(page) === 1,
+    "Undo takes the verdict and the title back together", [await rowsOf(page), await valueOf(page), await unsaved(page)]);
+  await page.click("#gt-redo");
+  await page.keyboard.press("Alt+ArrowRight");
+  check((await rowsOf(page))[0] === "2/3 Books" && await unsaved(page) === 2, "and Redo brings both back", [await rowsOf(page), await unsaved(page)]);
   await page.keyboard.press("Alt+ArrowLeft");
   check(await valueOf(page) === "Dune", "Alt+← is Back", await valueOf(page));
   await page.fill(".bs-item input", "Dune II");
-  check(await unsaved(page) === 3, "a title filled in is still no GT action", await history(page));
+  check(await unsaved(page) === 2, "a title filled in is still no GT action", await history(page));
   await page.keyboard.press("Alt+ArrowRight");
-  check(await unsaved(page) === 4 && (await history(page))[0] === "Set a title: Dune II", "going to another book commits the title: one GT action", await history(page));
+  check(await unsaved(page) === 3 && (await history(page))[0] === "Set a title: Dune II", "going to another book commits the title: one GT action", await history(page));
   await page.keyboard.press("Alt+ArrowLeft");
+  await page.fill(".bs-item input", "Dune III");
+  await page.click('.bs-item [data-do="right"]');
+  check(await unsaved(page) === 4 && (await history(page))[0] === "Approved a book: Dune III" && await valueOf(page) === "Title 180x180",
+    "Right pressed on a title typed is one GT action too: the field left for the button sets no title apart from it", [await history(page), await valueOf(page)]);
+  await page.keyboard.press("Alt+ArrowLeft");
+  check(await valueOf(page) === "Dune III", "the title it carried is the book's", await valueOf(page));
+  await page.fill(".bs-item input", "Dune IV");
+  {
+    const r = await page.$eval('.bs-item [data-do="right"]', (b) => { const q = b.getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2]; });
+    await page.mouse.move(...r); await page.mouse.down(); await page.mouse.move(r[0], r[1] + 200, { steps: 3 }); await page.mouse.up();
+  }
+  check(await unsaved(page) === 5 && (await history(page))[0] === "Set a title: Dune IV" && await valueOf(page) === "Dune IV",
+    "Right pressed and let go off the button approves nothing: the title is committed as the field left is", [await history(page), await valueOf(page)]);
   await page.keyboard.down("Alt"); await page.keyboard.down("ArrowRight"); await page.keyboard.down("ArrowRight"); await page.keyboard.up("ArrowRight"); await page.keyboard.up("Alt");
   check(await valueOf(page) === "Title 180x180", "Alt+→ is Next, and held down it moves one book", await valueOf(page));
   const reads0 = await page.evaluate(() => tess.reads);
@@ -450,8 +473,8 @@ try {
   const kinds = gt.doc.history.actions.map((a) => a.type);
   check(gt.doc.history.replay === "verified" && kinds[0] === "open" && kinds[1] === "run" && kinds.includes("move-corners") && kinds.includes("flip") && kinds.includes("add") && kinds.includes("delete")
     && kinds.includes("none-missed") && kinds.includes("read") && !kinds.includes("set-text-per-key"), "the file's history replays to it, every GT action in order", kinds);
-  const typedOnce = gt.doc.history.actions.filter((a) => a.type === "set-text" && a.text.startsWith("הארי"));
-  check(typedOnce.length === 1, "the Hebrew title filled in is one set-text, whatever the keys it took", typedOnce.length);
+  const typedOnce = gt.doc.history.actions.filter((a) => a.text?.startsWith("הארי"));
+  check(typedOnce.length === 1 && typedOnce[0].type === "approve", "the Hebrew title filled in and marked right is one GT action, whatever the keys it took", typedOnce);
   // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again
   await page.click("#gt-close");
   await page.click("#gt-save-draft");
