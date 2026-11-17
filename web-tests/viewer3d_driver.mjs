@@ -362,6 +362,14 @@ try {
     check(await page.isVisible("#edit-slices-sec") && await page.isHidden("#edit-crop") && await page.isVisible("#edit-lasso") && await page.isHidden("#edit-split-hint"),
       "Edit Image on a stack offers no Crop, which draws on a flat image, but has the Imperfections lasso");
     check(await page.isVisible("#v3-stage") && await page.isHidden("#stage"), "Edit Image keeps the stack in 3D");
+    // req/shell/ground-truth/history: the Edit History window's ring sits over the stack at its middle depth, and not in the flat layer
+    const ringed = await page.evaluate(([x, y]) => {
+      const v = window.shellForTests.viewer; v.ring([x - 4, y - 4, x + 4, y + 4]);
+      const el = document.querySelector("#v3-stage .v3-ring"), at = v.three.toScreen(x, y);
+      return { shown: !el.hidden, left: parseFloat(el.style.left), top: parseFloat(el.style.top), at, flat: !!document.querySelector('#overlay g[data-layer="ring"]') };
+    }, [40, 30]);
+    check(ringed.shown && !ringed.flat && Math.abs(ringed.left - ringed.at[0]) < 0.5 && Math.abs(ringed.top - ringed.at[1]) < 0.5, `in the 3D view a ring is placed where the stack's middle depth shows the box: ${JSON.stringify(ringed)}`);
+    check(await page.evaluate(() => { window.shellForTests.viewer.ring(null); return document.querySelector("#v3-stage .v3-ring").hidden; }), "and ring(null) takes it away");
     // req/shell/data/edit: a stack's lasso draws on it from straight above, held still, and leaves out what it encloses
     // through every slice
     await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0.4, -0.5); v.redraw(); });

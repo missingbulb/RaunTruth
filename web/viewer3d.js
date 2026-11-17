@@ -4,7 +4,8 @@
 // of the 3D view's own under them shows part of the depth and sets the spacing between slices. Each channel may be
 // coloured by depth instead of in its colour: an icon tick on its row, and its colour picker then a palette picker
 // (the channel's `depth`, a palette's key; a study's channels may set it, true taking a palette no other channel has).
-// The 2D view's Ruler measures here too, on the plane of the top slice shown.
+// The 2D view's Ruler measures here too, on the plane of the top slice shown. ring(box) rings a box of the image over the
+// stack at its middle depth, and never pans.
 // The study's `view` in study.json sets what the 3D view opens with: render ("brightest" | "surface") and the
 // spacing between slices when the file does not say, with who stated it (spacingSource).
 //
@@ -262,7 +263,10 @@ export function viewer3d(shell, flat) {
   }
   const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   rulerSvg.id = "v3-ruler";
-  stage.append(cv, hudCv, rulerSvg);
+  // the ring the Edit History window hovers, over the stage: a box of the image, [x0, y0, x1, y1], at the stack's middle depth
+  const ringEl = html("div", { className: "v3-ring", hidden: true });
+  let ringBox = null;
+  stage.append(cv, hudCv, rulerSvg, ringEl);
 
   // ---------- GL ----------
   function initGL() {
@@ -555,6 +559,7 @@ export function viewer3d(shell, flat) {
     flat.zoomWith(mode3d ? (k) => { S.dist = Math.min(Math.max(S.dist / k, MIN_DIST), 12); redraw(); } : null);
     rulerSet(false); flat.rulerWith(mode3d ? () => rulerSet(rulerBtn.getAttribute("aria-pressed") !== "true") : null);
     if (mode3d) $("#view").dataset.v3 = ""; else delete $("#view").dataset.v3;
+    if (ringBox) { flat.ring(mode3d ? null : ringBox); placeRing(); }
     redraw();
   }
 
@@ -690,9 +695,22 @@ export function viewer3d(shell, flat) {
     },
   };
 
+  function placeRing() {
+    const at = ringBox && mode3d ? three.toScreen((ringBox[0] + ringBox[2]) / 2, (ringBox[1] + ringBox[3]) / 2) : null;
+    ringEl.hidden = !at;
+    if (at) { ringEl.style.left = `${at[0]}px`; ringEl.style.top = `${at[1]}px`; }
+  }
+  drawers.push(placeRing);
+
   return {
     ...flat,
     three,
+    // rings a box of the image (viewer2d.js's ring): at the stack's middle depth while the stack is shown in 3D, with no pan
+    ring(box, opts) {
+      ringBox = box ? box.slice(0, 4) : null;
+      flat.ring(mode3d ? null : box, opts);
+      placeRing();
+    },
     // the shell says whether this is the viewer of the study on the page; the 3D parts go when it is not
     active(on) { active = on; panKey(on); placed(on); take(on ? page.get("image") : null); },
     get overlay() { return flat.overlay; }, get scroller() { return flat.scroller; },
