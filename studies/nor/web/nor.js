@@ -5,7 +5,7 @@
 // (web/shell.js), which hands it the services below.
 import "./peek.js";
 import * as N from "./gt_actions.js";
-import { oldMarks } from "./old_marks.js";
+import { oldMarks, OLD_KEYS } from "./old_marks.js";
 
 export function mount(shell) {
   const { $, status, busy, slow, until, readJSON, writeJSON, esc, saveFile } = shell, st = shell.state;
@@ -67,7 +67,17 @@ export function mount(shell) {
 
   // what each of the study's browser keys holds, for the shell's Manage storage dialog
   const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [SORT]: "Sort menus of the item views", [CARDS]: "Options menus of the item views" };
-  const stored = (key) => (SETTINGS[key] ? { group: "settings", what: SETTINGS[key] } : null);
+  // what the page kept per image before the tagger's work was GT actions (old_marks.js): listed, so it can be seen and deleted, for as
+  // long as a browser still holds it
+  function stored(key) {
+    if (SETTINGS[key]) return { group: "settings", what: SETTINGS[key] };
+    const [prefix, what, byFinder] = OLD_KEYS.find(([p]) => key.startsWith(p)) || [];
+    if (!prefix) return null;
+    const rest = key.slice(prefix.length), bar = rest.lastIndexOf("|");
+    return byFinder && bar >= 0
+      ? { group: "images", image: rest.slice(0, bar), what: `earlier ${what} (${rest.slice(bar + 1)})` }
+      : { group: "images", image: rest, what: `earlier ${what}` };
+  }
 
   // ---------- saved filter settings ----------
   const loadSaved = () => readJSON(STORE, { values: {}, off: [] });

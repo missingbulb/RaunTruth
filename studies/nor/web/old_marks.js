@@ -8,6 +8,8 @@
 import * as N from "./gt_actions.js";
 
 const MARKS = "nor-marks-v1:", EDITS = "nor-edits-v1:", ADDED = "nor-added-v1:", MISSING = "nor-missing-v1:", AREAS = "nor-areas-v1:";
+// each kind of key: its prefix, what it holds in a few words, and whether a finder's name ends it
+export const OLD_KEYS = [[MARKS, "keepers and removals", true], [EDITS, "measurements", true], [ADDED, "added NoRs"], [MISSING, "added NoRs"], [AREAS, "areas checked for missed NoRs"]];
 const LINES = ["length", "red", "width"];
 const isSegment = (s) => Array.isArray(s) && s.length === 2 && s.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite));
 const isLines = (L) => !!L && LINES.every((k) => isSegment(L[k]));
