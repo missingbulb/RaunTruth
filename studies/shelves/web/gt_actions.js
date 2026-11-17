@@ -62,6 +62,9 @@ export function document(model) {
     none_missed: model.noneMissed };
 }
 
+// the file of a photo on which no book is found: what the log starts from when a book is added before the finder has run
+export const blank = ({ image, W, H, reader }) => ({ image, W, H, reader: reader ?? null, books: [], none_missed: false });
+
 // the file read again; a file from before the books had ids lists the books marked right alone, and was submitted only
 // once none was missed
 export function load(doc) {

@@ -127,7 +127,8 @@ photo's right-click menu, or Draw a book), each one more book to review. Every c
 shell's log (`shell.gt`; `gt_actions.js`): a corner dropped, Flip, a title committed (one `set-text`, not one a key), Right (one `approve`,
 carrying the title when one was typed and not yet committed: Enter or the button is one gesture), Not a book,
 a book added, None missed, and each answer of the reader landing on a book (`read`, which carries the answer). The find and its first
-reading are the log's `run`; the page draws the model it hands over. Save Draft and Load draft are the shell's; a draft kept before Edit
+reading are the log's `run`; a book added before any find starts the log from a `base` with no book (`blank`), which a later find
+carries over. The page draws the model it hands over. Save Draft and Load draft are the shell's; a draft kept before Edit
 History is offered once (`old_draft.js`). The ring Edit History draws is magenta (`groundTruth.ring`), the shell's yellow being the open
 book's outline, guarded by `tests/test_ring_colour.mjs`. The approved books are cut out of the photo by
 the viewer (`viewer.doneMask`). The book's picture in the task is

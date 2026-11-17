@@ -2,7 +2,7 @@
 // cover) and the title read from it, and, while ground truth is made, one task that takes each book in turn, in the
 // order they stand, its corners, its turn and its text set right, and adds the books the finder missed.
 import { reader, rotate, READERS, MODELS, WORDS } from "./reading.js";
-import { clockwise, shape, inPlace, nextAdded } from "./gt_actions.js";
+import { clockwise, shape, inPlace, nextAdded, blank } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
 
 const CDN = "https://cdn.jsdelivr.net/npm/";
@@ -130,13 +130,22 @@ export function mount(shell) {
   let rightDown = false;
   const released = (e) => { if (!rightDown) return; rightDown = false; if (!e.target.closest?.('.bs-item [data-do="right"]')) commitTitle(); };
   document.addEventListener("pointerup", released, here); document.addEventListener("pointercancel", released, here);
+  // the log's first entry where no finder has run: the photo alone, with no book
+  let bare = false;
+  function rooted() {
+    if (shell.gt.model()) return true;
+    bare = true;
+    try { shell.gt.base(blank({ image: st.fileName, W: st.W, H: st.H, reader: choice.value }), { note: "the photo alone, before Find books" }); } finally { bare = false; }
+    legacy();
+    return !!shell.gt.model();
+  }
   shell.gt.on((m, why) => {
     books = m ? m.books : [];
     if (m) found = true;
     if (curId !== null && !byId(curId)) curId = null;
     if (why === "open") return;
     if (why !== "act" && why !== "run") { pending = null; asked = null; }
-    if (why === "load") {
+    if (why === "load" && !bare) {
       shell.step("find", true, `${books.length} books drafted`); shell.boxDone($("#bs-box"), `${books.length} books`);
       shell.step("read", true, `${books.filter((b) => b.text).length} of ${books.length} titles`);
     }
@@ -428,10 +437,9 @@ export function mount(shell) {
   function endDrawing() { drawing = null; $("#scroller").classList.remove("bs-drawing"); $("#bs-draw-hint").hidden = true; draw(); }
   // a book the finder missed: one more book on the photo, open now and read
   function added(corners) {
-    const m = shell.gt.model();
-    if (!m) { shell.status("Find books first, then add the ones it missed."); return; }
+    if (!rooted()) return;
     commitTitle();
-    const id = nextAdded(m);
+    const id = nextAdded(shell.gt.model());
     if (!act({ type: "add", book: id, corners })) return;
     show(id); reread(id);
   }

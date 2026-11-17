@@ -504,6 +504,24 @@ try {
   check(await page.evaluate(() => $("#gt-load-draft").hidden), "another photo has no draft to load", await offered(page));
   await page.context().close();
 
+  // a book added before Find books has run: the log starts from the photo alone, and Find books carries the book over
+  page = await open("tagger", KEPT);
+  await page.click("#tasks-box .sec-head h2");
+  await page.click("#gt-start");
+  await page.evaluate(() => document.activeViewTransition?.finished);
+  await page.mouse.click(...(await toScreenOf(page, 350, 150)), { button: "right" });
+  await page.click('#bs-menu [data-do="add"]');
+  await page.waitForFunction(() => $(".bs-item input")?.value && $("#status").textContent === "Book read again.");
+  check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books", "a book is added on a photo where no book was found yet", [await books(page), await rowsOf(page)]);
+  check((await history(page)).join() === "Read a title again,Added a missed book,Ground truth from the photo alone, before Find books, no history,Image opened" && await unsaved(page) === 2,
+    "the log starts from the photo alone, the book added and its reading the first GT actions", [await history(page), await unsaved(page)]);
+  check(!(await page.evaluate(() => [...document.querySelectorAll("[data-help]")].some((e) => /drafted/.test(e.dataset.help)))), "and no step says books were drafted");
+  await page.click("#bs-find");
+  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  check((await books(page)).length === 4 && (await rowsOf(page))[0] === "0/4 Books" && (await history(page))[0] === "Algorithm ran: 3 books" && !(await history(page)).some((h) => /carry over/.test(h)),
+    "Find books then keeps the book added beside the three it finds", [await books(page), await rowsOf(page), await history(page)]);
+  await page.context().close();
+
   // a draft kept before Edit History, under its own key: offered once after Find books, as a base, and forgotten once a draft holds it
   page = await open("tagger", KEPT);
   const key = await page.evaluate(() => "gt-draft|shelves|" + st.fileName + "|" + st.sha);

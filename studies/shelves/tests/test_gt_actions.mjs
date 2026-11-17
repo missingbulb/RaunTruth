@@ -77,6 +77,22 @@ const tests = {
     log.undo();
     assert.deepEqual([book(log.model, 'b1').text, book(log.model, 'b1').typed, book(log.model, 'b1').verdict], ['Title 1', false, null]);
   },
+  'a photo with no book found is a model: books are added to it, and carried over when the finder runs'() {
+    const none = S.blank({ image: 'shelf.png', W: 400, H: 300, reader: 'lines' });
+    assert.deepEqual(none, { image: 'shelf.png', W: 400, H: 300, reader: 'lines', books: [], none_missed: false });
+    assert.deepEqual(doc(S.load(none)), none);
+    const log = actionLog(S);
+    log.open({ name: 'shelf.png' }, 'shelves');
+    log.load([...log.actions, { type: 'base', at: DAY, model: none, from: { note: 'the photo alone, before Find books' } }]);
+    assert.equal(S.nextAdded(log.model), 'u1');
+    assert.ok(log.act(act({ type: 'add', book: 'u1', corners: rect(330, 60, 380, 280) })).model);
+    log.ran({ algorithm: { key: 'r9' }, output: output() });
+    assert.deepEqual(log.model.books.map((b) => b.id).sort(), ['b1', 'b2', 'b3', 'u1']);
+    assert.equal(log.skipped.size, 0);
+    assert.equal(S.nextAdded(log.model), 'u2');
+    log.undo();
+    assert.deepEqual(log.model.books.map((b) => b.id), ['u1'], 'Undo takes the finder\'s run back, the book added kept');
+  },
   'add makes a book of the tagger\'s own kind of id, missed, undecided, and takes back none missed'() {
     let m = S.run(start(), act({ type: 'none-missed', on: true }));
     assert.equal(m.noneMissed, true);

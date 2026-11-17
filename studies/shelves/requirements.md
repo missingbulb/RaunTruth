@@ -191,7 +191,8 @@ read for a title matcher; matching the titles is not part of it.
     book or Delete this book, a book added, None missed, and each answer of the reader landing on a book, which
     carries the answer and is never read again when the history is replayed. Right on a title typed and not yet
     committed, by Enter or by its button, is one action, the approval carrying the title: Undo takes the verdict and
-    the title back together. Save Draft keeps them and
+    the title back together. A book may be added before Find books has run: the log then starts from the photo
+    alone, with no book, and the books added are carried over when Find books runs. Save Draft keeps them and
     Load draft brings them back (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`); a draft
     kept before Edit History is offered once (`req/shell/ground-truth/legacy`).
   - The file lists every book with its id and its verdict (right, or none while it is not decided), in the walk's
