@@ -84,7 +84,7 @@ try {
   check(NAMES.every((n) => whole.text.includes(n)) && whole.s.junctions > 0 && whole.s.volumeFraction > 0 && whole.s.nearest.n > 0,
     `Summary gives the eight numbers over the whole field: ${whole.s.junctions} junctions, ${(100 * whole.s.volumeFraction).toFixed(2)}% vessel`);
   await page.click("#mask-add");
-  check(await page.evaluate(() => window.vascular.summary().lassoing && !$("#mask-hint").hidden), "Add mask arms a lasso on the stack from straight above");
+  check(await page.evaluate(() => $("#v3-stage").classList.contains("lassoing") && !$("#lasso-hint").hidden), "Add mask arms the shell's lasso on the stack from straight above");
   // the left half of the field, lassoed by dragging on the view
   const corners = await page.evaluate(() => {
     const T = window.shellForTests.viewer.three, r = T.stage.getBoundingClientRect(), { W: w, H: h } = window.shellForTests.page.get("image");
@@ -102,10 +102,18 @@ try {
   check(Math.abs(half.s.tissueMm3 / whole.s.tissueMm3 - 0.5) < 0.05 && half.s.junctions < whole.s.junctions && /inside the mask/.test(half.text) && !(await page.evaluate(() => $("#mask-clear").hidden)),
     `the summary counts only inside the mask: tissue ×${(half.s.tissueMm3 / whole.s.tissueMm3).toFixed(2)}, ${whole.s.junctions} → ${half.s.junctions} junctions`);
   // the border drawn where the lasso went: its corners where the drag turned them
-  const border = await page.evaluate(() => { const r = $("#vm-stage, #v3-stage").getBoundingClientRect(), b = $("#vm-mask path.edge:not(.under)")?.getBBox();
+  const border = await page.evaluate(() => { const r = $("#v3-stage").getBoundingClientRect(), b = $("#mask-3d .mask-marks path.edge:not(.under)")?.getBBox();
     return b && [r.left + b.x, r.top + b.y, r.left + b.x + b.width, r.top + b.y + b.height]; });
   check(!!border && [border[0] - corners[0][0], border[1] - corners[0][1], border[2] - corners[2][0], border[3] - corners[2][1]].every((d) => Math.abs(d) < 3),
     `the mask's border shows over the view where it was lassoed: ${JSON.stringify(border)} for ${JSON.stringify([corners[0], corners[2]])}`);
+  // req/shell/summary/download: the numbers inside the mask, saved through the shell's Download Summary
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#summary-dl")]);
+  const csv = fs.readFileSync(await dl.path(), "utf8").trim().split("\n").map((r) => r.split(","));
+  const row = (name) => csv.find((r) => r[3] === name);
+  const jn = row("Junctions"), nearest = row("Nearest-vessel distance");
+  check(dl.suggestedFilename() === model.source.replace(/\.tiff?$/, "") + "_summary.csv" && csv.length === 13 && csv[1][2] === "a mask of 1 area"
+    && +jn?.[5] === half.s.junctions && +nearest?.[6] === half.s.nearest.n && nearest?.[5] === "",
+    `Download Summary saves the twelve rows inside the mask: ${dl.suggestedFilename()}, ${csv.length - 1} rows, junctions ${jn?.[5]}, nearest n ${nearest?.[6]}`);
   await page.click("#mask-clear");
   await page.waitForFunction((t) => window.vascular.summary().summary?.tissueMm3 === t, whole.s.tissueMm3);
   check(true, "Clear mask counts the whole field again");

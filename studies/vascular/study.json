@@ -4,6 +4,7 @@
   "description": "Cerebral vessels in CD31 confocal z-stacks, traced, counted by branch and measured by length.",
   "visibility": "listed",
   "stage": "GT",
+  "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [

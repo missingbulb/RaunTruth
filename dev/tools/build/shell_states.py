@@ -96,13 +96,13 @@ def check_rules(rules, tree, roots, paths):
 
 def facts(study):
     """What the study itself says, from its study.json and its panels: whether it opens images from the computer,
-    has steps of its own after Load, has an item view not marked shelved, never shown (req/shell/views/second), and
-    shows a z-stack in 3D (req/shell/viewer-3d)."""
+    has steps of its own after Load, has an item view not marked shelved, never shown (req/shell/views/second),
+    shows a z-stack in 3D (req/shell/viewer-3d), and offers the summary's mask (req/shell/summary/mask)."""
     d = study['study']
     view = re.search(r'<[^>]*\bid="items-view"[^>]*>', study.get('panels', ''))
     shelved = bool(view) and re.search(r'\sdata-shelved[\s>=]', view.group(0)) is not None
     return {'fromComputer': 'local' in d['files']['from'], 'hasSteps': bool(d['phases']), 'itemView': bool(view) and not shelved,
-            'shows3d': d.get('viewer') == 'image3d'}
+            'shows3d': d.get('viewer') == 'image3d', 'masks': (d.get('summary') or {}).get('mask') is True}
 
 
 def walk(study, roots, paths):

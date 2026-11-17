@@ -18,7 +18,8 @@
     "notice": [false, true],
     "imageFits": [true, false],
     "imageLarge": [false, true],
-    "shows3d": [false, true]
+    "shows3d": [false, true],
+    "masks": [false, true]
   },
   "roots": {
     "GT, signed out": {"stage": "GT", "signedIn": false, "role": "viewer"},
@@ -356,6 +357,26 @@
                 {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+              ],
+              "children": [
+                {"name": "Mask buttons", "select": "#mask-row", "req": "req/shell/summary/mask",
+                  "rule": [
+                    {"when": {"masks": [false]}, "is": "hidden"}
+                  ],
+                  "children": [
+                    {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/shell/summary/mask"},
+                    {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/shell/summary/mask", "steady": "shows only once a mask is drawn, which no path lassos",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    }
+                  ]
+                },
+                {"name": "Download Summary", "select": "#summary-dl", "control": true, "req": "req/shell/summary/download",
+                  "rule": [
+                    {"is": "shown", "approval": "undecided"}
+                  ]
+                }
               ]
             }
           ]
@@ -415,6 +436,11 @@
             {"name": "Zoom", "select": "#zoom-label", "req": "req/shell/image/minimap",
               "rule": [
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"}
+              ]
+            },
+            {"name": "Lasso hint", "select": "#lasso-hint", "req": "req/shell/summary/mask", "steady": "shows only while a mask is being lassoed, which no path does",
+              "rule": [
+                {"is": "hidden"}
               ]
             },
             {"name": "Busy", "select": "#busy", "req": "req/shell/waiting/visible", "unwalked": "shows only while the study works, and the walk reads the page once it has settled",

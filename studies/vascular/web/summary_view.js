@@ -1,95 +1,33 @@
-// The Summary box: what the vessel model adds up to over the tissue a mask outlines (summary.js), and the mask itself,
-// areas lassoed on the stack seen from straight above, each running through every slice, combined by exclusive or.
+// The Summary box: what the vessel model adds up to over the tissue the shell's mask outlines (summary.js); the mask is
+// lassoed on the stack seen from straight above and runs through every slice (req/shell/summary/mask).
 import { summarize, nearestVessel } from './summary.js';
 
-const MASK = 'vascular-mask-v1:'; // + file name: [[[x, y]...]...], the lassoed areas in µm from the image's top left
-const read = (k) => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } };
-const write = (k, v) => { try { if (v.length) localStorage.setItem(k, JSON.stringify(v)); else localStorage.removeItem(k); } catch { /* no storage: the mask lasts for this page */ } };
-const svgEl = (tag, attrs) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
 const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
 
-let V, shell, model = () => null, mask = [], name = null, lasso = null, over = null, timer = 0, last = null;
+let V, shell, model = () => null, mask = [], timer = 0, last = null;
 const $ = (id) => document.getElementById(id);
-// µm per pixel of the image open, the pixels the view's pointer reads
-const pxUm = () => shell.page.get('image')?.um || 1;
 
 export function init(view, sh, current) {
   V = view; shell = sh; model = current;
-  $('mask-add').onclick = start;
-  $('mask-clear').onclick = () => set([]);
-  over = svgEl('svg', { id: 'vm-mask' });
-  V.stage.append(over);
-  V.onDraw(draw, shell.signal);
   V.onSpacing(later, shell.signal);
-  addEventListener('pointerdown', down, { capture: true, signal: shell.signal });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lasso) end(); }, { signal: shell.signal });
-  shell.signal.addEventListener('abort', () => over.remove());
+  // the shell's outlines are in the image's pixels; the model's, in µm
+  const read = () => { const um = shell.page.get('image')?.um || 1; mask = shell.mask.polygons().map((p) => p.map(([x, y]) => [x * um, y * um])); later(); };
+  shell.mask.on(read, shell.signal);
+  read();
 }
 
-// a stack opened: its own mask, as this browser last kept it
-export function opened(fileName) { end(); name = fileName; mask = read(MASK + name); last = null; changed(); }
-export function changed() { $('mask-add').disabled = !model(); $('mask-clear').hidden = !mask.length; draw(); later(); }
-export const inspect = () => ({ mask, summary: last, lassoing: !!lasso });
-
-function set(next) { mask = next; if (name) write(MASK + name, mask); changed(); }
-
-// Add mask: the stack from straight above, the view held still, then a lasso drawn by dragging; Esc draws nothing
-function start() {
-  if (!model()) return;
-  lasso = { was: { rot: V.S.rot, held: V.S.held }, pts: null };
-  Object.assign(V.S, { rot: V.facing(0, 0), held: true });
-  V.stage.classList.add('lassoing'); $('mask-hint').hidden = false;
-  V.redraw();
-}
-function end() {
-  if (!lasso) return;
-  Object.assign(V.S, lasso.was); lasso = null;
-  V.stage.classList.remove('lassoing'); $('mask-hint').hidden = true;
-  V.redraw();
-}
-function down(e) {
-  if (!lasso || e.button !== 0 || !e.target.closest('#v3-stage')) return;
-  const at = V.toImage(e); if (!at) return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  lasso.pts = [at.map((v) => v * pxUm())];
-  shell.drag(V.stage, e, {
-    move(ev) { ev.stopImmediatePropagation(); const p = V.toImage(ev); if (p && lasso) { lasso.pts.push(p.map((v) => Math.round(v * pxUm() * 100) / 100)); draw(); } },
-    drop(ev) {
-      ev?.stopImmediatePropagation?.();
-      const m = model(), pts = lasso?.pts || [];
-      end();
-      if (!m || pts.length < 3) return draw();
-      const W = m.size_px[0] * m.um_per_px, H = m.size_px[1] * m.um_per_px, cl = pts.map(([x, y]) => [Math.min(Math.max(x, 0), W), Math.min(Math.max(y, 0), H)]);
-      const area = Math.abs(cl.reduce((a, [x, y], i) => { const [p, q] = cl[(i + 1) % cl.length]; return a + x * q - p * y; }, 0)) / 2;
-      // a lasso smaller than a capillary's footprint is a slip, not an area
-      if (area >= 25) set([...mask, cl]); else draw();
-    },
-    cancel: end,
-  });
-}
-
-// the mask's borders over the 3D view, following it as it turns and zooms, and the lasso being drawn
-function draw() {
-  if (!over) return;
-  over.replaceChildren();
-  const shape = (cls, pts, closed) => {
-    const q = pts.map(([x, y]) => V.toScreen(x / pxUm(), y / pxUm()));
-    if (!q.every(Boolean)) return;
-    const d = 'M' + q.map((v) => v.join(' ')).join('L') + (closed ? 'Z' : '');
-    over.append(svgEl('path', { class: cls + ' under', d }), svgEl('path', { class: cls, d }));
-  };
-  if (model()) for (const p of mask) shape('edge', p, true);
-  if (lasso?.pts) shape('live', lasso.pts, false);
-}
+export function changed() { later(); }
+export const inspect = () => ({ mask, summary: last });
 
 // ---------- the numbers, once a frame however many changes come in it ----------
 function later() { if (!timer) timer = requestAnimationFrame(() => { timer = 0; render(); }); }
 function render() {
   const m = model(), box = $('vm-summary');
-  if (!m) { last = null; box.replaceChildren(); return; }
+  if (!m) { last = null; box.replaceChildren(); shell.summary.set(null); return; }
   const s = { ...summarize(m, { mask, zStepUm: V.S.zs }), nearest: nearestVessel(m, { mask, zStepUm: V.S.zs }) };
   last = { ...s, branchLength: strip(s.branchLength), diameter: strip(s.diameter), tortuosity: strip(s.tortuosity), nearest: strip(s.nearest), masked: mask.length };
   const where = mask.length ? `inside the mask (${mask.length} area${mask.length === 1 ? '' : 's'})` : 'over the whole field';
+  shell.summary.set({ over: `${mask.length ? `a mask of ${mask.length} area${mask.length === 1 ? '' : 's'}` : 'the whole field'}${m.excluded_regions?.length ? ', damaged areas left out' : ''}`, rows: rows(s) });
   const dmg = m.excluded_regions?.length ? ', damaged areas left out' : '';
   box.innerHTML = `<p class="note">Confirmed vessels ${where}${dmg}: ${fmt(s.tissueMm3 * 1e9 / 1e6, 2)} × 10⁶ µm³ of tissue, all ${m.slices} slices at ${fmt(V.S.zs, 2)} µm.</p>
     <dl class="vm-metrics">
@@ -102,6 +40,22 @@ function render() {
     <div class="hists">${hist('Mean branch length, µm', s.branchLength)}${hist('Vessel diameter, µm', s.diameter)}${hist('Vessel tortuosity (length ÷ end-to-end)', s.tortuosity, 2)}${hist(`Nearest-vessel distance, µm, from tissue points ${fmt(s.nearest.spacingUm)} µm apart`, s.nearest)}</div>`;
 }
 const strip = ({ v: _v, ...rest }) => rest;
+// the summary as the shell's Download Summary saves it: a row per measurement, a distribution with its statistics
+const dist = (measurement, unit, st) => ({ measurement, unit, n: st.n, mean: st.mean, sd: st.sd, median: st.med, min: st.min, max: st.max });
+const rows = (s) => [
+  { measurement: 'Tissue volume', unit: 'mm³', value: s.tissueMm3 },
+  { measurement: 'Vascular volume fraction', unit: '%', value: 100 * s.volumeFraction },
+  { measurement: 'Vessel length density', unit: 'mm/mm³', value: s.lengthDensity },
+  { measurement: 'Vessel length', unit: 'µm', value: s.lengthUm },
+  { measurement: 'Branch point density', unit: 'per mm³', value: s.branchPointDensity },
+  { measurement: 'Junctions', unit: 'count', value: s.junctions },
+  { measurement: 'Branch density', unit: 'per mm³', value: s.branchDensity },
+  { measurement: 'Branches', unit: 'count', value: s.branches },
+  dist('Branch length, junction to junction', 'µm', s.branchLength),
+  dist('Vessel diameter', 'µm', s.diameter),
+  dist('Vessel tortuosity', 'length ÷ end-to-end', s.tortuosity),
+  dist('Nearest-vessel distance', 'µm', s.nearest),
+];
 
 // a histogram with a count axis, the mean as a line and one SD either side of it as a band
 function hist(label, s, d = 1) {

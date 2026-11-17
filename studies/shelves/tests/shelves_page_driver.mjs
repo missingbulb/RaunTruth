@@ -139,6 +139,37 @@ try {
     && m3.view === "cover" && m2.corners.length === 4 && m.doc.W === W,
   "Download for the matcher saves each book's id, view, text, confidence, reader and corners", m);
 
+  // req/shelves/summary: how many books, and each one's text, saved through the shell's Download Summary
+  const csv = async () => { const [d] = await Promise.all([page.waitForEvent("download"), page.click("#summary-dl")]);
+    // a cell is quoted when it holds a comma, a quote doubled inside it
+    const cells = (r) => [...r.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map(([, c]) => (c.startsWith('"') ? c.slice(1, -1).replace(/""/g, '"') : c));
+    return fs.readFileSync(await d.path(), "utf8").trim().split("\n").slice(1).map(cells); };
+  const count = () => page.textContent("#bs-count");
+  let summaryRows = await csv();
+  check((await count()) === "3 books: 2 spines, 1 covers." && summaryRows[0][3] === "Books" && summaryRows[0][5] === "3" && summaryRows.length === 6
+    && summaryRows[3][3] === "Book 1 (spine)" && summaryRows[3][5] === "Title 240x35", "Summary counts the books and the CSV lists each one's text", [await count(), summaryRows]);
+  // req/shell/summary/mask: a lasso over part of the first book alone keeps that book and no other
+  const first = await page.evaluate(() => {
+    const q = document.querySelector('#overlay g[data-layer="bs"] g.bs-book polygon.over').getAttribute("points").split(" ").map((v) => v.split(",").map(Number));
+    const r = $("#base").getBoundingClientRect(), xs = q.map((p) => p[0]), ys = q.map((p) => p[1]);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    // the box's left half, a little wider than the box at its top and bottom: partly inside, partly out
+    const at = (x, y) => [r.left + x * st.zoom, r.top + y * st.zoom];
+    return [at(x0 - 4, y0 + 4), at((x0 + x1) / 2, y0 + 4), at((x0 + x1) / 2, y1 - 4), at(x0 - 4, y1 - 4)];
+  });
+  await page.click("#mask-add");
+  await page.mouse.move(...first[0]); await page.mouse.down();
+  for (const p of [...first.slice(1), first[0]]) await page.mouse.move(...p, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForFunction(() => /inside the mask/.test($("#bs-count").textContent));
+  summaryRows = await csv();
+  const inside = await saved(page, "#bs-export");
+  check((await count()) === "1 book inside the mask: 1 spines, 0 covers." && await page.$$eval("#bs-list li", (l) => l.map((x) => x.value).join()) === "1"
+    && summaryRows[0][5] === "1" && /books partly inside counted/.test(summaryRows[0][2]) && inside.doc.books.map((b) => b.id).join() === "1",
+  "with a mask over part of the first book, the summary, its CSV and the matcher's file hold that book alone", [await count(), summaryRows, inside.doc.books.map((b) => b.id)]);
+  await page.click("#mask-clear");
+  check((await count()) === "3 books: 2 spines, 1 covers.", "Clear mask counts every book again", await count());
+
   // req/shelves/books/versions: the finders offered, the text-guided one first, the edge-only one finding without the
   // text finder
   const listed = await page.$$eval("#algorithm option", (o) => o.map((x) => [x.value, x.textContent]));

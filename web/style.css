@@ -1024,3 +1024,29 @@ html:not(.offline) #welcome-offline { display: none; }
 #drag-hint { position: fixed; left: 50%; bottom: calc(1cm + 12px); transform: translateX(-50%); z-index: 20; pointer-events: none;
   padding: 4px 12px; font-size: 12px; color: var(--text); background: var(--tipbg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
 #drag-hint[hidden] { display: none; }
+
+/* Download Summary, at the Summary box's foot (req/shell/summary/download) */
+.summary-dl-row { display: flex; margin-top: 10px; }
+.summary-dl-row:has(> [hidden]) { display: none; }
+#summary-dl { padding: 3px 10px; font-size: 12px; }
+#summary-dl[hidden] { display: none; }
+
+/* the summary's mask (req/shell/summary/mask): its borders as a pulsing dashed line, its inside tinted only when areas
+   overlap or nest, and the lasso as it is drawn; over a stack in 3D, an overlay following the view */
+.mask-btns { display: flex; gap: 6px; margin-bottom: 10px; }
+.mask-btns button { padding: 3px 10px; font-size: 12px; }
+.mask-btns[hidden], .mask-btns button[hidden] { display: none; }
+#overlay .mask-marks, #mask-3d { pointer-events: none; }
+.mask-marks .edge { fill: none; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke;
+  animation: mask-pulse 1.6s ease-in-out infinite alternate; }
+.mask-marks .edge.under { stroke: #000; stroke-dasharray: none; stroke-width: 2.5; stroke-opacity: .5; animation: none; }
+.mask-marks .fill { fill: #fff; fill-opacity: .07; stroke: none; }
+@keyframes mask-pulse { from { stroke-opacity: 1; } to { stroke-opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .mask-marks .edge { animation-duration: 6s; } }
+.lasso-live { fill: #ffffff14; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+#mask-3d .lasso-live { fill: none; }
+#mask-3d { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; overflow: visible; }
+#scroller.lassoing, #scroller.lassoing *, #v3-stage.lassoing, #v3-stage.lassoing * { cursor: crosshair; }
+#lasso-hint { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 5px 14px; border-radius: 999px;
+  background: var(--shade); border: 1px solid var(--line); font-weight: 600; font-size: 13px; pointer-events: none; }
+#lasso-hint[hidden] { display: none; }
