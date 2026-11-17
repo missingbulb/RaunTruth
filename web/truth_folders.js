@@ -37,6 +37,13 @@ export async function files(reader, folder, image) {
   return sub ? (await reader.all(sub.id)).filter((f) => !f.folder && FILE.test(f.name)).map(entry) : [];
 }
 
+// the tagger's own file for the image in folder, as files() lists it, or null: found from the folder's listing and the image's
+// subfolder's, two in all, and no file read
+export async function own(reader, folder, image, email) {
+  const mine = taggerFile(email);
+  return (await files(reader, folder, image)).find((f) => f.name === mine) || null;
+}
+
 // {id, name, doc} the image's ground truth in folder as a reader takes it: the file with the latest `created` that
 // is not rejected; null when there is none. A file that does not read as ground truth is passed over.
 export async function current(reader, folder, image) {
