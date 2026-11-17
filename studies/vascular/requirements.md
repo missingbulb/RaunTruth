@@ -53,7 +53,8 @@ owner's decisions on the stacks and the vessel model, are
   action in the shell's log (`req/shell/ground-truth/history`): a point dragged is one action at its drop, and Escape leaves
   the model as it was; a tagger undoes, redoes and saves them with the shell's Undo, Redo and Save Draft, and Clear all
   history goes back to the algorithm's model, or to the earlier edits once they were loaded. Edits made earlier in this
-  browser under the study's own key are offered once as a draft (`req/shell/ground-truth/legacy`). The ring Edit History draws
+  browser under the study's own key are offered once as a draft (`req/shell/ground-truth/legacy`). A tip dropped where
+  it cannot attach, on its own vessel's next point, has only moved, and its action says so. The ring Edit History draws
   round an action's item is green (`groundTruth.ring`), not the shell's yellow: the depth palettes pass through yellow
   and the model's knots and set widths are amber, and green is the colour furthest from every palette and every colour
   the model is drawn in. Test: `studies/vascular/tests/test_model_page.py`,

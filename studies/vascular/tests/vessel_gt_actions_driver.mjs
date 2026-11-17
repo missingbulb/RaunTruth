@@ -94,6 +94,30 @@ try {
   check(ringed.in3d && ringed.colour === "rgb(0, 255, 0)" && ringed.off < 6, `the row's ring is drawn over the stack round the point moved, in the study's green: ${JSON.stringify(ringed)}`);
   await page.mouse.move(cv[0] + 5, cv[1] + 5);
 
+  // a tip dropped on the next point of its own vessel cannot attach there: it has only moved, and the log says so
+  const tipOf = await page.evaluate(([W, H]) => {
+    const { model, points, kinds, at } = window.vascular.model(), r = $("#mcv").getBoundingClientRect();
+    const inArea = (id) => at[id].x > W * 0.05 && at[id].x < W * 0.45 && at[id].y > H * 0.05 && at[id].y < H * 0.45;
+    const inView = (p) => p && p[0] > 20 && p[1] > 20 && p[0] < r.width - 20 && p[1] < r.height - 20;
+    const deg = new Map();
+    for (const e of model.edges) for (const id of [e.a, e.b]) deg.set(id, (deg.get(id) || 0) + 1);
+    for (const e of model.edges) for (const [tip, next] of [[e.a, e.via[0]?.id ?? e.b], [e.b, e.via.at(-1)?.id ?? e.a]]) {
+      const p = points[tip], q = points[next];
+      if (deg.get(tip) === 1 && e.state !== "rejected" && inArea(tip) && inArea(next) && inView(p) && inView(q) && Math.hypot(p[0] - q[0], p[1] - q[1]) > 12) return { tip, next, p, q, kinds: [kinds[tip], kinds[next]] };
+    }
+    return null;
+  }, [W, H]);
+  check(!!tipOf, `a tip with the next point of its vessel in view: ${JSON.stringify(tipOf)}`);
+  if (tipOf) {
+    const had = await count();
+    await page.mouse.move(cv[0] + tipOf.p[0], cv[1] + tipOf.p[1]); await page.mouse.down();
+    await page.mouse.move(cv[0] + (tipOf.p[0] + tipOf.q[0]) / 2, cv[1] + (tipOf.p[1] + tipOf.q[1]) / 2, { steps: 4 });
+    await page.mouse.move(cv[0] + tipOf.q[0], cv[1] + tipOf.q[1], { steps: 4 }); await page.mouse.up();
+    const title = await page.getAttribute("#gt-undo", "title");
+    check((await count()) === had + 1 && title === "Undo: Moved a point", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
+    await page.click("#gt-undo");
+    check((await count()) === had, "and Undo takes it back");
+  }
 
   // the file: every id kept, no clock, the log with it
   await page.click("#gt-submit");

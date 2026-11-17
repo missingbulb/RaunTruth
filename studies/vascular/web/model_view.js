@@ -440,7 +440,8 @@ function grab(e) {
         done();
         model = base;
         if (!moved) { V.redraw(); return clicked(ev); }
-        const there = onto && Mo.attach(Mo.moveNode(base, id, to), id, onto) !== Mo.moveNode(base, id, to) ? ref(onto, base) : null;
+        // a tip let go where it cannot attach has only moved
+        const dropped = Mo.moveNode(base, id, to), there = onto && Mo.attach(dropped, id, onto) !== dropped ? ref(onto, base) : null;
         if (!act(there ? { type: 'attach', node: id, to, onto: there } : { type: 'move-node', node: id, to })) changed();
       },
       cancel() { done(); model = base; V.redraw(); },
