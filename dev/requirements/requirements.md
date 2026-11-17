@@ -592,8 +592,10 @@ nobody has decided: what the page does there is not a requirement yet.
   or edit on an item the new output does not have is dropped, and the model lists what was dropped, in `dropped`; the shell
   says how many on the status line, and on the run's row in Edit History ("Algorithm ran: 12 vessels · 3 not carried
   over"), whose tooltip names them by the ids the study gave them. An item the base does not hold but the new output does is the output's own, undecided.
-  Run after run with no base, `previous` holds no ground truth and nothing is carried. Tests: `web-tests/test_truth_actions.py`,
-  `web-tests/test_gt_resume_page.py`, and each study's `tests/test_gt_actions.mjs`.
+  Run after run with no base, `previous` holds no ground truth and nothing is carried. A study says its own line about a run
+  before it records the run (`shell.gt.ran`), so that the count of what was left out is the line that stands. Tests: `web-tests/test_truth_actions.py`,
+  `web-tests/test_gt_resume_page.py`, each study's `tests/test_gt_actions.mjs`, `studies/nor/tests/test_gt_actions_page.py` and
+  `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
 - `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.

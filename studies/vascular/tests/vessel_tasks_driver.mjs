@@ -485,6 +485,15 @@ try {
   check((await doneRows()).join() === "a0", `an area its earlier lines, missed and junctions steps all cover is done: ${await doneRows()}`);
   await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
   check(!(await doneRows()).length, "... and one missing its junctions step is not");
+
+  // req/shell/ground-truth/history-carry: a run after a base that holds a junction the run has no point for says so, and the
+  // study's own line about the run does not take that away
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, checked_junctions: [987654] }); });
+  // Execute's box is folded while the tagger tags
+  await page.evaluate(() => { $("#status").textContent = ""; $("#vm-run").click(); });
+  await page.waitForFunction(() => $("#status").textContent.trim() !== "" && $("#busy").hidden);
+  const left = await page.textContent("#status");
+  check(/no item for 1 earlier decision or edit, which was left out/.test(left), `a run that cannot carry a checked junction over says so on the status line: ${left}`);
 } catch (e) {
   failed = true; console.error(e);
 }

@@ -62,10 +62,11 @@ export function mount(shell) {
       if (action !== "extract") return;
       shell.busy(false);
       ran = running; running = null;
+      // said before the run is recorded: what the run could not carry over is then the line that stands
+      shell.status(`The vessel model is drawn: ${meta.edges.length} vessels, in ${meta.score?.seconds ?? "?"} s.`);
       shell.gt.ran({ algorithm: { key: ran, params: { z_step: zStep } }, output: meta });
       shell.gt.legacy(oldEdits(meta));
       canRun(); steps();
-      shell.status(`The vessel model is drawn: ${meta.edges.length} vessels, in ${meta.score?.seconds ?? "?"} s.`);
     },
     // a curated ground truth's final results (req/shell/ground-truth/view): the corrected model drawn as a model is,
     // with none of the tasks' marks
