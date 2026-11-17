@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import * as Mo from '../web/model.js';
 import * as S from '../web/gt_actions.js';
 import { build } from '../web/model_items.js';
-import { actionLog, replay } from '../../../web/truth_actions.js';
+import { actionLog, replay, leftOut } from '../../../web/truth_actions.js';
 
 // a v2 file: a vessel 1 - 2 with a curve point between, and two branches off 2, to 3 and to 4
 const file = (extra = {}) => ({ format: 'vessel-model/2', source: 'acme.tif', slices: 4, size_px: [100, 100], um_per_px: 1,
@@ -222,6 +222,21 @@ Object.assign(tests, {
     const quiet = S.start(o, start());
     assert.deepEqual([quiet.dropped, quiet.nodes.size, quiet.segments.length], [undefined, S.start(o).nodes.size, S.start(o).segments.length], 'a model of the algorithm alone is not carried');
   },
+  'the log says from its actions alone what a run after a base could not carry over, and a run after a run left nothing out'() {
+    let m = start();
+    for (const a of [{ type: 'review', segment: 's5', verdict: 'accepted' }, { type: 'set-width', segments: ['s3'], width: { um: 3, how: 'nudge' } }, { type: 'check-junction', node: 8, on: true }]) m = S.run(m, act(a));
+    const o = drawn(); o.edges.splice(3, 2); o.edges.splice(1, 1);
+    const log = actionLog(S);
+    log.open({ name: 'acme.tif' }, 'vascular');
+    log.load([...log.actions, { type: 'base', at: DAY, model: JSON.parse(JSON.stringify(S.document(m))), from: {} }]);
+    log.ran({ algorithm: { key: 'v' }, output: o });
+    assert.deepEqual(leftOut(S, log.actions, 2).sort(), ['junction 8', 's3', 's5', 's6']);
+    assert.deepEqual(leftOut(S, log.actions, 2), log.model.dropped);
+    const quiet = actionLog(S);
+    quiet.open({ name: 'acme.tif' }, 'vascular');
+    quiet.ran({ algorithm: { key: 'v' }, output: o });
+    assert.deepEqual(leftOut(S, quiet.actions, 1), []);
+  },
   'a model read again counts its ids on from its largest, so no point or segment id is given twice'() {
     let m = start();
     m = S.run(m, act({ type: 'split', segment: 's3', t: .5 }));
@@ -310,4 +325,4 @@ Object.assign(tests, {
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 23);
+assert.equal(n, 24);

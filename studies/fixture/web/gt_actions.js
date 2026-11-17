@@ -1,5 +1,6 @@
 // The fixture study's GT actions: pure functions the shell's action log replays, with no page and no clock.
-// A run's output is {threshold, count, spots: [[x, y], …]}; the model keeps a mark per spot, found again by place.
+// A run's output is {threshold, count, spots: [[x, y], …]}; the model keeps a mark per spot, found again by place. A mark
+// the tagger moved or added, or one a loaded file held, is `edited`; one of those the next run has no spot near is `dropped`.
 
 const MATCH = 2;
 const idNumber = (id) => +String(id).slice(1);
@@ -17,22 +18,24 @@ export function start(output, previous) {
     return { id: best ? best.id : "m" + next++, x, y };
   });
   if (!previous) next = marks.length + 1;
-  return { threshold: output.threshold, count: output.count, marks, checked: false, next };
+  const dropped = [...free.values()].filter((m) => previous.edited?.includes(m.id)).map((m) => m.id);
+  return { threshold: output.threshold, count: output.count, marks, checked: false, next, edited: [], ...(dropped.length ? { dropped } : {}) };
 }
 
 const GONE = { skip: "its mark is gone" };
 
 export function run(model, a) {
   const has = (id) => model.marks.some((m) => m.id === id);
+  const edited = (id) => (model.edited?.includes(id) ? model.edited : [...(model.edited ?? []), id]);
   switch (a.type) {
     case "move-mark":
-      return has(a.mark) ? { ...model, marks: model.marks.map((m) => (m.id === a.mark ? { id: m.id, x: a.to[0], y: a.to[1] } : m)) } : GONE;
+      return has(a.mark) ? { ...model, edited: edited(a.mark), marks: model.marks.map((m) => (m.id === a.mark ? { id: m.id, x: a.to[0], y: a.to[1] } : m)) } : GONE;
     case "add-mark":
       return a.mark === "m" + model.next && !has(a.mark)
-        ? { ...model, marks: [...model.marks, { id: a.mark, x: a.to[0], y: a.to[1] }], next: model.next + 1 }
+        ? { ...model, edited: edited(a.mark), marks: [...model.marks, { id: a.mark, x: a.to[0], y: a.to[1] }], next: model.next + 1 }
         : { skip: "its id is taken" };
     case "delete-mark":
-      return has(a.mark) ? { ...model, marks: model.marks.filter((m) => m.id !== a.mark) } : GONE;
+      return has(a.mark) ? { ...model, edited: (model.edited ?? []).filter((id) => id !== a.mark), marks: model.marks.filter((m) => m.id !== a.mark) } : GONE;
     case "check":
       return { ...model, checked: !!a.on };
     default:
@@ -64,6 +67,6 @@ export function document(model) {
 
 export function load(doc) {
   const marks = (doc.marks ?? []).map(({ id, x, y }) => ({ id, x, y }));
-  return { threshold: doc.labels?.[0]?.threshold, count: doc.labels?.[0]?.count, marks, checked: !!doc.checked,
+  return { threshold: doc.labels?.[0]?.threshold, count: doc.labels?.[0]?.count, marks, checked: !!doc.checked, edited: marks.map((m) => m.id),
     next: marks.reduce((n, m) => Math.max(n, idNumber(m.id) + 1), 1) };
 }

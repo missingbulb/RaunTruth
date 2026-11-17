@@ -117,6 +117,22 @@ await check((await marks(page)) === edited && await page.isDisabled("#gt-undo") 
 await check(list.some((r) => /Ground truth by tester@example\.com, .*, no history/.test(r.text)), "its Edit History row says whose it is, when, and no history", list);
 await page.context().close();
 
+// a run after a loaded base carries what it can and says what it could not: on the status line, and on the run's row
+const far = { ...plain, marks: [{ id: "m1", x: 5, y: 55 }, { id: "m2", x: 75, y: 3 }] };
+file.bytes = Buffer.from(JSON.stringify(far));
+page = await open(true);
+await tagger(page);
+await page.click("#gt-load-drive");
+await until(page, () => !!window.fixture.model());
+await page.click("#fx-count");
+await until(page, () => window.fixture.model().marks.some((m) => m.x > 8 && m.x < 22));
+const said = await page.textContent("#status");
+list = await rows(page);
+const ran = await page.evaluate(() => [...document.querySelectorAll("#eh-list li")].find((li) => /Algorithm ran/.test(li.textContent))?.title);
+await check(/no item for 2 earlier decisions or edits/.test(said) && list.some((r) => /Algorithm ran: .* · 2 not carried over/.test(r.text)) && /m1, m2/.test(ran || ""),
+  "a run after a loaded base says on the status line and on its row how many edits it could not carry over, the row's tooltip naming them", { said, list, ran });
+await page.context().close();
+
 // a file whose model was altered after its history was written says mismatch, and the stored model is what loads
 const altered = JSON.parse(JSON.stringify(original));
 altered.marks[0].x += 9;

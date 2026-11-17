@@ -232,4 +232,14 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
   out.studies = found;
 }
 
+// 17. what a run could not carry over, from the log alone: a run after a base lists the base's edits that found no place
+{
+  const log = ta.actionLog(fx); log.open({ name: "a.png" }, "fixture");
+  log.load([...log.actions, { type: "base", at: "T0", from: {}, model: { labels: [{ threshold: 5, count: 3 }], marks: [{ id: "m1", x: 10, y: 10 }, { id: "m2", x: 70, y: 50 }, { id: "m3", x: 30, y: 30 }], checked: false } }]);
+  log.ran(runOf([[10, 10], [30, 31]]));
+  const acts = log.actions, aRun = fresh();
+  out.leftOut = { model: log.model.dropped, listed: ta.leftOut(fx, acts, 2), again: ta.leftOut(fx, acts, 2), marks: log.model.marks.map((m) => m.id),
+    afterRun: ta.leftOut(fx, aRun.actions, 1), onBase: ta.leftOut(fx, acts, 1), outOfRange: ta.leftOut(fx, acts, 9) };
+}
+
 console.log(JSON.stringify(out));

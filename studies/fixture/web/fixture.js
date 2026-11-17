@@ -125,6 +125,7 @@ export function mount(shell) {
       }
       const spots = sum.filter((s) => s[2]).map((s) => [Math.round(s[0] / s[2]), Math.round(s[1] / s[2])]);
       mask = bytes;
+      shell.status("Counted.");
       shell.gt.ran({ algorithm: { key: shell.algorithm.key, params: { threshold: +$("#fx-threshold").value } },
         output: { threshold: +$("#fx-threshold").value, count: meta.count, spots } });
       // an old store of this study's own, for the tests of shell.gt.legacy
@@ -133,7 +134,6 @@ export function mount(shell) {
       try { old = JSON.parse(localStorage.getItem(key)); } catch { /* no old store */ }
       if (old?.actions) shell.gt.legacy({ actions: old.actions, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
       else if (old?.model) shell.gt.legacy({ model: old.model, count: old.edits, from: "marks kept in this browser before Edit History", forget: () => localStorage.removeItem(key) });
-      shell.status("Counted.");
     },
   };
 }

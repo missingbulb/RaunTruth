@@ -3,6 +3,7 @@
 // its item on the image. It reads the log and the study's `describe` and `where` and changes nothing but the log's place,
 // through the session's goto. Its switch in Ground Truth Tasks is remembered on this device.
 "use strict";
+import { leftOut } from "./truth_actions.js";
 
 // "on" | "off": whether the window shows, on by default
 export const GT_HISTORY = "nor-gt-history";
@@ -30,6 +31,14 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
   const unfolded = new Set();
   let built = [], windowed = false;
 
+  // what a run could not carry over, by the ids the study gave it, worked out once for each run (what is before a run in the log
+  // does not change while the run stands)
+  const lefts = new WeakMap();
+  const left = (seq, i) => {
+    if (!lefts.has(seq[i])) lefts.set(seq[i], leftOut(study(), seq, i));
+    return lefts.get(seq[i]);
+  };
+
   const text = (a, count) => {
     const m = log(), s = study();
     try { return s?.describe?.(a, count, m.model) || a.type; } catch { return a.type; }
@@ -47,7 +56,11 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
       const a = seq[i];
       const row = { kind: "row", i, a, cls: classes(i), when: clock(a.at), at: a.at, go: i + 1 > floor ? i + 1 : null, dot: i === cur };
       if (a.type === "open") { row.what = "Image opened"; row.go = null; }
-      else if (a.type === "run") { const d = text(a, 1); row.what = d && d !== "run" ? `Algorithm ran: ${d}` : "Algorithm ran"; }
+      else if (a.type === "run") {
+        const d = text(a, 1), n = left(seq, i).length;
+        row.what = (d && d !== "run" ? `Algorithm ran: ${d}` : "Algorithm ran") + (n ? ` · ${n} not carried over` : "");
+        if (n) row.title = `Not carried over: ${left(seq, i).join(", ")}`;
+      }
       else if (a.type === "base") {
         const f = a.from || {};
         row.what = f.note ? `Ground truth from ${f.note}, no history`

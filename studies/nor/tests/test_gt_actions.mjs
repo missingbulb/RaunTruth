@@ -2,7 +2,7 @@
 // Run: node tests/test_gt_actions.mjs
 import assert from 'node:assert/strict';
 import * as N from '../web/gt_actions.js';
-import { actionLog, check, canonical } from '../../../web/truth_actions.js';
+import { actionLog, check, canonical, leftOut } from '../../../web/truth_actions.js';
 
 const DAY = '2026-11-17T10:00:00.000Z';
 const act = (a) => ({ at: DAY, ...a });
@@ -257,6 +257,16 @@ const tests = {
     assert.ok(got.nextC > 10);
     const again = N.start(output({ cands: [cand(0, 10, 10), cand(1, 50, 50)] }), m);
     assert.deepEqual([ids(again.cands), ids(again.deleted)], [['c1'], ['c2']], 'a rejection a model holds is carried');
+  },
+  'the log says from its actions alone what a run after a base could not carry over, and a run after a run left nothing out'() {
+    const m = run(run(run(start(), { type: 'approve', cand: 'c1' }), { type: 'approve', cand: 'c3' }), { type: 'delete', cand: 'c2' });
+    const l = actionLog(N);
+    l.open({ name: 'slide.tif' }, 'nor');
+    l.load([...l.actions, { type: 'base', at: DAY, model: doc(m), from: {} }]);
+    l.ran({ algorithm: { key: 'tl' }, output: N.identify(output({ cands: [cand(0, 10.2, 9.8), cand(1, 200, 200)] }), l.model) });
+    assert.deepEqual(leftOut(N, l.actions, 2), ['c3'], 'a file keeps no rejection, so the rejection of c2 is not in the base');
+    assert.deepEqual(leftOut(N, l.actions, 2), l.model.dropped);
+    assert.deepEqual(leftOut(N, log().actions, 1), []);
   },
   'a run after a run carries nothing: the earlier model holds no ground truth'() {
     const got = N.start(output({ cands: [cand(0, 10, 10)] }), start());

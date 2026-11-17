@@ -65,6 +65,13 @@ export function replay(study, actions, upto = actions.length) {
   return { model: s.model, skipped: s.skipped, dead: s.dead };
 }
 
+// what the study's model right after the run at actions[i] lists as dropped, by id: the edits a base held that the run had no
+// item for (req/shell/ground-truth/history-carry); none for a row that is no run
+export function leftOut(study, actions, i) {
+  if (actions[i]?.type !== "run") return [];
+  try { return replay(study, actions, i + 1).model?.dropped ?? []; } catch { return []; }
+}
+
 export async function check(study, actions, stored, { now = () => new Date().toISOString() } = {}) {
   const asBase = () => ({ type: "base", at: now(), model: bare(stored), from: { tagger: stored.tagger, created: stored.created } });
   if (!actions?.length) return { replay: "none", actions: [asBase()] };

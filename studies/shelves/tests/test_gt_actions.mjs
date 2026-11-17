@@ -2,7 +2,7 @@
 // Run: node tests/test_gt_actions.mjs
 import assert from 'node:assert/strict';
 import * as S from '../web/gt_actions.js';
-import { actionLog, check } from '../../../web/truth_actions.js';
+import { actionLog, check, leftOut } from '../../../web/truth_actions.js';
 
 const DAY = '2026-11-17T10:00:00.000Z';
 const act = (a) => ({ at: DAY, ...a });
@@ -169,6 +169,20 @@ const tests = {
     assert.deepEqual([got.books.map((b) => b.id), got.dropped], [['b3'], ['b2', 'b1']], 'listed in the order the file stands them');
     const quiet = S.start(output({ books: [output().books[2]] }), start());
     assert.deepEqual([quiet.books.map((b) => b.id), quiet.dropped], [['b3'], undefined]);
+  },
+  'the log says from its actions alone what a run after a base could not carry over, and a run after a run left nothing out'() {
+    let m = start();
+    for (const a of [{ type: 'approve', book: 'b1' }, { type: 'set-text', book: 'b2', text: 'Dune' }]) m = S.run(m, act(a));
+    const log = actionLog(S);
+    log.open({ name: 'shelf.png' }, 'shelves');
+    log.load([...log.actions, { type: 'base', at: DAY, model: doc(m), from: {} }]);
+    log.ran({ algorithm: { key: 'r9' }, output: output({ books: [output().books[2]] }) });
+    assert.deepEqual(leftOut(S, log.actions, 2), ['b2', 'b1']);
+    assert.deepEqual(leftOut(S, log.actions, 2), log.model.dropped);
+    const quiet = actionLog(S);
+    quiet.open({ name: 'shelf.png' }, 'shelves');
+    quiet.ran({ algorithm: { key: 'r9' }, output: output() });
+    assert.deepEqual(leftOut(S, quiet.actions, 1), []);
   },
   'a file keeps the next ids, so one given up before it was written is not given again once it is read'() {
     let m = start();

@@ -30,7 +30,8 @@ def test_a_replay_gives_the_model_the_actions_built(out):
     r = out['replay']
     assert r['equal'] and r['skipped'] == [] and r['dead'] == -1
     assert r['types'] == ['open', 'run', 'move-mark', 'add-mark', 'delete-mark', 'check'] and r['count'] == 4 and r['timed']
-    assert r['model'] == {'threshold': 5, 'count': 2, 'marks': marks(('m1', 12, 13), ('m3', 70, 70)), 'checked': True, 'next': 4}
+    assert r['model'] == {'threshold': 5, 'count': 2, 'marks': marks(('m1', 12, 13), ('m3', 70, 70)), 'checked': True, 'next': 4,
+                          'edited': ['m1', 'm3']}
 
 
 @pytest.mark.parametrize('kind', ['move-mark', 'add-mark', 'delete-mark', 'check'])
@@ -142,3 +143,12 @@ def test_every_studys_gt_actions_load_without_a_page_and_export_the_six(out):
     assert len(found) >= 3 and {'fixture', 'vascular', 'shelves'} <= set(found)
     for study, fns in found.items():
         assert fns == {n: 'function' for n in ['start', 'run', 'describe', 'where', 'document', 'load']}, study
+
+
+def test_a_run_lists_what_it_could_not_carry_over_from_the_log_alone(out):
+    d = out['leftOut']
+    # the base's mark that no spot of the run lies near is left out, the two that have one are the run's, by id
+    assert d['model'] == ['m2'] and d['listed'] == ['m2'] and d['again'] == ['m2']
+    assert d['marks'] == ['m1', 'm3']
+    # a run after a run carries nothing, so leaves nothing out; a row that is no run, or none, lists none
+    assert d['afterRun'] == [] and d['onBase'] == [] and d['outOfRange'] == []

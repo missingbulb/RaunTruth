@@ -590,9 +590,10 @@ nobody has decided: what the page does there is not a requirement yet.
   edited lines, widths, corners and titles, the areas and junctions checked, and the items the tagger added, each matched
   to the new output by its id and then by its place within the study's tolerance. An added item is kept as added. A decision
   or edit on an item the new output does not have is dropped, and the model lists what was dropped, in `dropped`; the shell
-  says how many on the status line. An item the base does not hold but the new output does is the output's own, undecided.
+  says how many on the status line, and on the run's row in Edit History ("Algorithm ran: 12 vessels · 3 not carried
+  over"), whose tooltip names them by the ids the study gave them. An item the base does not hold but the new output does is the output's own, undecided.
   Run after run with no base, `previous` holds no ground truth and nothing is carried. Tests: `web-tests/test_truth_actions.py`,
-  and each study's `tests/test_gt_actions.mjs`.
+  `web-tests/test_gt_resume_page.py`, and each study's `tests/test_gt_actions.mjs`.
   </details>
 
 - `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
