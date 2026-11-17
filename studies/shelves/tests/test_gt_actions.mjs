@@ -79,7 +79,7 @@ const tests = {
   },
   'a photo with no book found is a model: books are added to it, and carried over when the finder runs'() {
     const none = S.blank({ image: 'shelf.png', W: 400, H: 300, reader: 'lines' });
-    assert.deepEqual(none, { image: 'shelf.png', W: 400, H: 300, reader: 'lines', books: [], none_missed: false });
+    assert.deepEqual(none, { image: 'shelf.png', W: 400, H: 300, reader: 'lines', books: [], none_missed: false, next: { b: 1, u: 1 } });
     assert.deepEqual(doc(S.load(none)), none);
     const log = actionLog(S);
     log.open({ name: 'shelf.png' }, 'shelves');
@@ -137,13 +137,46 @@ const tests = {
     m = S.run(m, act({ type: 'add', book: 'u1', corners: rect(330, 60, 380, 280) }));
     m = S.run(m, act({ type: 'none-missed', on: true }));
     const d = doc(m);
-    assert.deepEqual(Object.keys(d), ['image', 'W', 'H', 'reader', 'books', 'none_missed']);
+    assert.deepEqual(Object.keys(d), ['image', 'W', 'H', 'reader', 'books', 'none_missed', 'next']);
     assert.deepEqual(d.books.map((b) => b.id), ['b2', 'b1', 'b3', 'u1'], 'shelf by shelf, left to right');
     assert.deepEqual(d.books[0], { id: 'b2', source: 'found', verdict: 'right', corners: rect(10, 20, 50, 280), turn: 3, text: 'Title 2', proposed: { corners: rect(10, 20, 50, 280), text: 'Title 2' } });
     assert.equal(d.books[1].verdict, null);
     assert.ok(!('proposed' in d.books[3]) && d.books[3].source === 'missed');
     assert.equal(d.none_missed, true);
     assert.ok(!JSON.stringify(d).includes('typed') && !JSON.stringify(d).includes('confidence'));
+  },
+  'a run after a base carries its verdicts, typed titles, turns, moved corners, added books and none missed, finding a book by its corners or by what was proposed'() {
+    let m = start();
+    for (const a of [{ type: 'approve', book: 'b2' }, { type: 'flip', book: 'b2' }, { type: 'set-text', book: 'b1', text: 'Dune' },
+      { type: 'move-corners', book: 'b3', corners: rect(200, 100, 380, 280) }, { type: 'add', book: 'u1', corners: rect(330, 60, 380, 90) }, { type: 'none-missed', on: true }]) m = S.run(m, act(a));
+    const log = actionLog(S);
+    log.open({ name: 'shelf.png' }, 'shelves');
+    log.load([...log.actions, { type: 'base', at: DAY, model: doc(m), from: {} }]);
+    log.ran({ algorithm: { key: 'r9' }, output: output({ books: [{ ...output().books[2], text: 'Re 3' }, { ...output().books[0], text: 'Re 1' }, { ...output().books[1], text: 'Re 2' }] }) });
+    const got = log.model;
+    assert.deepEqual(got.books.map((b) => b.id), ['b3', 'b1', 'b2', 'u1'], 'b3 was moved since, and is found by the corners the finder proposed');
+    assert.deepEqual([book(got, 'b2').verdict, book(got, 'b2').turn, book(got, 'b2').turnSet], ['right', 1, true], 'a turn the tagger set stands');
+    assert.deepEqual([book(got, 'b1').text, book(got, 'b1').typed, book(got, 'b2').text, book(got, 'b2').typed], ['Dune', true, 'Re 2', false], 'a typed title stands, a read one is the new reading');
+    assert.deepEqual(book(got, 'b3').corners, rect(200, 100, 380, 280));
+    assert.deepEqual(book(got, 'b3').proposed.corners, rect(120, 100, 300, 280), 'what is proposed is this run\'s');
+    assert.deepEqual([book(got, 'u1').source, got.noneMissed, got.added, got.dropped], ['missed', true, 1, undefined]);
+    assert.equal(log.skipped.size, 0);
+  },
+  'a run after a base lists a decision whose book it did not find, and loses an undecided one in silence'() {
+    let m = start();
+    for (const a of [{ type: 'approve', book: 'b1' }, { type: 'set-text', book: 'b2', text: 'Dune' }]) m = S.run(m, act(a));
+    const got = S.start(output({ books: [output().books[2]] }), S.load(doc(m)));
+    assert.deepEqual([got.books.map((b) => b.id), got.dropped], [['b3'], ['b2', 'b1']], 'listed in the order the file stands them');
+    const quiet = S.start(output({ books: [output().books[2]] }), start());
+    assert.deepEqual([quiet.books.map((b) => b.id), quiet.dropped], [['b3'], undefined]);
+  },
+  'a file keeps the next ids, so one given up before it was written is not given again once it is read'() {
+    let m = start();
+    m = S.run(S.run(S.run(m, act({ type: 'add', book: 'u1', corners: rect(1, 1, 9, 90) })), act({ type: 'add', book: 'u2', corners: rect(11, 1, 19, 90) })), act({ type: 'delete', book: 'u2' }));
+    m = S.run(m, act({ type: 'delete', book: 'b3' }));
+    const back = S.load(JSON.parse(JSON.stringify(doc(m))));
+    assert.equal(S.nextAdded(back), 'u3');
+    assert.equal(S.start(output({ books: [output().books[2]] }), back).books[0].id, 'b4', 'b3 was deleted and its id is not given to the book at its place');
   },
   'load is the document\'s inverse: a document of the loaded model is the document'() {
     let m = start();

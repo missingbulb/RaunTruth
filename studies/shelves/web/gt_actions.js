@@ -37,12 +37,14 @@ const near = (p, q) => p.every((c, i) => Math.abs(c - q[i]) <= MATCH_PX);
 
 // ---------- a run's model ----------
 // The finder's and the reader's output as a model. With the model of the run before it, a book whose four corners are each
-// within MATCH_PX of one of its books' takes that book's id; the rest take ids above both runs' largest.
+// within MATCH_PX of one of its books' (as it stands, or as the finder proposed it, for a book the tagger has moved) takes
+// that book's id; the rest take ids above both runs' largest. The tagger's work in the model before is carried over: see `carried`.
 export function start(output, previous) {
   const free = new Map((previous?.books ?? []).filter((b) => b.id[0] === "b").map((b) => [b.id, b]));
   let top = Math.max(previous?.next ? previous.next - 1 : 0, 0);
+  const fits = (p, b) => [p.corners, p.proposed?.corners].some((c) => c && c.every((q, i) => near(q, b.corners[i])));
   const claimed = output.books.map((b) => {
-    for (const [id, p] of free) if (p.corners.every((c, i) => near(c, b.corners[i]))) { free.delete(id); return id; }
+    for (const [id, p] of free) if (fits(p, b)) { free.delete(id); return id; }
     return null;
   });
   top = Math.max(top, ...claimed.filter(Boolean).map(number), 0);
@@ -50,7 +52,30 @@ export function start(output, previous) {
     id: claimed[i] ?? `b${++top}`, corners: copy(b.corners), view: b.view, turn: b.turn ?? 0, turnSet: false, text: b.text ?? "", typed: false,
     confidence: b.confidence ?? null, reader: b.reader ?? output.reader ?? null, source: "found", verdict: null,
     proposed: { corners: copy(b.corners), text: b.text ?? "" } }));
-  return { image: output.image, W: output.W, H: output.H, reader: output.reader ?? null, books, noneMissed: false, next: top + 1, added: 0 };
+  return { image: output.image, W: output.W, H: output.H, reader: output.reader ?? null, ...carried(previous, books), next: top + 1 };
+}
+
+// whether the tagger did anything to a book of the model before
+const moved = (p) => !!p.proposed && JSON.stringify(p.corners) !== JSON.stringify(p.proposed.corners);
+const worked = (p) => p.verdict != null || p.typed || p.turnSet || moved(p);
+
+// What the tagger did in the model before, put onto a run's books: a verdict, a typed title, a turn and moved corners go to
+// the book with the same id; a book the tagger added and none missed stand as they were. A book the run does not have, on
+// which the tagger had done something, is listed in `dropped` by id and left out.
+function carried(previous, found) {
+  const none = { books: found, noneMissed: false, added: 0 };
+  if (!previous) return none;
+  const now = new Map(found.map((b) => [b.id, b])), dropped = [], added = [];
+  for (const p of previous.books) {
+    if (p.source === "missed") { added.push({ ...p, corners: copy(p.corners), proposed: null }); continue; }
+    const hit = now.get(p.id);
+    if (!hit) { if (worked(p)) dropped.push(p.id); continue; }
+    if (!worked(p)) continue;
+    now.set(p.id, { ...hit, verdict: p.verdict ?? null, ...(p.typed ? { text: p.text, typed: true } : {}), ...(p.turnSet ? { turn: p.turn, turnSet: true } : {}),
+      ...(moved(p) ? { corners: copy(p.corners), view: p.view } : {}) });
+  }
+  return { books: [...found.map((b) => now.get(b.id)), ...added], noneMissed: !!previous.noneMissed, added: Math.max(previous.added ?? 0, largest(previous.books, "u")),
+    ...(dropped.length ? { dropped } : {}) };
 }
 
 // ---------- the model and its file ----------
@@ -59,11 +84,11 @@ export function document(model) {
   return { image: model.image, W: model.W, H: model.H, reader: model.reader,
     books: inPlace(model.books).map((b) => ({ id: b.id, source: b.source, verdict: b.verdict, corners: copy(b.corners), turn: b.turn || 0, text: b.text ?? "",
       ...(b.proposed ? { proposed: { corners: copy(b.proposed.corners), text: b.proposed.text } } : {}) })),
-    none_missed: model.noneMissed };
+    none_missed: model.noneMissed, next: { b: model.next, u: model.added + 1 } };
 }
 
 // the file of a photo on which no book is found: what the log starts from when a book is added before the finder has run
-export const blank = ({ image, W, H, reader }) => ({ image, W, H, reader: reader ?? null, books: [], none_missed: false });
+export const blank = ({ image, W, H, reader }) => ({ image, W, H, reader: reader ?? null, books: [], none_missed: false, next: { b: 1, u: 1 } });
 
 // the file read again; a file from before the books had ids lists the books marked right alone, and was submitted only
 // once none was missed
@@ -74,7 +99,7 @@ export function load(doc) {
     typed: !!b.text && (!b.proposed || b.text !== b.proposed.text), confidence: null, reader: doc.reader ?? null, source: b.source,
     verdict: b.verdict ?? null, proposed: b.proposed ? { corners: copy(b.proposed.corners), text: b.proposed.text } : null }));
   return { image: doc.image, W: doc.W, H: doc.H, reader: doc.reader ?? null, books, noneMissed: old ? true : !!doc.none_missed,
-    next: largest(books, "b") + 1, added: largest(books, "u") };
+    next: Math.max(doc.next?.b ?? 1, largest(books, "b") + 1), added: Math.max((doc.next?.u ?? 1) - 1, largest(books, "u")) };
 }
 
 // ---------- an action done ----------

@@ -195,6 +195,12 @@ read for a title matcher; matching the titles is not part of it.
     alone, with no book, and the books added are carried over when Find books runs. Save Draft keeps them and
     Load draft brings them back (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`); a draft
     kept before Edit History is offered once (`req/shell/ground-truth/legacy`).
+    A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new books: a verdict, a
+    typed title, a turn and moved corners go to the book with the same id (a book moved since is found by the corners the
+    finder proposed for it), the books added and None missed stand as they were, and a book the tagger had worked on that
+    the run does not find is left out and counted on the status line. The file keeps `next`, the ids the finder's books and
+    the added ones are given next, so an id given up is not given again after the file is read.
+    Test: `studies/shelves/tests/test_gt_actions.mjs`.
   - The file lists every book with its id and its verdict (right, or none while it is not decided), in the walk's
     order; the readers and the lab take the books marked right.
 
