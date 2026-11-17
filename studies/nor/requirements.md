@@ -16,11 +16,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Right-clicking the image offers "Add a NoR Here": a NoR the finder proposed nothing for. It is not
   drawn as a mask; it gets measuring lines (level, centred where clicked, as long and wide as the
   image's median finalist) that the user corrects on its card, which is selected at once. It lists
-  among the finalists, marked by an icon rather than text, and among the rejected once thumbed
-  down; its card can also remove it (as can right-clicking it). On the image it shows its lines
+  among the finalists, marked by an icon rather than text; thumbing it down removes it, as its
+  card's Remove does (as can right-clicking it), and Undo brings it back. On the image it shows its lines
   and, until the user gives a verdict, a dashed yellow circle glowing between 0.8 and 0.3 opacity.
-  Like any candidate it enters the ground truth only once the user approves it. Added NoRs are
-  remembered in the browser per file name, whatever the finder.
+  Like any candidate it enters the ground truth only once the user approves it. Added NoRs are kept
+  as GT actions, whatever the finder (`req/nor/candidates/remembered`).
   </details>
 
 - `req/nor/candidates/decide` One selected candidate, decided on its card with a thumbs up or down.
@@ -55,11 +55,22 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   candidate by that number (`studies/nor/tests/test_ground_truth_page.py`).
   </details>
 
-- `req/nor/candidates/remembered` Decisions, lengths and added NoRs are remembered per file name.
+- `req/nor/candidates/remembered` Decisions, lengths, added NoRs and checked areas are GT actions; a tagger saves them with Save Draft.
   <details>
 
-  Decisions and adjusted or approved lengths are saved in the browser per file name and finder,
-  tied to each candidate's position; added NoRs per file name.
+  Each of them is one of the shell's GT actions (`req/shell/ground-truth/history`; owner, 2026-11-17, with the Edit
+  History): approving a candidate, rejecting it (which deletes it from the candidates that remain), taking a verdict
+  back, a length, red length or width end dropped (one action at the drop, none while it is dragged or when Escape
+  cancels it) or Reset measurements, adding a NoR, and "No missed NoRs here". They live in the page until Save Draft
+  (`req/shell/ground-truth/save-draft`), not in the browser per file name. A candidate keeps its id from the run
+  (c87), and a run again, whether from Find Candidates or a filter or preset change, gives each candidate at the
+  same place the same id and carries the tagger's actions over, skipping any whose candidate has gone; an added NoR's
+  id (u3) is never reused. What the five older browser keys hold for a file (decisions, lengths, added NoRs, a
+  pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as a draft the tagger
+  loads, and the keys go when it is saved. The candidates' pixel masks are not in the log, so a draft loaded with no
+  Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Tentative: outside
+  the Ground Truth Tagger role nothing is kept across visits.
+  Test: `studies/nor/tests/test_gt_actions.py`, `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/nor/cards/adjusters` A card's adjusters correct its lengths and width by dragging.
