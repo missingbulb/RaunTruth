@@ -162,6 +162,26 @@ nobody has decided: what the page does there is not a requirement yet.
   (`studies/shelves/tests/test_shelves_page.py`).
   </details>
 
+- `req/shell/data/area-of-interest` A Study Manager marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
+  <details>
+
+  Set by the owner on 2026-11-17. In Data Management a Study Manager lassoes an image's area of interest, drawn and combined as
+  the summary's mask is (`req/shell/summary/mask`), and the page keeps it in the study index (`req/shell/data/index`).
+  Once the image's data is extracted, its summary counts only what lies inside the area. Opened by anyone, the
+  image shows the area's border and starts with it as the summary's mask. A viewer may draw their own mask in its
+  place; while the summary counts an area the Study Manager did not set, a warning line at the bottom of the
+  view says so. Tentative: an image with no area of interest counts the whole image, with no warning, as now.
+  </details>
+
+- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; no algorithm reads them and every viewer sees them marked.
+  <details>
+
+  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (`req/shell/data/edit`), a Study Manager lassoes the
+  damaged areas of an image in Data Management. The image is never changed: the outlines are kept in the study index
+  (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. A study's algorithms and
+  its summary leave out what lies inside them, and the image, opened by anyone, shows them marked as damaged.
+  </details>
+
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
   <details>
 
@@ -177,6 +197,10 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/data/edit` Edit Image opens the image itself and marks what to do with it: split, crop, slices, channels, imperfections; the view shows the result.
   <details>
+
+  Removal set by the owner on 2026-11-17: Edit Image goes, and with it splitting, cropping and every save that
+  makes a new image file; the owner's damaged areas (`req/shell/data/damaged`) take the place of imperfections,
+  marked without touching the image. The page does what this entry says until that change lands.
 
   Set by the owner on 2026-11-03. In Data Management, Preprocessing's Edit Image (off until an image is
   open, and while its box is open: set by the owner on 2026-11-04) opens the image itself, from the copy on this device or Drive, when a preview is on show, and
@@ -201,6 +225,10 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/data/edit-save` Save… writes the edited image, or its parts, into a folder named after the image, beside it.
   <details>
+
+  Removal set by the owner on 2026-11-17: Edit Image goes, and with it splitting, cropping and every save that
+  makes a new image file; the owner's damaged areas (`req/shell/data/damaged`) take the place of imperfections,
+  marked without touching the image. The page does what this entry says until that change lands.
 
   Set by the owner on 2026-11-03. The page changes no file it did not make (`req/shell/data/drive-access`),
   so an edit goes into a folder named after the image (its name without the extension), which the page
@@ -230,6 +258,41 @@ nobody has decided: what the page does there is not a requirement yet.
   images, waiting for an image (set by the owner on 2026-11-04: Data Management has its own tools to cut
   and crop, and the viewer's basic ones may sit beside them). Test: `web-tests/test_data_mode_page.py`,
   `web-tests/test_shell_states_page.py`.
+  </details>
+
+- `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a Study Manager's explicit act, adding an image is not.
+  <details>
+
+  Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
+  the folders the study's images come from, by id. A Study Manager adds a folder there, or takes one out, as an act
+  of its own; an image added to a listed folder in Drive changes nothing in the study file. An image is in the study
+  while it is in a listed folder, a folder under one included. A folder beside an image of its name, a `.vsi`'s
+  `_<name>_` folder (`req/shell/image/cellsens`), is part of that image and not listed. A study with no study file,
+  the Image Viewer among them, has its listed folders as today: the data folder its root names, or the folder
+  whose link was pasted.
+  </details>
+
+- `req/shell/data/hidden` A Study Manager hides images by their tags; hidden images are left out of Load study images.
+  <details>
+
+  Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`): an image carrying a tag or a tag value a rule
+  names is hidden, and Load study images (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth
+  Taggers. A Study Manager still sees hidden images, marked so. Tentative: a hidden image a user opened before stays
+  in their recent images.
+  </details>
+
+- `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
+  <details>
+
+  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root, the study index:
+  every image in the listed folders (`req/shell/data/folders`) with its Drive id, name, folder path, size, SHA-256,
+  tags, description, damaged areas (`req/shell/data/damaged`), area of interest (`req/shell/data/area-of-interest`)
+  and preview, and when it was built. Only a Study Manager's page writes it: it rebuilds it where previews are made
+  today (`req/shell/data/update-previews`) and on each of their edits, a new file or the page's own replaced. A
+  Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from them; an image added
+  in Drive since the index was built is not listed until a Study Manager rebuilds it. The tags, descriptions and areas
+  are kept here, in files the page made, never on the images (`req/shell/data/drive-access`). Undecided: whether the
+  index replaces each folder's previews file or sits beside it.
   </details>
 
 - `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
@@ -279,6 +342,18 @@ nobody has decided: what the page does there is not a requirement yet.
   to the submissions folder (Ground Truth Tagger); a role is offered only where Drive says so. Nobody is
   listed in the repo, and what anyone can change is still what Drive lets them. Tests:
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/data/tags` A Study Manager tags images and folders and describes each image; a folder's tags apply to every image in it.
+  <details>
+
+  Set by the owner on 2026-11-17. A tag is a single hyphenated word (`damaged-slide`) or a value of a multi-value tag, written
+  `name:value` (`group:wild-type`, `group:sick`); an image holds at most one value of each multi-value tag. A Study
+  Manager adds any tag to an image, or to a listed folder, where it applies to every image in it and under it, and
+  writes a description of each image. Every image carries `folder:<path>`, its folder's path from the listed folder
+  down, given by the page and never edited. What a file holds, "2D · 3 channels" or "3D · 24 slices"
+  (`req/shell/drive/stacks`), is not a tag. The tags and descriptions are kept in the study index
+  (`req/shell/data/index`).
   </details>
 
 - `req/shell/data/update-previews` Update previews makes the folder's previews for the images that lack one or changed, and keeps the rest.
@@ -996,6 +1071,17 @@ nobody has decided: what the page does there is not a requirement yet.
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
   </details>
 
+- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the Study Manager chooses, not by folder.
+  <details>
+
+  Set by the owner on 2026-11-17. Load's Google Drive dialog (`req/shell/drive/dialog`) becomes Load study images: every image of the
+  study (`req/shell/data/folders`), less the hidden ones (`req/shell/data/hidden`), in groups, one per value of the
+  multi-value tag the study file names for grouping (`req/shell/data/tags`), `folder` when it names none. Each row
+  shows what the dialog shows today and the image's tags and description. The Image Viewer, with no Study Manager,
+  groups by `folder` alone, and is the sanity test that the dialog works with nothing set up. Tentative: an image
+  with no value of the grouping tag sits in a last group, "No <tag>".
+  </details>
+
 - `req/shell/memory/no-growth` Memory does not grow with use.
   <details>
 
@@ -1091,6 +1177,10 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/preprocessing/split` Preprocessing, in Data Management, holds Edit Image; each file it saves is an ImageJ TIFF recording where it lay.
   <details>
+
+  Removal set by the owner on 2026-11-17: Edit Image goes, and with it splitting, cropping and every save that
+  makes a new image file; the owner's damaged areas (`req/shell/data/damaged`) take the place of imperfections,
+  marked without touching the image. The page does what this entry says until that change lands.
 
   Set by the owner on 2026-10-31. A large image is hard to annotate in one sitting; its parts can be
   annotated one at a time, by several people at once, and give the finders smaller samples to tune on.
