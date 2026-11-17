@@ -151,12 +151,8 @@ export function mount(shell) {
     buildOverlay();
     shell.statusBar();
   }
-  // whether the page's candidates are those the model holds: each by its id at its place, and none the model does not know
-  const spot = (x, y) => `${Math.round(x)},${Math.round(y)}`;
-  const aligned = (m) => {
-    const all = [...m.cands, ...m.deleted];
-    return all.length === st.order.length && all.every((c) => st.cands[c.i]?.id === c.id && spot(st.cands[c.i].cx, st.cands[c.i].cy) === spot(c.x, c.y));
-  };
+  // whether the page's candidates are those the model holds
+  const aligned = (m) => N.holds(m, st.order.map((c) => ({ i: c.i, id: c.id, x: c.cx, y: c.cy })));
   // the filters as the log's run had them, in the dials; true when that moved one
   function followFilters(m) {
     const f = m.meta.filters;

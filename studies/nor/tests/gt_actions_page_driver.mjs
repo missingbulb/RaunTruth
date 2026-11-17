@@ -142,7 +142,7 @@ try {
   const at = await handle(page, "length", 1);
   await drag(page, at, 0, -30, true);
   await settle(page);
-  await check(await unsaved(page) === before && !(await page.evaluate(() => st.edits.size)) && (await rows(page))[0] !== "Moved the lines of #" + n,
+  await check(await unsaved(page) === before && !(await page.evaluate(() => st.edits.size)) && !/^Moved/.test((await rows(page))[0]),
     "Escape in the middle of a drag records nothing", [await rows(page), await unsaved(page)]);
   await drag(page, await handle(page, "length", 1), 0, -30);
   await settle(page);
@@ -155,23 +155,28 @@ try {
   // an approval, then Reset measurements
   await page.click("#task-card .verdict .up");
   await settle(page);
-  await check((await rows(page))[0] === `Approved #${t}`, "a thumbs up is one GT action", await rows(page));
+  await check((await rows(page))[0] === `Approved #${t}` && await unsaved(page) === before + 2, "a thumbs up is one GT action", [await rows(page), await unsaved(page)]);
   await page.click("#task-back");
   await settle(page);
+  // the action holds the lines that moved and no other: a width end moves the width alone
+  await drag(page, await handle(page, "width", 1), 0, 6);
+  await settle(page);
+  await check((await rows(page))[0] === `Moved the width line of #${t}` && await unsaved(page) === before + 3, "a width end dropped is one GT action, of the width line alone", [await rows(page), await unsaved(page)]);
   await page.click("#task-card .reset-lines");
-  await check((await rows(page))[0] === `Reset the lines of #${t}` && await page.evaluate((i) => !st.edits.has(i) || st.edits.get(i).approved && Object.keys(st.edits.get(i)).length === 1, target), "Reset measurements is one GT action", await rows(page));
+  await check((await rows(page))[0] === "Changed lines 2 times" && await page.evaluate((i) => !st.edits.has(i) || st.edits.get(i).approved && Object.keys(st.edits.get(i)).length === 1, target) && await unsaved(page) === before + 4, "Reset measurements is one GT action, which Edit History folds with the move before it, both of one candidate", [await rows(page), await unsaved(page)]);
 
   // an area checked
   const area = await page.evaluate(() => { const x = nor.walk().find((y) => y.key.startsWith("a:")); nor.goTo(x.key); return x.a; });
   await settle(page);
   await page.click("#area-ok");
-  await check((await rows(page))[0] === `No missed NoRs in area ${area + 1}` && await page.evaluate((a) => st.areas.has(a), area), "No missed NoRs here is one GT action", await rows(page));
+  await check((await rows(page))[0] === `No missed NoRs in area ${area + 1}` && await page.evaluate((a) => st.areas.has(a), area) && await unsaved(page) === before + 5, "No missed NoRs here is one GT action", [await rows(page), await unsaved(page)]);
 
   // an added NoR has an id of its own kind, and the next is never the id of one removed
   const mid = await page.evaluate(() => { const v = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect(); return [(Math.max(v.left, b.left) + Math.min(v.right, b.right)) / 2, (Math.max(v.top, b.top) + Math.min(v.bottom, b.bottom)) / 2]; });
   const addAt = async () => { await page.mouse.click(...mid, { button: "right" }); await page.click("#ctx button"); await settle(page); };
   await addAt();
   await check(await page.evaluate(() => st.added.map((a) => a.id).join()) === "u1" && /^Added a NoR at \d+, \d+$/.test((await rows(page))[0]), `a NoR is added as u1: "${(await rows(page))[0]}"`, await rows(page));
+  await check(await unsaved(page) === before + 6, "in one GT action", await unsaved(page));
   await page.click("#task-card .verdict .down");
   await settle(page);
   await check(await page.evaluate(() => st.added.length) === 0 && (await rows(page))[0] === "Deleted an added NoR", "thumbing an added NoR down removes it", await rows(page));
@@ -233,6 +238,27 @@ try {
   const again = await read(page);
   await check(JSON.stringify([again.forced, again.edits, again.added, again.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]) && await page.evaluate(() => [...document.querySelectorAll("#overlay > g[data-i] path")].some((p) => p.getAttribute("d"))),
     "Find Candidates again keeps every id by place, so the votes and lengths stay, and the outlines are drawn", { again, kept });
+
+  // a draft loaded over another finder's candidates takes the page's place whole: no vote lands on a candidate that is not its own
+  page.on("dialog", (d) => d.accept());
+  await page.click("#gt-save-draft");
+  await page.waitForFunction(() => $("#gt-unsaved").hidden);
+  const saved = await page.evaluate(() => ({ finder: st.meta.finder, places: [...nor.model().cands, ...nor.model().deleted].map((c) => `${Math.round(c.x)},${Math.round(c.y)}`).sort() }));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await loadImage(page);
+  await page.waitForFunction(() => !$("#gt-load-draft").hidden);
+  const other = await page.evaluate((f) => { const a = $("#algorithm"), o = [...a.options].find((x) => x.value !== f && ["tl", "rf"].includes(x.value)); a.value = o.value; a.dispatchEvent(new Event("change", { bubbles: true })); return o.value; }, saved.finder);
+  await find(page);
+  const others = await page.evaluate(() => st.order.map((c) => `${Math.round(c.cx)},${Math.round(c.cy)}`).sort());
+  await check(other !== saved.finder && JSON.stringify(others) !== JSON.stringify(saved.places), `another finder, ${other}, finds other candidates than ${saved.finder} did`, { others: others.length, saved: saved.places.length });
+  await unfold(page, "#tasks-box");
+  await page.click("#gt-load-draft");
+  await page.waitForFunction(() => st.meta?.drafted);
+  const taken = await page.evaluate(() => ({ places: st.order.map((c) => `${Math.round(c.cx)},${Math.round(c.cy)}`).sort(), finder: st.meta.finder,
+    votes: [...st.forced.keys()].every((i) => [...nor.model().cands, ...nor.model().deleted].some((c) => c.i === i && Math.round(c.x) === Math.round(st.cands[i].cx) && Math.round(c.y) === Math.round(st.cands[i].cy))) }));
+  await check(JSON.stringify(taken.places) === JSON.stringify(saved.places) && taken.finder === saved.finder && taken.votes && JSON.stringify((await read(page)).forced) === JSON.stringify(kept.forced),
+    "Load draft then shows the draft's candidates, each vote on its own, and none of the other finder's", { taken: taken.places.length, votes: taken.votes });
   await ctx.close();
 
   // what the five older keys held: offered once after Find Candidates, as a draft, and forgotten when a draft holds it

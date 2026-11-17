@@ -246,6 +246,18 @@ const tests = {
     assert.deepEqual(N.where(act({ type: 'check-area', area: 10, on: true }), m), [360, 30, 400, 60]);
     assert.deepEqual(N.where(act({ type: 'check-area', area: 19, on: true }), m), [0, 30, 40, 60]);
   },
+  'a model holds the page\'s candidates only when each is there by its id at its place, and none more'() {
+    const m = run(start(), { type: 'delete', cand: 'c2' });
+    const page = [...m.cands, ...m.deleted].map((c) => ({ i: c.i, id: c.id, x: c.x + .2, y: c.y - .2 }));
+    assert.equal(N.holds(m, page), true, 'kept and rejected alike, places rounded');
+    assert.equal(N.holds(m, page.map((c) => (c.id === 'c3' ? { ...c, x: c.x + 7 } : c))), false, 'the same id at another place is another candidate');
+    assert.equal(N.holds(m, [...page, { i: 9, id: 'c5', x: 1, y: 1 }]), false, 'a candidate the model does not know');
+    assert.equal(N.holds(m, page.slice(1)), false, 'a candidate the page does not have');
+    assert.equal(N.holds(m, page.map((c) => (c.id === 'c1' ? { ...c, id: 'c7' } : c))), false, 'another id');
+  },
+  'lines changed in several rows folded into one are not said to be of several candidates'() {
+    assert.equal(N.describe(act({ type: 'set-lines', cand: 'c3', lines: null }), 2, start()), 'Changed lines 2 times');
+  },
   'a check against the document it replays to says verified'() {
     const out = N.identify(output());
     return check(N, [{ type: 'open', at: DAY }, { type: 'run', at: DAY, output: out }, act({ type: 'delete', cand: 'c2' })],

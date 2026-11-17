@@ -175,6 +175,12 @@ export function run(model, action) {
   return r === model ? SAME : r;
 }
 
+// whether the model's candidates, kept and rejected, are those of the page, [{i, id, x, y}]: each by its id at its place, and none more
+export function holds(m, cands) {
+  const all = [...m.cands, ...m.deleted], at = new Map(cands.map((c) => [c.i, c]));
+  return all.length === cands.length && all.every((c) => at.get(c.i)?.id === c.id && place(at.get(c.i)) === place(c));
+}
+
 // the id the NoR added next is given
 export const nextAdded = (m) => `u${m.nextU}`;
 
@@ -195,7 +201,8 @@ export function describe(a, count = 1, model = null) {
     case "undecide": return many(`Took back the verdict on ${who}`, `Took back ${count} verdicts`);
     case "delete": return many(`Deleted ${who}`, `Deleted ${count} candidates`);
     case "set-lines": {
-      if (count > 1) return `Changed the lines of ${count} candidates`;
+      // the rows folded may be of one candidate
+      if (count > 1) return `Changed lines ${count} times`;
       if (!a.lines) return `Reset the lines of ${who}`;
       const keys = Object.keys(a.lines);
       return keys.length === 1 ? `Moved the ${LINE[keys[0]]} line of ${who}` : `Moved the lines of ${who}`;
