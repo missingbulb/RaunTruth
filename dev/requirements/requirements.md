@@ -16,6 +16,24 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/shell` The shell, whichever study it runs
 
+- `req/shell/account/consent-guide` Before the page opens a Google window that will ask the user something, a guide shows its screens, framing what to click, and stays until Google answers.
+  <details>
+
+  Set by the owner on 2026-11-17, since while the site is unverified Google hides the way in. Signing in when no
+  one is signed in on this device (the welcome popup's Sign in with Google, the avatar menu's), and approving a
+  study's folders (`req/shell/data/drive-access`, the ground-truth setup, the Tagger's Approve…), first open the
+  guide: numbered steps, each with a screenshot of Google's screen and what to click framed. Signing in: choose the
+  account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (Drive
+  among them) and Continue. Approving folders: the same unverified-app steps and the per-file Drive box, unless
+  that permission was given already, then Google's picker: tick the study's folders and press Select. The guide's
+  Open Google's window asks Google in that click; the guide stays, saying it waits for Google, until Google
+  answers, then closes; its Cancel asks Google nothing. Over the picker, which opens in the page, the guide steps
+  aside to the page's left edge, under the picker. A renewal Google answers by itself shows no guide. The
+  screenshots are of other apps' screens on Google, published on help pages (owner, 2026-11-17, the source under
+  each), and served from the site; the picker's step is drawn. Test: `web-tests/test_welcome_page.py`,
+  `web-tests/test_data_mode_page.py`.
+  </details>
+
 - `req/shell/account/role` Beside the study's name, a menu picks the role the user works in; the page shows that role's own view.
   <details>
 
@@ -162,6 +180,26 @@ nobody has decided: what the page does there is not a requirement yet.
   (`studies/shelves/tests/test_shelves_page.py`).
   </details>
 
+- `req/shell/data/area-of-interest` A Study Manager marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
+  <details>
+
+  Set by the owner on 2026-11-17. In Data Management a Study Manager lassoes an image's area of interest, drawn and combined as
+  the summary's mask is (`req/shell/summary/mask`), and the page keeps it in the study index (`req/shell/data/index`).
+  Once the image's data is extracted, its summary counts only what lies inside the area. Opened by anyone, the
+  image shows the area's border and starts with it as the summary's mask. A viewer may draw their own mask in its
+  place; while the summary counts an area the Study Manager did not set, a warning line at the bottom of the
+  view says so. Tentative: an image with no area of interest counts the whole image, with no warning, as now.
+  </details>
+
+- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; no algorithm reads them and every viewer sees them marked.
+  <details>
+
+  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes the
+  damaged areas of an image in Data Management. The image is never changed: the outlines are kept in the study index
+  (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. A study's algorithms and
+  its summary leave out what lies inside them, and the image, opened by anyone, shows them marked as damaged.
+  </details>
+
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
   <details>
 
@@ -173,45 +211,6 @@ nobody has decided: what the page does there is not a requirement yet.
   again. Changed by the owner on 2026-11-03: the page asks nowhere else, and no bar over the image asks
   for the folders. The page only creates files and changes or trashes the ones it created; it never changes
   a file anyone else made. Test: `web-tests/test_data_mode_page.py`.
-  </details>
-
-- `req/shell/data/edit` Edit Image opens the image itself and marks what to do with it: split, crop, slices, channels, imperfections; the view shows the result.
-  <details>
-
-  Set by the owner on 2026-11-03. In Data Management, Preprocessing's Edit Image (off until an image is
-  open, and while its box is open: set by the owner on 2026-11-04) opens the image itself, from the copy on this device or Drive, when a preview is on show, and
-  opens the Edit Image box below Preprocessing. Every choice there redraws the image as it will be saved,
-  the view staying as the user left it (a stack turned as it was): Split cuts it 2 × 2 or 3 × 3, the parts drawn apart with a gap between them, so a
-  stack in 3D looks cut; on a flat image the cut lines over the image drag, never closer than a twentieth of the crop
-  to the next, and a click on a part leaves it out (drawn dim) and keeps it again. Crop draws a rectangle
-  on the whole image and then shows only it. Slices, for a stack, is one slider with two marks, the first
-  and the last slice kept, the slices outside dropped from the view; a band on the slider marks the
-  suggested slices, those holding signal (each slice's 99th percentile above its median, at least a
-  quarter of the best slice's), and Use suggested sets the marks there. Channels ticks each channel kept,
-  a dropped one shown empty. Imperfections lassoes a part on the image to
-  leave out, drawn as if no data were there; each is listed with its share of the image
-  and can be removed, and the box's folded title sums them up ("4% imperfections"). Crop and the cut lines
-  draw on a flat image, so a stack, shown in 3D only (`req/shell/viewer-3d`), has neither (owner,
-  2026-11-03: each viewer gets tools made for it). Changed by the owner on 2026-11-07, Vascular Measurements' damaged
-  areas moving here out of its ground truth: a stack has Imperfections too. Mark turns it to straight above and holds
-  it there while armed, the lasso draws on it, and what it encloses is left out through every slice, outlined over the
-  view as it zooms and pans. Done leaves the box
-  and shows the image as it was. Test: `web-tests/test_image_edit_page.py`, `web-tests/test_image_edit.py`.
-  </details>
-
-- `req/shell/data/edit-save` Save… writes the edited image, or its parts, into a folder named after the image, beside it.
-  <details>
-
-  Set by the owner on 2026-11-03. The page changes no file it did not make (`req/shell/data/drive-access`),
-  so an edit goes into a folder named after the image (its name without the extension), which the page
-  creates beside it, or uses when the page made it before. Save… shows where the files will go, their
-  names (the image's name and a pattern: `_edited` with no split, `_r{row}c{col}` with one, kept as the
-  user's setting; the pattern's fields as `req/shell/preprocessing/split` lists them), and holds the save
-  while two files would share a name, no channel is kept or every part is left out. Save to Google Drive
-  writes them there, while the folder is writable; Download gives the one file, or a ZIP of the parts.
-  Wherever the page lists a folder's images (the tree, the folder view and Load's Drive dialog), an image
-  beside a folder of its name is not listed: that folder, and the edited files in it, take its place.
-  Test: `web-tests/test_image_edit_page.py`.
   </details>
 
 - `req/shell/data/folder` A folder chosen shows its images as a grid or a list, and the left bar sums it up.
@@ -227,9 +226,43 @@ nobody has decided: what the page does there is not a requirement yet.
   out of date (the image's SHA-256 differs from the preview's), how many have ground truth beside
   them (`<name>.ground_truth.*`, `<name>` the image's name without its extension) and how many are
   marked as needing it (`req/shell/data/preview-images`). The toolbar's tools stay over the folder's
-  images, waiting for an image (set by the owner on 2026-11-04: Data Management has its own tools to cut
-  and crop, and the viewer's basic ones may sit beside them). Test: `web-tests/test_data_mode_page.py`,
+  images, waiting for an image (set by the owner on 2026-11-04: the viewer's basic ones may sit there). Test: `web-tests/test_data_mode_page.py`,
   `web-tests/test_shell_states_page.py`.
+  </details>
+
+- `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a Study Manager's explicit act, adding an image is not.
+  <details>
+
+  Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
+  the folders the study's images come from, by id. A Study Manager adds a folder there, or takes one out, as an act
+  of its own; an image added to a listed folder in Drive changes nothing in the study file. An image is in the study
+  while it is in a listed folder, a folder under one included. A folder beside an image of its name, a `.vsi`'s
+  `_<name>_` folder (`req/shell/image/cellsens`), is part of that image and not listed. A study with no study file,
+  the Image Viewer among them, has its listed folders as today: the data folder its root names, or the folder
+  whose link was pasted.
+  </details>
+
+- `req/shell/data/hidden` A Study Manager hides images by their tags; hidden images are left out of Load study images.
+  <details>
+
+  Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`): an image carrying a tag or a tag value a rule
+  names is hidden, and Load study images (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth
+  Taggers. A Study Manager still sees hidden images, marked so. Tentative: a hidden image a user opened before stays
+  in their recent images.
+  </details>
+
+- `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
+  <details>
+
+  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root, the study index:
+  every image in the listed folders (`req/shell/data/folders`) with its Drive id, name, folder path, size, SHA-256,
+  tags, description, damaged areas (`req/shell/data/damaged`), area of interest (`req/shell/data/area-of-interest`)
+  and preview, and when it was built. Only a Study Manager's page writes it: it rebuilds it where previews are made
+  today (`req/shell/data/update-previews`) and on each of their edits, a new file or the page's own replaced. A
+  Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from them; an image added
+  in Drive since the index was built is not listed until a Study Manager rebuilds it. The tags, descriptions and areas
+  are kept here, in files the page made, never on the images (`req/shell/data/drive-access`). Undecided: whether the
+  index replaces each folder's previews file or sits beside it.
   </details>
 
 - `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
@@ -241,16 +274,15 @@ nobody has decided: what the page does there is not a requirement yet.
   chevron folds it to a narrow strip and opens it again. The tree shows every folder and subfolder, open,
   each with its access (`req/shell/data/drive-access`); a folder's images stay folded under it until
   its image count is clicked, each with a small preview. In the mode the left bar keeps the Image box
-  and Preprocessing (`req/shell/preprocessing/split`) and hides the study's own drawers, its item view
+  and hides the study's own drawers, its item view
   and the steps; Load vanishes in a puff, Unload in its line with it: choosing another image or folder
   replaces the one open (set by the owner on 2026-11-04). The steps hidden are the status bar's breadcrumbs, with the item
   view's switch and its tasks' bar (set by the owner on 2026-11-04). Set by the owner on
   2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, Study Manager is listed in the role
   menu but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`). Going offline
   inside Data Management keeps what is open: the column and the folder's box say they need the internet and do
-  nothing until the network is back, and what reaches Drive (Save to Google Drive, Approve, Update previews, Needs
-  GT) is held with them; Preprocessing and an Edit Image under way stay usable, its marks being local, and the
-  Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
+  nothing until the network is back, and what reaches Drive (Approve, Update previews, Needs
+  GT) is held with them; the Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
   </details>
 
 - `req/shell/data/preview-images` An image chosen in Data Management opens from its preview; Load Original opens the image itself.
@@ -279,6 +311,18 @@ nobody has decided: what the page does there is not a requirement yet.
   to the submissions folder (Ground Truth Tagger); a role is offered only where Drive says so. Nobody is
   listed in the repo, and what anyone can change is still what Drive lets them. Tests:
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/data/tags` A Study Manager tags images and folders and describes each image; a folder's tags apply to every image in it.
+  <details>
+
+  Set by the owner on 2026-11-17. A tag is a single hyphenated word (`damaged-slide`) or a value of a multi-value tag, written
+  `name:value` (`group:wild-type`, `group:sick`); an image holds at most one value of each multi-value tag. A Study
+  Manager adds any tag to an image, or to a listed folder, where it applies to every image in it and under it, and
+  writes a description of each image. Every image carries `folder:<path>`, its folder's path from the listed folder
+  down, given by the page and never edited. What a file holds, "2D · 3 channels" or "3D · 24 slices"
+  (`req/shell/drive/stacks`), is not a tag. The tags and descriptions are kept in the study index
+  (`req/shell/data/index`).
   </details>
 
 - `req/shell/data/update-previews` Update previews makes the folder's previews for the images that lack one or changed, and keeps the rest.
@@ -311,8 +355,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-15. Every drag on the page, the shell's and a study's, cancels on Escape
-  pressed before the button is let go: a ground-truth handle, corner or lasso, Edit Image's crop, lasso
-  or cut, the ruler, the left bar's width, the minimap, the image's pan and the 3D view's turn all go
+  pressed before the button is let go: a ground-truth handle, corner or lasso, the summary's mask lasso, the ruler, the left bar's width, the minimap, the image's pan and the 3D view's turn all go
   back to where they were when the press began. That Escape does nothing else, no dialog closes on it,
   and letting go afterwards is no click and no drop.
   Every drag goes through one wrapper, so a new one cancels the same way. Test:
@@ -1135,6 +1178,17 @@ nobody has decided: what the page does there is not a requirement yet.
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
   </details>
 
+- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the Study Manager chooses, not by folder.
+  <details>
+
+  Set by the owner on 2026-11-17. Load's Google Drive dialog (`req/shell/drive/dialog`) becomes Load study images: every image of the
+  study (`req/shell/data/folders`), less the hidden ones (`req/shell/data/hidden`), in groups, one per value of the
+  multi-value tag the study file names for grouping (`req/shell/data/tags`), `folder` when it names none. Each row
+  shows what the dialog shows today and the image's tags and description. The Image Viewer, with no Study Manager,
+  groups by `folder` alone, and is the sanity test that the dialog works with nothing set up. Tentative: an image
+  with no value of the grouping tag sits in a last group, "No <tag>".
+  </details>
+
 - `req/shell/memory/no-growth` Memory does not grow with use.
   <details>
 
@@ -1226,29 +1280,6 @@ nobody has decided: what the page does there is not a requirement yet.
   details, the channels, the view, the minimap and its toolbar button) redraws from it; no control
   reaches into another to change it. The steps (`req/shell/status-bar/breadcrumbs`) are a state of the same kind. Test:
   `web-tests/test_image_box_page.py`.
-  </details>
-
-- `req/shell/preprocessing/split` Preprocessing, in Data Management, holds Edit Image; each file it saves is an ImageJ TIFF recording where it lay.
-  <details>
-
-  Set by the owner on 2026-10-31. A large image is hard to annotate in one sitting; its parts can be
-  annotated one at a time, by several people at once, and give the finders smaller samples to tune on.
-  Changed by the owner on 2026-10-31: it is the shell's, in every study, the Image Viewer included.
-  Changed by the owner on 2026-11-02: it exists only in Data Management (`req/shell/data/mode`), below
-  the Image box; out of it no drawer, number or crumb names it. Changed by the owner on 2026-11-03: Split
-  into parts became Edit Image (`req/shell/data/edit`), whose Save… (`req/shell/data/edit-save`) writes
-  the files; there is no separate dialog.
-  Each part is an ImageJ TIFF (uncompressed, little-endian) of the channels and slices kept, every time point
-  kept, its pixels the image's own, bit for bit at its own bit depth, but 0 inside an imperfection: the image's scale, unit, slice spacing,
-  channel colours (the file's LUTs, else the page's colours), names, display ranges and Info are kept, and
-  its Info gains a line `rauntruth.split={…}`: the image it came from (name, SHA-256, Drive id, size,
-  channels, slices, frames), the grid's cuts, the part's row, column, number, x, y, width and height, the
-  channels and slices kept (from 0), the parts of the image left blank as imperfections (`removed`, polygons
-  in the image's pixels, every slice), and for a part of a part where it lies in the first image (`root`).
-  That record is enough to join the parts' ground truth back into the whole image's. It reads ImageJ
-  hyperstacks, OME-TIFFs in one file and plain TIFFs (strips or tiles; uncompressed, LZW, Deflate or
-  PackBits, either byte order; 8, 16, 32 or 64 bits), and a PNG as the browser decodes it; it refuses a
-  BigTIFF, and a part over 4 GB. Test: `web-tests/test_split.py`, `web-tests/test_image_edit.py`.
   </details>
 
 - `req/shell/processing/algorithms` A study offering several algorithms lists them atop its Processing box, the first the default, each with its icon, title and precision and recall.
@@ -1910,7 +1941,7 @@ nobody has decided: what the page does there is not a requirement yet.
   open the study the file names, the fixture; a study's own paths open it, on the shell's tree with its own elements
   alone grafted in. Each element gives only what differs from its parent: cases over the state (the
   study's stage, who is signed in, the role, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
-  has selected, whether the page is online, whether Edit Image is open, whether the image fits the view, whether it is larger than the view,
+  has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
   never shown when shelved, `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
@@ -1918,7 +1949,7 @@ nobody has decided: what the page does there is not a requirement yet.
   role) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen
   (to or from Ground Truth Tagger the study opens afresh), another study and Back, the notice's OK, zooming in until
-  the image no longer fits, Data Management's folder, preview and Edit Image, and
+  the image no longer fits, Data Management's folder, preview and Load Original, and
   the network lost and back.
   `dev/tools/build/shell_states.py` writes from it the matrix, `dev/requirements/shell-states.GENERATED.md`, one table
   per path, and the browser test's expectations. It fails on what the walk would leave unchecked: a case no state

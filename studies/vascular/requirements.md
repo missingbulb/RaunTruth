@@ -48,7 +48,7 @@ owner's decisions on the stacks and the vessel model, are
   low-confidence vessel to approve or decline it. The toolbar's Everything, Detected and Missed keep the
   whole stack, only the signal within reach of the model's vessels, or only what lies away from them, within a
   reach that is a share of each vessel's own width (`req/vascular/model/view`). Damaged sample is marked in Data
-  Management, as an imperfection of the stack (`req/shell/data/edit`), never in the model (owner, 2026-11-07); a model
+  Management, as a damaged area of the stack (`req/shell/data/damaged`), never in the model (owner, 2026-11-07); a model
   file whose `excluded_regions` mark damage still shows it hatched and leaves it out of the counts. Every edit is one GT
   action in the shell's log (`req/shell/ground-truth/history`): a point dragged is one action at its drop, and Escape leaves
   the model as it was; a tagger undoes, redoes and saves them with the shell's Undo, Redo and Save Draft, and Clear all

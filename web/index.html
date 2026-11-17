@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11117.134">
+<meta name="version" id="site-version" title="version 0.11117.135">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -111,27 +111,6 @@
       <dl id="folder-summary"></dl>
       <div class="folder-actions"><button id="update-previews" type="button" data-needs-network disabled>Update previews</button></div>
       <p id="folder-msg" class="hint" role="status"></p>
-    </section>
-
-    <section class="box foldable" id="preprocessing-box" data-opens="load">
-      <div class="sec-head"><h2>Preprocessing</h2></div>
-      <div class="steps">
-        <button id="edit-open" type="button" disabled title="Split, crop, keep slices and channels, and leave out imperfections, seeing the result before you save it">Edit Image</button>
-      </div>
-    </section>
-
-    <section class="box foldable" id="edit-box" hidden>
-      <div class="sec-head"><h2>Edit Image</h2></div>
-      <div class="edit-row"><span class="edit-label">Split</span><div class="tabs" id="edit-split" role="group" aria-label="Split"><button type="button" data-n="1">None</button><button type="button" data-n="2">2 × 2</button><button type="button" data-n="3">3 × 3</button></div></div>
-      <p class="hint" id="edit-split-hint" hidden>Drag a cut line on the image to move it; click a part to leave it out, and again to keep it.</p>
-      <div class="edit-row" id="edit-crop-row"><span class="edit-label">Crop</span><button id="edit-crop" type="button" aria-pressed="false" title="Draw the rectangle to keep on the image">Draw</button><span id="edit-crop-size" class="hint"></span><button id="edit-crop-reset" type="button" class="link" hidden>whole image</button></div>
-      <div id="edit-slices-sec">
-        <div class="edit-row"><span class="edit-label">Slices</span><span id="edit-z-text" class="hint"></span><span class="grow"></span><button id="edit-suggest" type="button" class="link">Use suggested</button></div>
-        <div class="levels slices" id="edit-slices" title="The first and the last slice kept; the band marks the slices that hold signal"><div id="edit-band"></div><input type="range" id="edit-z0" step="1" aria-label="First slice kept"><input type="range" id="edit-z1" step="1" aria-label="Last slice kept"></div>
-      </div>
-      <div class="edit-row top"><span class="edit-label">Channels</span><div id="edit-channels"></div></div>
-      <div class="edit-row top" id="edit-flaws-row"><span class="edit-label">Imperfections</span><div><button id="edit-lasso" type="button" aria-pressed="false" title="Draw around a part of the image to leave it out of every slice">Mark</button><ul id="edit-flaws"></ul></div></div>
-      <div class="edit-row end"><button id="edit-save" class="primary" type="button">Save…</button><button id="edit-done" type="button" title="Leave Edit Image and show the image as it was">Done</button></div>
     </section>
 
     <section class="box foldable study-box" id="processing-box" hidden>
@@ -293,14 +272,6 @@
     <div class="dlg-row end"><span class="grow"></span><button value="close" class="primary" autofocus>Close</button></div>
   </form>
 </dialog>
-<dialog id="save-dlg" aria-labelledby="save-title">
-  <h2 id="save-title">Save the edited image</h2>
-  <p class="hint" id="save-where"></p>
-  <label class="split-field" for="save-pattern"><span class="split-label">File names</span><input id="save-pattern" type="text" spellcheck="false" autocomplete="off"></label>
-  <p class="hint">Added to the image's name: {row} {col} {n} {x} {y} {rows} {cols}, or {name} for the name itself.</p>
-  <ul id="save-names" data-log-as="a file name Save… lists"></ul>
-  <div class="dlg-row end"><span id="save-msg" class="hint" role="status"></span><span class="grow"></span><button id="save-download" type="button">Download</button><button id="save-remote" class="primary" type="button" data-needs-network></button><button id="save-close" type="button">Close</button></div>
-</dialog>
 <dialog id="offline-dlg" aria-labelledby="offline-title">
   <h2 id="offline-title">Prepare for Offline</h2>
   <label class="file-row python"><input type="checkbox" checked disabled><span class="name">Python</span><span class="where">jsDelivr</span><span class="size" id="offline-python"></span></label>
@@ -330,6 +301,12 @@
     <p id="welcome-offline" class="hint"></p>
     <label class="hint"><input type="checkbox" id="welcome-remember"> Remember this choice</label>
   </form>
+</dialog>
+<dialog id="guide-dlg" aria-labelledby="guide-title">
+  <h2 id="guide-title"></h2>
+  <ol id="guide-steps"></ol>
+  <p class="hint" id="guide-wait" role="status"></p>
+  <div class="dlg-row end"><span class="grow"></span><button type="button" id="guide-cancel">Cancel</button><button type="button" id="guide-go" class="primary" autofocus></button></div>
 </dialog>
 <dialog id="usage-dlg" aria-labelledby="usage-title">
   <form method="dialog">

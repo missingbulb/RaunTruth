@@ -4,7 +4,7 @@
 // slices deep as the given model (drawnStack), and answers
 // Execute with that model, the arguments it was asked with in its "asked" field. The study is served in the
 // stage asked for.
-import { writeTiff } from "../../../web/split.js";
+import { writeTiff } from "../../../web/tiff_file.js";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
 import fs from "node:fs";

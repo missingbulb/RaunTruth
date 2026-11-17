@@ -12,7 +12,7 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { writeTiff } from "../../../web/split.js";
+import { writeTiff } from "../../../web/tiff_file.js";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";

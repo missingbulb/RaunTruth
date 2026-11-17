@@ -22,14 +22,14 @@ class GoogleDrive:
     """The real transport. Needs the root shared as "Anyone with the link"."""
 
     def download(self, drive_id, out):
-        import gdown
+        import gdown  # native only: fetches the raw stacks for the lab
         os.makedirs(os.path.dirname(out), exist_ok=True)
         if gdown.download(id=drive_id, output=out, quiet=False) is None:
             raise RuntimeError(f'Drive refused {drive_id}: is it shared as "Anyone with the link"?')
 
     def list_folder(self, drive_id):
         """[(relative path, drive id)] for every file under the folder, recursively."""
-        import gdown
+        import gdown  # native only: fetches the raw stacks for the lab
         return [(f.path, f.id) for f in gdown.download_folder(id=drive_id, skip_download=True, quiet=True)]
 
 

@@ -1,8 +1,8 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report), the ground truth it keeps as GT actions (gt: act, ran, model, document, count, on) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
-// submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js) with its Preprocessing (Split into parts), the resources dialog (storage, memory,
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
+// submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js), the resources dialog (storage, memory,
 // network and CPU) and the version history.
 //
 // The study's hooks, all optional, returned from mount: ready(info) once its Python is loaded;
@@ -29,13 +29,12 @@ import { remote } from "./drive.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
+import { guide } from "./guide.js";
 import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
 import { dataMode } from "./data_mode.js";
 import { ROLE, ROLE_NAMES, held, shown, roleMenu } from "./roles.js";
-import { imageEditor, SPLIT_PATTERN } from "./image_edit.js";
-import { replacedBy } from "./edit.js";
 import { dialogMotion } from "./dialog_motion.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthTasks } from "./truth_tasks.js";
@@ -123,6 +122,7 @@ const STUDY_REQUEST = "new-study.yml";
 const FOLLOWS = [THEME, ROLE, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
   keys: FOLLOWS,
+  guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),
   // after the page's own start, which this may run during
@@ -141,7 +141,6 @@ $("#load-original").title = `Open the image itself, not its preview: from this d
 $("#remote-title").textContent = `Load from ${remote.label}`;
 $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
-$("#save-remote").textContent = `Save to ${remote.label}`;
 
 // the tagger's side of the study's ground-truth folders: the line in its ground-truth box and Submit
 // the study on show's root in the remote store: its settings, the folders Load browses, the roles the store gives
@@ -831,7 +830,7 @@ async function openBytes(name, bytes, source) {
   st.fileName = name; st.source = source;
   for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
   drawSteps(); boxes().forEach((b) => summaries.delete(b)); retitle();
-  // the file as it came, for Python at a Run (a copy is handed over then), Edit Image and the problem report
+  // the file as it came, for Python at a Run (a copy is handed over then) and the problem report
   const kept = st.kept = { name, source, bytes };
   tasks.tagging(false);
   summaryCsv.clear(); summaryMasks.left();
@@ -1188,8 +1187,7 @@ function remoteDialog() {
   const draw = async (at, all, off, asked, seen = null) => {
     const kept = await keptIds();
     if (asked !== listing) return;
-    // an image an edit replaced is not listed: the folder of its edits stands in its place
-    const beside = all.find((f) => !f.folder && f.name === PREVIEWS), edited = replacedBy(all), items = all.filter((f) => f !== beside && !edited(f));
+    const beside = all.find((f) => !f.folder && f.name === PREVIEWS), items = all.filter((f) => f !== beside);
     const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS);
     $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
     // a study with a root keeps each folder's previews in the root's Previews folder; one with none, beside its images
@@ -1547,7 +1545,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [SPLIT_PATTERN]: "File names of an image split into parts", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -2393,7 +2391,6 @@ const data = dataMode({
 async function loadOriginal(source) {
   if (!source?.id) return;
   const kept = await savedImage(source.id);
-  // where it is in the study's folders goes with it, for Edit Image to save beside it
   const opened = remote.source(source.id, { name: source.name, folder: source.folder });
   if (kept) { peek()(kept.bytes, kept.bytes.byteLength); return openBytes(kept.name, kept.bytes, opened); }
   if (document.documentElement.classList.contains("offline")) return notice("This image is not kept on this device, and needs the internet: you are offline.");
@@ -2413,11 +2410,6 @@ async function loadOriginal(source) {
   }
 }
 $("#load-original").onclick = () => { signIn.renew(); loadOriginal(page.get("image")?.source); };
-// Edit Image (req/shell/data/edit): what it borrows from the shell and Data Management
-imageEditor({
-  $, page, state: st, still, status, notice, readJSON, writeJSON, saveFile, boxDone, relabel: () => retitle(), loadOriginal, remote,
-  viewer: () => view, original: () => st.kept, accessOf: (f) => data.accessOf(f), saveEdits: (...a) => data.saveEdits(...a),
-});
 
 // the sign-in popup on opening the page (req/shell/account/welcome); the menu's Sign in and Sign out answer it too
 const welcomed = welcome({ dialog: $("#welcome-dlg"), account: signIn, avatar: $("#user-menu summary"), tip });

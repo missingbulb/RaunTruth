@@ -10,7 +10,6 @@
     "view": ["image", "items"],
     "selected": ["nothing", "folder", "image"],
     "online": [true, false],
-    "editing": [false, true],
     "stack": [false, true],
     "fromComputer": [false, true],
     "hasSteps": [false, true],
@@ -42,9 +41,8 @@
     {"root": "Published, Viewer", "actions": ["load", "count", "items"]},
     {"root": "GT, Tagger", "actions": ["load", "offline", "online"]},
     {"root": "GT, Study Manager", "actions": ["folder", "preview", "original", "offline"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "preview", "edit", "offline", "done"]},
     {"root": "GT, Study Manager", "actions": ["folder", "offline", "online"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "zpreview", "edit", "done"]},
+    {"root": "GT, Study Manager", "actions": ["folder", "zpreview", "original"]},
     {"root": "PreGT, Study Manager", "actions": ["folder"]},
     {"root": "GT, Tagger", "actions": ["load", "ok", "count", "unload"]},
     {"root": "GT, Tagger", "actions": ["load", "count", "viewer"]},
@@ -234,75 +232,6 @@
                   ]
                 },
                 {"name": "Folder's message", "select": "#folder-msg", "req": "req/shell/data/folder"}
-              ]
-            },
-            {"name": "Preprocessing", "select": "#preprocessing-box", "box": true, "req": "req/shell/preprocessing/split",
-              "rule": [
-                {"when": {"role": ["viewer", "tagger"]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"}
-              ],
-              "children": [
-                {"name": "Edit Image", "select": "#edit-open", "control": true, "req": "req/shell/data/edit",
-                  "rule": [
-                    {"when": {"editing": [true]}, "is": "disabled"}
-                  ]
-                }
-              ]
-            },
-            {"name": "Edit Image box", "select": "#edit-box", "box": true, "req": "req/shell/data/edit",
-              "rule": [
-                {"when": {"editing": [false]}, "is": "hidden"}
-              ],
-              "children": [
-                {"name": "Split", "select": "#edit-split", "req": "req/shell/data/edit"},
-                {"name": "Split hint", "select": "#edit-split-hint", "req": "req/shell/data/edit", "steady": "shows only while an image is split",
-                  "rule": [
-                    {"is": "hidden"}
-                  ]
-                },
-                {"name": "Crop", "select": "#edit-crop-row", "req": "req/shell/data/edit",
-                  "rule": [
-                    {"when": {"stack": [true]}, "is": "hidden", "about": "a z-stack is edited in 3D, which has tools of its own"}
-                  ],
-                  "children": [
-                    {"name": "Draw", "select": "#edit-crop", "control": true, "req": "req/shell/data/edit"},
-                    {"name": "Crop's size", "select": "#edit-crop-size", "req": "req/shell/data/edit"},
-                    {"name": "Reset crop", "select": "#edit-crop-reset", "control": true, "req": "req/shell/data/edit", "steady": "shows only once a crop is drawn",
-                      "rule": [
-                        {"is": "hidden"}
-                      ]
-                    }
-                  ]
-                },
-                {"name": "Slices", "select": "#edit-slices-sec", "req": "req/shell/data/edit",
-                  "rule": [
-                    {"when": {"stack": [false]}, "is": "hidden"}
-                  ],
-                  "children": [
-                    {"name": "Slices' text", "select": "#edit-z-text", "req": "req/shell/data/edit"},
-                    {"name": "Use suggested", "select": "#edit-suggest", "control": true, "req": "req/shell/data/edit",
-                      "rule": [
-                        {"is": "disabled", "approval": "tentative", "about": "the slices kept are the suggested ones already, as on the walked z-stack"}
-                      ]
-                    },
-                    {"name": "Slices slider", "select": "#edit-slices", "req": "req/shell/data/edit",
-                      "children": [
-                        {"name": "Suggested band", "select": "#edit-band", "req": "req/shell/data/edit"},
-                        {"name": "First slice", "select": "#edit-z0", "control": true, "req": "req/shell/data/edit"},
-                        {"name": "Last slice", "select": "#edit-z1", "control": true, "req": "req/shell/data/edit"}
-                      ]
-                    }
-                  ]
-                },
-                {"name": "Channels kept", "select": "#edit-channels", "req": "req/shell/data/edit"},
-                {"name": "Imperfections", "select": "#edit-flaws-row", "req": "req/shell/data/edit",
-                  "children": [
-                    {"name": "Mark", "select": "#edit-lasso", "control": true, "req": "req/shell/data/edit"},
-                    {"name": "Imperfections' list", "select": "#edit-flaws", "req": "req/shell/data/edit"}
-                  ]
-                },
-                {"name": "Save…", "select": "#edit-save", "control": true, "req": "req/shell/data/edit-save"},
-                {"name": "Done", "select": "#edit-done", "control": true, "req": "req/shell/data/edit"}
               ]
             },
             {"name": "Processing", "select": "#processing-box", "box": true, "req": "req/shell/left-bar/shells",

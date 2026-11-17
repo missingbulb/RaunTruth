@@ -34,9 +34,6 @@ ACTIONS = {
     'preview': ('Preview', {'selected': 'image', 'image': 'preview', 'stack': False, 'counted': False, 'imageLarge': False}),
     'zpreview': ('Preview a z-stack', {'selected': 'image', 'image': 'preview', 'stack': True, 'counted': False, 'imageLarge': False}),
     'original': ('Load Original', {'image': 'original'}),
-    # from a preview, Edit Image opens the image itself (req/shell/data/edit)
-    'edit': ('Edit Image', {'editing': True, 'image': 'original'}),
-    'done': ('Done', {'editing': False}),
     'offline': ('Offline', {'online': False}),
     'online': ('Online', {'online': True}),
     'unload': ('Unload', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False}),
@@ -50,7 +47,7 @@ ACTIONS = {
     'zoom': ('Zoom in', {'imageFits': False}),
 }
 ROLES = ('tagger', 'viewer', 'data')
-START = {'image': 'none', 'counted': False, 'view': 'image', 'selected': 'nothing', 'online': True, 'editing': False, 'stack': False,
+START = {'image': 'none', 'counted': False, 'view': 'image', 'selected': 'nothing', 'online': True, 'stack': False,
          'notice': False, 'imageFits': True, 'imageLarge': False}
 STATES = ('shown', 'disabled', 'held', 'folded', 'hidden')
 # what the page shows of an element, as the browser reads it: on (shown, usable, a box open), off (shown, disabled),
