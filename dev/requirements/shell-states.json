@@ -328,20 +328,20 @@
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
+                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
+                  "steady": "hidden while no draft of the image is on this device and no study offers an old store, which no path makes",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, and no old store is offered"}
+                  ],
+                  "children": [
+                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
+                      "unwalked": "its parent is hidden in every path, no draft being on this device"},
+                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, no study's old store being offered"}
+                  ]
+                },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
-                    {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
-                      "steady": "hidden while no draft of the image is on this device and no study offers an old store, which no path makes",
-                      "rule": [
-                        {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, and no old store is offered"}
-                      ],
-                      "children": [
-                        {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
-                          "unwalked": "its parent is hidden in every path, no draft being on this device"},
-                        {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
-                          "unwalked": "its parent is hidden in every path, no study's old store being offered"}
-                      ]
-                    },
                     {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
                     {"name": "Continue tagging", "select": "#gt-continue", "control": true, "req": "req/shell/ground-truth/draft",
                       "steady": "hidden for a study that takes no drafts, the only kind a path opens",

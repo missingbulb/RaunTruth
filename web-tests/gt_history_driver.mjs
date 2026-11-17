@@ -60,8 +60,8 @@ const savedAt = recs[0].saved;
 // Load draft: offered with when and how many, nothing loaded unasked, and no step of the study run again
 await reopen(page);
 await until(page, () => !$("#gt-offers").hidden);
-const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-list").firstElementChild.id }));
-await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-offers", "the image's draft is offered above Start GT tagging, with when it was saved and how many actions", offer);
+const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-offers").nextElementSibling.id }));
+await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above Start GT tagging, with when it was saved and how many actions", offer);
 await check((await model(page)) === null && (await page.textContent("#fx-result")).startsWith("Nothing counted"), "nothing is loaded unasked");
 await page.evaluate(() => { window.posted = []; const p = Worker.prototype.postMessage; Worker.prototype.postMessage = function (m, ...r) { posted.push(m.type + ":" + (m.action || "")); return p.call(this, m, ...r); }; });
 await page.click("#gt-load-draft");

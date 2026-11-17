@@ -524,7 +524,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-17. When the image open has a draft on this device, by the study and the image's SHA-256
   (`req/shell/ground-truth/save-draft`), the Ground Truth Tasks box opens with the image and shows Load draft above
-  Start GT tagging, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
+  Start GT tagging, before the study has listed its tasks too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
   asks first. A draft that could not be looked up is said on the status line. Tentative: the button stays while the
