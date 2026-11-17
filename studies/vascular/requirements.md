@@ -59,13 +59,17 @@ owner's decisions on the stacks and the vessel model, are
 
   Submit Ground Truth (`req/shell/ground-truth/submit`), the last of the Ground Truth Tasks
   (`req/vascular/truth/tasks`), exports the corrected `vessel-model/2` file, `status` corrected and
-  its corrections counted, labelled `vascular-ground-truth`; it is off until the model carries a
+  labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
   a vessel's `state` (`accepted` or `rejected`) beside `proposed`, the state the extractor gave it;
   a junction found right in `checked_junctions`; each area done in `reviewed_regions`, the area's box
   with its `step`, `area`. Nothing in the tasks sets or confirms a width, so the widths stay the algorithm's
   estimates, kept but named in the file's `unchecked` list (`r`, `r_a`, `r_b`, `taper_known`), never claimed
-  as corrected. Test: `studies/vascular/tests/test_vessel_tasks_page.py`.
+  as corrected. The file keeps every point's and segment's id (a curve point's `id`, an edge's `segment_ids`), so an action
+  names the same item after saving and loading; a point a person adds takes its id from 1,000,000 up and a segment from
+  `u1`, apart from the algorithm's, so a run again never gives them to something else. The file has no clock and no
+  count of corrections (`corrected_at` and `corrections` are no longer written): the day an area or a width was said
+  is the day of its action. Test: `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
   </details>
 
 - `req/vascular/model/run` Processing picks an extraction algorithm, says how it works and how well, and Execute draws the vessel model in the browser.

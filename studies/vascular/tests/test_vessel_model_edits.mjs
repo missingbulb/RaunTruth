@@ -175,7 +175,9 @@ const tests = {
     const out = Mo.toJSON(m);
     assert.equal(out.format, 'vessel-model/2'); assert.equal('segments' in out, false);
     assert.deepEqual(out.nodes, SAMPLE.nodes);
-    assert.deepEqual(out.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })), SAMPLE.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })));
+    // a curve point is written with the id it keeps
+    const bare = (via) => via.map(({ id: _id, ...p }) => p);
+    assert.deepEqual(out.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via: bare(via) })), SAMPLE.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })));
     assert.deepEqual(out.reviewed_regions, SAMPLE.reviewed_regions);
   },
   'the curve passes through every point, and smoothly through a curve point'() {
