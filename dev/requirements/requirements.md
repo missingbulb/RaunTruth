@@ -523,6 +523,36 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
   </details>
 
+- `req/shell/ground-truth/history` A tagger's ground truth is an ordered log of GT actions, undone and redone one at a time down to the algorithm's run.
+  <details>
+
+  Set by the owner on 2026-11-17. Each change to an image's ground truth is one GT action, `{at, type, …}`: when, and the
+  least data that says what happened, with no label, no inverse and no number. One gesture is one action, done whole by the
+  study (a drag is one action, at its drop; a drag Escaped is none, `req/shell/drag/escape`). The shell keeps them in order
+  in the action log, after its own: `open` (the image and the study), `run` (the algorithm, its settings and what it
+  emitted) and `base` (stored ground truth that has no log). A study names a module of pure functions in its `study.json`
+  (`groundTruth.actions`): `start(output, previous)`, the run's output as a model, lending it the ids of the model before
+  by place; `run(model, action)`, the next model, or `{skip}` when its target is not there, never changing the one it was
+  given; `describe(action, count, model)`; `where(action, model)`; `document(model)`, the study's file; and
+  `load(document)`, its inverse. The study records an action with `shell.gt.act` and draws the model the shell hands it;
+  the log, replay, undo and redo are the shell's, the same in every study. Undo takes the last action off the log and
+  replays the rest (`req/shell/ground-truth/history-replay`); Redo puts it back; a new action forgets what was undone.
+  Undo stops at the first run or base; undoing a later run goes back to the model on the run before. Two runs with no
+  action between them are one, the later. Tests: `web-tests/test_truth_actions.py`.
+  </details>
+
+- `req/shell/ground-truth/history-replay` The model and its log are both kept; replaying the log must give the stored model, and where it does not the stored model wins.
+  <details>
+
+  Set by the owner on 2026-11-17. A replay is the model of the last run (or base), then the study's `run` for every other
+  action in order, those from before a later run too, by id: no algorithm, no page, no clock, the same under Node as in
+  the page. An action whose item the new run no longer has is skipped and stays in the log. When a stored model is loaded
+  with its log, the shell replays the log and compares the two as the study's documents, by SHA-256: `verified`, the
+  replayed model with its whole history undoable; `mismatch`, the stored model taken as a base and the earlier log kept
+  but no longer replayed; `none`, a model stored without a log, taken as a base. No study version is kept: a study whose
+  code changed what an action does shows as a mismatch. Tests: `web-tests/test_truth_actions.py`.
+  </details>
+
 - `req/shell/ground-truth/layout` Both folders hold one subfolder per image and one file per tagger in it, and a reader takes the newest that is not rejected.
   <details>
 
