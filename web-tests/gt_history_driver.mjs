@@ -145,17 +145,16 @@ await moved(page, "m1", 30, 20);
 l = await label(page);
 await check(l.text === "· 1 unsaved", "a drag dropped is exactly one action", l);
 
-// Save Draft over a draft this visit did not load asks first, naming it
+// Load draft over unsaved actions asks first, and dismissing keeps the model
 await reopen(page);
 await counted(page);
 await moved(page, "m1", 12, 12);
-// (Load draft over unsaved actions asks first, and dismissing keeps the model
 await until(page, () => !$("#gt-offers").hidden);
 const afterMove = await marks(page);
 asked = await ask(page, false, () => page.click("#gt-load-draft"));
 await check(/unsaved/.test(asked || "") && (await marks(page)) === afterMove && !(await label(page)).hidden, "Load draft over an unsaved action asks first, and dismissing it keeps the model", asked);
 
-// Save Draft over it
+// Save Draft over a draft this visit did not load asks first, naming it
 asked = await ask(page, false, () => page.click("#gt-save-draft"));
 await check(/Replace the draft saved at \d\d:\d\d, with 2 actions/.test(asked || "") && (await records(page))[0].saved === savedAt, "Save Draft over an unloaded draft asks, naming its time and actions, and dismissing keeps it", asked);
 await ask(page, true, () => page.click("#gt-save-draft"));
@@ -164,8 +163,10 @@ recs = await records(page);
 await check(recs.length === 1 && recs[0].saved !== savedAt && recs[0].log.filter((a) => a.type === "move-mark").length === 1, "accepted, it replaces the image's draft", recs.length);
 
 // Submit after one undo: the file carries the log in force, and the draft is saved with it
-await moved(page, "m2", -10, -10);
+await moved(page, "m2", -10, -10); await moved(page, "m1", 8, -6);
 await page.click("#gt-undo");
+const draftBefore = recs[0].saved;
+await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Submit", await label(page));
 const msg = await submit(page);
 await check(/Submitted/.test(msg), "Submit says the file landed", msg);
 const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.submissions);
@@ -173,10 +174,11 @@ const file = FILES.filter((f) => f.parent === subFolder?.id).at(-1);
 const doc = JSON.parse(file.bytes.toString());
 await check(Array.isArray(doc.labels) && doc.history?.format === "rauntruth-gt-history/1" && doc.history.replay === "verified", "the file is the study's document with a history, its replay verified", { keys: Object.keys(doc), history: doc.history && { format: doc.history.format, replay: doc.history.replay } });
 const acts = doc.history.actions;
-await check(acts.filter((a) => a.type === "move-mark").length === 1 && acts.every((a) => typeof a.at === "string") && typeof acts.find((a) => a.type === "run").output.deflate === "string",
+await check(acts.filter((a) => a.type === "move-mark").length === 2 && acts.every((a) => typeof a.at === "string") && typeof acts.find((a) => a.type === "run").output.deflate === "string",
   "the undone move is not written, each action has its time, and the run's output is deflated", acts.map((a) => a.type));
 recs = await records(page);
-await check(recs.length === 1 && recs[0].log.filter((a) => a.type === "move-mark").length === 1, "Submit saved the draft too", recs.length);
+await check(recs.length === 1 && recs[0].saved !== draftBefore && recs[0].log.filter((a) => a.type === "move-mark").length === 2 && (await label(page)).hidden,
+  "Submit saved the draft too, the action it had not saved with it", recs.map((r) => ({ saved: r.saved, log: r.log.map((a) => a.type) })));
 
 // a viewer loading that file as curated ground truth is handed the study's document, without the history
 const curated = { id: "dmcuratedsub0000000001", name: sub, parent: GT.curated, folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-17T09:00:00.000Z" };
