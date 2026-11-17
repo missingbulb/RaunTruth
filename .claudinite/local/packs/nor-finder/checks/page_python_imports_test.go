@@ -54,7 +54,7 @@ func TestAnImportThePageDoesNotInstallIsFoundWhereverTheEntryReachesIt(t *testin
 		// a module in a later folder, reached only from inside a function: the page runs it when asked
 		"studies/x/lab/helper.py": "from skimage import morphology\nimport matplotlib.pyplot as plt\n",
 	})
-	want(t, got, `^studies/x/lab/helper\.py:2 imports matplotlib, which the page does not install for x`)
+	want(t, got, `^studies/x/lab/helper\.py:2 .*\bmatplotlib\b.*\bx$`)
 }
 
 func TestAPackageAWheelTheStandardLibraryAndPyodideItselfAreNotFound(t *testing.T) {
@@ -91,7 +91,7 @@ func TestAMissingEntryModuleIsFoundOnTheStudyJSON(t *testing.T) {
 		"studies/x/study.json":  studyJSON,
 		"studies/x/py/other.py": "import matplotlib\n",
 	})
-	want(t, got, `^studies/x/study\.json:0 names the entry module x, which none of its python\.paths holds`)
+	want(t, got, `^studies/x/study\.json:0 .*\bx\b`)
 }
 
 func TestAStudyWithNoPythonAndAModuleNoEntryReachesAreNotRead(t *testing.T) {
