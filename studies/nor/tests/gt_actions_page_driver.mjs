@@ -323,18 +323,22 @@ try {
       labels: [lab(a, 1), lab(b, 0), { id: 99, kind: "missing", x: 40, y: 40, label: 1, source: "user", radius_px: 12, lines: { length: [[30, 40], [50, 40]], red: [[34, 40], [46, 40]], width: [[40, 36], [40, 44]] } }],
       first: [a.i, b.i] };
   });
-  await page.evaluate((f) => new Promise((ok, bad) => {
-    const q = indexedDB.open("gt-drafts", 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("drafts", { keyPath: ["study", "sha256"] });
-    q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").put({ study: "nor", sha256: f.image.sha256, name: f.image.name, saved: new Date().toISOString(), log: [], model: f, replay: "none" }); t.oncomplete = ok; t.onerror = () => bad(t.error); };
-  }), file);
-  await page.reload();
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
-  await loadImage(page);
-  await page.waitForFunction(() => !$("#gt-load-draft").hidden);
-  await unfold(page, "#tasks-box");
-  await page.click("#gt-load-draft");
-  await page.waitForFunction(() => st.meta?.drafted);
+  // the file kept as this device's draft of the image, with no history, and loaded in a page opened afresh
+  const asDraft = async (f) => {
+    await page.evaluate((f) => new Promise((ok, bad) => {
+      const q = indexedDB.open("gt-drafts", 1);
+      q.onupgradeneeded = () => q.result.createObjectStore("drafts", { keyPath: ["study", "sha256"] });
+      q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").put({ study: "nor", sha256: f.image.sha256, name: f.image.name, saved: new Date().toISOString(), log: [], model: f, replay: "none" }); t.oncomplete = ok; t.onerror = () => bad(t.error); };
+    }), f);
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+    await loadImage(page);
+    await page.waitForFunction(() => !$("#gt-load-draft").hidden);
+    await unfold(page, "#tasks-box");
+    await page.click("#gt-load-draft");
+    await page.waitForFunction(() => st.meta?.drafted);
+  };
+  await asDraft(file);
   const loaded = await read(page);
   await check(loaded.forced.length === 2 && JSON.stringify(loaded.forced.map(([, v]) => v).sort()) === JSON.stringify(["in", "out"]) && JSON.stringify(loaded.added) === JSON.stringify([["u1", "in"]]),
     "a /2 file read as a draft brings its approval, its rejection and its added NoR", loaded);
@@ -344,6 +348,12 @@ try {
   await check(JSON.stringify(kept2.forced.map(([, v]) => v).sort()) === JSON.stringify(["in", "out"]) && JSON.stringify(kept2.added) === JSON.stringify(loaded.added) && lm2.deleted.length === 1 && lm2.cands.filter((c) => c.approved).length === 1
     && JSON.stringify(places) === JSON.stringify(file.labels.slice(0, 2).map((l) => `${Math.round(l.x)},${Math.round(l.y)}`)) && !(await page.evaluate(() => $("#status").textContent)).includes("left out"),
     "Find Candidates after it keeps the votes, the rejection and the added NoR: the loaded work is carried onto the new candidates", { loaded, kept2, deleted: lm2.deleted.length });
+  // a vote the file holds where the finder finds nothing has no candidate to go to: the run says so, and nothing the page
+  // says after the run takes that away
+  await asDraft({ ...file, labels: [...file.labels, { id: 98, x: 3, y: 3, label: 1, source: "user", lines: null }] });
+  await find(page);
+  const leftOut = await page.evaluate(() => $("#status").textContent);
+  await check(/no item for 1 earlier decision or edit, which was left out/.test(leftOut), "a vote with no candidate in the run is left out, and the status line says so", leftOut);
   await ctx3.close();
   await done(0);
 } catch (e) { console.error(e); await done(1); }
