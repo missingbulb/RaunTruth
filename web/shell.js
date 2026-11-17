@@ -1423,30 +1423,38 @@ async function thumbUrl(id) {
 }
 // when each thumbnail was saved: strictly increasing, so the latest are told apart within one millisecond
 let thumbClock = 0;
-// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept
+// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept. Returns whether it was kept.
 async function keepThumb(id, name, url) {
   const KEEP = 100;
+  let kept = false;
   try {
     const cache = await caches.open(THUMBS_CACHE), blob = await (await fetch(url)).blob();
     thumbClock = Math.max(Date.now(), thumbClock + 1);
     await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
+    kept = true;
     const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
     all.sort((x, y) => x.at - y.at);
     for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
   } catch (e) { console.warn("the thumbnail could not be kept:", e); }
   diskBar();
+  return kept;
 }
-// thumbnails an earlier page kept in the settings' storage move to the cache, once: each, then the three key families, go
+// thumbnails an earlier page kept in the settings' storage move to the cache: each key goes once its picture is kept
+// there or holds none, and the two lists once no picture is left behind
 async function moveThumbs() {
   let keys = [];
   try { keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_THUMB)); } catch { return; }
-  const names = readJSON(LEGACY_THUMB_NAMES), order = readJSON(LEGACY_THUMBS, []);
+  const names = readJSON(LEGACY_THUMB_NAMES), saved = readJSON(LEGACY_THUMBS, []), order = Array.isArray(saved) ? saved : [];
   const rank = (k) => order.indexOf(k.slice(LEGACY_THUMB.length));
+  const done = [LEGACY_THUMBS, LEGACY_THUMB_NAMES];
+  let behind = 0;
   for (const k of keys.sort((a, b) => rank(a) - rank(b))) {
-    const id = k.slice(LEGACY_THUMB.length);
-    await keepThumb(id, names[id] || "", readJSON(k, ""));
+    const id = k.slice(LEGACY_THUMB.length), url = readJSON(k, "");
+    const picture = typeof url === "string" && url.startsWith("data:image/");
+    if (picture && !(await keepThumb(id, names[id] || "", url))) behind++;
+    else done.unshift(k);
   }
-  for (const k of [...keys, LEGACY_THUMBS, LEGACY_THUMB_NAMES]) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
+  for (const k of behind ? done.slice(0, -2) : done) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
 }
 
 // what each remote file holds, remembered so it is read once; the latest KEEP. Returns its words for the row.

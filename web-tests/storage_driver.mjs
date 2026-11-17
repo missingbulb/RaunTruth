@@ -355,23 +355,41 @@ try {
   const back = await inStudy("nor");
   check(back === 3, `back in the study, its own are listed again: ${back}`);
 
-  // thumbnails kept in the settings' storage by an earlier page move to the cache when the page opens
-  await page.evaluate(({ pic }) => {
-    for (const id of ["L1", "L2", "L3"]) localStorage.setItem("nor-drive-thumb:" + id, JSON.stringify(pic));
-    localStorage.setItem("nor-drive-thumbs-saved", JSON.stringify(["L1", "L2", "L3"]));
-    localStorage.setItem("nor-drive-thumb-names", JSON.stringify({ L1: "legacy 1.tif" }));
-  }, { pic: PIC });
-  await page.reload();
-  await until(page, async () => {
-    const c = await caches.open("nor-thumbs-v1"), has = async (id) => !!(await c.match(new URL("drive-thumb/" + id, location.href).href));
-    return (await has("L1")) && (await has("L2")) && (await has("L3"));
+  // thumbnails kept in the settings' storage by an earlier page move to the cache when the page opens; while the cache
+  // takes none, a browser the test seeds through this tab's session, they stay where they were
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("test-thumbs-cache-refuses")) return;
+    const open = CacheStorage.prototype.open;
+    window.thumbsRefused = 0;
+    CacheStorage.prototype.open = function (name) { return name === "nor-thumbs-v1" ? (window.thumbsRefused++, Promise.reject(new Error("no room"))) : open.call(this, name); };
   });
-  const moved = await page.evaluate(async () => ({
-    left: Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs"),
-    name: decodeURIComponent((await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/L1", location.href).href)).headers.get("x-nor-name")),
-    type: (await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/L2", location.href).href)).headers.get("content-type"),
-  }));
-  check(!moved.left.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}`);
+  const LEGACY = ["L1", "L2", "L3"];
+  await page.evaluate(({ pic, ids }) => {
+    for (const id of ids) localStorage.setItem("nor-drive-thumb:" + id, JSON.stringify(pic));
+    localStorage.setItem("nor-drive-thumb:L4", JSON.stringify("not a picture"));
+    localStorage.setItem("nor-drive-thumbs-saved", JSON.stringify(ids));
+    localStorage.setItem("nor-drive-thumb-names", JSON.stringify({ L1: "legacy 1.tif" }));
+    sessionStorage.setItem("test-thumbs-cache-refuses", "1");
+  }, { pic: PIC, ids: LEGACY });
+  const legacyKeys = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort());
+  await page.reload();
+  await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
+  const stayed = await legacyKeys();
+  check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
+  await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
+  await page.reload();
+  await until(page, async (ids) => {
+    const c = await caches.open("nor-thumbs-v1");
+    for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
+    return !Object.keys(localStorage).some((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs");
+  }, LEGACY).catch(() => {});
+  const moved = await page.evaluate(async () => {
+    const c = await caches.open("nor-thumbs-v1"), of = (id) => c.match(new URL("drive-thumb/" + id, location.href).href);
+    return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };
+  });
+  const legacyLeft = await legacyKeys();
+  check(!legacyLeft.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}, left ${legacyLeft}`);
+  check(!moved.junk, "what was kept there and is no picture is dropped, never moved");
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
