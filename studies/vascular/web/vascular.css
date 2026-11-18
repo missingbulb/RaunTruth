@@ -117,3 +117,13 @@
 #vm-summary .hist .grid { stroke: var(--line); }
 #vm-summary .hist .sd { fill: var(--text); opacity: .1; }
 #vm-summary .hist .mean { stroke: var(--text); stroke-width: 1.5; }
+/* the view toggles in the keys legend (req/vascular/model/view): filled while their view is on screen; a held key's
+   chip ringed dashed, unfilled with a blue border while holding it turns its view off; 3D | 2D as two halves, the one
+   shown filled */
+:is(#key-model, #key-outlines, #key-side, #key-swap).held { outline: 1px dashed #fff; outline-offset: 2px; }
+.key-row > :is(#key-model, #key-outlines, #key-side).held[aria-pressed="false"] { color: #b4b9c0; background: #000a; border-color: var(--blue); }
+.key-row > #key-swap { display: flex; padding: 0; overflow: hidden; color: #b4b9c0; background: #000a; border-color: #6b7078; }
+.key-row > #key-swap.held { border-color: var(--blue); }
+#key-swap span { padding: 2px 8px; }
+#key-swap[aria-pressed="false"] span:first-child, #key-swap[aria-pressed="true"] span:last-child { color: #fff; background: var(--blue); }
+.key-row:has(.held) > .key-hint { opacity: 1; color: #fff; }

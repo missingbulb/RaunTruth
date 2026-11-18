@@ -128,13 +128,13 @@ try {
   check(!menu.hider, "the low-confidence vessels always show: no option hides them");
   // a control in the menu, reached as a person reaches it: the menu opened first
   const inMenu = async (sel) => { if (!(await page.evaluate(() => $("#vm-show").open))) await page.click("#vm-show summary"); return sel; };
-  const shown = () => page.evaluate(() => ({ pressed: $("#model-mode [aria-pressed=true]").dataset.v, split: $("#v3-stage").classList.contains("split"), over: !!$("#v3-stage #mcv") }));
+  const shown = () => page.evaluate(() => ({ pressed: window.vascular.model().view, split: $("#v3-stage").classList.contains("split"), over: !!$("#v3-stage #mcv") }));
   check(JSON.stringify(await shown()) === JSON.stringify({ pressed: "overlay", split: false, over: true }), "the model opens over the stack");
-  await page.click(await inMenu('#model-mode [data-v="image"]'));
-  check((await drawn()).lit === 0, "Image shows the stack alone");
+  await page.click(await inMenu('#model-mode [data-v="bare"]'));
+  check((await drawn()).lit === 0, "No markings shows the stack alone");
   await page.click(await inMenu('#model-mode [data-v="side"]'));
   check((await shown()).split, "Side by side splits the view in two");
-  await page.click(await inMenu('#model-mode [data-v="model"]'));
+  await page.click(await inMenu('#model-mode [data-v="alone"]'));
   const alone = await drawn();
   check(!(await shown()).split && alone.lit > 500, `Model shows the model alone, over the whole view: ${alone.lit} lit pixels`);
   // CD31's Colour by depth, its tick in the image box (req/shell/viewer-3d), paints the model as it paints the stack
@@ -149,7 +149,8 @@ try {
   const thin = await drawn();
   check(thin.lit < alone.lit * 0.7, `Vessel widths off draws the vessels as lines: ${alone.lit} → ${thin.lit} lit pixels`);
   await page.check(await inMenu("#m-widths"));
-  await page.click(await inMenu('#model-mode [data-v="overlay"]'));
+  await page.click(await inMenu('#model-mode [data-v="alone"]'));
+  check((await shown()).pressed === "overlay", "Model clicked again shows the model over the stack");
 
   // what the 3D view draws needs WebGL2, which a headless browser may lack
   if (await page.evaluate(() => !!document.createElement("canvas").getContext("webgl2"))) {

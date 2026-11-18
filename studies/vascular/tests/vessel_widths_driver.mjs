@@ -102,12 +102,14 @@ try {
   let keys = await legendKeys(page);
   check(keys === "1 2 3 4 shift", `in an area without junctions the keys legend lists the views and Panning: ${keys}`);
   const lit = async () => (await legend(page)).filter((r) => r.lit).map((r) => r.key).join(" ");
+  // the 3D | 2D row: the half shown, and whether its key is held
+  const twoD = () => page.evaluate(() => { const b = $("#key-swap"); return `${b.getAttribute("aria-pressed") === "true" ? "2D" : "3D"}${b.classList.contains("held") ? " held" : ""}`; });
   check(await lit() === "", `the area's own view, the lines over the stack, has no row of its own: ${await lit()}`);
   // 4 held in the junctions step: the area's widths, grey from straight above; let go, the lines over the stack again
   await page.keyboard.down("4"); await frames();
-  const peekW = await look(), peekLit = await lit();
+  const peekW = await look(), peekLit = await twoD();
   await page.keyboard.up("4"); await frames();
-  check(!!peekW && peekW.vessels.length === 3 && peekLit === "4" && await look() == null && (await page.evaluate(() => window.vascular.model().view)) === "overlay",
+  check(!!peekW && peekW.vessels.length === 3 && peekLit === "2D held" && await look() == null && (await page.evaluate(() => window.vascular.model().view)) === "overlay",
     `4 held shows the area's widths, its row lit; let go, the area's own view again: ${peekLit}`);
   // W is no key any more
   await page.keyboard.press("w"); await frames();
@@ -211,10 +213,10 @@ try {
   await page.keyboard.press("v"); await frames();
   check((await page.evaluate(() => window.vascular.model().view)) === "widths", "V does nothing");
   await page.keyboard.down("4"); await frames();
-  const in3d = await page.evaluate(() => window.vascular.model()), held3d = await page.evaluate(() => window.shellForTests.viewer.three.S.held), lit3d = await lit();
+  const in3d = await page.evaluate(() => window.vascular.model()), held3d = await page.evaluate(() => window.shellForTests.viewer.three.S.held), lit3d = await twoD();
   await page.keyboard.up("4"); await frames();
   const back = await look();
-  check(in3d.view === "overlay" && in3d.widths == null && in3d.selected === even.n && !held3d && lit3d === "4",
+  check(in3d.view === "overlay" && in3d.widths == null && in3d.selected === even.n && !held3d && lit3d === "3D held",
     `holding 4 shows the area in colour in 3D, free to turn, the selection kept: ${JSON.stringify({ view: in3d.view, sel: in3d.selected, held3d, lit3d })}`);
   check(!!back && back.selected === even.n && JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.S.rot)) === JSON.stringify(await page.evaluate(() => window.shellForTests.viewer.three.facing(0, 0))),
     "letting 4 go gives the flat view from straight above back, the selection kept");
