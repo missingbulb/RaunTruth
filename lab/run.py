@@ -4,6 +4,7 @@ the sums written as the precision and recall the page shows.
     python3 lab/run.py STUDY                 # every version, a table of how each did
     python3 lab/run.py STUDY v4 v5           # only these
     python3 lab/run.py STUDY --write         # also record them in the study's metrics file, with how they were scored
+    python3 lab/run.py STUDY --truth lab     # only the study's own lab/truth/ (drive: only the curated files)
 
 The ground truth is the study's curated files on Drive (fetch.py) and the files in the study's own lab/truth/, each
 naming its image by SHA-256. A version scored at several settings (the study's SETTINGS: {version: {name: params}})
@@ -61,14 +62,15 @@ def committed_truth(study):
     return out
 
 
-def corpus(study, transport=None):
-    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first."""
+def corpus(study, transport=None, which='all'):
+    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first; which
+    is 'all', 'drive' (the curated files alone) or 'lab' (the study's own lab/truth/ alone)."""
     imgs = {e['sha256']: e for e in fetch.images(study.id, transport)}
-    found, refused = fetch.truth(study.id, transport)
+    found, refused = fetch.truth(study.id, transport) if which != 'lab' else ([], {})
     for path, why in refused.items():
         print(f'ground truth {path} left out: {why}', file=sys.stderr)
     pairs = []
-    for t in found + committed_truth(study):
+    for t in found + (committed_truth(study) if which != 'drive' else []):
         sha = t['doc']['image']['sha256']
         if sha in imgs:
             pairs.append((imgs[sha], t))
@@ -108,9 +110,9 @@ def total(scores):
     return s
 
 
-def measure(study, versions=None, transport=None):
+def measure(study, versions=None, transport=None, which='all'):
     """{version: {settings name or None: {totals, 'images': {image sha256: counts}}}} over the corpus, and the corpus."""
-    pairs = corpus(study, transport)
+    pairs = corpus(study, transport, which)
     code, images, out = code_hash(study), {}, {}
     settings = getattr(study.module, 'SETTINGS', {})
     for v in versions or study.versions:
@@ -159,9 +161,10 @@ def main(argv=None):
     ap.add_argument('study')
     ap.add_argument('versions', nargs='*')
     ap.add_argument('--write', action='store_true')
+    ap.add_argument('--truth', choices=['all', 'drive', 'lab'], default='all')
     a = ap.parse_args(argv)
     study = Study(a.study)
-    results, pairs = measure(study, a.versions or None)
+    results, pairs = measure(study, a.versions or None, which=a.truth)
     print(table(results))
     if a.write:
         doc = document(study, results, pairs)
