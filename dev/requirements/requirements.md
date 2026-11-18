@@ -1337,6 +1337,17 @@ nobody has decided: what the page does there is not a requirement yet.
   list of its own. Test: `web-tests/test_study_contract.py`, `web-tests/test_algorithm_choice_page.py`.
   </details>
 
+- `req/shell/processing/scoring` Beside the algorithm list, a (?) shows how the study scores its precision and recall.
+  <details>
+
+  Set by the owner on 2026-11-18: every study's precision and recall can be explained, so the method is shown, not
+  only the numbers. The study's metrics file carries `scoring`, a short Markdown outline of how its scorer counts,
+  which the lab writes there from the scorer itself, so the explanation is always the one the numbers were counted
+  by. The shell draws a (?) at the right of the list, titled How precision and recall are scored, and a click on it
+  opens and closes that outline under the list. A study whose metrics carry no `scoring`, or that names no metrics,
+  shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
   <details>
 
@@ -1365,13 +1376,16 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/python/one-call` Python is reached through one generic call.
   <details>
 
-  The shell's Python runtime opens a file with the study's `Session(path)` and forwards every other
-  request as `call(action, args)`, returning JSON and optional bytes. It never names an action. Before each call it
-  sets the Session's `damaged` to the image's damaged areas (`req/shell/data/damaged`), `[[[x, y], ...], ...]` in the
-  image's pixels, `[]` for none.
-  Test: `web-tests/test_study_runs.py` runs the fixture study through the bridge in Pyodide and through
-  the real worker in the page; the NoR study's memory test checks that repeated calls leave nothing
-  behind.
+  The shell's Python runtime runs the study contract the lab runs too (`lab/README.md`; the owner, 2026-11-17: each
+  study gives one algorithm entry point that both the page and the lab run). It opens a file with the study's
+  `read(path)`; `run` runs one of its `VERSIONS` on it, and any other action one of its `STAGES` on the last run's
+  answer, which stays in Python. An answer comes back as JSON, its arrays as bytes. A version that needs a service
+  only the page has (reading text) asks for it, the page's study answers through its `serve` hook, and the version
+  goes on. A version or stage that takes `damaged` is handed the image's damaged areas with every call
+  (`req/shell/data/damaged`), `[[[x, y], ...], ...]` in the image's pixels, `[]` for none. It never names a study's
+  action. Test: `web-tests/test_study_runs.py` runs the fixture study, and a
+  version asking for a service, through the bridge in Pyodide and the fixture through the real worker in the page;
+  the NoR study's memory test checks that repeated calls leave nothing behind.
   </details>
 
 - `req/shell/report/action-log` The page keeps the user's last 200 actions on this device, for a problem report, and sends them nowhere.

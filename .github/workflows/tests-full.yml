@@ -53,8 +53,11 @@ jobs:
             python3 web-tests/page_libraries.py
             playwright install chromium
           fi
+      # the lab reads book titles with the Tesseract command, as the page reads them with tesseract.js
+      - name: Install Tesseract
+        run: sudo apt-get install -y --no-install-recommends tesseract-ocr
       - name: Run every test
-        run: python3 -m pytest web-tests studies dev/tools/trick_pool -q -n auto --durations=10
+        run: python3 -m pytest web-tests studies lab dev/tools/trick_pool -q -n auto --durations=10
 
   # Main is released only once the full set is green on it; the release task owns the deploy.
   # The full set on Firefox and WebKit, nightly or by hand only; it gates no release, and other_engines.py says
@@ -95,6 +98,8 @@ jobs:
       - name: Install Mesa's software GL
         if: matrix.engine == 'firefox'
         run: sudo apt-get install -y --no-install-recommends libegl1 libegl-mesa0 libgl1-mesa-dri
+      - name: Install Tesseract
+        run: sudo apt-get install -y --no-install-recommends tesseract-ocr
       - name: Run the full set on ${{ matrix.engine }}
         run: python3 dev/tools/build/other_engines.py ${{ matrix.engine }}
 

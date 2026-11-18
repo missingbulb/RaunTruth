@@ -110,7 +110,7 @@ const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
 const SEEN_VERSION = "nor-seen-version"; // the site version the user last saw, to tell them what changed since
 const MEMORY_TIP = "nor-memory-tip-off"; // true: the user asked never to see the low-memory popup again
-// the page's memory with a study's Python loaded (studies/nor/detection/browser/MEMORY.md), and the device
+// the page's memory with a study's Python loaded (studies/nor/lab/browser/MEMORY.md), and the device
 // memory below which it asks the user to free some: browsers say only how much a computer has in all, never
 // how much is free
 const PAGE_GB = 1, LOW_GB = 4;
@@ -765,6 +765,12 @@ function handle(m) {
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
     study.result?.(m.action, m.meta, m.bytes, m.echo);
+  } else if (m.type === "ask") {
+    // a version asking for a service only the page has: the study answers it ({meta, bytes}), and the version goes on
+    const worker = st.worker, reply = (r) => worker?.postMessage(r, r.bytes ? [r.bytes.buffer] : []);
+    Promise.resolve().then(() => study.serve(m.service, m.meta, m.bytes))
+      .then((r) => reply({ type: "reply", value: r?.meta ?? null, bytes: r?.bytes ?? null }),
+        (e) => reply({ type: "reply", error: String(e?.message || e) }));
   }
 }
 // the image the page has read, shown: in the page's state, the viewer, the steps and the study

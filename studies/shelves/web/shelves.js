@@ -1,7 +1,7 @@
 // The Bookshelf Reader's page: the books found on a photo of shelves, each a four-cornered box with its view (spine or
 // cover) and the title read from it, and, while ground truth is made, one task that takes each book in turn, in the
 // order they stand, its corners, its turn and its text set right, and adds the books the finder missed.
-import { reader, rotate, READERS, MODELS, WORDS } from "./reading.js";
+import { engineSet, reader, services, rotate, READERS, MODELS, WORDS } from "./reading.js";
 import { clockwise, shape, inPlace, nextAdded, blank } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
 
@@ -11,7 +11,7 @@ const MODEL_FILES = CDN + "@gutenye/ocr-models@1.4.2/assets/";
 const READER = "shelves-reader"; // the reader last chosen, by its key in READERS
 const SVG = "http://www.w3.org/2000/svg";
 
-// the engines, from the pinned builds the sandbox runs too (studies/shelves/reading/package.json)
+// the engines, from pinned builds
 function engines() {
   const bytes = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
   return {
@@ -104,7 +104,11 @@ export function mount(shell) {
   // one task: every book, found or added, decided, and none left missed
   if (truth()) shell.tasks.list([{ key: "books", name: "Books", title: "Every book on the photo, each checked, the missed ones added" }], { submit, pick: () => { if (!curId) next(null); else draw(); },
     tagging: (on) => { if (!on) { commitTitle(); draw(); } else if (curId) show(curId); else next(); } });
-  const ocrNow = () => (ocr ||= reader(engines()));
+  // the page's engines: what the study's algorithm asks for while it runs, and the tagger's readers beside it
+  const enginesNow = () => (ocr ||= engineSet(engines()));
+  let tagReader = null, served = null;
+  const ocrNow = () => (tagReader ||= reader(enginesNow()));
+  const servedNow = () => (served ||= services(enginesNow()));
 
   const choice = $("#bs-reader");
   choice.replaceChildren(...Object.entries(READERS).map(([k, name]) => Object.assign(document.createElement("option"), { value: k, textContent: name })));
@@ -159,72 +163,84 @@ export function mount(shell) {
     shell.gt.legacy(oldDraft(shell.readJSON, { name: st.fileName, sha: st.sha, image: st.fileName, W: st.W, H: st.H, reader: choice.value }));
   }
 
-  // ---------- Python: finding and straightening ----------
-  // why the last Find ran without the text finder, or null when it ran with it
-  let textless = null;
-  // the photo's text, as the finder takes it: the text finder run on Python's own view of the photo
-  async function textOf() {
+  // ---------- Python: the algorithm in one go, and straightening for the tagger's readers ----------
+  // why the last Find ran without the text finder, or null when it ran with it; and how far the run has come, for the
+  // busy line: "text" while the boxes are being found, "read" once the titles are being read
+  let textless = null, phase = null, lines = 0;
+  // the study's algorithm asking for an engine while it runs: answered by the page's own (reading.js); the text finder
+  // out of reach, it is told there is none, and finds and reads without it
+  async function serve(service, meta, bytes) {
+    if (service === "det") {
+      if (textless) return { meta: null };
+      if (phase === "text") shell.busy(true, "Finding the text…");
+      try { return await servedNow().serve(service, meta, bytes); }
+      catch (e) { textless = String(e.message || e); console.warn("Find books without the text finder:", e); return { meta: null }; }
+      finally { if (phase === "text") shell.busy(true, "Finding the books…"); }
+    }
+    if (service === "words") { phase = "read"; shell.busy(true, "Reading the titles…"); }
+    if (service === "tesseract") shell.busy(true, `Reading the titles: ${++lines} lines read…`);
+    return servedNow().serve(service, meta, bytes);
+  }
+  // Find books: the chosen version run once, its books boxed and their titles read (the study's run action)
+  $("#bs-find").onclick = async () => {
+    await shell.algorithm.ready;
+    const algorithm = shell.algorithm.key;
+    textless = null; phase = "text"; lines = 0;
     const run = python.then(async () => {
-      const done = shell.until("result:view");
-      shell.call("view", {});
-      const m = await done;
-      return { width: m.meta.width, height: m.meta.height, data: m.bytes };
+      const done = shell.until("result:run");
+      shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
+      await done;
     });
     python = run.catch(() => {});
-    return ocrNow().textMap(await run);
-  }
-  $("#bs-find").onclick = async () => {
-    const list = await shell.algorithm.ready, algorithm = shell.algorithm.key, reads = list.find((a) => a.key === algorithm)?.reads_text;
-    let text = null; textless = null;
-    if (reads) {
-      shell.busy(true, "Finding the text…");
-      try { text = await textOf(); } catch (e) { textless = String(e.message || e); console.warn("Find books without the text finder:", e); }
-    }
-    const done = shell.until("result:find");
-    shell.busy(true, "Finding the books…"); shell.call("find", text ? { algorithm, text } : { algorithm });
-    await done;
-    await readAll();
+    try { await run; } finally { phase = null; }
   };
-  $("#bs-read").onclick = () => readAll();
+  $("#bs-read").onclick = () => readAgain();
   shell.slow($("#bs-find")); shell.slow($("#bs-read"));
 
-  // the crops the reader reads, straightened by the study's Python from the photo's file, one request at a time
+  // the crops the tagger's readers read, straightened by the study's Python from the photo's file, one request at a time
   let python = Promise.resolve();
   function straighten(list) {
     const run = python.then(async () => {
       const done = shell.until("result:straighten");
       shell.call("straighten", { corners: list.map((b) => b.corners) });
-      const m = await done;
-      let at = 0;
-      return m.meta.sizes.map(([width, height]) => { const data = new Uint8ClampedArray(m.bytes.buffer, m.bytes.byteOffset + at, width * height * 4); at += width * height * 4; return { width, height, data }; });
+      const { meta: { crops }, bytes } = await done;
+      return crops.map(({ $bytes: [at, n], shape: [height, width] }) => ({ width, height, data: new Uint8ClampedArray(bytes.buffer, bytes.byteOffset + at, n) }));
     });
     python = run.catch(() => {});
     return run;
   }
-  // each book in list straightened and read by the reader chosen, its answer set on it
-  async function readSome(list) {
-    if (!list.length) return;
-    const how = choice.value;
-    shell.busy(true, "Straightening each book…");
-    const got = await straighten(list);
-    const r = ocrNow();
-    for (const [i, b] of list.entries()) {
-      shell.busy(true, `Reading ${i + 1} of ${list.length} with ${READERS[how]}…`);
-      Object.assign(b, await r.read(got[i], how), { reader: how });
-    }
-    shell.busy(false);
-  }
-  // the finder's books read, and the run they make recorded in the log: the algorithm's whole output, not the tagger's work
-  async function readAll() {
-    if (!raw) return;
-    await readSome(raw);
-    shell.step("read", true, `${raw.filter((b) => b.text).length} of ${raw.length} titles read with ${READERS[choice.value]}`);
+  // the run's answer: its books shown, and recorded in the log as the run, the algorithm's whole output and not the
+  // tagger's work
+  function ran(meta) {
+    raw = meta.books.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn ?? 0, text: b.title ?? "", confidence: b.confidence ?? null, reader: meta.reader }));
+    books = raw.map((b, i) => ({ ...b, id: `r${i + 1}`, source: "found", verdict: null, typed: false, turnSet: false, proposed: null }));
+    found = true; curId = null; shell.busy(false);
+    shell.step("find", true, `${shell.algorithm.title}: ${books.length} books found` + (textless ? `, without the text finder (${textless})` : ""));
+    shell.step("read", true, `${raw.filter((b) => b.text).length} of ${raw.length} titles read with ${READERS[meta.reader] ?? meta.reader}`);
+    shell.boxDone($("#bs-box"), `${books.length} books`);
     shell.status("Titles read.");
-    shell.gt.ran({ algorithm: { key: shell.algorithm.key }, output: { image: st.fileName, W: st.W, H: st.H, reader: choice.value,
-      books: raw.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn ?? 0, text: b.text ?? "", confidence: b.confidence ?? null, reader: b.reader ?? choice.value })) } });
+    shell.gt.ran({ algorithm: { key: shell.algorithm.key }, output: { image: st.fileName, W: st.W, H: st.H, reader: meta.reader,
+      books: raw.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn, text: b.text, confidence: b.confidence, reader: b.reader })) } });
     legacy();
     if (tagging() && curId === null) next();
     draw();
+  }
+  // Read titles: every book on the photo read again by the reader chosen, a tool of the page's own beside the
+  // algorithm; each answer lands on its book as one GT action
+  async function readAgain() {
+    const list = books.filter((b) => !b.typed), how = choice.value;
+    if (!list.length) return;
+    shell.busy(true, "Straightening each book…");
+    try {
+      const got = await straighten(list), r = ocrNow();
+      for (const [i, b] of list.entries()) {
+        shell.busy(true, `Reading ${i + 1} of ${list.length} with ${READERS[how]}…`);
+        const read = await r.read(got[i], how, { turn: b.turnSet ? b.turn : null });
+        if (byId(b.id)) act({ type: "read", book: b.id, text: read.text, confidence: read.confidence, reader: how, ...(read.turn != null ? { turn: read.turn } : {}) });
+      }
+    } finally { shell.busy(false); }
+    shell.step("read", true, `${books.filter((b) => b.text).length} of ${books.length} titles read again with ${READERS[how]}`);
+    shell.status("Titles read again.");
   }
   // one book read again while it is tagged, the photo left in view: at the turn the tagger set; a later reading of
   // the same book replaces one still under way. The answer that lands is one GT action, carrying it
@@ -289,7 +305,7 @@ export function mount(shell) {
   // the titles, outside ground truth: what the summary counts and the matcher is sent, inside the mask
   function list() {
     $("#bs-found").textContent = books.length ? `${books.length} books: ${books.filter((b) => b.view === "spine").length} spines, ${books.filter((b) => b.view === "cover").length} covers.` : "";
-    $("#bs-read").disabled = !raw?.length;
+    $("#bs-read").disabled = !books.length;
     if (truth()) return;
     const shown = books.filter(inMask), masked = shell.mask.polygons().length > 0;
     $("#bs-count").textContent = found ? `${shown.length} book${shown.length === 1 ? "" : "s"}${masked ? " inside the mask" : ""}: ${shown.filter((b) => b.view === "spine").length} spines, ${shown.filter((b) => b.view === "cover").length} covers.` : "";
@@ -543,17 +559,8 @@ export function mount(shell) {
       $("#bs-find").disabled = false; $("#bs-read").disabled = true; $("#bs-export").disabled = true;
       shell.viewer.layer("bs").replaceChildren(); draw();
     },
-    result(action, meta) {
-      if (action === "find") {
-        raw = meta.books.map((b) => ({ ...b }));
-        // shown at once; the log's run, which gives them ids, waits for their readings
-        books = raw.map((b, i) => ({ ...b, id: `r${i + 1}`, source: "found", verdict: null, typed: false, turnSet: false, proposed: null }));
-        found = true; curId = null; shell.busy(false);
-        shell.step("find", true, `${shell.algorithm.title}: ${books.length} books found` + (textless ? `, without the text finder (${textless})` : ""));
-        shell.boxDone($("#bs-box"), `${books.length} books`);
-        draw();
-      }
-    },
+    result(action, meta) { if (action === "run") ran(meta); },
+    serve,
     // a curated ground truth's final results (req/shell/ground-truth/view): the books marked right, each boxed, and
     // none of the task's marks
     showTruth(doc) {

@@ -68,3 +68,9 @@
 - **Reason:** each paper's folder became one `<slug>.md`; nothing else changed.
 - **Actor:** @missingbulb (owner).
 - **Landed:** #968
+
+## 2026-11-18 · retired · its pipeline is retired (#1011)
+- **Reason:** the skill reviewed measure_vessels.py's overlays, retired with that 2D figure
+  pipeline; the page now draws a version's model over the stack.
+- **Actor:** @missingbulb (owner), issue #1011.
+- **Model:** claude-opus-5-5

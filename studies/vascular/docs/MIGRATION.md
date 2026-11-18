@@ -7,16 +7,16 @@ Every capability of [missingbulb/vascularColoring](https://github.com/missingbul
 
 | Capability (vascularColoring) | Here | Status |
 |---|---|---|
-| Figure-panel pipeline: `measure_vessels.py`, `annotate_overlays.py` | `analysis/` | moved; its input panels are open (D5) |
-| 3D extraction lab v1–v5, `score.py`, `render.py`, `fake_truth.py`, Fable labels, LEDGER | `analysis/extraction/` | moved |
-| Vessel model drafter `vessel_model.py`; tracer spike `trace_vessel_graph.py`; `export_stack_view.py` + `stack_view/` | `analysis/` | moved (the last two as spikes) |
-| Stack manifest and fetcher (`data/sources.json`, `fetch_data.py`) | `data/`, `analysis/stack_sources.py` | moved; renamed to stop shadowing NoR's `fetch_data`; sharing one fetcher is open (D6) |
+| Figure-panel pipeline: `measure_vessels.py`, `annotate_overlays.py` | retired 2026-11-18 (#1011; in git at commit e49f676) | moved, then retired with its panels (D5) |
+| 3D extraction lab v1–v5, `score.py`, `render.py`, `fake_truth.py`, Fable labels, LEDGER | versions in `algorithm/`, Fable labels and LEDGER in `lab/`; v1, `render.py`, `fake_truth.py` and the lab CLI retired 2026-11-18 (#1011; in git at commit e49f676), the shared `lab/` runs and scores | moved |
+| Vessel model drafter `vessel_model.py`; tracer spike `trace_vessel_graph.py`; `export_stack_view.py` + `stack_view/` | `vessel_model.py` in `algorithm/`; the spikes retired 2026-11-18 (#1011; in git at commit e49f676) | moved (the last two as spikes) |
+| Stack manifest and fetcher (`data/sources.json`, `fetch_data.py`) | `data/sources.json`, the shared `lab/fetch.py` | moved; one fetcher for every study since 2026-11-18 (D6) |
 | WORKING-GUIDE, STATUS, 3D-STACKS, results-first-pass | `docs/` | moved |
 | Literature: 10 digests, METHODS-SYNTHESIS, BIOLOGY-INVARIANTS, figure READMEs, `crop_panels.py`, `_tools/`, Rust's macros | `docs/literature/` | moved; since flattened to one Markdown file per paper, the scripts and macros dropped (D5) |
 | Literature binaries: PDFs (~36 MB), figures and panels (~88 MB) | linked at vascularColoring | open (D5) |
 | Vessel-model/2 format and edits (`model.js`), review tube (`coverage.js`), the four v5 draft models | `web/`; the drafts no longer ship: Execute draws a model in the page (`req/vascular/model/run`) | moved, tested |
 | 3D viewer: WebGL2 ray-caster, Brightest/Surface, colour by depth, slab, slice spacing, look-from, Flattened and Depth-profile views (`viewer.js`, `stack.js`) | `web/viewer3d.js` (shell) | moved: every shown channel in its row's colour and points; Flattened is the 2D view; the single-slice picture and Depth profile not yet |
-| Stack reader in the browser (`tiff.js`: ImageJ/OME, LZW/Deflate/PackBits) | `py/vascular.py` (tifffile) | replaced: decoded in Python (D1) |
+| Stack reader in the browser (`tiff.js`: ImageJ/OME, LZW/Deflate/PackBits) | `algorithm/vascular.py` `read` (tifffile) | replaced: decoded in Python (D1) |
 | Model over or beside the stack, editing in 3D, Detected/Missed review, draw a missed vessel, lasso damaged areas (`modelview.js`) | `web/model_view.js`, on the shell's `viewer3d` `three` | moved (D2) |
 | Item cards for junctions and vessels (`items.js`) | `web/items.js`, the Item View | moved (D3) |
 | Download corrected model | Submit Ground Truth | moved (D4); the intake task follows the first submission |
@@ -58,8 +58,8 @@ Taken on Fable's recommendation unless the owner says otherwise:
   primitives come later, if a second user wants them.
 - **D3:** item cards stay in each study. Only the list and selection frame is lifted into the
   shell, and only after the vascular cards render.
-- **D6:** `py/` holds what ships and `analysis/` holds research. Whether to lift one fetcher for
-  both studies is still undecided.
+- **D6:** `algorithm/` holds what ships, the only Python of the study; research records are data in `lab/`, and
+  the shared `lab/` fetches, runs and scores for every study (#1011, 2026-11-18).
 - **D8:** ship the v5 drafts first. Extraction in the browser comes only after a measured run.
 
 - **Listing:** the study is listed now (owner, 2026-10-31), with the 3D viewer alone; it stays PreGT until

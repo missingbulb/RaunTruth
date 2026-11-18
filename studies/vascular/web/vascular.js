@@ -28,7 +28,7 @@ export function mount(shell) {
     const a = chosen(), im = shell.page.get("image"); if (!a || !im) return;
     running = a.key; zStep = V.S.zsFrom ? V.S.zs : null; canRun();
     shell.busy(true, `Drawing the vessel model with ${a.title}…`);
-    shell.call("extract", { algorithm: a.key, source: shell.state.fileName, z_step: zStep });
+    shell.call("run", { algorithm: a.key, source: shell.state.fileName, z_step: zStep });
   };
 
   // ---------- the status bar's steps, and the Processing box's title ----------
@@ -59,7 +59,7 @@ export function mount(shell) {
     opening() { ran = null; MV.stackOpened(); canRun(); },
     opened() { canRun(); shell.status("Stack loaded. Press Execute to draw its vessel model."); },
     result(action, meta) {
-      if (action !== "extract") return;
+      if (action !== "run") return;
       shell.busy(false);
       ran = running; running = null;
       // said before the run is recorded: what the run could not carry over is then the line that stands
@@ -77,6 +77,6 @@ export function mount(shell) {
       return m ? `${m.segments.length} vessel segments` : "a vessel model that could not be read";
     },
     error() { if (running) { running = null; shell.busy(false); canRun(); } },
-    async settled() { if (running) await shell.until("result:extract"); },
+    async settled() { if (running) await shell.until("result:run"); },
   };
 }

@@ -68,6 +68,24 @@ owner's decisions on the stacks and the vessel model, are
   `studies/vascular/tests/test_vessel_gt_actions_page.py`, `studies/vascular/tests/test_model_js.py`.
   </details>
 
+- `req/vascular/model/every-width` Every vessel of the model has a width from the moment it exists, a drawn one too.
+  <details>
+
+  Set by the owner on 2026-11-18: "We don't 'give it width at submit' - the width exists from the first second the
+  model exists. There's no vessel without width. If you're asking what the default is - we can talk about that (I
+  assume that if the user adds a vessel by connecting to another one - you can take that width. Otherwise take the
+  image average, or something like that)." A vessel a person draws (`req/vascular/model/correct`) takes its width as
+  each segment is drawn: at an end on the model, the radius of the vessel there (a point's vessels averaged); at an
+  end in the open, the other end's, so a vessel drawn on from one already drawn keeps its width; with both ends in the
+  open, the mean radius of the model's vessels, each by its length. The width is in the file as any vessel's is (the
+  edge's `r_a` and `r_b`, its points' `r`), beside `drawn`; a person's own word on it still goes in `width`
+  (`req/vascular/truth/widths`), whose step shows a drawn vessel's "?" until they give it. Only a model with no width
+  anywhere has none to give. The scorer reads a ground-truth vessel that carries no width by the same rule
+  (`algorithm/vascular.py`, `docs/scoring.md`), so the files submitted before are scored as these are. **Tentative**:
+  the default itself ("we can talk about that"). Test: `studies/vascular/tests/test_vessel_model_edits.mjs`,
+  `studies/vascular/tests/test_scoring.py`.
+  </details>
+
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
   <details>
 
@@ -86,11 +104,26 @@ owner's decisions on the stacks and the vessel model, are
   is the day of its action. Test: `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/vascular/tests/test_gt_actions.mjs`.
   </details>
 
+- `req/vascular/model/no-undecided` The ground-truth file leaves no vessel undecided.
+  <details>
+
+  Set by the owner on 2026-11-18: "GT UI should decide if it adds the vessel to the model or not. The GT cannot have
+  'maybe approved' notion. Let's approve them in the UI." In the file the page writes (`req/vascular/model/ground-truth`)
+  every vessel the algorithm drew has the tagger's verdict or the page's: one left as the algorithm drew it is in the
+  model, so `accepted`; a low-confidence one the tagger never took in is not, so `rejected`, as an area found right
+  already says of its own (`req/vascular/truth/tasks`); a vessel the tagger drew is a `vessel`. `proposed` still says
+  what the algorithm said of each. The model being tagged keeps its open vessels open, so the tasks still ask about
+  them; a model read back from a file has none open, and a run after it carries every one of those verdicts
+  (`req/vascular/model/correct`). The scorer reads a file the same way: `accepted` and `vessel` are vessels,
+  `rejected` and `candidate` are not, anywhere in the stack. **Tentative**: that a low-confidence vessel left alone is
+  written `rejected` rather than `accepted`. Test: `studies/vascular/tests/test_gt_actions.mjs`.
+  </details>
+
 - `req/vascular/model/run` Processing picks an extraction algorithm, says how it works and how well, and Execute draws the vessel model in the browser.
   <details>
 
   Set by the owner on 2026-11-04, as NoR's Processing box. The box lists the extraction lab's
-  versions (`studies/vascular/analysis/extraction/`), the lab's default first; How the algorithm
+  versions (`studies/vascular/algorithm/`, its `VERSIONS`), the default first; How the algorithm
   works shows the chosen version's own description; Execute, at the box's end, runs it in the
   page's Python on the stack open, as the lab runs it (scored, with the spacing between slices the
   page shows), and the model it draws opens over the stack. The study ships no drawn models: a
@@ -100,7 +133,7 @@ owner's decisions on the stacks and the vessel model, are
   (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
   (`req/nor/find/settings`). Each algorithm in the list carries its own icon and its name, and its
-  precision and recall against the provisional labels (`analysis/extraction/labels/`, a model's
+  precision and recall against the provisional labels (`lab/truth/`, a model's
   verdicts, not the owner's); How the <name> algorithm works gives its steps as a nested list
   (written as a Markdown outline), then "<Name> algorithm shows precision of X and recall of Y on
   N curves a model judged", in bold, the numbers the list shows, and that the judge is not the

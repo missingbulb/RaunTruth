@@ -64,7 +64,7 @@ const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_
 try {
   await page.goto(site.origin + "/web/vascular");
   await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
-  // the numbers the page shows are the shipped metrics file's, which the lab's grader writes
+  // the numbers the page shows are the shipped metrics file's, which the lab writes
   const quality = JSON.parse(fs.readFileSync(path.join(repo, "studies", "vascular", "web", "algorithm_metrics.json"), "utf8"));
   const two = (x) => x.toFixed(2).replace(/^0/, "");
   await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
@@ -76,8 +76,8 @@ try {
   check(algos.about === `How the ${ALGORITHMS[0].title} algorithm works` && algos.note.includes("touches no junction") && algos.nested,
     `How the algorithm works gives the chosen one's steps as a nested list: ${algos.about}`);
   const q0 = quality.versions[ALGORITHMS[0].key], said = `precision of ${q0.precision.toFixed(2)} and recall of ${q0.recall.toFixed(2)}`;
-  check(algos.bold.startsWith(`Island-free algorithm shows ${said} on ${quality.curves} curves`) && /not the owner/.test(algos.note),
-    `... and ends with its precision and recall in bold, judged by a model, not the owner: ${algos.bold}`);
+  check(algos.bold === `Island-free algorithm shows ${said} ${quality.measured}`,
+    `... and ends with its precision and recall in bold, and what they were measured on: ${algos.bold}`);
   check(algos.run && algos.last === "vm-run", "Execute ends the box, off until a stack is open");
 
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });

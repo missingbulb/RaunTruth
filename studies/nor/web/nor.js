@@ -1,6 +1,6 @@
 // The NoR Finder study's page: a finder proposes candidates once, then the filters judge them live, and the
 // user's verdicts, lengths, added NoRs and mask become the summary, the CSVs and the ground truth. All
-// detection and filtering is the study's Python (detection/interactive.py); this module draws, keeps the
+// detection and filtering is the study's Python (algorithm/nor_finder.py); this module draws, keeps the
 // user's settings, decisions and measurements, and asks Python to refilter. It runs in the shell's page
 // (web/shell.js), which hands it the services below.
 import "./peek.js";
@@ -88,18 +88,27 @@ export function mount(shell) {
     markPreset();
   }
 
-  // ---------- filter presets: each finder's precision and recall on the ground truth (detection/finder_metrics.py) ----------
+  // ---------- filter presets: each finder's precision and recall on the ground truth (the lab's metrics, lab/run.py) ----------
+  // the balanced preset is the finder's own filters, its default numbers; the others are the lab's settings of the same
+  // names, and each preset's filter values are the finders' list's (algorithm/controls.py)
   const PRESETS = { precise: "Precise", balanced: "Balanced", recalling: "Recalling" };
   // never settles once the study has left: what waited on it would reach for panels that are gone
-  const quality = fetch(new URL("finder_metrics.json", import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  const quality = fetch(new URL("algorithm_metrics.json", import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     .then((q) => (here.signal.aborted ? new Promise(() => {}) : q));
+  // {preset: {precision, recall, tp, fp, fn, values}} of a finder, or null when the lab has not measured it
+  const presetsOf = (q, finder) => {
+    const v = q?.versions?.[finder], values = st.about?.[finder]?.presets;
+    if (!v || !values) return null;
+    const by = { ...(v.settings || {}), balanced: v };
+    return Object.fromEntries(Object.keys(PRESETS).filter((k) => by[k] && values[k]).map((k) => [k, { ...by[k], values: values[k] }]));
+  };
   const two = (x) => x.toFixed(2).replace(/^0/, "");
   const pr = (r) => `P\u00a0${two(r.precision)}\u00a0·\u00a0R\u00a0${two(r.recall)}`; // one unbroken pair
   async function buildPresets() {
-    const q = await quality, box = $("#presets"), per = q && q.finders[st.filtersFor] && q.finders[st.filtersFor].filtered;
+    const q = await quality, box = $("#presets"), per = presetsOf(q, st.filtersFor);
     box.hidden = !per; if (!per) return;
-    const real = q.images.reduce((a, im) => a + im.real, 0), not = q.images.reduce((a, im) => a + im.not_nor, 0);
-    box.title = `After the filters: precision (P) and recall (R) on ${real} real and ${not} not-NoR marked spots in ${q.images.length} image${q.images.length > 1 ? "s" : ""}`;
+    const real = per.balanced ? Math.round(per.balanced.tp + per.balanced.fn) : 0, n = q.images.length;
+    box.title = `After the filters: precision (P) and recall (R) on ${real} real NoRs marked in ${n} image${n === 1 ? "" : "s"}`;
     box.replaceChildren(...Object.entries(PRESETS).filter(([k]) => per[k]).map(([k, name]) => {
       const b = document.createElement("button"); b.type = "button"; b.dataset.preset = k;
       b.innerHTML = `${name}<small>${pr(per[k])}</small>`;
@@ -111,7 +120,7 @@ export function mount(shell) {
   // a preset is lit while the filters hold exactly its values
   function markPreset() {
     quality.then((q) => {
-      const per = q && q.finders[st.filtersFor] && q.finders[st.filtersFor].filtered;
+      const per = presetsOf(q, st.filtersFor);
       if (!per) return;
       for (const b of $("#presets").children) {
         const v = per[b.dataset.preset].values;
@@ -222,7 +231,7 @@ export function mount(shell) {
     const finder = shell.algorithm.key, overrides = detectOverrides(finder);
     st.running = runKey(); st.runOverrides = overrides; $("#find").disabled = true;
     busy(true, "Finding candidates…");
-    shell.call("detect", { finder, overrides });
+    shell.call("run", { algorithm: finder, ...overrides });
   }
 
   function refilter() {
@@ -1303,7 +1312,7 @@ export function mount(shell) {
   // the buttons whose action can take a while on a slow computer
   for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
 
-  // each finder's controls, as detection/finder_list.py lists them, so they never wait for Python; the finder itself
+  // each finder's controls, as algorithm/controls.py lists them, so they never wait for Python; the finder itself
   // is chosen above them, in the shell's list
   Promise.all([fetch(new URL("finders.GENERATED.json", import.meta.url)).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }), shell.algorithm.ready])
     .then(([info]) => {
@@ -1364,7 +1373,7 @@ export function mount(shell) {
       status("Image loaded. Press Find Candidates.");
     },
     result(action, meta, bytes, seq) {
-      if (action === "detect") {
+      if (action === "run") {
         busy(false);
         st.lastRun = st.running; st.running = null;
         onDetected(meta, bytes); shell.statusBar(); updateFind();
@@ -1378,7 +1387,7 @@ export function mount(shell) {
     error() { st.running = null; st.inflight = st.pending = false; updateFind(); },
     // a button held for a finder run, or a refilter, is held until that is done
     async settled() {
-      if (st.running) await until("result:detect");
+      if (st.running) await until("result:run");
       if (st.inflight) await until("result:refilter");
     },
     // a refilter counts as done once none is queued behind it

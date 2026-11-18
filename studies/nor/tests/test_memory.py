@@ -1,13 +1,13 @@
 """req/shell/memory/no-growth: using the page does not grow its memory. Each layer is checked on its own, so the whole runs
 in seconds rather than driving the full page through Pyodide:
 
-  the Python session    interactive.Session, natively: opening, every finder and filtering, over and over
+  the Python            the study's read, versions and refilter stage, natively: opening, every finder and filtering, over and over
   the bridge            web/bridge.js in Pyodide under Node, with a stand-in session (memory_bridge_driver.mjs)
   the page              web/ in headless Chromium, with a stand-in worker answering from real results
                         computed here (memory_page_driver.mjs)
 
-All three work on a corner of the reference slide (python3 detection/fetch_data.py -m '*Slide5*Slice1_up_left2*').
-The page's full run, Pyodide and finders included, is detection/browser/mem_growth_live.mjs.
+All three work on a drawn NoR image (synthetic_nor).
+The page's full run, Pyodide and finders included, is lab/browser/mem_growth_live.mjs.
 """
 import ctypes
 import gc
@@ -23,8 +23,9 @@ import tifffile
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'detection'))
-import interactive
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
+import controls
+import nor_finder
 from synthetic_nor import nor_image
 
 # a drawn 200-pixel image that holds candidates, passing and failing, for every finder
@@ -68,15 +69,15 @@ def run(driver, *args):
 
 @pytest.mark.skipif(not sys.platform.startswith('linux'), reason='reads glibc malloc statistics')
 def test_session_holds_no_more_after_repeats(crop):
-    offs = {f: [k['key'] for k in interactive.describe(f)['filters']] for f in interactive.FINDERS}
+    offs = {f: [k['key'] for k in controls.describe(f)['filters']] for f in controls.FINDERS}
     assert len(offs) == 5, offs
 
     def use():
-        s = interactive.Session(crop)
-        for f in interactive.FINDERS:
-            s.detect(f)
+        image = nor_finder.read(crop)
+        for f in nor_finder.VERSIONS:
+            found = nor_finder.VERSIONS[f](image)
             for spec in ({'values': {}, 'off': []}, {'values': {}, 'off': offs[f]}):
-                s.refilter(spec); s.alone(spec)
+                nor_finder.STAGES['refilter'](image, found, spec)
 
     use()
     base = held()
@@ -95,20 +96,25 @@ def test_bridge_releases_what_it_hands_out():
     run('memory_bridge_driver.mjs')
 
 
+def page_meta(answer):
+    """An answer's meta as the page's bridge sends it, its arrays named by where their bytes are (one array here)."""
+    seg = answer['segments']
+    return json.loads(json.dumps(dict(answer, segments={'$bytes': [0, seg.nbytes], 'dtype': str(seg.dtype), 'shape': list(seg.shape)})))
+
+
 @pytest.fixture(scope='module')
 def page_answers(crop, tmp_path_factory):
     """What the worker would answer about the corner: the finders, the image, and for two finders
     their candidates and the filtering with every filter on and with every filter off."""
     d = tmp_path_factory.mktemp('answers')
-    s = interactive.Session(crop)
-    H, W = s.caspr.shape
-    out = dict(finders=interactive.FINDERS, about={f: interactive.describe(f) for f in interactive.FINDERS},
-               H=H, W=W, um=s.um, detected={}, filtered={})
+    image = nor_finder.read(crop)
+    H, W = image['caspr'].shape
+    out = dict(controls.listing(), H=H, W=W, um=image['um'], detected={}, filtered={})
     for f in ('tl', 'rf'):
-        meta, seg = s.detect(f)
-        (d / f'seg_{f}.bin').write_bytes(seg)
-        out['detected'][f] = json.loads(meta)
-        out['filtered'][f] = [dict(fails=s.refilter(sp), alone=s.alone(sp)) for sp in
+        found = nor_finder.VERSIONS[f](image)
+        (d / f'seg_{f}.bin').write_bytes(found['segments'].tobytes())
+        out['detected'][f] = page_meta(found)
+        out['filtered'][f] = [nor_finder.STAGES['refilter'](image, found, sp) for sp in
                               ({'values': {}, 'off': []}, {'values': {}, 'off': [k['key'] for k in out['about'][f]['filters']]})]
     (d / 'answers.json').write_text(json.dumps(out))
     return str(d)

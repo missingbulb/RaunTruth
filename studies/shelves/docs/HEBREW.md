@@ -34,7 +34,7 @@ cut-offs below were chosen on those same photos.
 4. **Full and defective spelling** (כתיב מלא / חסר): one word is written with or without its ו and י
    (`היינליין` / `היינלין`), and names, which the spelling rules do not govern, vary most. The Library of Congress's
    advice for Hebrew catalog searches is to look for both spellings. **Here (kept):** a ו or a י added or dropped
-   counts as one word. With 3, on the page's own path (`read.mjs`), words `tesseract` / `lines`: `1HyJrL`
+   counts as one word. With 3, on the page's own path (the sandbox's `read.mjs` of the time), words `tesseract` / `lines`: `1HyJrL`
    0.38 → 0.40 / 0.23 → 0.30, `1g4iFN` 0.19 → 0.20 / 0.08 unchanged.
 5. **Words run together** (a missed space with no final letter to show it): the classic fix is dictionary word
    segmentation, the most probable split under word frequencies (a unigram Viterbi pass); a study of historical OCR
@@ -63,7 +63,7 @@ cut-offs below were chosen on those same photos.
 
 **Chosen (the owner, 2026-11-10):** the subtitle list from jsDelivr at a pinned commit, kept offline with the
 study's Python; then the words of Hebrew Wikipedia's titles in at least 3 articles that it lacks (38,538, 490 KB),
-which the lab writes from the 2026-11-01 dump (`lab/words.py`, pinned by SHA-256) and the site serves. All of it on
+which the lab writes from the 2026-11-01 dump (`lab/shelves_words.py`, pinned by SHA-256) and the site serves. All of it on
 the page's own path, words read whole, `tesseract` / `lines`:
 
 | | the look-alike speller alone | + final letters, ו/י | + names list, runs parted |

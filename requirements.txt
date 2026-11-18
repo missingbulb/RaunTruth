@@ -9,3 +9,4 @@ tifffile
 pytest
 pyyaml
 pytest-xdist
+onnxruntime

@@ -1,0 +1,66 @@
+"""v4, line evidence on every dead end: v3, then confirmed dead-end branches must also prove they are lines.
+
+From the first provisional grade (labels/fable-v1.json): the largest error class left was confirmed
+edges the judge called "not a vessel", 17 of them, against 8 real vessels lost. They are short
+(median 12 µm against 27 µm for real ones) and lie on bright speckle: their ridge strength is half a
+real vessel's, and they beat their own quarter-turned copy by much less. v2 asks only candidates to
+pass the quarter-turn test; here every confirmed branch with an open end must pass it too, on the
+ridge map, measured against the field's own typical vessel so the cut-off travels across stacks.
+"""
+import numpy as np
+
+import evidence as ev
+import v2_scored_repair as v2
+import v3_geodesic_bridges as v3
+import vessel_model as vm
+
+NAME = 'v4-line-evidence'
+TITLE, ICON = 'dead-end check', '🔍'
+STEPS = """\
+- Run the bridges algorithm
+- For each vessel with an open end, shorter than ten widths
+  - drop it when its ridge is under half the field's typical vessel's
+  - and it beats its own quarter-turned copy by under 35% of the typical vessel's lead"""
+
+RIDGE_SHARE = 0.5      # a dead end whose ridge is under half the field's median vessel ridge ...
+TURNED_SHARE = 0.35    # ... and whose lead over its quarter-turned copy is under this share of the field's median lead, goes
+SHORT_WIDTHS = 10.0    # only dead ends shorter than this many widths are judged; a long branch has proved itself by running on
+
+
+def extract(vol, um, source, z_step):
+    m = v3.extract(vol, um, source, z_step)
+    flat, _, _ = vm.flatten(vol, um)
+    ridge = v3.ridge_map(vol, um)
+    m['repairs']['dead_ends_dropped'] = drop_unproven_dead_ends(m, flat, ridge)
+    v2.renumber(m)
+    m['algorithm'] = NAME
+    return m
+
+
+def evidence(m, e, flat, ridge):
+    xy, rad = ev.sample_edge(e, v2.nodes_of(m), m['um_per_px'])
+    P = xy[:, :2]
+    mid = P.mean(0)
+    turned = (P - mid)[:, ::-1] * [-1, 1] + mid
+    near, _ = ev.support(flat, P, rad)
+    tnear, _ = ev.support(flat, turned, rad)
+    L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
+    return float(np.median(ev.at(ridge, P))), float(np.median(near) - np.median(tnear)), L, max(2 * float(np.median(rad)), 1.0)
+
+
+def drop_unproven_dead_ends(m, flat, ridge):
+    E, _ = ev.graph(m)
+    lines = [evidence(m, e, flat, ridge) for e in E]
+    if not lines:
+        return 0
+    typ_ridge = float(np.median([x[0] for x in lines]))
+    typ_lead = float(np.median([x[1] for x in lines]))
+    deg = v2.degrees(m)
+    out = 0
+    for e, (r, lead, L, w) in zip(E, lines):
+        if min(deg.get(e['a'], 0), deg.get(e['b'], 0)) != 1 or L > SHORT_WIDTHS * w:
+            continue
+        if r < RIDGE_SHARE * typ_ridge and lead < TURNED_SHARE * typ_lead:
+            m['edges'].remove(e); out += 1
+    v2.join_pass_through(m)
+    return out

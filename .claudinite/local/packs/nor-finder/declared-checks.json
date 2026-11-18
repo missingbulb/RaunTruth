@@ -102,9 +102,9 @@
   {
     "id": "python-only-where-allowed",
     "on_fail": "block",
-    "failureMessage": "Python belongs to the studies, their research, the page tests' fixtures and the dev tools; elsewhere it is a second language in a part of the repo that is JavaScript",
+    "failureMessage": "Python belongs to the studies, the lab, the page tests' fixtures and the dev tools; elsewhere it is a second language in a part of the repo that is JavaScript",
     "fix": "write it in JavaScript, or move it into the study, test or build tool it serves",
-    "scanFiles": "/^(?!\\.claudinite\\/|studies\\/[^/]+\\/(?!web\\/)|web-tests\\/|dev\\/tools\\/).*\\.py$/",
+    "scanFiles": "/^(?!\\.claudinite\\/|studies\\/[^/]+\\/(?!web\\/)|web-tests\\/|dev\\/tools\\/|lab\\/).*\\.py$/",
     "scanTracked": true,
     "checkEachFile": [
       {

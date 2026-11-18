@@ -242,7 +242,7 @@ always a daughter.**
 - El-Bouri & Payne, statistical model of human penetrating vessels: median exponent 2.5, IQR
   1.75–3.7 (secondary summary).
 - Murray 1926 (theory): a = 3. The repo's spur limit also leans on Murray; see
-  `analysis/3D-STACKS.md`, "The spur limit — Murray's law".
+  `docs/3D-STACKS.md`, "The spur limit — Murray's law".
 
 **Sources.** Cassot et al. 2010 ([digest](cassot-2010-cortical-branching-patterns.md)); Ji et al. 2021 ([digest](ji-2021-whole-brain-microvascular-topology.md)); El-Bouri & Payne ([Liverpool repository](https://livrepository.liverpool.ac.uk/id/eprint/3134475)); Murray CD 1926, *PNAS* 12:207.
 
@@ -381,7 +381,7 @@ with the cell borders, and short gaps are normal.
 
 **Sources.** PECAM-1 junctional localization (e.g. Privratsky & Newman 2014, *Cell Tissue Res*
 355:607; background knowledge, not re-read this session); the one-to-two-cell capillary wall from
-the 2023 EM study (B7). The repo's own observation of stain dropouts is in `analysis/STATUS.md`.
+the 2023 EM study (B7). The repo's own observation of stain dropouts is in `docs/STATUS.md`.
 
 **Confidence.** Medium.
 

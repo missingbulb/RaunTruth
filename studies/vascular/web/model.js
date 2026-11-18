@@ -1,4 +1,4 @@
-// A vessel model: junctions and tips joined by smooth curves, the format analysis/vessel_model.py
+// A vessel model: junctions and tips joined by smooth curves, the format algorithm/vessel_model.py
 // writes (vessel-model/2). Each edge is a centripetal Catmull-Rom curve from node a to node b through
 // its "via" points, which sit on the vessel. x, y and r (radius) are µm from the image's top-left
 // corner, z is in slices. Everything here is plain data in, data out, so the edits can be tested
@@ -415,7 +415,9 @@ export function attach(m, id, to) {
 
 // A vessel the extractor missed, drawn a segment at a time: from one end to the next, where an end
 // may also be {point: {x, y, z}}, a new point in the open. Returns [model, id of the point drawn to],
-// or the model unchanged and null when the two ends are one point or already joined.
+// or the model unchanged and null when the two ends are one point or already joined. The segment has
+// a width from the start (no vessel is without one): at an end on the model, the radius of the vessel
+// there; at an end in the open, the other end's; with both in the open, the mean of the model's vessels.
 export const drawSegment = (m, from, to) => { const [o, ids] = join(m, from, to); return o === m ? [m, null] : [o, ids[1]]; };
 
 function join(m, from, to) {
@@ -430,7 +432,28 @@ function join(m, from, to) {
   }
   if (ids[0] === ids[1]) return [m, ids];
   if (o === m) o = clone(m);
-  return link(o, ids[0], ids[1]) ? [o, ids] : [m, ids];
+  const joined = [from, to].map((e, k) => (e.point ? null : radiusAt(o, ids[k])));
+  const lone = joined[0] ?? joined[1] ?? meanRadius(m), [ra, rb] = joined.map((r) => r ?? lone);
+  if (!link(o, ids[0], ids[1], { ...DRAWN, ra, rb })) return [m, ids];
+  [ra, rb].forEach((r, k) => { const n = o.nodes.get(ids[k]); if (Number.isFinite(r) && !Number.isFinite(n.r)) n.r = r; });
+  return [o, ids];
+}
+// the radius of the model's vessels at a point: where their segments end there, else the point's own; null when unknown
+function radiusAt(m, id) {
+  const rs = m.segments.filter((s) => live(s) && (s.a === id || s.b === id)).map((s) => from(s, id).r0).filter(Number.isFinite);
+  if (rs.length) return rs.reduce((a, b) => a + b) / rs.length;
+  const r = m.nodes.get(id)?.r;
+  return Number.isFinite(r) ? r : null;
+}
+// the mean radius of the model's vessels, each segment by its length in the image plane; null when none has a width
+function meanRadius(m) {
+  let sum = 0, length = 0;
+  for (const s of m.segments) {
+    if (!confirmed(s)) continue;
+    const a = m.nodes.get(s.a), b = m.nodes.get(s.b), ra = s.ra ?? a.r, rb = s.rb ?? b.r, L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (Number.isFinite(ra) && Number.isFinite(rb)) { sum += (ra + rb) / 2 * L; length += L; }
+  }
+  return length ? sum / length : null;
 }
 
 // The segments of the one vessel segment i belongs to, as far as its state runs: it continues

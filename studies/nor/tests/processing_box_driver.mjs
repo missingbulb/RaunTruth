@@ -25,7 +25,7 @@ try { pw = require("playwright"); } catch {
 const [ready] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const READY = JSON.parse(fs.readFileSync(ready, "utf8"));
-const QUALITY = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "finder_metrics.json"), "utf8"));
+const QUALITY = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithm_metrics.json"), "utf8"));
 // the study's list of finders, as data: each one's name and icon
 const LISTED = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithms.json"), "utf8")).map((a) => [a.key, a]));
 
@@ -102,13 +102,13 @@ try {
     if (note.nested) nested++;
     if (note.title !== `How the ${LISTED[k].title} algorithm works`) problems.push(`${k}: the note's title does not name the algorithm: ${note.title}`);
     if (note.raw) problems.push(`${k}: the note shows its list's markup instead of a list`);
-    // the bold line gives the finder with its default filters, as the list does; the finder alone follows, not bold
-    const def = QUALITY.finders[k].filtered.balanced, own = QUALITY.finders[k].finder, n = QUALITY.images.length;
+    // the bold line gives the finder with its default filters, as the list does, and what it was measured on; its note follows, not bold
+    const def = QUALITY.versions[k];
     const [, lp, lr] = note.option.match(/\(P\s(\.\d+)\s·\sR\s(\.\d+)\)/) || [];
     if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default filters' ${def.precision}, ${def.recall}`);
     const name = LISTED[k].title[0].toUpperCase() + LISTED[k].title.slice(1);
-    const bold = `${name} algorithm shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} with its default filters, on ${n} image${n > 1 ? "s" : ""}`;
-    const plain = `(without filters: precision of ${own.precision.toFixed(2)} and recall of ${own.recall.toFixed(2)})`;
+    const bold = `${name} algorithm shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} ${QUALITY.measured}`;
+    const plain = `(${def.note})`;
     if (note.strong !== bold) problems.push(`${k}: the bold line reads "${note.strong}", not "${bold}"`);
     if (!note.line || note.line.replace(/\s+/g, " ") !== `${bold} ${plain}`) problems.push(`${k}: the numbers' line reads "${note.line}", not "${bold} ${plain}"`);
   }

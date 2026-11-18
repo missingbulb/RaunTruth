@@ -41,7 +41,8 @@ export function widthsLook(ctx) {
       const path = e.segments.flatMap((i, j) => { const p = Mo.sampleSegment(m, i, SAMPLES); return (m.segments[i].a === e.ids[j] ? p : p.reverse()).slice(j ? 1 : 0); });
       if (!path.some((p) => p.x >= box.x0 && p.x <= box.x1 && p.y >= box.y0 && p.y <= box.y1)) return;
       const rs = path.filter((p) => Number.isFinite(p.r)).map((p) => 2 * p.r);
-      out.push({ n: k + 1, segs: e.segments, path, estimate: rs.length ? rs.reduce((a, b) => a + b) / rs.length : null, width: e.width ?? null, drawn: !e.proposed });
+      // a vessel the person drew carries a width it was given, not one the algorithm measured: no estimate to show
+      out.push({ n: k + 1, segs: e.segments, path, estimate: e.proposed && rs.length ? rs.reduce((a, b) => a + b) / rs.length : null, width: e.width ?? null, drawn: !e.proposed });
     });
     vessels = { m, box, list: out };
     return out;

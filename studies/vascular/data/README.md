@@ -6,17 +6,17 @@ first time it needs it:
 
 ```
 pip install -r requirements.txt
-python3 analysis/stacks.py                            # the stacks directly in Data/
-python3 analysis/stacks.py 'Originals uncropped/*'    # the two-channel originals
+python3 lab/fetch.py vascular          # the stacks data/sources.json names, checked by SHA-256
+python3 lab/fetch.py vascular --pin    # list Data/ again: record what is new, drop what is gone
 ```
 
-They land in `data/raw/` (git-ignored, gone with the container), at their path under `Data/`. The
-lab (`analysis/extraction/lab.py`) fetches the CD31 stacks itself when `data/raw/` lacks them. A stack
-already in `data/raw/` is never downloaded again, so a stack replaced on Drive reaches a session only
-once its local copy is gone. Drive's listing of the root is the record of what exists. This follows
+They land in `data/raw/images/` (git-ignored, gone with the container). [`sources.json`](sources.json) is the
+repository's record of them: each stack's path under `Data/`, Drive id and SHA-256, so a stack replaced on Drive
+stops the fetch rather than being used unnoticed. It skips the previews file and the two-channel originals in
+`Data/Originals uncropped/`, which carry no ground truth (about 660 MB together); drop them from `skip` to fetch
+them. This follows
 the image commit rule in [`studies/vascular/docs/WORKING-GUIDE.md`](../docs/WORKING-GUIDE.md): real
-data is worth keeping, but a 170 MB stack cannot go through git (below). Test:
-`python3 -m pytest tests/test_stacks.py`.
+data is worth keeping, but a 170 MB stack cannot go through git (below).
 
 **Adding data:** put the TIFF in the root's `Data` folder. The root is shared as **"Anyone with the
 link"**, so nothing in the repo changes.
@@ -28,7 +28,7 @@ The study's Drive root, [`VascularColoring`](https://drive.google.com/drive/fold
 | what | where |
 |---|---|
 | The working set: the four stacks below cut to **CD31 only** and to the slices that carry vessels, chosen by the owner in the 3D viewer (2026-10-02): `cd31_ca1_x20_r_1_slices13-30`, `cd31_ca1_x20_r_2_slices1-24`, `cd31_frontal_x20_r_1_slices1-12`, `cd31_frontal_x20_r_2_slices6-29` (slice numbers count from 1 in the original). Layout `ZYX`, 16-bit, pixels unchanged, 0.55 µm/px kept; the source and range are in each file's ImageJ `Info`. 35–69 MB each. | directly in `Data/` |
-| Four z-stacks from session `4.2.26.sld`, 20×, mouse brain: `cd31_ca1_x20 r 1`/`r 2` (hippocampal CA1) and `cd31_frontal_x20 r 1`/`r 2` (frontal cortex). DAPI + CD31, all 30 slices. ≈165 MB each. Fetched only on request (the glob above). | `Data/Originals uncropped/` |
+| Four z-stacks from session `4.2.26.sld`, 20×, mouse brain: `cd31_ca1_x20 r 1`/`r 2` (hippocampal CA1) and `cd31_frontal_x20 r 1`/`r 2` (frontal cortex). DAPI + CD31, all 30 slices. ≈165 MB each. Not fetched: `sources.json` skips them. | `Data/Originals uncropped/` |
 
 The `rauntruth-previews.tiff` files beside them are the page's previews, not stacks, and are skipped.
 
@@ -89,7 +89,7 @@ DAPI here is excited at 405 nm — not the 340–360 nm the lab quoted, which is
   hue.
 - **Artefacts:** the CA1 CD31 projection has a few bright rectangular blobs, likely debris, that a
   vessel segmenter must not count.
-- **Viewing one in 3D:** `analysis/export_stack_view.py`, which still reads the two-channel originals (see [`studies/vascular/docs/3D-STACKS.md`](../docs/3D-STACKS.md)).
+- **Viewing one in 3D:** the study's page, which opens either kind (see [`studies/vascular/docs/3D-STACKS.md`](../docs/3D-STACKS.md)).
 - **A z-stack changes "length".** Centerline length on a max projection under-counts vessels
   running through z; 3D length uses the 1 µm z-step the owner gave (`study.json` `view.spacing`).
 - **The raw `.sld` holds more than these exports** (z-step, channel names, wavelengths). Reading

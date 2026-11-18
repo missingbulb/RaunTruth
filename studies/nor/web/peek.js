@@ -1,7 +1,7 @@
 // Paints the lab's images (uncompressed three-channel ImageJ TIFFs) while their bytes arrive, so the image
 // shows before it has finished downloading and before the page has read it; the page's own drawing replaces it
 // once the image is open (req/shell/image/open). While the channels arrive the image builds in grey from those already in; once
-// every byte is in, its colours wipe down over that grey (fade up from black when it came in at once), each channel in the colour of the role the study gives it (nor.js's order, as naive_nor.load): Caspr is the channel
+// every byte is in, its colours wipe down over that grey (fade up from black when it came in at once), each channel in the colour of the role the study gives it (nor.js's order, as channels.load): Caspr is the channel
 // ImageJ displays green, DAPI the other with the larger blobs, Nav the rest. No pixel ever shows a hue its
 // final colour lacks: each is grey, black or a darker shade of that colour. Anything else is left alone: push() then returns false.
 "use strict";
@@ -62,7 +62,7 @@ window.NorPeek = (() => {
     return tops.length === 3 && green.filter(Boolean).length === 1 ? green.indexOf(true) : null;
   }
 
-  // naive_nor.blob_area over the first rows of a channel: the mean size of the pieces its brightest 3% make
+  // channels.blob_area over the first rows of a channel: the mean size of the pieces its brightest 3% make
   // after a sigma-2 blur, large for nuclei
   function blobArea(v, W, H) {
     const R = 6, k = Array.from({ length: 2 * R + 1 }, (_, i) => Math.exp(-((i - R) ** 2) / 8));
@@ -90,7 +90,7 @@ window.NorPeek = (() => {
     return on / Math.max(pieces, 1);
   }
 
-  // brightness as Python draws it (naive_nor.to8): a channel's 0.5% and 99.8% quantiles, from a sample
+  // brightness as Python draws it (channels.to8): a channel's 0.5% and 99.8% quantiles, from a sample
   function stretch(sample) {
     sample.sort((a, b) => a - b);
     const at = (q) => { const p = q * (sample.length - 1), i = Math.floor(p); return sample[i] + ((sample[Math.min(i + 1, sample.length - 1)] - sample[i]) * (p - i)); };

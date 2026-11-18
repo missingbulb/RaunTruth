@@ -23,3 +23,10 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** unchanged coded world check, in the study's pack.
+
+## 2026-11-18 · retired · the 2D figure pipeline it guarded is retired (#1011)
+- **Reason:** measure_vessels.py and annotate_overlays.py ran on literature panels no longer in the
+  repo and nothing ran them; the study's code is now only its algorithm
+  (studies/vascular/algorithm/), so the check had nothing left to read.
+- **Actor:** @missingbulb (owner), issue #1011.
+- **Model:** claude-opus-5-5

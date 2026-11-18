@@ -26,7 +26,7 @@
   "viewer": "image2d",
   "python": {
     "paths": [
-      "py/"
+      "algorithm/"
     ],
     "entry": "shelves",
     "packages": [
@@ -42,7 +42,15 @@
   },
   "algorithms": {
     "list": "web/algorithms.json",
-    "metrics": "web/finder_metrics.json"
+    "metrics": "web/algorithm_metrics.json"
+  },
+  "services": {
+    "det": "https://cdn.jsdelivr.net/npm/@gutenye/ocr-models@1.4.2/assets/ch_PP-OCRv4_det_infer.onnx",
+    "tessdata": "web/tessdata",
+    "words": [
+      "https://cdn.jsdelivr.net/gh/hermitdave/FrequencyWords@525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/he/he_50k.txt",
+      "web/words/names.txt"
+    ]
   },
   "web": {
     "module": "web/shelves.js",
@@ -88,8 +96,7 @@
     "install": "Installing numpy, scipy, scikit-image, Pillow, pillow-heif…",
     "load": "Loading the book finder…",
     "open": "Reading the photo…",
-    "view": "Getting the photo ready for the text finder…",
-    "find": "Finding the books…",
+    "run": "Finding the books and reading their titles…",
     "straighten": "Straightening each book…"
   },
   "groundTruth": {

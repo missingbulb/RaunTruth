@@ -39,7 +39,7 @@
 4. **Figure-resolution crops** — recompute absolute length on raw `.oib` data for publication numbers.
    The owner's own raw stacks are now available: four Marianas 20× DAPI + CD31 z-stacks
    (30 z × 2 ch, 0.55 µm/px from the files, no z-step), fetched from Drive by
-   `analysis/stacks.py` from the study root's `Data` folder — see [`studies/vascular/data/README.md`](../data/README.md).
+   `python3 lab/fetch.py vascular` from the study root's `Data` folder — see [`studies/vascular/data/README.md`](../data/README.md).
 5. **Every scale-dependent constant is in pixels**, not µm, across panels spanning 0.24–1.35 µm/px.
 
 ## Literature review done — six papers digested
@@ -115,32 +115,36 @@ open questions (the z-step, and the owner's ground truth).
 The same viewer is a static site, **3D MicroViewer** ([`microviewer/`](https://github.com/missingbulb/vascularColoring/tree/54badaa922556913bed2e51834440b5419b940ca/microviewer)), that opens
 any TIFF z-stack in the browser, from the computer or from Google Drive, with no export step.
 
-**Ground truth, started 2026-10-03:** `analysis/vessel_model.py` drafts a vessel model of a whole
+**Ground truth, started 2026-10-03:** [`vessel_model.py`](../algorithm/vessel_model.py) drafts a vessel model of a whole
 stack, since 2026-10-27 as junctions and tips joined by smooth curves (`vessel-model/2`; first:
 `cd31_frontal_x20_r_1_slices1-12`, about 100 KB against the stack's 35 MB), and
 the MicroViewer shows it beside or over the stack and lets the owner correct it and download the
 corrected JSON. The corrected model is the first answer key; see
 [3D-STACKS.md](3D-STACKS.md#the-vessel-model-a-correctable-answer-key).
 
-**Several extraction versions, scored (2026-10-29):** [`extraction/`](../analysis/extraction/README.md) keeps every
+**Several extraction versions, scored (2026-10-29):** [`algorithm/`](../algorithm/vascular.py) keeps every
 vessel-extraction version side by side (v1 = the tracer above, v5 the default and the source of the
 MicroViewer's models), scores each by the pixels under its edges and by biology invariants, and grades
 them against provisional labels a model (Fable) judged on five tiles. Every edge now carries a start
 and end width (`r_a`, `r_b`). v1 → v5: F1 against the provisional labels 0.880 → 0.903, judged
 non-vessels kept 24 → 13, short loops gone where the evidence is weak. The labels are a model's, not
 the owner's: the numbers are a proxy. Everything tried, and what is next:
-[`studies/vascular/analysis/extraction/LEDGER.md`](../analysis/extraction/LEDGER.md).
+[`studies/vascular/lab/LEDGER.md`](../lab/LEDGER.md). Since 2026-11-18 the shared lab runs and
+scores them (`python3 lab/run.py vascular`), against those labels ([`lab/truth/`](../lab/README.md)) and against
+the owner's three corrected models on Drive; v1 is no longer a version.
 
-Before that (2026-09-29 to 10-02), `trace_vessel_graph.py` drafted a vessel graph of one 220 µm
+Before that (2026-09-29 to 10-02), `trace_vessel_graph.py` (retired; in git at commit e49f676) drafted a vessel graph of one 220 µm
 region of frontal r1, with the crossing test (each slice segmented on its own, depth as fallback)
 that the model does not have yet; see `3D-STACKS.md`.
 
 ## Reproduce
 
 ```
-python3 analysis/measure_vessels.py              # per-image + region metrics table
-python3 analysis/measure_vessels.py --overlays   # 3-panel debug overlays -> analysis/overlays/
-python3 analysis/annotate_overlays.py            # presentation overlays -> analysis/annotated/
+python3 lab/fetch.py vascular     # the stacks and the corrected models
+python3 lab/run.py vascular       # every version, scored
 ```
 
-Setup: `pip install -r requirements.txt` (numpy, scipy, scikit-image, Pillow). Rendered PNG dirs are gitignored — regenerate.
+The first pass's figure-panel numbers came from `measure_vessels.py` and `annotate_overlays.py`, retired with
+their panels; they are in git at commit e49f676, in the study's former `analysis` folder.
+
+Setup: `pip install -r requirements.txt` (numpy, scipy, scikit-image, Pillow, gdown, tifffile).

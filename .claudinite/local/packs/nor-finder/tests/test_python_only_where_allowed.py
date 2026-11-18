@@ -30,5 +30,6 @@ def test_a_study_its_tests_and_research_the_page_tests_and_the_dev_tools_are_not
         'dev/tools/trick_pool/tricks.py': 'x = 1\n',
         'dev/tools/previews/make_previews.py': 'x = 1\n',
         'dev/tools/google_guide/make_images.py': 'x = 1\n',
+        'lab/run.py': 'x = 1\n',
         'web/shell.js': 'const py = "x.py";\n',
     }) == []

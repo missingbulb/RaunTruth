@@ -64,7 +64,7 @@ jobs:
         run: python3 -m venv ~/venv && ~/venv/bin/pip install -r requirements.txt
       - run: echo ~/venv/bin >> "$GITHUB_PATH"
       - name: Run the fast tests
-        run: python3 -m pytest web-tests studies dev/tools/trick_pool -q -n auto -m "not full" --durations=5
+        run: python3 -m pytest web-tests studies lab dev/tools/trick_pool -q -n auto -m "not full" --durations=5
   version-history:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

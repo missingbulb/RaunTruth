@@ -2,7 +2,7 @@
 
 > **Accumulating doc.** Every paper that lands in [`references/`](README.md) folds its method here.
 > This is the bridge from reading to pipeline work: the per-paper digests hold the detail, this
-> holds the *decisions*. Current pipeline: [`studies/vascular/analysis/measure_vessels.py`](../../analysis/measure_vessels.py).
+> holds the *decisions*. Current pipeline: the extraction versions in [`studies/vascular/algorithm/`](../../algorithm/); the first, 2D figure-panel pipeline (`measure_vessels.py`) is retired, in git at commit e49f676.
 
 **Papers folded in:** all fourteen — wang-2022, rust-2020, freitas-andrade-2022, stefanitsch-2015,
 hill-2020, bizou-2026, blinder-2013, cassot-2010, ji-2021, smith-2019, walchli-2020, pfau-2024,

@@ -103,10 +103,13 @@ function carried(previous, m, leftover) {
 }
 
 // ---------- the model and its file ----------
-// the file: the model with no clock and no count of corrections in it
+// the file: the model with no clock and no count of corrections in it, and no vessel left undecided: one the tagger left
+// as the algorithm drew it is in the model, so accepted, and a low-confidence one they never took in is not, so rejected
+// (what an area found right says of its own vessels). The model being tagged keeps them open.
 export function document(model) {
   const { corrected_at: _at, corrections: _n, ...rest } = model;
-  return Mo.toJSON(rest, { status: 'corrected', unchecked: Mo.WIDTHS });
+  const segments = rest.segments.map((s) => (s.proposed && s.state === s.proposed ? { ...s, state: s.proposed === 'vessel' ? 'accepted' : 'rejected' } : s));
+  return Mo.toJSON({ ...rest, segments }, { status: 'corrected', unchecked: Mo.WIDTHS });
 }
 export const load = (doc) => Mo.identify(Mo.parse(doc));
 

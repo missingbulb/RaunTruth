@@ -45,13 +45,9 @@ Every one of these starts from the z-step. The stacks do not record it (see belo
 
 ## The 3D stack viewer
 
-`analysis/export_stack_view.py` turns one stack into a web page that ray-casts the volume in the
-browser (WebGL2):
-
-```
-python3 analysis/export_stack_view.py --inspect STACK.tif        # header only, reads no pixels
-python3 analysis/export_stack_view.py STACK.tif OUT_DIR [--z-step UM]
-```
+`export_stack_view.py` (retired 2026-11-18, the study's page now opens any stack in its 3D viewer; in git at
+commit e49f676, in the study's former `analysis` folder) turned one stack into a web page that ray-casts the volume in the
+browser (WebGL2), with `--inspect STACK.tif` for the header only and `STACK.tif OUT_DIR [--z-step UM]` for the page.
 
 `OUT_DIR` holds `index.html`, `meta.json` and one 8-bit volume per channel (a lossless grayscale PNG of the slices stacked vertically), binned 2× in
 x-y (600 × 600 × 30, 1.1 µm/px). It is published as an Artifact for the owner; the rendered
@@ -97,9 +93,8 @@ owner on the first stack from another region.
 
 ## The vessel model: a correctable answer key
 
-```
-python3 analysis/vessel_model.py STACK.tif OUT.json      # a CD31-only trimmed stack or a two-channel original
-```
+The tracer is `model` in [`vessel_model.py`](../algorithm/vessel_model.py), the start of every version;
+the page draws a model with Execute, and the lab with `python3 lab/run.py vascular`.
 
 The model (format `vessel-model/2`, agreed with the owner 2026-10-27) is the junctions and tips in
 3D joined by smooth curves, with the stack's own number of slices: x, y and the radius r in µm from
@@ -255,11 +250,9 @@ pieces, a few small loops, and knots where crossing vessels tangle; the knot tes
 
 ## The graph tracer: the earlier draft route
 
-```
-python3 analysis/trace_vessel_graph.py STACK.tif OUT_DIR --region Y0,X0,SIZE [--z-step UM | --flat]
-```
-
-It writes the region's viewer files and `graph.json` (its `_about` field defines every field). The
+`trace_vessel_graph.py STACK.tif OUT_DIR --region Y0,X0,SIZE [--z-step UM | --flat]` (retired 2026-11-18; in git at
+commit e49f676, in the study's former `analysis` folder; its slice-based crossing test is an untried idea in the
+[ledger](../lab/LEDGER.md)) wrote the region's viewer files and `graph.json` (its `_about` field defines every field). The
 viewer then draws the graph over the approved view, and the owner clicks an edge or a junction to
 mark it right, wrong or unsure, or marks a vessel the draft missed on the flattened picture. The
 published page keeps the marks in its store under the draft's id, which changes whenever the

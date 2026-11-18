@@ -21,9 +21,7 @@
   "viewer": "image3d",
   "python": {
     "paths": [
-      "py/",
-      "analysis/",
-      "analysis/extraction/"
+      "algorithm/"
     ],
     "entry": "vascular",
     "packages": [
@@ -71,7 +69,7 @@
     "install": "Installing numpy, scipy, scikit-image…",
     "load": "Loading the stack reader…",
     "open": "Reading the stack…",
-    "extract": "Drawing the vessel model (the slow part: a minute or more)…"
+    "run": "Drawing the vessel model (the slow part: a minute or more)…"
   },
   "view": {
     "render": "brightest",

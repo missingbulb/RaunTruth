@@ -9,7 +9,7 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from synthetic_nor import nor_image
-sys_path = os.path.join(HERE, '..', 'detection')
+sys_path = os.path.join(HERE, '..', 'algorithm')
 NODE = shutil.which('node')
 TIFS = [nor_image(os.path.join(tempfile.mkdtemp(), f'slide {k}.tif'), side=160 + 40 * k, seed=k) for k in range(3)]
 
@@ -41,12 +41,12 @@ def paint(paths, chunk=65536, frames=False):
 
 
 def python_roles(path):
-    """{channel index: 0 Nav / 1 Caspr / 2 DAPI} as naive_nor.load assigns them."""
+    """{channel index: 0 Nav / 1 Caspr / 2 DAPI} as channels.load assigns them."""
     import sys; sys.path.insert(0, sys_path)
-    import naive_nor
+    import channels
     t = tifffile.TiffFile(path); a = t.asarray().astype(float)
     g = ['rgb'[int(np.argmax(np.asarray(l)[:, -1]))] for l in t.imagej_metadata['LUTs']].index('g')
-    dapi = max((k for k in range(3) if k != g), key=lambda k: naive_nor.blob_area(a[k]))
+    dapi = max((k for k in range(3) if k != g), key=lambda k: channels.blob_area(a[k]))
     return a, {g: 1, dapi: 2, 3 - g - dapi: 0}
 
 
@@ -100,12 +100,12 @@ def test_every_frame_is_grey_black_or_a_shade_of_the_final_colours():
 
 @pytest.mark.skipif(not NODE, reason='needs node')
 def test_ends_in_the_brightness_python_draws():
-    """The painting's colours are each channel stretched as naive_nor.to8 stretches it, so Python's drawing
+    """The painting's colours are each channel stretched as channels.to8 stretches it, so Python's drawing
     replacing it changes nothing visible."""
     import sys; sys.path.insert(0, sys_path)
-    import naive_nor
+    import channels
     for path, (info, whole, _) in zip(TIFS[:3], paint(TIFS[:3])):
         a, roles = python_roles(path)
         for k, colour in roles.items():
-            diff = np.abs(whole[..., colour].astype(int) - naive_nor.to8(a[k]).astype(int))
+            diff = np.abs(whole[..., colour].astype(int) - channels.to8(a[k]).astype(int))
             assert np.quantile(diff, 0.999) <= 2, (path, k, np.quantile(diff, 0.999))

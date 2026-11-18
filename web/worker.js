@@ -93,7 +93,7 @@ study = importlib.import_module(entry)
 `));
   files = py.runPython("sum(os.path.getsize(os.path.join(d, f)) for top in ('/lib', '/py') for d, _, fs in os.walk(top) for f in fs)");
   // modules: how many modules the importer knew the study to have, null when it asked the site for every name
-  post({ type: "ready", info: JSON.parse(py.runPython("study.ready()")), secs: (performance.now() - t0) / 1000, modules: known && Object.keys(known).length });
+  post({ type: "ready", info: JSON.parse(py.runPython("study.ready() if hasattr(study, 'ready') else '{}'")), secs: (performance.now() - t0) / 1000, modules: known && Object.keys(known).length });
 }
 
 // a download the network did not answer (a fetch or an import fails with a TypeError then, an answer that is
@@ -150,13 +150,15 @@ let unloaded = null;
 async function handle(m) {
   if (m.type === "study") return loadStudy(m.id);
   if (unloaded) throw unloaded;
-  answer ||= bridge(py, post, manifest.progress);
-  working(() => answer(m));
+  answer ||= bridge(py, post, manifest.progress, working);
+  return answer(m);
 }
 
 // a message waits for the one before it: the first study loads before anything is asked of it
 let queue = loadStudy(first);
 onmessage = (e) => {
+  // a service's answer goes to the version waiting on it, which holds the queue until it comes
+  if (e.data.type === "reply") return answer?.reply(e.data);
   queue = queue.catch(() => {}).then(() => handle(e.data));
   queue.catch((err) => post({ type: "error", text: String(err.message || err), offline: err.message === NOT_HERE }));
 };

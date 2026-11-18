@@ -1,6 +1,11 @@
 {
  "measured": "on 10 pixels counted by hand",
  "versions": {
-  "above": {"precision": 0.9, "recall": 0.8, "note": "a made-up score"}
- }
+  "above": {
+   "precision": 0.9,
+   "recall": 0.8,
+   "note": "a made-up score"
+  }
+ },
+ "scoring": "- The answer's count against the ground truth's count, each pixel counted once\n- tp: the pixels both count\n- fp: the pixels the answer counts beyond the ground truth's\n- fn: the pixels the ground truth counts beyond the answer's"
 }

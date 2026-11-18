@@ -38,10 +38,10 @@ onmessage = async ({ data: m }) => {
   await late();
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
+  } else if (m.type === "call" && m.action === "run") {
     if (++runs === 3) return postMessage({ type: "error", text: "MemoryError" });
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
   }
@@ -128,7 +128,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(await held(page, "#image-pick") && !(await page.evaluate(() => !!st.img)), "the image selector is held while the image opens");
   await free(page, "#image-pick");
   await check(await page.evaluate(() => !!st.img), "the selector is free again once the image is open");
-  const detected = answered(page, "detect");
+  const detected = answered(page, "run");
   await page.click("#find");
   await check(await held(page, "#find"), "Find Candidates is held at once, with its spinner");
   await shot(page, "find_working", ".row:has(#find)");

@@ -7,6 +7,8 @@ ground-truth files live on Drive and are not in the checkout, so every count bel
 tables. Times are my estimates, not trials. Scale used for sizes: 360 CSS px over about 62 mm, 0.17 mm/px, so
 7 mm = 41 px and 9 mm = 53 px.
 
+`grade.py` below is the grader of the time, `lab/grade.py` (IoU > 0.5 boxes; CER and word recall for the readers). Since 2026-11-18 the study is scored by its own `algorithm/score.py` (boxes and titles together), run by the shared `lab/run.py`; the paths here are as they were then: `py/` is now `algorithm/`, and `reading/read.mjs` was retired.
+
 ## Verdict
 
 The box half is right for a phone and its 8 s a book holds up (7 to 10 s recomputed). The text half does not: by the

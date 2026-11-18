@@ -13,16 +13,16 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NODE = shutil.which('node')
-sys.path.insert(0, os.path.join(HERE, '..', 'detection'))
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 
 pytestmark = pytest.mark.full
 
 
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_processing_box_explains_each_algorithm(tmp_path):
-    import interactive
+    import controls, json
     ready = tmp_path / 'ready.json'
-    ready.write_text(interactive.ready())
+    ready.write_text(json.dumps(controls.listing()))
     r = subprocess.run([NODE, os.path.join(HERE, 'processing_box_driver.mjs'), str(ready)], capture_output=True, text=True, timeout=120)
     print(r.stdout, r.stderr)
     if r.returncode == 2:

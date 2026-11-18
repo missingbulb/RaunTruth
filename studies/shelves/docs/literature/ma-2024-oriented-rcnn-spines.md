@@ -7,8 +7,9 @@ its "for peer review" layer, so most passages appear twice; the duplicates agree
 
 ## What it gives the study
 
-- **A strict criterion to report beside ours:** AP at **IoU ≥ 0.75** on oriented spine boxes. We match at IoU > 0.5
-  (`lab/grade.py`); matched books at 0.75 next to 0.5 would say whether our boxes are found or tight. Its base model's
+- **A strict criterion to report beside ours:** AP at **IoU ≥ 0.75** on oriented spine boxes. Our score credits a
+  box by its IoU with the book, paired at any overlap (`algorithm/score.py`); the share of pairs at 0.75 next to 0.5
+  would say whether our boxes are found or tight. Its base model's
   stated failure is the **upper boundary** of upright spines, so tightness is the hard part for learned models too.
 - **A public spine set to measure our regime gap on**, not a target: the Shenzhen library set (CC0 on 4TU per
   [SURVEY](SURVEY.md)). It is single-row, tight-framed library shelves, where our photos are multi-shelf home
