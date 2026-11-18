@@ -54,7 +54,7 @@ jobs:
             playwright install chromium
           fi
       - name: Run every test
-        run: python3 -m pytest web-tests studies dev/tools/trick_pool -q -n auto --durations=10
+        run: python3 -m pytest web-tests studies lab dev/tools/trick_pool -q -n auto --durations=10
 
   # Main is released only once the full set is green on it; the release task owns the deploy.
   # The full set on Firefox and WebKit, nightly or by hand only; it gates no release, and other_engines.py says

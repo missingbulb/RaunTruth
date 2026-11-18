@@ -750,6 +750,12 @@ function handle(m) {
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
     study.result?.(m.action, m.meta, m.bytes, m.echo);
+  } else if (m.type === "ask") {
+    // a version asking for a service only the page has: the study answers it ({meta, bytes}), and the version goes on
+    const worker = st.worker, reply = (r) => worker?.postMessage(r, r.bytes ? [r.bytes.buffer] : []);
+    Promise.resolve().then(() => study.serve(m.service, m.meta, m.bytes))
+      .then((r) => reply({ type: "reply", value: r?.meta ?? null, bytes: r?.bytes ?? null }),
+        (e) => reply({ type: "reply", error: String(e?.message || e) }));
   }
 }
 // the image the page has read, shown: in the page's state, the viewer, the steps and the study

@@ -18,3 +18,8 @@
 - **Actor:** Claude, fixing its own check's break of main.
 - **Mechanism:** the same declared check, its allowlist widened from three dev/tools folders to
   dev/tools.
+
+## 2026-11-18 · scope-changed · the lab joins the folders Python may live in
+- **Reason:** the owner moved every study's lab into one shared harness at a top-level lab/ (#1011).
+- **Actor:** @missingbulb (owner).
+- **Mechanism:** the same declared check, lab/ added to its allowlist.

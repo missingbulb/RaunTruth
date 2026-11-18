@@ -71,7 +71,7 @@ export function mount(shell) {
 
   $("#fx-count").onclick = () => {
     shell.busy(true, "Counting…");
-    shell.call("count", { algorithm: shell.algorithm.key, threshold: +$("#fx-threshold").value });
+    shell.call("run", { algorithm: shell.algorithm.key, threshold: +$("#fx-threshold").value });
   };
   $("#fx-done").onchange = () => { if (!shell.gt.act({ type: "check", on: $("#fx-done").checked })) render(model(), "act"); };
   $("#fx-add").onclick = () => {

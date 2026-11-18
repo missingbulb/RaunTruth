@@ -7,5 +7,5 @@
    "note": "a made-up score"
   }
  },
- "scoring": "- A pixel the algorithm marks is right when the hand count marks it\n- precision: the marked pixels that are right\n- recall: the hand-counted pixels marked"
+ "scoring": "- The answer's count against the ground truth's count, each pixel counted once\n- tp: the pixels both count\n- fp: the pixels the answer counts beyond the ground truth's\n- fn: the pixels the ground truth counts beyond the answer's"
 }

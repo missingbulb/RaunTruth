@@ -65,7 +65,7 @@ await page.goto(origin + "/web/fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 
 const own = (rel) => JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", rel), "utf8"));
-const [first, second] = own("web/algorithms.json"), listed = own("web/algorithm_metrics.json");
+const [first, second] = own("web/algorithms.json"), listed = own("web/algorithm_metrics.json"), SCORING = listed.scoring;
 await page.waitForFunction(() => !document.querySelector("#algorithm").disabled);
 const seen = () => page.evaluate(() => {
   const sel = document.querySelector("#algorithm"), note = document.querySelector("#algorithm-note"), box = document.querySelector("#processing-box");
@@ -98,7 +98,7 @@ let q = await scoring();
 await check(q.shown && q.beside && q.title === "How precision and recall are scored", "a (?) beside the list, titled for the scoring", q);
 await check(!q.open && q.expanded === "false", "... the scoring shut at first", q);
 await page.click("#scoring-help"); q = await scoring();
-await check(q.open && q.expanded === "true" && q.items.join("|") === "A pixel the algorithm marks is right when the hand count marks it|precision: the marked pixels that are right|recall: the hand-counted pixels marked",
+await check(q.open && q.expanded === "true" && q.items.join("|") === SCORING.split("\n").map((l) => l.replace(/^- /, "")).join("|"),
   "a click on it shows how the study scores, as its outline", q);
 await page.click("#scoring-help"); q = await scoring();
 await check(!q.open && q.expanded === "false", "... and a second click shuts it", q);

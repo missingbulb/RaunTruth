@@ -1,13 +1,9 @@
 """The smallest study the shell can run: one grey channel, and the pixels brighter than a threshold.
-It exists for the shell's tests, so it uses every part of the contract and nothing else, not even a
-package: it reads 8-bit greyscale PNGs itself."""
+It exists for the shell's and the lab's tests, so it uses every part of the contract (lab/README.md) and nothing
+else, not even a package: it reads 8-bit greyscale PNGs itself."""
 import json
 import struct
 import zlib
-
-
-def ready():
-    return json.dumps({})
 
 
 def read_png(data):
@@ -37,14 +33,30 @@ def read_png(data):
     return W, H, bytes(out)
 
 
-class Session:
-    def __init__(self, path):
-        with open(path, 'rb') as f:
-            self.W, self.H, self.px = read_png(f.read())
+def read(path):
+    """The image: (width, height, pixels)."""
+    with open(path, 'rb') as f:
+        return read_png(f.read())
 
-    def call(self, action, args):
-        if action == 'count':
-            t, at = args['threshold'], args['algorithm'] == 'from'
-            above = bytes(1 if v > t or (at and v == t) else 0 for v in self.px)
-            return json.dumps(dict(count=sum(above))), above
-        raise ValueError(f'unknown action {action!r}')
+
+def _count(image, threshold, at):
+    W, H, px = image
+    above = bytes(1 if v > threshold or (at and v == threshold) else 0 for v in px)
+    return dict(threshold=threshold, count=sum(above), above=above)
+
+
+VERSIONS = {
+    'above': lambda image, threshold=128: _count(image, threshold, False),
+    'from': lambda image, threshold=128: _count(image, threshold, True),
+}
+
+SCORING = """- The answer's count against the ground truth's count, each pixel counted once
+- tp: the pixels both count
+- fp: the pixels the answer counts beyond the ground truth's
+- fn: the pixels the ground truth counts beyond the answer's"""
+
+
+def score(answer, truth):
+    """tp, fp and fn of one count against the ground truth's (its labels' first count)."""
+    want, got = truth['labels'][0]['count'], answer['count']
+    return dict(tp=min(want, got), fp=max(0, got - want), fn=max(0, want - got))
