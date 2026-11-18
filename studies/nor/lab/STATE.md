@@ -26,7 +26,7 @@ _Last updated 2026-11-18._
 - **Blue (DAPI) mask:** approved by Ariel for Slide5. It works post hoc in rf (its own
   `nucleus_frac`) and as the page's 'in nucleus' filter for every other finder. Post hoc: fail only when ≥80% of the red lies on the mask.
 - **Labels:** `lab/truth/claude_v1.json`, 200 spots labelled by Claude's eye (72 real, 93 not,
-  35 unsure), **not by Ariel**. A pass within 5 px of a spot counts as that spot. With 72 real
+  35 unsure), **not by Ariel**. How an answer is scored against them: `../docs/scoring.md` (soft, one-to-one counts since 2026-11-18; numbers recorded before that day, here and in the ledger, are under the old rule, a pass within 5 px of a spot). With 72 real
   spots, a difference of 1-2 is noise.
 - **Curated ground truth** (R10, moved to Drive 2026-11-05): people mark candidates (thumbs up/down)
   and missed NoRs on the page and submit them to the study's submissions folder on Drive; a Data
@@ -92,7 +92,7 @@ The algorithm (`../algorithm/`, the only Python the page loads):
 |---|---|
 | nor_finder.py | the entry: `read`, `VERSIONS` (one per finder), `STAGES` (`refilter`, `verify`), `score`, `SETTINGS` (the presets), `SCORING` |
 | controls.py | the finders' registry (`FINDERS`), each one's filters, detection parameters and presets; writes `../web/finders.GENERATED.json` |
-| truth.py | a ground-truth file read as marked spots, and the scorer |
+| truth.py | a ground-truth file read as its elements by their state, and the scorer (`../docs/scoring.md`) |
 | channels.py | `load`, `blue_mask`, `to8` and the image-wide helpers the finders share |
 | nor3.py | segment checks A-J, `finish`, `measure`, blob/walk/fill finders |
 | nor_tl.py | traffic-light finder (default) |

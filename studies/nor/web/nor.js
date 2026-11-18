@@ -107,7 +107,7 @@ export function mount(shell) {
   async function buildPresets() {
     const q = await quality, box = $("#presets"), per = presetsOf(q, st.filtersFor);
     box.hidden = !per; if (!per) return;
-    const real = per.balanced ? per.balanced.tp + per.balanced.fn : 0, n = q.images.length;
+    const real = per.balanced ? Math.round(per.balanced.tp + per.balanced.fn) : 0, n = q.images.length;
     box.title = `After the filters: precision (P) and recall (R) on ${real} real NoRs marked in ${n} image${n === 1 ? "" : "s"}`;
     box.replaceChildren(...Object.entries(PRESETS).filter(([k]) => per[k]).map(([k, name]) => {
       const b = document.createElement("button"); b.type = "button"; b.dataset.preset = k;

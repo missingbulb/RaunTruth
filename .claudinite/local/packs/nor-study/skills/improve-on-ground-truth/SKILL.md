@@ -40,9 +40,9 @@ page's list, with the lock re-accepted by the owner.
 
 ## 2. Missing candidates first
 
-A missing mark (`"kind": "missing"` in a submission) is a NoR no finder proposed.
-The scorer counts the marks some candidate already lies on (`missing_proposed`,
-`studies/nor/algorithm/truth.py`). For each of the others, open the image on the page and look at
+A true NoR no candidate lies near, failed ones included, is one no finder proposed, whoever marked it.
+The scorer counts the true NoRs some candidate lies on (`proposed`, `studies/nor/algorithm/truth.py`). For each
+of the others, open the image on the page and look at
 the region, find the detection step that lost it (no red seed, no green pair, a size or shape gate
 before the checks), and ablate the change on every image:
 

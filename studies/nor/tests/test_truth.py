@@ -1,167 +1,305 @@
-"""req/nor/downloads, R10 — ground truth saved from the page, or the lab's own labels, read as the spots the scorer
-counts, and an answer's candidates scored against them."""
+"""req/nor/downloads, R10 — ground truth saved from the page, or the lab's own labels, read as its elements by their
+state alone, and an answer scored against them: each kind of error at rising severity, on drawn files in the page's
+shapes (docs/scoring.md)."""
 import base64
 import json
-import os
-import sys
 import zlib
+import copy
+import math
+import os
+import random
+import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
-import truth
+import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'algorithm'))
+import nor_finder
+import truth as S
 
-def cand(x, y, fail=None, length=None, red=None):
-    c = dict(cx=x, cy=y, fail=fail)
-    if length is not None:
-        c['m'] = dict(length=length, red_length=red)
-    return c
-
-
-PAGE = {
-    'format': 'norfinder-ground-truth/1',
-    'image': {'name': 'acme.tif', 'width': 100, 'height': 100},
-    'labels': [
-        {'id': 1, 'x': 10, 'y': 10, 'label': 1, 'source': 'user', 'measured': 'adjusted', 'length_px': 12.0, 'red_length_px': 3.0},
-        {'id': 2, 'x': 50, 'y': 50, 'label': 0, 'source': 'user', 'measured': None},
-        {'id': 3, 'x': 80, 'y': 80, 'label': 1, 'source': 'finder', 'measured': 'approved', 'length_px': 9.0, 'red_length_px': 2.0},
-        {'id': 4, 'x': 30, 'y': 70, 'label': 1, 'source': 'finder', 'measured': None, 'length_px': 7.0, 'red_length_px': 1.0},
-    ],
-}
+RED, LENGTH, WIDTH = 10.0, 26.0, 5.0
+# a grid of NoRs far enough apart that none reaches another
+PLACES = [(60.0 + 80 * i, 60.0 + 80 * j) for j in range(4) for i in range(5)]
 
 
-def counts(cands, labels):
-    return {k: v for k, v in truth.score(cands, labels).items() if k in ('tp', 'fp', 'fn')}
+def lines_at(x, y, length=LENGTH, red=RED, width=WIDTH):
+    return {'length': [[x - length / 2, y], [x + length / 2, y]], 'red': [[x - red / 2, y], [x + red / 2, y]],
+            'width': [[x, y - width / 2], [x, y + width / 2]]}
 
 
-def test_a_page_file_scores_like_a_lab_file():
-    cands = [cand(11, 10, length=10.0, red=3.5), cand(50, 51), cand(80, 80, 'dim'), cand(31, 70, length=7.0, red=1.0)]
-    page = truth.labels_of(PAGE)
-    lab = truth.labels_of(dict(labels=[{k: L[k] for k in ('id', 'x', 'y', 'label')} for L in PAGE['labels']]))
-    assert counts(cands, page) == counts(cands, lab) == dict(tp=2, fp=1, fn=1)
+def cand(x, y, fail=None, length=LENGTH, red=RED, width=WIDTH, i=None):
+    return dict(i=i, cx=x, cy=y, fail=fail, m=dict(length=length, red_length=red, width=width), lines=lines_at(x, y, length, red, width))
 
 
-def test_only_measurements_a_person_checked_are_scored():
-    # 1 was adjusted by hand and 3 approved; 4 is the finder's own number, so it proves nothing
-    cands = [cand(11, 10, length=10.0, red=3.5), cand(80, 80, length=9.0, red=2.5), cand(31, 70, length=99.0, red=9.0)]
-    e = truth.score(cands, truth.labels_of(PAGE))
-    assert e['checked'] == 2
-    assert abs(e['length_err'] - 2.0) < 1e-9 and abs(e['red_err'] - 1.0) < 1e-9
-    # a checked NoR the finder did not pass has no measurement to compare
-    cands[1]['fail'] = 'dim'
-    assert truth.score(cands, truth.labels_of(PAGE))['checked'] == 1
+def three(places=PLACES, areas=range(100), undecided=(), deleted=(), added=()):
+    """A /3 file over a 400 x 400 image: approved candidates at `places`, unapproved ones at `undecided`, candidates the
+    history deleted at `deleted`, approved added NoRs at `added`; every area checked unless told."""
+    k = iter(range(1, 10 ** 6))
+    def c(x, y, **more):
+        return dict(id=f'c{next(k)}', x=x, y=y, lines=lines_at(x, y), m=dict(length=LENGTH, red_length=RED, width=WIDTH), fail=None, **more)
+    kept = [c(x, y, approved=True) for x, y in places] + [c(x, y) for x, y in undecided]
+    gone = [c(x, y) for x, y in deleted]
+    actions = [{'type': 'run', 'output': {'cands': [dict(g) for g in kept + gone]}}] + [{'type': 'delete', 'cand': g['id']} for g in gone]
+    return {'format': 'norfinder-ground-truth/3', 'image': {'width': 400, 'height': 400}, 'grid': 10, 'areas': list(areas),
+            'candidates': kept, 'added': [dict(id=f'u{n + 1}', lines=lines_at(x, y), approved=True) for n, (x, y) in enumerate(added)],
+            'history': {'actions': actions}}
 
 
-SHA = 'ab' * 32
+def two(places=PLACES, nots=(), unsure=()):
+    labels = [dict(x=x, y=y, label=1) for x, y in places] + [dict(x=x, y=y, label=0) for x, y in nots] + [dict(x=x, y=y, label=None) for x, y in unsure]
+    return {'format': 'norfinder-ground-truth/2', 'labels': [dict(L, id=n) for n, L in enumerate(labels)]}
 
 
-def submission(labels, source='drive', sha=SHA):
-    loc = {'source': source, 'drive_id': 'D1' if source == 'drive' else None, 'name': 'acme.tif'}
-    return {'format': truth.FORMATS[0], 'image': {'name': 'acme.tif', 'sha256': sha, 'width': 100, 'height': 100,
-                                                     'location': loc}, 'labels': labels}
+def right(places=PLACES):
+    return [cand(x, y, i=n) for n, (x, y) in enumerate(places)]
 
 
-MISSING = {'kind': 'missing', 'x': 40, 'y': 40, 'label': 1, 'source': 'user', 'radius_px': 10}
+def F(cands, doc):
+    c = S.score(cands, doc)
+    assert min(c['tp'], c['fp'], c['fn']) >= -1e-9
+    return 2 * c['tp'] / (2 * c['tp'] + c['fp'] + c['fn']) if c['tp'] else 0.0
 
 
-def test_a_missing_mark_is_a_real_nor_found_within_its_radius():
-    labels = truth.labels_of(submission([MISSING]))
-    near, far = cand(47, 40), cand(52, 40)
-    assert counts([near], labels)['tp'] == 1
-    assert counts([far], labels)['fn'] == 1
-    # proposing a candidate there counts even when a filter rejects it
-    assert truth.score([cand(47, 40, 'dim')], labels)['missing_proposed'] == 1
-    assert truth.score([far], labels)['missing_proposed'] == 0
+def falls(values, strictly=True):
+    return all(a > b if strictly else a >= b for a, b in zip(values, values[1:]))
 
 
-# ---------- norfinder-ground-truth/3: the model, with its history ----------
-def line(x, y, a):
-    return [[x - a / 2, y], [x + a / 2, y]]
+BOTH = [three(), two()]
 
 
-def lines_at(x, y, length=10.0):
-    return {'length': line(x, y, length), 'red': line(x, y, 4.0), 'width': [[x, y - 2], [x, y + 2]]}
+@pytest.mark.parametrize('doc', BOTH)
+def test_the_truth_itself_scores_one_and_nothing_scores_zero(doc):
+    assert F(right(), doc) == pytest.approx(1.0)
+    assert F([], doc) == 0.0
+    assert F([cand(x, y, fail='dim') for x, y in PLACES], doc) == 0.0
 
 
-RUN_CANDS = [
-    {'id': 'c1', 'i': 0, 'n': 1, 'x': 10.0, 'y': 10.0, 'bb': [5, 8, 15, 12], 'lines': lines_at(10, 10), 'm': {'length': 10.0, 'red_length': 4.0, 'width': 4.0}, 'fail': None},
-    {'id': 'c2', 'i': 1, 'n': 2, 'x': 50.0, 'y': 50.0, 'bb': [45, 48, 55, 52], 'lines': lines_at(50, 50), 'm': {'length': 10.0, 'red_length': 4.0, 'width': 4.0}, 'fail': 'dim'},
-    {'id': 'c3', 'i': 2, 'n': 3, 'x': 80.0, 'y': 80.0, 'bb': [75, 78, 85, 82], 'lines': lines_at(80, 80), 'm': {'length': 10.0, 'red_length': 4.0, 'width': 4.0}, 'fail': None},
-    {'id': 'c4', 'i': 3, 'n': 4, 'x': 30.0, 'y': 70.0, 'bb': [25, 68, 35, 72], 'lines': lines_at(30, 70), 'm': {'length': 10.0, 'red_length': 4.0, 'width': 4.0}, 'fail': None},
-]
+@pytest.mark.parametrize('doc', BOTH)
+def test_the_order_of_the_units_changes_nothing(doc):
+    cands = right()[:15] + [cand(x + 4, y + 3) for x, y in PLACES[:6]] + [cand(200, 20)]
+    base = S.score(cands, doc)
+    for seed in range(5):
+        a, d = cands[:], copy.deepcopy(doc)
+        random.Random(seed).shuffle(a)
+        for key in ('labels', 'candidates'):
+            if key in d:
+                random.Random(seed).shuffle(d[key])
+        got = S.score(a, d)
+        assert all(got[k] == pytest.approx(base[k]) for k in ('tp', 'fp', 'fn'))
 
 
-def packed(output):
-    return {'deflate': base64.b64encode(zlib.compress(json.dumps(output).encode())).decode()}
+@pytest.mark.parametrize('doc', BOTH)
+def test_each_unit_missed_costs_more(doc):
+    assert falls([F(right()[:n], doc) for n in (20, 19, 15, 8, 1, 0)])
 
 
-def three(candidates, added=(), history=True, pack=True):
-    """A /3 file: the candidates that remain, and a history whose last run is RUN_CANDS."""
-    run = {'image': {}, 'finder': 'tl', 'cands': RUN_CANDS}
-    doc = {'format': 'norfinder-ground-truth/3', 'image': submission([])['image'], 'finder': 'tl', 'grid': 10,
-           'candidates': list(candidates), 'added': list(added), 'areas': [0, 3]}
-    if history:
-        old = {'type': 'run', 'at': '2026-11-17T09:00:00Z', 'output': {'cands': RUN_CANDS[:1]}}
-        last = {'type': 'run', 'at': '2026-11-17T10:00:00Z', 'output': packed(run) if pack else run}
-        doc['history'] = {'format': 'rauntruth-gt-history/1', 'replay': 'verified', 'actions': [{'type': 'open'}, old, last, {'type': 'delete', 'cand': 'c2'}]}
-    return doc
+def test_each_unit_invented_costs_more_where_the_truth_knows():
+    extra = [cand(100.0 + 80 * i, 100.0) for i in range(4)]
+    # in areas checked for missed NoRs, and on spots marked not a NoR
+    assert falls([F(right() + extra[:n], three()) for n in range(5)])
+    assert falls([F(right() + extra[:n], two(nots=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
+    assert falls([F(right() + extra[:n], three(areas=(), deleted=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
 
 
-def kept(*ids, approved=()):
-    return [dict(c, **({'approved': True} if c['id'] in approved else {})) for c in RUN_CANDS if c['id'] in ids]
+def test_an_answer_where_the_truth_says_nothing_counts_for_nothing():
+    extra = [cand(100.0, 100.0)]
+    assert F(right() + extra, two()) == pytest.approx(1.0)
+    assert F(right() + extra, three(areas=())) == pytest.approx(1.0)
+    # one checked area knows its own ground only (area 0 is the top-left tenth)
+    assert F(right() + [cand(20.0, 20.0)], three(areas=[0])) < 1.0
+    assert F(right() + [cand(20.0, 100.0)], three(areas=[0])) == pytest.approx(1.0)
 
 
-ADDED = {'id': 'u1', 'lines': lines_at(40, 40, 8.0), 'approved': True}
+@pytest.mark.parametrize('doc', BOTH)
+def test_a_unit_placed_further_off_costs_more_with_no_step(doc):
+    offs = [0, 2, 3, 4, 5, 6, 8, 9.9, 10, 14]
+    got = [F(right()[1:] + [cand(PLACES[0][0], PLACES[0][1] + d)], doc) for d in offs]
+    assert got[0] == pytest.approx(1.0) and got[1] == pytest.approx(1.0)   # inside the slack
+    assert falls(got[1:8]) and falls(got, strictly=False)
+    # barely paired costs what the two cost unpaired: nothing jumps at the reach
+    assert abs(got[7] - got[8]) < 0.01
+    # half a node off is partly right, not wrong
+    assert F(right()[1:], doc) < got[4] < 1.0
 
 
-def test_a_three_file_gives_its_approved_candidates_and_the_run_candidates_it_lacks():
-    doc = three(kept('c1', 'c3', 'c4', approved=('c1', 'c3')), [ADDED, {'id': 'u2', 'lines': lines_at(60, 20)}])
-    got = {(L['x'], L['y']): L for L in truth.labels_of(doc)}
-    assert sorted((k, L['label']) for k, L in got.items()) == [((10.0, 10.0), 1), ((40.0, 40.0), 1), ((50.0, 50.0), 0), ((80.0, 80.0), 1)]
-    a = got[(10.0, 10.0)]
-    assert (a['decision'], a['measured'], a['length_px'], a['red_length_px'], a['width_px']) == ('approved', 'approved', 10.0, 4.0, 4.0)
-    # c4 was never voted on, and u2 never approved: neither is a label
-    assert (30.0, 70.0) not in got and (60.0, 20.0) not in got
-    m = got[(40.0, 40.0)]
-    assert m['kind'] == 'missing' and m['radius_px'] >= 12 and m['length_px'] == 8.0 and m['measured'] == 'adjusted'
-    assert got[(50.0, 50.0)]['decision'] == 'rejected' and got[(50.0, 50.0)]['source'] == 'user'
+@pytest.mark.parametrize('doc', BOTH)
+def test_the_whole_answer_shifted_costs_more_the_further(doc):
+    got = [F([cand(x + d, y) for x, y in PLACES], doc) for d in (0, 3, 5, 7, 9, 12)]
+    assert falls(got[:5]) and got[-1] == 0.0
 
 
-def test_an_edited_candidate_is_scored_on_its_edited_lines():
-    c = dict(kept('c1', approved=('c1',))[0], edited={'length': line(10, 10, 14.0)})
-    got = truth.labels_of(three([c], history=False))[0]
-    assert got['measured'] == 'adjusted' and got['length_px'] == 14.0 and got['red_length_px'] == 4.0
-    assert got['lines']['length'] == line(10, 10, 14.0) and got['lines']['red'] == line(10, 10, 4.0)
+def test_the_whole_answer_scaled_costs_more_the_further():
+    # about the image's middle: places move, and lengths with them
+    def scaled(k):
+        return [cand(200 + (x - 200) * k, 200 + (y - 200) * k, length=LENGTH * k, red=RED * k, width=WIDTH * k) for x, y in PLACES]
+    assert falls([F(scaled(k), three()) for k in (1.0, 1.02, 1.05, 1.1, 1.2)])
+    assert falls([F(scaled(k), three()) for k in (1.0, 0.98, 0.95, 0.9, 0.8)])
 
 
-def test_a_three_file_with_no_history_gives_positives_only():
-    doc = three(kept('c1', 'c3', approved=('c1',)), history=False)
-    assert [(L['label'], L['x']) for L in truth.labels_of(doc)] == [(1, 10.0)]
-    # an unpacked run reads as well as a packed one
-    both = [(L['label'], L['x']) for L in truth.labels_of(three(kept('c1', 'c3', 'c4', approved=('c1',)), pack=False))]
-    assert sorted(both) == [(0, 50.0), (1, 10.0)]
+def test_a_unit_found_and_measured_wrong_is_partly_right():
+    def with_red(k):
+        return right()[1:] + [cand(*PLACES[0], red=RED * k)]
+    got = [F(with_red(k), three()) for k in (1.0, 1.1, 1.2, 1.3)]
+    assert falls(got)
+    wrong_all = F(right()[1:] + [cand(*PLACES[0], length=LENGTH * 3, red=RED * 3, width=WIDTH * 3)], three())
+    assert F(right()[1:], three()) < wrong_all < got[-1]
+    # a file with no lengths asks only for the place
+    assert F(right()[1:] + [cand(*PLACES[0], red=RED * 3)], two()) == pytest.approx(1.0)
+    c = S.score(with_red(1.2), three())
+    assert c['measured'] == 20 and c['red_err'] == pytest.approx(2.0) and c['length_err'] == pytest.approx(0.0)
 
 
-def test_a_candidate_the_file_lacks_is_a_negative_only_where_the_history_deleted_it():
-    # c2 was deleted; c3 and c4 are absent with no delete to say why (a file taken as a base lists only what it held): not known
-    doc = three(kept('c1', approved=('c1',)))
-    assert sorted((L['label'], L['x']) for L in truth.labels_of(doc)) == [(0, 50.0), (1, 10.0)]
-    # a delete taken back leaves the candidate in the file, and it is no label
-    doc = three(kept('c1', 'c2', approved=('c1',)))
-    assert [(L['label'], L['x']) for L in truth.labels_of(doc)] == [(1, 10.0)]
-    # a delete of a candidate the last run does not hold marks nothing
-    doc = three(kept('c1', approved=('c1',)))
-    doc['history']['actions'].append({'type': 'delete', 'cand': 'c9'})
-    assert sorted(L['label'] for L in truth.labels_of(doc)) == [0, 1]
+@pytest.mark.parametrize('doc', BOTH)
+def test_a_duplicate_earns_nothing_and_costs(doc):
+    x, y = PLACES[0]
+    assert falls([F(right() + [cand(x + 1, y)] * n, doc) for n in (0, 1, 2)])
+    c = S.score(right() + [cand(x + 1, y)], doc)
+    assert c['tp'] == pytest.approx(20.0) and c['fp'] == pytest.approx(1.0)
 
 
-def test_a_two_file_is_read_as_it_always_was():
-    doc = submission([MISSING, {'x': 60, 'y': 60, 'label': 0}])
-    assert truth.labels_of(doc) == doc['labels']
+@pytest.mark.parametrize('doc', BOTH)
+def test_one_unit_split_in_two_and_two_merged_into_one(doc):
+    x, y = PLACES[0]
+    def halves(off):
+        return [cand(x - off, y, length=LENGTH / 2, red=RED / 2), cand(x + off, y, length=LENGTH / 2, red=RED / 2)]
+    # one half is paired for what it is worth and the other is a duplicate: mending the split always gains
+    assert falls([F(right(), doc), F(right()[1:] + halves(2), doc), F(right()[1:] + halves(4), doc)])
+    # ...and it is worth about a miss, more only when a half sits on the node and the truth asks for no lengths
+    if 'labels' in doc:
+        assert F(right()[1:] + halves(2), doc) > F(right()[1:], doc)
+    # two truth NoRs a node apart, answered by one between them
+    near = PLACES + [(x + 9, y)]
+    d = three(near) if doc['format'].endswith('3') else two(near)
+    both = right() + [cand(x + 9, y)]
+    merged = right()[1:] + [cand(x + 4.5, y, length=LENGTH + 9, red=RED + 9)]
+    assert F(right()[1:], d) < F(merged, d) < F(both, d)
+    # the truth beside itself still scores one against itself
+    assert F(both, d) == pytest.approx(1.0)
 
 
-def test_the_lab_reads_a_three_file_through_its_labels():
-    labels = truth.labels_of(three(kept('c1', 'c3', 'c4', approved=('c1',)), [ADDED]))
-    assert sorted((L['label'], L['x']) for L in labels) == [(0, 50.0), (1, 10.0), (1, 40.0)]
-    sc = counts([cand(10, 10, length=10.0, red=4.0)], labels)
-    assert (sc['tp'], sc['fn']) == (1, 1)
+@pytest.mark.parametrize('undecided', [three(undecided=[(100.0, 100.0)]), two(unsure=[(100.0, 100.0)])])
+def test_an_undecided_element_is_neither_a_miss_nor_an_invention(undecided):
+    assert F(right(), undecided) == pytest.approx(1.0)
+    assert F(right() + [cand(100.0, 100.0)], undecided) == pytest.approx(1.0)
+    # beside it, where a checked area knows better, it starts to count
+    if undecided['format'].endswith('3'):
+        got = [F(right() + [cand(100.0 + d, 100.0)], undecided) for d in (0, 4, 7, 12)]
+        assert falls(got[1:]) and got[0] == pytest.approx(1.0)
+
+
+def test_where_an_element_came_from_changes_nothing():
+    cands = right()[:17] + [cand(PLACES[18][0] + 4, PLACES[18][1]), cand(300.0, 20.0), cand(*PLACES[19], red=RED * 1.2)]
+    as_candidates = S.score(cands, three())
+    as_added = S.score(cands, three(PLACES[:10], added=PLACES[10:]))
+    assert all(as_added[k] == pytest.approx(as_candidates[k]) for k in ('tp', 'fp', 'fn', 'measured', 'red_err'))
+    # an added NoR the history deleted is not a NoR, as a deleted candidate is
+    doc = three(areas=())
+    doc['history']['actions'] += [{'type': 'add', 'cand': 'u1', 'lines': lines_at(300.0, 20.0)}, {'type': 'delete', 'cand': 'u1'}]
+    assert F(cands, doc) < F(cands, three(areas=()))
+    assert S.score(cands, doc)['fp'] == pytest.approx(S.score(cands, three(areas=(), deleted=[(300.0, 20.0)]))['fp'])
+
+
+def test_a_failed_candidate_is_not_in_the_answer_and_is_told_apart():
+    cands = right()[2:] + [cand(*PLACES[0], fail='dim')]
+    c = S.score(cands, three())
+    assert c['fn'] == pytest.approx(2.0) and c['fp'] == 0 and c['proposed'] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize('doc', BOTH)
+def test_every_fix_of_one_error_raises_the_score(doc):
+    """An answer with one of each error; fixing any one of them, in any order, never lowers F and each raises it."""
+    x0, y0 = PLACES[0]
+    fixes = {
+        'missed': (lambda a: a, lambda a: a + [cand(*PLACES[5])]),
+        'invented': (lambda a: a + [cand(x0 + 1, y0 + 40)], lambda a: a),
+        'off': (lambda a: a + [cand(PLACES[6][0] + 6, PLACES[6][1])], lambda a: a + [cand(*PLACES[6])]),
+        'duplicate': (lambda a: a + [cand(PLACES[7][0], PLACES[7][1] + 1)], lambda a: a),
+        'mismeasured': (lambda a: a + [cand(*PLACES[8], red=RED * 1.25)], lambda a: a + [cand(*PLACES[8])]),
+    }
+    d = copy.deepcopy(doc)
+    if 'labels' in d:
+        d['labels'].append(dict(id=99, x=x0 + 1, y=y0 + 40, label=0))
+    base = [cand(x, y) for n, (x, y) in enumerate(PLACES) if n not in (5, 6, 8)]
+
+    def answer(fixed):
+        a = base[:]
+        for name, (broken, mended) in fixes.items():
+            a = (mended if name in fixed else broken)(a)
+        return a
+    names = list(fixes)
+    for seed in range(6):
+        order = names[:]
+        random.Random(seed).shuffle(order)
+        scores = [F(answer(set(order[:n])), d) for n in range(len(order) + 1)]
+        for n, name in enumerate(order):
+            if name == 'mismeasured' and 'labels' in d:
+                assert scores[n + 1] == pytest.approx(scores[n])
+            else:
+                assert scores[n + 1] > scores[n], (order, name)
+        assert scores[-1] == pytest.approx(1.0)
+
+
+def test_a_bigger_fix_raises_it_more():
+    doc = three()
+    worst = right()[1:] + [cand(PLACES[0][0] + 9, PLACES[0][1])]
+    small, big = (right()[1:] + [cand(PLACES[0][0] + d, PLACES[0][1])] for d in (6, 2))
+    assert F(worst, doc) < F(small, doc) < F(big, doc)
+
+
+def test_the_page_outline_carries_the_scorers_own_numbers():
+    assert f'{S.SLACK:g}' in S.SCORING and f'{S.REACH:g} red length' in S.SCORING
+    assert len(S.SCORING.splitlines()) <= 10 and nor_finder.SCORING == S.SCORING
+
+
+# ---------- a file read as its elements ----------
+def states(doc):
+    return sorted((e['state'], round(e['x']), round(e['y'])) for e in S.truth_of(doc)[0])
+
+
+def test_a_three_file_gives_each_element_its_state():
+    doc = three(PLACES[:2], undecided=[(100.0, 100.0)], deleted=[(200.0, 100.0)], added=[(300.0, 100.0)])
+    doc['added'].append(dict(id='u9', lines=lines_at(350.0, 100.0)))
+    assert states(doc) == [('nor', 60, 60), ('nor', 140, 60), ('nor', 300, 100), ('not', 200, 100), ('undecided', 100, 100), ('undecided', 350, 100)]
+    known = S.truth_of(doc)[1]
+    assert known(20, 20) and not S.truth_of(three(areas=[0]))[1](20, 100) and not known(-1, 20)
+    # the areas walk each second row backwards, as the page numbers them
+    assert S.truth_of(three(areas=[19]))[1](20, 60) and not S.truth_of(three(areas=[19]))[1](380, 60)
+
+
+def test_an_element_is_measured_on_the_lines_it_stands_on():
+    doc = three(PLACES[:1])
+    doc['candidates'][0]['edited'] = {'red': [[50.0, 60.0], [64.0, 60.0]]}
+    e = S.truth_of(doc)[0][0]
+    assert (e['red'], e['length'], e['width']) == (14.0, LENGTH, WIDTH) and (e['rx'], e['ry']) == (57.0, 60.0)
+
+
+def test_a_deleted_element_is_not_a_nor_only_where_the_history_says_so():
+    doc = three(PLACES[:1], deleted=[(200.0, 100.0)])
+    packed = copy.deepcopy(doc)
+    run = packed['history']['actions'][0]
+    run['output'] = {'deflate': base64.b64encode(zlib.compress(json.dumps(run['output']).encode())).decode()}
+    assert states(packed) == states(doc) == [('nor', 60, 60), ('not', 200, 100)]
+    # a delete taken back leaves the element in the file, undecided; one of an element no run or add shows marks nothing
+    back = copy.deepcopy(doc)
+    back['candidates'].append(dict(doc['history']['actions'][0]['output']['cands'][1]))
+    back['history']['actions'].append({'type': 'delete', 'cand': 'c99'})
+    assert states(back) == [('nor', 60, 60), ('undecided', 200, 100)]
+    # with no history a file gives what it lists
+    del doc['history']
+    assert states(doc) == [('nor', 60, 60)]
+
+
+def test_a_two_file_and_a_lab_file_read_alike():
+    labels = [dict(id=1, x=10, y=10, label=1, source='user', kind='missing', radius_px=12, length_px=12.0, red_length_px=3.0, width_px=2.0),
+              dict(id=2, x=50, y=50, label=0, source='finder'), dict(id=3, x=80, y=80, label=None)]
+    page = {'format': 'norfinder-ground-truth/2', 'labels': labels}
+    lab = {'labels': [{k: L[k] for k in L if k not in ('source', 'kind', 'radius_px')} for L in labels]}
+    assert S.truth_of(page)[0] == S.truth_of(lab)[0]
+    assert states(page) == [('nor', 10, 10), ('not', 50, 50), ('undecided', 80, 80)]
+    assert S.truth_of(page)[0][0]['red'] == 3.0
+
+
+def test_the_graded_items_say_what_the_answer_keeps():
+    doc = two(PLACES[:3], nots=[(100.0, 100.0), (300.0, 100.0)], unsure=[(200.0, 100.0)])
+    got = S.score([cand(*PLACES[0]), cand(PLACES[1][0] + 8, PLACES[1][1]), cand(100.0, 101.0), cand(200.0, 100.0)], doc)
+    assert [(it['label'], it['hit']) for it in got['items']] == [(1, True), (1, False), (1, False), (0, True), (0, False)]
+    assert nor_finder.score(dict(cands=[cand(*PLACES[0])]), doc)['tp'] == 1.0

@@ -194,4 +194,4 @@ SCORING = truth.SCORING
 
 
 def score(answer, doc):
-    return truth.score(answer['cands'], truth.labels_of(doc))
+    return truth.score(answer['cands'], doc)

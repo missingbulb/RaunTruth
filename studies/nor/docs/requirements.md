@@ -272,8 +272,9 @@ Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11
 - **Newer and human beats older and Claude's.** For one image the curated file is the one reference;
   it wins over the lab's own labels at the same spot. (The shared lab scores each ground-truth file on its
   own and does not merge them yet; `lab/run.py --truth drive` scores on the curated files alone.)
-- **A missing mark is a real NoR** found when a pass lies within its radius, and proposed when any
-  candidate does.
+- **The ground truth is right, whatever made it.** Set by the owner on 2026-11-18: the scorer reads an element's
+  state (a NoR, not a NoR, undecided) and never its origin, so an added NoR and an approved candidate score alike.
+  How an answer is scored against it is [`scoring.md`](scoring.md).
 
 ## R11 — Every finder's precision and recall are on record, per filter preset
 
@@ -281,8 +282,9 @@ Set by the owner on 2026-10-06. [`studies/nor/web/algorithm_metrics.json`](../we
 holds, for every finder the page offers, the precision and recall summed over every ground-truth image
 (R10), run the way the page runs it, at two stages kept apart: the finder's own candidates before any
 filter, and what passes the filters after it at three filter presets (precise, balanced = the
-finder's own values, recalling). Precision counts labelled spots only: real spots passed over labelled spots
-passed. A preset moves every filter the same share of the way towards a fixed strict or loose end
+finder's own values, recalling). The counts are soft and one-to-one ([`scoring.md`](scoring.md), switched on 2026-11-18; no number
+before that day compares with one after): a NoR found off its place or mismeasured is partly right, and an answer
+on ground the truth does not judge counts for nothing. A preset moves every filter the same share of the way towards a fixed strict or loose end
 (`algorithm/controls.py`; the finder's own candidates are the setting `unfiltered`), the same for every
 finder. `python3 lab/run.py nor --write` rewrites the file, and `tests/test_metrics.py` fails when it
 lacks a finder or a preset. The numbers are only as right as the labels

@@ -30,9 +30,10 @@ def test_every_finder_and_setting_is_on_record():
 def test_counts_cover_the_labels():
     for v in doc()['versions'].values():
         for r in [v, *v['settings'].values()]:
-            assert r['tp'] + r['fn'] == v['tp'] + v['fn']
-            assert r['precision'] == round(r['tp'] / (r['tp'] + r['fp']), 4)
-            assert r['recall'] == round(r['tp'] / (r['tp'] + r['fn']), 4)
+            # soft counts: a NoR is split between tp and fn, so the two still sum to the NoRs marked
+            assert abs(r['tp'] + r['fn'] - (v['tp'] + v['fn'])) < 1e-4
+            assert abs(r['precision'] - r['tp'] / (r['tp'] + r['fp'])) < 1e-4
+            assert abs(r['recall'] - r['tp'] / (r['tp'] + r['fn'])) < 1e-4
 
 
 def test_the_presets_are_the_lab_s_settings():

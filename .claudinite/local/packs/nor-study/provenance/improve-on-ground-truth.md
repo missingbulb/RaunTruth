@@ -84,3 +84,8 @@
 - **Actor:** @missingbulb (owner), through the coordinating session moving the studies onto the
   contract.
 - **Model:** claude-opus-5-5
+
+## 2026-11-18 · reworded · missed NoRs found by state, not by who marked them
+- **Reason:** the owner ruled that scoring never reads a ground-truth element's origin; the new
+  scorer reports `proposed` over every true NoR (#1011).
+- **Actor:** @missingbulb (owner).

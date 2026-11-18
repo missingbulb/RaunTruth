@@ -145,10 +145,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
   cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
   `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's scorer (`algorithm/truth.py`) reads it, and the `/2` files already
-  curated, which list `labels` (every candidate voted up or down, and every added NoR approved, kind `missing`, with its
-  radius): the labels score detection and the checked lengths score measurement
-  (`studies/nor/tests/test_truth.py`). A candidate nobody voted on is ambiguous: in `candidates` without
-  `approved`, and no label.
+  curated, which list `labels` (every candidate voted up or down, and every added NoR approved). The scorer reads
+  each element's state alone (a NoR, not a NoR, undecided), never where it came from, and scores an answer's place
+  and, where the element carries lengths, its lengths ([`docs/scoring.md`](docs/scoring.md),
+  `studies/nor/tests/test_truth.py`). A candidate nobody voted on is undecided: in `candidates` without
+  `approved`, and neither a miss nor an invention.
   </details>
 
 - `req/nor/filters/live` Filters are live dials: each can be switched off, and every marking follows it at once.
