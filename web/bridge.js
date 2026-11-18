@@ -55,6 +55,8 @@ class _Held:
 
     def start(self, action, args):
         if action == 'run':
+            # the last answer let go first, so two are never held at once
+            self.answer = None
             r = study.VERSIONS[args.pop('algorithm')](self.image, **args)
         elif action in getattr(study, 'STAGES', {}):
             r = study.STAGES[action](self.image, self.answer, **args)

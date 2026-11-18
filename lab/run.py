@@ -62,12 +62,14 @@ def committed_truth(study):
 def corpus(study, transport=None, which='all'):
     """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first; which
     is 'all', 'drive' (the curated files alone) or 'lab' (the study's own lab/truth/ alone)."""
-    imgs = {e['sha256']: e for e in fetch.images(study.id, transport)}
     found, refused = fetch.truth(study.id, transport) if which != 'lab' else ([], {})
     for path, why in refused.items():
         print(f'ground truth {path} left out: {why}', file=sys.stderr)
+    truths = found + (committed_truth(study) if which != 'drive' else [])
+    # only the images some ground truth names are fetched
+    imgs = {e['sha256']: e for e in fetch.images(study.id, transport, only={t['doc']['image']['sha256'] for t in truths})}
     pairs = []
-    for t in found + (committed_truth(study) if which != 'drive' else []):
+    for t in truths:
         sha = t['doc']['image']['sha256']
         if sha in imgs:
             pairs.append((imgs[sha], t))

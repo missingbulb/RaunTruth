@@ -36,7 +36,7 @@ a study may give a `verify` stage the mutation sweep runs on a mutant's map.
 An answer is a dict the page can read as JSON; a numpy array in it travels to the page as bytes, a numpy number as a
 number. A version that
 needs a service only the environment has (reading text, for one) is a generator: it yields a request,
-`('read', crop, langs)`, and is sent the answer. In the lab the request is served natively; on the page, by the
+`('tesseract', crop, langs)`, and is sent the answer. In the lab the request is served natively; on the page, by the
 page's own engines through the worker. The version is the same code in both. The lab's services (`services.py`) load
 the files the study's `study.json` names under `services` (`det`, `tessdata`, `words`; a URL is fetched once into
 the study's `data/raw/services/`), and run Tesseract on one thread, which is several times faster for many small

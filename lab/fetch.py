@@ -117,9 +117,10 @@ def image_path(raw, entry):
     return os.path.join(raw, 'images', entry['drive_id'] + '__' + os.path.basename(entry['path']))
 
 
-def images(sid, transport=None, pin=False):
+def images(sid, transport=None, pin=False, only=None):
     """Every image the study's data/sources.json names, fetched and verified; with pin, the data folder listed again
-    first and the manifest rewritten with what is new (its SHA-256 recorded once fetched) and without what is gone."""
+    first and the manifest rewritten with what is new (its SHA-256 recorded once fetched) and without what is gone;
+    with only (a set of SHA-256), just those images."""
     sdir = os.path.join(STUDIES, sid)
     raw, manifest_path = os.path.join(sdir, 'data', 'raw'), os.path.join(sdir, 'data', 'sources.json')
     transport = transport or GoogleDrive()
@@ -134,6 +135,8 @@ def images(sid, transport=None, pin=False):
         entries = [known.get(fid) or dict(path=path, drive_id=fid, sha256=None)
                    for path, fid in sorted(listing) if not skip.search(path)]
     for e in entries:
+        if only is not None and e['sha256'] not in only:
+            continue
         out = image_path(raw, e)
         if not os.path.exists(out):
             transport.download(e['drive_id'], out)
@@ -147,7 +150,7 @@ def images(sid, transport=None, pin=False):
         with open(manifest_path, 'w') as f:
             json.dump(manifest, f, indent=1, ensure_ascii=False)
             f.write('\n')
-    return [dict(e, local=image_path(raw, e)) for e in entries]
+    return [dict(e, local=image_path(raw, e)) for e in entries if only is None or e['sha256'] in only]
 
 
 def truth(sid, transport=None):

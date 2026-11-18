@@ -175,3 +175,13 @@ def test_a_version_asking_for_a_service_is_served_by_the_run_s_services_while_th
     s = lab_study.Study.__new__(lab_study.Study)
     s.module = type('m', (), {'VERSIONS': {'asks': asks}})
     assert s.run('asks', 21, Lazy()) == 42
+
+
+def test_only_the_images_with_ground_truth_are_downloaded(acme):
+    s, drive = acme
+    drive.folders['curatedfold'] = [p for p in drive.folders['curatedfold'] if p[1] == 'gt10']
+    for f in os.listdir(os.path.join(s.data, 'images')):
+        os.remove(os.path.join(s.data, 'images', f))
+    drive.downloads.clear()
+    _, pairs = run.measure(s, transport=drive)
+    assert len(pairs) == 1 and 'img20' not in drive.downloads and 'img10' in drive.downloads
