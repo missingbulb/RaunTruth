@@ -7,13 +7,9 @@ real vessel's, and they beat their own quarter-turned copy by much less. v2 asks
 pass the quarter-turn test; here every confirmed branch with an open end must pass it too, on the
 ridge map, measured against the field's own typical vessel so the cut-off travels across stacks.
 """
-import os, sys
-
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..'))
-import score as sc
+import evidence as ev
 import v2_scored_repair as v2
 import v3_geodesic_bridges as v3
 import vessel_model as vm
@@ -42,26 +38,26 @@ def extract(vol, um, source, z_step):
 
 
 def evidence(m, e, flat, ridge):
-    xy, rad = sc.sample_edge(e, v2.nodes_of(m), m['um_per_px'])
+    xy, rad = ev.sample_edge(e, v2.nodes_of(m), m['um_per_px'])
     P = xy[:, :2]
     mid = P.mean(0)
     turned = (P - mid)[:, ::-1] * [-1, 1] + mid
-    near, _ = sc.support(flat, P, rad)
-    tnear, _ = sc.support(flat, turned, rad)
+    near, _ = ev.support(flat, P, rad)
+    tnear, _ = ev.support(flat, turned, rad)
     L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
-    return float(np.median(sc.at(ridge, P))), float(np.median(near) - np.median(tnear)), L, max(2 * float(np.median(rad)), 1.0)
+    return float(np.median(ev.at(ridge, P))), float(np.median(near) - np.median(tnear)), L, max(2 * float(np.median(rad)), 1.0)
 
 
 def drop_unproven_dead_ends(m, flat, ridge):
-    E, _ = sc.graph(m)
-    ev = [evidence(m, e, flat, ridge) for e in E]
-    if not ev:
+    E, _ = ev.graph(m)
+    lines = [evidence(m, e, flat, ridge) for e in E]
+    if not lines:
         return 0
-    typ_ridge = float(np.median([x[0] for x in ev]))
-    typ_lead = float(np.median([x[1] for x in ev]))
+    typ_ridge = float(np.median([x[0] for x in lines]))
+    typ_lead = float(np.median([x[1] for x in lines]))
     deg = v2.degrees(m)
     out = 0
-    for e, (r, lead, L, w) in zip(E, ev):
+    for e, (r, lead, L, w) in zip(E, lines):
         if min(deg.get(e['a'], 0), deg.get(e['b'], 0)) != 1 or L > SHORT_WIDTHS * w:
             continue
         if r < RIDGE_SHARE * typ_ridge and lead < TURNED_SHARE * typ_lead:

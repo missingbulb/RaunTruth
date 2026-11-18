@@ -1,4 +1,4 @@
-// A vessel model: junctions and tips joined by smooth curves, the format analysis/vessel_model.py
+// A vessel model: junctions and tips joined by smooth curves, the format algorithm/vessel_model.py
 // writes (vessel-model/2). Each edge is a centripetal Catmull-Rom curve from node a to node b through
 // its "via" points, which sit on the vessel. x, y and r (radius) are µm from the image's top-left
 // corner, z is in slices. Everything here is plain data in, data out, so the edits can be tested

@@ -1,15 +1,13 @@
 # Vascular Measurements — read this first
 
 Detect and quantify cerebral blood vessels in CD31 confocal images: **categorize** (caliber),
-**count** (branch segments) and **measure** (centerline length). Two inputs, two pipelines:
-
-- **Figure panels** (2D, RGB crops of published figures, `VESSEL_*.png`; not in the repo, rebuilt from the publishers' figures by the inventories in the paper summaries):
-  `analysis/measure_vessels.py` and `analysis/annotate_overlays.py`.
-- **The owner's z-stacks** (3D, four Marianas 20× CD31 stacks on Google Drive, `data/README.md`):
-  `analysis/extraction/` keeps every extraction version side by side (v5 the default), and its
-  output is the vessel model (`vessel-model/2`) the owner corrects into ground truth. This is the
-  pipeline; `analysis/trace_vessel_graph.py` and `analysis/export_stack_view.py` (with
-  `analysis/stack_view/`) are the earlier spikes.
+**count** (branch segments) and **measure** (centerline length), on the owner's z-stacks (3D, four Marianas 20×
+CD31 stacks on Google Drive, `data/README.md`). [`algorithm/`](../algorithm/vascular.py) is the study's whole code:
+it reads a stack and keeps every extraction version side by side (v5 the default), each drawing the vessel model
+(`vessel-model/2`) the owner corrects into ground truth, and it scores a model against ground truth. The shared
+lab (the repo's `lab/`) fetches, runs and scores; the study's research records are in [`../lab/`](../lab/README.md).
+The first pass's 2D figure-panel pipeline (`measure_vessels.py`, `annotate_overlays.py`) and the early 3D spikes
+(`trace_vessel_graph.py`, `export_stack_view.py`) are retired; they are in git at commit e49f676.
 
 Migrated from [missingbulb/vascularColoring](https://github.com/missingbulb/vascularColoring)
 on 2026-10-31 ([`MIGRATION.md`](MIGRATION.md) lists every capability and where it stands). Still there, not here: the figure and PDF files the literature's READMEs
@@ -20,34 +18,33 @@ show (they link to that repo, by the owner's choice).
 - [`WORKING-GUIDE.md`](WORKING-GUIDE.md) — the owner's rules for images, overlays, metrics and calibration.
 - [`STATUS.md`](STATUS.md) — where things stand and the agreed next step.
 - [`3D-STACKS.md`](3D-STACKS.md) — the 3D work, the vessel model and the owner's decisions on it.
-- [`../analysis/extraction/README.md`](../analysis/extraction/README.md) and its `LEDGER.md` — the extraction versions and every attempt.
+- [`../lab/README.md`](../lab/README.md) and its `LEDGER.md` — how the versions are run and scored, and every attempt.
 - [`literature/README.md`](literature/README.md) — one digest per paper (read the digest, never the PDF),
   [`literature/METHODS-SYNTHESIS.md`](literature/METHODS-SYNTHESIS.md) and
   [`literature/BIOLOGY-INVARIANTS.md`](literature/BIOLOGY-INVARIANTS.md).
 
-The study's working rules and its skills (`paper-intake`, `vessel-overlay-review`) are the
-`vascular-study` local pack's; research-project's rules govern as for every study here.
+The study's working rules are the `vascular-study` local pack's; research-project's rules govern as for every study here.
 
 ## Run
 
-From `studies/vascular/`:
+From the repository's root:
 
 ```
-python3 analysis/stacks.py                        # the owner's stacks from the study root into data/raw/
-python3 analysis/extraction/lab.py cmp            # every extraction version on every stack
-python3 analysis/extraction/lab.py run v5 STACK.tif OUT.vessels.json
-python3 analysis/measure_vessels.py               # the figure-panel pipeline (needs the panels)
-python3 -m pytest tests
+python3 lab/fetch.py vascular                     # the owner's stacks and corrected models into data/raw/
+python3 lab/run.py vascular                       # every extraction version on every stack, scored
+python3 -m pytest studies/vascular
 ```
 
 ## The page
 
 The page reads the stack itself and shows it in the shell's 3D viewer, flattened and slice by slice, CD31 first
 (`web/channel_order.js`) and contrasted up to the 99.9% quantile (`study.json`'s `view.upper`;
-`req/vascular/stack-view`); `py/vascular.py` is what Python runs, at the first Execute: it reads the stack's CD31 and
-runs the extraction lab's versions on it in the page
-(`req/vascular/model/run`: Processing's Execute; the page's Python imports `analysis/` and
-`analysis/extraction/` as they are; the study's list, `web/algorithms.json`, gives each version's name, icon and How the algorithm works there, as its `TITLE`, `ICON` and `STEPS` state them, `web/algorithm_metrics.json` its precision and recall, and `lab.RETIRED` keeps a version off the list). The site ships no
+`req/vascular/stack-view`); `algorithm/vascular.py` is what Python runs, through the shell's bridge: its `read` opens the stack's CD31, and
+Execute runs one of its `VERSIONS` on it in the page
+(`req/vascular/model/run`: Processing's Execute; the page's Python is `algorithm/` as it is; the study's list,
+`web/algorithms.json`, gives each version's name, icon and How the algorithm works there, as its `TITLE`, `ICON` and
+`STEPS` state them, and `web/algorithm_metrics.json`, written by `python3 lab/run.py vascular --truth lab --write`,
+its precision and recall). The site ships no
 drawn models. The left bar is the shell's (`req/shell/left-bar/shells`): `web/vascular.html` fills its
 Processing, Summary and Ground Truth Tasks boxes, and the toolbar's left with how the model shows
 (`req/shell/image/toolbar`). `web/vascular.js` mounts Processing, the vessel model over or beside the stack

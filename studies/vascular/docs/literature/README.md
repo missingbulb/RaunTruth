@@ -54,8 +54,8 @@ has.
 The figure panels themselves are not in this repository: no literature image is (owner,
 2026-11-16). Each paper's file keeps its panel inventory — which panels were cropped, their
 `VESSEL_` names and their µm/px — so the dataset can be rebuilt from the publisher's figures.
-`studies/vascular/analysis/measure_vessels.py` reads `VESSEL_*` panels when they are present, and
-keeps their calibration in `SCALEBAR_PX` / `UNCALIBRATED`.
+The retired figure-panel pipeline (`measure_vessels.py`, in git at commit e49f676) read `VESSEL_*` panels and kept
+their calibration in `SCALEBAR_PX` / `UNCALIBRATED`.
 
 A panel earns the `VESSEL_` prefix when it is an **isolated single-channel vessel image**: vessels
 bright on a dark background, no second marker mixed in. Every paper after Wang carries a paper tag

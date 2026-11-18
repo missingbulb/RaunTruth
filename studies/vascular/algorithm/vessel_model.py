@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Draft a curved vessel model of a whole CD31 stack, for the owner to correct in the viewer.
 
 The model is about a hundred KB of JSON instead of a stack of pictures: junctions and tips in 3D
@@ -6,10 +5,7 @@ joined by smooth curves, with the same number of slices as the stack it was draw
 the owner checks it against the stack in the 3D MicroViewer (side by side or overlaid), corrects it
 there, and only the corrected model is ground truth.
 
-    python3 analysis/vessel_model.py STACK.tif OUT.json [--channel N]
-
-Reads a single-channel stack (the CD31-only trimmed files) or the two-channel originals (CD31 is
-channel 1 there, data/README.md).
+It is the tracer every version starts from (model), and the shared preparation of a stack (shared, flatten).
 
 Tracing is the owner's chosen "flat plus depth": each slice is put in its own noise units, the slices
 are flattened, the flat picture is thresholded and skeletonised, and every centerline point takes
@@ -26,16 +22,14 @@ to be sure of. Those are kept as low-confidence "candidate" segments that the ow
 declines in the viewer, instead of being dropped unseen. Junctions are never stored: they are the
 points where three or more confirmed segments meet.
 """
-import argparse, contextlib, heapq, json, os
+import contextlib, heapq
 import numpy as np
-import tifffile
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from scipy.stats import poisson
 from skimage.filters import apply_hysteresis_threshold
 from skimage.morphology import skeletonize, remove_small_objects
 
-import stacks
 
 # Every constant is in noise units, µm read off the file, or multiples of the vessel's own width.
 BACKGROUND_UM = 11.0   # haze varies over tens of µm; capillaries are ~2-6 µm wide (Stefanitsch digest)
@@ -45,18 +39,18 @@ CANDIDATE_SEED_SIGMA, CANDIDATE_GROW_SIGMA = 3.5, 2.0   # a fainter hysteresis f
 CANDIDATE_BELOW = 0.5               # a faint trace with less than half its centerline in the confident mask is a candidate
 SIGNAL_OVER_NOISE = 1.5             # a slice counts only if its top 0.1% beats pure noise (3.09 sigma) by this
 MIN_OBJECT_UM2 = 20.0  # flattened specks; Rust et al. 2020 drop objects below the same area
-SPUR_WIDTHS = 2.0      # a side branch shorter than 2 parent widths is a wall bump (Murray floor 1.29, analysis/3D-STACKS.md)
+SPUR_WIDTHS = 2.0      # a side branch shorter than 2 parent widths is a wall bump (Murray floor 1.29, docs/3D-STACKS.md)
 ISLAND_WIDTHS = 4.0    # a lone piece shorter than 4 of its own widths is a speck
 NETWORK_WIDTHS = 10.0  # a connected piece whose vessels add up to less than 10 widths is noise, not network
 STRAIGHT_WIDTHS = 0.5  # an edge's curve may stray from the centerline by half the vessel's width
-AXIAL_HALF_SLICES = 2.0   # a capillary spans 4-6 slices through depth at half its peak (measured on three stacks, analysis/3D-STACKS.md)
+AXIAL_HALF_SLICES = 2.0   # a capillary spans 4-6 slices through depth at half its peak (measured on three stacks, docs/3D-STACKS.md)
 THROUGH_DEG = 60.0     # ASSUMPTION: a branch leaving a junction within 60° of straight on continues the vessel; fails where a trunk turns sharply at a split
 DEPTH_SMOOTH_WIDTHS = 2.0  # the per-pixel depth is noisy on faint vessels: median along the path over this span
 DENSE_WIDTHS = 5.0     # junctions are counted within 5 typical vessel widths of each junction
 DENSE_P = 1e-3         # a count this unlikely at the stack's own mean junction density marks a knot the tracing likely got wrong
 
 FORMAT = 'vessel-model/2'
-ABOUT = ('status: draft as drawn by analysis/vessel_model.py, or corrected once the owner has edited it in the '
+ABOUT = ('status: draft as drawn by the study\'s extraction, or corrected once the owner has edited it in the '
          '3D MicroViewer; a draft is not ground truth. '
          'nodes: the junctions and tips only, each with id, x and y in µm from the top-left corner of the image, z in '
          'slices (0 = the middle of the first slice; the spacing between slices is z_step_um, null while unknown, and '
@@ -81,31 +75,13 @@ ABOUT = ('status: draft as drawn by analysis/vessel_model.py, or corrected once 
          'excluded_regions: areas the owner marked as damaged sample, each {polygon: [[x, y], ...] in µm, reason}, '
          'running through every slice; whatever lies inside is left out of the analysis, and densities are taken over '
          'the rest of the field. '
-         'Optional, written by analysis/extraction/lab.py: on an edge, r_a and r_b, the radius in µm at end a and end b '
+         'Optional, written by every extraction version: on an edge, r_a and r_b, the radius in µm at end a and end b '
          'measured across the vessel and fitted as a straight taper (the radius runs linearly between them; absent, '
          'read the points\' own r); taper_known, true where that taper is clearly more than noise; flow, "ab" or "ba" '
          'once the direction blood runs is known (not inferred by the extractor: narrowing runs with the flow in '
          'arterioles but against it in venules); bridged, true on an edge the extractor drew across a gap in the '
          'signal. At the top: algorithm, the extraction version that drew the model; score, its plausibility card; '
          'repairs, what that version changed.')
-
-
-def read_cd31(path, channel):
-    with tifffile.TiffFile(path) as tf:
-        s = tf.series[0]
-        a = s.asarray()
-        axes = s.axes
-        page = tf.pages[0]
-        xres = page.tags.get('XResolution')
-        ij = tf.imagej_metadata or {}
-    if axes == 'ZCYX':
-        a = a[:, 1 if channel is None else channel]
-    elif axes != 'ZYX':
-        raise SystemExit(f'unexpected layout {axes} {a.shape}')
-    um = xres.value[1] / xres.value[0] if xres and ij.get('unit') in ('micron', 'um', 'µm') else None
-    if not um:
-        raise SystemExit('the file records no pixel size in µm')
-    return a.astype(np.float32), um, ij.get('spacing') or stacks.z_step_um()
 
 
 _shared = None
@@ -587,23 +563,3 @@ def vessel_ids(out, ids):
             free = [f for z, f in enumerate(free) if z not in (x, y)]
     first = {}
     return [first.setdefault(find(k), len(first) + 1) for k in range(len(out))]
-
-
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('stack'); ap.add_argument('out')
-    ap.add_argument('--channel', type=int, help='channel index in a multi-channel stack (default: CD31 = 1)')
-    a = ap.parse_args()
-    vol, um, z_step = read_cd31(a.stack, a.channel)
-    m = model(vol, um, os.path.basename(a.stack), z_step)
-    with open(a.out, 'w') as f:
-        json.dump(m, f, separators=(',', ':'))
-    sure = [e for e in m['edges'] if e['state'] == 'vessel']
-    junctions = sum(1 for v in np.bincount([e[k] for e in sure for k in 'ab']) if v >= 3)
-    print(f"{len(m['nodes'])} junctions and tips, {len(sure)} curved vessel edges through "
-          f"{sum(len(e['via']) for e in sure)} curve points, {junctions} junctions, {len(set(e['vessel'] for e in sure))} vessels, "
-          f"{len(m['edges']) - len(sure)} low-confidence edges to review, {os.path.getsize(a.out) / 1024:.0f} KB")
-
-
-if __name__ == '__main__':
-    main()

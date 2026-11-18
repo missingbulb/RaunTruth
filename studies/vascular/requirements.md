@@ -90,7 +90,7 @@ owner's decisions on the stacks and the vessel model, are
   <details>
 
   Set by the owner on 2026-11-04, as NoR's Processing box. The box lists the extraction lab's
-  versions (`studies/vascular/analysis/extraction/`), the lab's default first; How the algorithm
+  versions (`studies/vascular/algorithm/`, its `VERSIONS`), the default first; How the algorithm
   works shows the chosen version's own description; Execute, at the box's end, runs it in the
   page's Python on the stack open, as the lab runs it (scored, with the spacing between slices the
   page shows), and the model it draws opens over the stack. The study ships no drawn models: a
@@ -100,7 +100,7 @@ owner's decisions on the stacks and the vessel model, are
   (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
   (`req/nor/find/settings`). Each algorithm in the list carries its own icon and its name, and its
-  precision and recall against the provisional labels (`analysis/extraction/labels/`, a model's
+  precision and recall against the provisional labels (`lab/truth/`, a model's
   verdicts, not the owner's); How the <name> algorithm works gives its steps as a nested list
   (written as a Markdown outline), then "<Name> algorithm shows precision of X and recall of Y on
   N curves a model judged", in bold, the numbers the list shows, and that the judge is not the

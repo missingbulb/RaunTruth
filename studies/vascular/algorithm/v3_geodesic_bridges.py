@@ -8,15 +8,11 @@ ahead, along the cheapest path through a ridge-strength map, for a vessel or ano
 The path is kept when the ridge carries it the whole way: its dimmest stretch keeps a share of the
 two vessels' own contrast, it arrives at about the same depth, and it closes no short loop.
 """
-import os, sys
-
 import numpy as np
 from skimage.filters import sato
 from skimage.graph import MCP_Geometric
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..'))
-import score as sc
+import evidence as ev
 import v2_scored_repair as v2
 import vessel_model as vm
 
@@ -36,7 +32,7 @@ REACH_WIDTHS = 12.0        # an open end looks this many vessel widths ahead (me
 AHEAD_DEG = 60.0           # ... for a landing point within this angle of the way it was running
 PATH_SIGNAL = v2.BRIDGE_SIGNAL   # the path's dimmest fifth keeps this share of the two vessels' contrast
 WANDER = v2.WANDER         # and wanders no more than a capillary does
-RIDGE_UM = (1.0, 1.5, 2.0, 3.0)   # ridge filter scales: capillary radii ~1-3 µm (Ji 2021; references/BIOLOGY-INVARIANTS.md)
+RIDGE_UM = (1.0, 1.5, 2.0, 3.0)   # ridge filter scales: capillary radii ~1-3 µm (Ji 2021; docs/literature/BIOLOGY-INVARIANTS.md)
 
 
 def extract(vol, um, source, z_step):
@@ -61,14 +57,14 @@ def geodesic_bridges(m, flat, ridge, depth):
     hi = float(np.percentile(ridge, 99))
     cost = 1.0 / (0.02 + np.clip(ridge / max(hi, 1e-9), 0, 1))
     made = 0
-    E, adj = sc.graph(m)
+    E, adj = ev.graph(m)
     nodes = v2.nodes_of(m)
     deg = v2.degrees(m)
     contrast = {i: v2.strength(flat, m, e) for i, e in enumerate(E)}
     # every confirmed edge's pixels, labelled by edge, as landing places
     owner = np.full((H, W), -1, int)
     for i, e in enumerate(E):
-        xy, _ = sc.sample_edge(e, nodes, um)
+        xy, _ = ev.sample_edge(e, nodes, um)
         ij = np.clip(np.round(xy[:, :2]).astype(int), 0, [W - 1, H - 1])
         owner[ij[:, 1], ij[:, 0]] = i
     tips = [n for n, d in deg.items() if d == 1]
@@ -80,7 +76,7 @@ def geodesic_bridges(m, flat, ridge, depth):
         w = max(2 * p.get('r', um) / um, 2.0)
         if min(P0[0], P0[1], W - 1 - P0[0], H - 1 - P0[1]) < 2 * w:
             continue
-        (j, u), = sc.leave_dirs(E, nodes, n, adj)
+        (j, u), = ev.leave_dirs(E, nodes, n, adj)
         ahead = -u
         R = int(REACH_WIDTHS * w)
         x0, y0 = max(int(P0[0]) - R, 0), max(int(P0[1]) - R, 0)
@@ -106,7 +102,7 @@ def geodesic_bridges(m, flat, ridge, depth):
         if L / max(np.linalg.norm(path[-1] - path[0]), 1e-6) > WANDER:
             continue
         i = int(own[ty, tx])
-        near, side = sc.support(flat, path.astype(float), np.full(len(path), w / 2))
+        near, side = ev.support(flat, path.astype(float), np.full(len(path), w / 2))
         dim = float(np.percentile(near - np.median(side), 20))
         if dim < PATH_SIGNAL * (contrast[j] + contrast[i]) / 2:
             continue
@@ -120,7 +116,7 @@ def geodesic_bridges(m, flat, ridge, depth):
         e = E[i]
         if e not in m['edges']:
             continue
-        xy, _ = sc.sample_edge(e, v2.nodes_of(m), um)
+        xy, _ = ev.sample_edge(e, v2.nodes_of(m), um)
         k = int(np.argmin(np.linalg.norm(xy[:, :2] - path[-1], axis=1)))
         if k <= 1 or k >= len(xy) - 2:   # landing on an end: join that end instead of splitting
             target = e['a'] if k <= 1 else e['b']
@@ -135,9 +131,9 @@ def geodesic_bridges(m, flat, ridge, depth):
                 'z': round(float(depth[int(q[1]), int(q[0])]), 2), 'r': r} for q in pts]
         new = {'id': 0, 'a': n, 'b': target, 'vessel': None, 'state': 'vessel', 'via': via, 'bridged': True}
         m['edges'].append(new)
-        E2, adj2 = sc.graph(m)
+        E2, adj2 = ev.graph(m)
         nd = v2.nodes_of(m)
-        if any(E2[q] is new for q, _, _ in sc.short_loops(E2, adj2, [sc.edge_length_um(x, nd) for x in E2])):
+        if any(E2[q] is new for q, _, _ in ev.short_loops(E2, adj2, [ev.edge_length_um(x, nd) for x in E2])):
             m['edges'].remove(new)
             v2.join_pass_through(m)
             continue

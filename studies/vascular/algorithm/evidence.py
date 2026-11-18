@@ -1,28 +1,23 @@
-#!/usr/bin/env python3
-"""How plausible an extracted vessel graph is, judged by the image under it and by how vessels are built.
+"""How plausible an extracted vessel graph is, judged by the image under it and by how vessels are built, and every
+vessel's start and end width: what each version adds to its model, and the geometry the versions share.
 
-Every extraction version is scored by this one function, so versions can be compared without an
-owner-corrected answer key. Two kinds of evidence:
+Two kinds of evidence:
 
   pixels   each edge is sampled along its curve and checked against the flattened stack: how much of
            its length sits on signal, and how much brighter the curve is than the tissue beside it.
   biology  the graph's shape against invariants of cortical vessel networks
-           (references/BIOLOGY-INVARIANTS.md): junctions are bifurcations, loops are many segments
+           (docs/literature/BIOLOGY-INVARIANTS.md): junctions are bifurcations, loops are many segments
            long, branches leave a junction at wide angles, and a vessel narrows in one direction only.
 
-Widths are measured here too, from the intensity profile across each edge, and fitted as a radius
-running linearly from end a to end b, so every version gets the same start and end widths.
-
-    python3 analysis/extraction/score.py STACK.tif MODEL.json [--json OUT]
+Widths are measured from the intensity profile across each edge, and fitted as a radius running linearly
+from end a to end b, so every version gets the same start and end widths.
 """
-import argparse, json, os, sys
 from collections import deque
 
 import numpy as np
 from scipy import ndimage as ndi
 from scipy.stats import theilslopes
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import vessel_model as vm
 
 # Pixel evidence, in each stack's own noise units (vessel_model.noise_units) and in multiples of the vessel's width.
@@ -30,7 +25,7 @@ ON_SIGNAL = vm.GROW_SIGMA       # a curve sample is "on signal" where the flatte
 SNAP_WIDTHS = 0.5               # the curve may sit half a width off the ridge and still be on it
 BESIDE_WIDTHS = 2.0             # "the tissue beside it" is sampled two widths out on each side
 SUPPORTED = 0.6                 # an edge with less than 60% of its length on signal is unsupported
-# Biology (references/BIOLOGY-INVARIANTS.md; Ji 2021, Smith 2019 for mouse cortex).
+# Biology (docs/literature/BIOLOGY-INVARIANTS.md; Ji 2021, Smith 2019 for mouse cortex).
 SHORT_LOOP_EDGES = 2            # loops average ~8 edges and ~15% have 2-4 (Blinder 2013), so only a 2-edge loop (~1-4% of real ones) is suspect by count
 LOOP_SEARCH_EDGES = 8          # loops are searched up to the mean real loop's edge count
 SHORT_LOOP_UM = 100.0           # a loop under ~100 µm around is suspect whatever its count (mean real loop ~486 µm, Smith 2019)
@@ -237,8 +232,8 @@ def out_of_plane_deg(dirs):
     return best
 
 
-def score(model, flat, measure_taper=True):
-    """Score card for a model against its flattened stack. Adds r_a, r_b (and taper_known) to each
+def card(model, flat, measure_taper=True):
+    """The plausibility card of a model against its flattened stack. Adds r_a, r_b (and taper_known) to each
     confirmed edge when measure_taper; returns the card."""
     um = model['um_per_px']
     nodes = {n['id']: n for n in model['nodes']}
@@ -342,19 +337,3 @@ def plausibility(c):
     deg4 = max(c['degree4_rate'] - DEGREE4_EXPECTED, 0)
     conf = c['taper_conflicts'] or 0
     return round(c['on_signal'] * (1 - min(loops * 4, 1)) * (1 - min(deg4 * 4, 1)) * (1 - c['narrow_junctions'] / 2) * (1 - conf / 2), 3)
-
-
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('stack'); ap.add_argument('model'); ap.add_argument('--json')
-    a = ap.parse_args()
-    vol, um, _ = vm.read_cd31(a.stack, None)
-    model = json.load(open(a.model))
-    card = score(model, flat_signal(vol, um))
-    print(' · '.join(f'{k} {v}' for k, v in card.items() if not k.startswith('_')))
-    if a.json:
-        json.dump(card, open(a.json, 'w'), indent=1)
-
-
-if __name__ == '__main__':
-    main()

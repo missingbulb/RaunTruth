@@ -1,4 +1,4 @@
-"""The extraction score reads widths, loops and junction shapes the way the biology says they look.
+"""The plausibility card reads widths, loops and junction shapes the way the biology says they look.
 
 Run: python3 tests/test_extraction_score.py
 """
@@ -8,8 +8,8 @@ import sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'analysis', 'extraction'))
-import score as sc
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
+import evidence as sc
 
 UM = 0.5
 
@@ -29,7 +29,7 @@ def model(nodes, edges):
 def test_taper_reads_the_narrowing_end():
     flat = tapered_line(6, 2)
     m = model({1: (20 * UM, 30 * UM), 2: (180 * UM, 30 * UM)}, [(1, 2)])
-    sc.score(m, flat)
+    sc.card(m, flat)
     e = m['edges'][0]
     assert e['taper_known'], e
     assert e['r_a'] > 1.5 * e['r_b'], e
@@ -38,7 +38,7 @@ def test_taper_reads_the_narrowing_end():
 def test_uniform_vessel_has_no_known_taper():
     flat = tapered_line(4, 4)
     m = model({1: (20 * UM, 30 * UM), 2: (180 * UM, 30 * UM)}, [(1, 2)])
-    sc.score(m, flat)
+    sc.card(m, flat)
     assert not m['edges'][0]['taper_known'], m['edges'][0]
 
 
@@ -58,7 +58,7 @@ def test_a_small_triangle_is_a_short_loop_and_a_large_ring_of_many_is_not():
 def test_off_signal_edge_is_unsupported():
     flat = tapered_line(3, 3)
     m = model({1: (20 * UM, 30 * UM), 2: (180 * UM, 30 * UM), 3: (20 * UM, 5 * UM), 4: (180 * UM, 5 * UM)}, [(1, 2), (3, 4)])
-    card = sc.score(m, flat, measure_taper=False)
+    card = sc.card(m, flat, measure_taper=False)
     assert card['_flags']['unsupported'] == [2], card['_flags']
 
 

@@ -16,3 +16,8 @@
   the code found missing invocations, rules owned twice and hand-offs the family lacked; applied.
 - **Actor:** @missingbulb (owner), who asked for the review.
 - **Model:** claude-opus-5-5
+
+## 2026-11-18 · reworded · vascular's perf tools are the shared lab's (#1011)
+- **Reason:** the study's own perf.py and perf_pyodide.mjs moved into lab/ as study-agnostic tools.
+- **Actor:** @missingbulb (owner), issue #1011.
+- **Model:** claude-opus-5-5

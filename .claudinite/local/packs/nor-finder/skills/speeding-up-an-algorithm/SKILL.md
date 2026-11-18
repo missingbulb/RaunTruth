@@ -30,8 +30,7 @@ cd studies/nor/detection && python3 perf.py profile tl
 cd studies/nor/detection && python3 perf.py check tl
 ```
 
-On vascular (run from `studies/vascular/`), the same three subcommands are listed in
-`analysis/extraction/README.md`.
+On vascular, the shared lab's: `python3 lab/perf.py vascular snapshot|profile|check v5`.
 
 1. `snapshot` the version before touching it.
 2. `profile`, and pick the top hotspot.
@@ -63,5 +62,5 @@ runs, the tracemalloc peak in a separate run, and a non-zero exit when the signa
   cd studies/nor/detection/browser && npm i --prefix . pyodide@314.0.7 && node bench_pyodide.mjs tl
   ```
 
-  Vascular's `analysis/extraction/perf_pyodide.mjs` header gives its invocation. The number to
+  For vascular, the shared lab's `lab/perf_pyodide.mjs` header gives its invocation. The number to
   read is the heap after the run.

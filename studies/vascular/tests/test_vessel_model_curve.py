@@ -1,6 +1,6 @@
 """The extractor fits the same curve the 3D MicroViewer draws, and fits it with few points.
 
-The curve is written twice, in analysis/vessel_model.py (which fits it) and web/model.js
+The curve is written twice, in algorithm/vessel_model.py (which fits it) and web/model.js
 (which draws and edits it); this runs both on the format sample and on random points and requires
 them to agree, so neither can drift from the other. Needs node on the PATH.
 
@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'analysis'))
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 import vessel_model as vm
 
 pytestmark = pytest.mark.full

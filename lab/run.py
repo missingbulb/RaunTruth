@@ -115,14 +115,16 @@ def total(scores):
 
 
 def measure(study, versions=None, transport=None, which='all'):
-    """{version: {settings name or None: {totals, 'images': {image sha256: counts}}}} over the corpus, and the corpus."""
+    """{version: {settings name or None: {totals, 'images': {ground-truth file sha256: counts}}}} over the corpus, and
+    the corpus."""
     pairs = corpus(study, transport, which)
     code, images, out = code_hash(study), {}, {}
     settings = getattr(study.module, 'SETTINGS', {})
     for v in versions or study.versions:
         out[v] = {}
         for name, params in [(None, {})] + sorted((settings.get(v) or {}).items()):
-            per = {e['sha256']: study.score(answer(study, v, e, params, code, images), t['doc']) for e, t in pairs}
+            # by ground-truth file: one image may have several
+            per = {t['sha256']: study.score(answer(study, v, e, params, code, images), t['doc']) for e, t in pairs}
             out[v][name] = dict(total(per.values()), images=per)
     return out, pairs
 
@@ -144,7 +146,7 @@ def document(study, results, pairs):
                            **({'note': notes[v]} if v in notes else {}),
                            **({'settings': {n: {k: x for k, x in s.items() if k != 'images'} for n, s in by.items() if n}}
                               if len(by) > 1 else {}),
-                           images={sha: {k: c[k] for k in ('tp', 'fp', 'fn') if k in c} for sha, c in d['images'].items()})
+                           truths={sha: {k: c[k] for k in ('tp', 'fp', 'fn') if k in c} for sha, c in d['images'].items()})
     return dict(format='rauntruth-metrics/1', measured=measured, dataset_sha256=dataset_sha(pairs),
                 images=[dict(image_sha256=e['sha256'], name=os.path.basename(e['path']), truth_sha256=t['sha256'],
                              truth=t['subfolder']) for e, t in pairs],

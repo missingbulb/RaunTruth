@@ -1,7 +1,7 @@
 # Extraction ledger — every direction, with its evidence and verdict
 
 Add a row for every attempt, including failures, specific enough to retry without the code. "Revisit
-if" says when a dropped idea could come back. Grades are against `labels/fable-v1.json`, judged by a
+if" says when a dropped idea could come back. Grades are against the Fable labels (`truth/`, `python3 lab/run.py vascular --truth lab`), judged by a
 model, **not the owner**: 111 curves called vessels, 74 called not, 9 vessels nobody traced, in five
 160 µm tiles. On counts this small a difference of one to three is noise.
 
@@ -47,13 +47,14 @@ brightness), 6-26 flagged short-loop edges per stack that are strong on both sid
 | Optimise the score directly: greedy add/remove of edges from the union of all versions, accept when grade-free plausibility and line evidence both improve | optimise the score | trades in L2 done by search, not order | medium | non-vessels kept does not fall |
 | Grow branches where the biology says one must leave: a junction with a parent wider than its child gets a search for the missing child | invariants generate | missing branches | medium | few junctions qualify (taper known on few edges) |
 | Versions vote: keep an edge two of three versions confirm | combine | stability | low | grade equals the best single version |
+| Split a junction into crossing vessels by the slices that show its branches: two branches join only where one slice shows both, each near its own strongest slices, in one connected piece; failing that, by depth groups apart by more than 3x the branches' own depth noise, with a pair running straight through (the retired spike `trace_vessel_graph.py`, `slice_groups` / `split_crossings`; in git at commit e49f676) | change the evidence | four-way junctions and loops that are crossings at different depths, beyond v2's fixed `CROSS_SLICES` | medium | degree-4 rate and CA1 short loops unchanged |
 
 ## Owner input, triaged (2026-10-29)
 
 - **Algorithm ideas** (here): loops are wrong (L1, L2), directionality and junction shape as a
   score (L1), start/end widths (every version writes `r_a`/`r_b`), pixel validation of each segment
   (L4), several versions kept like NOR Finder (this folder), a creativity skill (algorithm-ideation),
-  Fable comparisons as provisional truth (`fake_truth.py`), short lone vessels are noise (L8).
+  Fable comparisons as provisional truth (`fake_truth.py`, retired 2026-11-18; in git at commit e49f676), short lone vessels are noise (L8).
 - **Biology insights to verify with an expert** (collected in `references/BIOLOGY-INVARIANTS.md` by
   the biology thread): "vessels form a DAG with no loops" holds for flow direction but the capillary
   bed is a mesh with loops of ~9-11 segments; "narrowing is the flow direction" holds in arterioles

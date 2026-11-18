@@ -1,105 +1,124 @@
 {
- "labels": "fable-v1",
- "curves": 185,
- "tiles": 5,
- "stacks": 4,
- "judge": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks",
+ "format": "rauntruth-metrics/1",
+ "measured": "on 3 images with ground truth",
+ "dataset_sha256": "768c37830ca0020d11b219aaadeca155d3613c7da92e507b6c027fd1b7b8d8dd",
+ "images": [
+  {
+   "image_sha256": "9c9ee12ef7f07b49d13137357f08a75f7c5e9d1a2a578a9fefb8bb793b54c7a7",
+   "name": "cd31_ca1_x20_r_2_slices1-24.tif",
+   "truth_sha256": "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0",
+   "truth": "cd31_ca1_x20_r_2_slices1-24__9c9ee12e"
+  },
+  {
+   "image_sha256": "cd0751375503d1bfe1e4d1f8330393cdd435ae87db850d4add092ad4a9fb48a8",
+   "name": "cd31_frontal_x20_r_1_slices1-12.tif",
+   "truth_sha256": "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5",
+   "truth": "cd31_frontal_x20_r_1_slices1-12__cd075137"
+  },
+  {
+   "image_sha256": "3d89d38992080e9228ecd1603d76f5d320c3355c09f6f985207503e1b56058df",
+   "name": "cd31_frontal_x20_r_2_slices6-29.tif",
+   "truth_sha256": "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18",
+   "truth": "cd31_frontal_x20_r_2_slices6-29__3d89d389"
+  }
+ ],
+ "scoring": "- Only the model's confirmed vessels (state vessel or accepted) count; its candidates do not\n- A curve is found where the model's vessels run within 2.5 µm of it over at least half its length, in the image plane\n- Against a corrected vessel model (people's ground truth), inside the areas it marks as reviewed only:\n  - tp: a vessel of the ground truth (accepted, or vessel) the model finds\n  - fn: one it does not find\n  - fp: a vessel of the model that finds no vessel of the ground truth, and no candidate it leaves undecided\n  - a vessel the ground truth rejected counts as no vessel; who drew an edge never counts\n- Against the lab's provisional labels (a model's verdicts on traced curves, in a few tiles):\n  - tp: a curve judged a vessel the model finds\n  - fn: one it does not find\n  - fp: a curve judged not a vessel the model still traces\n  - curves judged unsure are left out; the vessels the judge drew as missed are counted apart (missed_found)",
  "versions": {
-  "v1": {
-   "precision": 0.815,
-   "recall": 0.955,
-   "f1": 0.88,
-   "vessels_found": [
-    106,
-    111
-   ],
-   "non_vessels_kept": [
-    24,
-    74
-   ],
-   "missed_found": [
-    2,
-    9
-   ],
-   "source": "e747238769",
-   "note": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks"
-  },
-  "v2": {
-   "precision": 0.858,
-   "recall": 0.928,
-   "f1": 0.892,
-   "vessels_found": [
-    103,
-    111
-   ],
-   "non_vessels_kept": [
-    17,
-    74
-   ],
-   "missed_found": [
-    2,
-    9
-   ],
-   "source": "449bcba391",
-   "note": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks"
-  },
-  "v3": {
-   "precision": 0.858,
-   "recall": 0.928,
-   "f1": 0.892,
-   "vessels_found": [
-    103,
-    111
-   ],
-   "non_vessels_kept": [
-    17,
-    74
-   ],
-   "missed_found": [
-    2,
-    9
-   ],
-   "source": "0a45f9a663",
-   "note": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks"
+  "v5": {
+   "precision": 0.9247,
+   "recall": 0.8521,
+   "tp": 933,
+   "fp": 76,
+   "fn": 162,
+   "truths": {
+    "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
+     "tp": 412,
+     "fp": 35,
+     "fn": 78
+    },
+    "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
+     "tp": 200,
+     "fp": 9,
+     "fn": 42
+    },
+    "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
+     "tp": 321,
+     "fp": 32,
+     "fn": 42
+    }
+   }
   },
   "v4": {
-   "precision": 0.879,
-   "recall": 0.919,
-   "f1": 0.899,
-   "vessels_found": [
-    102,
-    111
-   ],
-   "non_vessels_kept": [
-    14,
-    74
-   ],
-   "missed_found": [
-    2,
-    9
-   ],
-   "source": "d222ec154e",
-   "note": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks"
+   "precision": 0.9117,
+   "recall": 0.8575,
+   "tp": 939,
+   "fp": 91,
+   "fn": 156,
+   "truths": {
+    "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
+     "tp": 413,
+     "fp": 46,
+     "fn": 77
+    },
+    "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
+     "tp": 204,
+     "fp": 12,
+     "fn": 38
+    },
+    "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
+     "tp": 322,
+     "fp": 33,
+     "fn": 41
+    }
+   }
   },
-  "v5": {
-   "precision": 0.887,
-   "recall": 0.919,
-   "f1": 0.903,
-   "vessels_found": [
-    102,
-    111
-   ],
-   "non_vessels_kept": [
-    13,
-    74
-   ],
-   "missed_found": [
-    2,
-    9
-   ],
-   "source": "cca7423059",
-   "note": "provisional: a model judged them, not the owner, in 5 tiles of 4 stacks"
+  "v3": {
+   "precision": 0.8768,
+   "recall": 0.8575,
+   "tp": 939,
+   "fp": 132,
+   "fn": 156,
+   "truths": {
+    "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
+     "tp": 413,
+     "fp": 61,
+     "fn": 77
+    },
+    "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
+     "tp": 204,
+     "fp": 14,
+     "fn": 38
+    },
+    "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
+     "tp": 322,
+     "fp": 57,
+     "fn": 41
+    }
+   }
+  },
+  "v2": {
+   "precision": 0.8799,
+   "recall": 0.8566,
+   "tp": 938,
+   "fp": 128,
+   "fn": 157,
+   "truths": {
+    "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
+     "tp": 413,
+     "fp": 60,
+     "fn": 77
+    },
+    "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
+     "tp": 204,
+     "fp": 13,
+     "fn": 38
+    },
+    "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
+     "tp": 321,
+     "fp": 55,
+     "fn": 42
+    }
+   }
   }
- },
- "measured": "on 185 curves a model judged"
+ }
 }

@@ -1,4 +1,4 @@
-"""v2, scored repair: the v1 draft, then the graph repaired where the score says it is implausible.
+"""v2, scored repair: the skeleton draft (vessel_model.model), then the graph repaired where the score says it is implausible.
 
 The tracer fills every hole in the vessel mask narrower than a vessel first: a thick vessel's dim
 lumen, or a dropout inside one vessel, otherwise skeletonises into two parallel lines and a short loop.
@@ -9,7 +9,7 @@ Then each step answers one of the score's complaints with the pixels under the v
 1. A low-confidence candidate stays only if it is a line, not a speck: the signal along its curve has
    to beat the same curve turned a quarter turn about its middle, and it may not wander far more than
    a capillary does.
-2. A short loop (references/BIOLOGY-INVARIANTS.md: real loops run ~9-11 segments) loses its weakest
+2. A short loop (docs/literature/BIOLOGY-INVARIANTS.md: real loops run ~9-11 segments) loses its weakest
    edge, judged by the signal along it.
 3. A vessel that ends in the open, facing a vessel or another end a few widths ahead at about the same
    depth, is joined to it when the gap between them carries signal: stain dropouts split one vessel
@@ -17,13 +17,9 @@ Then each step answers one of the score's complaints with the pixels under the v
 4. A four-way junction whose arms pair off into two straight lines at different depths is a crossing:
    it becomes two vessels passing over each other.
 """
-import os, sys
-
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..'))
-import score as sc
+import evidence as ev
 import vessel_model as vm
 
 NAME = 'v2-scored-repair'
@@ -95,7 +91,7 @@ def degrees(m, only_confirmed=True):
 
 
 def along(flat, m, e):
-    xy, rad = sc.sample_edge(e, nodes_of(m), m['um_per_px'])
+    xy, rad = ev.sample_edge(e, nodes_of(m), m['um_per_px'])
     return xy, rad
 
 
@@ -104,7 +100,7 @@ def strength(flat, m, e):
     xy, rad = along(flat, m, e)
     if len(xy) < 2:
         return 0.0
-    near, side = sc.support(flat, xy[:, :2], rad)
+    near, side = ev.support(flat, xy[:, :2], rad)
     return float(np.median(near) - np.median(side))
 
 
@@ -159,14 +155,14 @@ def drop_specks(m, flat):
     for e in list(m['edges']):
         if e.get('state') != 'candidate':
             continue
-        xy, rad = sc.sample_edge(e, nodes, um)
+        xy, rad = ev.sample_edge(e, nodes, um)
         if len(xy) < 3:
             m['edges'].remove(e); out += 1; continue
         P = xy[:, :2]
         mid = P.mean(0)
         turned = (P - mid)[:, ::-1] * [-1, 1] + mid
-        near, _ = sc.support(flat, P, rad)
-        tnear, _ = sc.support(flat, turned, rad)
+        near, _ = ev.support(flat, P, rad)
+        tnear, _ = ev.support(flat, turned, rad)
         L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
         wander = L / max(np.linalg.norm(P[-1] - P[0]), 1e-6)
         w = max(2 * float(np.median(rad)), 1.0)
@@ -183,14 +179,14 @@ def break_short_loops(m, flat):
     between the same two points are one vessel traced twice, so the weaker always goes; otherwise an edge
     as strong as the field's typical vessel stays, and its loop is left for the owner to see."""
     out = 0
-    E, _ = sc.graph(m)
+    E, _ = ev.graph(m)
     typical = float(np.median([strength(flat, m, e) for e in E])) if E else 0.0
     spared = set()
     while True:
-        E, adj = sc.graph(m)
+        E, adj = ev.graph(m)
         nodes = nodes_of(m)
-        lengths = [sc.edge_length_um(e, nodes) for e in E]
-        loops = [x for x in sc.short_loops(E, adj, lengths) if id(E[x[0]]) not in spared]
+        lengths = [ev.edge_length_um(e, nodes) for e in E]
+        loops = [x for x in ev.short_loops(E, adj, lengths) if id(E[x[0]]) not in spared]
         if not loops:
             break
         i = min({i for i, _, _ in loops}, key=lambda i: strength(flat, m, E[i]))
@@ -211,12 +207,12 @@ def bridge_gaps(m, flat, depth):
     made = 0
     deg = degrees(m)
     nodes = nodes_of(m)
-    E, adj = sc.graph(m)
+    E, adj = ev.graph(m)
     tips = [n for n, d in deg.items() if d == 1]
     # every confirmed edge as samples, for a tip to land on the side of a vessel
     samples = []
     for i, e in enumerate(E):
-        xy, rad = sc.sample_edge(e, nodes, um)
+        xy, rad = ev.sample_edge(e, nodes, um)
         for k in range(1, len(xy) - 1):
             samples.append((i, k, xy[k], rad[k]))
     S = np.array([s[2][:2] for s in samples]) if samples else np.zeros((0, 2))
@@ -228,7 +224,7 @@ def bridge_gaps(m, flat, depth):
         w = max(2 * p.get('r', um) / um, 2.0)
         if min(P0[0], P0[1], W - 1 - P0[0], H - 1 - P0[1]) < 2 * w:
             continue   # a tip at the frame is a vessel cut off by it
-        (j, u), = sc.leave_dirs(E, nodes, n, adj)
+        (j, u), = ev.leave_dirs(E, nodes, n, adj)
         ahead = -u   # the vessel runs out of the tip opposite the way the edge leaves it
         reach = BRIDGE_WIDTHS * w
         best = None
@@ -244,7 +240,7 @@ def bridge_gaps(m, flat, depth):
                 continue
             if np.degrees(np.arccos(np.clip(v @ ahead / dist, -1, 1))) > BRIDGE_DEG:
                 continue
-            (j2, u2), = sc.leave_dirs(E, nodes, t, adj)
+            (j2, u2), = ev.leave_dirs(E, nodes, t, adj)
             facing = np.degrees(np.arccos(np.clip(u @ u2, -1, 1)))   # 180° when the two run straight at each other
             if j2 == j or facing < BRIDGE_FACING_DEG:
                 continue
@@ -268,7 +264,7 @@ def bridge_gaps(m, flat, depth):
         _, kind, target, Q, c_other = best
         # the gap must carry signal: its dimmest stretch keeps a share of the two vessels' own contrast
         line = P0 + np.linspace(0, 1, max(int(np.linalg.norm(Q - P0) * 2), 3))[:, None] * (Q - P0)
-        near, side = sc.support(flat, line, np.full(len(line), w / 2))
+        near, side = ev.support(flat, line, np.full(len(line), w / 2))
         dim = float(np.percentile(near - np.median(side), 20))
         if dim < BRIDGE_SIGNAL * (contrast[j] + c_other) / 2:
             continue
@@ -290,9 +286,9 @@ def bridge_gaps(m, flat, depth):
             used.add(n)
         made += 1
         # the new edge must not close a short loop
-        E2, adj2 = sc.graph(m)
+        E2, adj2 = ev.graph(m)
         nd = nodes_of(m)
-        if any(E2[i] is m['edges'][-1] for i, _, _ in sc.short_loops(E2, adj2, [sc.edge_length_um(e, nd) for e in E2])):
+        if any(E2[i] is m['edges'][-1] for i, _, _ in ev.short_loops(E2, adj2, [ev.edge_length_um(e, nd) for e in E2])):
             m['edges'].pop(); made -= 1
     for e in m['edges']:
         if e.get('vessel') is None:
@@ -309,7 +305,7 @@ def split_edge(m, e, k, depth):
         return None
     pts = [nodes[e['a']]] + list(e['via']) + [nodes[e['b']]]
     P = np.array([[p['x'] / um - .5, p['y'] / um - .5] for p in pts])
-    xy, _ = sc.sample_edge(e, nodes, um)
+    xy, _ = ev.sample_edge(e, nodes, um)
     at = xy[k]
     # the control span the sample falls in: the nearest control point before it along the curve
     s_ctrl = [int(np.argmin(np.linalg.norm(xy[:, :2] - c, axis=1))) for c in P]
@@ -334,11 +330,11 @@ def split_crossings(m):
     out = 0
     deg = degrees(m)
     for n in [n for n, d in deg.items() if d == 4]:
-        E, adj = sc.graph(m)
+        E, adj = ev.graph(m)
         nodes = nodes_of(m)
         if n not in adj or len(adj[n]) != 4:
             continue
-        dirs = sc.leave_dirs(E, nodes, n, adj)
+        dirs = ev.leave_dirs(E, nodes, n, adj)
         # arrival depth: the edge's nearest curve point (or far end) to the junction
         def arrive(j):
             e = E[j]
@@ -380,11 +376,11 @@ def snap_to_ridge(m, flat):
             continue
         pts = [nodes[e['a']]] + list(e['via']) + [nodes[e['b']]]
         P = np.array([[p['x'] / um - .5, p['y'] / um - .5] for p in pts])
-        n = sc.normals(P)
+        n = ev.normals(P)
         for k in range(1, len(P) - 1):
             r = max(pts[k].get('r', um) / um, 1.0)
             off = np.linspace(-r, r, 21)
-            prof = sc.at(flat, P[k] + n[k] * off[:, None])
+            prof = ev.at(flat, P[k] + n[k] * off[:, None])
             i = int(np.argmax(prof))
             if 0 < i < len(off) - 1:   # parabola through the peak and its neighbours for a sub-pixel position
                 den = prof[i - 1] - 2 * prof[i] + prof[i + 1]

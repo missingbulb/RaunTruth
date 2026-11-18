@@ -151,3 +151,14 @@ def test_the_speed_pass_signature_sees_an_array_s_bytes_and_ignores_the_time_tak
     assert perf.signature(a) == perf.signature(dict(a, seconds=9.0))
     assert perf.signature(a) != perf.signature(dict(a, mask=np.array([0, 0, 1, 0], np.uint8)))
     assert perf.signature(a) != perf.signature(dict(a, mask=np.zeros(4, np.int16)))
+
+
+def test_two_ground_truth_files_on_one_image_are_both_scored(acme, tmp_path):
+    s, drive = acme
+    _, pairs = run.measure(s, transport=drive)
+    img = pairs[0][1]['doc']['image']
+    os.makedirs(os.path.join(s.dir, 'lab', 'truth'))
+    json.dump(dict(image=img, created='2026-11-03T00:00:00Z', labels=[dict(count=5)]), open(os.path.join(s.dir, 'lab', 'truth', 'own.json'), 'w'))
+    results, pairs = run.measure(s, ['above'], transport=drive)
+    assert len(pairs) == 3 and len(results['above'][None]['images']) == 3
+    assert len(run.document(s, results, pairs)['versions']['above']['truths']) == 3
