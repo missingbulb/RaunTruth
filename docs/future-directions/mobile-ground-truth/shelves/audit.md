@@ -4,6 +4,8 @@ Audited: `design-v2.md`, `mockup-v2.html`, `shot-v2-light.png` against `studies/
 `web/shelves.js`, `web/reading.js`, `py/books.py`, `lab/grade.py`, `docs/WARMUP.md`, `docs/HEBREW.md`, the shell's
 requirements and the `designing-ground-truth-tasks` skill.
 
+`grade.py` below is the grader of the time, `lab/grade.py` (IoU > 0.5 boxes; CER and word recall for the readers). Since 2026-11-18 the study is scored by its own `algorithm/score.py` (boxes and titles together), run by the shared `lab/run.py`; the paths here are as they were then: `py/` is now `algorithm/`, and `reading/read.mjs` was retired.
+
 **What is measured and what is not.** Nothing was tried on a phone or by a person: every time below is a sum of
 step estimates (a fixation 0.25 to 0.3 s, a simple decision 0.5 to 1 s, a thumb tap with travel 0.4 to 0.6 s, a new
 screen 0.3 s to slide plus 0.5 s to find one's place). The photos and ground-truth files are on Drive, not in the

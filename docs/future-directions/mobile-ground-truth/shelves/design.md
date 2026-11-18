@@ -8,6 +8,8 @@ recorded scores, not from a trial. Mock-up: `mockup.html`, beside this file.
 Desktop (`req/shelves/truth/task`, `web/shelves.js`): one task, Books, each book in the order it
 stands. Submit writes `<photo>_books_gt.json`, books in walk order, only those marked right:
 
+`grade.py` below is the grader of the time, `lab/grade.py` (IoU > 0.5 boxes; CER and word recall for the readers). Since 2026-11-18 the study is scored by its own `algorithm/score.py` (boxes and titles together), run by the shared `lab/run.py`; the paths here are as they were then: `py/` is now `algorithm/`, and `reading/read.mjs` was retired.
+
 | Field | Desktop sets it by | Used by `lab/grade.py` for |
 |---|---|---|
 | `corners` (4, clockwise) | dragging corners on the photo | finder: a found box is the book at IoU > 0.5; also the crop the readers are scored on |

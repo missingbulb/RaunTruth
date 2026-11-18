@@ -1,9 +1,11 @@
 """req/shelves/read/readers (2026-11-10): the dictionary sets a reading's Hebrew words right, by one letter print
-makes look alike, the most frequent such word first, and leaves every other word as read."""
+makes look alike, the most frequent such word first, and leaves every other word as read; the algorithm's own
+(algorithm/reading.py) and the page's tagger tools' (web/reading.js) alike, on every case."""
 import json
 import os
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -12,6 +14,8 @@ pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 READING_JS = os.path.join(HERE, '..', 'web', 'reading.js')
 NAMES = os.path.join(HERE, '..', 'web', 'words', 'names.txt')
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
+import reading  # noqa: E402
 
 
 def spell(words, texts):
@@ -21,8 +25,10 @@ def spell(words, texts):
     script = (f'import {{ spelling }} from {json.dumps("file://" + os.path.abspath(READING_JS))};'
               f'const s = spelling({json.dumps(words)});'
               f'console.log(JSON.stringify({json.dumps(texts)}.map(s)));')
-    out = subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True)
-    return json.loads(out.stdout)
+    out = json.loads(subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True).stdout)
+    py = reading.spelling(words)
+    assert [py(t) for t in texts] == out, 'the algorithm spells otherwise than the page'
+    return out
 
 
 LIST = '# a header line\nהחתול\nרוברט\nהעובר\nכוכבים\nנוכבים\nדרך\nקירות\nהיינליין\nהאיש\nבמבוך\nקריספין\n'
@@ -68,11 +74,24 @@ def test_full_and_defective_spellings_are_one_word():
 
 def test_the_page_keeps_offline_the_word_list_it_fetches():
     """WORDS.list in reading.js is the address the page fetches; study.json's web.offline keeps that same address
-    with the study's Python, and lab/words.py reads it from there."""
+    with the study's Python, lab/shelves_words.py reads it from there, and the lab's native services read the same
+    list (study.json's services.words)."""
     node = shutil.which('node')
     if not node:
         pytest.skip('node missing')
     script = f'import {{ WORDS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(WORDS.list);'
     fetched = subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True).stdout.strip()
     study = json.load(open(os.path.join(HERE, '..', 'study.json')))
-    assert fetched in study['web']['offline']
+    assert fetched in study['web']['offline'] and fetched in study['services']['words']
+
+
+def test_the_lab_runs_the_text_finder_the_page_keeps_offline():
+    """study.json's services.det, the model the lab's native text finder loads, is the address the page fetches the
+    text finder from (reading.js's MODELS.find) and keeps offline."""
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('node missing')
+    script = f'import {{ MODELS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(MODELS.find);'
+    name = subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True).stdout.strip()
+    study = json.load(open(os.path.join(HERE, '..', 'study.json')))
+    assert study['services']['det'] in study['web']['offline'] and study['services']['det'].endswith('/' + name)

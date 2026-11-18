@@ -10,7 +10,7 @@ Set by the owner on 2026-11-04: a study of image processing, not biology, an out
 takes a photo of bookshelves, boxes every book on it and reads the text on each, and writes what it
 read for a title matcher; matching the titles is not part of it.
 
-- `req/shelves/books/find` Find books boxes every book on the photo: four corners, spine or cover, standing or lying.
+- `req/shelves/books/find` Find books boxes every book on the photo and reads its title, in one go: four corners, spine or cover, standing or lying.
   <details>
 
   Find books runs the study's finder over the photo and draws each book it finds as four corners
@@ -43,6 +43,10 @@ read for a title matcher; matching the titles is not part of it.
   the study is in its GT stage Find books favours finding every book over boxing nothing wrong: a wrong box costs the
   tagger one click to drop, a missed book a box drawn by hand. Versions are compared by F2, recall weighted twice
   precision (Claude's default for the weighting and the stage; not yet confirmed by the owner). Set by the owner on
+  2026-11-18 (#1011), the algorithm is both the boxing and the reading of the titles: Find books is one run of the
+  study's algorithm (`algorithm/`, its one entry point the page and the lab both run), which boxes the books and
+  reads each one's title (`req/shelves/read/readers`), and its answer holds both; the page answers the engines the run
+  asks for with its own (`web/reading.js`), and the lab with the same models run natively (`lab/services.py`). Set by the owner on
   2026-11-10, Find books finds the same books in a photo the camera took turned, in one taken with one side of the
   shelf nearer than the other, and in one where shade cuts across the books. Test: `studies/shelves/tests/test_books.py`,
   `studies/shelves/tests/test_shelves_page.py`.
@@ -64,14 +68,19 @@ read for a title matcher; matching the titles is not part of it.
   Set by the owner on 2026-11-13: the finder's versions are offered side by side, as NoR's and Vascular's are, in
   the shell's list (`req/shell/processing/algorithms`), today's first under a name of its own and beside it an
   earlier one that behaves differently enough to be worth choosing. Text-guided is R9, the finder as it stands
-  (`py/books.py`), recall first. Set by the owner on 2026-11-15, once R9 had replaced it, precise is R8 as it was
-  (`py/r8_precise.py`), precision first. Edge-only is R5 as it was (`py/r5_edges.py`), which finds the books from the
-  photo's edges alone, so Find books runs no text finder for it. The list is the study's data (`web/algorithms.json`, its order the
-  page's, its `reads_text` telling Find books whether to run the text finder), and so are their numbers: each one's
-  precision and recall over every ground truth, scored on the page's own path once per version
-  (`lab/finder_metrics.py`, into `web/finder_metrics.json`), and how far they can be trusted. Test:
-  `studies/shelves/tests/test_finders.py`, `studies/shelves/tests/test_shelves_page.py`,
-  `studies/shelves/tests/test_find_bridge.py`.
+  (`algorithm/books.py`), recall first. Set by the owner on 2026-11-15, once R9 had replaced it, precise is R8 as it was
+  (`algorithm/r8_precise.py`), precision first. Edge-only is R5 as it was (`algorithm/r5_edges.py`), which finds the
+  books from the photo's edges alone, so its run asks for no text finder over the photo. Each reads the titles of the
+  books it boxed with the same reader. The list is the study's data (`web/algorithms.json`, its order the page's), and
+  so are their numbers: each one's precision and recall over every ground truth, measured once per version by the
+  lab (`python3 lab/run.py shelves --write`, into `web/algorithm_metrics.json`), and how far they can be trusted.
+  Set by the owner on 2026-11-18, the score of record is the lab's native run (Tesseract 5.3, ONNX Runtime), not the
+  page's (tesseract.js), whose readings differ slightly; and the score holds both results: each book is half its box
+  and half its title, a spare box costs only the share of it that adds no new cover of a book, and text read on a
+  book the ground truth gives no title costs nothing (`algorithm/score.py`, its outline the (?) beside the list).
+  Every version is measured again under it; no number from the earlier box-only score is carried. Test:
+  `studies/shelves/tests/test_versions.py`, `studies/shelves/tests/test_score.py`,
+  `studies/shelves/tests/test_shelves_page.py`, `studies/shelves/tests/test_find_bridge.py`.
   </details>
 
 - `req/shelves/matcher/export` Download for the matcher writes each book's text, view, corners and how sure the reading is.
@@ -85,7 +94,7 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shelves/read/readers` Read titles reads each book with the reader chosen, in Hebrew and English, the same in the page as in the sandbox.
+- `req/shelves/read/readers` Find books reads each book's title in the same run; Read titles reads every book again with the reader chosen, in Hebrew and English.
   <details>
 
   Set by the owner on 2026-11-04, three readers are offered, kept side by side until the ground
@@ -94,15 +103,18 @@ read for a title matcher; matching the titles is not part of it.
   (English only: it has no Hebrew, and on Hebrew it reads Latin letters with high confidence). Each
   book is straightened to an upright rectangle first and read at each turn its shape allows, the
   most confident kept. The page loads pinned builds of the engines from jsDelivr (the text finder already on Find books) and the two
-  languages from the site; the sandbox (`studies/shelves/reading/read.mjs`) runs the same builds on
-  the same straightened crops, so a reading there is the page's. The reader last chosen is kept in
-  the browser. Set by the owner on 2026-11-10, a dictionary sets each reading's Hebrew words right: a word of three
+  languages from the site. The reader last chosen is kept in the browser. Set by the owner on 2026-11-18 (#1011), the
+  reading of the titles is part of the algorithm: Find books reads every book it boxed in the same run, with the
+  algorithm's reader (lines: PaddleOCR's text finder, then Tesseract on each line; `algorithm/reading.py`), whatever
+  reader is chosen. The reader choice, Read titles and the re-reading of a book while it is tagged are the page's own
+  tools for making ground truth (`web/reading.js`), like the boxes' handles: not the algorithm, and free to use other
+  engines. Set by the owner on 2026-11-10, a dictionary sets each reading's Hebrew words right: a word of three
   letters or more that is not in it, nor is once a prefix letter or two (ו, ה, ב, כ, ל, מ, ש) is taken off, becomes the most
   frequent word in it that differs by one letter for a letter print makes look alike (ב כ נ, ד ר ך, ה ח ת, ו ז ן י,
   ס ם ט, ג נ, ע צ), or by a ו or a י added or dropped (full and defective spelling), and stays as read when none is.
   A final letter (ך ם ן ף ץ) ends a word, so one read inside a run of letters ends a word there, and a run no listed
   word fits is parted into the likeliest listed words, of three letters or more each. The words are FrequencyWords'
-  subtitle list, fetched from jsDelivr at a pinned commit on Read titles' first run and kept offline with the study's
+  subtitle list, fetched from jsDelivr at a pinned commit on Find books' first run and kept offline with the study's
   Python, then, the owner's choice of 2026-11-10, the names of Hebrew Wikipedia's article titles (authors, book
   titles, publishers), the site's own file, made by the lab from one dated dump. Test: `studies/shelves/tests/test_reading.py`, `studies/shelves/tests/test_spelling.py`,
   `studies/shelves/tests/test_shelves_page.py`.

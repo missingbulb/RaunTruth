@@ -1,7 +1,8 @@
-// Reading a book's title from its straightened crop, the same in the page and in the sandbox: what differs is only how
-// the engines and their files are reached, which the caller hands in. A crop is {width, height, data}, RGBA.
+// The page's OCR engines, reached as the caller hands them in, and two uses of them: the services the study's algorithm
+// asks for while it runs (`services`), and the readers the tagger re-reads a book with while making ground truth
+// (`reader`), a tool of the page's own beside the algorithm. A crop is {width, height, data}, RGBA.
 //
-// Three readers, kept side by side until the ground truth picks between them:
+// The tagger's readers:
 //   tesseract   Tesseract (Hebrew and English) on the whole crop, at each turn the book's shape allows
 //   lines       PaddleOCR's text finder marks the lines of text, then Tesseract reads each line
 //   ppocr       PaddleOCR finds and reads the lines itself; its reader knows Chinese and English, not Hebrew
@@ -118,11 +119,13 @@ export function spelling(list) {
   return (text) => text.replace(/[א-ת]+/g, (run) => run.split(/(?<=[ךםןףץ])(?=[א-ת])/).flatMap(parts).map(word).join(" "));
 }
 
-export function reader(engines) {
-  let ort = null, find = null, read = null, keys = null, spell = null;
+// The engines, each loaded once a reader or the study's algorithm needs it: the text finder (and PP-OCR's reader) on
+// onnxruntime-web, and a Tesseract worker for each set of languages
+export function engineSet(engines) {
+  let ort = null, find = null, read = null, keys = null;
   const tess = {};
-  // a worker for each set of languages, made the first time a book is read in it
-  const tesseract = (lang) => (tess[lang] ||= engines.Tesseract().then((T) => T.createWorker(LANGS[lang], 1, { ...engines.tesseract, langPath: engines.langPath, cacheMethod: "none", gzip: true })
+  // a worker for each set of languages (Tesseract's names), made the first time a book is read in it
+  const tesseract = (langs) => (tess[langs.join("+")] ||= engines.Tesseract().then((T) => T.createWorker(langs, 1, { ...engines.tesseract, langPath: engines.langPath, cacheMethod: "none", gzip: true })
     .then(async (w) => { await w.setParameters({ preserve_interword_spaces: "1" }); return w; })));
   const session = (name) => Promise.all([ort, engines.model(name)]).then(([o, bytes]) => o.InferenceSession.create(bytes, { executionProviders: ["wasm"] }));
   // the text finder alone, for Find books; and with the PP-OCR reader, for reading
@@ -138,22 +141,65 @@ export function reader(engines) {
     keys ||= engines.keys().then((t) => [...t.replace(/\r/g, "").split("\n").filter((k, i, all) => k || i < all.length - 1), " "]);
     return { ...f, read: await read, keys: await keys };
   };
+  // the text finder on a float32 tensor [1, 3, H, W]: its probability per pixel, H × W
+  async function det(x, H, W) {
+    const { ort, find } = await finder();
+    const out = await find.run({ [find.inputNames[0]]: new ort.Tensor("float32", x, [1, 3, H, W]) });
+    return out[find.outputNames[0]].data;
+  }
+  // Tesseract on an image ({width, height, data}, RGBA) in those languages: {text, confidence 0..100}
+  async function ocr(im, langs) {
+    const { data } = await (await tesseract(langs)).recognize(bmp(im));
+    return { text: data.text, confidence: data.confidence };
+  }
+  async function close() { for (const k in tess) { await (await tess[k]).terminate(); delete tess[k]; } }
+  return { det, ocr, paddle, close, words: () => engines.words() };
+}
+
+// What the study's algorithm asks the page for while it runs (its study.json `services`), answered with the page's
+// own engines: serve(service, meta, bytes) as the shell hands a request over, {meta, bytes} back. A request's arrays
+// come as bytes, {$bytes: [offset, length], dtype, shape} in meta, and an answer's go back the same way.
+//   det(tensor)              the text finder on a float32 [1, 3, H, W] tensor: its probability per pixel, [H, W]
+//   tesseract(image, langs)  Tesseract on an RGB(A) uint8 image [h, w, channels]: {text, confidence 0..100}
+//   words()                  the word lists, as text
+// e: an engineSet, shared with the reader
+export function services(e) {
+  const part = (bytes, a, Kind) => { const [o, n] = a.$bytes, b = bytes.slice(o, o + n); return new Kind(b.buffer, b.byteOffset, n / Kind.BYTES_PER_ELEMENT); };
+  return {
+    async serve(service, meta, bytes) {
+      if (service === "det") {
+        const [t] = meta, [, , H, W] = t.shape;
+        const out = await e.det(part(bytes, t, Float32Array), H, W), b = new Uint8Array(Float32Array.from(out).buffer);
+        return { meta: { $bytes: [0, b.length], dtype: "float32", shape: [H, W] }, bytes: b };
+      }
+      if (service === "tesseract") {
+        const [a, langs] = meta, [h, w, n] = a.shape, src = part(bytes, a, Uint8Array), data = new Uint8ClampedArray(w * h * 4);
+        for (let i = 0; i < w * h; i++) { data[i * 4] = src[i * n]; data[i * 4 + 1] = src[i * n + 1]; data[i * 4 + 2] = src[i * n + 2]; data[i * 4 + 3] = 255; }
+        return { meta: await e.ocr({ width: w, height: h, data }, langs) };
+      }
+      if (service === "words") return { meta: await e.words() };
+      throw new Error(`no service "${service}"`);
+    },
+  };
+}
+
+// e: an engineSet, shared with the services
+export function reader(e) {
+  let spell = null;
   // the text finder's probability that each pixel is text, over an image W×H (multiples of 32), sampled from im
   async function textAt(im, W, H) {
-    const { ort, find } = await finder();
     const x = new Float32Array(3 * W * H), mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225], n = im.data.length / (im.width * im.height);
     for (let y = 0; y < H; y++) for (let X = 0; X < W; X++) {
       const sx = Math.min(im.width - 1, Math.floor(((X + 0.5) * im.width) / W)), sy = Math.min(im.height - 1, Math.floor(((y + 0.5) * im.height) / H)), p = (sy * im.width + sx) * n;
       // the model was trained on blue, green, red, normalised channel by channel in that order
       for (let c = 0; c < 3; c++) x[c * W * H + y * W + X] = (im.data[p + 2 - c] / 255 - mean[c]) / std[c];
     }
-    const out = await find.run({ [find.inputNames[0]]: new ort.Tensor("float32", x, [1, 3, H, W]) });
-    return out[find.outputNames[0]].data;
+    return e.det(x, H, W);
   }
 
   async function tesseractAt(im, turn, lang) {
-    const w = await tesseract(lang), { data } = await w.recognize(bmp(rotate(im, turn)));
-    return { text: tidy(data.text), confidence: data.confidence / 100, turn };
+    const r = await e.ocr(rotate(im, turn), LANGS[lang]);
+    return { text: tidy(r.text), confidence: r.confidence / 100, turn };
   }
 
   // PaddleOCR's text finder over a crop turned so its text reads across: the lines, as boxes in its pixels, top first
@@ -186,7 +232,7 @@ export function reader(engines) {
 
   // PaddleOCR's reader on one line: its text and its mean certainty
   async function ppocrLine(im) {
-    const { ort, read, keys } = await paddle();
+    const { ort, read, keys } = await e.paddle();
     const H = 48, W = Math.min(3200, Math.max(16, Math.ceil((H * im.width) / im.height))), x = new Float32Array(3 * W * H);
     for (let y = 0; y < H; y++) for (let X = 0; X < W; X++) {
       const sx = Math.min(im.width - 1, Math.floor(((X + 0.5) * im.width) / W)), sy = Math.min(im.height - 1, Math.floor(((y + 0.5) * im.height) / H)), p = (sy * im.width + sx) * 4;
@@ -230,23 +276,14 @@ export function reader(engines) {
   }
 
   return {
-    // the text over a whole photo as Python's view gives it ({width, height, data}, RGB, sides multiples of 32): its
-    // probability per pixel, 255 for 1, base64, as the finder takes it ({width, height, data})
-    async textMap(view) {
-      const p = await textAt(view, view.width, view.height), b = new Uint8Array(p.length);
-      for (let i = 0; i < p.length; i++) b[i] = Math.round(Math.min(1, Math.max(0, p[i])) * 255);
-      let bin = "";
-      for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000));
-      return { width: view.width, height: view.height, data: btoa(bin) };
-    },
     // the crop's text by one reader: {text, confidence (0 to 1), turn (quarter turns clockwise that set it upright)};
     // given a turn, it is read upright at that turn alone, and given a lang (a key of LANGS), in those languages alone
     // (PP-OCR reads English whatever it is given), its Hebrew words spelled by the word list
     async read(im, how, opts = {}) {
-      spell ||= engines.words().then(spelling).catch((e) => { spell = null; throw e; });
+      spell ||= e.words().then(spelling).catch((e) => { spell = null; throw e; });
       const [r, s] = await Promise.all([readAs(im, how, opts), spell]);
       return { ...r, text: s(r.text) };
     },
-    async close() { for (const k in tess) { await (await tess[k]).terminate(); delete tess[k]; } },
+    close: () => e.close(),
   };
 }

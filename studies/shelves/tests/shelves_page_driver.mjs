@@ -1,7 +1,9 @@
-// Drives the Bookshelf Reader's page in headless Chromium against stand-ins: a worker that answers Find books with three
-// books and straightens each into a crop as big as its box, and a Tesseract that reads each crop as "Title <w>x<h>",
-// surest when the crop is wider than tall. Checks req/shelves/books/find (the books drawn), req/shelves/read/readers
-// (each read at the turn that reads across, the reader kept), req/shelves/matcher/export (the matcher's file),
+// Drives the Bookshelf Reader's page in headless Chromium against stand-ins: a worker whose one run finds three books
+// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and
+// straightens each into a crop as big as its box for the tagger's readers, and a Tesseract that reads each crop as
+// "Title <w>x<h>", surest when the crop is wider than tall. Checks req/shelves/books/find (the books drawn, their
+// titles read in the same run), req/shelves/read/readers (each read at the turn that reads across, the reader kept,
+// Read titles reading every book again), req/shelves/matcher/export (the matcher's file),
 // req/shelves/truth/task (one book at a time in the order the books stand, Back and Next, a book picked on the photo
 // whatever its verdict, its title ready to retype, a book marked not a book or deleted gone from the photo, a corner dragged past the photo, a book flipped, books added and
 // deleted from the right-click menu, a missed book drawn, what is approved cut out of the photo, Submit's export, the
@@ -38,26 +40,52 @@ const BOOKS = [
   { corners: [[10, 20], [50, 20], [50, 280], [10, 280]], view: "spine" },
   { corners: [[120, 100], [300, 100], [300, 280], [120, 280]], view: "cover" },
 ];
+// the study's Python as the bridge runs it, its one run asking the page for what it reads with: the text finder over
+// a 64×32 view of the photo (unless the edge-only finder), the word lists, and Tesseract on each book's crop as big as
+// its box, at each turn its shape allows, the surest kept; the stand-in Tesseract's whole reading is the line it reads
 const WORKER = `
 const W = ${W}, H = ${H}, BOOKS = ${JSON.stringify(BOOKS)};
 postMessage({ type: "ready", info: {} });
 const size = (c) => [Math.round(Math.hypot(c[1][0] - c[0][0], c[1][1] - c[0][1])), Math.round(Math.hypot(c[3][0] - c[0][0], c[3][1] - c[0][1]))];
+let waiting = null;
+const ask = (service, meta, bytes, echo) => new Promise((ok, no) => { waiting = { ok, no };
+  postMessage({ type: "ask", service, meta, bytes, echo }, bytes ? [bytes.buffer] : []); });
+const array = (n, dtype, shape) => ({ $bytes: [0, n], dtype, shape });
+async function run(m) {
+  const algorithm = m.args.algorithm;
+  let books = BOOKS;
+  if (algorithm === "r5") books = BOOKS.slice(0, 2);
+  else {
+    const x = new Uint8Array(3 * 32 * 64 * 4), r = await ask("det", [array(x.length, "float32", [1, 3, 32, 64])], x, m.echo);
+    // a text map of any other size than the view's is no map of it: no books then; none at all, found without it
+    if (r.value && !(r.value.shape.join() === "32,64" && r.bytes.length === 32 * 64 * 4)) books = [];
+  }
+  const words = (await ask("words", [], null, m.echo)).value;
+  if (typeof words !== "string" || !words.includes("את")) throw new Error("no word lists: " + JSON.stringify(words));
+  const out = [];
+  for (const b of books) {
+    const [w, h] = size(b.corners), tries = [];
+    for (const turn of h > w ? [1, 3] : [0, 2]) {
+      const [cw, ch] = turn % 2 ? [h, w] : [w, h], crop = new Uint8Array(cw * ch * 4).fill(200);
+      const r = await ask("tesseract", [array(crop.length, "uint8", [ch, cw, 4]), ["heb", "eng"]], crop, m.echo);
+      tries.push({ title: r.value.text.trim(), confidence: r.value.confidence / 100, turn });
+    }
+    out.push({ ...b, ...tries.reduce((p, q) => (q.confidence > p.confidence ? q : p)) });
+  }
+  return { books: out, reader: "lines" };
+}
 onmessage = ({ data: m }) => {
   if (m.type === "study") postMessage({ type: "ready", info: {} });
   else if (m.type === "open") postMessage({ type: "held" });
-  else if (m.type === "call" && m.action === "view") {
-    // the photo as the text finder reads it: 64×32, RGB
-    const bytes = new Uint8Array(64 * 32 * 3).fill(120);
-    postMessage({ type: "result", action: "view", meta: { width: 64, height: 32 }, bytes }, [bytes.buffer]);
-  }
-  // a text map of any other size than the view's is no map of it: no books then
-  // the edge-only finder takes no text map and finds the first two books; a text map handed it, none
-  else if (m.type === "call" && m.action === "find") postMessage({ type: "result", action: "find", bytes: null,
-    meta: { books: m.args.algorithm === "r5" ? (m.args.text ? [] : BOOKS.slice(0, 2))
-      : !m.args.text || (m.args.text.width === 64 && m.args.text.height === 32 && atob(m.args.text.data).length === 64 * 32) ? BOOKS : [] } });
+  else if (m.type === "reply") { const w = waiting; waiting = null; if (m.error) w.no(new Error(m.error)); else w.ok(m); }
+  else if (m.type === "call" && m.action === "run")
+    run(m).then((meta) => postMessage({ type: "result", action: "run", meta, bytes: null, echo: m.echo }),
+      (e) => postMessage({ type: "error", text: String(e.message || e) }));
   else if (m.type === "call" && m.action === "straighten") {
     const sizes = m.args.corners.map(size), bytes = new Uint8Array(sizes.reduce((a, [w, h]) => a + w * h * 4, 0)).fill(200);
-    postMessage({ type: "result", action: "straighten", meta: { sizes }, bytes }, [bytes.buffer]);
+    let at = 0;
+    const crops = sizes.map(([w, h]) => { const c = array(w * h * 4, "uint8", [h, w, 4]); c.$bytes[0] = at; at += w * h * 4; return c; });
+    postMessage({ type: "result", action: "straighten", meta: { crops }, bytes, echo: m.echo }, [bytes.buffer]);
   }
 };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
@@ -128,6 +156,7 @@ try {
   const found = () => page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
   check(await page.evaluate(() => window.textRuns) === 1 && !/without the text finder/.test(await found()),
     "Find books runs the text finder over Python's view of the photo and hands the finder its map", [await page.evaluate(() => window.textRuns), await found()]);
+  check(await page.evaluate(() => tess.reads) === 6, "and reads every book's title in the same run, at both turns its shape allows", await page.evaluate(() => tess.reads));
   const titles = await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent));
   // a tall spine reads across once turned a quarter, so its crop is read as its height by its width
   check(titles.join() === "Title 240x35,Title 260x40,Title 180x180", "each book is read at the turn that reads across, listed in the order found", titles);
@@ -137,8 +166,13 @@ try {
     "a photo has no ruler or grid in the toolbar, its zoom kept (req/shell/image/toolbar)");
   check(await page.evaluate(() => $("#channels").children.length === 0), "a photo shows no channel rows (req/shell/channels/rows)");
   const m = await saved(page, "#bs-export");
+  // Processing has folded once Find books is done
+  await page.evaluate(() => $("#bs-read").click());
+  await page.waitForFunction(() => $("#status").textContent === "Titles read again.");
+  check(await page.evaluate(() => tess.reads) === 12 && (await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent))).join() === "Title 240x35,Title 260x40,Title 180x180",
+    "Read titles reads every book again with the reader chosen, on the page alone", await page.evaluate(() => tess.reads));
   const [m1, m2, m3] = m.doc.books;
-  check(m.name === "shelf_books.json" && m.doc.books.length === 3 && m1.id === 1 && m1.text === "Title 240x35" && m1.confidence === 0.9 && m1.reader === "tesseract"
+  check(m.name === "shelf_books.json" && m.doc.books.length === 3 && m1.id === 1 && m1.text === "Title 240x35" && m1.confidence === 0.9 && m1.reader === "lines"
     && m3.view === "cover" && m2.corners.length === 4 && m.doc.W === W,
   "Download for the matcher saves each book's id, view, text, confidence, reader and corners", m);
 
@@ -178,7 +212,9 @@ try {
   const listed = await page.$$eval("#algorithm option", (o) => o.map((x) => [x.value, x.textContent]));
   check(listed.map(([k]) => k).join() === "r9,r8,r5" && listed.every(([, t]) => /\(P\u00a0\.\d+\u00a0·\u00a0R\u00a0\.\d+\)$/.test(t)),
     "three finders are offered, the text-guided one first, each with its precision and recall", listed);
-  await page.click("#processing-box .sec-head h2");
+  const scoring = await page.evaluate(() => !$("#scoring-help").hidden && $("#scoring-note").textContent);
+  check(/A book/.test(scoring) && /title/.test(scoring), "beside them a (?) says how a book's box and its title are scored", scoring);
+  if (await page.evaluate(() => $("#processing-box").classList.contains("folded"))) await page.click("#processing-box .sec-head h2");
   await page.selectOption("#algorithm", "r5");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && $("#bs-list").children.length === 2);

@@ -1,8 +1,9 @@
 """The names the readers spell by beside the subtitle word list (web/words/names.txt): every Hebrew word in the titles
 of at least TITLES of Hebrew Wikipedia's articles, from one dated dump of its titles, the ones the subtitle list lacks,
-most titles first. Authors, book titles and publishers are articles' titles; the subtitle list holds few names.
+most titles first. Authors, book titles and publishers are articles' titles; the subtitle list holds few names. The
+Bookshelf Reader's reading data, made here once from a dated dump rather than by its algorithm.
 
-    python3 studies/shelves/lab/words.py
+    python3 lab/shelves_words.py
 """
 import collections
 import gzip
@@ -13,22 +14,22 @@ import re
 import sys
 import urllib.request
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+STUDY = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'studies', 'shelves')
 
 DUMP = 'https://dumps.wikimedia.org/hewiki/20261101/hewiki-20261101-all-titles-in-ns0.gz'
 SHA256 = '92790b80debed2894a7c9f4e43c67e65319406b236d660154d4cf372e8a64e4c'
 TITLES = 3
-OUT = os.path.join(HERE, '..', 'web', 'words', 'names.txt')
+OUT = os.path.join(STUDY, 'web', 'words', 'names.txt')
 HEADER = f"""# Hebrew words of Hebrew Wikipedia's article titles, in {TITLES} titles or more, most titles first, less those of the
 # subtitle word list the page fetches beside this one. From {DUMP}
 # (sha256 {SHA256}); Wikipedia's text is licensed CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/), as this
-# file is. Written by studies/shelves/lab/words.py.
+# file is. Written by lab/shelves_words.py.
 """
 
 
 def subtitle_list():
     """The subtitle word list's address, as the page keeps it offline."""
-    with open(os.path.join(HERE, '..', 'study.json')) as f:
+    with open(os.path.join(STUDY, 'study.json')) as f:
         return next(u for u in json.load(f)['web']['offline'] if u.endswith('/he_50k.txt'))
 
 

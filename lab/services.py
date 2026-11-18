@@ -23,15 +23,26 @@ import numpy as np
 def native(study):
     spec = study.manifest.get('services') or {}
     here = study.dir
-    path = lambda rel: rel if '://' in rel else os.path.join(here, rel)
     cache = os.path.join(study.data, 'services')
+
+    def path(rel, kind='files'):
+        """A file the study names: under the study, or at an address, fetched once into its data."""
+        if '://' not in rel:
+            return os.path.join(here, rel)
+        local = os.path.join(cache, kind, os.path.basename(rel))
+        if not os.path.exists(local):
+            os.makedirs(os.path.dirname(local), exist_ok=True)
+            with urllib.request.urlopen(rel) as r, open(local + '.part', 'wb') as f:
+                f.write(r.read())
+            os.replace(local + '.part', local)
+        return local
 
     @functools.lru_cache(None)
     def session():
         import onnxruntime as ort
         o = ort.SessionOptions()
         o.intra_op_num_threads = o.inter_op_num_threads = 1
-        return ort.InferenceSession(path(spec['det']), o, providers=['CPUExecutionProvider'])
+        return ort.InferenceSession(path(spec['det'], 'models'), o, providers=['CPUExecutionProvider'])
 
     def det(tensor):
         s = session()
@@ -57,7 +68,9 @@ def native(study):
             f = os.path.join(tmp, 'crop.bmp')
             Image.fromarray(np.ascontiguousarray(im)).save(f)
             r = subprocess.run(['tesseract', f, 'stdout', '--tessdata-dir', tessdata(), '-l', '+'.join(langs), '--oem', '1',
-                                '--psm', '6', '-c', 'preserve_interword_spaces=1', '-c', 'tessedit_create_tsv=1'], capture_output=True, text=True, check=True)
+                                '--psm', '6', '-c', 'preserve_interword_spaces=1', '-c', 'tessedit_create_tsv=1'], capture_output=True, text=True, check=True,
+                               # one thread, as the page's worker reads: OpenMP's threads only fight over a small crop
+                               env=dict(os.environ, OMP_THREAD_LIMIT='1'))
         words, confs = [], []
         rows = [line.split('\t') for line in r.stdout.splitlines()[1:]]
         text_lines, last = [], None
@@ -79,16 +92,7 @@ def native(study):
     def words():
         texts = []
         for rel in spec['words']:
-            if '://' in rel:
-                local = os.path.join(cache, 'words', os.path.basename(rel))
-                if not os.path.exists(local):
-                    os.makedirs(os.path.dirname(local), exist_ok=True)
-                    with urllib.request.urlopen(rel) as r, open(local + '.part', 'wb') as f:
-                        f.write(r.read())
-                    os.replace(local + '.part', local)
-                texts.append(open(local, encoding='utf-8').read())
-            else:
-                texts.append(open(path(rel), encoding='utf-8').read())
+            texts.append(open(path(rel, 'words'), encoding='utf-8').read())
         return '\n'.join(texts)
 
     return dict(det=det, tesseract=tesseract, words=words)
