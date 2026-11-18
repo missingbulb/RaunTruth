@@ -87,6 +87,8 @@ const LOCAL_RECENT = "nor-local-recent"; // [{id, name, study, at}], newest firs
 const FILE_HANDLES = "nor-file-handles-v1"; // the IndexedDB database of those references
 // {folder id: {at, items: [{id, name, folder, size, created, sha}]}}: each folder as the remote files dialog last listed it, created in ms
 const LISTINGS = "nor-drive-listings";
+// {study root id: {at, index}}: each study's index as Load last read it, for working offline (req/shell/load/study-images)
+const STUDY_INDEX = "nor-study-index";
 // Cache Storage, + remote id: an image downloaded from the remote store, its file name (URI-encoded) and when it was saved
 // in the headers
 const IMAGES = "nor-images-v1", IMAGE_NAME = "x-nor-name", IMAGE_AT = "x-nor-saved-at";
@@ -1164,6 +1166,8 @@ function remoteDialog() {
     }
   };
   openRecent = (r) => take(r.id, r.name, r.path || [], undefined, true);
+  // the studies whose index is kept on this device, the latest read first
+  const KEEP_INDEXES = 5;
   // the folders as last listed, kept on this device so the dialog opens offline too (req/shell/drive/offline-listing),
   // the latest KEEP_LISTINGS of them; created in ms, size and sha null where the store gave none
   const KEEP_LISTINGS = 50;
@@ -1213,7 +1217,7 @@ function remoteDialog() {
   // Load study images (req/shell/load/study-images): the study index's images, a group per folder headed by its path,
   // each folder's previews file read once its group scrolls into view
   let groupsSeen = null;
-  const showIndex = async (ix) => {
+  const showIndex = async (ix, off) => {
     keptOn = false; trail = [{ index: true, name: "The study's images" }];
     const asked = ++listing, kept = await keptIds();
     if (asked !== listing) return;
@@ -1235,13 +1239,13 @@ function remoteDialog() {
       head.innerHTML = `<span class="group-name">${esc(g.path)}</span><span class="group-count">${g.items.length}</span>`;
       $("#remote-list").append(head);
       covers.set(dir, new Promise((ok) => shown.set(head, ok)).then(async () => {
-        const file = await place.previewsOf(dir), at = { id: dir };
+        const at = { id: dir }, file = off ? undefined : await place.previewsOf(dir);
         return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
       }).catch(() => null));
       groupsSeen.observe(head);
-      for (const f of g.items) { row(f, { kept, opened, listings, off: false }); items.push(f); }
+      for (const f of g.items) { row(f, { kept, opened, listings, off }); items.push(f); }
     }
-    markTruth(items, asked);
+    if (!off) markTruth(items, asked);
   };
   // which images have ground truth, and to a tagger or study manager which have it pending (req/shell/ground-truth/pending)
   const markTruth = async (items, asked) => {
@@ -1385,9 +1389,19 @@ function remoteDialog() {
   const open = async () => {
     // a study's own folders: straight into the one, else a list of them
     const roots = studyFolders().length ? await place.dataFolders() : [];
-    if (roots.length && !offlineCopy.offline()) {
-      const ix = await place.index().catch((e) => { console.warn("the study index was not read:", e); return null; });
-      if (ix?.images.length) return showIndex(ix);
+    if (roots.length) {
+      // the index as read now, kept for working offline; offline, the one kept
+      const off = offlineCopy.offline(), top = place.root(), keptIx = readJSON(STUDY_INDEX)[top]?.index || null;
+      let ix = keptIx;
+      if (!off) {
+        try {
+          ix = await place.index();
+          const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
+          // the folders and images alone: who built it stays in the store
+          writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images } }], ...rest] : rest));
+        } catch (e) { console.warn("the study index was not read:", e); }
+      }
+      if (ix?.images.length) return showIndex(ix, off);
     }
     if (roots.length) {
       if (offlineCopy.offline() && !roots.some((id) => keptListing(id))) return showKept();
@@ -1539,7 +1553,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del

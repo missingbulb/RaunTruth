@@ -1040,7 +1040,10 @@ nobody has decided: what the page does there is not a requirement yet.
   previews file (`req/shell/drive/previews`), read once that folder's group scrolls into view. Tentative: a row marks
   no image "new", there being no listing on this device to compare with. Set by the owner on 2026-11-17: the Image
   Viewer, with no root and no index, lists the pasted folder one folder at a time as before, and so does a study before
-  a Study Manager's page has written its index, and any study offline. Tentative: an image with no value of the
+  a Study Manager's page has written its index. Set by the owner on 2026-11-18: the index Load last read is kept on this
+  device, the latest five studies', and offline the dialog lists from it just as online, an image not kept on this
+  device greyed as the offline dialog greys one (`req/shell/offline/default`); a study whose index this device never
+  read lists offline as before. Tentative: an image with no value of the
   grouping tag sits in a last group, "No <tag>". Test: `web-tests/test_study_index_page.py`.
   </details>
 

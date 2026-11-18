@@ -79,4 +79,13 @@ const reads = writes.length;
 await page.dblclick('#remote-list .item:has(.name:text-is("beta.png"))');
 await page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }).catch(() => {});
 await check(await page.evaluate(() => st.fileName === "beta.png") && writes.length === reads, "an image chosen there opens", await page.evaluate(() => st.fileName));
+
+// offline, the index kept on this device lists the same groups; only an image kept here opens
+await page.context().setOffline(true);
+await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+await page.evaluate(() => document.querySelector("#load-remote").click());
+await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }).catch(() => {});
+const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
+await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
+  "offline, the kept index lists the same groups, an image not kept here greyed", offline);
 await done(0);
