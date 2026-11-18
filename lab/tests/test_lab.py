@@ -162,3 +162,16 @@ def test_two_ground_truth_files_on_one_image_are_both_scored(acme, tmp_path):
     results, pairs = run.measure(s, ['above'], transport=drive)
     assert len(pairs) == 3 and len(results['above'][None]['images']) == 3
     assert len(run.document(s, results, pairs)['versions']['above']['truths']) == 3
+
+
+def test_a_version_asking_for_a_service_is_served_by_the_run_s_services_while_they_are_still_empty():
+    class Lazy(dict):
+        def __missing__(self, name):
+            self[name] = lambda x: x * 2
+            return self[name]
+
+    def asks(image):
+        return (yield ('double', image))
+    s = lab_study.Study.__new__(lab_study.Study)
+    s.module = type('m', (), {'VERSIONS': {'asks': asks}})
+    assert s.run('asks', 21, Lazy()) == 42

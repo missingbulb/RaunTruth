@@ -16,7 +16,7 @@ def _encode(x):
     parts, at = [], [0]
 
     def walk(v):
-        if hasattr(v, 'dtype') and hasattr(v, 'tobytes'):
+        if getattr(v, 'ndim', 0) > 0 and hasattr(v, 'tobytes'):
             b = v.tobytes(); parts.append(b); at[0] += len(b)
             return {'$bytes': [at[0] - len(b), len(b)], 'dtype': str(v.dtype), 'shape': list(v.shape)}
         if isinstance(v, (bytes, bytearray)):

@@ -34,10 +34,10 @@ class Study:
         return self.module.read(path)
 
     def run(self, version, image, services=None, **params):
-        return drive(self.module.VERSIONS[version](image, **params), services or {})
+        return drive(self.module.VERSIONS[version](image, **params), {} if services is None else services)
 
     def stage(self, name, image, answer, services=None, **args):
-        return drive(self.module.STAGES[name](image, answer, **args), services or {})
+        return drive(self.module.STAGES[name](image, answer, **args), {} if services is None else services)
 
     def score(self, answer, truth):
         return self.module.score(answer, truth)
@@ -60,8 +60,10 @@ def drive(result, services):
         request = next(result)
         while True:
             name, *args = request
-            if name not in services:
-                raise RuntimeError(f'the version asks for {name!r}, which this run does not serve')
-            request = result.send(services[name](*args))
+            try:
+                serve = services[name]
+            except KeyError:
+                raise RuntimeError(f'the version asks for {name!r}, which this run does not serve') from None
+            request = result.send(serve(*args))
     except StopIteration as done:
         return done.value

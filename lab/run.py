@@ -49,13 +49,6 @@ class Services(dict):
             raise KeyError(name)
         return self[name]
 
-    def __contains__(self, name):
-        try:
-            self[name]
-        except (KeyError, ImportError):
-            return False
-        return True
-
 
 def committed_truth(study):
     """The study's own ground-truth files (its lab/truth/), each as fetch.truth gives one."""

@@ -52,11 +52,13 @@ def asks(image, times=2):
     return dict(heard=heard)
 
 def tally(image, answer, plus=0):
-    return dict(heard=len(answer['heard']) + plus)
+    import numpy as np
+    return dict(heard=len(answer['heard']) + plus, at=np.float64(1.5), n=np.int32(2), mask=np.zeros(3, np.uint8))
 
 VERSIONS = {'asks': asks}
 STAGES = {'tally': tally}
 `);
+await py.loadPackage("numpy");
 py.runPython("study = importlib.import_module('acme')");
 answer = bridge(py, (m) => {
   out.push(m);
@@ -70,6 +72,8 @@ if (asked.filter((m) => m.type === "ask").length !== 2 || JSON.stringify(heard) 
   problems.push(`a version asking for a service: ${JSON.stringify(asked.map((m) => [m.type, m.meta]))}`);
 const tallied = (await ask({ type: "call", action: "tally", args: { plus: 1 }, echo: 2 })).find((m) => m.type === "result");
 if (tallied?.meta.heard !== 3) problems.push(`a stage on the last answer: ${JSON.stringify(tallied?.meta)}`);
+// a numpy number is a number on the page; only an array travels as bytes
+if (tallied?.meta.at !== 1.5 || tallied?.meta.n !== 2 || tallied?.meta.mask?.$bytes?.[1] !== 3) problems.push(`numpy numbers and arrays: ${JSON.stringify(tallied?.meta)}`);
 console.log(`asked twice, tallied ${tallied?.meta.heard}`);
 for (const p of problems) console.error(p);
 process.exit(problems.length ? 1 : 0);
