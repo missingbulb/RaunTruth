@@ -1,6 +1,6 @@
 // Drives web/bridge.js in Pyodide under Node with the fixture study's own Python, which the bridge knows
 // nothing of: a PNG's own bytes held by the study's Session, and one call on it, must come back as the study answered
-// them (the page reads and shows the image itself). Exits 1 on a wrong
+// them (the page reads and shows the image itself), and the damaged areas a call carries must reach the Session. Exits 1 on a wrong
 // answer, 2 when it cannot run. Run by tests/test_study_runs.py.
 //   node web-tests/study_bridge_driver.mjs IMAGE.png
 import { createRequire } from "node:module";
@@ -36,6 +36,11 @@ const r = ask({ type: "call", action: "count", args: { algorithm: "above", thres
 // two squares above 128: 10 x 10 and 15 x 20
 if (!r || r.action !== "count" || r.echo !== 7 || r.meta.count !== 400 || r.bytes.length !== 80 * 60 || r.bytes.reduce((a, b) => a + b, 0) !== 400)
   problems.push(`count: ${JSON.stringify(r && { action: r.action, echo: r.echo, meta: r.meta })}`);
+// req/shell/data/damaged: the damaged areas each call carries are the session's, and the fixture leaves them out;
+// a call with none has none left over
+const damaged = ask({ type: "call", action: "count", args: { algorithm: "above", threshold: 128 }, damaged: [[[9, 9], [21, 9], [21, 21], [9, 21]]] }).find((m) => m.type === "result");
+const again = ask({ type: "call", action: "count", args: { algorithm: "above", threshold: 128 } }).find((m) => m.type === "result");
+if (damaged?.meta.count !== 300 || again?.meta.count !== 400) problems.push(`damaged: ${damaged?.meta.count} then ${again?.meta.count}, not 300 then 400`);
 console.log(`held, counted ${r?.meta.count}`);
 for (const p of problems) console.error(p);
 process.exit(problems.length ? 1 : 0);

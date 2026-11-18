@@ -183,21 +183,31 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/data/area-of-interest` A Study Manager marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
   <details>
 
-  Set by the owner on 2026-11-17. In Data Management a Study Manager lassoes an image's area of interest, drawn and combined as
-  the summary's mask is (`req/shell/summary/mask`), and the page keeps it in the study index (`req/shell/data/index`).
-  Once the image's data is extracted, its summary counts only what lies inside the area. Opened by anyone, the
-  image shows the area's border and starts with it as the summary's mask. A viewer may draw their own mask in its
-  place; while the summary counts an area the Study Manager did not set, a warning line at the bottom of the
-  view says so. Tentative: an image with no area of interest counts the whole image, with no warning, as now.
+  Set by the owner on 2026-11-17. In Data Management's Tags box (`req/shell/data/tags`) a Study Manager lassoes an
+  image's area of interest, drawn and combined as the summary's mask is (`req/shell/summary/mask`), on the image itself
+  once Load Original has opened it, never on its preview, whose pixels are not the image's; Clear takes it off. The
+  page keeps it in the tags file and the study index (`req/shell/data/index`). Opened by anyone, the image shows the
+  area outlined, whether or not the summary shows, and its summary's mask starts as the area. A viewer may draw their
+  own mask in its place; while the summary counts a mask of the viewer's own, a warning line at the bottom of the view
+  says so, and Clear mask, named "Use the study's area" then, puts the study's area back. Tentative: an image with no
+  area of interest counts the whole image, with no warning, until the viewer draws a mask of their own, which is
+  warned of. Test: `web-tests/test_study_index_page.py`.
   </details>
 
-- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; no algorithm reads them and every viewer sees them marked.
+- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; the study's Python is handed them, the summary leaves them out and every viewer sees them marked.
   <details>
 
-  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes the
-  damaged areas of an image in Data Management. The image is never changed: the outlines are kept in the study index
-  (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. A study's algorithms and
-  its summary leave out what lies inside them, and the image, opened by anyone, shows them marked as damaged.
+  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes
+  the damaged areas of an image in Data Management's Tags box, on the image itself once Load Original has opened it;
+  Clear takes them off. The image is never changed: the outlines are kept in the tags file and the study index
+  (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. The image, opened by
+  anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
+  (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
+  every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
+  fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
+  the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
+  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
+  `web-tests/test_study_runs.py`.
   </details>
 
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
@@ -1356,7 +1366,9 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   The shell's Python runtime opens a file with the study's `Session(path)` and forwards every other
-  request as `call(action, args)`, returning JSON and optional bytes. It never names an action.
+  request as `call(action, args)`, returning JSON and optional bytes. It never names an action. Before each call it
+  sets the Session's `damaged` to the image's damaged areas (`req/shell/data/damaged`), `[[[x, y], ...], ...]` in the
+  image's pixels, `[]` for none.
   Test: `web-tests/test_study_runs.py` runs the fixture study through the bridge in Pyodide and through
   the real worker in the page; the NoR study's memory test checks that repeated calls leave nothing
   behind.
@@ -1799,8 +1811,10 @@ nobody has decided: what the page does there is not a requirement yet.
   removes it. The mask is kept in the image's pixels on this device, per study and file name, under the study's
   `<id>-mask-v1:<file>` key (NoR's mask from before keeps its key), and the Storage tab lists it with the image's
   selections. It shows only while the summary does: while the study makes ground truth it is neither drawn nor
-  offered, and comes back with the summary. The study reads `shell.mask`: `polygons()`, `inside(x, y)` and `on(fn)`
-  for each change. Test: `web-tests/test_study_contract.py`, `studies/nor/tests/test_ground_truth_page.py`,
+  offered, and comes back with the summary. The study reads `shell.mask`: `polygons()`, `inside(x, y)`, `damaged()` and `on(fn)`
+  for each change; `inside` is false in a damaged area (`req/shell/data/damaged`). Set by the owner on 2026-11-17: an
+  image with an area of interest starts with it as its mask (`req/shell/data/area-of-interest`), and a mask the
+  viewer draws is theirs, kept as above. Test: `web-tests/test_study_contract.py`, `studies/nor/tests/test_ground_truth_page.py`,
   `studies/vascular/tests/test_model_page.py`, `studies/shelves/tests`.
   </details>
 

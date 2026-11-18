@@ -2,7 +2,9 @@
 // Pyodide runtime that has already imported it and json. The worker runs it; the tests drive it outside a
 // browser. It knows none of the study's actions: it opens a file with study.Session and forwards every call.
 // The page reads and shows the image itself; Python is handed the file's own bytes only for the study's algorithms.
-// Messages in: open {name, bytes}, call {action, args, echo}, close (the image open is let go).
+// Messages in: open {name, bytes}, call {action, args, echo, damaged}, close (the image open is let go). A call's damaged
+// areas, the Study Manager's outlines in the image's pixels ([[[x, y], ...], ...], none for an image with none), are the
+// Session's `damaged` while it runs, for the study to leave out as it decides (req/shell/data/damaged).
 // Messages out: progress {text}, held {} (the file open in Python), result {action, meta, bytes, echo}.
 // progress: the status line for each step while it runs, {open, <action>: text}, from study.json.
 export function bridge(py, post, progress = {}) {
@@ -30,7 +32,8 @@ export function bridge(py, post, progress = {}) {
       say(progress[m.action]);
       py.globals.set("action", m.action);
       py.globals.set("args", JSON.stringify(m.args ?? {}));
-      const { meta, bytes } = pair(py.runPython("S.call(action, json.loads(args))"));
+      py.globals.set("damaged", JSON.stringify(m.damaged ?? []));
+      const { meta, bytes } = pair(py.runPython("S.damaged = json.loads(damaged)\nS.call(action, json.loads(args))"));
       post({ type: "result", action: m.action, meta, bytes, echo: m.echo, secs: (performance.now() - t0) / 1000 }, bytes ? [bytes.buffer] : []);
     } else if (m.type === "close") {
       py.runPython("globals().pop('S', None)");

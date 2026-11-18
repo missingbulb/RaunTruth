@@ -133,6 +133,11 @@
       <div id="tags-list" data-log-as="a tag of the folder or image chosen"></div>
       <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag: damaged-slide, group:wild-type" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
       <label id="tags-desc-row" hidden><span class="hint">Description</span><textarea id="tags-desc" rows="3" data-log-as="an image's description" data-needs-network></textarea></label>
+      <div id="areas" hidden>
+        <div class="areas-row"><span class="areas-label">Damaged areas</span><span id="areas-damaged-count" class="hint"></span><button id="areas-damaged-mark" type="button" data-needs-network title="Lasso a damaged part of the image: no algorithm reads it and every viewer sees it marked">Mark</button><button id="areas-damaged-clear" type="button" class="link" data-needs-network hidden>Clear</button></div>
+        <div class="areas-row"><span class="areas-label">Area of interest</span><span id="areas-interest-count" class="hint"></span><button id="areas-interest-mark" type="button" data-needs-network title="Lasso the part of the image the summary counts">Mark</button><button id="areas-interest-clear" type="button" class="link" data-needs-network hidden>Clear</button></div>
+        <p id="areas-hint" class="hint">Load Original to mark the image's areas: they are drawn on the image itself.</p>
+      </div>
       <p id="tags-msg" class="hint" role="status"></p>
     </section>
 
@@ -192,6 +197,7 @@
 
     <slot-here data-slot-for="view-top"></slot-here>
     <div id="lasso-hint" hidden>Drag around the area to count · Esc cancels</div>
+    <div id="mask-warning" role="status" hidden>The summary counts an area not set by the study's manager.</div>
     <div id="image-view">
       <div id="scroller">
         <div id="empty"><span id="empty-text"></span><br>
