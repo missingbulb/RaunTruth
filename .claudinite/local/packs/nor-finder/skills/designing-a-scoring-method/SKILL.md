@@ -37,7 +37,8 @@ Before any formula, write two tables in the report.
 - **Matching types**: how an answer unit can be paired with a truth unit, strongest evidence first (an exact
   label, a fuzzy label, a large overlap, a nearest one), and what each pairing is worth.
 - For each row, the score movement it should cause: perfect scores 1, an empty answer 0, and **every** fix of one
-  error moves the score up, by more for a bigger fix. A row whose intended movement is "nothing until fully right"
+  error moves the score up, by more for a bigger fix, where "the score" is F (the harmonic mean of precision and
+  recall); a fix may trade one of the two for the other, never lower F. A row whose intended movement is "nothing until fully right"
   is the failure this skill exists to prevent; rewrite it as partial credit.
 
 ## 3. Research how this kind of output is scored
@@ -46,17 +47,29 @@ Before any formula, write two tables in the report.
   results.
 - Search online for how comparable outputs are scored: detection and segmentation benchmarks, text recognition,
   tracing and graph matching, and the losses ML training uses for the same output. Prefer the primary source (the
-  benchmark's paper or its evaluation code) over a summary.
+  benchmark's paper or its evaluation code) over a summary; a source read only through a search summary is
+  recorded as such, never as read.
 - Record each source under `## Sources` in the report, with its URL and the date read, and say which idea came
   from it and which ideas were weighed and turned down.
 
 ## 4. Design the scorer
 
 - Pair units in stages, the strongest evidence first: pair what the strongest signal pairs, take those out, then
-  pair the rest by the next signal, and so on, each pairing one-to-one.
+  pair the rest by the next signal, and so on, each pairing one-to-one. Where the output is curvilinear or areal (one
+  truth unit often answered by two pieces), pair sub-units instead (steps along a line, pixels) and keep it
+  one-to-one by sharing a sub-unit's credit, so a duplicate tracing earns nothing twice.
+- Say which side tp is measured on when the two sides have different sizes (truth length found against answer length
+  explained), and how fp is formed from the answer's side, so precision and recall share one tp.
+- Score an answer's own uncertain state (a candidate, an unsure unit) explicitly: partial credit or none.
 - Give partial credit as soft counts: a paired unit adds its quality (0 to 1) to `tp` and the rest of its weight to
-  `fp` and `fn` as the error says; an unpaired answer unit is `fp`, an unpaired truth unit `fn`. Precision is then
+  `fp` and `fn` as the error says; an unpaired answer unit is `fp`, an unpaired truth unit `fn`. A pair barely
+  touching must cost about what the two would cost unpaired: credit is continuous, with no step where a pairing
+  starts or stops. Precision is then
   `tp / (tp + fp)` and recall `tp / (tp + fn)`, as the lab sums them over images.
+- Choose a pairing signal (a title similarity, a distance) by measuring it on unrelated real pairs first: its chance
+  level on those must sit near 0, or it pairs noise. A quality signal on an already-made pair (a width ratio) may sit
+  above 0 by chance; correct it for chance rather than reject it.
+- Say how each state of a truth element is scored: one marked wrong, one undecided, one with no label.
 - Make every constant a measured or stated scale (a tolerance in the image's own units, a fraction of a unit's
   size), never a pixel count tuned to today's images, and give each its reason in a comment.
 - Write `SCORING` as the page shows it: a short Markdown outline of pseudo-code, a few bullets a person reads in
@@ -64,18 +77,33 @@ Before any formula, write two tables in the report.
 
 ## 5. Validate it before trusting it
 
-- **Perturbation tests**: from real ground-truth files, build answers carrying each error type at rising
-  severity, and assert the score falls monotonically with severity, rises with each fix, is 1 for the truth
-  itself, 0 for an empty answer, and does not change when units are reordered. These go in the study's tests.
-- **Real runs**: score every version the lab registers on the real ground truth (`python3 lab/run.py STUDY`), and
-  compare the new ranking and the old. Look at the images where they disagree most and say which is right.
+- **Perturbation tests**: from ground truth drawn in the real files' shape (a test never reads a study's real data),
+  build answers carrying each error type at rising severity, and assert F falls monotonically with severity, rises
+  with each fix, is 1 for the truth itself, 0 for an empty answer, and does not change when units are reordered.
+  These go in the study's tests; mutate the scorer a few ways and watch them fail.
+- **Pairing**: where the pairing is staged or greedy, compare its total with an optimal one-to-one pairing
+  (`scipy.optimize.linear_sum_assignment`) on real answers; report the gap.
+- **Ceiling**: score the truth's own units through the rest of the algorithm (the truth's boxes read by the real
+  reader, say), so the report says how far the best possible first stage would get; for a one-stage answer, score
+  the truth against itself instead, and flag what keeps it under 1 (the truth overlapping itself, say) rather than
+  hide it.
+- **Bias**: say when the truth was made by correcting one version's output: any scorer then favours that version,
+  and its lead over the others is partly the truth's origin, not its quality.
+- **Real runs**: score every version the lab registers on the real ground truth (`python3 lab/run.py STUDY`; where
+  the lab cannot yet run the study's whole answer, the study's own page-path scripts make it), and compare the new
+  ranking and the old. Look at the images where they disagree most and say which is right.
 - **Show where it breaks**: render the pairings over one image (matched, partly matched, missed, invented) and show
   it in the conversation before quoting numbers.
+
+Tests and the report stay a proposal until step 6: nothing enters the study's tests or its `score` before the
+owner's word.
 
 ## 6. Land it as a change of definition
 
 - A new scorer redefines precision and recall: that is the owner's call, never a tuning step. Put the old and the
   new numbers for every version side by side to the owner, with the validation, and switch only on their word.
+- Say when the counted unit changes (books to µm of length, say): the page's tp, fp and fn then change scale, and no
+  number before the switch is comparable with one after.
 - Once switched, re-measure every version under the new definition (`python3 lab/run.py STUDY --write`); never
   carry old numbers on under the new name.
 - Keep the report (error types, matching types, sources, what was turned down, the validation) as
