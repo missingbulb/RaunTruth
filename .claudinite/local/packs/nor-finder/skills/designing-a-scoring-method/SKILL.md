@@ -18,7 +18,7 @@ search the moment it is close. The scorer lives beside the algorithm, as the stu
   outrank everything below; where research or validation argues against one, bring that to the owner rather than
   dropping it.
 - Name the answer's shape (what one version returns) and the ground truth's (what the page's ground-truth file
-  holds, read from a real submitted file, not from the page's code), and the unit that is counted: a book, a node,
+  holds, read from a real submitted file, not from the page's code; where none exists yet, from what the page's own writer produces, said so in the report), and the unit that is counted: a book, a node,
   a vessel.
 - Take the ground truth as right, and score every element of it the same whatever its origin: one a person added
   and one the algorithm proposed and a person kept are equally truth, so no tolerance, weight or rule depends on
@@ -67,9 +67,10 @@ Before any formula, write two tables in the report.
   starts or stops. Precision is then
   `tp / (tp + fp)` and recall `tp / (tp + fn)`, as the lab sums them over images.
 - Choose a pairing signal (a title similarity, a distance) by measuring it on unrelated real pairs first: its chance
-  level on those must sit near 0, or it pairs noise. A quality signal on an already-made pair (a width ratio) may sit
+  level on those must sit near 0 (under about 0.05), or it pairs noise. A quality signal on an already-made pair (a width ratio) may sit
   above 0 by chance; correct it for chance rather than reject it.
-- Say how each state of a truth element is scored: one marked wrong, one undecided, one with no label.
+- Say how each state of a truth element is scored: one marked wrong, one undecided, one with no label, one that exists only in the file's history (deleted).
+- Where the truth is incomplete (it judges part of the image), say how an answer unit on unjudged ground is counted, and read the file's own completeness marker (its checked areas) for it.
 - Make every constant a measured or stated scale (a tolerance in the image's own units, a fraction of a unit's
   size), never a pixel count tuned to today's images, and give each its reason in a comment.
 - Write `SCORING` as the page shows it: a short Markdown outline of pseudo-code, a few bullets a person reads in
@@ -81,6 +82,7 @@ Before any formula, write two tables in the report.
   build answers carrying each error type at rising severity, and assert F falls monotonically with severity, rises
   with each fix, is 1 for the truth itself, 0 for an empty answer, and does not change when units are reordered.
   These go in the study's tests; mutate the scorer a few ways and watch them fail.
+- **Sensitivity**: vary each constant (a tolerance, a weight) a few steps either way and report how the ranking and F move; look at the crops where the old and new scorers disagree most before fixing any constant.
 - **Pairing**: where the pairing is staged or greedy, compare its total with an optimal one-to-one pairing
   (`scipy.optimize.linear_sum_assignment`) on real answers; report the gap.
 - **Ceiling**: score the truth's own units through the rest of the algorithm (the truth's boxes read by the real
@@ -95,8 +97,9 @@ Before any formula, write two tables in the report.
 - **Show where it breaks**: render the pairings over one image (matched, partly matched, missed, invented) and show
   it in the conversation before quoting numbers.
 
-Tests and the report stay a proposal until step 6: nothing enters the study's tests or its `score` before the
-owner's word.
+Tests and the report stay a proposal, in the scratchpad, until step 6: nothing enters the study's tests or its
+`score` before the owner's word. Ask the owner, with the error-type tables, whether a split must beat a miss: the
+answer decides how a spare piece is charged.
 
 ## 6. Land it as a change of definition
 

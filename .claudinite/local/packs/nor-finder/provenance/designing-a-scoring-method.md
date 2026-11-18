@@ -9,9 +9,11 @@
   checks it needed were missing. the Vascular run (Fable): one-to-one pairing of units does not fit
   curvilinear output, tp's side was unnamed, the ceiling meant nothing for a one-stage answer, truth
   made by correcting one version biases the ranking, and the order of tests and the owner's word was
-  unclear.
+  unclear. the NoR run (Fable): no fallback when no real ground-truth file exists, no rule for
+  history-only states or incomplete truth, no bar for "near 0", no sensitivity check, and no place
+  named for a proposal.
 - **Actor:** @missingbulb (owner). Claude, from the skill's first run. Claude, from the skill's
-  second run.
+  second run. Claude, from the skill's third run.
 - **Mechanism:** a workflow skill triggered by its description: a scorer is designed rarely and at
   length, so a procedure loaded on demand, not a rule every session pays for.
 - **Retire when:** the lab can generate and validate a study's scorer itself.
