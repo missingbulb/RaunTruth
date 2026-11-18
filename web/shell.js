@@ -16,7 +16,7 @@
 // study's own large holdings for the Memory tab, [{name, what, size}]; and the viewer's hooks (viewer2d.js).
 // A listener a study adds outside its own panels takes shell.signal, which ends it when the study leaves.
 "use strict";
-import { drag } from "./drag.js";
+import { drag, dragging } from "./drag.js";
 import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
 import { viewer3d } from "./viewer3d.js";
@@ -29,6 +29,7 @@ import { remote } from "./drive.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
+import { guide } from "./guide.js";
 import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
@@ -37,6 +38,9 @@ import { ROLE, ROLE_NAMES, held, shown, roleMenu } from "./roles.js";
 import { dialogMotion } from "./dialog_motion.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthTasks } from "./truth_tasks.js";
+import { truthHistory } from "./truth_history.js";
+import { GT_HISTORY } from "./edit_history.js";
+import { truthDrafts } from "./truth_drafts.js";
 import { subfolderName } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
@@ -68,12 +72,11 @@ const THUMBS = "nor-drive-thumbs";
 const AUTO_SAVE = "nor-drive-autosave";
 // Auto-save images (req/shell/drive/kept-images): an image downloaded from the remote store is kept on this device
 const autoSave = () => readJSON(AUTO_SAVE, "on") !== "off";
-// + remote id: a JPEG data URL of the image, saved when it was opened
-const SAVED_THUMB = "nor-drive-thumb:";
-// [remote id], oldest first: which images have one
-const SAVED_THUMBS = "nor-drive-thumbs-saved";
-// {remote id: file name}: the image each saved thumbnail shows
-const THUMB_NAMES = "nor-drive-thumb-names";
+// where thumbnails were kept before they moved to cache storage, which moves each found here over (req/shell/storage/manage):
+// + remote id: a JPEG data URL of the image; [remote id], oldest first; {remote id: file name}
+const LEGACY_THUMB = "nor-drive-thumb:";
+const LEGACY_THUMBS = "nor-drive-thumbs-saved";
+const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 // a tagger's ground-truth draft of an image, by study, image name and SHA-256 (req/shell/ground-truth/draft)
 const GT_DRAFT = "gt-draft|";
 // {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
@@ -98,6 +101,9 @@ const IMAGE_PATH = "x-nor-path", IMAGE_STUDY = "x-nor-study";
 const FOLDER_PREVIEWS = "nor-previews-v1", PREVIEWS_SHA = "x-nor-sha256";
 // the paths each of those caches keeps its entries under, + remote id
 const PREVIEWS_PATH = "drive-previews/";
+const THUMB_PATH = "drive-thumb/";
+// Cache Storage, + remote id: a JPEG of an image opened from the remote store, its file name (URI-encoded) and when it was saved in the headers
+const THUMBS_CACHE = "nor-thumbs-v1";
 const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
@@ -118,6 +124,7 @@ const STUDY_REQUEST = "new-study.yml";
 const FOLLOWS = [THEME, ROLE, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
   keys: FOLLOWS,
+  guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),
   // after the page's own start, which this may run during
@@ -137,7 +144,7 @@ $("#remote-title").textContent = `Load from ${remote.label}`;
 $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
 
-// the tagger's side of the study's ground-truth folders: the line in its ground-truth box, Clear progress and Submit
+// the tagger's side of the study's ground-truth folders: the line in its ground-truth box and Submit
 // the study on show's root in the remote store: its settings, the folders Load browses, the roles the store gives
 const place = studyPlace(remote, () => manifest);
 // what the store lets the signed-in user write in the study on show (req/shell/data/roles), read as the study comes in
@@ -157,8 +164,7 @@ async function readRoles() {
   }
 }
 const truth = truthTagger({ account: signIn, remote, place,
-  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth(),
-  cleared: () => restudy(true) });
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth() });
 
 function readJSON(key, fallback = {}) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
@@ -517,6 +523,7 @@ function showRole() {
 // opening the menu, in the user's click, renews a token that ran out: the store is then asked for the roles again
 $("#role-menu summary").addEventListener("click", () => { if (storeRoles.stale) signIn.renew(); });
 const roleChooser = roleMenu($("#role-menu"), (r) => {
+  if (role === "tagger" && !gtSession.leaving("change your role")) return;
   try { localStorage.setItem(ROLE, r); } catch { /* private mode: this page only */ }
   signIn.changed(ROLE);
   log.add(`Chose the role ${ROLE_NAMES[r]}`);
@@ -662,6 +669,7 @@ async function start() {
     offlineCopy.keepSite().then(diskBar, (e) => console.warn("no copy of the site for offline:", e));
   }
   status("Ready. Load an image."); statusBar(); diskBar();
+  moveThumbs().catch((e) => console.warn("the thumbnails kept before could not be moved:", e));
   keepPython();
   if (navigator.deviceMemory <= LOW_GB) memoryTip();
 }
@@ -760,8 +768,8 @@ function imageOpened(m) {
   status("Image loaded."); // the study's opened hook says what comes next, if anything
   summaryMasks.opened();
   study.opened?.(m.meta);
-  // a draft to continue opens Ground Truth Tasks with the image, Continue GT tagging in view
-  if (tasks.offer() && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
+  // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
+  gtSession.opened().then((offered) => { if (offered && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); } });
   truth.paint(); offerTruth();
   if (st.source && st.source.kind === "local" && makesTruth()) notice(LOCAL_GT(remote));
   if (remote.owns(st.source) && st.pictured !== st.source.id) saveThumb(st.source.id, st.fileName);
@@ -819,6 +827,7 @@ page.watch("image", imageBox); page.watch("opening", imageBox);
 
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 async function openBytes(name, bytes, source) {
+  if (st.img && !gtSession.leaving("open another image")) return;
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
   for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
@@ -895,7 +904,7 @@ function dropImage() {
 }
 // Unload: no image open, the study starting over as one that has just come in
 $("#unload").onclick = () => {
-  if (!st.img || loadHolder().classList.contains("working")) return;
+  if (!st.img || loadHolder().classList.contains("working") || !gtSession.leaving("unload it")) return;
   restudy(false);
 };
 // the study mounted again in place, Python kept; again: the image open, opened again in it
@@ -1157,8 +1166,8 @@ function remoteDialog() {
       const meta = [sizeText(f.size), [remote.label, ...f.path].join(" / ")].join(" · ");
       b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
       markOffline(b.querySelector(".kept"), "image", true);
-      const pic = readJSON(SAVED_THUMB + f.id, "");
-      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic }));
+      const pic = await thumbUrl(f.id);
+      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic, onload: () => URL.revokeObjectURL(pic), onerror: () => URL.revokeObjectURL(pic) }));
       b.onclick = () => choose(f, b);
       b.ondblclick = () => enter(f);
       b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
@@ -1307,7 +1316,11 @@ function remoteDialog() {
     // asked, done and bytes count the thumbnails, which the note beside the checkbox reports; a header read for
     // what a file holds is not one
     let ctl = new AbortController(), running = 0, rows = [], epoch = 0, ready, frame = 0, asked = 0, done = 0, bytes = 0, dir = null;
-    const put = (pic, url) => { const i = new Image(); i.alt = ""; i.src = url; pic.replaceChildren(i); };
+    const put = (pic, url, own) => {
+      const i = new Image(); i.alt = "";
+      if (own) i.addEventListener("load", () => URL.revokeObjectURL(url), { once: true }), i.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+      i.src = url; pic.replaceChildren(i);
+    };
     const tell = () => {
       const t = asked ? `${done} of ${asked} · ${sizeText(bytes)}` : "";
       loading = running && t ? "Thumbnails " + t : ""; say();
@@ -1370,8 +1383,10 @@ function remoteDialog() {
       const of = epoch, pv = await (typeof covered === "function" ? covered(f) : covered), e = pv?.entry(f.name, f.sha);
       if (of !== epoch) return;
       if (e) return fromPreviews(pic, e, pv);
-      const url = made.get(f.id) || readJSON(SAVED_THUMB + f.id, "") || f.preview;
-      if (url) put(pic, url);
+      const saved = made.get(f.id) ? "" : await thumbUrl(f.id);
+      if (of !== epoch) { if (saved) URL.revokeObjectURL(saved); return; }
+      const url = made.get(f.id) || saved || f.preview;
+      if (url) put(pic, url, !!saved);
       const holds = isTiff(f.name) && remote.ready && !offlineCopy.offline() && !(f.id in readJSON(HOLDS)), thumb = !url && (await ready).has(f.id);
       if (of !== epoch || !(thumb || holds)) return;
       rows.push({ at, row: pic.closest(".item"), f, thumb, holds, asked: false, done: false }); later();
@@ -1454,17 +1469,50 @@ function saveThumb(id, name) {
   const gain = Math.min(GAIN, 255 / Math.max(1, v[Math.floor(0.995 * (v.length - 1))]));
   for (let j = 0; j < p.length; j += 4) { p[j] *= gain; p[j + 1] *= gain; p[j + 2] *= gain; }
   x.putImageData(small, 0, 0);
-  keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
+  return keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
 }
-// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept
-function keepThumb(id, name, url) {
+const thumbUrlOf = (id) => new URL(THUMB_PATH + encodeURIComponent(id), location.href).href;
+// the thumbnail kept for a remote image, as an object URL to revoke once shown; "" when none is kept
+async function thumbUrl(id) {
+  try {
+    const kept = await (await caches.open(THUMBS_CACHE)).match(thumbUrlOf(id));
+    return kept ? URL.createObjectURL(await kept.blob()) : "";
+  } catch { return ""; }
+}
+// when each thumbnail was saved: strictly increasing, so the latest are told apart within one millisecond
+let thumbClock = 0;
+// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept. Returns whether it was kept.
+async function keepThumb(id, name, url) {
   const KEEP = 100;
-  const kept = readJSON(SAVED_THUMBS, []).filter((i) => i !== id).concat(id);
-  for (const old of kept.splice(0, Math.max(0, kept.length - KEEP))) try { localStorage.removeItem(SAVED_THUMB + old); } catch { /* nothing kept */ }
-  const names = readJSON(THUMB_NAMES);
-  for (const k of Object.keys(names)) if (!kept.includes(k)) delete names[k];
-  writeJSON(SAVED_THUMB + id, url); writeJSON(SAVED_THUMBS, kept); writeJSON(THUMB_NAMES, { ...names, [id]: name });
+  let kept = false;
+  try {
+    const cache = await caches.open(THUMBS_CACHE), blob = await (await fetch(url)).blob();
+    thumbClock = Math.max(Date.now(), thumbClock + 1);
+    await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
+    kept = true;
+    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
+    all.sort((x, y) => x.at - y.at);
+    for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
+  } catch (e) { console.warn("the thumbnail could not be kept:", e); }
   diskBar();
+  return kept;
+}
+// thumbnails an earlier page kept in the settings' storage move to the cache: each key goes once its picture is kept
+// there or holds none, and the two lists once no picture is left behind
+async function moveThumbs() {
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_THUMB)); } catch { return; }
+  const names = readJSON(LEGACY_THUMB_NAMES), saved = readJSON(LEGACY_THUMBS, []), order = Array.isArray(saved) ? saved : [];
+  const rank = (k) => order.indexOf(k.slice(LEGACY_THUMB.length));
+  const done = [LEGACY_THUMBS, LEGACY_THUMB_NAMES];
+  let behind = 0;
+  for (const k of keys.sort((a, b) => rank(a) - rank(b))) {
+    const id = k.slice(LEGACY_THUMB.length), url = readJSON(k, "");
+    const picture = typeof url === "string" && url.startsWith("data:image/");
+    if (picture && !(await keepThumb(id, names[id] || "", url))) behind++;
+    else done.unshift(k);
+  }
+  for (const k of behind ? done.slice(0, -2) : done) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
 }
 
 // what each remote file holds, remembered so it is read once; the latest KEEP. Returns its words for the row.
@@ -1553,7 +1601,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1586,17 +1634,8 @@ async function inventory() {
   const images = stores.find((c) => c.name === IMAGES);
   if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q)).headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
 
-  const names = readJSON(THUMB_NAMES), selections = new Map();
+  const selections = new Map();
   for (const k of keys) {
-    if (k === SAVED_THUMBS || k === THUMB_NAMES) { overhead += bytesOf(k); continue; }
-    if (k.startsWith(SAVED_THUMB)) {
-      const id = k.slice(SAVED_THUMB.length);
-      thumb(sectionOf(studyOf[id]), bytesOf(k), () => {
-        drop(k); writeJSON(SAVED_THUMBS, readJSON(SAVED_THUMBS, []).filter((i) => i !== id));
-        const n = readJSON(THUMB_NAMES); delete n[id]; writeJSON(THUMB_NAMES, n);
-      });
-      continue;
-    }
     if (OWN_SETTINGS[k]) { settings += bytesOf(k); continue; }
     const masked = summaryMasks.keyOf(k);
     if (masked) {
@@ -1621,7 +1660,18 @@ async function inventory() {
     } else if (s) settings += bytesOf(k);
     else overhead += bytesOf(k);
   }
-  for (const im of selections.values()) sectionOf(manifest?.id).entries.push({ kind: "selections", name: im.name, what: "Your selections: " + [...im.whats].join(", "), size: im.size, del: () => drop(...im.keys), held: true, ask: true });
+  // a draft of ground truth kept in IndexedDB joins its image's selections, in its study's section (req/shell/ground-truth/save-draft)
+  let kept = [];
+  try { kept = await gtDrafts.all(); } catch (e) { console.warn("the ground-truth drafts could not be read:", e); }
+  for (const r of kept) {
+    const size = JSON.stringify(r).length, del = () => gtDrafts.delete(r.study, r.sha256);
+    if (r.study === manifest?.id) {
+      const im = selections.get(r.name) || { name: r.name, whats: new Set(), keys: [], size: 0 };
+      im.whats.add("ground-truth draft"); im.size += size; (im.dels ||= []).push(del); selections.set(r.name, im);
+    } else sectionOf(r.study).entries.push({ kind: "selections", name: r.name, what: "Your selections: ground-truth draft", size, del, held: true, ask: true });
+  }
+  for (const im of selections.values()) sectionOf(manifest?.id).entries.push({ kind: "selections", name: im.name, what: "Your selections: " + [...im.whats].join(", "), size: im.size,
+    del: () => { drop(...im.keys); return Promise.all((im.dels || []).map((f) => f())); }, held: true, ask: true });
 
   // the packages: whose they are; Python itself, the lock naming its packages and the build's vendored list, shared
   const users = new Map();
@@ -1636,6 +1686,10 @@ async function inventory() {
         if (id && sections.some((x) => x.study === id)) code[id] = (code[id] || 0) + size;
         else { site.size += size; site.files++; }
         site.del = () => caches.delete(c);
+        continue;
+      }
+      if (c === THUMBS_CACHE) {
+        thumb(sectionOf(studyOf[idOf(req.url)]), size, del);
         continue;
       }
       if (c === FOLDER_PREVIEWS) {
@@ -1780,8 +1834,7 @@ function saveFile(name, text, type) {
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
 // the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
 const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.phases[0]?.key; return !first || !!steps.find((p) => p.key === first)?.done; },
-  heardBy: (on) => view?.tagged?.(on), readJSON, writeJSON,
-  draftKey: () => (manifest && st.img && st.sha ? GT_DRAFT + manifest.id + "|" + st.fileName + "|" + st.sha : null) });
+  heardBy: (on) => view?.tagged?.(on) });
 // Load GT tagging (req/shell/ground-truth/view): for anyone but a tagger, an image from the remote store with curated ground truth
 // shows it through the study's showTruth(doc), which draws only its final results and returns a line of its counts
 // truthShown: the open image shows its curated ground truth, which takes the place of Processing and the Items view
@@ -1810,7 +1863,8 @@ async function offerTruth() {
     if (mine !== offered) return;
     if (!got) { say.hidden = false; say.textContent = "Its curated ground truth holds no file the page can read."; return; }
     const d = got.doc, when = d.created ? new Date(d.created).toLocaleString() : "an unknown time";
-    const counts = study.showTruth(d);
+    const { history: _, ...plain } = d;
+    const counts = study.showTruth(plain);
     showingTruth(true);
     b.hidden = true; $("#gt-offer").hidden = true; say.hidden = false;
     say.textContent = `Ground truth by ${d.tagger || "a tagger"}, made ${when}${d.accepted?.by ? `, accepted by ${d.accepted.by}` : ""}${counts ? ": " + counts : "."}`;
@@ -1835,15 +1889,18 @@ function submitTruth(gt) {
   // the blue button is the next step: Submit when it can, else the export; Close once either is done
   const next = (b) => { for (const id of ["#gt-export", "#gt-send", "#gt-close"]) $(id).classList.toggle("primary", $(id) === b); };
   next(send.disabled ? $("#gt-export") : send);
-  $("#gt-export").onclick = () => {
-    saveFile(gt.file, JSON.stringify(gt.doc, null, 1), "application/json");
+  // a study with GT actions submits the model's document with its history
+  const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
+  $("#gt-export").onclick = async () => {
+    saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
     $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
     if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not submitted`); next($("#gt-close")); }
   };
   send.onclick = async () => {
     send.disabled = true; $("#gt-msg").textContent = "Submitting…";
     try {
-      await truth.submit(gt.doc);
+      await truth.submit(await docOf());
+      if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
       $("#gt-msg").textContent = `Submitted to the study's submissions folder, as your ground truth for ${st.fileName}.`;
       step("submit", true, `Submitted the ground truth of ${st.fileName}`);
       log.add("Submitted ground truth");
@@ -2209,7 +2266,7 @@ $("#study-search").onkeydown = (e) => {
 let swapping = Promise.resolve();
 function goTo(id) {
   $("#study-menu").open = false;
-  if (studyOf(location) === id) return;
+  if (studyOf(location) === id || !gtSession.leaving("choose another study")) return;
   history.pushState(null, "", addressOf(id));
   swap();
 }
@@ -2280,6 +2337,9 @@ async function mountStudy(id) {
   views.mount();
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
+  gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  // the colour of Edit History's ring, where the study's image or marks carry the shell's
+  if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);
   study = (await mod.mount(shell)) || {};
   view.use(study);
@@ -2303,7 +2363,7 @@ function studyBoxes() {
     if (slot === "processing" && first !== "load") b.dataset.folds = first; else delete b.dataset.folds;
     summaries.delete(b);
   }
-  summaryMasks.redraw();
+  summaryMasks.redraw(); gtSession.paint();
 }
 const viewers = {};
 const algorithms = algorithmChoice({ $, outline, status });
@@ -2314,29 +2374,40 @@ const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get(
   shows: () => !$("#summary-box").hidden, drag, readJSON, writeJSON, views });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
+// the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
+const gtDrafts = truthDrafts();
+const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth, viewer: () => view, remoteLabel: () => remote.label, readJSON, writeJSON,
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
+  // offline there is nothing to ask the store
+  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.readMine(id) });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
+  // tagging ends while the study's panels are still there for it to put away
+  tasks.tagging(false);
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
   css?.remove(); css = null;
+  $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();
   for (const k of Object.keys(st)) if (!SHELL_STATE.has(k)) delete st[k];
   for (const k of SHELL_STATE) if (!PYTHON_STATE.includes(k)) st[k] = ST_LOADED[k];
   for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(new Error("the study left")));
   busy(false); $("#notice").hidden = true; $("#tip").hidden = true;
   $("#image-view").hidden = false; delete $("#view").dataset.view; $("#switch").hidden = true; views.now = "image";
-  tasks.leave(); remoteLeft();
+  tasks.leave(); gtSession.leave(); remoteLeft();
   restoreLoaded();
 }
 
 const shell = {
   $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
-  clearable: (what, fn) => truth.clearable(what, () => { tasks.forget(); fn(); }), showImage, boxDone, outline,
+  showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
+  // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)
+  gt: gtSession.api,
   // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
   summary: summaryCsv.api,
   // the summary's mask (req/shell/summary/mask): polygons(), inside(x, y), on(fn, signal)

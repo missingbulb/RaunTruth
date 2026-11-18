@@ -86,3 +86,13 @@ def test_needing_ground_truth_is_a_marker_in_curated_named_as_the_images_subfold
     assert n['b'] == {'curated': True, 'pending': False, 'rejected': False, 'needed': n['bId']}
     # two images of one name: only the one marked
     assert n['d1']['needed'] == n['d1Id'] and n['d2'] is None
+
+
+def test_the_taggers_own_submission_is_found_from_two_listings_and_nothing_is_read(out):
+    o = out['own']
+    # another tagger's file, and a file that is not ground truth, are not the tagger's; an image with no subfolder has none
+    assert o['nobody'] is None and o['elsewhere'] is None
+    assert o['mine'] == {'name': 'gt_jane@lab.org.json', 'rejected': True, 'hasId': True, 'hasTime': True}
+    # the submissions folder, then the image's subfolder
+    assert o['listed'] == ['S', o['subId']]
+    assert o['reads'] == []

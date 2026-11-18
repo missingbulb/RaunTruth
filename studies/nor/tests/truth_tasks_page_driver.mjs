@@ -106,7 +106,7 @@ const shown = (page, sel) => page.evaluate((s) => { const e = document.querySele
 let page = await open();
 await check(await shown(page, "#tasks-box") && !(await shown(page, "#summary-box")), "Ground Truth Tasks is in the left bar, in Summary's place");
 await check(!(await shown(page, "#switch")), "no view switch over the image");
-const tasks = await page.$$eval("#gt-tasks > li", (li) => li.map((l) => l.dataset.task));
+const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
 await check(JSON.stringify(tasks) === JSON.stringify(["pass", "fail", "missed", "submit"]), "the tasks in order: the finalists, the rejected, the missed NoRs, Submit", tasks);
 await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Submit Ground Truth is the last task");
 
@@ -138,7 +138,7 @@ const nextOpen = async (key) => {
 };
 
 const now = () => page.evaluate(() => ({ cur: st.cur, task: st.task, sel: st.sel, card: document.querySelector("#task-card .card")?.dataset.i,
-  rows: [...document.querySelectorAll("#gt-tasks > li")].map((l) => l.querySelector(".task-head").textContent.replace(/\s+/g, " ").trim()),
+  rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((l) => l.querySelector(".task-head").textContent.replace(/\s+/g, " ").trim()),
   open: document.querySelector("#gt-tasks > li.now")?.dataset.task, back: !$("#task-back").disabled,
   bar: [...document.querySelectorAll("#gt-bar > span")].map((b) => ({ grow: +getComputedStyle(b).flexGrow, fill: +b.style.getPropertyValue("--done") })) }));
 const rectOf = (a) => { const r = Math.floor(a / 10), k = r % 2 ? 9 - (a % 10) : a % 10; return [k * IW / 10, r * IH / 10, IW / 10, IH / 10]; };
@@ -302,7 +302,9 @@ await check(changed.edits && /^Reset measurements\b/.test(changed.reset) && !/Le
 await page.click("#task-card .reset-lines");
 await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "Reset measurements puts the finder's lengths back");
 
-// a candidate clicked on the image becomes the current one
+// a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
+// tagger's own switch puts it away first
+await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));

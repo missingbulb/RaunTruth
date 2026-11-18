@@ -16,6 +16,16 @@
         "children": [
           {"name": "Study: its tick", "select": "#fx-done", "control": true, "req": "req/shell/ground-truth/tasks"}
         ]
+      },
+      {"name": "Study: its marks' tools", "select": "#fx-marks-tools", "req": "req/shell/ground-truth/history",
+        "children": [
+          {"name": "Study: Add a mark", "select": "#fx-add", "control": true, "req": "req/shell/ground-truth/history"},
+          {"name": "Study: Delete mark", "select": "#fx-del", "control": true, "req": "req/shell/ground-truth/history",
+            "rule": [
+              {"is": "disabled", "approval": "tentative", "about": "no path selects a mark"}
+            ]
+          }
+        ]
       }
     ]},
     {"under": "Summary", "tree": [

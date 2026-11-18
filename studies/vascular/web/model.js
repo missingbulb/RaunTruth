@@ -27,6 +27,13 @@ export const live = (s) => s.state !== 'rejected';
 
 export class ModelError extends Error {}
 
+// Every segment has an id that stays its own through edits and through the file: the algorithm's are s1, s2 … in the order
+// its file lists them, a person's u1, u2 …, and a point a person adds takes its id from USER_NODE up, so a run again,
+// whose ids may fall anywhere below it, never gives them to something else.
+export const USER_NODE = 1e6;
+// a point's name for a person: a number, or u and the order a person added it in
+export const pointName = (id) => (id >= USER_NODE ? `u${id - USER_NODE + 1}` : String(id));
+
 // Checks a parsed JSON file and returns the model with ids made consistent: every segment names two
 // existing, different points, no segment is listed twice, and no point is left unconnected. Reads
 // the straight-segment vessel-model/1 files too.
@@ -44,7 +51,21 @@ export function parse(j) {
   }
   let next = newId(m);
   const seen = new Set();
-  for (const s of list) {
+  // the ids the file gives: a curve point's own, when it is a whole number no other point holds, and an edge's segment_ids,
+  // when it names one segment of its edge each and none another edge has
+  const reserved = new Set(), claimed = new Set(), given = new Map();
+  list.forEach((e, k) => {
+    for (const p of (v2 && e.via) || []) if (Number.isInteger(p?.id) && !m.nodes.has(p.id) && !reserved.has(p.id)) reserved.add(p.id);
+    const want = ((v2 && e.via) || []).length + 1, own = e.segment_ids;
+    if (Array.isArray(own) && own.length === want && own.every((x) => typeof x === 'string' && x) && new Set(own).size === want && own.every((x) => !claimed.has(x))) {
+      own.forEach((x) => claimed.add(x)); given.set(k, own);
+    }
+  });
+  let nextSeg = 1;
+  const freshSeg = () => { while (claimed.has(`s${nextSeg}`)) nextSeg++; claimed.add(`s${nextSeg}`); return `s${nextSeg++}`; };
+  const freshPoint = () => { while (m.nodes.has(next) || reserved.has(next)) next++; return next++; };
+  const taken = new Set();
+  for (const [ei, s] of list.entries()) {
     if (!m.nodes.has(s.a) || !m.nodes.has(s.b)) throw new ModelError(`${v2 ? 'an edge' : 'a segment'} names a point that does not exist (${s.a}–${s.b})`);
     // a file written before segments had a state holds only the extractor's confident vessels
     const state = s.state ?? 'vessel';
@@ -52,12 +73,13 @@ export function parse(j) {
     const ids = [s.a], flow = FLOWS.includes(s.flow) ? s.flow : null;
     // a verdict in a file written before "proposed": only a candidate could take one
     const proposed = ['vessel', 'candidate'].includes(s.proposed) ? s.proposed : state === 'vessel' || state === 'candidate' ? state : 'candidate';
-    const { id: _i, a: _a, b: _b, via: _v, state: _st, confidence: _c, vessel: _ve, r_a: _ra, r_b: _rb, flow: _f, proposed: _p, drawn: _d, width, ...rest } = s;
+    const { id: _i, a: _a, b: _b, via: _v, segment_ids: _si, state: _st, confidence: _c, vessel: _ve, r_a: _ra, r_b: _rb, flow: _f, proposed: _p, drawn: _d, width, ...rest } = s;
     const extra = Object.keys(rest).length ? rest : null;
     if (width != null) readWidth(width, s);
     for (const p of (v2 && s.via) || []) {
       if (![p.x, p.y, p.z].every(Number.isFinite)) throw new ModelError(`a curve point on edge ${s.a}–${s.b} has no position`);
-      m.nodes.set(next, pt(next, p)); ids.push(next++);
+      const id = Number.isInteger(p.id) && reserved.has(p.id) && !taken.has(p.id) ? p.id : freshPoint();
+      taken.add(id); m.nodes.set(id, pt(id, p)); ids.push(id);
     }
     ids.push(s.b);
     const r = taperAlong(m, ids, s.r_a, s.r_b);
@@ -65,7 +87,7 @@ export function parse(j) {
       const k = key(ids[i - 1], ids[i]);
       if (ids[i - 1] !== ids[i] && !seen.has(k)) {
         seen.add(k);
-        m.segments.push(seg(ids[i - 1], ids[i], { state, proposed: s.drawn ? null : proposed, confidence: s.confidence, vessel: s.vessel, ...(r && { ra: r[i - 1], rb: r[i] }), flow, extra, width }));
+        m.segments.push(seg(ids[i - 1], ids[i], { id: given.get(ei)?.[i - 1] ?? freshSeg(), state, proposed: s.drawn ? null : proposed, confidence: s.confidence, vessel: s.vessel, ...(r && { ra: r[i - 1], rb: r[i] }), flow, extra, width }));
       }
     }
   }
@@ -106,7 +128,7 @@ const pt = (id, p) => (Number.isFinite(p.r) ? { id, x: p.x, y: p.y, z: p.z, r: p
 // segment the owner drew has neither, and stays without them
 // extra holds the edge's fields this viewer has no use for, written back as they came
 // width is the person's word on the vessel's width (setWidth), one object shared by every segment of the vessel
-const seg = (a, b, { state, proposed, confidence, vessel, ra, rb, flow, extra, width }) => ({ a, b, state, ...(proposed && { proposed }), ...(confidence != null && { confidence }),
+const seg = (a, b, { id, state, proposed, confidence, vessel, ra, rb, flow, extra, width }) => ({ ...(id != null && { id }), a, b, state, ...(proposed && { proposed }), ...(confidence != null && { confidence }),
   ...(vessel != null && { vessel }), ...(Number.isFinite(ra) && Number.isFinite(rb) && { ra, rb }), ...(flow != null && { flow }), ...(extra && { extra }), ...(width && { width }) });
 const sameEdge = (p, q) => p.state === q.state && p.proposed === q.proposed && p.confidence === q.confidence && p.vessel === q.vessel && p.extra === q.extra && p.width === q.width;
 
@@ -191,13 +213,13 @@ export function nudge(m, segs, by, estimate, on) {
 export function toJSON(m, extra = {}) {
   const { nodes, segments, ...rest } = m;
   const es = edges(m), ends = new Set(es.flatMap((e) => [e.ids[0], e.ids.at(-1)]));
-  const at = (id) => { const { id: _, ...p } = nodes.get(id); return p; };
+  const at = (id) => ({ ...nodes.get(id) });
   return { ...rest, ...extra, format: FORMAT,
     nodes: [...nodes.values()].filter((n) => ends.has(n.id)),
     edges: es.map((e, k) => {
       const start = from(m.segments[e.segments[0]], e.ids[0]), end = from(m.segments[e.segments.at(-1)], e.ids.at(-1));
       const out = start.out ?? (end.out == null ? null : !end.out);
-      return { ...e.extra, id: k + 1, a: e.ids[0], b: e.ids.at(-1), ...(e.vessel != null && { vessel: e.vessel }), state: e.state,
+      return { ...e.extra, id: k + 1, segment_ids: e.segments.map((i) => m.segments[i].id), a: e.ids[0], b: e.ids.at(-1), ...(e.vessel != null && { vessel: e.vessel }), state: e.state,
         ...(e.proposed ? { proposed: e.proposed } : { drawn: true }),
         ...(e.confidence != null && { confidence: e.confidence }),
         ...(Number.isFinite(start.r0) && Number.isFinite(end.r0) && { r_a: start.r0, r_b: end.r0 }), ...(out != null && { flow: out ? 'ab' : 'ba' }),
@@ -247,6 +269,22 @@ export function catmullRom(P0, P1, P2, P3, t) {
 // n + 1 points along segment i's stretch of curve, ends included.
 export const sampleSegment = (m, i, n) => Array.from({ length: n + 1 }, (_, k) => curvePoint(m, i, k / n));
 
+// The model with every segment that has no id, or repeats one an earlier segment has, given a person's id; the model
+// itself when none needs one.
+export function identify(m) {
+  let u = 0;
+  for (const s of m.segments) { const k = /^u(\d+)$/.exec(s.id ?? ''); if (k) u = Math.max(u, +k[1]); }
+  const seen = new Set();
+  let changed = false;
+  const segments = m.segments.map((s) => {
+    if (typeof s.id === 'string' && s.id && !seen.has(s.id)) { seen.add(s.id); return s; }
+    changed = true;
+    const id = `u${++u}`; seen.add(id);
+    return { ...s, id };
+  });
+  return changed ? { ...m, segments } : m;
+}
+
 export const clone = (m) => ({ ...m, nodes: new Map([...m.nodes].map(([k, n]) => [k, { ...n }])), segments: m.segments.map((s) => ({ ...s })) });
 
 // How many segments meet at each point: confirmed vessels by default, or those `which` picks.
@@ -263,7 +301,7 @@ function prune(m) {
   for (const id of [...m.nodes.keys()]) if (!d.get(id)) m.nodes.delete(id);
 }
 function newId(m) { let k = 0; for (const id of m.nodes.keys()) if (id > k) k = id; return k + 1; }
-function addNode(m, p) { const id = newId(m); m.nodes.set(id, pt(id, p)); return id; }
+function addNode(m, p) { const id = Math.max(newId(m), USER_NODE); m.nodes.set(id, pt(id, p)); return id; }
 const DRAWN = { state: 'vessel' };
 function link(m, a, b, like = DRAWN) {
   if (a === b) return false;

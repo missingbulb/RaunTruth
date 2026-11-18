@@ -132,9 +132,12 @@ async function device(seed) {
   await page.waitForFunction(() => document.querySelector("#title").textContent);
   return { ctx, page };
 }
+// no one signed in here, a sign-in first opens the guide to Google's screens (req/shell/account/consent-guide): on through it
+const throughGuide = async (page) => { await page.waitForSelector("#guide-dlg[open]"); await page.click("#guide-go"); };
 const signInVia = async (page) => {
   await page.click("#user-menu summary");
   await page.click("#sign-in");
+  await throughGuide(page);
   // a sign-in that never finishes says how far it got
   await page.waitForFunction(() => !document.querySelector("#sign-out").hidden).catch(async (e) => {
     const state = await page.evaluate(() => ({ asked: window.tokenClient?.asked?.length ?? "no token client", calls: window.googleCalls, status: document.querySelector("#status")?.textContent }))
@@ -162,6 +165,7 @@ try {
     "signing in asks for the user's name, email and picture, the app's own Drive folder and to read their Drive, no more of it", drives);
   await shot(a.page, "account_signed_out");
   await a.page.click("#sign-in");
+  await throughGuide(a.page);
   await a.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
   check(await a.page.textContent("#who-name") === "Ada Lovelace" && await a.page.textContent("#who-where") === "ada@acme.example",
     "signed in, the menu names the user");

@@ -20,11 +20,10 @@ const SAMPLES = 8;
 // the grey picture runs from this share of the area's pixels to this one
 const LO_Q = .01, HI_Q = .997;
 
-const today = () => new Date().toISOString().slice(0, 10);
 // a width as the step and the box write it: to the hundredth, a whole tenth with one place
 export const umText = (um) => `${um.toFixed(2).replace(/0$/, '')} µm`;
 
-// ctx: {V, model(), apply(next), canvas, plane(x, y): [sx, sy] screen at the stack's middle depth, msg(text), chose(): a
+// ctx: {V, model(), act(action): the model, or null when nothing changed, ids(segs): their ids, canvas, plane(x, y): [sx, sy] screen at the stack's middle depth, msg(text), chose(): a
 // vessel selected, selecting(): a click selects}
 export function widthsLook(ctx) {
   const { V } = ctx;
@@ -218,9 +217,10 @@ export function widthsLook(ctx) {
     return best;
   }
   const selected = () => list().find((v) => v.n === chosen) ?? null;
-  function word(v, next, said) {
-    if (!v || next === ctx.model()) return;
-    ctx.apply(next); if (lens) lens.data = null;
+  // the person's word on vessel v's width, a width object or none (the estimate again), one GT action; the day it carries is its own
+  function word(v, width, said) {
+    if (!v || !ctx.act({ type: 'set-width', segments: ctx.ids(v.segs), width })) return;
+    if (lens) lens.data = null;
     if (said) ctx.msg(said);
   }
   function move(e) {
@@ -247,11 +247,12 @@ export function widthsLook(ctx) {
     const v = selected(); if (!v) return;
     const others = list().filter((x) => x !== v).map((x) => shape(x).um).filter((u) => u > 0).sort((a, b) => a - b);
     const mid = others.length ? (others[(others.length - 1) >> 1] + others[others.length >> 1]) / 2 : null;
-    word(v, Mo.nudge(ctx.model(), v.segs, dir * STEP_UM, v.estimate ?? mid, today()));
+    const m = ctx.model(), next = Mo.nudge(m, v.segs, dir * STEP_UM, v.estimate ?? mid);
+    if (next !== m) word(v, Mo.widthOf(next, v.segs));
   }
   function reset() {
     const v = selected(), m = ctx.model();
-    if (v && Mo.widthOf(m, v.segs)) word(v, Mo.setWidth(m, v.segs, null), `Vessel ${v.n}'s width is the estimate again.`);
+    if (v && Mo.widthOf(m, v.segs)) word(v, null, `Vessel ${v.n}'s width is the estimate again.`);
   }
 
   return {

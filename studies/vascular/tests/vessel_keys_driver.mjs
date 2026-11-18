@@ -65,7 +65,7 @@ try {
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#model-on").hidden);
+  await page.waitForFunction(() => !$("#vm-review").hidden);
 
   // out of tagging no key acts
   let s0 = await state();

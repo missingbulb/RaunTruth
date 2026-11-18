@@ -3,7 +3,7 @@
 // truth makes the folders, shares the curated one and writes the settings file), req/shell/data/roles (Ground Truth
 // Tagger offered only where the store lets the user write to submissions), req/shell/ground-truth/tagger-access,
 // req/shell/ground-truth/submit and req/shell/ground-truth/layout (Submit writes the tagger's file into the image's
-// subfolder, and submitting again replaces it keeping the old version), req/shell/ground-truth/clear,
+// subfolder, and submitting again replaces it keeping the old version), req/shell/ground-truth/clear (the Edit History window's),
 // req/shell/ground-truth/pending, req/shell/ground-truth/curate, req/shell/ground-truth/summary (the Ground Truth box),
 // req/shell/ground-truth/switch, req/shell/ground-truth/view and req/shell/data/folder's Needs GT (a marker in the
 // curated folder, in either mode, shown GT wanted in the Drive dialog). Exits 1 on a failed
@@ -96,7 +96,7 @@ await page.click("#fx-count");
 await page.waitForFunction(() => !$("#gt-submit").disabled);
 // req/shell/ground-truth/tagging: counted, no task opens until Start GT tagging; Stop tagging closes it; a task's name starts it there
 const tagging = () => page.evaluate(() => ({ open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null, check: !!document.querySelector("#gt-tasks li.now #fx-check"),
-  start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, first: $("#gt-list").firstElementChild === $("#gt-start") }));
+  start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, first: [...$("#gt-list").children].find((e) => !e.hidden) === $("#gt-start") }));
 let tg = await tagging();
 await check(!tg.open && !tg.check && tg.start === "Start GT tagging" && tg.first, "counted, no task is open, and Start GT tagging heads the tasks", tg);
 await page.click("#gt-start");
@@ -133,14 +133,16 @@ msg = await submit();
 await check(/Submitted/.test(msg) && writes.filter(([w, n]) => w === "folder" && n === sub).length === 1 && JSON.stringify(writes.slice(-2)) === JSON.stringify([["replace", file.name], ["mark", sub]]) && keptForever.includes(file.name),
   "submitting again replaces the tagger's own file, keeping the old version", writes);
 
-// Clear progress: asks first, naming the image, then forgets the study's progress on it
+// Clear all history, at the Edit History window's foot: asks first, naming the image, then forgets the draft Submit kept
 let asked = null;
 page.once("dialog", (d) => { asked = d.message(); d.accept(); });
-await check(await page.evaluate(() => !!document.querySelector('#gt-tasks > li[data-task="submit"] .gt-clear') && !document.querySelector("#left .gt-access .gt-clear")),
-  "Clear progress sits beside Submit Ground Truth, at the box's end");
-await page.click('#gt-tasks > li[data-task="submit"] .gt-clear');
-await page.waitForFunction(() => /Nothing counted/.test($("#fx-result")?.textContent) && st.fileName && !$("#fx-count").disabled);
-await check(asked && asked.includes(png.name), "Clear progress asks first, naming the image", asked);
+await check(await page.evaluate(() => !document.querySelector("#left .gt-clear") && !!document.querySelector("#edit-history:not([hidden]) #eh-clear")),
+  "a study with GT actions has no Clear progress: Clear all history is at the Edit History window's foot");
+await page.click("#eh-clear");
+await page.waitForFunction(() => /History cleared/.test($("#status").textContent));
+await check(asked && asked.includes(png.name), "Clear all history asks first, naming the image", asked);
+await check(await page.evaluate(() => new Promise((ok) => { const q = indexedDB.open("gt-drafts", 1); q.onsuccess = () => { const r = q.result.transaction("drafts").objectStore("drafts").getAll(); r.onsuccess = () => ok(r.result.length === 0); }; })),
+  "and forgets the image's draft on this device");
 
 // req/shell/ground-truth/pending: the Drive dialog marks the image as pending for the tagger
 const dialogTag = async () => {

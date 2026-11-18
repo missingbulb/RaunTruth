@@ -227,7 +227,7 @@ async function markAndVote(page) {
     await drag(page, await handle(page, "red", 0), 15, 20);
     const M = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
     const moved = Math.hypot(M.red[0][0] - L.red[0][0], M.red[0][1] - L.red[0][1]);
-    await check(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length.map((p) => p.map((v) => Math.round(v * 100) / 100))) && moved > 0.5,
+    await check(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length) && moved > 0.5,
       `a red end dragged off the axis slides along it (${moved.toFixed(1)} px), the green ends unmoved (${offAxis(M).toFixed(3)} px off)`);
   }
   await page.click("#task-card .verdict .down");
@@ -374,12 +374,20 @@ async function mask(page) {
   const { said, gt, after } = await download(page);
   await check(after === "gt-close", `after the export of a local image, which cannot be sent, Close turns blue (${after})`);
   await check(/have no vote/.test(said), `the popup names the finalists left without a verdict: "${said}"`);
-  const kinds = gt.labels.map((L) => (L.kind === "missing" ? "missing" : L.decision)).sort().join(",");
-  await check(gt.format === "norfinder-ground-truth/2" && kinds === "approved,missing,rejected" && undecided > 0,
-    `the file holds only the voted candidates and the mark (${kinds}; ${undecided} undecided left out)`);
-  const miss = gt.labels.find((L) => L.kind === "missing");
-  await check(miss.label === 1 && miss.radius_px > 0 && miss.origin === "added by user" && miss.width_px > 0 && miss.lines.width,
-    `an added NoR is a real NoR with its radius, its origin and its measurements (${miss.radius_px} px, ${miss.width_px.toFixed(1)} px wide)`);
+  // the file is the model (req/nor/downloads): the candidates that remain, listing each, the one approved marked; the added NoR with its
+  // approval; the one rejected absent, and read from the history
+  const total = await page.evaluate(() => st.order.length);
+  const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
+  await check(gt.format === "norfinder-ground-truth/3" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+    && gt.areas.length === 0 && gt.grid === 10 && undecided > 0 && !("labels" in gt),
+    `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
+  const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
+  const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);
+  const gone = out.cands.filter((c) => !gt.candidates.some((x) => x.id === c.id));
+  await check(gt.history.format === "rauntruth-gt-history/1" && kinds[0] === "open" && kinds.includes("add") && kinds.includes("approve") && kinds.includes("delete")
+    && gone.length === 1 && gt.history.actions.some((a) => a.type === "delete" && a.cand === gone[0].id) && out.cands.every((c) => /^c\d+$/.test(c.id) && !("blk" in c) && !("mask" in c)),
+    `the history holds the run, with no masks, and the delete of the rejected candidate ${gone[0]?.id} (${kinds.join(", ")})`);
+  await check(miss.id === "u1" && miss.lines.width && miss.lines.length && miss.lines.red, `an added NoR has its id and its lines (${miss.id})`);
   // one number per candidate, finalists and rejected alike, the added NoR after the found ones; the image,
   // the cards and the file all name a candidate by it
   const nums = await page.evaluate(() => {
@@ -390,8 +398,9 @@ async function mask(page) {
   const all = Array.from({ length: nums.found + 1 }, (_, k) => String(k + 1));
   await check(JSON.stringify([...nums.image].sort()) === JSON.stringify([...all].sort()), `the image numbers every candidate once, 1 to ${nums.found}, the added NoR ${nums.found + 1}`);
   await check(nums.cards.every(([n, shown]) => shown === "#" + n), "each card shows its candidate's number");
-  await check(miss.id === nums.found + 1 && gt.labels.every((L) => nums.at[L.id] && Math.hypot(nums.at[L.id][0] - L.x, nums.at[L.id][1] - L.y) < 1e-6),
-    `the file names each candidate by its number on the image, the added NoR by ${miss.id}`);
+  const mid = miss.lines.length[0].map((v, k) => (v + miss.lines.length[1][k]) / 2);
+  await check(gt.candidates.every((c) => nums.at[c.n] && Math.hypot(nums.at[c.n][0] - c.x, nums.at[c.n][1] - c.y) < 1e-6) && Math.hypot(nums.at[nums.found + 1][0] - mid[0], nums.at[nums.found + 1][1] - mid[1]) < 1e-6,
+    `the file names each candidate by its number on the image, the added NoR by ${nums.found + 1}`);
   await check(gt.image.location.source === "local", "the file says the image was local");
   await check(!("mask" in gt), "the file holds no mask");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
@@ -437,8 +446,8 @@ async function mask(page) {
   await page.mouse.click(...(await (async () => { const m = await middle(page); return [m.sx, m.sy]; })()), { button: "right" });
   await page.click("#ctx button");
   await mask(page);
-  const gt = await page.evaluate(() => nor.truth());
-  await check(gt.labels.length === 0 && !("mask" in gt), "the ground truth ignores the mask");
+  const gt = await page.evaluate(() => nor.document());
+  await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
   await sorting(page);
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");

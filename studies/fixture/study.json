@@ -49,6 +49,7 @@
     "count": "Counting…"
   },
   "groundTruth": {
+    "actions": "web/gt_actions.js"
   },
   "view": {
     "stretch": false

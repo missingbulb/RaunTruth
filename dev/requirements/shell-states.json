@@ -281,18 +281,62 @@
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
+                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
+                  "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
+                  ],
+                  "children": [
+                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
+                      "unwalked": "its parent is hidden in every path, no draft being on this device"},
+                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, no study's old store being offered"},
+                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
+                  ]
+                },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
                     {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
-                    {"name": "Continue tagging", "select": "#gt-continue", "control": true, "req": "req/shell/ground-truth/draft",
-                      "steady": "hidden for a study that takes no drafts, the only kind a path opens",
-                      "rule": [
-                        {"is": "hidden", "about": "for a study that takes no drafts"}
-                      ]
-                    },
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                       "children": [
+                        {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft",
+                              "steady": "hidden while no GT action is unsaved, which no path makes",
+                              "rule": [
+                                {"is": "hidden", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            }
+                          ]
+                        },
+                        {"name": "Show Edit History row", "select": "#gt-history-row", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Show Edit History", "select": "#gt-history-on", "control": true, "req": "req/shell/ground-truth/history"}
+                          ]
+                        },
+                        {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
+                          "rule": [
+                            {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                          ]
+                        },
                         {"name": "Submit Ground Truth", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                           "rule": [
                             {"when": {"counted": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
@@ -457,6 +501,18 @@
                     {"name": "Fold the minimap", "select": "#minimap-fold", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
+                  ]
+                },
+                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only a tagger has a log to show"},
+                    {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                  ],
+                  "children": [
+                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
+                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history"},
+                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history"},
+                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear"}
                   ]
                 },
                 {"name": "Keys legend", "select": "#keys-legend", "made": "by the shell, as the page starts", "req": "req/shell/image/keys",

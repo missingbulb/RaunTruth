@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11117.134">
+<meta name="version" id="site-version" title="version 0.11117.136">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -134,11 +134,11 @@
       <div class="sec-head"><h2>Ground Truth Tasks</h2></div>
       <div class="gt-access" hidden></div>
       <slot-here data-slot-for="tasks"></slot-here>
+      <div id="gt-offers" hidden><button id="gt-load-draft" type="button" hidden></button><button id="gt-load-legacy" type="button" hidden>Load earlier edits</button><button id="gt-load-submission" type="button" data-needs-network hidden></button></div>
       <div id="gt-list" hidden>
         <button id="gt-start" type="button" class="primary" title="Work through the tasks, one item at a time">Start GT tagging</button>
-        <button id="gt-continue" type="button" class="primary" hidden title="Back to your ground truth drafted on this image on this device">Continue GT tagging</button>
         <div id="gt-bar"></div>
-        <ol id="gt-tasks"><li data-task="submit"><div class="task-head"><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button><span class="gt-clear-slot"></span></div></li></ol>
+        <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled>Undo</button><button id="gt-redo" type="button" disabled>Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="edits" id="gt-history-row" hidden><label><input type="checkbox" id="gt-history-on" checked> Show Edit History</label></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled>Save Draft</button><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button></div></li></ol>
       </div>
     </section>
     <section class="box foldable study-box" id="summary-box" hidden>
@@ -185,6 +185,11 @@
         <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
         <div class="mm-body"><canvas id="minimap-canvas"></canvas><div id="minimap-view"></div></div>
       </div>
+      <section id="edit-history" class="float" aria-label="Edit History" hidden>
+        <div class="mm-head"><span class="mm-title">Edit History <small id="eh-count"></small></span><button id="eh-close" class="mm-btn" type="button" aria-label="Hide Edit History" title="Hide (Show Edit History in Ground Truth Tasks brings it back)"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+        <ol id="eh-list"></ol>
+        <div class="eh-foot"><span>Click a row to go back to it</span><button id="eh-clear" type="button" class="link">Clear all history…</button></div>
+      </section>
       <slot-here data-slot-for="over-image"></slot-here>
     </div>
 
@@ -302,6 +307,12 @@
     <p id="welcome-offline" class="hint"></p>
     <label class="hint"><input type="checkbox" id="welcome-remember"> Remember this choice</label>
   </form>
+</dialog>
+<dialog id="guide-dlg" aria-labelledby="guide-title">
+  <h2 id="guide-title"></h2>
+  <ol id="guide-steps"></ol>
+  <p class="hint" id="guide-wait" role="status"></p>
+  <div class="dlg-row end"><span class="grow"></span><button type="button" id="guide-cancel">Cancel</button><button type="button" id="guide-go" class="primary" autofocus></button></div>
 </dialog>
 <dialog id="usage-dlg" aria-labelledby="usage-title">
   <form method="dialog">

@@ -95,7 +95,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
   };`;
   const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "123456-stand.apps.googleusercontent.com" } };`;
-  const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
+  const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   // the studies' own Python, for the live studies' calls: one request a line, answered in turn
   let py = null;
   const waiting = [];
@@ -225,10 +225,10 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     scopes: "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file" };
   // scopes: what the signed-in user's token may do, in place of SIGNED_IN's; email: who is signed in, in place of the
   // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
-  // named; study: what its study.json says otherwise for this page (its stage, say); prepare(ctx): routes of a
+  // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
   // driver's own, taking precedence over these
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare } = {}) {
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1 } = {}) {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
     await ctx.route("https://www.googleapis.com/**", google);
     await ctx.route(DRIVE_THUMB + "*", (r) => {
       thumbs.push(FILES.find((f) => r.request().url().endsWith(f.id))?.name);

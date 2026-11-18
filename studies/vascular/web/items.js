@@ -5,6 +5,7 @@
 // also put its item in the 3D view. The items and their pictures are the ground-truth tasks' too.
 import * as Mo from './model.js';
 import * as MV from './model_view.js';
+import { build as buildItems, SAMPLES, CROWD_UM } from './model_items.js';
 
 // the shell's 3D view (viewer3d.js `three`)
 let V = null;
@@ -12,8 +13,6 @@ let V = null;
 const $ = (id) => document.getElementById(id);
 const CARD_PX = 168;           // a card's picture, CSS pixels square
 const MIN_HALF_UM = 12;        // the least the picture shows around its item, each way
-const SAMPLES = 8;             // curve samples per segment, for lengths and drawing
-const CROWD_UM = 20;           // how near another junction must be to count as crowding
 // the model in magenta and the item in white: neither is a colour the depth scale gives the stack
 const MODEL = 'rgba(255,79,216,.75)', ITEM = '#fff';
 // how much a low-confidence vessel is faded against a confident one
@@ -25,38 +24,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : '–');
 
 // ---------- the items and their numbers ----------
-// {junctions, vessels} of model m: each vessel an edge with its segments, its path, the state the extractor proposed
-// for it (none when the owner drew it) and its numbers; each junction a point where three or more live edges meet
-export function build(m) {
-  if (!m) return { junctions: [], vessels: [] };
-  const deg = Mo.degrees(m), all = Mo.degrees(m, Mo.live);
-  const zum = V.S.zs;   // µm per slice, as the view draws it
-  const vessels = Mo.edges(m).map((e, k) => {
-    let len = 0, rs = [];
-    const path = e.segments.flatMap((i, j) => {
-      const s = m.segments[i], pts = Mo.sampleSegment(m, i, SAMPLES);
-      // a segment may run against its edge's direction
-      return (s.a === e.ids[j] ? pts : pts.reverse()).slice(j ? 1 : 0);
-    });
-    for (let i = 1; i < path.length; i++) {
-      const a = path[i - 1], b = path[i];
-      len += Math.hypot(b.x - a.x, b.y - a.y, (b.z - a.z) * zum);
-    }
-    for (const p of path) if (Number.isFinite(p.r)) rs.push(2 * p.r);
-    const end = (id) => ((all.get(id) || 0) >= 3 ? 'junction' : (all.get(id) || 0) === 1 ? 'tip' : 'point');
-    return { n: k + 1, ids: e.ids, segments: e.segments, state: e.state, proposed: e.proposed, confidence: e.confidence, path, length: len,
-      width: rs.length ? rs.reduce((a, b) => a + b) / rs.length : null, wmin: rs.length ? Math.min(...rs) : null, wmax: rs.length ? Math.max(...rs) : null,
-      ends: [end(e.ids[0]), end(e.ids.at(-1))] };
-  });
-  const junctions = [...all].filter(([, d]) => d >= 3).map(([id, d]) => {
-    const n = m.nodes.get(id), confirmedDeg = deg.get(id) || 0;
-    return { id, x: n.x, y: n.y, z: n.z, r: n.r, branches: d, pending: confirmedDeg < 3 || confirmedDeg !== d,
-      neighbours: Mo.neighbours(m, id) };
-  });
-  // how crowded each junction's surroundings are: many junctions close together hints the trace went wrong there
-  for (const j of junctions) j.crowd = junctions.filter((o) => o !== j && Math.hypot(o.x - j.x, o.y - j.y) < CROWD_UM).length;
-  return { junctions, vessels };
-}
+// {junctions, vessels} of model m (model_items.js), the slice spacing as the view draws it
+export const build = (m) => buildItems(m, V.S.zs);
 
 function visible() {
   let list = items[kind];
@@ -185,24 +154,20 @@ function card(m, it) {
       `<dt>Width</dt><dd>${it.width == null ? 'not in the model' : `${fmt(it.width)} µm <span class="dim">(${fmt(it.wmin)}–${fmt(it.wmax)})</span>`}</dd>` +
       `<dt>Depth</dt><dd>slices ${fmt(Math.min(...z) + 1, 0)}–${fmt(Math.max(...z) + 1, 0)}</dd></dl>`;
     if (it.state === 'candidate') {
-      actions.append(button('Approve', () => MV.edit(Mo.review(MV.current(), it.segments[0], 'accepted')), 'yes'),
-        button('Decline', () => MV.edit(Mo.review(MV.current(), it.segments[0], 'rejected')), 'no'));
+      const [first] = MV.ids(it.segments);
+      actions.append(button('Approve', () => MV.act({ type: 'review', segment: first, verdict: 'accepted' }), 'yes'),
+        button('Decline', () => MV.act({ type: 'review', segment: first, verdict: 'rejected' }), 'no'));
     }
     actions.append(button('Show in 3D', () => { select(key); MV.frame(it.ids); show3d(); }));
-    if (it.state !== 'rejected') actions.append(button('Delete', () => {
-      let o = MV.current();
-      // later segments first, so the earlier indices stay valid
-      for (const i of [...it.segments].sort((a, b) => b - a)) o = Mo.deleteSegment(o, i);
-      MV.edit(o);
-    }));
+    if (it.state !== 'rejected') actions.append(button('Delete', () => MV.act({ type: 'delete-segment', segments: MV.ids(it.segments) })));
     requestAnimationFrame(() => V.meta && vesselPicture(cv, m, it));
   } else {
-    body.innerHTML = `<div class="card-head"><b>Junction ${it.id}</b>${it.pending ? ' <span class="chip candidate">Waits on review</span>' : ''}</div>` +
+    body.innerHTML = `<div class="card-head"><b>Junction ${Mo.pointName(it.id)}</b>${it.pending ? ' <span class="chip candidate">Waits on review</span>' : ''}</div>` +
       `<div class="dim">${it.branches} branches</div>` +
       `<dl><dt>Depth</dt><dd>slice ${fmt(it.z + 1)}</dd><dt>Width</dt><dd>${Number.isFinite(it.r) ? `${fmt(2 * it.r)} µm` : 'not in the model'}</dd>` +
       `<dt>Nearby</dt><dd class="${it.crowd ? 'warn' : ''}">${it.crowd ? `${it.crowd} other junction${it.crowd === 1 ? '' : 's'} within ${CROWD_UM} µm` : `no other junction within ${CROWD_UM} µm`}</dd></dl>`;
     actions.append(button('Side view', () => { select(key); MV.lookAt(it.id); show3d(); }),
-      button('They cross: split', () => MV.edit(Mo.splitJunction(MV.current(), it.id, V.S.zs))));
+      button('They cross: split', () => MV.act({ type: 'split-junction', node: it.id, zScale: V.S.zs })));
     requestAnimationFrame(() => V.meta && junctionPicture(cv, m, it));
   }
   body.append(actions);
