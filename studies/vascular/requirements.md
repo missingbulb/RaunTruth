@@ -138,7 +138,16 @@ owner's decisions on the stacks and the vessel model, are
   in an area's widths step the grey picture with the widths. So 2 there is the grey picture alone, 3 the grey picture
   with the widths beside the model, and 4 the area in colour in 3D; on the whole stack or in an area 2 is the stack
   without the lines, 3 the stack beside the model, and 4 the grey picture with the widths. The grey picture never turns,
-  and letting go turns the view back as it was. Cut out what is done has no key: its Show menu row switches it
+  and letting go turns the view back as it was. Changed by the owner on 2026-11-18, each number is a shortcut for
+  "behave, while held, as if its button were toggled", whatever the view: the views are four toggles, Model, No
+  markings and Side by side (at most one of the three on; none on is the model over the picture) and 3D | 2D, the same
+  four in the Show menu and in the keys legend, in that order, a click on either keeping one on or off for both. A held
+  number flips its toggle over what is kept, so holding the number of a view already on turns it off until let go;
+  numbers held together apply in the order pressed. Each toggle is filled blue while its view is the one on screen,
+  3D | 2D as two halves with the one shown filled, and a toggle whose number is held carries a dashed ring, unfilled
+  with a blue border when holding it turns its view off. In 2D, Model is the model alone from straight above. With
+  nothing toggled the step's own view shows: 3D on the whole stack and in an area, 2D in an area's widths step;
+  each opens with nothing toggled, and the whole stack's toggles are back once an area is left. Cut out what is done has no key: its Show menu row switches it
   while tagging on the whole stack (`req/vascular/truth/marks`). A digit is read by its place, on the number row or the number pad, never while typing in a field or with a menu or dialog open,
   never with Ctrl, Alt or ⌘. Vessel widths, Detected and Missed have no key. While an area of the
   Ground Truth Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
@@ -288,7 +297,7 @@ owner's decisions on the stacks and the vessel model, are
   never a taper: two lines at that width either side of it, stopping short of its ends, and the width in µm beside its
   middle. Magenta is the algorithm's estimate, nobody has checked; amber one the person set; a vessel the person drew
   shows a "?" until it has a width. This is the step's own view (`req/vascular/model/view`): holding a number shows
-  another view of the area, 2 the grey picture alone, 3 the grey picture beside the model, 4 the model's lines over the
+  another view of the area, 1 the model alone from straight above, 2 the grey picture alone, 3 the grey picture beside the model, 4 the model's lines over the
   stack in colour in 3D, turning as anywhere, with the selected vessel marked, and letting go gives it back, the
   selection kept. Resting the pointer on a vessel opens a lens beside it: the stack's own pixels there, the mean of
   about three slices at the vessel's depth, a line across the vessel and the brightness along that line, half its

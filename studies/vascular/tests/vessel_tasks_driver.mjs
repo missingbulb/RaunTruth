@@ -86,7 +86,7 @@ try {
   const before = await page.evaluate(() => ({ model: !$("#vm-review").hidden, tasks: !$("#vm-tasks").hidden,
     modes: [...document.querySelectorAll("#model-mode button")].filter((b) => !b.disabled).map((b) => b.dataset.v),
     switch: !$("#switch").hidden, items: !!$("#items-view") && !$("#items-view").hidden }));
-  check(!before.model && !before.tasks && before.modes.join() === "image", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
+  check(!before.model && !before.tasks && before.modes.join() === "", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
   await page.selectOption("#algorithm", "v4");
@@ -95,12 +95,12 @@ try {
   const ran = await doc();
   check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
     `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
-  check(await page.evaluate(() => $('#model-mode [data-v="overlay"]').getAttribute("aria-pressed") === "true"), "the model opens over the stack");
+  check(await page.evaluate(() => window.vascular.model().view === "overlay"), "the model opens over the stack");
   check(await page.evaluate(() => !!($("#model-set").compareDocumentPosition($("#tasks-box")) & Node.DOCUMENT_POSITION_FOLLOWING) && !$("#tasks-box").hidden && !$("#vm-tasks").hidden),
     "Ground Truth Tasks sits under Processing once a model is open");
 
   const view = () => page.evaluate(() => { const v = window.shellForTests.viewer.three; return { rot: v.S.rot.map((r) => [...r]), clip: v.S.clip && [...v.S.clip], held: !!v.S.held,
-    mode: $("#model-mode [aria-pressed=true]")?.dataset.v, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
+    mode: window.vascular.model().view, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
     cut: { on: $("#m-cut").checked, off: $("#m-cut").disabled }, start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null }; });
   // req/shell/ground-truth/tagging: Execute leaves the stack in view; nothing opens until Start GT tagging
   let t = await tasks(), v = await view();
