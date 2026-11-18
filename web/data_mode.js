@@ -1,4 +1,4 @@
-// Data Management (req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
+// Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
 // req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the Study Manager role's
 // view, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
 // left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
@@ -140,7 +140,8 @@ export function dataMode(ctx) {
       for (const f of imagesOf(n)) {
         const own = tagsDoc.images[f.id] || {};
         images.push({ id: f.id, name: f.name, folder: n.id, path: here, size: f.size, sha: f.sha, modified: f.modified,
-          tags: effective(own.tags || [], held), ...(own.description ? { description: own.description } : {}) });
+          tags: effective(own.tags || [], held), ...(own.description ? { description: own.description } : {}),
+          ...(own.damaged?.length ? { damaged: own.damaged } : {}), ...(own.interest?.length ? { interest: own.interest } : {}) });
       }
       for (const c of n.folders) walk(c, here, held);
     };
@@ -205,10 +206,47 @@ export function dataMode(ctx) {
     $("#tags-list").replaceChildren(...own.map((t) => chip(t)), ...given);
     $("#tags-desc-row").hidden = !image;
     if (image && document.activeElement !== $("#tags-desc")) $("#tags-desc").value = tagsDoc.images[c.id]?.description || "";
+    drawAreas();
   }
+  // the image's damaged areas and area of interest, marked on the image itself, never on its preview
+  function drawAreas() {
+    const c = chosen, image = c?.kind === "image", open = image && ctx.originalOpen(c.id), own = image ? tagsDoc.images[c.id] || {} : {};
+    $("#areas").hidden = !image;
+    if (!image) return;
+    const n = (k, one) => (own[k]?.length ? (own[k].length === 1 ? `1 ${one}` : `${own[k].length} ${one}s`) : "none");
+    $("#areas-damaged-count").textContent = n("damaged", "damaged area");
+    $("#areas-interest-count").textContent = n("interest", "area");
+    for (const [k, b] of [["damaged", "#areas-damaged-mark"], ["interest", "#areas-interest-mark"]]) {
+      $(b).disabled = !open; $(b).title = open ? "" : "Load Original first: areas are marked on the image itself, not its preview";
+      $(b.replace("mark", "clear")).hidden = !own[k]?.length;
+    }
+    $("#areas-hint").hidden = open;
+  }
+  const areasOf = (id) => ({ damaged: tagsDoc.images[id]?.damaged || [], interest: tagsDoc.images[id]?.interest || [] });
+  function markArea(k) {
+    const c = chosen;
+    if (c?.kind !== "image" || !ctx.originalOpen(c.id)) return;
+    ctx.lasso((pts) => {
+      if (chosen?.id !== c.id) return;
+      const next = withImage(tagsDoc, c.id, { [k]: [...(tagsDoc.images[c.id]?.[k] || []), pts] });
+      ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
+      saveTags(next, k === "damaged" ? "Damaged area marked." : "Area of interest marked.");
+    }, k === "damaged" ? "Drag around the damaged area · Esc cancels" : "Drag around the area of interest · Esc cancels");
+  }
+  function clearAreas(k) {
+    const c = chosen;
+    if (c?.kind !== "image") return;
+    const next = withImage(tagsDoc, c.id, { [k]: [] });
+    ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
+    saveTags(next);
+  }
+  $("#areas-damaged-mark").onclick = () => markArea("damaged");
+  $("#areas-interest-mark").onclick = () => markArea("interest");
+  $("#areas-damaged-clear").onclick = () => clearAreas("damaged");
+  $("#areas-interest-clear").onclick = () => clearAreas("interest");
   const withImage = (doc, id, change) => {
     const was = doc.images[id] || {}, next = { ...was, ...change };
-    if (!next.tags?.length) delete next.tags;
+    for (const k of ["tags", "damaged", "interest"]) if (!next[k]?.length) delete next[k];
     if (!next.description) delete next.description;
     const images = { ...doc.images };
     if (Object.keys(next).length) images[id] = next; else delete images[id];
@@ -673,6 +711,8 @@ export function dataMode(ctx) {
   });
 
   return {
+    // an image opened: whether the Tags box may mark its areas
+    opened() { if (on()) drawTags(); },
     // a study comes in (or the user signs in or out): who may do what in it
     mount(m) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were

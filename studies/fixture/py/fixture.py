@@ -37,7 +37,21 @@ def read_png(data):
     return W, H, bytes(out)
 
 
+def inside(poly, x, y):
+    """Whether x, y lies inside the polygon [[x, y], ...]: a ray from it crosses the border an odd number of times."""
+    k, j = False, len(poly) - 1
+    for i in range(len(poly)):
+        (xi, yi), (xj, yj) = poly[i], poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            k = not k
+        j = i
+    return k
+
+
 class Session:
+    # the Study Manager's damaged areas, set by the page before each call: a pixel whose centre lies in one is not counted
+    damaged = []
+
     def __init__(self, path):
         with open(path, 'rb') as f:
             self.W, self.H, self.px = read_png(f.read())
@@ -45,6 +59,8 @@ class Session:
     def call(self, action, args):
         if action == 'count':
             t, at = args['threshold'], args['algorithm'] == 'from'
-            above = bytes(1 if v > t or (at and v == t) else 0 for v in self.px)
+            W, damaged = self.W, self.damaged
+            ok = lambda i: not damaged or not any(inside(p, i % W + 0.5, i // W + 0.5) for p in damaged)
+            above = bytes(1 if (v > t or (at and v == t)) and ok(i) else 0 for i, v in enumerate(self.px))
             return json.dumps(dict(count=sum(above))), above
         raise ValueError(f'unknown action {action!r}')
