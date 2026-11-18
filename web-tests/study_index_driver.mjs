@@ -1,5 +1,6 @@
 // Drives a study's listed folders, its study index, its tags and hiding (req/shell/data/folders, req/shell/data/index,
-// req/shell/data/tags, req/shell/data/hidden, req/shell/load/study-images) in headless Chromium on the fixture study, against the stand-in Google of
+// req/shell/data/tags, req/shell/data/hidden, req/shell/load/study-images, req/shell/data/damaged,
+// req/shell/data/area-of-interest) in headless Chromium on the fixture study, against the stand-in Google of
 // stand_in_drive.mjs serving ROOT: a Data folder the study file names, a subfolder in it, and an Other folder.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
@@ -172,4 +173,68 @@ await page.waitForFunction(() => document.querySelectorAll("#remote-list .item")
 const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
+await page.context().close();
+
+// the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): marked on the image itself, kept
+// in the tags file and the index; a viewer sees both, the summary starts as the area of interest, Python is handed the
+// damaged ones, and a mask of the viewer's own is warned of
+const masked = { summary: { mask: true } };
+// a lasso around the image's part from (x0, y0) to (x1, y1), in its pixels
+const lasso = async (x0, y0, x1, y1) => {
+  const pts = await page.evaluate(([x0, y0, x1, y1]) => {
+    const r = $("#base").getBoundingClientRect(), at = (x, y) => [r.left + x * st.zoom, r.top + y * st.zoom];
+    return [at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1)];
+  }, [x0, y0, x1, y1]);
+  await page.mouse.move(...pts[0]); await page.mouse.down();
+  for (const p of [...pts.slice(1), pts[0]]) await page.mouse.move(...p, { steps: 6 });
+  await page.mouse.up();
+};
+page = await open(true, { study: masked });
+await role(page, "Study Manager");
+await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
+await settled(page);
+await chooseImage("Data", "acme.png");
+await page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }).catch(() => {});
+await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open, its areas can be marked");
+let tf = tagFiles.length;
+await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
+for (let k = 0; k < 50 && tagFiles.length === tf; k++) await frames(page);
+tf = tagFiles.length;
+await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
+for (let k = 0; k < 50 && tagFiles.length === tf; k++) await frames(page);
+for (let k = 0; k < 50 && !imageOf(indexes.at(-1), "acme.png")?.interest; k++) await frames(page);
+const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
+await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
+  "a damaged area and the area of interest go into the tags file, the image's description kept", acmeAreas);
+await check(imageOf(indexes.at(-1), "acme.png")?.damaged?.length === 1 && imageOf(indexes.at(-1), "acme.png")?.interest?.length === 1, "and into the index", imageOf(indexes.at(-1), "acme.png"));
+await check(/1 damaged area/.test(await page.textContent("#areas-damaged-count")), "the Tags box counts the damaged areas", await page.textContent("#areas-damaged-count"));
+await shoot("#tags-box", "areas-box.png");
+await page.context().close();
+
+page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => {
+  window.posted = [];
+  const send = Worker.prototype.postMessage;
+  Worker.prototype.postMessage = function (m, t) { window.posted.push(m); return send.call(this, m, t); };
+}) });
+await page.click("#load-remote");
+await page.waitForSelector('#remote-list .item:has(.name:text-is("acme.png"))');
+await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
+await page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }).catch(() => {});
+const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));
+await check(marks.damaged === 1 && marks.interest === 1, "a viewer sees the damaged area marked and the area of interest outlined", marks);
+await page.click("#fx-count");
+await page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }).catch(() => {});
+const sent = await page.evaluate(() => window.posted.filter((m) => m.type === "call").at(-1)?.damaged);
+await check(sent?.length === 1 && sent[0].length >= 4, "Python is handed the image's damaged areas with each call", sent);
+const maskNow = () => page.evaluate(() => ({ n: window.shellForTests.mask.polygons().length, warned: !$("#mask-warning").hidden, middle: window.shellForTests.mask.inside(40, 40), damaged: window.shellForTests.mask.inside(10, 10), out: window.shellForTests.mask.inside(62, 62) }));
+let m = await maskNow();
+await check(m.n === 1 && !m.warned && m.middle && !m.damaged && !m.out, "the summary counts inside the area of interest, the damaged area left out, with no warning", m);
+await shoot("#image-view", "viewer-areas.png");
+await page.click("#mask-add"); await lasso(30, 30, 50, 50);
+m = await maskNow();
+await check(m.warned && /not set by the study/.test(await page.textContent("#mask-warning")), "a mask of the viewer's own is warned of at the view's bottom", [m, await page.textContent("#mask-warning")]);
+await shoot("#image-view", "own-mask.png");
+await page.click("#mask-clear");
+m = await maskNow();
+await check(m.n === 1 && !m.warned && m.middle, "Clear mask goes back to the study's area of interest", m);
 await done(0);

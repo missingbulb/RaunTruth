@@ -1,11 +1,12 @@
 """A study's own Python answering the page's calls for a stand-in worker (stand_in_drive.mjs), as the real worker's
-bridge would (lab/README.md): one request a line on stdin, {id, name, bytes, action, args}, the file opened with the
+bridge would (lab/README.md): one request a line on stdin, {id, name, bytes, action, args, damaged}, the file opened with the
 study's read (its study.json names the entry module), `run` running one of its VERSIONS and any other action one of
 its STAGES on the last run's answer, answered with one line on stdout, {meta, bytes} or {error}, the answer's arrays
 as bytes one after the other. Each file is opened once and kept for the calls after it."""
 import base64
 import hashlib
 import importlib
+import inspect
 import json
 import os
 import sys
@@ -61,9 +62,16 @@ def encode(x):
 def answer(m):
     s, study, args = session(m['id'], m['name'], base64.b64decode(m['bytes'])), module(m['id']), dict(m.get('args') or {})
     if m['action'] == 'run':
-        s['answer'] = out = drive(study.VERSIONS[args.pop('algorithm')](s['image'], **args), Services(Study(m['id'])))
+        fn, before = study.VERSIONS[args.pop('algorithm')], (s['image'],)
     else:
-        out = drive(study.STAGES[m['action']](s['image'], s['answer'], **args), Services(Study(m['id'])))
+        fn, before = study.STAGES[m['action']], (s['image'], s['answer'])
+    # the damaged areas reach a version or stage that takes them, as the bridge hands them
+    ps = inspect.signature(fn).parameters.values()
+    if any(p.name == 'damaged' or p.kind == p.VAR_KEYWORD for p in ps):
+        args['damaged'] = m.get('damaged') or []
+    out = drive(fn(*before, **args), Services(Study(m['id'])))
+    if m['action'] == 'run':
+        s['answer'] = out
     meta, data = encode(out)
     return {'meta': meta, 'bytes': base64.b64encode(data).decode() if data is not None else None}
 

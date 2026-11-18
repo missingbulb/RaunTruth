@@ -3,7 +3,10 @@
 // It runs the same contract the lab runs (lab/README.md): the image file opened with study.read, `run` running one
 // of study.VERSIONS on it, any other action one of study.STAGES on the last run's answer, which stays in Python.
 // The page reads and shows the image itself; Python is handed the file's own bytes only for the study's algorithms.
-// Messages in: open {name, bytes}, call {action, args, echo}, reply {value, bytes} (a service's answer), close.
+// Messages in: open {name, bytes}, call {action, args, echo, damaged}, reply {value, bytes} (a service's answer), close.
+// A call's damaged areas, the Study Manager's outlines in the image's pixels ([[[x, y], ...], ...], none for an image
+// with none), reach a version or stage that takes `damaged`, for the study to leave out as it decides
+// (req/shell/data/damaged).
 // Messages out: progress {text}, held {}, ask {service, meta, bytes, echo} (a version asking the page for a service
 // its environment has), result {action, meta, bytes, echo}. An answer's arrays travel as bytes, one after the other;
 // in meta each is {$bytes: [offset, length], dtype, shape}.
@@ -47,21 +50,32 @@ def _decode(meta, data):
     return walk(json.loads(meta))
 
 
+def _takes(fn, name):
+    try:
+        ps = _inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(p.name == name or p.kind == p.VAR_KEYWORD for p in ps)
+
+
 class _Held:
     """The image open in Python, the last run's answer, and a version still waiting on a service."""
 
     def __init__(self, path):
         self.image, self.answer, self.going = study.read(path), None, None
 
-    def start(self, action, args):
+    def start(self, action, args, damaged):
         if action == 'run':
             # the last answer let go first, so two are never held at once
             self.answer = None
-            r = study.VERSIONS[args.pop('algorithm')](self.image, **args)
+            fn, before = study.VERSIONS[args.pop('algorithm')], (self.image,)
         elif action in getattr(study, 'STAGES', {}):
-            r = study.STAGES[action](self.image, self.answer, **args)
+            fn, before = study.STAGES[action], (self.image, self.answer)
         else:
             raise ValueError(f'unknown action {action!r}')
+        if _takes(fn, 'damaged'):
+            args['damaged'] = damaged
+        r = fn(*before, **args)
         self.ran = action == 'run'
         if _inspect.isgenerator(r):
             self.going = r
@@ -111,7 +125,8 @@ export function bridge(py, post, progress = {}, working = (fn) => fn()) {
       say(progress[m.action]);
       py.globals.set("action", m.action);
       py.globals.set("args", JSON.stringify(m.args ?? {}));
-      let r = out(working(() => py.runPython("S.start(action, json.loads(args))")));
+      py.globals.set("damaged", JSON.stringify(m.damaged ?? []));
+      let r = out(working(() => py.runPython("S.start(action, json.loads(args), json.loads(damaged))")));
       // a version asking for a service: the page answers it, and the version goes on from there
       while (r.kind === "ask") {
         const reply = new Promise((ok, no) => { waiting = { ok, no }; });

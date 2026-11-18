@@ -2,7 +2,8 @@
 // nothing of: a PNG's own bytes read by the study's read, and one of its versions run on it, must come back as the
 // study answered them (the page reads and shows the image itself). Then a study made up here, acme: a version that
 // asks the page for a service and goes on with its answer, and a stage run on the last answer, which stays in Python.
-// Exits 1 on a wrong answer, 2 when it cannot run. Run by tests/test_study_runs.py.
+// The damaged areas a call carries must reach a version that takes them. Exits 1 on a wrong answer, 2 when it cannot
+// run. Run by tests/test_study_runs.py.
 //   node web-tests/study_bridge_driver.mjs IMAGE.png
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -38,6 +39,11 @@ const r = (await ask({ type: "call", action: "run", args: { algorithm: "above", 
 if (!r || r.action !== "run" || r.echo !== 7 || r.meta.count !== 400 || r.bytes.length !== 80 * 60 || r.bytes.reduce((a, b) => a + b, 0) !== 400
     || JSON.stringify(r.meta.above) !== JSON.stringify({ $bytes: [0, 80 * 60], dtype: "uint8", shape: [80 * 60] }))
   problems.push(`run: ${JSON.stringify(r && { action: r.action, echo: r.echo, meta: r.meta })}`);
+// req/shell/data/damaged: the damaged areas a call carries reach a version that takes them, and a call with none has
+// none left over
+const damaged = (await ask({ type: "call", action: "run", args: { algorithm: "above", threshold: 128 }, damaged: [[[9, 9], [21, 9], [21, 21], [9, 21]]] })).find((m) => m.type === "result");
+const again = (await ask({ type: "call", action: "run", args: { algorithm: "above", threshold: 128 } })).find((m) => m.type === "result");
+if (damaged?.meta.count !== 300 || again?.meta.count !== 400) problems.push(`damaged: ${damaged?.meta.count} then ${again?.meta.count}, not 300 then 400`);
 console.log(`held, counted ${r?.meta.count}`);
 
 // acme: its one version asks the page to read the image's size aloud, twice, and answers with what it heard

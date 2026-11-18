@@ -17,7 +17,7 @@ def folder(path):
     """The study's root: a Data folder with a subfolder, and an Other folder no listed folder holds."""
     for d in ('Data/sub', 'Other'):
         os.makedirs(path / d)
-    img = Image.fromarray(np.zeros((16, 16, 3), np.uint8))
+    img = Image.fromarray(np.zeros((64, 64, 3), np.uint8))
     for f in ('Data/acme.png', 'Data/sub/beta.png', 'Other/gamma.png'):
         img.save(path / f)
 

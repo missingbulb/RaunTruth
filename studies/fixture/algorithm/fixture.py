@@ -39,15 +39,28 @@ def read(path):
         return read_png(f.read())
 
 
-def _count(image, threshold, at):
+def inside(poly, x, y):
+    """Whether x, y lies inside the polygon [[x, y], ...]: a ray from it crosses the border an odd number of times."""
+    k, j = False, len(poly) - 1
+    for i in range(len(poly)):
+        (xi, yi), (xj, yj) = poly[i], poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            k = not k
+        j = i
+    return k
+
+
+def _count(image, threshold, at, damaged):
+    """damaged: the Study Manager's damaged areas; a pixel whose centre lies in one is not counted."""
     W, H, px = image
-    above = bytes(1 if v > threshold or (at and v == threshold) else 0 for v in px)
+    ok = lambda i: not damaged or not any(inside(p, i % W + 0.5, i // W + 0.5) for p in damaged)
+    above = bytes(1 if (v > threshold or (at and v == threshold)) and ok(i) else 0 for i, v in enumerate(px))
     return dict(threshold=threshold, count=sum(above), above=above)
 
 
 VERSIONS = {
-    'above': lambda image, threshold=128: _count(image, threshold, False),
-    'from': lambda image, threshold=128: _count(image, threshold, True),
+    'above': lambda image, threshold=128, damaged=(): _count(image, threshold, False, damaged),
+    'from': lambda image, threshold=128, damaged=(): _count(image, threshold, True, damaged),
 }
 
 SCORING = """- The answer's count against the ground truth's count, each pixel counted once

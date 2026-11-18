@@ -87,7 +87,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     // a study ANSWERS names as live answers from its own Python, on the file it was handed last
     else if (m.type === "call" && A.live?.includes(id)) {
       let s = ""; for (let k = 0; k < self.lastOpen.bytes.length; k += 32768) s += String.fromCharCode(...self.lastOpen.bytes.subarray(k, k + 32768));
-      const r = await (await fetch("/py", { method: "POST", body: JSON.stringify({ id, name: self.lastOpen.name, bytes: btoa(s), action: m.action, args: m.args }) })).json();
+      const r = await (await fetch("/py", { method: "POST", body: JSON.stringify({ id, name: self.lastOpen.name, bytes: btoa(s), action: m.action, args: m.args, damaged: m.damaged }) })).json();
       if (r.error) throw new Error(r.error);
       const b = r.bytes == null ? null : bytes(r.bytes);
       postMessage({ type: "result", action: m.action, meta: r.meta, bytes: b, echo: m.echo }, b ? [b.buffer] : []);

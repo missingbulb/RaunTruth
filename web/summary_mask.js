@@ -2,7 +2,9 @@
 // study's summary counts. The shell draws, keeps and shows it; the study reads its outlines and decides what lies
 // inside. Only a study whose study.json says it can count inside a mask (summary.mask) is offered it. On a flat image the
 // lasso is drawn on the image; on a stack shown in 3D, on the stack seen from straight above, through every slice.
-// Outlines are [[x, y], ...] in the image's pixels.
+// Outlines are [[x, y], ...] in the image's pixels. The Study Manager's areas of the image (req/shell/data/damaged,
+// req/shell/data/area-of-interest) are drawn here too, whoever views it: its damaged areas, which no summary counts,
+// and its area of interest, which the summary starts from; a mask of the viewer's own in its place is warned of.
 const svgEl = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
 
 // whether x, y lies inside one polygon: a ray from it crosses the border an odd number of times
@@ -34,7 +36,8 @@ function complex(mask) {
 // $: the page's lookup; viewer(): the viewer on show; image(): the image open ({W, H, Z}); study(): its study.json;
 // shows(): whether the summary shows now; drag, readJSON, writeJSON and views: the shell's
 export function summaryMask({ $, viewer, image, fileName, study, shows, drag, readJSON, writeJSON, views }) {
-  let mask = [], key = null, lasso = null, over3d = null, listening = false;
+  // owned: the Study Manager's areas of the image open; mine: whether the mask is the viewer's own, kept on this device
+  let mask = [], key = null, lasso = null, over3d = null, listening = false, owned = { damaged: [], interest: [] }, mine = false;
   const heard = [];
   const offered = () => study()?.summary?.mask === true;
   const three = () => viewer()?.three;
@@ -46,10 +49,14 @@ export function summaryMask({ $, viewer, image, fileName, study, shows, drag, re
     const on = offered();
     $("#mask-row").hidden = !on;
     $("#mask-add").disabled = !on || !image();
-    $("#mask-clear").hidden = !mask.length;
+    $("#mask-clear").hidden = !mine || (!mask.length && !owned.interest.length);
+    $("#mask-clear").textContent = owned.interest.length ? "Use the study's area" : "Clear mask";
+    $("#mask-warning").hidden = !(on && mine && image() && shows());
   }
   function changed() { controls(); draw(); for (const fn of heard) fn(mask); }
-  function set(next) { mask = next; if (key) writeJSON(key, mask); changed(); }
+  function set(next) { mask = next; mine = true; if (key) writeJSON(key, mask); changed(); }
+  // the viewer's own mask let go: the study's area of interest again, else the whole image
+  function unset() { mine = false; mask = owned.interest.map((p) => p.map((q) => [...q])); if (key) try { localStorage.removeItem(key); } catch { /* the mask stays as it is shown */ } changed(); }
 
   // ---------- drawing: on the flat image in its own pixels, over the 3D view following it as it turns ----------
   function draw() {
@@ -57,6 +64,7 @@ export function summaryMask({ $, viewer, image, fileName, study, shows, drag, re
     // the layer only while there is something to draw on it: a page with no mask is as it was
     v.overlay?.querySelector(':scope > g[data-layer="summary-mask"]')?.remove();
     over3d?.replaceChildren();
+    drawAreas(v);
     const live = lasso?.pts;
     if (!image() || (!mask.length && !live) || (!shows() && !live)) return;
     if (stack()) {
@@ -80,15 +88,40 @@ export function summaryMask({ $, viewer, image, fileName, study, shows, drag, re
     if (live) g.append(svgEl("polyline", { class: "lasso-live", points: live.map((q) => q.join(",")).join(" ") }));
   }
 
+  // the Study Manager's areas, whether the summary shows or not: damaged ones darkened, the area of interest outlined
+  function drawAreas(v) {
+    v.overlay?.querySelector(':scope > g[data-layer="study-areas"]')?.remove();
+    if (!image() || (!owned.damaged.length && !owned.interest.length)) return;
+    const shapes = (path) => {
+      const g = svgEl("g", { class: "study-areas" });
+      for (const p of owned.interest) { const d = path(p); g.append(svgEl("path", { class: "interest under", d }), svgEl("path", { class: "interest", d })); }
+      for (const p of owned.damaged) g.append(svgEl("path", { class: "damaged", d: path(p) }));
+      return g;
+    };
+    if (stack()) {
+      if (!over3d) over3d = svgEl("svg", { id: "mask-3d" });
+      if (!listening) { listening = true; three().onDraw(draw); }
+      if (over3d.parentNode !== three().stage) three().stage.append(over3d);
+      const path = (pts) => { const q = pts.map((p) => three().toScreen(...p)); return q.every(Boolean) ? "M" + q.map((x) => x.join(" ")).join("L") + "Z" : ""; };
+      over3d.prepend(shapes(path));
+      return;
+    }
+    v.layer("study-areas").append(shapes((p) => "M" + p.map((q) => q.join(" ")).join("L") + "Z"));
+  }
+
   // ---------- Add mask: the whole image in view, from straight above on a stack, then a lasso by dragging ----------
-  function start() {
-    if (!offered() || !image()) return;
+  // done(points): a lasso the Study Manager draws for one of the image's areas, in place of the summary's mask
+  const HINT = "Drag around the area to count · Esc cancels";
+  function start(done, hint) {
+    if ((!done && !offered()) || !image()) return;
+    $("#lasso-hint").textContent = done ? hint : HINT;
     views?.show("image");
     if (stack()) {
       const S = three().S;
       lasso = { pts: null, was: { rot: S.rot, held: S.held } };
       Object.assign(S, { rot: three().facing(0, 0), held: true }); three().redraw();
     } else { lasso = { pts: null }; viewer().fit(); }
+    lasso.done = done || null;
     stage().classList.add("lassoing"); $("#lasso-hint").hidden = false;
   }
   function end() {
@@ -113,28 +146,46 @@ export function summaryMask({ $, viewer, image, fileName, study, shows, drag, re
       drop() {
         const im = image(), pts = (lasso?.pts || []).map(([x, y]) => [Math.min(Math.max(x, 0), im.W), Math.min(Math.max(y, 0), im.H)]);
         const area = Math.abs(pts.reduce((a, [x, y], i) => { const [p, q] = pts[(i + 1) % pts.length]; return a + x * q - p * y; }, 0)) / 2;
+        const done = lasso?.done;
         end();
         // a lasso a few pixels across is a slip, not an area
-        if (pts.length >= 3 && area >= 25) set([...mask, pts]);
+        if (pts.length >= 3 && area >= 25) { if (done) done(pts); else set([...mask, pts]); }
       },
       cancel: end,
     });
   }, true);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && lasso && !lasso.pts) end(); });
-  $("#mask-add").onclick = start;
-  $("#mask-clear").onclick = () => set([]);
+  $("#mask-add").onclick = () => start();
+  $("#mask-clear").onclick = unset;
 
   return {
     // what the study reads: the outlines, whether a point is inside, and a listener for every change until signal ends it
     api: {
       polygons: () => mask.map((p) => p.map((q) => [...q])),
-      inside: (x, y) => insideMask(mask, x, y),
+      // inside the mask and in no damaged area (req/shell/data/damaged)
+      inside: (x, y) => insideMask(mask, x, y) && !owned.damaged.some((p) => inPolygon(p, x, y)),
+      // the Study Manager's damaged areas of the image open
+      damaged: () => owned.damaged.map((p) => p.map((q) => [...q])),
       on(fn, signal) { heard.push(fn); signal?.addEventListener("abort", () => heard.splice(heard.indexOf(fn), 1)); },
     },
     // an image opened: its own mask, as this device kept it for this study
-    opened() { end(); key = offered() && fileName() ? `${study().id}-mask-v1:${fileName()}` : null; mask = key ? readJSON(key, []) : []; changed(); },
+    opened() {
+      end(); owned = { damaged: [], interest: [] };
+      key = offered() && fileName() ? `${study().id}-mask-v1:${fileName()}` : null;
+      const own = key ? readJSON(key, null) : null;
+      mine = Array.isArray(own); mask = mine ? own : []; changed();
+    },
+    // the Study Manager's areas of the image open, as the study index gives them: the area of interest is the mask
+    // while the viewer has none of their own
+    areas({ damaged = [], interest = [] } = {}) {
+      owned = { damaged, interest };
+      if (!mine) mask = interest.map((p) => p.map((q) => [...q]));
+      changed();
+    },
+    // a lasso for one of the Study Manager's areas: done(points) once it is drawn
+    lassoFor: (done, hint) => start(done, hint),
     // the study left, or the summary came or went
-    left() { end(); key = null; mask = []; controls(); over3d?.remove(); over3d = null; },
+    left() { end(); key = null; mask = []; mine = false; owned = { damaged: [], interest: [] }; controls(); viewer()?.overlay?.querySelector(':scope > g[data-layer="study-areas"]')?.remove(); over3d?.remove(); over3d = null; },
     redraw: () => { controls(); draw(); },
     // a stored key that is a summary mask: the study it is kept for and the image's name, else null
     keyOf(k) { const m = /^([a-z0-9-]+)-mask-v1:(.*)$/.exec(k); return m && { study: m[1], image: m[2] }; },

@@ -312,6 +312,42 @@
                     }
                   ]
                 },
+                {"name": "Image's areas", "select": "#areas", "req": "req/shell/data/damaged",
+                  "rule": [
+                    {"when": {"selected": ["folder"]}, "is": "hidden", "approval": "tentative", "about": "areas are an image's"}
+                  ],
+                  "children": [
+                    {"name": "Damaged areas' count", "select": "#areas-damaged-count", "req": "req/shell/data/damaged"},
+                    {"name": "Mark damaged", "select": "#areas-damaged-mark", "control": true, "req": "req/shell/data/damaged",
+                      "rule": [
+                        {"when": {"image": ["preview"]}, "is": "disabled", "approval": "tentative", "about": "areas are marked on the image itself"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Clear damaged", "select": "#areas-damaged-clear", "control": true, "req": "req/shell/data/damaged", "steady": "shows only once the image has a damaged area, which no path marks",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    },
+                    {"name": "Area of interest's count", "select": "#areas-interest-count", "req": "req/shell/data/area-of-interest"},
+                    {"name": "Mark area of interest", "select": "#areas-interest-mark", "control": true, "req": "req/shell/data/area-of-interest",
+                      "rule": [
+                        {"when": {"image": ["preview"]}, "is": "disabled", "approval": "tentative", "about": "areas are marked on the image itself"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Clear area of interest", "select": "#areas-interest-clear", "control": true, "req": "req/shell/data/area-of-interest", "steady": "shows only once the image has an area of interest, which no path marks",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    },
+                    {"name": "Areas' hint", "select": "#areas-hint", "req": "req/shell/data/damaged",
+                      "rule": [
+                        {"when": {"image": ["original"]}, "is": "hidden", "approval": "tentative", "about": "the hint asks for the image itself, which is open"}
+                      ]
+                    }
+                  ]
+                },
                 {"name": "Tags' message", "select": "#tags-msg", "req": "req/shell/data/tags"}
               ]
             },
@@ -497,6 +533,11 @@
               ]
             },
             {"name": "Lasso hint", "select": "#lasso-hint", "req": "req/shell/summary/mask", "steady": "shows only while a mask is being lassoed, which no path does",
+              "rule": [
+                {"is": "hidden"}
+              ]
+            },
+            {"name": "Own mask warning", "select": "#mask-warning", "req": "req/shell/data/area-of-interest", "steady": "shows only while the summary counts a mask the viewer drew, which no path draws",
               "rule": [
                 {"is": "hidden"}
               ]

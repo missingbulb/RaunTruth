@@ -702,6 +702,17 @@ function pythonWorker() {
   st.worker.onmessage = (e) => onWorker(e.data);
   st.worker.onerror = (e) => onWorker({ type: "error", text: e.message || "Python stopped." });
 }
+// The Study Manager's areas of the image opened from the study's store (req/shell/data/damaged,
+// req/shell/data/area-of-interest), from its study index, the one kept on this device offline; none for a preview,
+// whose pixels are not the image's, or an image the index does not hold
+async function studyAreas(source) {
+  if (!source?.id || source.kind === "preview" || !remote.owns(source) || !place.root()) return;
+  let ix = readJSON(STUDY_INDEX)[place.root()]?.index || null;
+  if (!offlineCopy.offline()) ix = await place.index().catch(() => ix);
+  const im = ix?.images?.find((i) => i.id === source.id);
+  if (st.source !== source || !im) return;
+  summaryMasks.areas({ damaged: im.damaged || [], interest: im.interest || [] });
+}
 // one of the study's Python actions; its answer reaches the study's result hook. Python starts with the first, and is
 // handed the image's file as it is stored before any (req/shell/python/file-bytes)
 function call(action, args, echo) {
@@ -711,7 +722,8 @@ function call(action, args, echo) {
     st.worker.postMessage({ type: "open", name: st.kept.name, bytes }, [bytes]);
     st.held = st.kept;
   }
-  st.worker.postMessage({ type: "call", action, args, echo });
+  // the Study Manager's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
+  st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
 
 // ---------- the low-memory popup: on a computer with little memory, and whenever the page runs out of it ----------
@@ -773,7 +785,7 @@ function imageOpened(m) {
   step("load", true, `${st.fileName}, ${m.meta.W} × ${m.meta.H} px, from ${from}`);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
   status("Image loaded."); // the study's opened hook says what comes next, if anything
-  summaryMasks.opened();
+  summaryMasks.opened(); studyAreas(st.source); data.opened();
   study.opened?.(m.meta);
   // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
   gtSession.opened().then((offered) => { if (offered && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); } });
@@ -2448,6 +2460,11 @@ const offlineCopy = offline({ $, esc, sizeText, remote, throttled, throttle, sto
 // Data Management (req/shell/data/mode): what it borrows from the shell
 const data = dataMode({
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
+  // the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): whether the image itself, by
+  // its id, is open; a lasso over it, done(points) once drawn; its areas, shown at once on the image open
+  originalOpen: (id) => !!st.source && st.source.id === id && st.source.kind !== "preview" && !!page.get("image"),
+  lasso: (done, hint) => summaryMasks.lassoFor(done, hint),
+  areasOf: (id, areas) => { if (st.source?.id === id && st.source.kind !== "preview") summaryMasks.areas(areas); },
   // the folder's images in the main area, or the image
   showFolder(on) {
     $("#folder-view").hidden = !on; $("#image-view").hidden = on || views.now !== "image";
@@ -2493,7 +2510,7 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, get viewer() { return view; } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, mask: summaryMasks.api, get viewer() { return view; } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
