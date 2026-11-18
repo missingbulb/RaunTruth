@@ -265,7 +265,14 @@ details.fold > summary::before, .box.foldable > .sec-head h2::before { content: 
   border-style: solid; border-width: 5px 0 5px 7px; border-color: transparent transparent transparent var(--dim); transition: transform .15s; }
 details.fold[open] > summary::before, .box.foldable:not(.folded) > .sec-head h2::before { transform: rotate(90deg); }
 /* the study's algorithms, atop its Processing box (req/shell/processing/algorithms) */
-#algorithm { width: 100%; }
+#algorithm { width: 100%; min-width: 0; }
+.algorithm-row { display: flex; align-items: center; gap: 6px; }
+.scoring-q { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 1; }
+.scoring-q[aria-expanded="true"] { background: var(--accent); color: var(--bg); }
+#scoring-note { margin: 8px 0 0; }
+#scoring-note p { margin: 0 0 4px; font-weight: 600; }
+#scoring-note ul, #scoring-note ol { margin: 4px 0 0; padding-left: 16px; }
+#scoring-note li > ul, #scoring-note li > ol { margin-top: 2px; }
 #algorithm-pick { margin-bottom: 10px; }
 #algorithm-note { margin: 8px 0 0; }
 #algorithm-note p { margin: 6px 0 0; }

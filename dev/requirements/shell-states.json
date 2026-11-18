@@ -245,6 +245,10 @@
                 {"name": "Algorithms", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms",
                   "children": [
                     {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
+                    {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
+                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring",
+                      "steady": "opens only on a click of the (?), which no path makes",
+                      "rule": [{"is": "hidden", "approval": "tentative"}]},
                     {"name": "About the algorithm", "select": "#algorithm-about", "req": "req/shell/processing/algorithms"}
                   ]
                 }

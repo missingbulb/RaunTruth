@@ -2,7 +2,8 @@
 // (tests/test_study_runs.py) and counting one pixel more for the "from" algorithm, and checks the study's algorithms
 // atop its Processing box (req/shell/processing/algorithms): the list its study.json names, the first chosen, each
 // with its icon, title and precision and recall where measured; how the chosen one works and how well it did; the
-// study running the one chosen; and a study with no algorithms showing none. Exits 1 on a failed check, 2 when it
+// study running the one chosen; a (?) beside the list opening how the study scores (req/shell/processing/scoring); and a
+// study with no algorithms showing none. Exits 1 on a failed check, 2 when it
 // cannot run.
 //   node web-tests/algorithm_choice_driver.mjs ANSWERS IMAGE.png STUDIES
 import { EARLY } from "./early_messages.mjs";
@@ -87,6 +88,21 @@ await check(s.bold === `Above algorithm shows precision of 0.90 and recall of 0.
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && !document.querySelector("#fx-count").disabled);
 await check(await page.evaluate(() => document.querySelector("#algorithm").checkVisibility()), "an image open, Processing opens with the list on show");
+const scoring = () => page.evaluate(() => {
+  const q = document.querySelector("#scoring-help"), note = document.querySelector("#scoring-note"), sel = document.querySelector("#algorithm");
+  const a = sel.getBoundingClientRect(), b = q.getBoundingClientRect();
+  return { shown: q.checkVisibility(), title: q.title, beside: b.left >= a.right && b.top < a.bottom && b.bottom > a.top,
+    open: note.checkVisibility(), expanded: q.getAttribute("aria-expanded"), items: [...note.querySelectorAll("li")].map((l) => l.firstChild.textContent) };
+});
+let q = await scoring();
+await check(q.shown && q.beside && q.title === "How precision and recall are scored", "a (?) beside the list, titled for the scoring", q);
+await check(!q.open && q.expanded === "false", "... the scoring shut at first", q);
+await page.click("#scoring-help"); q = await scoring();
+await check(q.open && q.expanded === "true" && q.items.join("|") === "A pixel the algorithm marks is right when the hand count marks it|precision: the marked pixels that are right|recall: the hand-counted pixels marked",
+  "a click on it shows how the study scores, as its outline", q);
+await page.click("#scoring-help"); q = await scoring();
+await check(!q.open && q.expanded === "false", "... and a second click shuts it", q);
+
 await page.click("#fx-count");
 await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
 const once = await page.evaluate(() => document.querySelector("#fx-result").textContent);
@@ -103,4 +119,5 @@ await check(parseInt(twice) === parseInt(once) + 1 && twice.includes(second.titl
 await page.goto(origin + "/web/viewer");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 await check(await page.evaluate(() => document.querySelector("#algorithm-pick").hidden), "a study offering no algorithms shows no list");
+await check(await page.evaluate(() => !document.querySelector("#scoring-help").checkVisibility() && !document.querySelector("#scoring-note").checkVisibility()), "... and no (?)");
 await done(0);

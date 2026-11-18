@@ -1298,6 +1298,17 @@ nobody has decided: what the page does there is not a requirement yet.
   list of its own. Test: `web-tests/test_study_contract.py`, `web-tests/test_algorithm_choice_page.py`.
   </details>
 
+- `req/shell/processing/scoring` Beside the algorithm list, a (?) shows how the study scores its precision and recall.
+  <details>
+
+  Set by the owner on 2026-11-18: every study's precision and recall can be explained, so the method is shown, not
+  only the numbers. The study's metrics file carries `scoring`, a short Markdown outline of how its scorer counts,
+  which the lab writes there from the scorer itself, so the explanation is always the one the numbers were counted
+  by. The shell draws a (?) at the right of the list, titled How precision and recall are scored, and a click on it
+  opens and closes that outline under the list. A study whose metrics carry no `scoring`, or that names no metrics,
+  shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
   <details>
 
