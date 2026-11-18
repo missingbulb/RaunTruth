@@ -11,7 +11,7 @@
 <main>
 <nav><a href="/">← Back to rauntruth.com</a> · <a href="terms">Terms of service</a> · <a href="license">License</a></nav>
 <h1>Privacy policy</h1>
-<p class="dim">Last updated 10 November 2026</p>
+<p class="dim">Last updated 18 November 2026</p>
 
 <p>rauntruth.com is a free research tool for viewing and analysing microscopy images, run by Ariel
 (<a href="mailto:ariel@rauntruth.com">ariel@rauntruth.com</a>). It runs in your browser. The site has
@@ -21,7 +21,7 @@ stays on your device, and what reaches other services, and when.</p>
 <h2>Your images and results</h2>
 <p>Images are analysed on your own computer, inside your browser. They are never uploaded to us. The site
 sends them to no one else either, with the exceptions a person asks for: a study's data manager can have
-it save small previews of a study folder's images into a Previews folder in that study's Google Drive root, and the images they edit back into the study folder they came from. The results stay in your browser unless you download them yourself or
+it save small previews of a study folder's images into a Previews folder in that study's Google Drive root. The results stay in your browser unless you download them yourself or
 submit ground truth, which the site saves into the study's Google Drive folders (below).</p>
 
 <h2>What stays on your device</h2>
@@ -86,8 +86,8 @@ permission for the site to:</p>
     (the app data folder), to keep your settings the same on every device you sign in on;</li>
   <li>see and download the files in your Google Drive, so that while you are signed in the Google Drive dialog opens
     the images and folders your account can see, as you, whether or not they are shared publicly. The site reads
-    the folders and images you open in it and, for a study you open, its root folder's list, the settings file in it and
-    whether you may add files to that root and to its ground-truth submissions folder, to offer you the study's roles.
+    the folders and images you open in it and, for a study you open, its root folder's list, the settings file and the
+    study index in it, and whether you may add files to that root and to its ground-truth submissions folder, to offer you the study's roles.
     It never changes anything with this permission.</li>
 </ul>
 <p>Google has not yet verified the site for reading your Drive, so its sign-in window warns that the app is
@@ -96,8 +96,10 @@ unverified; continuing past the warning signs you in as above.</p>
 Tagger; if it lets you add files to the study's root folder, as its data manager. Choosing to approve its folders asks Google for its per-file Drive permission, and then shows Google's picker with just that
 study's folders, for you to choose the ones the site may use. In the folders you choose, the site adds files for
 you: a tagger's ground-truth file; a data manager's preview files, in a Previews folder it makes in the root, markers
-saying an image needs ground truth, in the curated ground-truth folder, the
-images they edit, in a folder named after the image, the ground truth they accept, and, when they set up the study's
+saying an image needs ground truth, in the curated ground-truth folder, the study index in the root, which lists every
+image of the study's folders and names the data manager whose visit wrote it, the list of the study's folders, which
+they choose, and how its images are grouped and hidden, in the root's settings file, the tags and descriptions they
+give the study's images and folders, in a tags file in the root, the ground truth they accept, and, when they set up the study's
 ground truth, its ground-truth folders and a settings file naming them in the root, the curated folder then shared
 with anyone with its link to view. It changes, marks or moves to
 the bin only files the site itself added, for you or for another of the study's taggers and data managers: a data
@@ -112,14 +114,16 @@ folders it shows you. The settings file holds only the settings listed in the av
     Your settings file is read when you sign in and on later visits, and replaced when you change a
     setting. When you submit ground truth, your email address names your file and is written into it.
     In the study folders you chose, the site reads which ones you may add files to, and adds the files you
-    ask it to. A folder you open in the Google Drive dialog is listed (its files' names, sizes and dates), and an image
+    ask it to. A folder a data manager adds by its link is checked, with the site's own key, for whether anyone with
+    its link can open it. A folder you open in the Google Drive dialog is listed (its files' names, sizes and dates), and an image
     you open there is downloaded into your browser, as for a public link. Nothing else is done with any of it.</li>
   <li><b>Stored:</b> your name, email address, picture and Google's sign-in token (which expires
     after about an hour) are kept in your browser on this device until you sign out, and so is which study folders
     Google last said you may add files to, so your roles show while the token is renewed. The settings file
     stays in your own Google Drive, and the files the site adds stay in the study's folders. We keep no copy of any of it, anywhere.</li>
-  <li><b>Shared:</b> your email address is in the ground-truth files you submit, with the time of each correction, which anyone with the study's
-    folder links can read. Otherwise Google user data goes only between your browser and Google, never to
+  <li><b>Shared:</b> your email address is in the ground-truth files you submit, with the time of each correction, and,
+    for a data manager, in the study index their visit writes, which anyone with the study's folder links can read.
+    Otherwise Google user data goes only between your browser and Google, never to
     us or to any third party. It is not used for advertising, sold, or used to train any model.</li>
 </ul>
 <p>rauntruth.com's use and transfer of information received from Google APIs adheres to the

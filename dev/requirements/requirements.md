@@ -234,35 +234,47 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
-  the folders the study's images come from, by id. A Study Manager adds a folder there, or takes one out, as an act
-  of its own; an image added to a listed folder in Drive changes nothing in the study file. An image is in the study
-  while it is in a listed folder, a folder under one included. A folder beside an image of its name, a `.vsi`'s
-  `_<name>_` folder (`req/shell/image/cellsens`), is part of that image and not listed. A study with no study file,
-  the Image Viewer among them, has its listed folders as today: the data folder its root names, or the folder
-  whose link was pasted.
+  the folders the study's images come from, by id, under `folders`; a study file naming none has the data folder its
+  root names, else the root itself, as its one listed folder. A Study Manager adds a folder there, or takes one out, as
+  an act of its own: Data Management's tree shows each listed folder with Remove from study, and under it the folders
+  of the root no listed folder holds, each with Add to study; a folder elsewhere in Drive is added by pasting its link,
+  and the page says so when that folder is not shared as "Anyone with the link", which a viewer needs to read it. An
+  image added to a listed folder in Drive changes nothing in the study file. An image is in the study while it is in a
+  listed folder, a folder under one included. A folder beside an image of its name, a `.vsi`'s `_<name>_` folder
+  (`req/shell/image/cellsens`), is part of that image and not listed. The page writes the study file only where it made
+  it; one made by hand it leaves alone, and says to delete it in Drive to let the page manage it. Every other key of
+  the study file stays as it was. The Image Viewer, with no root, has the folder whose link was pasted.
   </details>
 
 - `req/shell/data/hidden` A Study Manager hides images by their tags; hidden images are left out of Load study images.
   <details>
 
-  Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`): an image carrying a tag or a tag value a rule
-  names is hidden, and Load study images (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth
-  Taggers. A Study Manager still sees hidden images, marked so. Tentative: a hidden image a user opened before stays
-  in their recent images.
+  Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`), under `hide`, set in Data
+  Management's Study images: an image carrying a tag or a tag value a rule names is hidden (a rule naming a
+  multi-value tag alone, `group`, hides every image holding any value of it), and Load study images
+  (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth Taggers. A Study Manager still sees
+  hidden images, marked so. Tentative: a hidden image a user opened before stays in their recent images. Test:
+  `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`.
   </details>
 
 - `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
   <details>
 
-  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root, the study index:
-  every image in the listed folders (`req/shell/data/folders`) with its Drive id, name, folder path, size, SHA-256,
-  tags, description, damaged areas (`req/shell/data/damaged`), area of interest (`req/shell/data/area-of-interest`)
-  and preview, and when it was built. Only a Study Manager's page writes it: it rebuilds it where previews are made
-  today (`req/shell/data/update-previews`) and on each of their edits, a new file or the page's own replaced. A
-  Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from them; an image added
-  in Drive since the index was built is not listed until a Study Manager rebuilds it. The tags, descriptions and areas
-  are kept here, in files the page made, never on the images (`req/shell/data/drive-access`). Undecided: whether the
-  index replaces each folder's previews file or sits beside it.
+  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root,
+  `rauntruth-index.json`, the study index: the listed folders (`req/shell/data/folders`), each by id and name, and
+  every image in them with its Drive id, name, the folder it is in, its path of folder names from the listed folder
+  down, size, SHA-256 and when Drive last changed it; its tags, description, damaged areas (`req/shell/data/damaged`)
+  and area of interest (`req/shell/data/area-of-interest`) join it as those are built; it carries the study file's
+  grouping tag and hiding rules too, so the index alone draws Load study images offline. Only a Study Manager's page
+  writes it: each time Data Management has listed the study's folders, and after a folder is added or taken out, a
+  tag or a description changed, or the grouping or hiding set, it
+  writes the index when what it holds differs from the one there, saying when it was built and by whom; an index the
+  same as the one there is not written again. An index the page did not make is left alone, and the page says to
+  delete it in Drive. A Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from
+  them; an image added in Drive since the index was built is not listed until a Study Manager's page rebuilds it. The
+  tags, descriptions and areas are kept here, in files the page made, never on the images
+  (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits beside it.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
   </details>
 
 - `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
@@ -321,8 +333,15 @@ nobody has decided: what the page does there is not a requirement yet.
   Manager adds any tag to an image, or to a listed folder, where it applies to every image in it and under it, and
   writes a description of each image. Every image carries `folder:<path>`, its folder's path from the listed folder
   down, given by the page and never edited. What a file holds, "2D · 3 channels" or "3D · 24 slices"
-  (`req/shell/drive/stacks`), is not a tag. The tags and descriptions are kept in the study index
-  (`req/shell/data/index`).
+  (`req/shell/drive/stacks`), is not a tag. In Data Management the Tags box, below the Image box, edits the tags of the
+  folder or image chosen, and an image's description: Enter adds a tag, a tag's × takes it off, and a folder's tags
+  show on its images, dimmed, naming the folder they come from. Tentative: a tag is written in lower case, words of
+  letters and digits joined by hyphens, and a multi-value tag's name and value alike; `folder` is the page's own name
+  and no tag may use it. Tentative: an image's own value of a multi-value tag wins over one a folder gives it, and a
+  folder's over one the folder holding it gives. The tags and descriptions are written by the page into a file of
+  their own in the study's root, `rauntruth-tags.json`, never on the images, and from there into the study index
+  (`req/shell/data/index`), each image with the tags it carries; a tags file the page did not make is left alone.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`, `web-tests/test_study_root.py`.
   </details>
 
 - `req/shell/data/update-previews` Update previews makes the folder's previews for the images that lack one or changed, and keeps the rest.
@@ -1181,12 +1200,22 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the Study Manager chooses, not by folder.
   <details>
 
-  Set by the owner on 2026-11-17. Load's Google Drive dialog (`req/shell/drive/dialog`) becomes Load study images: every image of the
-  study (`req/shell/data/folders`), less the hidden ones (`req/shell/data/hidden`), in groups, one per value of the
-  multi-value tag the study file names for grouping (`req/shell/data/tags`), `folder` when it names none. Each row
-  shows what the dialog shows today and the image's tags and description. The Image Viewer, with no Study Manager,
-  groups by `folder` alone, and is the sanity test that the dialog works with nothing set up. Tentative: an image
-  with no value of the grouping tag sits in a last group, "No <tag>".
+  Set by the owner on 2026-11-17. In a study with a study index (`req/shell/data/index`), Load's Google Drive dialog
+  (`req/shell/drive/dialog`) becomes Load study images: every image the index holds, less the hidden ones
+  (`req/shell/data/hidden`), in groups, one per value of the multi-value tag the study file names for grouping
+  (`req/shell/data/tags`), `folder` while it names none: a group per folder, headed by its path, in the order of the
+  listed folders and then by path. Each row shows what the dialog shows today; a TIFF's picture comes from its folder's
+  previews file (`req/shell/drive/previews`), read once that folder's group scrolls into view. Tentative: a row marks
+  no image "new", there being no listing on this device to compare with. Set by the owner on 2026-11-17: the Image
+  Viewer, with no root and no index, lists the pasted folder one folder at a time as before, and so does a study before
+  a Study Manager's page has written its index. Set by the owner on 2026-11-18: the index Load last read is kept on this
+  device, the latest five studies', and offline the dialog lists from it just as online, an image not kept on this
+  device greyed as the offline dialog greys one (`req/shell/offline/default`); a study whose index this device never
+  read lists offline as before. The grouping tag is set in Data Management's Study images, which offers `folder` and
+  every multi-value tag the study's images carry. Grouped by a tag, a group per value, its head `<tag>: <value>`, in
+  the values' order; an image with no value of it sits in a last group, "No <tag>" (Tentative). Each row also shows the
+  image's tags, and its description under its name; to a Study Manager a hidden image shows, marked hidden. Test:
+  `web-tests/test_study_index_page.py`.
   </details>
 
 - `req/shell/memory/no-growth` Memory does not grow with use.

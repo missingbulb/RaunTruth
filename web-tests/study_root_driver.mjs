@@ -18,9 +18,10 @@ function memory() {
   };
   const writer = {
     folder: async (parent, name) => { calls.push(["folder", name]); return add({ parent, name, folder: true }).id; },
-    create: async (parent, name, blob) => { calls.push(["create", name]); return { id: add({ parent, name, body: await blob.text() }).id }; },
+    create: async (parent, name, blob) => { calls.push(["create", name]); return { id: add({ parent, name, body: await blob.text(), ours: true }).id }; },
     replace: async (id, blob) => { calls.push(["replace", files.find((f) => f.id === id).name]); files.find((f) => f.id === id).body = await blob.text(); return { id }; },
     share: async (id) => { calls.push(["share", files.find((f) => f.id === id).name]); },
+    ours: async (id) => !!files.find((f) => f.id === id)?.ours,
   };
   return { files, calls, add, reader, writer };
 }
@@ -118,6 +119,72 @@ const out = {};
   const cached = m.calls.length;
   await sr.read(m.reader, "R2", { fresh: true });
   out.cache = { cached, fresh: m.calls.length - cached };
+}
+
+// the study's listed folders (req/shell/data/folders): the data folder, else the root, while the study file names none;
+// Add and Remove write them into the study file, every other key kept; a study file made by hand is left alone
+{
+  const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true }), other = m.add({ parent: "ROOT", name: "Other", folder: true });
+  const implicit = (await sr.read(m.reader, "ROOT", { fresh: true })).folders;
+  const bare = memory();
+  const rootOnly = (await sr.read(bare.reader, "BARE", { fresh: true })).folders;
+  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "dm@acme.example", at: AT });
+  m.calls.length = 0;
+  const s = await sr.setFolders({ reader: m.reader, writer: m.writer, root: "ROOT", folders: [data.id, other.id] });
+  const doc = JSON.parse(m.files.find((f) => f.name === sr.SETTINGS).body);
+  await sr.switchMode({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "sm@acme.example", at: AT });
+  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "sm@acme.example", at: AT });
+  const kept = (await sr.read(m.reader, "ROOT", { fresh: true })).folders;
+  const fresh = memory(); const d2 = fresh.add({ parent: "R3", name: "Data", folder: true });
+  await sr.setFolders({ reader: fresh.reader, writer: fresh.writer, root: "R3", folders: [d2.id] });
+  const made = JSON.parse(fresh.files.find((f) => f.name === sr.SETTINGS).body);
+  const hand = memory(); hand.add({ parent: "R4", name: sr.SETTINGS, body: JSON.stringify({ format: sr.FORMAT, data: null }) });
+  let refused = null;
+  try { await sr.setFolders({ reader: hand.reader, writer: hand.writer, root: "R4", folders: ["x"] }); } catch (e) { refused = /not made by this page/.test(e.message); }
+  out.folders = { implicit: implicit.length === 1 && implicit[0] === data.id, rootOnly: rootOnly.length === 1 && rootOnly[0] === "BARE",
+    writes: m.calls.filter(([k]) => k !== "all" && k !== "text").slice(0, 1), listed: s.folders.length === 2 && s.folders[1] === other.id,
+    keysKept: doc.review === true && !!doc.curated && doc.set_by === "dm@acme.example", afterSwitchAndSetup: kept.length === 2,
+    made: { format: made.format, folders: made.folders.length }, refused, handWrites: hand.calls.filter(([k]) => k !== "all" && k !== "text").length };
+}
+
+// the study index (req/shell/data/index): written when it differs from the one there, not when it is the same, and an
+// index made by hand left alone
+{
+  const m = memory();
+  const index = { folders: [{ id: "F", name: "Data" }], images: [{ id: "I1", name: "a.png", folder: "F", path: ["Data"], size: 3, sha: "ab", modified: "2026-11-01T00:00:00Z" }] };
+  const first = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index, by: "dm@acme.example", at: AT });
+  const doc = JSON.parse(m.files.find((f) => f.name === sr.INDEX).body);
+  const same = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index, by: "other@acme.example", at: new Date("2026-11-08T10:00:00Z") });
+  const more = { ...index, images: [...index.images, { id: "I2", name: "b.png", folder: "F", path: ["Data"], size: 4, sha: "cd", modified: null }] };
+  const changed = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index: more, by: "dm@acme.example", at: AT });
+  const read = await sr.readIndex(m.reader, "ROOT");
+  const hand = memory(); hand.add({ parent: "R5", name: sr.INDEX, body: "{}" });
+  const handOut = await sr.writeIndex({ reader: hand.reader, writer: hand.writer, root: "R5", index, by: "dm@acme.example", at: AT });
+  const none = await sr.readIndex(memory().reader, "R6");
+  out.index = { first, same, changed, format: doc.format, by: doc.built_by, at: doc.built_at, images: read.images.length,
+    writes: m.calls.filter(([k]) => k === "create" || k === "replace"), hand: handOut, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length, none };
+}
+
+// the tags file (req/shell/data/tags): read as empty while there is none, written as a new file and then replaced, one
+// made by hand left alone; the study file's grouping and hiding set beside its other keys (req/shell/data/hidden)
+{
+  const m = memory();
+  const none = await sr.readTags(m.reader, "ROOT");
+  const doc = { images: { I1: { tags: ["group:sick"], description: "First" } }, folders: { F: { tags: ["dim"] } } };
+  await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc });
+  await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc: { ...doc, images: {} } });
+  const back = await sr.readTags(m.reader, "ROOT");
+  const hand = memory(); hand.add({ parent: "R7", name: sr.TAGS, body: "{}" });
+  let refused = null;
+  try { await sr.writeTags({ reader: hand.reader, writer: hand.writer, root: "R7", doc }); } catch (e) { refused = /not made by this page/.test(e.message); }
+  const st = memory(); const d = st.add({ parent: "R8", name: "Data", folder: true });
+  await sr.setFolders({ reader: st.reader, writer: st.writer, root: "R8", folders: [d.id] });
+  const after = await sr.setStudy({ reader: st.reader, writer: st.writer, root: "R8", changes: { group: "group", hide: ["damaged-slide"] } });
+  const file = JSON.parse(st.files.find((f) => f.name === sr.SETTINGS).body);
+  out.tags = { none: { images: Object.keys(none.images).length, folders: Object.keys(none.folders).length },
+    writes: m.calls.filter(([k]) => k === "create" || k === "replace"), back: { images: Object.keys(back.images).length, folder: back.folders.F.tags, format: back.format },
+    refused, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length,
+    study: { group: file.group, hide: file.hide, folders: file.folders.length, readGroup: after.group, readHide: after.hide } };
 }
 
 console.log(JSON.stringify(out));

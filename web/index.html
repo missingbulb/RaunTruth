@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11117.136">
+<meta name="version" id="site-version" title="version 0.11118.138">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -76,7 +76,21 @@
       </section>
       <div class="data-head"><h2>Folders</h2><button id="data-approve" type="button" class="link" data-needs-network hidden></button></div>
       <div id="data-tree" role="tree" aria-label="The study's folders" data-log-as="a folder or image in the Data Management tree"></div>
+      <section id="data-unlisted" aria-labelledby="data-unlisted-title" hidden>
+        <h3 id="data-unlisted-title">Not in the study</h3>
+        <div id="data-unlisted-list" data-log-as="a folder of the root not in the study"></div>
+      </section>
+      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="Paste a folder's link to add it" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
       <p id="data-msg" class="hint" role="status"></p>
+      <p id="data-index" class="hint" role="status"></p>
+      <section id="study-set" aria-labelledby="study-set-title" hidden>
+        <h3 id="study-set-title">Study images</h3>
+        <label class="study-row"><span>Group Load by</span><select id="study-group" data-needs-network data-log-as="the tag Load groups by"></select></label>
+        <div class="study-row"><span>Hide images tagged</span><div id="study-hide-list" data-log-as="a tag that hides images"></div></div>
+        <div class="tags-add-row"><input id="study-hide-add" type="text" spellcheck="false" autocomplete="off" placeholder="A tag or a value" aria-label="A tag whose images to hide" data-log-as="a tag typed to hide" data-needs-network><button id="study-hide-go" type="button" data-needs-network>Hide</button></div>
+        <p id="study-hide-count" class="hint"></p>
+        <p id="study-msg" class="hint" role="status"></p>
+      </section>
     </div>
   </aside>
   <aside id="left">
@@ -111,6 +125,15 @@
       <dl id="folder-summary"></dl>
       <div class="folder-actions"><button id="update-previews" type="button" data-needs-network disabled>Update previews</button></div>
       <p id="folder-msg" class="hint" role="status"></p>
+    </section>
+
+    <section class="box" id="tags-box" data-needs-network hidden>
+      <div class="sec-head"><h2>Tags</h2></div>
+      <p id="tags-for" class="hint"></p>
+      <div id="tags-list" data-log-as="a tag of the folder or image chosen"></div>
+      <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag: damaged-slide, group:wild-type" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
+      <label id="tags-desc-row" hidden><span class="hint">Description</span><textarea id="tags-desc" rows="3" data-log-as="an image's description" data-needs-network></textarea></label>
+      <p id="tags-msg" class="hint" role="status"></p>
     </section>
 
     <section class="box foldable study-box" id="processing-box" hidden>

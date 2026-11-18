@@ -90,9 +90,9 @@
     {"id": "narrower", "label": "Narrower", "title": "The selected vessel 0.25 µm narrower", "keys": ["Minus", "Shift+Minus", "NumpadSubtract"], "hint": "−", "kind": "press", "legend": false, "control": "#w-narrower", "when": ["look"]},
     {"id": "wider", "label": "Wider", "title": "The selected vessel 0.25 µm wider", "keys": ["Equal", "Shift+Equal", "NumpadAdd"], "hint": "+", "kind": "press", "legend": false, "control": "#w-wider", "when": ["look"]},
     {"id": "reset", "label": "Reset", "title": "The algorithm's estimate again as the selected vessel's width", "keys": ["Backspace"], "kind": "press", "legend": false, "control": "#w-reset", "when": ["look"]},
-    {"id": "model", "label": "Model", "title": "Hold 1 to see the model alone, or click to keep it on", "keys": ["Digit1", "Numpad1"], "kind": "hold", "legend": true, "on": "alone", "when": ["model"]},
-    {"id": "outlines", "label": "No markings", "title": "Hold 2 to see the picture without the lines or widths drawn over it, or click to keep it so", "keys": ["Digit2", "Numpad2"], "kind": "hold", "legend": true, "on": "bare", "when": ["model"]},
-    {"id": "side", "label": "Side by side", "title": "Hold 3 to see the picture and the model side by side, or click to keep it on", "keys": ["Digit3", "Numpad3"], "kind": "hold", "legend": true, "on": "side", "when": ["model"]},
-    {"id": "swap", "label": "3D / 2D", "title": "Hold 4 for the other view: the stack in colour in 3D, or grey from straight above in its own pixels with each vessel's width", "keys": ["Digit4", "Numpad4"], "kind": "hold", "legend": true, "on": "swap", "when": ["model"]}
+    {"id": "model", "label": "Model", "title": "Hold 1 to flip Model while held: the model alone, or back over the picture; click to keep it", "keys": ["Digit1", "Numpad1"], "kind": "hold", "legend": true, "on": "alone", "when": ["model"]},
+    {"id": "outlines", "label": "No markings", "title": "Hold 2 to flip No markings while held: the picture without the lines or widths, or with them; click to keep it", "keys": ["Digit2", "Numpad2"], "kind": "hold", "legend": true, "on": "bare", "when": ["model"]},
+    {"id": "side", "label": "Side by side", "title": "Hold 3 to flip Side by side while held: the picture and the model each in a half, or one view; click to keep it", "keys": ["Digit3", "Numpad3"], "kind": "hold", "legend": true, "on": "side", "when": ["model"]},
+    {"id": "swap", "label": "3D / 2D", "title": "Hold 4 to flip 3D | 2D while held: the stack in colour in 3D, or grey from straight above with each vessel's width; click a half to keep it", "keys": ["Digit4", "Numpad4"], "kind": "hold", "legend": true, "on": "swap", "when": ["model"]}
   ]
 }

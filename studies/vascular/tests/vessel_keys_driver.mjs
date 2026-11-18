@@ -54,8 +54,17 @@ const press = (code, { on = null, repeat = false } = {}) => page.evaluate(({ cod
 const state = async () => { const t = await tasks(), m = await doc(); return { area: t.area, key: t.key, junctions: t.junctions.length,
   checked: (m.checked_junctions || []).length, regions: (m.reviewed_regions || []).length, nodes: m.nodes.length }; };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-// what the main view shows, as the Show menu's views say; a row of the keys legend by its key
-const mode = () => page.evaluate(() => $("#model-mode [aria-pressed=true]")?.dataset.v);
+// what the main view shows; a row of the keys legend by its key
+const mode = () => page.evaluate(() => window.vascular.model().view);
+// the view toggles as the Show menu and the keys legend each draw them: label and pressed, in order
+const toggles = () => page.evaluate(() => ({
+  menu: [...document.querySelectorAll("#model-mode button, #model-dim button")].map((b) => `${b.textContent.trim()}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`).join(" "),
+  legend: ["model", "outlines", "side"].map((id) => { const b = $(`#key-${id}`); return `${b.textContent.trim()}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`; })
+    .concat([...document.querySelectorAll("#key-swap span")].map((h) => `${h.textContent}${getComputedStyle(h).backgroundColor === getComputedStyle($("#key-model")).getPropertyValue("--blue") || /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d/.test(getComputedStyle(h).backgroundColor) ? "*" : ""}`)).join(" "),
+}));
+// a chip's look while its key is held: its dashed ring, filled or not
+const ring = (id) => page.evaluate((id) => { const b = $(`#key-${id}`), cs = getComputedStyle(b);
+  return { held: b.classList.contains("held"), dashed: cs.outlineStyle === "dashed", pressed: b.getAttribute("aria-pressed") }; }, id);
 const row = async (key) => (await legend(page)).find((r) => r.key === key);
 
 try {
@@ -111,6 +120,51 @@ try {
   check(seen.join() === "widths,overlay" && (await mode()) === "overlay" && (await page.evaluate(() => $("#m-widths").checked)) === w0
     && (await page.evaluate(() => $("#review-mode [aria-pressed=true]").dataset.v)) === "all",
     `holding 4 shows the whole stack grey with its widths, 5 nothing, and no key switches Vessel widths or Missed: ${seen}`);
+
+  // req/vascular/model/view, 2026-11-18: the Show menu and the legend hold the same four toggles, a click on either
+  // keeps one for both, and a held number flips its toggle over what is kept, whatever the view
+  let t = await toggles();
+  check(t.menu === "Model No markings Side by side 3D* 2D" && t.legend === "Model No markings Side by side 3D* 2D",
+    `the Show menu and the keys legend hold the same toggles, 3D shown: ${JSON.stringify(t)}`);
+  await page.evaluate(() => { $("#vm-show").open = true; });
+  await page.click('#model-dim [data-v="2d"]');
+  await page.evaluate(() => { $("#vm-show").open = false; });
+  t = await toggles();
+  check((await mode()) === "widths" && t.legend.endsWith("3D 2D*") && t.menu.endsWith("3D 2D*"), `2D clicked in the Show menu shows 2D, the legend's 3D | 2D too: ${await mode()} ${JSON.stringify(t)}`);
+  await page.keyboard.down("4");
+  const inverse4 = await mode(), ring4 = await ring("swap");
+  await page.keyboard.up("4");
+  check(inverse4 === "overlay" && ring4.held && ring4.dashed && ring4.pressed === "false" && (await mode()) === "widths",
+    `with 2D kept, holding 4 shows 3D, its chip ringed and unfilled, letting go 2D again: ${inverse4} ${JSON.stringify(ring4)} → ${await mode()}`);
+  await page.click("#key-side");
+  t = await toggles();
+  check((await mode()) === "wside" && t.menu === "Model No markings Side by side* 3D 2D*", `Side by side clicked in the legend shows in the Show menu too: ${await mode()} ${t.menu}`);
+  await page.keyboard.down("3");
+  const inverse3 = await mode(), ring3 = await ring("side");
+  await page.keyboard.up("3");
+  check(inverse3 === "widths" && ring3.held && ring3.dashed && ring3.pressed === "false" && (await mode()) === "wside",
+    `with Side by side kept, holding 3 turns it off while held: ${inverse3} ${JSON.stringify(ring3)} → ${await mode()}`);
+  await page.keyboard.down("1");
+  const over1 = await mode();
+  await page.keyboard.down("2");
+  const over12 = await mode();
+  await page.keyboard.up("2");
+  const back1 = await mode(), ring1 = await ring("model");
+  await page.keyboard.up("1");
+  check(over1 === "wmodel" && over12 === "grey" && back1 === "wmodel" && ring1.held && ring1.pressed === "true" && (await mode()) === "wside",
+    `held numbers apply in the order pressed over what is kept, 1 in 2D the model from straight above: ${over1} → ${over12} → ${back1} → ${await mode()}`);
+  await page.evaluate(() => { $("#vm-show").open = true; });
+  await page.click('#model-mode [data-v="side"]');
+  const menuOff = await mode();
+  await page.click('#model-dim [data-v="3d"]');
+  await page.evaluate(() => { $("#vm-show").open = false; });
+  check(menuOff === "widths" && (await mode()) === "overlay", `clicking an on toggle in the Show menu turns it off, as in the legend: ${menuOff} → ${await mode()}`);
+  await page.click("#key-swap span:last-child");
+  const half2 = await mode();
+  await page.click("#key-swap span:last-child");
+  const half2again = await mode();
+  await page.click("#key-swap span:first-child");
+  check(half2 === "widths" && half2again === "widths" && (await mode()) === "overlay", `each half of the legend's 3D | 2D shows its own view: ${half2} ${half2again} → ${await mode()}`);
 
   await page.click("#gt-start");
   await page.waitForFunction(() => window.vascular.tasks().key);
