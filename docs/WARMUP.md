@@ -133,9 +133,10 @@ web/              the shell, the viewer, the Python runtime (worker.js, bridge.j
 web-tests/        the shell's tests, run on the fixture study
 studies/nor/      the NoR Finder study: study.json, requirements.md, web/, algorithm/, lab/, data/, docs/, tests/
 studies/vascular/ the Vascular Measurements study: study.json, requirements.md, algorithm/, web/, lab/, data/, docs/, tests/
-studies/shelves/  the Bookshelf Reader, an image-processing outlier: study.json, requirements.md, py/, web/, reading/, docs/, tests/
+studies/shelves/  the Bookshelf Reader, an image-processing outlier: study.json, requirements.md, algorithm/, web/, data/, docs/, tests/
 studies/viewer/   the Image Viewer, the page's default: any image, no analysis
 studies/fixture/  the smallest study, for the shell's tests (`/fixture`); states.json, its part of the shell's states tree
+lab/              the shared lab: fetches a study's data and ground truth, runs and scores every version (lab/README.md)
 docs/             this map
 dev/requirements/ the shell's spec and the repo's checks, and the shell's states tree
 dev/tools/build/  the site build, the version history and the tests' pytest hooks
