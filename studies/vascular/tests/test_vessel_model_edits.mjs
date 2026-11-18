@@ -257,6 +257,30 @@ const tests = {
     assert.equal(drawn.state, 'vessel'); assert.equal(drawn.confidence, undefined);
     assert.deepEqual(Mo.drawSegment(o, { node: 1 }, { node: 1 }), [o, null]);
   },
+  'a vessel a person draws has a width at once: that of the vessel it joins, else the mean of the model\'s vessels'() {
+    // req/vascular/model/every-width. Two vessels, 2 µm in radius along y = 0 (40 µm long) and 5 µm along y = 50 (20 µm long)
+    const wide = { format: 'vessel-model/2', source: 'acme.tif', slices: 4, size_px: [100, 100], um_per_px: 1,
+      nodes: [{ id: 1, x: 0, y: 0, z: 0, r: 2 }, { id: 2, x: 40, y: 0, z: 0, r: 2 }, { id: 3, x: 0, y: 50, z: 0, r: 5 }, { id: 4, x: 20, y: 50, z: 0, r: 5 }],
+      edges: [{ id: 1, a: 1, b: 2, state: 'vessel', r_a: 2, r_b: 2, via: [] }, { id: 2, a: 3, b: 4, state: 'vessel', r_a: 5, r_b: 5, via: [] }] };
+    const m = Mo.parse(wide);
+    const drawnEdges = (o) => Mo.toJSON(o).edges.filter((e) => e.drawn);
+    // from a point on the thin vessel out into the open: the thin vessel's width, on the edge and on its new point
+    let [o, id] = Mo.drawSegment(m, { segment: 0, t: .5 }, { point: { x: 20, y: 20, z: 0 } });
+    assert.deepEqual([drawnEdges(o)[0].r_a, drawnEdges(o)[0].r_b, o.nodes.get(id).r], [2, 2, 2]);
+    // drawn on from there, it keeps that width; ending on the wide vessel, it runs from its own width to that vessel's
+    [o, id] = Mo.drawSegment(o, { node: id }, { point: { x: 20, y: 35, z: 0 } });
+    [o] = Mo.drawSegment(o, { node: id }, { node: 4 });
+    const e = drawnEdges(o)[0];
+    assert.deepEqual([[e.r_a, e.r_b].sort(), e.via.map((p) => p.r)], [[2, 5], [2, 2]]);
+    // in the open at both ends: the mean of the model's vessels by their length, (2 × 40 + 5 × 20) / 60
+    const [alone, end] = Mo.drawSegment(m, { point: { x: 70, y: 70, z: 0 } }, { point: { x: 90, y: 70, z: 0 } });
+    assert.deepEqual([drawnEdges(alone)[0].r_a, drawnEdges(alone)[0].r_b, alone.nodes.get(end).r], [3, 3, 3]);
+    // a model with no width anywhere has none to give
+    const bare = Mo.parse(base([[1, 0, 0, 0], [2, 20, 0, 0]], [[1, 2, 'vessel', .9]]));
+    assert.equal(drawnEdges(Mo.drawSegment(bare, { node: 2 }, { point: { x: 30, y: 10, z: 0 } })[0])[0].r_a, undefined);
+    // a width is the vessel's own from then on: a person's word on it still goes in `width`, never over it
+    assert.equal(drawnEdges(alone)[0].width, undefined);
+  },
   'an area marked as damaged leaves the vessels inside it out of the counts'() {
     // a vessel 1-2-3 along y = 0 with a branch 2-4-5 down to y = 50, and a damaged area around the branch
     const m = Mo.parse(base([[1, 0, 0, 0], [2, 20, 0, 0], [3, 40, 0, 0], [4, 20, 30, 0], [5, 20, 50, 0]], [[1, 2], [2, 3], [2, 4], [4, 5]]));
@@ -322,4 +346,4 @@ const tests = {
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 35);
+assert.equal(n, 36);

@@ -22,101 +22,101 @@
    "truth": "cd31_frontal_x20_r_2_slices6-29__3d89d389"
   }
  ],
- "scoring": "- Only the model's confirmed vessels (state vessel or accepted) count; its candidates do not\n- A curve is found where the model's vessels run within 2.5 µm of it over at least half its length, in the image plane\n- Against a corrected vessel model (people's ground truth), inside the areas it marks as reviewed only:\n  - tp: a vessel of the ground truth (accepted, or vessel) the model finds\n  - fn: one it does not find\n  - fp: a vessel of the model that finds no vessel of the ground truth, and no candidate it leaves undecided\n  - a vessel the ground truth rejected counts as no vessel; who drew an edge never counts\n- Against the lab's provisional labels (a model's verdicts on traced curves, in a few tiles):\n  - tp: a curve judged a vessel the model finds\n  - fn: one it does not find\n  - fp: a curve judged not a vessel the model still traces\n  - curves judged unsure are left out; the vessels the judge drew as missed are counted apart (missed_found)",
+ "scoring": "- Each model is its vessels as tubes: the centerline with its radius, in µm, depth by the µm between slices; how the vessels are cut into edges does not count\n- Both are walked in 0.5 µm steps; counts are µm of centerline\n- A step of the ground truth is *found* by the share of its cross-section (a disc of its radius) that the answer's nearest tube covers; a step of the answer is *right* by the share of its cross-section inside the ground truth's tube\n- Near misses: what the answer's tube leaves outside the ground truth's tube counts ½ where it is inside that tube widened to twice its diameter, and ¼ where inside four times\n- tp: the ground truth's µm, each by how much it is found; fn: the rest of its length\n- fp: the answer's µm, each by how much it is not right\n- A vessel traced twice counts once: tracings on one ground-truth vessel share what was found of it\n- The answer's vessels are its edges marked vessel; a candidate is not one\n- The ground truth's vessels are its edges marked accepted or vessel, anywhere in the stack; rejected and candidate edges are not vessels; excluded areas are left out\n- Every vessel has a width: one that carries none takes that of the vessels it joins, else the model's mean\n- Against the lab's provisional labels: inside the judged tiles only, the vessels are the curves judged vessel and the lines drawn as missed, at a capillary's 2.5 µm radius and without depth",
  "versions": {
   "v5": {
-   "precision": 0.9247,
-   "recall": 0.8521,
-   "tp": 933,
-   "fp": 76,
-   "fn": 162,
+   "precision": 0.8309,
+   "recall": 0.8142,
+   "tp": 31203.69,
+   "fp": 6349.41,
+   "fn": 7122.24,
    "truths": {
     "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
-     "tp": 412,
-     "fp": 35,
-     "fn": 78
+     "tp": 12304.4,
+     "fp": 3077.17,
+     "fn": 3463.98
     },
     "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
-     "tp": 200,
-     "fp": 9,
-     "fn": 42
+     "tp": 8299.58,
+     "fp": 959.2,
+     "fn": 1647.28
     },
     "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
-     "tp": 321,
-     "fp": 32,
-     "fn": 42
+     "tp": 10599.71,
+     "fp": 2313.04,
+     "fn": 2010.98
     }
    }
   },
   "v4": {
-   "precision": 0.9117,
-   "recall": 0.8575,
-   "tp": 939,
-   "fp": 91,
-   "fn": 156,
+   "precision": 0.8198,
+   "recall": 0.8189,
+   "tp": 31384.59,
+   "fp": 6899.889999999999,
+   "fn": 6941.349999999999,
    "truths": {
     "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
-     "tp": 413,
-     "fp": 46,
-     "fn": 77
+     "tp": 12329.89,
+     "fp": 3427.62,
+     "fn": 3438.49
     },
     "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
-     "tp": 204,
-     "fp": 12,
-     "fn": 38
+     "tp": 8422.29,
+     "fp": 1121.04,
+     "fn": 1524.57
     },
     "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
-     "tp": 322,
-     "fp": 33,
-     "fn": 41
+     "tp": 10632.41,
+     "fp": 2351.23,
+     "fn": 1978.29
     }
    }
   },
   "v3": {
-   "precision": 0.8768,
-   "recall": 0.8575,
-   "tp": 939,
-   "fp": 132,
-   "fn": 156,
+   "precision": 0.8032,
+   "recall": 0.8156,
+   "tp": 31259.160000000003,
+   "fp": 7657.5,
+   "fn": 7066.78,
    "truths": {
     "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
-     "tp": 413,
-     "fp": 61,
-     "fn": 77
+     "tp": 12294.0,
+     "fp": 3746.42,
+     "fn": 3474.38
     },
     "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
-     "tp": 204,
-     "fp": 14,
-     "fn": 38
+     "tp": 8373.29,
+     "fp": 1157.37,
+     "fn": 1573.57
     },
     "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
-     "tp": 322,
-     "fp": 57,
-     "fn": 41
+     "tp": 10591.87,
+     "fp": 2753.71,
+     "fn": 2018.83
     }
    }
   },
   "v2": {
-   "precision": 0.8799,
-   "recall": 0.8566,
-   "tp": 938,
-   "fp": 128,
-   "fn": 157,
+   "precision": 0.8027,
+   "recall": 0.8091,
+   "tp": 31007.719999999998,
+   "fp": 7620.28,
+   "fn": 7318.23,
    "truths": {
     "7dccda8c3e94e3771bfe5b46233f1073bed4d6db72bd93c6bc5671181803cbb0": {
-     "tp": 413,
-     "fp": 60,
-     "fn": 77
+     "tp": 12246.13,
+     "fp": 3747.35,
+     "fn": 3522.25
     },
     "30f87e3de6fee870e4cf0b7e50c285a14f21cd7972c8fbcd3dc062f9183f6da5": {
-     "tp": 204,
-     "fp": 13,
-     "fn": 38
+     "tp": 8211.5,
+     "fp": 1169.97,
+     "fn": 1735.37
     },
     "ad8052c273c26b0d1dfac220fdbfe638c35e9f8fd4a6726b3f1d9ad7fde96d18": {
-     "tp": 321,
-     "fp": 55,
-     "fn": 42
+     "tp": 10550.09,
+     "fp": 2702.96,
+     "fn": 2060.61
     }
    }
   }

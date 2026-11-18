@@ -19,6 +19,7 @@ show (they link to that repo, by the owner's choice).
 - [`STATUS.md`](STATUS.md) — where things stand and the agreed next step.
 - [`3D-STACKS.md`](3D-STACKS.md) — the 3D work, the vessel model and the owner's decisions on it.
 - [`../lab/README.md`](../lab/README.md) and its `LEDGER.md` — how the versions are run and scored, and every attempt.
+- [`scoring.md`](scoring.md) — how a model is scored against ground truth (3D tube overlap, in µm), why, and its validation.
 - [`literature/README.md`](literature/README.md) — one digest per paper (read the digest, never the PDF),
   [`literature/METHODS-SYNTHESIS.md`](literature/METHODS-SYNTHESIS.md) and
   [`literature/BIOLOGY-INVARIANTS.md`](literature/BIOLOGY-INVARIANTS.md).
@@ -43,7 +44,7 @@ The page reads the stack itself and shows it in the shell's 3D viewer, flattened
 Execute runs one of its `VERSIONS` on it in the page
 (`req/vascular/model/run`: Processing's Execute; the page's Python is `algorithm/` as it is; the study's list,
 `web/algorithms.json`, gives each version's name, icon and How the algorithm works there, as its `TITLE`, `ICON` and
-`STEPS` state them, and `web/algorithm_metrics.json`, written by `python3 lab/run.py vascular --truth lab --write`,
+`STEPS` state them, and `web/algorithm_metrics.json`, written by `python3 lab/run.py vascular --truth drive --write`,
 its precision and recall). The site ships no
 drawn models. The left bar is the shell's (`req/shell/left-bar/shells`): `web/vascular.html` fills its
 Processing, Summary and Ground Truth Tasks boxes, and the toolbar's left with how the model shows

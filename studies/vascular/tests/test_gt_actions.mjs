@@ -206,7 +206,7 @@ Object.assign(tests, {
     assert.deepEqual(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 'u2'].map((id) => by(id).state), Array(8).fill('accepted'), 'the verdicts');
     assert.equal(by('s3').width.um, 3, 'a width the tagger set');
     assert.deepEqual([got.nodes.get(4).x, got.nodes.get(4).y], [42, 0], 'a moved point stays where the tagger put it, and keeps its id');
-    assert.deepEqual([got.nodes.get(1000000), by('u1').proposed], [{ id: 1000000, x: 60, y: 20, z: 0 }, undefined]);
+    assert.deepEqual([got.nodes.get(1000000), by('u1').proposed], [{ id: 1000000, x: 60, y: 20, z: 0, r: 2 }, undefined], 'the drawn vessel has the width of the vessel it was drawn from');
     assert.deepEqual([by('s7').b, by('u2').a], [1000001, 1000001]);
     assert.deepEqual([got.checked_junctions, got.reviewed_regions.length, got.dropped], [[2], 1, undefined]);
     assert.equal(got.nodes.size, 11);
@@ -217,8 +217,9 @@ Object.assign(tests, {
     const base = S.load(JSON.parse(JSON.stringify(S.document(m))));
     const o = drawn(); o.edges.splice(3, 2); o.edges.splice(1, 1); // 5 - 6, 2 - 3 and 3 - 8 are gone
     const got = S.start(o, base);
-    assert.deepEqual(got.dropped.sort(), ['junction 8', 's3', 's5', 's6']);
-    assert.ok(got.segments.every((x) => x.state === 'vessel'), 'what was decided has nothing to be carried to');
+    // the file left no vessel undecided, so the vessel 3 - 8 the tagger never touched (s7) was accepted in it too
+    assert.deepEqual(got.dropped.sort(), ['junction 8', 's3', 's5', 's6', 's7']);
+    assert.ok(got.segments.every((x) => x.state === 'accepted'), 'the vessels the run still has were accepted in the file; what else was decided has nothing to be carried to');
     const quiet = S.start(o, start());
     assert.deepEqual([quiet.dropped, quiet.nodes.size, quiet.segments.length], [undefined, S.start(o).nodes.size, S.start(o).segments.length], 'a model of the algorithm alone is not carried');
   },
@@ -230,7 +231,7 @@ Object.assign(tests, {
     log.open({ name: 'acme.tif' }, 'vascular');
     log.load([...log.actions, { type: 'base', at: DAY, model: JSON.parse(JSON.stringify(S.document(m))), from: {} }]);
     log.ran({ algorithm: { key: 'v' }, output: o });
-    assert.deepEqual(leftOut(S, log.actions, 2).sort(), ['junction 8', 's3', 's5', 's6']);
+    assert.deepEqual(leftOut(S, log.actions, 2).sort(), ['junction 8', 's3', 's5', 's6', 's7']);
     assert.deepEqual(leftOut(S, log.actions, 2), log.model.dropped);
     const quiet = actionLog(S);
     quiet.open({ name: 'acme.tif' }, 'vascular');
@@ -303,6 +304,23 @@ Object.assign(tests, {
     } finally { globalThis.Date = real; }
     assert.ok(!('corrected_at' in S.document({ ...m, corrected_at: 'x', corrections: 4 })) && !('corrections' in S.document({ ...m, corrections: 4 })));
   },
+  'the file has no undecided vessel: one the tagger left as the algorithm drew it is written accepted, a faint one left alone rejected'() {
+    // req/vascular/model/no-undecided
+    let m = start();
+    m = S.run(m, act({ type: 'draw', from: { node: 4 }, to: { point: { x: 60, y: 20, z: 0 } } }));
+    m = S.run(m, act({ type: 'decide', segments: ['s3'], verdict: 'rejected' }));
+    const file = S.document(m);
+    const by = (a, b) => file.edges.find((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+    assert.deepEqual([by(1, 2).state, by(2, 4).state, by(3, 8).state], ['accepted', 'accepted', 'accepted'], 'vessels left as they were');
+    assert.equal(by(2, 3).state, 'rejected', 'the tagger\'s own verdict stands');
+    assert.equal(by(5, 6).state, 'rejected', 'a faint vessel the tagger never took into the model');
+    assert.deepEqual(file.edges.filter((e) => e.drawn).map((e) => e.state), ['vessel'], 'a vessel the tagger drew is a vessel');
+    assert.ok(file.edges.every((e) => e.drawn || ['accepted', 'rejected'].includes(e.state)));
+    assert.deepEqual(file.edges.filter((e) => !e.drawn).map((e) => e.proposed), ['vessel', 'vessel', 'vessel', 'candidate', 'vessel'], 'what the algorithm said of each is kept beside it');
+    // the model being tagged is not touched: what is undecided there is still to be judged
+    assert.equal(m.segments.filter((x) => x.proposed && x.state === x.proposed).length, 6);
+    assert.deepEqual(S.document(S.load(JSON.parse(JSON.stringify(file)))), file);
+  },
   'describe and where read every action, and where is null for an item that is gone'() {
     const m = start();
     const cases = CASES(m);
@@ -325,4 +343,4 @@ Object.assign(tests, {
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 24);
+assert.equal(n, 25);

@@ -11,7 +11,7 @@ The study's research records, as data; the code that runs and scores the version
 ```
 python3 lab/fetch.py vascular                 # the four CD31 stacks and the people's corrected models from Drive
 python3 lab/run.py vascular                   # every version scored on both (--truth lab or drive: one of them)
-python3 lab/run.py vascular --truth lab --write   # the numbers the page shows
+python3 lab/run.py vascular --truth drive --write # the numbers the page shows
 python3 lab/perf.py vascular snapshot|check|profile v5
 node lab/perf_pyodide.mjs vascular studies/vascular/data/raw/images/<id>__<stack>.tif v5   # the same run in the page's Pyodide
 ```
