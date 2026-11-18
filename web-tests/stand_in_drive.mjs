@@ -56,6 +56,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   const viewOnly = new Set();
   // the folders Drive's sharing lets the user write to, though the site was never approved for them
   const shared = new Set(gt ? [GT.curated, GT.submissions] : []);
+  // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
+  const hidden = new Set();
   // who Drive's sharing lets write to ROOT, which makes them its study manager (req/shell/data/roles)
   const writers = new Set([EMAIL]);
   // the folders the page shared with anyone with the link
@@ -188,6 +190,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (!id) {
       if (u.searchParams.get("spaces") === "appDataFolder") return json(route, { files: [] });
       const parent = u.searchParams.get("q").match(/'([^']+)' in parents/)[1];
+      if (!auth && hidden.has(parent)) return json(route, { error: { message: "File not found" } }, 404);
       return json(route, { files: FILES.filter((f) => f.parent === parent).map((f) => meta(f, fields)) });
     }
     if (auth) {
@@ -213,7 +216,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     if (id === ROOT) return json(route, { name: "Study folder one" });
     const f = FILES.find((g) => g.id === id);
-    if (!f) return json(route, { error: { message: "File not found" } }, 404);
+    if (!f || (!auth && (hidden.has(id) || hidden.has(f.parent)))) return json(route, { error: { message: "File not found" } }, 404);
     if (u.searchParams.get("alt") !== "media") return json(route, meta(f));
     return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/octet-stream", body: f.bytes });
   }
@@ -258,5 +261,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
   }
 
-  return { ROOT, FILES, SUB, GT, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
+  return { ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
 }

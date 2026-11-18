@@ -220,6 +220,15 @@ export const remote = (() => {
     return !!(await r.json()).capabilities?.canAddChildren;
   }
 
+  // whether the site's key alone reads a file or a folder, as one shared "Anyone with the link" is read: true, false,
+  // or null when the site has no key to ask with (req/shell/data/folders)
+  async function publicly(id) {
+    if (!key) return null;
+    const r = await fetch(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
+    if (r.status === 404 || r.status === 403) return false;
+    return r.ok ? true : null;
+  }
+
   // a file's or a folder's name
   async function name(id) {
     need();
@@ -353,7 +362,7 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, canWrite, writer, study,
+    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),

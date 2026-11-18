@@ -109,7 +109,31 @@
                   ]
                 },
                 {"name": "Folder tree", "select": "#data-tree", "req": "req/shell/data/mode"},
-                {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"}
+                {"name": "Not in the study", "select": "#data-unlisted", "req": "req/shell/data/folders", "unwalked": "shows only while the study's root holds a folder no listed folder is, and the walked study lists its root",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ],
+                  "children": [
+                    {"name": "Not in the study's title", "select": "#data-unlisted-title", "req": "req/shell/data/folders"},
+                    {"name": "The root's other folders", "select": "#data-unlisted-list", "req": "req/shell/data/folders"}
+                  ]
+                },
+                {"name": "Add a folder", "select": "#data-add-row", "req": "req/shell/data/folders",
+                  "children": [
+                    {"name": "Folder link to add", "select": "#data-add-link", "control": true, "req": "req/shell/data/folders",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Add folder", "select": "#data-add", "control": true, "req": "req/shell/data/folders",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    }
+                  ]
+                },
+                {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"},
+                {"name": "Study index's line", "select": "#data-index", "req": "req/shell/data/index"}
               ]
             }
           ]
