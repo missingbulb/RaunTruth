@@ -8,8 +8,8 @@
     "createComment"
   ],
   "env": {
-    "label": "Python imaging stack (numpy, scipy, pillow, matplotlib) and the libraries the page tests run (Pyodide, libheif, OpenJPEG)",
-    "setup": "python3 -m pip install --quiet --root-user-action=ignore -r requirements.txt && python3 -m pip install --quiet --root-user-action=ignore --ignore-installed pillow && python3 web-tests/page_libraries.py",
-    "probe": "python3 -c \"import numpy, scipy, PIL, matplotlib\" >/dev/null 2>&1 && python3 web-tests/page_libraries.py --check"
+    "label": "Python imaging stack (numpy, scipy, pillow, matplotlib, onnxruntime), the Tesseract command, and the libraries the page tests run (Pyodide, libheif, OpenJPEG)",
+    "setup": "python3 -m pip install --quiet --root-user-action=ignore -r requirements.txt && python3 -m pip install --quiet --root-user-action=ignore --ignore-installed pillow && python3 web-tests/page_libraries.py && (command -v tesseract >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends tesseract-ocr))",
+    "probe": "python3 -c \"import numpy, scipy, PIL, matplotlib, onnxruntime\" >/dev/null 2>&1 && command -v tesseract >/dev/null && python3 web-tests/page_libraries.py --check"
   }
 }

@@ -67,3 +67,9 @@
 - **Model:** claude-opus-5-5
 - **Mechanism:** setup and probe call `web-tests/page_libraries.py`, which reads the versions from
   the page's own jsDelivr URLs, as CI now does.
+
+## 2026-11-18 · scope-changed · the session environment installs onnxruntime and the Tesseract command
+- **Reason:** the shared lab reads book titles natively, with the page's own ONNX text finder and
+  Tesseract, so CI and every session need both (#1011).
+- **Actor:** Claude.
+- **Mechanism:** the pack's env setup and probe.
