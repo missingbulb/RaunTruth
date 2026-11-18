@@ -41,6 +41,7 @@ import { truthTasks } from "./truth_tasks.js";
 import { truthHistory } from "./truth_history.js";
 import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
+import { groupsOf, isHidden } from "./tags.js";
 import { subfolderName } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
@@ -1211,7 +1212,11 @@ function remoteDialog() {
     const added = f.created ? `Added to ${remote.label} on ${f.created.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : `When it was added to ${remote.label} is not known`;
     const fresh = !f.folder && seen && !seen.has(f.id) ? `<span class="new" title="${esc(added)}">new</span>` : "";
     // what only some rows show sits inward, what every image shows at the row's edge
-    b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span>${fresh}${f.folder ? "" : agoTag(opened[f.id])}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
+    // an index row's description under its name, its tags and whether it is hidden inward (req/shell/load/study-images)
+    const label = `<span class="label"><span class="name">${esc(f.name)}</span>${f.description ? `<span class="desc">${esc(f.description)}</span>` : ""}</span>`;
+    const tags = (f.hidden ? '<span class="tag-chip hidden-mark" title="Hidden from viewers and taggers by the study\'s hiding rules">hidden</span>' : "")
+      + (f.tags || []).map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("");
+    b.innerHTML = `<span class="pic"></span>${label}${fresh}${f.folder ? "" : agoTag(opened[f.id])}${tags ? `<span class="tags">${tags}</span>` : ""}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
     if (!f.folder) { b.dataset.id = f.id; markOffline(b.querySelector(".kept"), "image", kept.has(f.id)); }
     if (off && (f.folder ? !listings[f.id] : !kept.has(f.id))) {
       b.disabled = true; b.title = f.folder ? "Not listed on this device yet: it needs the internet." : "Not kept on this device: it needs the internet.";
@@ -1223,8 +1228,9 @@ function remoteDialog() {
     list.append(b);
     if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, list.childElementCount - 1);
   };
-  // Load study images (req/shell/load/study-images): the study index's images, a group per folder headed by its path,
-  // each folder's previews file read once its group scrolls into view
+  // Load study images (req/shell/load/study-images): the study index's images in groups, by folder or by the
+  // multi-value tag the study names, less those its rules hide but to a Study Manager; each folder's previews file read
+  // once one of its images scrolls into view
   let groupsSeen = null;
   const showIndex = async (ix, off) => {
     keptOn = false; trail = [{ index: true, name: "The study's images" }];
@@ -1233,26 +1239,34 @@ function remoteDialog() {
     $("#remote-path").textContent = "The study's images";
     $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
     groupsSeen?.disconnect();
-    const groups = new Map();
-    for (const im of ix.images) {
-      if (!groups.has(im.folder)) groups.set(im.folder, { path: im.path.join(" / "), items: [] });
-      groups.get(im.folder).items.push({ id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path });
-    }
-    const covers = new Map(), shown = new Map();
-    groupsSeen = new IntersectionObserver((seen) => { for (const e of seen) if (e.isIntersecting) { shown.get(e.target)?.(); groupsSeen.unobserve(e.target); } }, { root: $("#remote-list") });
-    thumbs.cover((f) => covers.get(f.dir));
-    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
-    msg(groups.size ? "" : "No images in the study's index.");
-    for (const [dir, g] of groups) {
-      const head = Object.assign(document.createElement("div"), { className: "group" });
-      head.innerHTML = `<span class="group-name">${esc(g.path)}</span><span class="group-count">${g.items.length}</span>`;
-      $("#remote-list").append(head);
-      covers.set(dir, new Promise((ok) => shown.set(head, ok)).then(async () => {
+    const manager = role === "data", hide = ix.hide || [];
+    const images = ix.images.map((im) => ({ ...im, hidden: isHidden(im.tags || [], hide) })).filter((im) => manager || !im.hidden);
+    const groups = groupsOf(images, ix.group);
+    // a folder's previews read once one of its images is in view
+    const covers = new Map(), starts = new Map(), dirOf = new Map();
+    const coverOf = (dir) => {
+      if (!covers.has(dir)) covers.set(dir, new Promise((ok) => starts.set(dir, ok)).then(async () => {
         const at = { id: dir }, file = off ? undefined : await place.previewsOf(dir);
         return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
       }).catch(() => null));
-      groupsSeen.observe(head);
-      for (const f of g.items) { row(f, { kept, opened, listings, off }); items.push(f); }
+      return covers.get(dir);
+    };
+    groupsSeen = new IntersectionObserver((seen) => { for (const e of seen) if (e.isIntersecting) { starts.get(dirOf.get(e.target))?.(); groupsSeen.unobserve(e.target); } }, { root: $("#remote-list") });
+    thumbs.cover((f) => coverOf(f.dir));
+    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
+    msg(groups.length ? "" : "No images in the study's index.");
+    for (const g of groups) {
+      const head = Object.assign(document.createElement("div"), { className: "group" });
+      head.innerHTML = `<span class="group-name">${esc(g.label)}</span><span class="group-count">${g.items.length}</span>`;
+      $("#remote-list").append(head);
+      for (const im of g.items) {
+        const f = { id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path,
+          tags: im.tags || [], description: im.description || "", hidden: im.hidden };
+        coverOf(f.dir);
+        row(f, { kept, opened, listings, off }); items.push(f);
+        const el = $("#remote-list").lastElementChild;
+        dirOf.set(el, f.dir); groupsSeen.observe(el);
+      }
     }
     if (!off) markTruth(items, asked);
   };
@@ -1413,7 +1427,7 @@ function remoteDialog() {
           ix = await place.index();
           const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
           // the folders and images alone: who built it stays in the store
-          writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images } }], ...rest] : rest));
+          writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images, group: ix.group ?? null, hide: ix.hide ?? [] } }], ...rest] : rest));
         } catch (e) { console.warn("the study index was not read:", e); }
       }
       if (ix?.images.length) return showIndex(ix, off);

@@ -165,4 +165,26 @@ const out = {};
     writes: m.calls.filter(([k]) => k === "create" || k === "replace"), hand: handOut, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length, none };
 }
 
+// the tags file (req/shell/data/tags): read as empty while there is none, written as a new file and then replaced, one
+// made by hand left alone; the study file's grouping and hiding set beside its other keys (req/shell/data/hidden)
+{
+  const m = memory();
+  const none = await sr.readTags(m.reader, "ROOT");
+  const doc = { images: { I1: { tags: ["group:sick"], description: "First" } }, folders: { F: { tags: ["dim"] } } };
+  await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc });
+  await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc: { ...doc, images: {} } });
+  const back = await sr.readTags(m.reader, "ROOT");
+  const hand = memory(); hand.add({ parent: "R7", name: sr.TAGS, body: "{}" });
+  let refused = null;
+  try { await sr.writeTags({ reader: hand.reader, writer: hand.writer, root: "R7", doc }); } catch (e) { refused = /not made by this page/.test(e.message); }
+  const st = memory(); const d = st.add({ parent: "R8", name: "Data", folder: true });
+  await sr.setFolders({ reader: st.reader, writer: st.writer, root: "R8", folders: [d.id] });
+  const after = await sr.setStudy({ reader: st.reader, writer: st.writer, root: "R8", changes: { group: "group", hide: ["damaged-slide"] } });
+  const file = JSON.parse(st.files.find((f) => f.name === sr.SETTINGS).body);
+  out.tags = { none: { images: Object.keys(none.images).length, folders: Object.keys(none.folders).length },
+    writes: m.calls.filter(([k]) => k === "create" || k === "replace"), back: { images: Object.keys(back.images).length, folder: back.folders.F.tags, format: back.format },
+    refused, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length,
+    study: { group: file.group, hide: file.hide, folders: file.folders.length, readGroup: after.group, readHide: after.hide } };
+}
+
 console.log(JSON.stringify(out));

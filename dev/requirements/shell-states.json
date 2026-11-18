@@ -133,7 +133,30 @@
                   ]
                 },
                 {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"},
-                {"name": "Study index's line", "select": "#data-index", "req": "req/shell/data/index"}
+                {"name": "Study index's line", "select": "#data-index", "req": "req/shell/data/index"},
+                {"name": "Study images", "select": "#study-set", "req": "req/shell/data/hidden",
+                  "children": [
+                    {"name": "Study images' title", "select": "#study-set-title", "req": "req/shell/data/hidden"},
+                    {"name": "Group Load by", "select": "#study-group", "control": true, "req": "req/shell/load/study-images",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "Hidden tags", "select": "#study-hide-list", "req": "req/shell/data/hidden"},
+                    {"name": "Tag to hide", "select": "#study-hide-add", "control": true, "req": "req/shell/data/hidden",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "Hide", "select": "#study-hide-go", "control": true, "req": "req/shell/data/hidden",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "How many are hidden", "select": "#study-hide-count", "req": "req/shell/data/hidden"},
+                    {"name": "Study images' message", "select": "#study-msg", "req": "req/shell/data/hidden"}
+                  ]
+                }
               ]
             }
           ]
@@ -256,6 +279,40 @@
                   ]
                 },
                 {"name": "Folder's message", "select": "#folder-msg", "req": "req/shell/data/folder"}
+              ]
+            },
+            {"name": "Tags", "select": "#tags-box", "box": true, "req": "req/shell/data/tags",
+              "rule": [
+                {"when": {"role": ["viewer", "tagger"]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"selected": ["nothing"]}, "is": "hidden", "approval": "tentative", "about": "the box edits the folder or image chosen"},
+                {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+              ],
+              "children": [
+                {"name": "What the tags are of", "select": "#tags-for", "req": "req/shell/data/tags"},
+                {"name": "Tags' list", "select": "#tags-list", "req": "req/shell/data/tags"},
+                {"name": "Tag to add", "select": "#tags-add", "control": true, "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Add tag", "select": "#tags-add-go", "control": true, "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Description", "select": "#tags-desc-row", "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"selected": ["folder"]}, "is": "hidden", "approval": "tentative", "about": "a folder has tags, an image a description too"}
+                  ],
+                  "children": [
+                    {"name": "Description's text", "select": "#tags-desc", "control": true, "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    }
+                  ]
+                },
+                {"name": "Tags' message", "select": "#tags-msg", "req": "req/shell/data/tags"}
               ]
             },
             {"name": "Processing", "select": "#processing-box", "box": true, "req": "req/shell/left-bar/shells",
