@@ -1,8 +1,6 @@
 """Three-segment NoR detection: every node is a red (Nav) segment with a separate green (Caspr)
 segment on each side, and each candidate is scored by an explicit validation.
 
-python3 nor3.py INPUT.tif OUTDIR [--tl (default) | --fill | --walk | --blobs]
-
 Validation (Ariel, 2026-09-25), all must hold:
   V1  three segments exist: one red, two green
   V2  order green-red-green: the greens sit on opposite sides of the red
@@ -15,14 +13,10 @@ Validation (Ariel, 2026-09-25), all must hold:
       on each segment's core (its 1-px rim next to the other colour is left out), because
       optical blur mixes the colours right at every green-red boundary.
 """
-import sys, os, math
+import math
 import numpy as np
 from scipy import ndimage as ndi
-from PIL import Image, ImageDraw
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import naive_nor as nn_  # load(), blue_mask(), to8()
-nor = nn_.nor
+import channels
 
 P = dict(
     smooth=0.0,        # px gaussian before classifying pixels (smoothing smears red into green)
@@ -76,8 +70,8 @@ def hmax_above(img, h, T):
 
 def classify(caspr, nav, bm, p):
     valid = ~bm
-    cn = ndi.gaussian_filter(nor.norm(caspr, valid), p['smooth'])
-    rn = ndi.gaussian_filter(nor.norm(nav, valid), p['smooth'])
+    cn = ndi.gaussian_filter(channels.norm(caspr, valid), p['smooth'])
+    rn = ndi.gaussian_filter(channels.norm(nav, valid), p['smooth'])
     cn[bm] = 0; rn[bm] = 0
     tg = np.quantile(cn[valid], 1 - p['green_frac'])
     tr = np.quantile(rn[valid], 1 - p['red_frac'])
@@ -93,7 +87,7 @@ def segment(caspr, nav, bm, p=P):
     glab, _ = ndi.label(green, EIGHT)
     rlab, nr = ndi.label(red, EIGHT)
     gsz = np.bincount(glab.ravel())
-    # unit: median half-length of green blobs, as in nor.detect
+    # unit: median half-length of green blobs
     gobj = ndi.find_objects(glab)
     lens = [max(s[0].stop - s[0].start, s[1].stop - s[1].start) / 2 for i, s in enumerate(gobj)
             if s is not None and gsz[i + 1] >= p['min_green']]
@@ -324,44 +318,8 @@ def measure(c):
     c['solid'] = float(fat[py[inside], px[inside]].sum() / max(len(ts_), 1))
 
 
-def paint(canvas_mask_list, shape, Z):
-    """1-px (at zoom Z) rings just outside each mask."""
-    ring = np.zeros((shape[0] * Z, shape[1] * Z), bool)
-    for (y0, x0), m in canvas_mask_list:
-        up = np.kron(m, np.ones((Z, Z), bool))
-        r = ndi.binary_dilation(up) & ~up
-        Y0, X0 = y0 * Z, x0 * Z
-        ring[Y0:Y0 + r.shape[0], X0:X0 + r.shape[1]] |= r
-    return ring
-
-
-def seg_masks(c):
-    return [(c['box'], c['red'])] + [(c['box'], g) for g in c['greens']]
-
-
-def contact(rgb_up, cands, Z, S, title_fn, path, color):
-    if not cands:
-        Image.new('RGB', (200, 40), (40, 40, 40)).save(path); return
-    cols = int(math.ceil(math.sqrt(len(cands)) * 1.3)); rows = int(math.ceil(len(cands) / cols))
-    cell = S * Z; pad = 4; lab = 12
-    sheet = Image.new('RGB', (cols * (cell + pad) + pad, rows * (cell + pad + lab) + pad), (40, 40, 40))
-    sd = ImageDraw.Draw(sheet)
-    Hh, Ww = rgb_up.shape[:2]
-    for k, c in enumerate(cands):
-        cy, cx = int(round(c['cy'] * Z)), int(round(c['cx'] * Z))
-        y0, x0 = cy - cell // 2, cx - cell // 2
-        tile = np.zeros((cell, cell, 3), np.uint8)
-        ys0, xs0 = max(0, y0), max(0, x0); ys1, xs1 = min(Hh, y0 + cell), min(Ww, x0 + cell)
-        tile[ys0 - y0:ys1 - y0, xs0 - x0:xs1 - x0] = rgb_up[ys0:ys1, xs0:xs1]
-        i, j = divmod(k, cols)
-        X = pad + j * (cell + pad); Y = pad + i * (cell + pad + lab)
-        sheet.paste(Image.fromarray(tile), (X, Y + lab)); sd.text((X + 1, Y), title_fn(k, c), fill=color)
-    sheet.save(path)
-
-
 # ---------------------------------------------------------------- "walk along the fibre" candidates
 P2 = dict(P, touch=6, strip=1.5, bend=30, max_green_u=4, seed_smooth=0.7, seed_nms=5, angle_step=7.5, band_u=1.2, hyst=0.8)
-
 
 def segment_walk(caspr, nav, bm, p=P2):
     """Find a red dot, find which way its fibre runs (the direction with green on BOTH sides),
@@ -399,7 +357,7 @@ def segment_walk(caspr, nav, bm, p=P2):
         # every angle and both sides in one call (same values as one call each); first best wins
         sg_dy = np.array([[sg * np.sin(a)] for sg in (1, -1) for a in angs])
         sg_dx = np.array([[sg * np.cos(a)] for sg in (1, -1) for a in angs])
-        sides = nor._bilinear(cs_, cy + sg_dy * ts, cx + sg_dx * ts).max(1).reshape(2, -1)
+        sides = channels.bilinear(cs_, cy + sg_dy * ts, cx + sg_dx * ts).max(1).reshape(2, -1)
         a = angs[int(np.argmax(sides.min(0)))]; dy, dx = np.sin(a), np.cos(a)
         # 2. walk out each way from the red dot. Each side may bend a little (axons curve), so
         # each side tries a few directions near the axis and keeps the one that reaches green.
@@ -409,8 +367,8 @@ def segment_walk(caspr, nav, bm, p=P2):
         # the green strip and red line profiles of every walk (both sides, every bend) in one call
         angs_w = [base + b for base in (a, a + np.pi) for b in bends]
         wdy = np.array([np.sin(g) for g in angs_w])[:, None, None]; wdx = np.array([np.cos(g) for g in angs_w])[:, None, None]
-        GP = nor._bilinear(cs_, cy + wdy * tt - wdx * offs[:, None], cx + wdx * tt + wdy * offs[:, None]).max(1)
-        RP = nor._bilinear(rs_, cy + wdy[:, 0] * tt, cx + wdx[:, 0] * tt)
+        GP = channels.bilinear(cs_, cy + wdy * tt - wdx * offs[:, None], cx + wdx * tt + wdy * offs[:, None]).max(1)
+        RP = channels.bilinear(rs_, cy + wdy[:, 0] * tt, cx + wdx[:, 0] * tt)
 
         def walk(k):
             # a strip, not a hairline: the strongest green across the fibre's width at each step
@@ -552,15 +510,15 @@ def segment_fill(caspr, nav, bm, p=P3):
         # every angle and both sides in one call (same values as one call each); first best wins
         sg_dy = np.array([[sg * np.sin(a)] for sg in (1, -1) for a in cand_angs])
         sg_dx = np.array([[sg * np.cos(a)] for sg in (1, -1) for a in cand_angs])
-        sides = nor._bilinear(cs_, cy + sg_dy * tt, cx + sg_dx * tt).max(1).reshape(2, -1)
+        sides = channels.bilinear(cs_, cy + sg_dy * tt, cx + sg_dx * tt).max(1).reshape(2, -1)
         a = cand_angs[int(np.argmax(sides.min(0)))]
 
         # 3. walk out: leave the red, step onto green, keep going until green halves; land at its peak
         # the green strip and red line profiles of every walk (both sides, every bend) in one call
         angs_w = [base + b for base in (a, a + np.pi) for b in bends]
         wdy = np.array([np.sin(g) for g in angs_w])[:, None, None]; wdx = np.array([np.cos(g) for g in angs_w])[:, None, None]
-        GP = nor._bilinear(cs_, cy + wdy * tt - wdx * offs[:, None], cx + wdx * tt + wdy * offs[:, None]).max(1)
-        RP = nor._bilinear(rs_, cy + wdy[:, 0] * tt, cx + wdx[:, 0] * tt)
+        GP = channels.bilinear(cs_, cy + wdy * tt - wdx * offs[:, None], cx + wdx * tt + wdy * offs[:, None]).max(1)
+        RP = channels.bilinear(rs_, cy + wdy[:, 0] * tt, cx + wdx[:, 0] * tt)
 
         def walk(k):
             ang = angs_w[k]; ddy, ddx = np.sin(ang), np.cos(ang)
@@ -581,7 +539,7 @@ def segment_fill(caspr, nav, bm, p=P3):
                 if gp[e] > gp[top]:
                     top = e
             # landing spot: the brightest green pixel across the strip at the peak step
-            o = offs[int(np.argmax(nor._bilinear(cs_, cy + ddy * tt[top] - ddx * offs, cx + ddx * tt[top] + ddy * offs)))]
+            o = offs[int(np.argmax(channels.bilinear(cs_, cy + ddy * tt[top] - ddx * offs, cx + ddx * tt[top] + ddy * offs)))]
             return (cy + ddy * tt[top] - ddx * o, cx + ddx * tt[top] + ddy * o, float(gp[top]), ang)
         lands = []
         for si in range(2):
@@ -657,7 +615,6 @@ segment_fill.MAIN = ('green_frac', 'red_frac', 'smooth_u', 'half', 'bend', 'reac
 
 
 PINK, BLUE = (255, 105, 200), (0, 140, 255)
-A_GREEN = A_RED = 0.6          # outline opacity (40% transparent)
 # rejection reason -> (letter, colour of the letter)
 REASONS = {
     'one green':      ('A', (255, 255, 0)),
@@ -685,100 +642,3 @@ REASON_TEXT = {
     'dim': 'a segment < 3.5 noise-sd over background',
     'shares a segment': 'overlaps a stronger NoR (duplicate)',
 }
-
-
-def blend(img, mask, color, alpha):
-    img[mask] = (img[mask] * (1 - alpha) + np.array(color) * alpha).astype(np.uint8)
-
-
-def main(inp, out, method='fill'):
-    os.makedirs(out, exist_ok=True)
-    caspr, nav, um, dapi = nn_.load(inp)
-    bm = nn_.blue_mask(dapi)
-    finders = {'fill': segment_fill, 'walk': segment_walk, 'blobs': segment}
-    if method == 'tl':
-        import nor_tl; finders['tl'] = nor_tl.segment_tl
-    cands, info = finders[method](caspr, nav, bm)
-    from collections import Counter
-    fails = Counter(c['fail'] for c in cands if c['fail'])
-    # every candidate with at least one green; bare red specks ('no green') are left off
-    shown = sorted([c for c in cands if c['fail'] is None or c['fail'] in REASONS],
-                   key=lambda c: (c['cy'], c['cx']))
-    ok = [c for c in shown if c['fail'] is None]
-    print('unit', round(info['unit'], 2), 'red blobs', len(cands), 'shown', len(shown), 'pass', len(ok), dict(fails))
-    H, W = caspr.shape; Z = 3
-    rgb = np.zeros((H, W, 3), np.uint8); rgb[..., 0] = nn_.to8(nav); rgb[..., 1] = nn_.to8(caspr)
-    base = np.repeat(np.repeat(rgb, Z, 0), Z, 1)
-    ov = base.copy()
-    for group, col in ((ok, PINK), ([c for c in shown if c['fail']], BLUE)):
-        blend(ov, paint([(c['box'], g) for c in group for g in c['greens']], (H, W), Z), col, A_GREEN)
-        blend(ov, paint([(c['box'], c['red']) for c in group], (H, W), Z), col, A_RED)
-    from PIL import ImageFont
-    font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 12)
-    bold = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 12)
-    mono = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 15)
-    img = Image.fromarray(ov); d = ImageDraw.Draw(img)
-    # measuring lines on every accepted NoR: length and width in white, the red stretch thicker
-    for c in ok:
-        y0, x0 = c['box']
-        z = lambda q: ((x0 + q[1] + 0.5) * Z, (y0 + q[0] + 0.5) * Z)
-        L = c['lines']
-        d.line([z(L['length'][0]), z(L['length'][1])], fill=(255, 255, 255), width=1)
-        d.line([z(L['width'][0]), z(L['width'][1])], fill=(255, 255, 255), width=1)
-        d.line([z(L['red'][0]), z(L['red'][1])], fill=(255, 255, 255), width=2)
-    rows = []; f = um or 1.0
-    for k, c in enumerate(shown, start=1):
-        y0, x0 = c['box']; u = c['red'].copy()
-        for g in c['greens']:
-            u |= g
-        ys, xs = np.nonzero(u)
-        X, Y = (x0 + xs.max() + 1) * Z, (y0 + ys.min()) * Z - 13
-        num = str(k)
-        d.text((X, Y), num, fill=PINK if c['fail'] is None else BLUE, font=font)
-        letter = ''
-        if c['fail']:
-            letter, lc = REASONS[c['fail']]
-            d.text((X + d.textlength(num, font=font) + 1, Y), letter, fill=lc, font=bold)
-        m = 'length_px' in c
-        rows.append((k, letter or 'pass', round(c['cx']), round(c['cy']),
-                     c['length_px'] * f if m else None, c['red_len_px'] * f if m else None,
-                     c['red_len_px'] / c['length_px'] if m else None, c['aspect'] if m else None))
-    unit = 'um' if um else 'px'
-    import csv
-    fmt = lambda v, s: '' if v is None else format(v, s)
-    with open(f'{out}/nor_candidates.csv', 'w', newline='') as fh:
-        w = csv.writer(fh)
-        w.writerow(['n', 'result', 'reason', 'x_px', 'y_px', f'length_{unit}', f'red_length_{unit}', 'red_over_length', 'length_over_width'])
-        inv = {v[0]: k for k, v in REASONS.items()}
-        for r in rows:
-            w.writerow([r[0], r[1], inv.get(r[1], ''), r[2], r[3], fmt(r[4], '.2f'), fmt(r[5], '.2f'), fmt(r[6], '.2f'), fmt(r[7], '.1f')])
-    # side panel: legend, then the list of every shown candidate
-    lh = 19; top = 36 + lh * (len(REASONS) + 4)
-    per_col = (img.height - top - 10) // lh - 1
-    ncol = max(1, math.ceil(len(rows) / per_col)); colw = 360
-    panel = Image.new('RGB', (max(ncol * colw + 20, 700), img.height), (20, 20, 20)); pd = ImageDraw.Draw(panel)
-    pd.text((10, 8), f'{len(shown)} candidates top to bottom: {len(ok)} pass (pink), {len(shown) - len(ok)} fail (blue)', fill=(230, 230, 230), font=mono)
-    pd.text((10, 8 + lh), f'Not drawn: {fails["no green"]} red specks with no green next to them', fill=(150, 150, 150), font=mono)
-    for i, (reason, (L, col)) in enumerate(REASONS.items()):
-        pd.text((10, 8 + lh * (i + 3)), L, fill=col, font=mono)
-        pd.text((30, 8 + lh * (i + 3)), f'{REASON_TEXT[reason]}  ({fails[reason]})', fill=(230, 230, 230), font=mono)
-    head = '   #  res   length  red  red/len  L/W'
-    for j in range(ncol):
-        X = 10 + j * colw; pd.text((X, top), head, fill=(150, 150, 150), font=mono)
-        for i, r in enumerate(rows[j * per_col:(j + 1) * per_col]):
-            Y = top + (i + 1) * lh
-            nums = '' if r[4] is None else f'{r[4]:6.2f} {r[5]:5.2f}  {r[6]:5.2f} {r[7]:5.1f}'
-            ok_ = r[1] == 'pass'
-            pd.text((X, Y), f'{r[0]:4d}', fill=PINK if ok_ else BLUE, font=mono)
-            lab = 'pass' if ok_ else f'  {r[1]} '
-            lcol = PINK if ok_ else REASONS[[k for k, v in REASONS.items() if v[0] == r[1]][0]][1]
-            pd.text((X + 45, Y), lab, fill=lcol, font=mono)
-            pd.text((X + 90, Y), nums, fill=(230, 230, 230), font=mono)
-    full = Image.new('RGB', (img.width + panel.width, img.height)); full.paste(img, (0, 0)); full.paste(panel, (img.width, 0))
-    full.save(f'{out}/overlay_all_candidates.png', optimize=True)
-    return cands, info
-
-
-if __name__ == '__main__':
-    m = [a[2:] for a in sys.argv[3:] if a in ('--blobs', '--walk', '--fill', '--tl')]
-    main(sys.argv[1], sys.argv[2], m[0] if m else 'tl')

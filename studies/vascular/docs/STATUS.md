@@ -115,7 +115,7 @@ open questions (the z-step, and the owner's ground truth).
 The same viewer is a static site, **3D MicroViewer** ([`microviewer/`](https://github.com/missingbulb/vascularColoring/tree/54badaa922556913bed2e51834440b5419b940ca/microviewer)), that opens
 any TIFF z-stack in the browser, from the computer or from Google Drive, with no export step.
 
-**Ground truth, started 2026-10-03:** [`algorithm/vessel_model.py`](../algorithm/vessel_model.py) drafts a vessel model of a whole
+**Ground truth, started 2026-10-03:** [`vessel_model.py`](../algorithm/vessel_model.py) drafts a vessel model of a whole
 stack, since 2026-10-27 as junctions and tips joined by smooth curves (`vessel-model/2`; first:
 `cd31_frontal_x20_r_1_slices1-12`, about 100 KB against the stack's 35 MB), and
 the MicroViewer shows it beside or over the stack and lets the owner correct it and download the

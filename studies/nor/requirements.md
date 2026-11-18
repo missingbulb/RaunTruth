@@ -7,8 +7,8 @@ follows too: tags, their order, **Tentative** and **Undecided**. Its research re
 ## `req/nor` The NoR Finder page: detect once, filter live, in the browser
 
 Set by the owner on 2026-09-28: the shell running the NoR study with no backend. Its engine is
-[`studies/nor/detection/interactive.py`](detection/interactive.py), tested by
-[`studies/nor/tests/test_interactive.py`](tests/test_interactive.py).
+[`studies/nor/algorithm/nor_finder.py`](algorithm/nor_finder.py), tested by
+[`studies/nor/tests/test_algorithm.py`](tests/test_algorithm.py).
 
 - `req/nor/candidates/add-missed` Right-clicking the image adds a NoR the finder missed.
   <details>
@@ -144,10 +144,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
   added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
   cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
-  `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's `nor_lab.py --labels` reads it, and the `/2` files already
+  `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's scorer (`algorithm/truth.py`) reads it, and the `/2` files already
   curated, which list `labels` (every candidate voted up or down, and every added NoR approved, kind `missing`, with its
   radius): the labels score detection and the checked lengths score measurement
-  (`studies/nor/tests/test_ground_truth.py`). A candidate nobody voted on is ambiguous: in `candidates` without
+  (`studies/nor/tests/test_truth.py`). A candidate nobody voted on is ambiguous: in `candidates` without
   `approved`, and no label.
   </details>
 
@@ -156,7 +156,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Every check in `nor3.CHECKS`, the nucleus rule (N) and one-pixel-per-NoR (O) is a control that
   can be switched off. Each shows a letter, a one- or two-word title and a line saying what it
-  means (the page's own names, from `detection/finder_help.py`; the lab's review sheets keep
+  means (the page's own names, from `algorithm/finder_help.py`; the lab's review sheets keep
   theirs), and two counts: how many candidates it rejects, whatever the other filters do, and how
   many only it rejects among the filters switched on (what switching it off would let through), as
   plain text reading "X (Y)" after the cards' thumbs-down icon, whose tooltip explains that X is the
@@ -187,12 +187,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   They re-run the finder. Each finder names its main settings (its function's `MAIN`), shown first;
   every setting is under a collapsed Advanced box. Each finder shows how it works under "How the
   <finder> algorithm works", its steps as a nested list (written as a Markdown outline), and every
-  setting and filter value has a ? that says what it does (`detection/finder_help.py`; the test fails
+  setting and filter value has a ? that says what it does (`algorithm/finder_help.py`; the test fails
   when one is missing). Changed by the owner on 2026-11-03: the note ends with "<Finder> algorithm shows
   precision of X and recall of Y with its default filters, on N images", in bold, the numbers the finder
   list shows, then "(without filters: …)", the finder's own, not bold (the list and the note are the shell's
   since 2026-11-13, `req/shell/processing/algorithms`, from the study's data: `web/algorithms.json`, each finder's
-  name, icon and steps, and `web/finder_metrics.json`, its numbers);
+  name, icon and steps, and `web/algorithm_metrics.json`, its numbers);
   each finder in the list carries its own icon, the study's choice; the settings start folded.
   Test: `studies/nor/tests/test_processing_box.py`.
   </details>
@@ -200,7 +200,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/lab-parity` The page runs the lab's code, and at our settings passes what the lab passes.
   <details>
 
-  The Python it runs is the study's `detection/` as it is, so the finder stays
+  The Python it runs is the study's `algorithm/` as it is, the code the lab runs, so the finder stays
   malleable. At our settings, the page passes what the lab passes with the blue mask applied after
   finding.
   </details>

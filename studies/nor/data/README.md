@@ -5,20 +5,17 @@ The microscope files are **not in this repository**. They live in the owner's Go
 
 ```
 pip install -r requirements.txt
-python3 detection/fetch_data.py
+python3 lab/fetch.py nor
 ```
 
-To fetch only some files, pass one or more path globs:
-`python3 detection/fetch_data.py -m 'Left Up- Edited/Slide2*'`.
+They land in `data/raw/images/` (git-ignored, gone with the container), each named by its Drive id.
+Every file is checked against the SHA-256 in `sources.json`; a mismatch stops the run. The shared
+lab's [`lab/README.md`](../../../lab/README.md) says what else it fetches. Requirement:
+[`studies/nor/docs/requirements.md`](../docs/requirements.md) R6.
 
-They land in `data/raw/` (git-ignored, gone with the container). Every file is checked against
-the SHA-256 in `sources.json`; a mismatch stops the run. The first fetch of a new source runs with
-`--pin` to record its checksums (and, for a folder, its file listing), and that manifest change is
-committed. Requirement: [`studies/nor/docs/requirements.md`](../docs/requirements.md) R6.
-
-**Adding data:** put it in Drive, share it as **"Anyone with the link"**, add an entry to
-`sources.json` (`kind: "file"` with `"sha256": null`, or `kind: "folder"` with `"files": null` and
-optional `skip` globs), run `--pin`, commit.
+**Adding data:** put it in the study root's `Data` folder on Drive, shared as **"Anyone with the link"**,
+then `python3 lab/fetch.py nor --pin`, which lists the folder again and records what is new with its
+checksum (paths matching `skip` are left out), and commit `sources.json`.
 
 ## Sources
 
@@ -31,8 +28,7 @@ whose `NoRFinder/` subfolder is the one source here.
 | `owner-scans` | 55 single-plane images (2026-09-25) in three field-position subfolders — `Left Up- Edited` (19), `Down Middle- Edited` (18), `Up Middle- Edited` (18) — over six slides × up to four slices each, `4AP` condition. Names carry the owner's own notes (`_not so good`, `_opt2`, `_option2`): several fields have more than one edited version. 454 MB. | **Pinned** 2026-09-25, 55 files, listing checked against Drive's own folder view. The folder was still being filled while it was pinned: re-run `--pin` after an upload. |
 
 Ground truth submitted from the NoR Finder page names its image by Google Drive id and SHA-256
-instead of an entry here; scoring (`python3 detection/ground_truth.py score`) downloads those images, the first time, into
-`data/raw/ground-truth/`, checked the same way (requirements R10).
+and is paired with its image by that SHA-256 (requirements R10).
 
 ## Why Drive, and not git
 
@@ -91,7 +87,7 @@ camera. It names no vendor or software.
   the channel of large round blobs. A blob-size test (mean connected-component area of the top
   3% after a σ=2 px blur) picked it correctly in 54 of 55 files; it failed on
   `Up Middle- Edited/Slide3 … Slice3_up_middle2.tif`, where a bright tissue edge in the Caspr
-  channel outscored the nuclei. `naive_nor.load` therefore compares only the two non-green
+  channel outscored the nuclei. `channels.load` (`../algorithm/`) therefore compares only the two non-green
   channels, which gets that file right too.
 - **Caspr is the green-displayed channel in all 55 files; Nav1.6 is the remaining non-DAPI
   channel** — deduced from the node's geometry, not from the colours. A node is a Nav1.6 spot

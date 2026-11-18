@@ -70,7 +70,7 @@ def own_answers(answers, png, tif, stack, out):
         sys.path[:0] = [os.path.join(base, d) for d in py['paths']]
         try:
             study = importlib.import_module(py['entry'])
-            a['ready'][i] = json.loads(study.ready())
+            a['ready'][i] = json.loads(study.ready()) if hasattr(study, 'ready') else {}
         finally:
             del sys.path[:len(py['paths'])]
     out.write_text(json.dumps(a))

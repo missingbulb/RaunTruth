@@ -63,7 +63,7 @@ py.runPython("study = importlib.import_module('acme')");
 answer = bridge(py, (m) => {
   out.push(m);
   // the page's part: each request answered as it comes, while the version waits
-  if (m.type === "ask") setTimeout(() => answer.reply({ value: { said: `${m.service} ${m.meta[0]} #${m.meta[1]}` } }));
+  if (m.type === "ask") queueMicrotask(() => answer.reply({ value: { said: `${m.service} ${m.meta[0]} #${m.meta[1]}` } }));
 }, {});
 await ask({ type: "open", name: "a.bin", bytes: new Uint8Array([1, 2, 3]).buffer });
 const asked = await ask({ type: "call", action: "run", args: { algorithm: "asks" }, echo: 1 });

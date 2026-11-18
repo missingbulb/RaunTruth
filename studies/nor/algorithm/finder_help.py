@@ -1,5 +1,5 @@
 """What the page says about each setting: one line per parameter (HELP), and each reason a candidate is rejected
-for (REASONS). Each finder's name, icon and steps are the page's list (web/algorithms.json). tests/test_interactive.py
+for (REASONS). Each finder's name, icon and steps are the page's list (web/algorithms.json). tests/test_algorithm.py
 fails when a parameter the page shows has no entry here, so a new setting arrives with its explanation.
 
 "unit" is the image's own scale: the median half-length of a green blob, so sizes follow the image

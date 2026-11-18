@@ -21,8 +21,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import fetch  # noqa: E402
-from study import Study  # noqa: E402
+import fetch
+from study import Study
 
 
 def code_hash(study):

@@ -283,8 +283,7 @@ stated. Never assume the object is aligned to the pixel grid. Run the version on
 copies of an input and map the detections back: rotations including non-right angles (15°, 30°,
 45°) and flips for any image; shear, anisotropic scaling and perspective skew for anything a
 camera or microscope can project; polarity and lighting where stated. Detections must match the
-untransformed run within explicit bounds per transform, in a committed executable test (this
-repo's `studies/nor/tests/test_invariance.py` is one). The test needs no key - it checks the algorithm against
+untransformed run within explicit bounds per transform, in a committed executable test. The test needs no key - it checks the algorithm against
 itself, so a detector that finds nothing passes and it never replaces the score - and a synthetic
 transform resamples twice, so it is pessimistic; say so. Recall that drops under a transform is an
 orientation or shape assumption: find it and remove it, as with an illegitimate constant. Unit

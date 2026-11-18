@@ -9,7 +9,7 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'algorithm'))
-from score import BOX, SCORING, TITLE, TITLE_MATCH, UNDECIDED, score  # noqa: E402
+from score import BOX, SCORING, TITLE, TITLE_MATCH, UNDECIDED, score
 
 TITLES = ['פרנק הרברט / חולית', 'פרנק הרברט / משיח חולית', 'RIAN MALAN MY TRAITOR’S HEART', 'אלן דין פוסטר הנוסע השמיני', '',
           'ג׳ון לה קארה המתופפת הקטנה', 'Seth Godin Small Is the New Big', '', 'רוברט סילברברג | האיש במבוך', 'מעוף הדרקון']

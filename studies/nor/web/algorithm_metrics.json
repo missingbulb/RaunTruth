@@ -1,0 +1,266 @@
+{
+ "format": "rauntruth-metrics/1",
+ "measured": "on 1 image with ground truth, 1 of them marked in the lab, not by people",
+ "dataset_sha256": "b3752a3fde148d04de80553ea0d961b0acf3bb60058462c17c9cb0a7e5dd1061",
+ "images": [
+  {
+   "image_sha256": "126752b828cf54bfbe8f95b034e1d7a98ba467e732471846d5c506ab34f89f29",
+   "name": "Slide5_4AP_NoR.sld - Slice1_up_left2.tif",
+   "truth_sha256": "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9",
+   "truth": "lab/truth/claude_v1.json"
+  }
+ ],
+ "scoring": "- Each spot the ground truth marks is judged on its own, against the candidates the filters pass\n- A passing candidate is on a spot when its centre lies within 5 pixels of it; a NoR added by hand counts within its own radius (12 pixels)\n- tp: the spots marked a NoR with a passing candidate on them\n- fn: the spots marked a NoR with none\n- fp: the spots marked not a NoR with a passing candidate on them\n- A pass on a spot nobody marked counts for neither, and one pass may sit on several spots\n- The page's file gives its approved candidates and added NoRs as NoRs, and the candidates its history says the tagger deleted as not NoRs; a candidate never voted on is no spot",
+ "versions": {
+  "tl": {
+   "precision": 0.902,
+   "recall": 0.6389,
+   "tp": 46,
+   "fp": 5,
+   "fn": 26,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 34,
+     "fp": 2,
+     "fn": 38,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.9444,
+     "recall": 0.4722
+    },
+    "recalling": {
+     "tp": 49,
+     "fp": 7,
+     "fn": 23,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.875,
+     "recall": 0.6806
+    },
+    "unfiltered": {
+     "tp": 61,
+     "fp": 20,
+     "fn": 11,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7531,
+     "recall": 0.8472
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 46,
+     "fp": 5,
+     "fn": 26
+    }
+   }
+  },
+  "rf": {
+   "precision": 0.8421,
+   "recall": 0.6667,
+   "tp": 48,
+   "fp": 9,
+   "fn": 24,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 35,
+     "fp": 4,
+     "fn": 37,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8974,
+     "recall": 0.4861
+    },
+    "recalling": {
+     "tp": 52,
+     "fp": 10,
+     "fn": 20,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8387,
+     "recall": 0.7222
+    },
+    "unfiltered": {
+     "tp": 62,
+     "fp": 17,
+     "fn": 10,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7848,
+     "recall": 0.8611
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 48,
+     "fp": 9,
+     "fn": 24
+    }
+   }
+  },
+  "fill": {
+   "precision": 0.8958,
+   "recall": 0.5972,
+   "tp": 43,
+   "fp": 5,
+   "fn": 29,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 32,
+     "fp": 3,
+     "fn": 40,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.9143,
+     "recall": 0.4444
+    },
+    "recalling": {
+     "tp": 48,
+     "fp": 8,
+     "fn": 24,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8571,
+     "recall": 0.6667
+    },
+    "unfiltered": {
+     "tp": 61,
+     "fp": 19,
+     "fn": 11,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7625,
+     "recall": 0.8472
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 43,
+     "fp": 5,
+     "fn": 29
+    }
+   }
+  },
+  "walk": {
+   "precision": 0.8605,
+   "recall": 0.5139,
+   "tp": 37,
+   "fp": 6,
+   "fn": 35,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 31,
+     "fp": 4,
+     "fn": 41,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8857,
+     "recall": 0.4306
+    },
+    "recalling": {
+     "tp": 43,
+     "fp": 11,
+     "fn": 29,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7963,
+     "recall": 0.5972
+    },
+    "unfiltered": {
+     "tp": 63,
+     "fp": 32,
+     "fn": 9,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.6632,
+     "recall": 0.875
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 37,
+     "fp": 6,
+     "fn": 35
+    }
+   }
+  },
+  "blobs": {
+   "precision": 0.8,
+   "recall": 0.5,
+   "tp": 36,
+   "fp": 9,
+   "fn": 36,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 28,
+     "fp": 8,
+     "fn": 44,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7778,
+     "recall": 0.3889
+    },
+    "recalling": {
+     "tp": 42,
+     "fp": 13,
+     "fn": 30,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7636,
+     "recall": 0.5833
+    },
+    "unfiltered": {
+     "tp": 64,
+     "fp": 38,
+     "fn": 8,
+     "missing_proposed": 0,
+     "checked": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.6275,
+     "recall": 0.8889
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 36,
+     "fp": 9,
+     "fn": 36
+    }
+   }
+  }
+ }
+}

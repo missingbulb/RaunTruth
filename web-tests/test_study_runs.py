@@ -57,9 +57,7 @@ def answers(png, tmp_path_factory):
     mask = ran.pop('above')
     count = json.dumps(ran)
     out = d / 'answers.json'
-    sys.path.insert(0, os.path.join(HERE, '..', 'studies', 'nor', 'detection'))
-    import interactive
-    ready = dict(fixture={}, viewer={}, nor=json.loads(interactive.ready()))
+    ready = dict(fixture={}, viewer={}, nor={})
     out.write_text(json.dumps(dict(ready=ready, opened=json.loads(opened), count=json.loads(count),
                                    images=base64.b64encode(images).decode(), mask=base64.b64encode(mask).decode())))
     sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))

@@ -21,8 +21,8 @@ import tracemalloc
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import run as lab_run  # noqa: E402
-from study import Study  # noqa: E402
+import run as lab_run
+from study import Study
 
 
 def signature(answer):

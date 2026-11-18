@@ -21,9 +21,9 @@
   "viewer": "image2d",
   "python": {
     "paths": [
-      "detection/"
+      "algorithm/"
     ],
-    "entry": "interactive",
+    "entry": "nor_finder",
     "packages": [
       "numpy",
       "scipy",
@@ -38,7 +38,7 @@
   },
   "algorithms": {
     "list": "web/algorithms.json",
-    "metrics": "web/finder_metrics.json"
+    "metrics": "web/algorithm_metrics.json"
   },
   "web": {
     "module": "web/nor.js",
@@ -75,7 +75,7 @@
     "install": "Installing numpy, scipy, scikit-image…",
     "load": "Loading the finders…",
     "open": "Reading the image and building the blue mask…",
-    "detect": "Finding candidates (the slow part)…"
+    "run": "Finding candidates (the slow part)…"
   },
   "groundTruth": {
     "actions": "web/gt_actions.js",

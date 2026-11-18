@@ -76,3 +76,8 @@
 - **Actor:** @missingbulb (owner), asking that the skills carry this run's lessons for the next
   "make it better".
 - **Model:** claude-opus-5-5
+
+## 2026-11-18 · reworded · the invariance test it named is retired
+- **Reason:** NoR's invariance harness only ever tested the retired v1 detector, and went with it
+  (#1011).
+- **Actor:** Claude.

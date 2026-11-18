@@ -15,7 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 READING_JS = os.path.join(HERE, '..', 'web', 'reading.js')
 NAMES = os.path.join(HERE, '..', 'web', 'words', 'names.txt')
 sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
-import reading  # noqa: E402
+import reading
 
 
 def spell(words, texts):

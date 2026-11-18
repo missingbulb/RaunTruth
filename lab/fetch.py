@@ -18,7 +18,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from study import STUDIES  # noqa: E402
+from study import STUDIES
 
 SETTINGS = 'rauntruth-study.json'
 # the names each folder is found by while the root's settings file names none, best first

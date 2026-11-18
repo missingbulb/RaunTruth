@@ -18,8 +18,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STUDY = os.path.join(HERE, '..')
 sys.path.insert(0, os.path.join(STUDY, 'algorithm'))
 sys.path.insert(0, os.path.join(STUDY, '..', '..', 'lab'))
-import reading  # noqa: E402
-from study import drive  # noqa: E402
+import reading
+from study import drive
 
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 

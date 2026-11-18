@@ -15,10 +15,10 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
-import fetch  # noqa: E402
-import perf  # noqa: E402
-import run  # noqa: E402
-import study as lab_study  # noqa: E402
+import fetch
+import perf
+import run
+import study as lab_study
 
 
 def png(width, height, pixels):

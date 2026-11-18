@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 if (!args[0] || !args[0].startsWith("http")) { console.error("usage: node bench_live.mjs URL [FINDER ...]   (URL = the page, deployed or a local preview)"); process.exit(2); }
 const url = args.shift();
 const finders = args.length ? args : ["tl", "rf", "fill", "walk", "blobs"];
-const tif = path.join(repo, "data", "raw", "Left Up- Edited", "Slide5_4AP_NoR.sld - Slice1_up_left2.tif");
+const tif = path.join(repo, "data", "raw", "images", "1NRObE-kEsINGTvFkI-uh3dFjiZgcWMUp__Slide5_4AP_NoR.sld - Slice1_up_left2.tif");
 
 function treeRssMb(root) {
   // resident set of every process under root, largest single one and the sum
@@ -77,7 +77,7 @@ for (const finder of finders) {
     const bytes = await (await fetch("__bench.tif")).arrayBuffer();
     let t = performance.now(); w.postMessage({ type: "open", name: "slide.tif", bytes }, [bytes]); await next("opened");
     const open = (performance.now() - t) / 1000;
-    t = performance.now(); w.postMessage({ type: "call", action: "detect", args: { finder, overrides: {} } }); const d = await next("detect");
+    t = performance.now(); w.postMessage({ type: "call", action: "run", args: { algorithm: finder } }); const d = await next("run");
     const detect = (performance.now() - t) / 1000;
     t = performance.now(); w.postMessage({ type: "call", action: "refilter", args: { spec: { values: {}, off: [] } }, echo: 1 }); const f = await next("refilter");
     const refilter = (performance.now() - t) / 1000;

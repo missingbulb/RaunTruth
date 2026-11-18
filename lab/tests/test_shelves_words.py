@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-import shelves_words  # noqa: E402
+import shelves_words
 
 
 def test_the_names_file_is_the_tools_own_output():

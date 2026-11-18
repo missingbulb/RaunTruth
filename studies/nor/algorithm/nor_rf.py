@@ -32,7 +32,7 @@ PR = dict(nor3.P3, min_green_balance=0.25, rim=2,
           far_u=2.0,          # rescue a paranode up to this far from the red when only one side has green (0 = off)
           far_cone=35,        # deg: half-width of the cone opposite the known green
           gap_level=0.5,      # the line red -> far green must stay above this many colour levels
-          # switches kept so each change can be re-tested against its alternative (see detection/lab/ledger.md)
+          # switches kept so each change can be re-tested against its alternative (see lab/ledger.md)
           blue='post',        # 'pre': blank nuclei before finding (old way)
           multi=True,         # False: first green pair found wins (old way)
           split=False,        # True (dropped by ablation): split a hill touching on two sides. False: one candidate green per green hill, even if it wraps the red
@@ -80,15 +80,6 @@ def posthoc_blue(cands, bm, p):
             c['nucleus_frac'] = onb
             if onb >= p.get('nucleus_frac', 0.8):
                 c['fail'] = 'in nucleus'
-
-
-def segment_tl_post(caspr, nav, bm, p=None):
-    """The traffic-light finder with the blue mask moved to the end, for comparison."""
-    import nor_tl
-    p = p or nor_tl.PT
-    cands, info = nor_tl.segment_tl(caspr, nav, np.zeros_like(bm), p)
-    posthoc_blue(cands, bm, p)
-    return cands, info
 
 
 def quality(c):
@@ -267,15 +258,3 @@ def segment_rf(caspr, nav, bm, p=PR):
 
 # the settings the page shows first for this finder; the rest sit under Advanced
 segment_rf.MAIN = ('green_frac', 'red_frac', 'red_steps', 'touch_u', 'g_reach_u', 'far_u')
-
-
-
-if __name__ == '__main__':
-    # review outputs in Ariel's standard format (render_std.py), plus lab sheets
-    import os, sys, json
-    import nor_lab, render_std
-    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Slide5_Slice1_up_left2', 'v9_red_first')
-    os.makedirs(out, exist_ok=True)
-    cands, info = render_std.render('rf', out)
-    sc, missed = nor_lab.score(cands, json.load(open(nor_lab.LABELS)))
-    nor_lab.sheets(os.path.join(out, 'review_sheets'), cands, missed, (nor_lab.load()))

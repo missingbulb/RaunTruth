@@ -131,7 +131,7 @@ the offline test's build, writes each file whole.
 ```
 web/              the shell, the viewer, the Python runtime (worker.js, bridge.js)
 web-tests/        the shell's tests, run on the fixture study
-studies/nor/      the NoR Finder study: study.json, requirements.md, web/, detection/, data/, docs/, tests/
+studies/nor/      the NoR Finder study: study.json, requirements.md, web/, algorithm/, lab/, data/, docs/, tests/
 studies/vascular/ the Vascular Measurements study: study.json, requirements.md, algorithm/, web/, lab/, data/, docs/, tests/
 studies/shelves/  the Bookshelf Reader, an image-processing outlier: study.json, requirements.md, py/, web/, reading/, docs/, tests/
 studies/viewer/   the Image Viewer, the page's default: any image, no analysis

@@ -114,7 +114,7 @@ Proposed next (not done):
    those would drop ~17 MB (skimage plus matplotlib) from the first download.
 
 ### Browser memory, 2026-09-29 (Ariel: "memory breakdown for the Pyodide and libraries")
-Full notes in `detection/browser/MEMORY.md`. Chromium PSS for tl is 955 MB: Chromium 167, Pyodide
+Full notes in `browser/MEMORY.md`. Chromium PSS for tl is 955 MB: Chromium 167, Pyodide
 95, packages 357 (109 of files in memory, ~170 for the 194 native modules `loadPackage` loads, of
 which the finders import 64), slide 128, tl detect 208 (its temporaries; wasm memory never shrinks).
 

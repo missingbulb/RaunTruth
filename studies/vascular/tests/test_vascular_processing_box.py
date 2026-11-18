@@ -11,7 +11,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STUDY = os.path.join(HERE, '..')
 sys.path.insert(0, os.path.join(STUDY, 'algorithm'))
 
-import vascular  # noqa: E402
+import vascular
 
 METRICS = os.path.join(STUDY, 'web', 'algorithm_metrics.json')
 

@@ -93,7 +93,7 @@ owner on the first stack from another region.
 
 ## The vessel model: a correctable answer key
 
-The tracer is `model` in [`algorithm/vessel_model.py`](../algorithm/vessel_model.py), the start of every version;
+The tracer is `model` in [`vessel_model.py`](../algorithm/vessel_model.py), the start of every version;
 the page draws a model with Execute, and the lab with `python3 lab/run.py vascular`.
 
 The model (format `vessel-model/2`, agreed with the owner 2026-10-27) is the junctions and tips in

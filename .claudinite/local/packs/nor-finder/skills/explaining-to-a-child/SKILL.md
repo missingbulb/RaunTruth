@@ -22,7 +22,7 @@ different **constraint**, and none of them sees the current algorithm.
   input's native colours. On NoR:
 
   ```
-  cd studies/nor/detection && python3 mutate.py view raw --out .cache/views
+  python3 lab/mutate.py nor view raw --out studies/nor/data/raw/views
   ```
 
   Its first tiles hold the hard cases: real items no version finds, then false ones every version
@@ -66,13 +66,13 @@ produced it.
 
 ## 4. Translate the best one or two into versions
 
-Implement the pseudocode literally first, as a new version in the lab's registry (NoR:
-`nor_lab.finders()`), kept out of the page's list until it wins. The literal version is the
+Implement the pseudocode literally first, as a new version in the study's `VERSIONS` (NoR:
+`controls.FINDERS` in `studies/nor/algorithm/`), kept out of the page's list until it wins. The literal version is the
 measurement of the idea: improving it first would measure your improvements instead. Score it
 against the registry:
 
 ```
-cd studies/nor/detection && python3 nor_lab.py cmp tl rf <new> && python3 nor_lab.py ablate tl <new>
+python3 lab/run.py nor tl rf <new> && python3 lab/items.py nor ablate tl <new>
 ```
 
 - It wins, or lands within noise of the best (no evidence either way by the keep rule in image-algorithm-development State 4):

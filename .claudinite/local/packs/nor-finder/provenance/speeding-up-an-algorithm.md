@@ -21,3 +21,14 @@
 - **Reason:** the study's own perf.py and perf_pyodide.mjs moved into lab/ as study-agnostic tools.
 - **Actor:** @missingbulb (owner), issue #1011.
 - **Model:** claude-opus-5-5
+
+## 2026-11-18 · moved · NoR's commands are the shared lab's
+- **Source:** issue #1011, the owner: "The code in each study should be ONLY code that starts from
+  an image file (in memory or on disk) and returns the answer. The 'lab' is a shared harness."
+- **Reason:** NoR's lab scripts under studies/nor/detection/ left the study; their commands now name
+  lab/run.py, lab/perf.py, lab/items.py and lab/mutate.py, and NoR's research records live in
+  studies/nor/lab/.
+- **Mechanism:** the commands in the text, rewritten; what each step decides is unchanged.
+- **Actor:** @missingbulb (owner), through the coordinating session moving the studies onto the
+  contract.
+- **Model:** claude-opus-5-5

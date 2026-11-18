@@ -107,7 +107,7 @@ const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
 const SEEN_VERSION = "nor-seen-version"; // the site version the user last saw, to tell them what changed since
 const MEMORY_TIP = "nor-memory-tip-off"; // true: the user asked never to see the low-memory popup again
-// the page's memory with a study's Python loaded (studies/nor/detection/browser/MEMORY.md), and the device
+// the page's memory with a study's Python loaded (studies/nor/lab/browser/MEMORY.md), and the device
 // memory below which it asks the user to free some: browsers say only how much a computer has in all, never
 // how much is free
 const PAGE_GB = 1, LOW_GB = 4;

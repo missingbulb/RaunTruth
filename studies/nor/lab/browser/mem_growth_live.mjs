@@ -5,8 +5,8 @@
 // hold once garbage is collected.
 //
 //   python3 dev/tools/build/build.py            once, for the page's vendored wheels
-//   python3 detection/fetch_data.py -m '*Slide5*Slice1_up_left2*'
-//   node studies/nor/detection/browser/mem_growth_live.mjs [--rounds N] [--finders tl,rf,...]   (about 2.5 minutes)
+//   python3 lab/fetch.py nor
+//   node studies/nor/lab/browser/mem_growth_live.mjs [--rounds N] [--finders tl,rf,...]   (about 2.5 minutes)
 //
 // Needs Playwright (npm i -g playwright). Remote files (Pyodide and its packages) are fetched with
 // curl when HTTPS_PROXY is set, since headless Chromium does not trust a proxy's own CA.
@@ -27,7 +27,7 @@ let pw;
 try { pw = require("playwright"); } catch { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); }
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-const TIF = path.join(repo, "studies", "nor", "data", "raw", "Left Up- Edited", "Slide5_4AP_NoR.sld - Slice1_up_left2.tif");
+const TIF = path.join(repo, "studies", "nor", "data", "raw", "images", "1NRObE-kEsINGTvFkI-uh3dFjiZgcWMUp__Slide5_4AP_NoR.sld - Slice1_up_left2.tif");
 const opt = (name, def) => { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; };
 const ROUNDS = +opt("rounds", 2), MOVES = 12;
 let FINDERS = opt("finders", "").split(",").filter(Boolean);   // all the page offers, unless named
@@ -40,7 +40,7 @@ const bounded = (p, what) => Promise.race([p, new Promise((_, bad) => setTimeout
 // were; the V8 heaps get a little slack for code caches and inline caches that settle over the first rounds.
 const LIMITS = { pyUsedAfterGc: 1 * MB, pyObjects: 500, pageHeap: 1 * MB, workerHeap: 1 * MB, pageBuffers: 1 * MB, workerBuffers: 1 * MB, nodes: 0, listeners: 0 };
 
-for (const [f, how] of [[TIF, "python3 studies/nor/detection/fetch_data.py -m '*Slide5*Slice1_up_left2*'"], [path.join(repo, "web", "vendor", "wheels.json"), "python3 dev/tools/build/build.py"]]) {
+for (const [f, how] of [[TIF, "python3 lab/fetch.py nor"], [path.join(repo, "web", "vendor", "wheels.json"), "python3 dev/tools/build/build.py"]]) {
   if (!fs.existsSync(f)) { console.error(`missing ${path.relative(repo, f)}: run ${how}`); process.exit(2); }
 }
 

@@ -7,7 +7,7 @@ import sys
 
 STUDY = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0, os.path.join(STUDY, 'algorithm'))
-import shelves  # noqa: E402
+import shelves
 
 MANIFEST = json.load(open(os.path.join(STUDY, 'study.json')))
 

@@ -6,7 +6,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'lab'))
-from study import drive  # noqa: E402,F401
+from study import drive
 
 STAND_IN = {
     'det': lambda tensor: np.zeros(np.shape(tensor)[2:], np.float32),

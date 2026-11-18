@@ -183,20 +183,21 @@ it for their real analysis. Concretely, for us:
 
 The owner's microscope files sit in Google Drive; the repository carries only
 [`studies/nor/data/sources.json`](../data/sources.json), naming each one by Drive id with its SHA-256.
-[`studies/nor/detection/fetch_data.py`](../detection/fetch_data.py) downloads what is missing into the git-ignored
+The shared lab's [`lab/fetch.py`](../../../lab/fetch.py) downloads what is missing into the git-ignored
 `data/raw/` and **refuses a file whose checksum differs from the manifest** — a scan silently
 replaced on Drive would otherwise change every downstream number with nothing in the repo
 recording why. A checksum is `null` until the first fetch pins it (`--pin`); unknown is never
 written as a placeholder value. **A fetch can be limited to a subset** (`--match GLOB` over the file's path under `data/raw/`):
 the folder is hundreds of MB, and most work needs only a few planes, so pulling everything each
-session wastes minutes and disk. Why Drive rather than git, LFS or a Release:
-[`studies/nor/data/README.md`](../data/README.md). Test: `tests/test_fetch_data.py`.
+session wastes minutes and disk. (The shared lab fetches every image the manifest names; a subset is
+not offered yet.) Why Drive rather than git, LFS or a Release:
+[`studies/nor/data/README.md`](../data/README.md). Test: `lab/tests/test_lab.py`.
 
 ## R7 — What counts as a NoR: the owner's validation criteria
 
 Set by the owner (2026-09-25 to 09-27) while reviewing renders; each is a named check in
-[`studies/nor/detection/nor3.py`](../detection/nor3.py) (`CHECKS`, letters A-J, plus K and N in
-[`studies/nor/detection/nor_rf.py`](../detection/nor_rf.py)), so every rejected candidate says which rule
+[`studies/nor/algorithm/nor3.py`](../algorithm/nor3.py) (`CHECKS`, letters A-J, plus K and N in
+[`studies/nor/algorithm/nor_rf.py`](../algorithm/nor_rf.py)), so every rejected candidate says which rule
 removed it.
 
 - **Shape of the object.** A green-red-green triplet between nuclei: a short, thick stick
@@ -240,13 +241,13 @@ What a user of the page sees and can do is in the page's specs: this study's own
 
 Set by the owner on 2026-09-30; changed by the owner on 2026-11-07. A finder changes only in an effort made to change
 it, never in passing in another pull request, and that effort makes it a new version. The version's quality is
-recorded once: its precision and recall with the dataset SHA they were measured on (R11), and, spot by spot,
-[`studies/nor/detection/lab/quality_baseline.json`](../detection/lab/quality_baseline.json) — which real NoRs each
-finder finds, which not-NoR spots it passes and which missing-candidate marks it proposes a candidate on — written by
-`python3 detection/ground_truth.py record`, after `score` has named every spot that moved against the version before. No
+recorded once: its precision and recall with the dataset SHA they were measured on (R11), written by
+`python3 lab/run.py nor --write`, after `python3 lab/items.py nor table` has named every spot that moved against the
+version before. The spot-by-spot record of the versions before the shared lab is
+[`studies/nor/lab/quality_baseline.json`](../lab/quality_baseline.json). No
 test re-scores a finder on a real image; the tests run every finder on a drawn image
 (`tests/synthetic_nor.py`) for what the code does, not how well. Until submissions
-cover it, the reference slide is scored on Claude's labels, not the owner's (`detection/STATE.md`).
+cover it, the reference slide is scored on Claude's labels, not the owner's (`lab/STATE.md`).
 
 ## R10 — Ground truth is read from the study's curated Drive folder, never kept in git
 
@@ -255,38 +256,36 @@ Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11
 - **Curated on Drive, read when scored.** The page's taggers submit to the study's submissions folder and a
   Study Manager curates into its curated folder, both under the study's root (the shell's
   `req/shell/ground-truth/folders`). Set by the owner on 2026-11-07: there is no fetch step. Scoring
-  (`ground_truth.py score`, `finder_metrics.py`) lists the root with no key, takes the curated folder from
+  (the shared lab's `lab/fetch.py`, which `lab/run.py` runs) lists the root with no key, takes the curated folder from
   its settings file (`rauntruth-study.json`), else the one named `GT curated` or `GT`, and downloads an
   image's newest curated file, by its own `created`, the first time it scores that image, then keeps it under
-  `data/raw/ground-truth/`, never git. It checks each (`norfinder-ground-truth/2` or later, an image from
-  Google Drive with its SHA-256, at least one mark inside the image) and says why it skips one it cannot
-  use. **A listing that returns 50 entries stops it with an error**: the keyless listing may stop at 50, and
+  `data/raw/truth/`, never git. It checks each (an image SHA-256 and a `created` time) and says why it skips
+  one it cannot use. **A listing that returns 50 entries stops it with an error**: the keyless listing may stop at 50, and
   a cut-short set silently changes every score. The tests read only what is already on disk.
 - **No study data in tests.** Set by the owner on 2026-11-07: no test downloads an image or ground truth, in CI
   or anywhere; a test needing a NoR image draws one (`tests/synthetic_nor.py`).
 - **Images stay on Drive.** A ground-truth file names its image by Drive id and SHA-256; scoring downloads
   each image into `data/raw/` the first time it needs it, and checks it (R6). No image enters git.
 - **A set changed is a baseline to re-record.** A changed curated set changes the dataset SHA (R11), so
-  `tests/test_finder_metrics.py` fails until the metrics and the quality baseline (R9) are measured on it
-  again; the finders are then improved following the pack's `improve-on-ground-truth` skill, and losses
+  the metrics (R11) are measured on it again; the finders are then improved following the pack's `improve-on-ground-truth` skill, and losses
   stay the owner's to accept (R9).
 - **Newer and human beats older and Claude's.** For one image the curated file is the one reference;
-  it wins over the lab's own labels at the same spot, and every quality assessment (the lock,
-  `ground_truth.py score`) scores against that merged reference (`ground_truth.corpus()`).
+  it wins over the lab's own labels at the same spot. (The shared lab scores each ground-truth file on its
+  own and does not merge them yet; `lab/run.py --truth drive` scores on the curated files alone.)
 - **A missing mark is a real NoR** found when a pass lies within its radius, and proposed when any
   candidate does.
 
 ## R11 — Every finder's precision and recall are on record, per filter preset
 
-Set by the owner on 2026-10-06. [`studies/nor/web/finder_metrics.json`](../web/finder_metrics.json)
+Set by the owner on 2026-10-06. [`studies/nor/web/algorithm_metrics.json`](../web/algorithm_metrics.json)
 holds, for every finder the page offers, the precision and recall summed over every ground-truth image
 (R10), run the way the page runs it, at two stages kept apart: the finder's own candidates before any
 filter, and what passes the filters after it at three filter presets (precise, balanced = the
 finder's own values, recalling). Precision counts labelled spots only: real spots passed over labelled spots
 passed. A preset moves every filter the same share of the way towards a fixed strict or loose end
-(`detection/finder_metrics.py`), the same for every finder. The file is rewritten whenever the
-quality baseline (R9) is, and `tests/test_finder_metrics.py` fails when it was measured against
-another baseline, another ground truth or other presets. The numbers are only as right as the labels
+(`algorithm/controls.py`; the finder's own candidates are the setting `unfiltered`), the same for every
+finder. `python3 lab/run.py nor --write` rewrites the file, and `tests/test_metrics.py` fails when it
+lacks a finder or a preset. The numbers are only as right as the labels
 behind them (R9).
 
 **Every number names the data it was measured on.** Set by the owner on 2026-11-05. Alongside its

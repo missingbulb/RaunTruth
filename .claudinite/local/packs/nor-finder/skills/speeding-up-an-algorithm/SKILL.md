@@ -16,21 +16,19 @@ so and spend one cycle on it. "The ledger" is the study's own, named in its warm
 
 ## 1. Snapshot, profile, change one hotspot, check
 
-Each study has a perf tool. On NoR:
+The shared lab's perf tool runs any study's version (NoR's `tl` here, vascular's `v5`):
 
 ```
-cd studies/nor/detection && python3 perf.py snapshot tl
-```
-
-```
-cd studies/nor/detection && python3 perf.py profile tl
+python3 lab/perf.py nor snapshot tl
 ```
 
 ```
-cd studies/nor/detection && python3 perf.py check tl
+python3 lab/perf.py nor profile tl
 ```
 
-On vascular, the shared lab's: `python3 lab/perf.py vascular snapshot|profile|check v5`.
+```
+python3 lab/perf.py nor check tl
+```
 
 1. `snapshot` the version before touching it.
 2. `profile`, and pick the top hotspot.
@@ -59,8 +57,7 @@ runs, the tracemalloc peak in a separate run, and a non-zero exit when the signa
   later rather than keeping full-size copies. Confirm a pass there, after raw Python:
 
   ```
-  cd studies/nor/detection/browser && npm i --prefix . pyodide@314.0.7 && node bench_pyodide.mjs tl
+  node lab/perf_pyodide.mjs nor <image.tif> tl
   ```
 
-  For vascular, the shared lab's `lab/perf_pyodide.mjs` header gives its invocation. The number to
-  read is the heap after the run.
+  The script's header gives its setup. The number to read is the heap after the run.
