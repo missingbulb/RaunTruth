@@ -13,7 +13,6 @@ import cProfile
 import hashlib
 import json
 import os
-import pickle
 import pstats
 import subprocess
 import sys
@@ -47,7 +46,7 @@ def one(sid, version, path):
     image = study.read(path)
     tracemalloc.start()
     t0 = time.perf_counter()
-    a = study.run(version, image, lab_run.Services())
+    a = study.run(version, image, lab_run.Services(study))
     secs = time.perf_counter() - t0
     peak = tracemalloc.get_traced_memory()[1] / 2 ** 20
     print(json.dumps(dict(signature=signature(a), seconds=round(secs, 3), peak_mb=round(peak, 1))))
@@ -77,7 +76,7 @@ def main(argv=None):
         entry, _ = lab_run.corpus(study)[0]
         image = study.read(entry['local'])
         prof = cProfile.Profile()
-        prof.runcall(study.run, a.version, image, lab_run.Services())
+        prof.runcall(study.run, a.version, image, lab_run.Services(study))
         pstats.Stats(prof).sort_stats('cumulative').print_stats(25)
         return
     now = measure(study, a.version)

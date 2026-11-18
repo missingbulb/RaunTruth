@@ -1337,11 +1337,14 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/python/one-call` Python is reached through one generic call.
   <details>
 
-  The shell's Python runtime opens a file with the study's `Session(path)` and forwards every other
-  request as `call(action, args)`, returning JSON and optional bytes. It never names an action.
-  Test: `web-tests/test_study_runs.py` runs the fixture study through the bridge in Pyodide and through
-  the real worker in the page; the NoR study's memory test checks that repeated calls leave nothing
-  behind.
+  The shell's Python runtime runs the study contract the lab runs too (`lab/README.md`; the owner, 2026-11-17: each
+  study gives one algorithm entry point that both the page and the lab run). It opens a file with the study's
+  `read(path)`; `run` runs one of its `VERSIONS` on it, and any other action one of its `STAGES` on the last run's
+  answer, which stays in Python. An answer comes back as JSON, its arrays as bytes. A version that needs a service
+  only the page has (reading text) asks for it, the page's study answers through its `serve` hook, and the version
+  goes on. It never names a study's action. Test: `web-tests/test_study_runs.py` runs the fixture study, and a
+  version asking for a service, through the bridge in Pyodide and the fixture through the real worker in the page;
+  the NoR study's memory test checks that repeated calls leave nothing behind.
   </details>
 
 - `req/shell/report/action-log` The page keeps the user's last 200 actions on this device, for a problem report, and sends them nowhere.

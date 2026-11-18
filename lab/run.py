@@ -36,11 +36,15 @@ def code_hash(study):
 
 
 class Services(dict):
-    """The services a version may ask for, loaded the first time one is asked for."""
+    """The services a version of the study may ask for, loaded the first time one is asked for."""
+
+    def __init__(self, study):
+        super().__init__()
+        self.study = study
 
     def __missing__(self, name):
         import services
-        self.update(services.native())
+        self.update(services.native(self.study))
         if name not in self:
             raise KeyError(name)
         return self[name]
@@ -89,7 +93,7 @@ def answer(study, version, entry, params, code, images):
     if entry['sha256'] not in images:
         images[entry['sha256']] = study.read(entry['local'])
     t0 = time.perf_counter()
-    a = study.run(version, images[entry['sha256']], Services(), **params)
+    a = study.run(version, images[entry['sha256']], Services(study), **params)
     print(f'  ran {version} on {entry["path"]} in {time.perf_counter() - t0:.1f} s', file=sys.stderr)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
