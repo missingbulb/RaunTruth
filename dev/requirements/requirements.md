@@ -206,7 +206,7 @@ nobody has decided: what the page does there is not a requirement yet.
   every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
   fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
   the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
-  whether a point is inside, counts the damaged areas still. Test: `web-tests/test_study_index_page.py`,
+  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
   `web-tests/test_study_runs.py`.
   </details>
 
