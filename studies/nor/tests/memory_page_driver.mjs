@@ -16,6 +16,7 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
+import { detached, grown } from "./detached_nodes.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -181,7 +182,7 @@ const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
-  const base = await measure();
+  const base = await measure(), held = await detached(cdp);
   for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
   const m = await measure();
   console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
@@ -191,6 +192,8 @@ for (const [name, act] of Object.entries({ open, find, tune })) {
     const a = base.where.by, b = m.where.by;
     const grew = Object.keys({ ...a, ...b }).filter((k) => (a[k] || 0) !== (b[k] || 0)).map((k) => `${k} ${a[k] || 0} -> ${b[k] || 0}`);
     problems.push(`${name}: in the document ${grew.join(", ") || "nothing changed"}; outside it ${base.nodes - base.where.all} -> ${m.nodes - m.where.all}`);
+    // and, outside it, which nodes and what holds them
+    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, await detached(cdp))) problems.push(`${name}: outside the document, ${d}`);
   }
 }
 await browser.close(); server.close();
