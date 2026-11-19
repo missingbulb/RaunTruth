@@ -1985,6 +1985,16 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_other_engines.py`.
   </details>
 
+- `req/checks/clean-console` A page test fails on any warning or error its case did not declare, and the outside systems the page reaches are faked once, in every test.
+  <details>
+
+  Set by the owner on 2026-11-19. Every page test's browser comes from `web-tests/harness.mjs`, which fails the run as
+  it exits on a warning or error the page or the browser wrote that no case declared with `expecting()`, by a loose
+  pattern; a case declaring one that never came fails too. Each context it opens answers jsDelivr, Google's sign-in
+  and Google Drive with the fakes in `web-tests/fakes/`, and turns away every other request leaving the machine.
+  Test: `web-tests/test_harness.py`.
+  </details>
+
 - `req/checks/shell-states` A tree of the shell's elements says what each shows in every state its paths reach; the matrix is generated from it, and a browser walks the paths to check it.
   <details>
 
