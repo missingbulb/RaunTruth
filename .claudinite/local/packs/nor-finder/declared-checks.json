@@ -42,6 +42,20 @@
     ]
   },
   {
+    "id": "counted-wait",
+    "on_fail": "block",
+    "failureMessage": "a loop that waits so many frames for a condition is a timeout counted in frames: on a loaded runner the frames pass before the work ends, and the check after it reads a page still working",
+    "fix": "wait for the work itself: idle(page) from web-tests/page_until.mjs once the page's work is in flight, or until(page, fn) for a state the page shows",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\bfor\\s*\\([^;]*;\\s*\\w+\\s*<=?\\s*\\d+\\s*&&[^;]*;[^)]*\\)\\s*\\{?\\s*await\\s+(frames|viewDrawn)\\(|\\.waitForFunction\\(\\s*\\(\\)\\s*=>\\s*true\\s*\\)/",
+        "what": "waits a count of frames, or for nothing, instead of for the work: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
     "id": "google-drive-in-one-file",
     "on_fail": "block",
     "failureMessage": "Google is a detail of the remote store and the identity provider, so code elsewhere that depends on it breaks when that detail changes",
