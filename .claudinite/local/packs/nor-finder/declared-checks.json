@@ -28,6 +28,34 @@
     ]
   },
   {
+    "id": "browser-from-harness",
+    "on_fail": "block",
+    "failureMessage": "a browser a test launches itself misses the harness: the fakes of the outside systems the page reaches, and the check that the run wrote no warning or error it did not expect",
+    "fix": "launch through launch() or keptContext() from web-tests/harness.mjs",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!harness\\.mjs$)[^/]+\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\.(launch|launchPersistentContext)\\(/",
+        "what": "launches a browser outside web-tests/harness.mjs: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
+    "id": "outside-systems-faked-once",
+    "on_fail": "block",
+    "failureMessage": "an outside system answered by one test's own route is a second fake of it, which drifts from the one every other test runs against",
+    "fix": "answer it in its fake under web-tests/fakes/, through that fake's own knobs; a new fake is the owner's call. A reserved .example host may stay",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/[^/]+\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\.route\\(\\s*([\"'`\\/]\\^?https?:|[A-Z][A-Z_]{2,}\\b)/",
+        "what": "routes an outside address outside web-tests/fakes/: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\.example\\b/"
+      }
+    ]
+  },
+  {
     "id": "frame-wait-in-one-file",
     "on_fail": "block",
     "failureMessage": "a frame wait copied into each driver drifts: one waits one frame, the next two, and nobody can say which a page needs",
