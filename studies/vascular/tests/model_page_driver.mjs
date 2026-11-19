@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ENGINE } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
@@ -20,9 +20,10 @@ const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(h
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 // the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
-const site = await serve(repo, studies, model, "PreGT"), origin = site.origin;
+const site = await serve(studies, model), origin = site.origin;
 
 const browser = await launch(pw);
+atStage(browser, "PreGT");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await asTagger(ctx);

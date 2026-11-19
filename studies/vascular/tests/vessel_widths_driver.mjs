@@ -13,7 +13,7 @@ import path from "node:path";
 import { writeTiff } from "../../../web/tiff_file.js";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
@@ -51,9 +51,10 @@ const model = {
     via: [{ x: (X0 + X1) / 2, y: v.y, z: FOCUS, ...(v.r && { r: v.r }) }] })),
   reviewed_regions: [],
 };
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
 const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1, acceptDownloads: true });
 await asTagger(ctx);

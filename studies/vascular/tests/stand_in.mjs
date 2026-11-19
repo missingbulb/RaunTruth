@@ -2,14 +2,12 @@
 // that offers two algorithms (their names, icons and steps as the study lists them; their precision and recall the
 // lab's, from the study's own file), a drawn stack to open as many
 // slices deep as the given model (drawnStack), and answers
-// Execute with that model, the arguments it was asked with in its "asked" field. The study is served in the
-// stage asked for.
+// Execute with that model, the arguments it was asked with in its "asked" field; and the study at the stage asked for
+// (atStage).
 import { writeTiff } from "../../../web/tiff_file.js";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import fs from "node:fs";
-import http from "node:http";
-import path from "node:path";
+import { serveSite } from "../../../web-tests/site_server.mjs";
+import { siteOf } from "../../../web-tests/harness.mjs";
 
 export const ALGORITHMS = [
   { key: "v5", name: "v5-no-short-islands", title: "island-free", icon: "🏝️", about: "- Start from the dead-end check's network\n- Drop every vessel shorter than 45 µm\n  - that touches no junction at either end" },
@@ -42,26 +40,17 @@ onmessage = ({ data: m }) => {
     postMessage({ type: "result", action: "run", meta: { ...MODEL, algorithm: ALGORITHMS.find((a) => a.key === m.args.algorithm).name, asked: m.args }, bytes: null });
 };`;
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 // the server, on a free port: {origin, close()}
-export async function serve(repo, studies, model, stage) {
-  const server = http.createServer((q, r) => {
-    const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-    if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + standIn(model)); }
-    if (u === "/studies/vascular/web/algorithms.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify(ALGORITHMS)); }
-    if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-    if (u === "/studies/vascular/study.json") {
-      r.writeHead(200, { "content-type": "application/json" });
-      // the drawn stack's levels shown as drawn
-      const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-      return r.end(JSON.stringify({ ...m, stage, view: { ...m.view, stretch: false } }));
-    }
-    const f = u === "/web/studies.json" ? studies : repoFile(repo, u);
-    if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-    r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+export async function serve(studies, model) {
+  const { origin, server } = await serveSite({
+    "/web/worker.js": EARLY + standIn(model),
+    "/studies/vascular/web/algorithms.json": JSON.stringify(ALGORITHMS),
+    "/web/vendor/wheels.json": "[]",
+    "/web/studies.json": { file: studies },
   });
-  await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-  return { origin: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
+  return { origin, close: () => server.close() };
 }
+// the study as these tests serve it, at stage, and its drawn stack's levels shown as drawn
+export const atStage = (browser, stage) => siteOf(browser).studies.edit("vascular", (m) => ({ ...m, stage, view: { ...m.view, stretch: false } }));
 
 export { BLUE, legend, legendKeys } from "../../../web-tests/keys_legend.mjs";

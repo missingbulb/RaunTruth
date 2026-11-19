@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, drawnStack, STACK_PX } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
@@ -21,9 +21,10 @@ const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 // the model in the pixels of the stack the stand-in draws, so that a place in the image's pixels is one place in both
 model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK_PX];
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
 const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await asTagger(ctx);

@@ -13,7 +13,7 @@ import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
@@ -21,9 +21,10 @@ import { STEP } from "../../../web-tests/deadlines.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
 const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 await asTagger(ctx);
