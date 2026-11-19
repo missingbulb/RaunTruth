@@ -395,7 +395,7 @@
                 },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
-                    {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas", "approval": "tentative",
+                    {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas",
                       "rule": [
                         {"when": {"walksAreas": [false]}, "is": "hidden", "req": "req/shell/ground-truth/areas"}
                       ],
