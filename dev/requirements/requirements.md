@@ -546,6 +546,22 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_throttle_page.py`.
   </details>
 
+- `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
+  <details>
+
+  Set by the owner on 2026-11-19 (missingbulb/RaunTruth#747): the field is cut into n × n areas, and n is the
+  tagger's to choose in an Areas menu at the top of Ground Truth Tasks, the same for every study: the whole field,
+  2 × 2, 3 × 3, 4 × 4, 5 × 5, 6 × 6, 8 × 8 and 10 × 10, the list Vascular Measurements offered of its own since
+  2026-11-07. A study that walks by areas names the count it starts at in its `study.json`
+  (`groundTruth.areas`: NoR 10, Vascular 4); one that names none has no menu. The shell owns the walk's order: the
+  rows of areas top to bottom, each row the way back from the last, so the next area always borders the one just
+  done, and hands the study each area's place and box and the area a point lies in. The count only divides the work:
+  what is checked is the field it covers, whatever count it was checked under, and an area is done once all of it is
+  (owner: "all pixels need to be approved"). The study hears each change of count and walks again from its first area
+  not done. Test: `web-tests/test_gt_areas.py`,
+  `studies/nor/tests/test_truth_tasks_page.py`, `studies/vascular/tests/test_vessel_tasks_page.py`.
+  </details>
+
 - `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
@@ -858,7 +874,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the open one, its name in bold: the study puts what it needs under its row and beside its name (its item,
   Back and Skip, an area's check), and hears when the user clicks a task's name. The walk through the tasks
   stays each study's own (owner: a change of heart on how one study does its tasks must not move the others;
-  what proves common is merged later). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
+  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
   the shell's Submit. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
   `studies/nor/tests/test_truth_tasks_page.py`, the vascular study's vessel tasks test.
   </details>

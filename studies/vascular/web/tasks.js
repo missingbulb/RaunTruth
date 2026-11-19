@@ -10,8 +10,6 @@ import { build, junctionPicture } from './items.js';
 import { umText } from './widths.js';
 
 const $ = (id) => document.getElementById(id);
-// the areas across the field, each way, that the person may choose; the field cut into GRID × GRID until they do
-const GRIDS = [1, 2, 3, 4, 5, 6, 8, 10], GRID = 4;
 // an area done is kept with this step; a file from the earlier three steps did it with all of these
 const STEP = 'area', STEPS_BEFORE = ['lines', 'missed', 'junctions'];
 // an area done: every one of these points across it, each way, lies in a box kept for it
@@ -20,26 +18,24 @@ const PROBES = 4;
 const MIN_PX = 160;
 
 // tools: the open area's cogwheel and Skip, for its row; work: what is done in it, under its row
-let V = null, keys = null, T = null, n = GRID, st = null, items = null, heard = () => {}, tools = null, work = null;
+// n: the areas across the field each way, the shell's Areas menu's (req/shell/ground-truth/areas)
+let V = null, keys = null, T = null, n = null, st = null, items = null, heard = () => {}, tools = null, work = null;
 // widths: the open area is in its widths step
 const fresh = () => ({ area: null, submit: false, junction: null, focused: true, dir: 0, widths: false });
 
-// ---------- the areas, in the order they are worked through ----------
-// rows of areas top to bottom, each the way back from the last, so the next area always borders the one before
+// ---------- the areas, in the order they are worked through: the shell's ----------
 const size = (m) => [m.size_px[0] * m.um_per_px, m.size_px[1] * m.um_per_px];
 const count = () => n * n;
-const place = (a) => { const r = Math.floor(a / n), k = r % 2 ? n - 1 - (a % n) : a % n; return [r, k]; };
 const keyOf = (a) => `a${a}`;
 // an area's box in µm, {x0, y0, x1, y1}
 function areaBox(m, a) {
-  const [W, H] = size(m), [r, k] = place(a), w = W / n, h = H / n, q = (v) => Math.round(v * 100) / 100;
-  return { x0: q(k * w), y0: q(r * h), x1: q((k + 1) * w), y1: q((r + 1) * h) };
+  const [W, H] = size(m), q = (v) => Math.round(v * 100) / 100, [x0, y0, x1, y1] = T.areas.box(a, W, H).map(q);
+  return { x0, y0, x1, y1 };
 }
 // the area a point lies in; a curve running past the field's edge is in the area at that edge
 function areaOf(m, p) {
-  const [W, H] = size(m), cell = (v, L) => Math.min(n - 1, Math.max(0, Math.floor((v / L) * n)));
-  const r = cell(p.y, H), k = cell(p.x, W);
-  return r * n + (r % 2 ? n - 1 - k : k);
+  const [W, H] = size(m);
+  return T.areas.areaAt(p.x / W, p.y / H);
 }
 // a box kept before the steps had names was an area checked for missed vessels
 const stepOf = (g) => g.step || 'missed';
@@ -245,7 +241,6 @@ function show(moved) {
   T.list(m ? rows() : null);
   if (!m) { keys?.report({ tagging: on, area: false }); MV.mark(null, null); MV.focusArea(null); map(null, false); return; }
   items = itemsOf(m);
-  $('area-grid').value = String(n);
   for (let a = 0; a < count(); a++) { const p = progress(m, a); T.count(keyOf(a), p.did, p.of, p.done, ''); }
   const open = on && !st.submit && st.area != null;
   const li = T.open(open ? keyOf(st.area) : 'submit');
@@ -316,11 +311,10 @@ export function open() {
 // view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them;
 // actions: the shell's keys, which press the tasks' buttons while an area is open (the study's declared actions)
 export function init(view, tasks, changed, submit, actions) {
-  V = view; keys = actions; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
+  V = view; keys = actions; T = tasks; n = T.areas.count(); tools = $('task-tools'); work = $('task-now');
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
-  $('area-grid').replaceChildren(...GRIDS.map((k) => new Option(k === 1 ? 'The whole field' : `${k} × ${k}`, String(k))));
-  $('area-grid').onchange = (e) => setGrid(+e.target.value);
+  T.areas.on(setGrid);
   MV.onChange((m) => { if (!m) { st = fresh(); items = null; } show(false); });
   // a junction of the area clicked on the view becomes the one to judge
   MV.onPick((h) => {

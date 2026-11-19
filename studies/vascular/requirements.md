@@ -271,7 +271,8 @@ owner's decisions on the stacks and the vessel model, are
   As NoR's (`req/nor/truth/order`): the stack's field is cut into areas, never drawn on the stack, the rows of areas top to
   bottom, each row the way back from the last; all of an area's work, its lines, its missed vessels and its junctions,
   before the next area. Changed by the owner on 2026-11-07: how many areas is the person's to choose in the tasks
-  box (from one area for the whole field to 10 × 10, 4 × 4 at first), since a bigger area is sometimes the better one to judge
+  box (from one area for the whole field to 10 × 10, 4 × 4 at first; the shell's Areas menu since 2026-11-19,
+  `req/shell/ground-truth/areas`), since a bigger area is sometimes the better one to judge
   whole; an area done stays done in every area it covers whatever is chosen after. Test:
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>

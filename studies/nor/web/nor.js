@@ -21,8 +21,9 @@ export function mount(shell) {
   // the tagger tags now: the walk's item is ringed, its area framed and what is done cut out only then
   // (req/shell/ground-truth/tagging)
   const tagging = () => TRUTH && shell.tasks.tagging();
-  // the image cut into GRID × GRID areas, each task's candidates taken area by area so the review fills one area after another
-  const GRID = N.GRID;
+  // the image cut into the shell's areas, each task's candidates taken area by area so the review fills one area after another
+  // (req/shell/ground-truth/areas)
+  const AREAS = shell.tasks.areas;
   // an added NoR counts as found when a candidate lies within this distance of its middle: about half a
   // NoR's length on the lab's slide (median 26 px)
   const MISSING_RADIUS = 12;
@@ -50,7 +51,7 @@ export function mount(shell) {
     meta: null, seg: null, cands: [],
     fails: [], alone: null, forced: new Map(), edits: new Map(), defaults: {}, values: {}, off: new Set(),
     about: {}, detectValues: {}, lastRun: null, filtersFor: null, seq: 0, inflight: false, pending: false,
-    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null, tab: "pass",
+    added: [], mask: [], checked: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null, tab: "pass",
     show: { ...SHOW_DEFAULTS, ...readJSON(SHOW) }, opt: readOpts(), sort: { pass: "number", fail: "number", ...readJSON(SORT) }, crops: new Map(),
   });
 
@@ -177,7 +178,7 @@ export function mount(shell) {
   const modelKey = (m) => filtersKey([...m.cands, ...m.deleted].sort((a, b) => a.i - b.i).map((c) => c.fail ?? null), m.meta.filters?.values, m.meta.filters?.off);
   // the model's word on the page: what the tagger decided, measured, added and checked
   function sync(m, why) {
-    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.areas = new Set(); recorded = null; return; }
+    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.checked = []; st.areas = new Set(); recorded = null; return; }
     if (!aligned(m)) adopt(m);
     if (why !== "act" && why !== "run") recorded = modelKey(m);
     const was = st.edits;
@@ -190,7 +191,7 @@ export function mount(shell) {
     for (const c of m.deleted) { st.forced.set(c.i, "out"); if (c.edited) st.edits.set(c.i, { ...c.edited }); }
     for (const c of [...m.cands, ...m.deleted]) st.fails[c.i] = c.fail ?? null;
     st.added = m.added.map((a) => ({ id: a.id, lines: a.lines, verdict: a.approved ? "in" : null }));
-    st.areas = new Set(m.areas);
+    st.checked = m.checked; st.areas = areasChecked();
     if (isAdded(st.sel) && !candOf(st.sel)) st.sel = null;
     const refilterToo = why !== "act" && why !== "run" && followFilters(m);
     for (const c of st.order) if (JSON.stringify(was.get(c.i)) !== JSON.stringify(st.edits.get(c.i)) && c.lineEl) drawLines(c);
@@ -203,7 +204,7 @@ export function mount(shell) {
   // the run, as the log keeps it: the numbered candidates, each with its place, box, lines and the filters' word on it
   function outputOf() {
     const cands = [...st.order].sort((a, b) => a.i - b.i).map((c) => ({ i: c.i, n: st.numbers.get(c.i), x: c.cx, y: c.cy, bb: c.bb, ...(c.lines ? { lines: c.lines, m: c.m } : {}), fail: st.fails[c.i] ?? null }));
-    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, grid: GRID, numbered: cands.length, cands };
+    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, numbered: cands.length, cands };
   }
   // Recorded once the filters' word on the candidates is known after a detection, and again when a later answer moves it
   function recordRun() {
@@ -971,10 +972,10 @@ export function mount(shell) {
       { level: "error", grade: true, ok: voted > 0, text: "Vote on at least one candidate" },
       { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be exported` : "Vote on every finalist" },
       TRUTH && { level: "warn", grade: true, ok: voted > 0 && !left, text: left ? `Vote on every rejected candidate: ${left} of ${rejected.length} have no vote and won't be exported` : "Vote on every rejected candidate" },
-      TRUTH && { level: "warn", grade: true, ok: st.areas.size === AREAS, text: st.areas.size === AREAS ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${AREAS - st.areas.size} of ${AREAS} left` },
+      TRUTH && { level: "warn", grade: true, ok: st.areas.size === areaCount(), text: st.areas.size === areaCount() ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${areaCount() - st.areas.size} of ${areaCount()} left` },
       { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be submitted` },
     ].filter(Boolean);
-    return { state: !voted || waiting ? "todo" : open || left || (TRUTH && st.areas.size < AREAS) ? "part" : "done", items };
+    return { state: !voted || waiting ? "todo" : open || left || (TRUTH && st.areas.size < areaCount()) ? "part" : "done", items };
   }
   function gtButton() {
     const { state, items } = gtState(), open = items.filter((t) => t.grade && !t.ok);
@@ -998,26 +999,26 @@ export function mount(shell) {
   // The finalists, the rejected, the image's areas checked for missed NoRs, then Submit. The open task shows its
   // current item; a verdict moves on to the next with none. What is done is cut out of the image.
   const TASKS = ["pass", "fail", "missed", "submit"];
-  const AREAS = GRID * GRID;
+  const areaCount = () => AREAS.count() ** 2;
   const verdictOf = (c) => (c.added ? st.added.find((a) => a.id === c.id)?.verdict : st.forced.get(c.i));
   const reviewed = (v) => (v === "in" ? "yes" : v === "out" ? "no" : "todo");
-  // the image's areas by their place in the walk: rows of areas top to bottom, each the way back from the
-  // last, so the next area always borders the one before
-  function areaOf(c) {
-    const r = Math.min(GRID - 1, Math.floor((c.cy / st.H) * GRID)), k = Math.min(GRID - 1, Math.floor((c.cx / st.W) * GRID));
-    return r * GRID + (r % 2 ? GRID - 1 - k : k);
-  }
+  // the image's areas by their place in the walk, the shell's
+  const areaOf = (c) => AREAS.areaAt(c.cx / st.W, c.cy / st.H);
+  // an area's box in whole pixels, [x0, y0, x1, y1]: a pixel is in the area its column and row fall in
+  const areaPixels = (a) => AREAS.box(a, st.W, st.H).map(Math.ceil);
   // an area's rectangle on the image: [x, y, w, h]
   function areaRect(a) {
-    const r = Math.floor(a / GRID), k = r % 2 ? GRID - 1 - (a % GRID) : a % GRID, w = st.W / GRID, h = st.H / GRID;
-    return [k * w, r * h, w, h];
+    const [x0, y0, x1, y1] = areaPixels(a);
+    return [x0, y0, x1 - x0, y1 - y0];
   }
+  // the areas at the count now whose every pixel is checked, by checks made under any count
+  const areasChecked = () => (st.W ? new Set(Array.from({ length: areaCount() }, (_, a) => a).filter((a) => N.covered(st.checked, areaPixels(a)))) : new Set());
   // The tasks as one walk, area by area, so a whole region of the image is done before the next: in each area
   // its finalists, its rejected, the NoRs added there, each top to bottom, and last the area's check.
   // Each step: {key, a, t, c (a candidate's), done}; key "c:<candidate>" or "a:<area>".
   function walk() {
     if (!st.passes) return [];
-    const by = Array.from({ length: AREAS }, () => ({ pass: [], fail: [], missed: [] }));
+    const by = Array.from({ length: areaCount() }, () => ({ pass: [], fail: [], missed: [] }));
     for (const c of [...st.order, ...addedCands()]) by[areaOf(c)][groupOf(c)].push(c);
     const out = [];
     by.forEach((g, a) => {
@@ -1036,7 +1037,7 @@ export function mount(shell) {
   const waitingIn = (a) => addedCands().find((c) => !verdictOf(c) && areaOf(c) === a);
   // an area is done once every candidate in it is decided and it is checked for missed NoRs
   const areaDone = (a, w) => st.areas.has(a) && w.every((x) => x.a !== a || x.done);
-  const taskDone = (t) => t !== "submit" && !!st.passes && taskItems(t).every(verdictOf) && (t !== "missed" || st.areas.size === AREAS);
+  const taskDone = (t) => t !== "submit" && !!st.passes && taskItems(t).every(verdictOf) && (t !== "missed" || st.areas.size === areaCount());
   // the walk's next step not done after key (from the start when key is null), else null
   function nextOpen(key, w = walk(), t = null) {
     const k = w.findIndex((x) => x.key === key);
@@ -1075,7 +1076,7 @@ export function mount(shell) {
   };
   $("#area-ok").onclick = () => {
     if (st.area == null) return;
-    act({ type: "check-area", area: st.area, on: true });
+    act({ type: "check-area", area: st.area, grid: AREAS.count(), box: areaPixels(st.area), on: true });
     moveOn();
   };
   // the image pans to the candidate only when it is out of the middle of the view
@@ -1124,6 +1125,7 @@ export function mount(shell) {
   function renderTasks() {
     if (!TRUTH) return;
     const ready = !!st.meta && !!st.passes;
+    st.areas = areasChecked();
     // the walk starts at its first step not done
     if (ready && st.cur === undefined) {
       const x = nextOpen(null);
@@ -1134,7 +1136,7 @@ export function mount(shell) {
     if (ready && st.cur && !walk().some((x) => x.key === st.cur)) { st.cur = "a:" + st.area; st.sel = null; st.task = "missed"; }
     const lists = Object.fromEntries(TASKS.map((t) => [t, ready ? taskItems(t) : []]));
     // a row per task, counting what is done of it; the bar a part per task, as long as it and filled as far as done
-    const count = { pass: lists.pass.length, fail: lists.fail.length, missed: AREAS };
+    const count = { pass: lists.pass.length, fail: lists.fail.length, missed: areaCount() };
     const did = { pass: lists.pass.filter(verdictOf).length, fail: lists.fail.filter(verdictOf).length, missed: st.areas.size };
     for (const t of ["pass", "fail", "missed"]) shell.tasks.count(t, ready ? did[t] : null, count[t], ready && taskDone(t));
     // the open task: its tools on its row, and its item's card under it
@@ -1170,6 +1172,8 @@ export function mount(shell) {
     out.animate([{ transform: "none", opacity: 1 }, { transform: `translateX(${-dir * 60}%)`, opacity: 0 }], t).finished.then(() => out.remove(), () => out.remove());
     fresh.animate([{ transform: `translateX(${dir * 60}%)`, opacity: 0 }, { transform: "none", opacity: 1 }], t);
   }
+  // another count of areas: the walk starts again from its first step not done
+  AREAS.on(() => { st.cur = undefined; st.back = []; renderTasks(); gtButton(); });
   if (TRUTH) {
     $("#card-menu").open = false; $("#task-back").before($("#card-menu"));
     $("#overlay").classList.add("gt"); shell.signal.addEventListener("abort", () => $("#overlay").classList.remove("gt"));
@@ -1337,7 +1341,7 @@ export function mount(shell) {
     painter: (canvas, shown, onSize) => NorPeek.painter(canvas, shown, onSize),
     order,
     opening(name) {
-      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
+      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.checked = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
       $("#list").replaceChildren(); $("#summary").textContent = "No candidates yet.";
       downloads(false); renderSelected(); renderTasks();
     },

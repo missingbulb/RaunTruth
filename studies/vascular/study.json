@@ -79,6 +79,7 @@
     "spacingSource": "the owner (2026-10-29)"
   },
   "groundTruth": {
+    "areas": 4,
     "actions": "web/gt_actions.js",
     "ring": "#00ff00"
   },

@@ -99,7 +99,7 @@ try {
   const keptBare = await mode();
   await page.click("#key-outlines");
   check(keptBare === "image" && (await mode()) === "overlay", `clicking the 2 row keeps the lines hidden, again shows them: ${keptBare} → ${await mode()}`);
-  check(!(await press("Digit2", { on: "#area-grid" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
+  check(!(await press("Digit2", { on: "#gt-areas" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
   await page.evaluate(() => { $("#vm-show").open = true; });
   check(!(await press("Digit2")) && (await mode()) === "overlay", "2 with the Show menu open does nothing");
   await page.evaluate(() => { $("#vm-show").open = false; });
@@ -214,7 +214,7 @@ try {
   // held down, in a field, with a menu open: nothing
   s0 = s1;
   check(!(await press("KeyF", { repeat: true })) && same(await state(), s0), "F held down judges no second junction");
-  check(!(await press("KeyF", { on: "#area-grid" })) && same(await state(), s0), "F in a field does nothing");
+  check(!(await press("KeyF", { on: "#gt-areas" })) && same(await state(), s0), "F in a field does nothing");
   await page.evaluate(() => { $("#task-menu").hidden = false; $("#task-menu").open = true; });
   check(!(await press("KeyF")) && same(await state(), s0), "F with a menu open does nothing");
   await page.evaluate(() => { $("#task-menu").open = false; });

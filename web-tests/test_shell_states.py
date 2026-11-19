@@ -294,6 +294,8 @@ def test_the_shell_tree_holds_only_the_shells_page():
 
 @pytest.mark.parametrize('study, panels, says', [
     ({'files': {'from': ['local', 'drive']}, 'phases': []}, '', {'fromComputer': True, 'hasSteps': False, 'itemView': False}),
+    ({'files': {'from': ['drive']}, 'phases': [], 'groundTruth': {'areas': 4}}, '', {'walksAreas': True}),
+    ({'files': {'from': ['drive']}, 'phases': [], 'groundTruth': {'actions': 'web/gt_actions.js'}}, '', {'walksAreas': False}),
     ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view" hidden>', {'fromComputer': False, 'hasSteps': True, 'itemView': True}),
     ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view" data-shelved hidden>', {'itemView': False}),
     ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view-more" data-shelved></div><div id="items-view">', {'itemView': True}),
