@@ -7,23 +7,15 @@
 // when it cannot run.
 //   node tests/processing_box_driver.mjs READY
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { launch } from "../../../web-tests/harness.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { orMissed } from "../../../web-tests/page_until.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [ready] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const READY = JSON.parse(fs.readFileSync(ready, "utf8"));
@@ -32,16 +24,7 @@ const QUALITY = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "we
 const LISTED = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithms.json"), "utf8")).map((a) => [a.key, a]));
 
 const STAND_IN = `postMessage({ type: "ready", info: ${JSON.stringify(READY)}, secs: 0 });`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": () => EARLY + STAND_IN });
 
 const browser = await launch(pw);
 const problems = [];

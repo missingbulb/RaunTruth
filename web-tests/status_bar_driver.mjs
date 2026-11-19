@@ -11,8 +11,6 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { helpTip, anyHelp } from "./help_tip.mjs";
 import fs from "node:fs";
@@ -23,18 +21,13 @@ import { repoFile } from "./repo_file.mjs";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
 // what the browser and the page say of a request the network does not carry
 const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch/;
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MB = 2 ** 20;
@@ -109,7 +102,6 @@ async function open(study, mode, clock) {
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
   // as computed), and flashed

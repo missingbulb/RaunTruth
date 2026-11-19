@@ -214,7 +214,6 @@ const awayAndBack = async (page, p) => {
   await page.context().addInitScript((kept) => { localStorage.clear(); for (const [k, v] of Object.entries(kept)) localStorage.setItem(k, v); }, kept);
   for (const [url, switched, label] of [[away, there, `away at ${other}`], [home, back, "back"]]) {
     const fresh = await page.context().newPage();
-    fresh.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
     fresh.setDefaultTimeout(STEP);
     await fresh.goto(url);
     await ready(fresh); await settled(fresh);

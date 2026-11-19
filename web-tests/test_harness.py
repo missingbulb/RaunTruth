@@ -27,6 +27,11 @@ def test_an_undeclared_warning_fails_the_run_and_is_named():
     assert r.returncode == 1 and 'went wrong' in r.stderr, r.stdout + r.stderr
 
 
+def test_a_failed_check_fails_the_run_whatever_exit_code_the_test_sets():
+    r = run('failedcheck')
+    assert r.returncode == 1 and 'ok: a check that held' in r.stdout and 'FAILED: a check that did not: {"seen":1}' in r.stderr, r.stdout + r.stderr
+
+
 def test_a_declared_warning_passes():
     r = run('declared')
     assert r.returncode == 0, r.stdout + r.stderr

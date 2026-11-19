@@ -13,8 +13,6 @@
 //   node web-tests/storage_driver.mjs [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
 import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -22,17 +20,12 @@ import path from "node:path";
 import { cutShort } from "./page_errors.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext, expecting } from "./harness.mjs";
+import { pw, keptContext, expecting, check } from "./harness.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -63,7 +56,6 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // what a browser that has used the page keeps: the shell's keys and the NoR study's, as their code writes them
 const PIC = "data:image/jpeg;base64," + "A".repeat(4000);

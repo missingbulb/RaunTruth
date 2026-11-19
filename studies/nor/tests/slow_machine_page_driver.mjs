@@ -7,8 +7,6 @@
 //   node tests/slow_machine_page_driver.mjs ANSWERS IMAGE [SHOTS]
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -16,17 +14,12 @@ import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { launch, expecting } from "../../../web-tests/harness.mjs";
+import { pw, launch, expecting } from "../../../web-tests/harness.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const LATE = 600; // ms each answer takes
@@ -95,7 +88,6 @@ async function open(gb) {
   }, gb);
   await standInDrive(ctx);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await started(page);
@@ -189,7 +181,6 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   const code = holding();
   await ctx.route("**/studies/nor/web/nor.js", async (r) => { await code.hold(); await r.continue(); });
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await code.asked;

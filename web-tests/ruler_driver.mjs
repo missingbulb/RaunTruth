@@ -7,8 +7,6 @@
 //   node web-tests/ruler_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
 import { scaledImage } from "./scaled_image.mjs";
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -16,14 +14,9 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 
 import { localStudy } from "./local_study.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -66,7 +59,6 @@ async function open(um) {
   // checks point and click
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-minimap", JSON.stringify({ mode: "hidden" })); });
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));

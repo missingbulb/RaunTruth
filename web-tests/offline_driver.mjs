@@ -17,8 +17,6 @@
 // TIFF: a small z-stack the vascular study can open. Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/offline_driver.mjs SITE TIFF [SHOTS]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
@@ -27,16 +25,11 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
-import { launch, keptContext, expecting } from "./harness.mjs";
+import { pw, launch, keptContext, expecting, check } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [site, tiffPath, shots] = process.argv.slice(2);
 const TIFF = fs.readFileSync(tiffPath);
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png") }); };
@@ -94,7 +87,6 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // a profile of its own: a browser's private window can install nothing
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });

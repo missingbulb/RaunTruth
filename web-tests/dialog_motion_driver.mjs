@@ -3,36 +3,19 @@
 // own size; one opened with nothing pressed, or with animations off or reduced motion asked for, appears at once.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/dialog_motion_driver.mjs
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { frames } from "./page_frames.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/version_history.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/web/version_history.json": "[]",
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
@@ -58,7 +41,6 @@ async function open({ motion = true, reducedMotion = "no-preference", clock = fa
     };
   }, motion);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html");
   await page.waitForFunction(() => $("#sb-version").textContent);

@@ -7,24 +7,15 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/keys_driver.mjs ANSWERS IMAGE.png STUDIES
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 import { frames } from "./page_frames.mjs";
-import { launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -35,22 +26,16 @@ postMessage({ type: "ready", info: A.ready.fixture, heap: 0, files: 0 });
 onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 let failed = false;
-const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the fixture as one loading from this computer, declaring two actions of the shell's own buttons
@@ -67,7 +52,6 @@ studiesOf(ctx).edit("fixture", (m) => {
 });
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
 page.setDefaultTimeout(STEP);

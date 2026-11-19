@@ -6,23 +6,16 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/version_history_driver.mjs [SHOTS]
 import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const VERSION = JSON.parse(fs.readFileSync(path.join(repo, "package.json"))).version;
@@ -67,7 +60,6 @@ async function open(seen, theme = "dark") {
   }, [seen, theme]);
   await watchReads(ctx, ["version_history.json"]);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html");
   await historyRead(page);

@@ -12,8 +12,6 @@
 // cannot run.
 //   node web-tests/image_line_driver.mjs ANSWERS STUDIES [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -21,16 +19,11 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { ENGINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
-import { keptContext } from "./harness.mjs";
+import { pw, keptContext, check } from "./harness.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -79,7 +72,6 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
 // the deploy with a Google key
 siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
@@ -112,7 +104,6 @@ await ctx.addInitScript(([link, recent]) => {
   localStorage.setItem("nor-drive-recent", JSON.stringify(recent));
 }, [FOLDER, RECENT]);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);

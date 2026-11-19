@@ -3,19 +3,12 @@
 // leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline, the
 // deploy's variables, a study's edits, and a test's own route answering what a fake does. Prints what the page saw; the harness decides the exit.
 //   node web-tests/harness_driver.mjs CASE
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
-import { launch, expecting, siteOf } from "./harness.mjs";
+import { pw, launch, expecting, siteOf, check } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [which] = process.argv.slice(2);
 const server = http.createServer((q, r) => {
   if (/study\.json$/.test(q.url)) { r.writeHead(200, { "content-type": "application/json" }); return r.end('{"id": "served"}'); }
@@ -42,6 +35,8 @@ const CASES = {
     await page.route("**/web/config.js", (r) => r.fulfill({ contentType: "text/javascript", body: "window.NOR_CONFIG = {};" }));
     console.log(await got("/web/config.js"));
   },
+  // a failed check fails the run, whatever the test sets its exit code to
+  failedcheck: async () => { check(true, "a check that held"); check(false, "a check that did not", { seen: 1 }); process.exitCode = 0; },
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
   unanswered: () => expecting(/went wrong/, async () => {}),

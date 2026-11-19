@@ -13,8 +13,6 @@
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -22,14 +20,9 @@ import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
-import { launch, googleOf } from "../../../web-tests/harness.mjs";
+import { pw, launch, googleOf } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const DRIVE_ID = "FAKEDRIVEID1234567890ab";
@@ -81,7 +74,6 @@ async function open(drive) {
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) await localStudy(ctx, "nor");
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);

@@ -7,25 +7,16 @@
 // another image, or Unload, starting over. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/left_bar_driver.mjs ANSWERS IMAGE.png STUDIES
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 
 import { asTagger } from "./tagger.mjs";
 import { record, begun, moved } from "./page_motions.mjs";
 import { localStudy } from "./local_study.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -37,17 +28,12 @@ onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
   else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
@@ -61,7 +47,6 @@ await asTagger(ctx);
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await record(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
 page.setDefaultTimeout(STEP);
 await page.goto(origin + "/web/fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));

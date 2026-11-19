@@ -5,8 +5,7 @@
 // (tests/test_study_runs.py), which keeps the last file it was handed as self.lastOpen (the page reads and shows
 // images itself), and answers the calls of a study ANSWERS' live names from that study's own Python (study_calls.py). Exits 2 when it cannot run.
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -14,17 +13,12 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 
 import { cutShort } from "./page_errors.mjs";
-import { launch, googleOf, siteOf } from "./harness.mjs";
+import { pw, launch, googleOf, siteOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
-  const require = createRequire(import.meta.url);
-  let pw;
-  try { pw = require("playwright"); } catch {
-    try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-  }
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
 

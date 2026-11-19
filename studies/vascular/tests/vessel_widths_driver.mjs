@@ -7,8 +7,6 @@
 // look right waits for a drawn vessel's width, marks the rest looked at and does the area; the export carries each
 // width and still names the estimates unchecked. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_widths_driver.mjs STUDIES [SHOTS_DIR]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -18,14 +16,9 @@ import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
-import { launch } from "../../../web-tests/harness.mjs";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { orMissed } from "../../../web-tests/page_until.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies, shots] = process.argv.slice(2);
 
@@ -62,13 +55,11 @@ const site = await serve(repo, studies, model, "GT");
 
 const browser = await launch(pw);
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1, acceptDownloads: true });
 await asTagger(ctx);
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(15000);
 
 const look = () => page.evaluate(() => window.vascular.model().widths);

@@ -8,8 +8,6 @@
 //   node web-tests/grid_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
 import { scaledImage } from "./scaled_image.mjs";
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -17,15 +15,10 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 
 import { localStudy } from "./local_study.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -92,7 +85,6 @@ const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } })
 await localStudy(ctx, "fixture");
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
 page.setDefaultTimeout(STEP);
 const start = async () => {
   await page.goto(origin + "/web/fixture");
@@ -161,7 +153,6 @@ await check(listed.some((t) => t.includes("Grid colour and spacing")), "Settings
   await localStudy(old, "fixture");
   await old.addInitScript(() => { delete Navigator.prototype.serviceWorker; delete HTMLButtonElement.prototype.interestForElement; });
   const p2 = await old.newPage();
-  p2.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   await p2.goto(origin + "/web/fixture");
   await p2.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   await load(p2, [0.2, 0.5]);

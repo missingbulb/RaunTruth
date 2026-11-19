@@ -12,8 +12,6 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/account_driver.mjs [SHOTS]
 import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { isDeepStrictEqual as same } from "node:util";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -21,15 +19,10 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { launch, googleOf, siteOf, expecting } from "./harness.mjs";
+import { pw, launch, googleOf, siteOf, expecting, check } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -59,7 +52,6 @@ const settings = () => google.settings[0] || null;
 const file = () => (settings() ? JSON.parse(settings().body) : null);
 const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 // what Google holds changes only as a request reaches it: a wait on it looks again at each one
 const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
 // a page showing something, within ms
