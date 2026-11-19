@@ -13,7 +13,8 @@ import http from "node:http";
 import path from "node:path";
 
 import { pressDrive } from "./drive_open.mjs";
-import { launch, googleOf } from "./harness.mjs";
+import { launch, googleOf, siteOf } from "./harness.mjs";
+import { studies } from "./fakes/studies.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -25,12 +26,10 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Bookshelf Reader's own folder, which its dialog lists, the one the Image Viewer is handed too
 const FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "shelves", "study.json"), "utf8")).root.split("/").pop();
 const NAMES = ["a.jpg", "b.JPEG", "c.webp", "d.bmp", "e.png", "f.tif", "g.heic", "h.pdf"];
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -39,6 +38,8 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const folder = `https://drive.google.com/drive/folders/${FOLDER}`;
@@ -51,12 +52,10 @@ NAMES.forEach((name, k) => drive.file({ id: "acmefile" + k, name, parent: FOLDER
 async function listed(id, paste) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   // the study's own folder becomes the fake's, and the study is shown to anyone
-  await ctx.route(`**/studies/${id}/study.json`, async (r) => {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, "studies", id, "study.json"), "utf8"));
+  studies(ctx).edit(id, (m) => {
     if (m.files.folders) m.files.folders = [folder];
     // shown to everyone, so the page opens it signed out
     m.visibility = "listed";
-    await r.fulfill({ json: m });
   });
   await ctx.addInitScript(() => {
     delete Navigator.prototype.serviceWorker;

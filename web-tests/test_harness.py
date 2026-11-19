@@ -52,6 +52,21 @@ def test_a_request_leaving_the_machine_from_a_worker_is_seen_too():
     assert 'turned away' in r.stdout and r.returncode == 1 and 'left this machine' in r.stdout, r.stdout + r.stderr
 
 
+def test_the_deploys_variables_write_config_js_as_the_release_does():
+    r = run('settings')
+    assert r.returncode == 0 and 'unset: <!doctype html>' in r.stdout and '"apiKey": "the-key", "clientId": "the-client"' in r.stdout, r.stdout + r.stderr
+
+
+def test_a_studys_edits_change_it_alone():
+    r = run('studies')
+    assert r.returncode == 0 and 'study: {"id":"served","stage":"PreGT"} other: {"id": "served"}' in r.stdout, r.stdout + r.stderr
+
+
+def test_a_tests_own_route_answering_a_fakes_address_fails_the_run():
+    r = run('ownroute')
+    assert r.returncode == 1 and 'a test answered what a fake answers' in r.stdout, r.stdout + r.stderr
+
+
 def test_jsdelivr_answers_from_the_installed_libraries():
     r = run('cdn')
     assert r.returncode == 0 and 'served 1.19.8' in r.stdout, r.stdout + r.stderr

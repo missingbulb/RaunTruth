@@ -1,12 +1,13 @@
 // Drives one case of the harness itself (req/checks/clean-console) on a page of its own, which writes what CASE
 // names: a warning nobody declared, one declared, a declaration nothing answers, an uncaught error, a request
-// leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline. Prints what the page saw; the harness decides the exit.
+// leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline, the
+// deploy's variables, a study's edits, and a test's own route answering what a fake does. Prints what the page saw; the harness decides the exit.
 //   node web-tests/harness_driver.mjs CASE
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
-import { launch, expecting } from "./harness.mjs";
+import { launch, expecting, siteOf } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
 
@@ -16,14 +17,31 @@ try { pw = require("playwright"); } catch {
   try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
 }
 const [which] = process.argv.slice(2);
-const server = http.createServer((q, r) => { r.writeHead(200, { "content-type": "text/html" }); r.end("<!doctype html><title>harness</title>"); });
+const server = http.createServer((q, r) => {
+  if (/study\.json$/.test(q.url)) { r.writeHead(200, { "content-type": "application/json" }); return r.end('{"id": "served"}'); }
+  r.writeHead(200, { "content-type": "text/html" }); r.end("<!doctype html><title>harness</title>");
+});
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}/`;
 const browser = await launch(pw);
 const page = await browser.newPage();
 await page.goto(origin);
 const warn = () => page.evaluate(() => console.warn("the thing went wrong"));
+const got = (u) => page.evaluate((u) => fetch(u).then((r) => r.text()), u);
 const CASES = {
+  settings: async () => {
+    console.log("unset: " + (await got("/web/config.js")).slice(0, 15));
+    siteOf(browser).settings.env = { GOOGLE_API_KEY: "the-key", GOOGLE_CLIENT_ID: "the-client" };
+    console.log("set: " + await got("/web/config.js"));
+  },
+  studies: async () => {
+    siteOf(browser).studies.edit("acme", (m) => ({ ...m, stage: "PreGT" }));
+    console.log("study: " + await got("/studies/acme/study.json") + " other: " + await got("/studies/other/study.json"));
+  },
+  ownroute: async () => {
+    await page.route("**/web/config.js", (r) => r.fulfill({ contentType: "text/javascript", body: "window.NOR_CONFIG = {};" }));
+    console.log(await got("/web/config.js"));
+  },
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
   unanswered: () => expecting(/went wrong/, async () => {}),

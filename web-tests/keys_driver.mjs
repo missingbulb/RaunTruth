@@ -16,6 +16,7 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { frames } from "./page_frames.mjs";
 import { launch, expecting } from "./harness.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -53,8 +54,7 @@ const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAI
 
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the fixture as one loading from this computer, declaring two actions of the shell's own buttons
-await ctx.route("**/studies/fixture/study.json", async (route) => {
-  const r = await route.fetch(), m = await r.json();
+studiesOf(ctx).edit("fixture", (m) => {
   m.files.from = ["local"];
   m.actions = [
     { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn", legend: true },
@@ -64,7 +64,6 @@ await ctx.route("**/studies/fixture/study.json", async (route) => {
     // saying nothing of the legend: refused, never wired
     { id: "unsaid", label: "Zoom out", keys: ["KeyX"], kind: "press", control: "#zoom-out" },
   ];
-  await route.fulfill({ response: r, body: JSON.stringify(m), contentType: "application/json" });
 });
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();

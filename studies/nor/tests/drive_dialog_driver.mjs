@@ -16,7 +16,7 @@ import http from "node:http";
 import path from "node:path";
 
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { launch } from "../../../web-tests/harness.mjs";
+import { launch, siteOf } from "../../../web-tests/harness.mjs";
 import { googleDrive } from "../../../web-tests/fakes/google_drive.mjs";
 
 const require = createRequire(import.meta.url);
@@ -30,13 +30,11 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const ROOT = "rootfolder0000000001", SUB = "subfolder00000000001";
 const files = images.map((p, k) => ({ id: `dialogfile${String(k).padStart(10, "0")}`, name: path.basename(p), bytes: fs.readFileSync(p) }));
 const stranger = { id: "notinthelab000000001", name: "Not in the lab's list.tif", bytes: files[0].bytes };
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".jpg": "image/jpeg", ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let thumbsServed = 0;
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   if (u === "/studies/nor/study.json") {
     const manifest = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
     r.writeHead(200, { "content-type": "application/json" });
@@ -52,6 +50,8 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 const done = async (code, why) => { if (why) console.error(why); await browser.close(); server.close(); process.exit(code); };
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 // the Drive fake's folder: a subfolder holding the first image too, the lab's images and one it lacks

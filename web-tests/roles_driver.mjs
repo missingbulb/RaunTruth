@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { expecting } from "./harness.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { motion } from "./page_motions.mjs";
@@ -84,9 +85,7 @@ await check(!s.truth && !s.counted, "back as Viewer, the ground-truth tools go",
 await page.context().close();
 
 // the same study as PreGT: Ground Truth Tagger is offered, and can be chosen there
-const preGT = { ...JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", "fixture", "study.json"), "utf8")), stage: "PreGT",
-  root: `https://drive.google.com/drive/folders/${ROOT}` };
-page = await open(true, { email: OTHER, prepare: async (ctx) => { await ctx.route("**/studies/fixture/study.json", (r) => r.fulfill({ json: preGT })); await standInDrive(ctx); } });
+page = await open(true, { email: OTHER, study: { stage: "PreGT" }, prepare: standInDrive });
 await page.waitForFunction(() => document.documentElement.dataset.stage === "PreGT");
 s = await seen(page);
 await check(s.role === "Viewer" && s.list.join() === "Viewer,Ground Truth Tagger", "in a PreGT study the signed-in are offered Ground Truth Tagger", s);
@@ -167,7 +166,7 @@ await check(!s.hint && asked() === 1, "and opening the menu brings the roles Dri
 await page.context().close();
 
 // a site with no Google client signs no one in, so no one there may tag ground truth
-page = await open(false, { prepare: (ctx) => ctx.route("**/web/config.js", (r) => r.fulfill({ contentType: "text/javascript", body: 'window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "" } };' })) });
+page = await open(false, { prepare: (ctx) => { siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" }; } });
 s = await seen(page);
 await check(s.list.join() === "Viewer" && s.role === "Viewer", "with no sign-in on the site, Viewer alone is offered", s);
 await done(0);

@@ -76,7 +76,7 @@ googleOf(browser).drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "imag
 
 async function open(drive) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-  await asTagger(ctx, { apiKey: "test-key" });
+  await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) await localStudy(ctx, "nor");

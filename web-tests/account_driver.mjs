@@ -21,7 +21,7 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { launch, googleOf, expecting } from "./harness.mjs";
+import { launch, googleOf, siteOf, expecting } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -35,13 +35,11 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const CLIENT = "acme-client.apps.googleusercontent.com";
 const GSI = "https://accounts.google.com/gsi/client";
-let origin, clientId = CLIENT;
-const CONFIG = () => `window.NOR_CONFIG = { google: { apiKey: "", clientId: ${JSON.stringify(clientId)} } };`;
+let origin;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG()); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -50,6 +48,9 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the deploy with a Google key and client
+const site = siteOf(browser).settings;
+site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: CLIENT };
 // the sign-in fake's account; settings(): the user's settings file in their Drive's app folder, which a test changes to
 // play another device; seen(): every request the page made to Google
 const { drive, signIn: google } = googleOf(browser);
@@ -251,7 +252,7 @@ try {
   check(await b.page.isHidden("#sign-out"), "a reload after signing out stays signed out");
 
   // a site with no Google client
-  clientId = "";
+  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
   const loads = google.scriptLoads;
   const c = await device({});
   await c.page.click("#user-menu summary");

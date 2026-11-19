@@ -18,6 +18,7 @@ import { until } from "./page_until.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { keptContext, expecting } from "./harness.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -32,12 +33,10 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT = "throttlefolder000001";
 const PNG = noisePng();
 const FILES = [{ id: "throttleimage0000001", name: "a.png" }, { id: "throttleimage0000002", name: "b.png" }, { id: "throttleimage0000003", name: "c.tif" }];
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -48,6 +47,8 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder of three images; calls: every request the page made of Drive since the test cleared them
 const drive = googleDrive(ctx), calls = drive.calls, kinds = () => calls.map((c) => c.kind);
 drive.folder({ id: ROOT, name: "Throttled", access: "public" });

@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { launch, googleOf, expecting } from "./harness.mjs";
+import { launch, googleOf, expecting, siteOf } from "./harness.mjs";
 import { ENGINE } from "./engine.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -27,12 +27,10 @@ try { pw = require("playwright"); } catch {
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OLD = "old-token", NEW = "renewed-token", PRIVATE = "privatefolder0000001";
 const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in-key", clientId: "123456-stand.apps.googleusercontent.com" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -41,6 +39,8 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in-key", GOOGLE_CLIENT_ID: "123456-stand.apps.googleusercontent.com" };
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 

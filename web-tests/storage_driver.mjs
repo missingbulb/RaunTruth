@@ -23,6 +23,7 @@ import { cutShort } from "./page_errors.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { keptContext, expecting } from "./harness.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -43,14 +44,12 @@ const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acme
 // a subfolder, listed after the images, holding an image named as the first one
 const SUB = { id: "acmefolder0000000002", name: "sub" }, TWIN = { id: "acmeimage00000000003", name: "acme one.png" };
 const OWN_PACKAGE = "acmepkg";
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
   if (u === "/web/studies.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(LISTED); }
   if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   // NoR Finder with a package of its own, which no other study names
   if (u === "/studies/nor/study.json") {
     const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
@@ -91,6 +90,8 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder: the two images, and the subfolder holding the first one's twin
 const drive = googleDrive(ctx);
 for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });

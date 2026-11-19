@@ -19,7 +19,7 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { launch, googleOf, expecting } from "./harness.mjs";
+import { launch, googleOf, siteOf, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -32,12 +32,10 @@ const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const GSI = "https://accounts.google.com/gsi/client";
-let clientId = "acme-client.apps.googleusercontent.com";
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(`window.NOR_CONFIG = { google: { apiKey: "", clientId: ${JSON.stringify(clientId)} } };`); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -46,6 +44,9 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the deploy with a Google key and client
+const site = siteOf(browser).settings;
+site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "acme-client.apps.googleusercontent.com" };
 // the sign-in fake: what Google's window answers, and how often the page loaded Google's script
 const { signIn: google } = googleOf(browser);
 let failed = false;
@@ -269,7 +270,7 @@ try {
   check(await h2.evaluate(() => localStorage.getItem("nor-google-sign-in")) === null, "and a change in the other tab does not sign the user back in");
 
   // no Google client
-  clientId = "";
+  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
   const d = await device();
   check(!(await popup(d.page)) && !(await signInTip(d.page)), "with no Google client there is no popup and no tip");
 } catch (e) {

@@ -8,19 +8,18 @@
 //   python3 lab/fetch.py nor
 //   node studies/nor/lab/browser/mem_growth_live.mjs [--rounds N] [--finders tl,rf,...]   (about 2.5 minutes)
 //
-// Needs Playwright (npm i -g playwright). Remote files (Pyodide and its packages) are fetched with
-// curl when HTTPS_PROXY is set, since headless Chromium does not trust a proxy's own CA.
+// Needs Playwright (npm i -g playwright) and the page tests' libraries (web-tests/page_libraries.py), which the
+// page tests' fakes serve in place of the CDN.
 import { repoFile } from "../../../../web-tests/repo_file.mjs";
 import { createRequire } from "node:module";
-import { execFileSync, execSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { standInDrive, openFromDrive } from "../../../../web-tests/drive_open.mjs";
+import { launch } from "../../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -56,23 +55,10 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const url = `http://127.0.0.1:${server.address().port}/web/?study=nor`;
 
-const browser = await pw.chromium.launch();
+const browser = await launch(pw);
 const ctx = await browser.newContext();
 // the page without its cache of third-party files, which is not what is measured here
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-if (process.env.HTTPS_PROXY) {
-  const cache = path.join(os.tmpdir(), "norfinder-remote-cache"); fs.mkdirSync(cache, { recursive: true });
-  await ctx.route(/^https:/, (r) => {
-    const u = r.request().url(), f = path.join(cache, crypto.createHash("sha1").update(u).digest("hex"));
-    try {
-      if (!fs.existsSync(f)) {
-        const type = execFileSync("curl", ["-sSfL", "--max-time", "300", "-o", f + ".tmp", "-w", "%{content_type}", u]).toString();
-        fs.writeFileSync(f + ".type", type || "application/octet-stream"); fs.renameSync(f + ".tmp", f);
-      }
-      return r.fulfill({ body: fs.readFileSync(f), contentType: fs.readFileSync(f + ".type", "utf8"), headers: { "access-control-allow-origin": "*" } });
-    } catch (e) { console.error("could not fetch", u, e.message); return r.fulfill({ status: 404, body: "" }); }
-  });
-}
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { console.error("page error:", e.message); process.exitCode = 1; });

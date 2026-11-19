@@ -17,6 +17,8 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { keptContext } from "./harness.mjs";
+import { studies } from "./fakes/studies.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -32,12 +34,10 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT = "previewfolder0000001", PREVIEWS = "rauntruth-previews.tiff";
 let FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
 const file = (name) => FILES.find((f) => f.name === name);
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -48,6 +48,8 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder IMAGES, its files the test may change; reads(): every read of a file's bytes since the test
 // cleared them, by name, "whole" or "piece"; driveThumbs: Drive's own small pictures asked for, by file name
 const drive = googleDrive(ctx);
@@ -56,10 +58,7 @@ FILES = FILES.map((f) => drive.file({ ...f, parent: ROOT, createdTime: "2026-10-
 let readsFrom = 0;
 const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ name: drive.get(c.id)?.name, how: c.range ? "piece" : "whole" }));
 const driveThumbs = drive.thumbs;
-await ctx.route("**/studies/viewer/study.json", async (route) => {
-  const own = await (await route.fetch()).json();
-  return route.fulfill({ json: { ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } } });
-});
+studies(ctx).edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;

@@ -22,6 +22,7 @@ import { repoFile } from "./repo_file.mjs";
 import { ENGINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { keptContext } from "./harness.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -59,13 +60,11 @@ postMessage({ type: "ready", info: A.ready.fixture });
 onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
 };`;
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
   if (u === "/web/worker.js") return send("text/javascript", STAND_IN);
-  if (u === "/web/config.js") return send("text/javascript", CONFIG);
   if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
   // the fixture's Drive root
   if (u === "/studies/fixture/study.json") {
@@ -82,6 +81,8 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder, and another folder elsewhere, empty; calls(): the page's lists and downloads since the
 // test cleared them
 const drive = googleDrive(ctx);

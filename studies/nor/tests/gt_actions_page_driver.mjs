@@ -74,7 +74,7 @@ async function loadImage(page) {
 }
 async function newContext(init) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
-  await asTagger(ctx, { apiKey: "test-key" });
+  await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   await localStudy(ctx, "nor");
   return ctx;

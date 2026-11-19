@@ -1,5 +1,5 @@
 // Opens an image in a study that opens from Google Drive (req/shell/load/from) the way a user does, through the
-// Google Drive dialog, from the Drive fake: standInDrive(ctx) before the page loads gives the site's config an API key,
+// Google Drive dialog, from the Drive fake: standInDrive(ctx) before the page loads gives the deploy a Google key,
 // and openFromDrive puts each file it is handed on Drive under an id of its own, listed in whichever folder the
 // dialog shows while it is being opened.
 // openFromDrive(page, file) takes a path or {name, mimeType, buffer}, as setInputFiles does, the same name and bytes
@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { click } from "./page_click.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 
 // per context, the files handed over: {name, buffer, id}
@@ -15,12 +16,9 @@ const handed = new WeakMap();
 
 export async function standInDrive(ctx) {
   handed.set(ctx, []);
-  // the site's config, whoever serves it, given an API key where it has none
-  await ctx.addInitScript(() => {
-    let config;
-    Object.defineProperty(window, "NOR_CONFIG", { configurable: true, get: () => config,
-      set: (v) => { config = v; if (v?.google && !v.google.apiKey) v.google.apiKey = "stand-in"; } });
-  });
+  // the deploy given a Google key where it has none
+  const settings = siteSettings(ctx);
+  if (!settings.env?.GOOGLE_API_KEY) settings.env = { ...settings.env, GOOGLE_API_KEY: "stand-in" };
 }
 
 let next = 0;

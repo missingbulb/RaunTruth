@@ -14,8 +14,9 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 
 import { cutShort } from "./page_errors.mjs";
-import { launch, googleOf } from "./harness.mjs";
+import { launch, googleOf, siteOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
@@ -64,9 +65,14 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // for, and the files replaced keeping the version they replace forever
   const sharedOut = drive.shared, writes = drive.writes, thumbs = drive.thumbs, keptForever = drive.keptForever;
 
+  // the deploy with a Google key and client; the fixture study, and every other study with a root, given ROOT as its
+  // root, and the list of studies the test's own
+  const site = siteOf(browser);
+  site.settings.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "123456-stand.apps.googleusercontent.com" };
   const rooted = (m) => (m.root ? { ...m, root: `https://drive.google.com/drive/folders/${ROOT}` } : m);
-  const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", "study.json"), "utf8"));
-  fixture.root = `https://drive.google.com/drive/folders/${ROOT}`;
+  for (const id of fs.readdirSync(path.join(repo, "studies"))) if (fs.existsSync(path.join(repo, "studies", id, "study.json"))) site.studies.edit(id, rooted);
+  site.studies.edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
+  if (studies) site.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -88,7 +94,6 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
   };`;
-  const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "123456-stand.apps.googleusercontent.com" } };`;
   const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   // the studies' own Python, for the live studies' calls: one request a line, answered in turn
   let py = null;
@@ -110,13 +115,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
       return;
     }
     if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
-    if (u === "/web/config.js") return send("text/javascript", CONFIG);
     if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
-    if (u === "/studies/fixture/study.json") return send("application/json", JSON.stringify(fixture));
-    // every other study with a root has ROOT as its root here
-    const named = u.match(/^\/studies\/([\w-]+)\/study\.json$/);
-    if (named) return send("application/json", JSON.stringify(rooted(JSON.parse(fs.readFileSync(path.join(repo, "studies", named[1], "study.json"), "utf8")))));
-    const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
+    const f = u === "/web/answers.json" ? answers : repoFile(repo, u);
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
     r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
   });
@@ -136,8 +136,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) google.settings.length = 0;
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
-    const own = id === "fixture" ? fixture : rooted(JSON.parse(fs.readFileSync(path.join(repo, "studies", id, "study.json"), "utf8")));
-    if (study) await ctx.route(`**/studies/${id}/study.json`, (r) => r.fulfill({ json: { ...own, ...study } }));
+    if (study) studiesOf(ctx).edit(id, (m) => ({ ...m, ...study }));
     if (prepare) await prepare(ctx);
     // the welcome popup answered before, and remembered (req/shell/account/welcome); seeded once a tab, so a reload
     // keeps what the page itself wrote since
