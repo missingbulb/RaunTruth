@@ -40,125 +40,125 @@
    "truth": "PHOTO-2026-09-30-11-13-38__fe1f682b"
   }
  ],
- "scoring": "- **A book** is a box and its title. Truth is every book marked right; its box and its text are all that count.\n- **Compare two boxes** by area: `overlap` = area both cover.\n  - right = `overlap / union`, overshot = share of the found box off the book, missed = share of the book not covered\n- **Compare two titles** by letter pairs (letters and digits only, any word order): the same three shares.\n- **Pair** found books with true books, each used once:\n  1. titles that match (share 0.3 of their letter pairs or more), the best box-and-title first\n  2. then the rest by box alone, the largest `overlap / union` first, any overlap at all\n- **Each pair adds** to tp, fp, fn:\n  - the true book has a title: `0.5 × box + 0.5 × title` (no title read: the title half is all fn)\n  - the true book has no title: the box alone, whatever was read, so a perfect box is a perfect book\n- **A true book left unpaired** adds 1 to fn\n- **A found box left unpaired** adds to fp the share of it that covers no part of a true book its pair left uncovered\n  - the spare half of a split book costs little; a box on bare shelf, or a second box on a covered book, costs 1\n  - not counted at all when more than 0.5 of it lies on books marked undecided\n- precision = `tp / (tp + fp)`, recall = `tp / (tp + fn)`, summed over the photos\n",
+ "scoring": "- **A book** is a box and its text. Truth is every book marked right; its box and its fields are all that count.\n- **Compare two boxes** by area: `overlap` = area both cover.\n  - right = `overlap / union`, overshot = share of the found box off the book, missed = share of the book not covered\n- **Compare two texts** field by field (title, author, publisher, volume, library), by letter pairs (letters and digits\n  only, any word order): the same three shares, each field weighed by its letters\n  - text read in another field than the truth's keeps 0.9 of its credit\n  - a publisher, volume or library mark the truth lacks costs nothing; title and author, always shown to the tagger,\n    are known even when empty; a file with no fields has its text as its title, and its one box held every field\n- **Pair** found books with true books, each used once:\n  1. texts that match, all fields together (share 0.3 of their letter pairs or more), the best box-and-title first\n  2. then the rest by box alone, the largest `overlap / union` first, any overlap at all\n- **Each pair adds** to tp, fp, fn:\n  - the true book has text: `0.5 × box + 0.5 × text` (nothing read: the text half is all fn)\n  - the true book has no text: the box alone, whatever was read, so a perfect box is a perfect book\n- **A true book left unpaired** adds 1 to fn\n- **A found box left unpaired** adds to fp the share of it that covers no part of a true book its pair left uncovered\n  - the spare half of a split book costs little; a box on bare shelf, or a second box on a covered book, costs 1\n  - not counted at all when more than 0.5 of it lies on books marked undecided\n- precision = `tp / (tp + fp)`, recall = `tp / (tp + fn)`, summed over the photos\n",
  "versions": {
   "r9": {
-   "precision": 0.4993,
-   "recall": 0.5982,
-   "tp": 71.27716106135234,
-   "fp": 71.47913766403138,
-   "fn": 47.87601806491844,
+   "precision": 0.4977,
+   "recall": 0.5936,
+   "tp": 70.79734796182183,
+   "fp": 71.45824477003563,
+   "fn": 48.478726056551224,
    "note": "tuned on 5 of these photos",
    "truths": {
     "96e9cd713e3d119fa8f01e53f9d33adedac43563d5d2d2fa89e7073ec04b6df1": {
-     "tp": 11.673796402131554,
-     "fp": 4.851520096161629,
-     "fn": 5.862257842840843
+     "tp": 11.541359483321468,
+     "fp": 4.877108942500475,
+     "fn": 5.994564176745642
     },
     "74ac1af466bedcbfe6b85df2144335094605abbc26f6761e99a5a147be38e13e": {
-     "tp": 10.725374243930638,
-     "fp": 4.26129383500238,
-     "fn": 3.3806859731028664
+     "tp": 10.5280424874917,
+     "fp": 4.348368314219354,
+     "fn": 3.557314316685086
     },
     "1d9eafd1b4794dab3f94efca1bff79e4e958c90609b0587f5401430251d82850": {
-     "tp": 5.857034279232911,
-     "fp": 4.772949921601472,
-     "fn": 6.634125875485973
+     "tp": 5.828505781586767,
+     "fp": 4.770040196917554,
+     "fn": 6.666016901126999
     },
     "6f245ba41ed0de31e7d0392f7351d26985f06d88391e25dc5f94464b21e74849": {
-     "tp": 3.0420562891146603,
-     "fp": 6.146111026227481,
-     "fn": 4.64066889932673
+     "tp": 3.029244986432668,
+     "fp": 6.155399563776888,
+     "fn": 4.667335565993397
     },
     "0f6695ebe5fee78c4db769ae02b0e9aa16f7a60e2d291c5514725d07ca456782": {
-     "tp": 9.333426441485079,
-     "fp": 6.209817173222188,
-     "fn": 6.901100490603297
+     "tp": 9.262816014706761,
+     "fp": 6.179174471243337,
+     "fn": 7.035895658670524
     },
     "38e6e81d1edbdcff67892c15dea35e7b74032cb0769d049594a6984eab74eb1d": {
-     "tp": 30.645473405457498,
-     "fp": 45.23744561181624,
-     "fn": 20.457178983558734
+     "tp": 30.60737920828246,
+     "fp": 45.12815328137802,
+     "fn": 20.557599437329582
     }
    }
   },
   "r8": {
-   "precision": 0.5942,
-   "recall": 0.5343,
-   "tp": 64.38658310567462,
-   "fp": 43.97703193402405,
-   "fn": 56.11548518143876,
+   "precision": 0.5918,
+   "recall": 0.5294,
+   "tp": 63.840095821529374,
+   "fp": 44.03709233429048,
+   "fn": 56.75724079211916,
    "note": "tuned on 3 of these photos",
    "truths": {
     "96e9cd713e3d119fa8f01e53f9d33adedac43563d5d2d2fa89e7073ec04b6df1": {
-     "tp": 11.673796402131554,
-     "fp": 4.851520096161629,
-     "fn": 5.862257842840843
+     "tp": 11.541359483321468,
+     "fp": 4.877108942500475,
+     "fn": 5.994564176745642
     },
     "74ac1af466bedcbfe6b85df2144335094605abbc26f6761e99a5a147be38e13e": {
-     "tp": 10.725374243930638,
-     "fp": 2.325252649500683,
-     "fn": 3.3806859731028664
+     "tp": 10.5280424874917,
+     "fp": 2.4123271287176573,
+     "fn": 3.557314316685086
     },
     "1d9eafd1b4794dab3f94efca1bff79e4e958c90609b0587f5401430251d82850": {
-     "tp": 5.8503470852280985,
-     "fp": 4.073432760858918,
-     "fn": 6.64262564322353
+     "tp": 5.821818587581954,
+     "fp": 4.0705230361749996,
+     "fn": 6.674516668864555
     },
     "6f245ba41ed0de31e7d0392f7351d26985f06d88391e25dc5f94464b21e74849": {
-     "tp": 2.932367908064458,
-     "fp": 3.2330050748762638,
-     "fn": 4.832649653170355
+     "tp": 2.9098115170870145,
+     "fp": 3.24165892103011,
+     "fn": 4.862649653170355
     },
     "0f6695ebe5fee78c4db769ae02b0e9aa16f7a60e2d291c5514725d07ca456782": {
-     "tp": 8.131793253052546,
-     "fp": 4.371464787337136,
-     "fn": 8.118577795122448
+     "tp": 8.064456299124908,
+     "fp": 4.336329484935454,
+     "fn": 8.253372963189676
     },
     "38e6e81d1edbdcff67892c15dea35e7b74032cb0769d049594a6984eab74eb1d": {
-     "tp": 25.07290421326733,
-     "fp": 25.12235656528942,
-     "fn": 27.278688273978716
+     "tp": 24.97460744692233,
+     "fp": 25.099144820931784,
+     "fn": 27.414823013463852
     }
    }
   },
   "r5": {
-   "precision": 0.5376,
-   "recall": 0.3671,
-   "tp": 44.93121085738143,
-   "fp": 38.6520607781365,
-   "fn": 77.46878729235445,
+   "precision": 0.5343,
+   "recall": 0.3632,
+   "tp": 44.48810863040194,
+   "fp": 38.78109707532673,
+   "fn": 78.00442924685136,
    "note": "tuned by eye, before any ground truth",
    "truths": {
     "96e9cd713e3d119fa8f01e53f9d33adedac43563d5d2d2fa89e7073ec04b6df1": {
-     "tp": 5.091414323436201,
-     "fp": 8.059515705924603,
-     "fn": 13.595469069127997
+     "tp": 4.977163977809285,
+     "fp": 8.146241896400793,
+     "fn": 13.695871999530928
     },
     "74ac1af466bedcbfe6b85df2144335094605abbc26f6761e99a5a147be38e13e": {
-     "tp": 9.657053666375274,
-     "fp": 2.5837543558849747,
-     "fn": 4.127927303510639
+     "tp": 9.4666538223394,
+     "fp": 2.673871163144277,
+     "fn": 4.297888980426192
     },
     "1d9eafd1b4794dab3f94efca1bff79e4e958c90609b0587f5401430251d82850": {
-     "tp": 4.397421441414391,
-     "fp": 3.526963321860892,
-     "fn": 7.7017641874846525
+     "tp": 4.353750024865929,
+     "fp": 3.532608397163096,
+     "fn": 7.753655213125678
     },
     "6f245ba41ed0de31e7d0392f7351d26985f06d88391e25dc5f94464b21e74849": {
-     "tp": 2.932367908064458,
-     "fp": 3.2330050748762638,
-     "fn": 4.832649653170355
+     "tp": 2.9098115170870145,
+     "fp": 3.24165892103011,
+     "fn": 4.862649653170355
     },
     "0f6695ebe5fee78c4db769ae02b0e9aa16f7a60e2d291c5514725d07ca456782": {
-     "tp": 8.131793253052546,
-     "fp": 4.371464787337136,
-     "fn": 8.118577795122448
+     "tp": 8.064456299124908,
+     "fp": 4.336329484935454,
+     "fn": 8.253372963189676
     },
     "38e6e81d1edbdcff67892c15dea35e7b74032cb0769d049594a6984eab74eb1d": {
-     "tp": 14.72116026503856,
-     "fp": 16.87735753225264,
-     "fn": 39.09239928393835
+     "tp": 14.716272989175405,
+     "fp": 16.850387212652997,
+     "fn": 39.14099043740853
     }
    }
   }
