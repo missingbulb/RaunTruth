@@ -522,8 +522,11 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   }, { maybe: true });
 
   // with the page's animations off, it folds and unfolds at once
-  await page.evaluate(() => { document.documentElement.dataset.motion = "off"; });
-  const still = await page.evaluate(() => getComputedStyle(document.querySelector("#sb-res-items")).transitionDuration);
+  // set and read at once, so a settings sync the network's return starts cannot set it back between
+  const still = await page.evaluate(() => {
+    document.documentElement.dataset.motion = "off";
+    return getComputedStyle(document.querySelector("#sb-res-items")).transitionDuration;
+  });
   await check(still.split(",").every((d) => parseFloat(d) === 0), "with Animations off, folding and unfolding is not animated", still);
   await page.evaluate(() => { document.documentElement.dataset.motion = "on"; });
 

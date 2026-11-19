@@ -364,14 +364,15 @@ try {
   }, { pic: PIC, ids: LEGACY });
   const legacyKeys = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort());
   // the page says each thumbnail the cache would not take, and that what it keeps cannot be counted meanwhile
+  // the page left for one whose cache takes them before the case ends, so a count it was still making is said within it
   await expecting(/no room/, async () => {
     await page.reload();
     await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
+    const stayed = await legacyKeys();
+    check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
+    await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
+    await page.reload();
   });
-  const stayed = await legacyKeys();
-  check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
-  await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
-  await page.reload();
   await orMissed(until(page, async (ids) => {
     const c = await caches.open("nor-thumbs-v1");
     for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
