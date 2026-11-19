@@ -9,7 +9,7 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'algorithm'))
-from score import BOX, SCORING, TITLE, TITLE_MATCH, UNDECIDED, score
+from score import BOX, SCORING, SLIP, TITLE, TITLE_MATCH, UNDECIDED, part, score
 
 TITLES = ['פרנק הרברט / חולית', 'פרנק הרברט / משיח חולית', 'RIAN MALAN MY TRAITOR’S HEART', 'אלן דין פוסטר הנוסע השמיני', '',
           'ג׳ון לה קארה המתופפת הקטנה', 'Seth Godin Small Is the New Big', '', 'רוברט סילברברג | האיש במבוך', 'מעוף הדרקון']
@@ -336,3 +336,73 @@ def test_every_single_fix_of_a_bad_answer_raises_the_score():
 
 def test_the_outline_shows_the_scorers_own_numbers():
     assert f'{TITLE_MATCH:g}' in SCORING and f'{BOX:g} × box' in SCORING and f'{UNDECIDED:g}' in SCORING
+    assert f'{SLIP:g}' in SCORING
+
+
+# ---- the fields (req/shelves/read/fields): each field's text against the same field's, a slip costing little
+
+DUNE = dict(title='משיח חולית', author='פרנק הרברט', publisher='עם עובד')
+
+
+def fielded(fields):
+    """A ground-truth file of one book whose text is set field by field."""
+    t = shelf([' '.join(fields.values())])
+    t['books'][0]['fields'] = dict(fields)
+    return t
+
+
+def one(t, **fields):
+    return dict(books=[dict(corners=t['books'][0]['corners'], fields=fields)])
+
+
+def text_share(s):
+    return s['pairs'][0]['title']
+
+
+def test_every_field_right_is_perfect():
+    t = fielded(DUNE)
+    s = score(one(t, **DUNE), t)
+    assert (s['tp'], s['fp'], s['fn']) == pytest.approx((1, 0, 0))
+
+
+def test_the_right_text_in_the_wrong_field_keeps_most_of_its_credit():
+    t = fielded(DUNE)
+    swapped = score(one(t, title=DUNE['author'], author=DUNE['title'], publisher=DUNE['publisher']), t)
+    every = score(one(t, title=DUNE['publisher'], author=DUNE['title'], publisher=DUNE['author']), t)
+    assert text_share(every) == pytest.approx(part(SLIP, 1, 1)[0])     # SLIP of the letters shared, every one moved
+    assert part(SLIP, 1, 1)[0] < text_share(swapped) < 1
+    assert score(one(t), t)['tp'] < every['tp'] < swapped['tp'] < 1
+
+
+def test_text_all_in_the_title_as_the_old_reader_reads_it_is_measured_and_splitting_pays():
+    t = fielded(DUNE)
+    joined = score(dict(books=[dict(corners=t['books'][0]['corners'], title=' / '.join(DUNE.values()))]), t)
+    split = score(one(t, **DUNE), t)
+    assert 0.7 < text_share(joined) < text_share(split) == pytest.approx(1)     # its joins read as overshoot too
+
+
+def test_a_field_the_truth_lacks_costs_nothing():
+    t = fielded(dict(title=DUNE['title']))
+    s = score(one(t, title=DUNE['title'], author='qzx קקק', volume='IV'), t)
+    assert (s['tp'], s['fp'], s['fn']) == pytest.approx((1, 0, 0))
+
+
+def test_the_truths_text_read_in_a_field_the_truth_lacks_still_earns_the_slip():
+    t = fielded(dict(title=DUNE['title']))
+    s = score(one(t, publisher=DUNE['title']), t)
+    assert text_share(s) == pytest.approx(part(SLIP, 1, 1)[0])
+
+
+def test_fields_weigh_by_their_letters():
+    t = fielded(dict(title='המלחמה הגדולה של שנות השלושים', volume='ב'))
+    no_volume = score(one(t, title='המלחמה הגדולה של שנות השלושים'), t)
+    no_title = score(one(t, volume='ב'), t)
+    assert 0.9 < text_share(no_volume) < 1 and text_share(no_title) < 0.1
+
+
+def test_a_file_from_before_the_fields_reads_its_text_as_the_title():
+    t = shelf([DUNE['title']])
+    s = score(one(t, title=DUNE['title']), t)
+    assert (s['tp'], s['fp'], s['fn']) == pytest.approx((1, 0, 0))
+    moved_ = score(one(t, author=DUNE['title']), t)
+    assert text_share(moved_) == pytest.approx(part(SLIP, 1, 1)[0])

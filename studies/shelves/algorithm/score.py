@@ -2,9 +2,10 @@
 
     score(answer, truth) -> {tp, fp, fn, ...}      SCORING: the same, as the page shows it
 
-answer: {"books": [{"corners": four [x, y] in image pixels, "title": str or None}]}
-truth:  the ground-truth file as submitted: {"books": [{"verdict", "corners", "text"}]}. A book's verdict, corners
-        and text are all that is read of it.
+answer: {"books": [{"corners": four [x, y] in image pixels, "fields": {field: str}, "title": str or None}]}
+truth:  the ground-truth file as submitted: {"books": [{"verdict", "corners", "fields", "text"}]}. A book's verdict,
+        corners and fields are all that is read of it.
+A book without fields (an answer or a file from before them) has its title, or its text, as its title field.
 """
 import unicodedata
 from collections import Counter
@@ -19,6 +20,9 @@ BOX, TITLE = 0.5, 0.5
 # than 0.21, and half the pairs of a read title and its own book's share more than 0.38. It only orders the pairing;
 # credit is never cut at it.
 TITLE_MATCH = 0.3
+# The credit a field's text keeps when it is read in another field: a publisher read as the title is a light error,
+# the owner's choice of 2026-11-19
+SLIP = 0.9
 # An unpaired box is not counted at all when more than this share of it lies on books marked undecided: the majority
 # of the box, as panoptic quality drops a segment lying mostly on unlabelled ground.
 UNDECIDED = 0.5
@@ -74,6 +78,14 @@ def letters(title):
     return ''.join(ch for ch in unicodedata.normalize('NFKC', title or '').casefold() if ch.isalnum())
 
 
+def fields_of(book, key):
+    """A book's fields, each a non-empty str; a book without them has `key` (its title or its text) as its title."""
+    f = book.get('fields')
+    if f is None:
+        f = {'title': book.get(key)}
+    return {k: v for k, v in f.items() if v}
+
+
 def pairs_of(title):
     """The letter pairs of a title, its spaces closed up: what two titles share whatever order their words were read
     in, but for the pair at each join. A title of one letter is that letter."""
@@ -89,22 +101,39 @@ def part(shared, true, said):
     return shared / (true + said - shared), max(0.0, 1 - shared / said), max(0.0, 1 - shared / true)
 
 
+def text_part(truth, said):
+    """(tp, fp, fn) of a paired book's text, field by field: letter pairs read in the truth's own field count whole,
+    those read in another field SLIP. A field the truth lacks costs nothing; only its text the truth holds in another
+    field counts, as a slip."""
+    T = {k: pairs_of(v) for k, v in truth.items()}
+    A = {k: pairs_of(v) for k, v in said.items()}
+    right = {k: T[k] & A.get(k, Counter()) for k in T}
+    rest_t = sum((T[k] - right[k] for k in T), Counter())
+    held = sum((A[k] - right[k] for k in A if k in T), Counter())
+    moved = rest_t & held
+    loose = (rest_t - moved) & sum((A[k] for k in A if k not in T), Counter())
+    n = sum(sum(t.values()) for t in T.values())
+    m = sum(sum(A[k].values()) for k in A if k in T) + sum(loose.values())
+    return part(sum(sum(r.values()) for r in right.values()) + SLIP * (sum(moved.values()) + sum(loose.values())), n, m)
+
+
 def score(answer, truth):
     right = [b for b in truth['books'] if b.get('verdict') == 'right']
     undecided = [b['corners'] for b in truth['books'] if b.get('verdict') is None]
     found = answer['books']
     T, A = [b['corners'] for b in right], [b['corners'] for b in found]
     t_area, a_area = [area(c) for c in T], [area(c) for c in A]
-    t_name, a_name = [pairs_of(b.get('text')) for b in right], [pairs_of(b.get('title')) for b in found]
+    t_fields, a_fields = [fields_of(b, 'text') for b in right], [fields_of(b, 'title') for b in found]
+    # pairing reads every field's text together
+    t_name, a_name = [pairs_of(' '.join(f.values())) for f in t_fields], [pairs_of(' '.join(f.values())) for f in a_fields]
 
     def pair(i, j):
         """What book i of the truth and box j of the answer are worth as one book."""
         box = part(overlap(T[i], A[j]), t_area[i], a_area[j])
-        n, m = sum(t_name[i].values()), sum(a_name[j].values())
-        if not n:
-            # a true book with no title says nothing of the reading: its box is all it is scored on
+        if not t_name[i]:
+            # a true book with no text says nothing of the reading: its box is all it is scored on
             return dict(iou=box[0], title=None, tp=box[0], fp=box[1], fn=box[2])
-        name = part(sum((t_name[i] & a_name[j]).values()), n, m)
+        name = text_part(t_fields[i], a_fields[j])
         tp, fp, fn = (BOX * b + TITLE * t for b, t in zip(box, name))
         return dict(iou=box[0], title=name[0], tp=tp, fp=fp, fn=fn)
 
@@ -136,16 +165,19 @@ def score(answer, truth):
                 truth=len(T), found=len(A), pairs=pairs, missed=missed, invented=invented, ignored=ignored)
 
 
-SCORING = f"""- **A book** is a box and its title. Truth is every book marked right; its box and its text are all that count.
+SCORING = f"""- **A book** is a box and its text. Truth is every book marked right; its box and its fields are all that count.
 - **Compare two boxes** by area: `overlap` = area both cover.
   - right = `overlap / union`, overshot = share of the found box off the book, missed = share of the book not covered
-- **Compare two titles** by letter pairs (letters and digits only, any word order): the same three shares.
+- **Compare two texts** field by field (title, author, publisher, volume, library), by letter pairs (letters and digits
+  only, any word order): the same three shares, each field weighed by its letters
+  - text read in another field than the truth's keeps {SLIP:g} of its credit
+  - a field the truth lacks costs nothing; a file with no fields has its text as its title
 - **Pair** found books with true books, each used once:
-  1. titles that match (share {TITLE_MATCH:g} of their letter pairs or more), the best box-and-title first
+  1. texts that match, all fields together (share {TITLE_MATCH:g} of their letter pairs or more), the best box-and-title first
   2. then the rest by box alone, the largest `overlap / union` first, any overlap at all
 - **Each pair adds** to tp, fp, fn:
-  - the true book has a title: `{BOX:g} × box + {TITLE:g} × title` (no title read: the title half is all fn)
-  - the true book has no title: the box alone, whatever was read, so a perfect box is a perfect book
+  - the true book has text: `{BOX:g} × box + {TITLE:g} × text` (nothing read: the text half is all fn)
+  - the true book has no text: the box alone, whatever was read, so a perfect box is a perfect book
 - **A true book left unpaired** adds 1 to fn
 - **A found box left unpaired** adds to fp the share of it that covers no part of a true book its pair left uncovered
   - the spare half of a split book costs little; a box on bare shelf, or a second box on a covered book, costs 1
