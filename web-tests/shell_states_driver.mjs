@@ -11,7 +11,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
-import { idle, seen } from "./page_until.mjs";
+import { idle, orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -30,7 +30,7 @@ const settled = async (page) => {
     && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
   // and the disk's count, which the page makes once it is ready and the Storage item waits for; one that never comes
   // is reported as the item not showing
-  await seen(page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }));
+  await orMissed(page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }));
   // and the frame after them drawn
   await frames(page);
 };

@@ -22,7 +22,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
-import { seen as seenWait } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -100,7 +100,7 @@ const until = async (fn, ms = 5000) => {
   }
 };
 // a page showing something, within ms
-const shows = (page, fn, arg, ms = 5000) => seenWait(page.waitForFunction(fn, arg, { timeout: ms }));
+const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that
 // wants it: there once that action returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);

@@ -5,7 +5,7 @@
 // Checks req/shell/data/drive-access and req/shell/account/consent-guide. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_approve_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { ROOT, SUB, GT, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -49,5 +49,5 @@ await check(shown === [ROOT, SUB, GT.curated, GT.submissions].join(","), "then G
 const aside = await page.evaluate(() => ({ open: $("#guide-dlg").open, modal: $("#guide-dlg").matches(":modal"), left: $("#guide-dlg").getBoundingClientRect().left }));
 await check(aside.open && !aside.modal && aside.left < 40, "over the picker, the guide stays, aside at the page's left edge and not over it", aside);
 await page.evaluate(() => window.pick());
-await check(await seen(page.waitForFunction(() => !$("#guide-dlg").open, null, { timeout: 5000 })), "the picker answering closes the guide");
+await check(await orMissed(page.waitForFunction(() => !$("#guide-dlg").open, null, { timeout: 5000 })), "the picker answering closes the guide");
 await done(0);

@@ -23,9 +23,9 @@ def test_a_wait_whose_miss_is_swallowed_is_found(tmp_path):
     }) == ['studies/x/tests/b_driver.mjs:1', 'studies/x/tests/b_driver.mjs:4', 'studies/x/tests/b_driver.mjs:6', 'studies/x/tests/b_driver.mjs:8'] + [f'web-tests/a_driver.mjs:{n}' for n in range(1, 6)]
 
 
-def test_a_wait_through_seen_one_that_fails_loudly_a_comment_and_page_code_are_not(tmp_path):
+def test_a_wait_through_or_missed_one_that_fails_loudly_a_comment_and_page_code_are_not(tmp_path):
     assert findings(tmp_path, {
-        'web-tests/a_driver.mjs': ('await seen(page.waitForFunction(() => x, null, { timeout: 5000 }));\n'
+        'web-tests/a_driver.mjs': ('await orMissed(page.waitForFunction(() => x, null, { timeout: 5000 }));\n'
                                    'await page.waitForFunction(() => x).catch((e) => fail(e));\n'
                                    'await fetch(u).catch(() => {});\n'
                                    '// page.waitForFunction(() => x).catch(() => {}) swallows the miss\n'),

@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
@@ -37,7 +37,7 @@ await page.context().close();
 page = await open(true, { study: { files: { from: ["drive"], accept: ".png,.tif,.tiff,.jpg", empty: "Load an image." } } });
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column at a width and its slide over; the check after it says what it found when it never gets there
-const slid = (wide) => seen(page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
+const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
   && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
@@ -129,7 +129,7 @@ await check(got.name === "a flat.preview.tif", "the preview opens as a TIFF, the
 fs.writeFileSync(out + ".preview.tif", Buffer.from(got.bytes));
 await page.click("#load-original");
 // the name is set as the open starts, the image's source once it is done
-await seen(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
+await orMissed(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
 await check(await page.evaluate(() => st.fileName === "a flat.tif" && shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden), "Load Original opens the image itself");
 
 // offline (req/shell/offline/default): no bar asking for folders, and nothing written to Drive
@@ -153,7 +153,7 @@ await page.waitForFunction(() => !document.documentElement.classList.contains("o
 
 await role(page, "Viewer");
 const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
-await seen(page.waitForFunction(leftMode, null, { timeout: 5000 }));
+await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
   "another role leaves the mode: the column gone, Load back");
 // offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode)
@@ -193,9 +193,9 @@ const kept = FILES.find((f) => f.name === OURS);
 kept.bytes = damage(Buffer.from(kept.bytes));
 await role(page, "Study Manager");
 await page.click("#data-tree .tree-folder .name");
-await seen(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
+await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
 await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");
 await page.click(cell("a flat.tif"));
-await seen(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }));
+await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }));
 await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
 await done(0);

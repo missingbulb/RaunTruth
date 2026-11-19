@@ -19,7 +19,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { motion, record, begun, moved } from "./page_motions.mjs";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -80,10 +80,10 @@ const visible = async (sel) => !!(await box(sel));
 const pixel = (x, y) => page.evaluate(([x, y]) => [...document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data].slice(0, 3), [x, y]);
 const opacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector("#minimap")).opacity));
 // until the page shows what the next check reads, or a few seconds pass and the check says what it shows instead
-const opacityNear = (want) => seen(page.waitForFunction((w) => Math.abs(Number(getComputedStyle(document.querySelector("#minimap")).opacity) - w) < 1e-6, want, { timeout: 3000 }));
-const pixelIs = (x, y, rgb) => seen(page.waitForFunction(([x, y, rgb]) => [...document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: 3000 }));
+const opacityNear = (want) => orMissed(page.waitForFunction((w) => Math.abs(Number(getComputedStyle(document.querySelector("#minimap")).opacity) - w) < 1e-6, want, { timeout: 3000 }));
+const pixelIs = (x, y, rgb) => orMissed(page.waitForFunction(([x, y, rgb]) => [...document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: 3000 }));
 // its red within 1 of a value, for a change made in more than one step, each of which the page may draw on its own
-const redNear = (x, y, v) => seen(page.waitForFunction(([x, y, v]) => Math.abs(document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: 3000 }));
+const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.abs(document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: 3000 }));
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----

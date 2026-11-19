@@ -6,7 +6,7 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/background_tab_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { open, check, done, origin } = await standIn({ answers, studies, rootDir });
@@ -52,9 +52,9 @@ await page.clock.runFor(11 * 60000);
 await check(await asks() === before, "a hidden tab asks nothing for 11 minutes", (await asks()) - before);
 await check(published === fetched, "a hidden tab fetches no published page for 11 minutes", published - fetched);
 
-const back = seen(page.waitForResponse((r) => r.url() === origin + "/web/fixture" && r.request().resourceType() === "fetch"));
+const back = orMissed(page.waitForResponse((r) => r.url() === origin + "/web/fixture" && r.request().resourceType() === "fetch"));
 await show(true);
-await seen(page.waitForFunction((n) => window.siteAsks > n, before));
+await orMissed(page.waitForFunction((n) => window.siteAsks > n, before));
 await check(await asks() === before + 1, "shown again, it asks once at once", (await asks()) - before);
 await back;
 await check(published === fetched + 1, "shown again after 5 minutes, it fetches the published page once", published - fetched);

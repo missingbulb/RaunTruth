@@ -14,7 +14,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -73,7 +73,7 @@ const opensOn = async (address) => {
   await pressDrive(page);
   await page.waitForFunction(() => $("#remote-dlg").open);
   // the dialog has opened on something: a folder it lists, or the link in its field
-  await Promise.race([listing, seen(page.waitForFunction(() => window.$ && $("#remote-link")?.checkVisibility() && $("#remote-link").value))]);
+  await Promise.race([listing, orMissed(page.waitForFunction(() => window.$ && $("#remote-link")?.checkVisibility() && $("#remote-link").value))]);
   const link = (await page.isVisible("#remote-link")) ? await page.inputValue("#remote-link") : listed.length ? folder(listed[listed.length - 1]) : "";
   await page.click("#remote-dlg button[value=close]");
   return link;

@@ -15,7 +15,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { seen } from "./page_until.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -162,7 +162,7 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   const { ctx, page } = await open("0.10928.2");
   await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
   await page.click("#sb-version");
-  const msg = await seen(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
+  const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
   await check(msg, "the popup says the history could not be loaded");
   await ctx.close();
 }

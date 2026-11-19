@@ -59,7 +59,7 @@
     "id": "swallowed-wait",
     "on_fail": "block",
     "failureMessage": "a wait whose miss is swallowed carries on as though its condition came: a sleep in disguise, and the check after it fails far from the cause or passes on a page still working",
-    "fix": "wrap the wait in seen() from web-tests/page_until.mjs, which says what was not seen and resolves to null, or let the wait fail the test",
+    "fix": "wrap the wait in orMissed() from web-tests/page_until.mjs, which says what was not seen and resolves to null, or let the wait fail the test",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.m?js$/",
     "matchLines": [
       {
