@@ -4,6 +4,7 @@
 // (req/checks/clean-console).
 //   const browser = await launch(pw);                 in place of pw[ENGINE].launch(LAUNCH)
 //   const ctx = await keptContext(pw, options);       a context that keeps what the page stores across a reload
+//   const { drive, signIn } = googleOf(browser);      the browser's Google, to set up before a context opens
 //   await expecting(/could not be read/, async () => { ...the case that makes the page say so... });
 import fs from "node:fs";
 import os from "node:os";
@@ -11,6 +12,8 @@ import path from "node:path";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { FAKES } from "./fakes/index.mjs";
 import { COPY } from "./page_pixels.mjs";
+import { driveIn } from "./fakes/google_drive.mjs";
+import { signInIn } from "./fakes/google_sign_in.mjs";
 
 const unexpected = [];
 // the patterns declared by the cases running now, each with how many messages it matched
@@ -24,6 +27,8 @@ function said(kind, text, where) {
   const line = `${kind}: ${text}${where ? ` (${where})` : ""}`;
   for (const d of declared) if (d.pattern.test(line)) { d.seen++; return; }
   unexpected.push(line);
+  // as it comes, among the test's own lines, so the case it came in is plain
+  console.log("not expected: " + line);
 }
 
 // a test's setup in the page, run on the site's own pages and never on the blank one each new page starts on, whose
@@ -36,12 +41,13 @@ function onSitePages(target) {
 
 // the outside systems' fakes, after a catch-all that turns away every other request leaving this machine: a route
 // set later is asked first, so a test's own routes come before the fakes, and the fakes before the catch-all
-async function install(ctx) {
+// world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
+async function install(ctx, world) {
   onSitePages(ctx);
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); return page; };
   await ctx.route((u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href), (r) => r.abort());
-  for (const fake of FAKES) await fake(ctx);
+  for (const fake of FAKES) await fake(ctx, world);
   await ctx.addInitScript(COPY);
   ctx.on("console", (m) => {
     if (m.type() !== "warning" && m.type() !== "error") return;
@@ -53,9 +59,10 @@ async function install(ctx) {
 }
 
 export async function launch(pw, options = {}) {
-  const browser = await pw[ENGINE].launch({ ...LAUNCH, ...options });
+  const browser = await pw[ENGINE].launch({ ...LAUNCH, ...options }), world = {};
+  worlds.set(browser, world);
   const newContext = browser.newContext.bind(browser);
-  browser.newContext = async (o) => install(await newContext(o));
+  browser.newContext = async (o) => install(await newContext(o), world);
   // a page of its own context, which closes with it, as Playwright's own newPage
   browser.newPage = async (o) => {
     const ctx = await browser.newContext(o), page = await ctx.newPage();
@@ -65,10 +72,15 @@ export async function launch(pw, options = {}) {
   return browser;
 }
 
+// a browser's Google, before any of its contexts opens: {drive, signIn}, the fakes' own (fakes/google_drive.mjs,
+// fakes/google_sign_in.mjs)
+const worlds = new WeakMap();
+export const googleOf = (browser) => ({ drive: driveIn(worlds.get(browser)), signIn: signInIn(worlds.get(browser)) });
+
 // Playwright's WebKit empties the cache storage of a throwaway context on every reload, where Safari keeps it, so a
 // test of what the page keeps on this device needs a profile of its own
 export const keptContext = async (pw, options) =>
-  install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...LAUNCH, ...options }));
+  install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...LAUNCH, ...options }), {});
 
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
 // none matching it fails the case. A loose pattern, a word or two, so a rewording leaves the test as it is.

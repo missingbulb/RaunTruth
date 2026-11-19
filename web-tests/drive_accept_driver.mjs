@@ -11,9 +11,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE } from "./engine.mjs";
+
 import { pressDrive } from "./drive_open.mjs";
+import { launch } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -36,7 +36,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch();
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const cors = { "access-control-allow-origin": "*" };
@@ -52,7 +52,6 @@ async function listed(id, paste) {
       ...NAMES.map((n, k) => ({ id: "acmefile" + k, name: n, mimeType: "application/octet-stream", size: "100" }))];
     return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
   });
-  await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
   // the study's own folder becomes the stand-in's, and the study is shown to anyone
   await ctx.route(`**/studies/${id}/study.json`, async (r) => {
     const m = JSON.parse(fs.readFileSync(path.join(repo, "studies", id, "study.json"), "utf8"));

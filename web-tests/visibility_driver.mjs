@@ -7,10 +7,12 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { open, check, done } = await standIn({ answers, studies, rootDir });
+const { approved, open, check, done } = await standIn({ answers, studies, rootDir });
 const OWNER = "owner@example.com", OTHER = "someone@example.com";
 const repo = path.join(import.meta.dirname, "..");
 const fixture = { ...JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", "study.json"), "utf8")), visibility: { accounts: [OWNER] } };
+// the site approved for the study's folder: what the account may do there is not this test's question
+approved.add(fixture.root.match(/folders\/([\w-]+)/)[1]);
 const listing = [...JSON.parse(fs.readFileSync(studies, "utf8")), { id: "fixture", title: "Fixture", accounts: [OWNER] }];
 const prepare = (ctx) => Promise.all([
   ctx.route("**/studies/fixture/study.json", (r) => r.fulfill({ json: fixture })),

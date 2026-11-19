@@ -1,5 +1,5 @@
-// Google's sign-in, as the page tests' fake of it: the sign-in script's token client, the account's details, and the
-// settings file the page keeps in the user's Drive app folder. It owns the tokens: one it issued or a test registered
+// Google's sign-in, as the page tests' fake of it, one for a browser's every context: the sign-in script's token
+// client, the account's details, and the settings file the page keeps in the user's Drive app folder. It owns the tokens: one it issued or a test registered
 // is live until it runs out or is revoked, and the Drive fake asks it whose a token is.
 //   const google = signIn(ctx);
 //   google.answer = "grant" | "deny" | "blocked" | "closed";   what Google's window says next; google.delay = ms first
@@ -54,28 +54,37 @@ const SCRIPT = `(() => {
   } } };
 })();`;
 
-export async function fakeGoogleSignIn(ctx) {
+function makeSignIn() {
   let n = 0;
   const google = {
     account: { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: null },
     answer: "grant", delay: 0, nextToken: null,
     asked: [], scriptLoads: 0, calls: [],
-    // the app folder's files: {id, name, body}
+    // the app folders' files, each user's own: {id, owner, name, body}
     settings: [],
     tokens: new Map(),
-    signedIn({ email = google.account.email, name = google.account.name, scopes = SCOPES, token = `fake-token-${++n}`, until = Date.now() + 3600e3 } = {}) {
+    issue: () => `fake-token-${++n}`,
+    signedIn({ email = google.account.email, name = google.account.name, scopes = SCOPES, token = google.issue(), until = Date.now() + 3600e3 } = {}) {
       google.tokens.set(token, { email, scopes, until });
       return { user: { name, email, picture: null }, token, until, scopes };
     },
     revokeAll() { for (const t of google.tokens.values()) t.revoked = true; },
   };
+  return google;
+}
+
+// a browser's sign-in, made on first need
+export const signInIn = (world) => (world.signIn ||= makeSignIn());
+
+export async function fakeGoogleSignIn(ctx, world) {
+  const google = signInIn(world);
   fakes.set(ctx, google);
   await ctx.exposeBinding("__fakeSignIn", async (_, ask) => {
     google.asked.push(ask);
     if (google.delay) await new Promise((ok) => setTimeout(ok, google.delay)); // waits on purpose: Google's window taking its time, as a test sets
     const errors = { deny: { error: "access_denied" }, blocked: { error_type: "popup_failed_to_open" }, closed: { error_type: "popup_closed" } };
     if (errors[google.answer]) return errors[google.answer];
-    const token = google.nextToken || `fake-token-${++n}`;
+    const token = google.nextToken || google.issue();
     google.tokens.set(token, { email: google.account.email, scopes: ask.scope, until: Date.now() + 3599e3 });
     return { access_token: token, expires_in: 3599, scope: ask.scope };
   });
@@ -90,20 +99,21 @@ export async function fakeGoogleSignIn(ctx) {
   await ctx.route((u) => /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/.test(u.href), (route) => {
     const req = route.request(), u = new URL(req.url()), method = req.method();
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)$/)?.[1] || "");
-    const file = google.settings.find((f) => f.id === id);
+    const who = holder(ctx, bearer(req));
+    const file = google.settings.find((f) => f.id === id && (!who || f.owner === who.email));
     const app = u.searchParams.get("spaces") === APP || file
       || (method === "POST" && u.pathname.startsWith("/upload/") && multipart(req).metadata.parents?.includes(APP));
     if (!app) return route.fallback();
     if (method === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     google.calls.push(`${method} ${u.pathname}`);
-    if (!holder(ctx, bearer(req))) return json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
+    if (!who) return json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
     if (!id && method === "GET") {
       const name = (u.searchParams.get("q") || "").match(/name\s*=\s*'([^']+)'/)?.[1];
-      return json(route, 200, { files: google.settings.filter((f) => !name || f.name === name).map((f) => ({ id: f.id, name: f.name })) });
+      return json(route, 200, { files: google.settings.filter((f) => f.owner === who.email && (!name || f.name === name)).map((f) => ({ id: f.id, name: f.name })) });
     }
     if (method === "POST") {
       const { metadata, bytes } = multipart(req);
-      const f = { id: `appdatafile${String(google.settings.length + 1).padStart(8, "0")}`, name: metadata.name, body: bytes.toString("utf8") };
+      const f = { id: `appdatafile${String(google.settings.length + 1).padStart(8, "0")}`, owner: who.email, name: metadata.name, body: bytes.toString("utf8") };
       google.settings.push(f);
       return json(route, 200, { id: f.id });
     }

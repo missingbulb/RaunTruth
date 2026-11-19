@@ -22,13 +22,12 @@ import { execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
-import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
+import { launch, keptContext } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -97,8 +96,7 @@ let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // a profile of its own: a browser's private window can install nothing
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "offline-"));
-const ctx = await pw[ENGINE].launchPersistentContext(profile, { ...LAUNCH, viewport: { width: 1400, height: 900 } });
+const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
 // the page's clock, which runs as the real one does, so the test can move it past a wait on the page's own timers
 await ctx.clock.install();
 // the page asks whether the site answers every 30 s while the browser says it is online, every 5 s while offline
@@ -137,7 +135,7 @@ try {
   // a first visit, no copy of the site kept yet, the network dropping as the study's own Python modules are fetched:
   // the status says what the network's going stops, never Python's traceback
   {
-    const fresh = await pw[ENGINE].launch(LAUNCH), first = await fresh.newPage();
+    const fresh = await launch(pw), first = await fresh.newPage();
     pyDown = true;
     await first.goto(origin + "/app/fixture");
     await count(first);
@@ -361,6 +359,5 @@ try {
   console.error("status: " + (await statusText().catch(() => "(no page)")));
 } finally {
   await ctx.close(); server.close();
-  fs.rmSync(profile, { recursive: true, force: true });
 }
 process.exit(failed ? 1 : 0);

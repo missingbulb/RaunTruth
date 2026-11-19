@@ -11,12 +11,12 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { until } from "./page_until.mjs";
+import { launch } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -74,7 +74,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -93,7 +93,6 @@ await ctx.route("https://www.googleapis.com/**", async (route) => {
   const m = range.match(/^bytes=(\d+)-(\d+)$/), body = m ? FILES[k].bytes.subarray(+m[1], +m[2] + 1) : FILES[k].bytes;
   try { await route.fulfill({ status: m ? 206 : 200, headers: cors, contentType: "image/tiff", body }); } finally { inflight--; }
 });
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;

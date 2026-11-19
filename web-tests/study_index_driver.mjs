@@ -5,12 +5,13 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { standIn } from "./stand_in_drive.mjs";
+import { expecting } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
-const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+const { ROOT, FILES, hidden, approved, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
   uploaded: (f) => {
     if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
     if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
@@ -24,6 +25,8 @@ settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toStr
 FILES.push({ id: "dmelsewhere000000001", name: "Elsewhere", parent: "someone", folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" },
   { id: "dmelsewherefile00001", name: "delta.png", parent: "dmelsewhere000000001", folder: false, bytes: FILES.find((f) => f.name === "acme.png").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 hidden.add("dmelsewhere000000001");
+// the site approved for every folder here: what it may do in each is not this test's question
+for (const f of FILES) if (f.folder) approved.add(f.id);
 // a screenshot once nothing on the page is still moving
 const shoot = async (sel, name) => {
   if (!shots) return;
@@ -54,10 +57,13 @@ await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data")
   "Add to study writes the folder into the study file, every other key kept", studyFile());
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
-await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
-await page.click("#data-add");
-await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);
-await settled(page);
+// the page asks whether the site's key reads the folder, shared with the study manager alone: Drive knows it not
+await expecting(/status of 404/, async () => {
+  await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
+  await page.click("#data-add");
+  await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);
+  await settled(page);
+});
 await check(studyFile().folders.includes("dmelsewhere000000001"), "a pasted folder link adds that folder", studyFile());
 await shoot("#data-col", "data-management.png");
 await check(/Anyone with the link/.test(await page.textContent("#data-msg")), "and the page says a viewer cannot read it, not being shared as Anyone with the link", await page.textContent("#data-msg"));

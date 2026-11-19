@@ -19,13 +19,13 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -102,7 +102,7 @@ const server = http.createServer((q, r) => {
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
@@ -116,7 +116,6 @@ async function open(role, seed = {}, finder = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   await keepStudyKeyListeners(ctx);
   await asTagger(ctx);
-  await ctx.route(offSite(origin), (r) => r.abort());
   await prepare(ctx, finder);
   await ctx.addInitScript(([role, seed]) => {
     delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
@@ -376,7 +375,7 @@ try {
   check(await page.evaluate(() => !document.querySelector(".bs-item [data-view], .bs-item [data-lang], .bs-item [data-do='turn']")),
     "the task asks no spine or cover, no language and no quarter turn: Flip alone");
   // the stand-in worker's crops are flat grey: a picture with the photo's noise in it is drawn by the page itself
-  check(await page.$eval(".bs-item canvas", (c) => { const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
+  check(await page.$eval(".bs-item canvas", (c) => { const d = testCopy(c).getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
     "the book's picture is drawn by the page from the photo it shows, not by Python");
   // flipped upside down: drawn so, and read again at that turn alone, in both languages
   const reads = await page.evaluate(() => tess.reads);

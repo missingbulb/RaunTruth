@@ -19,9 +19,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { cutShort } from "./page_errors.mjs";
+import { launch } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -85,7 +85,7 @@ async function google(route) {
   return json(404, { error: "not a call this test knows" });
 }
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 // what the stand-in Google holds changes only as a request reaches it: a wait on it looks again at each one
@@ -113,7 +113,6 @@ async function device(seed) {
   ctx.on("request", (q) => { if (!q.url().startsWith(origin)) outside.push(new URL(q.url()).origin + new URL(q.url()).pathname); });
   await ctx.route(GSI, (route) => { scriptLoads++; route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
   await ctx.route(/^https:\/\/(www|openidconnect)\.googleapis\.com\//, google);
-  await ctx.route((u) => offSite(origin)(u) && u.href !== GSI && !/^https:\/\/(www|openidconnect)\.googleapis\.com\//.test(u.href), (r) => r.abort());
   await ctx.addInitScript((seed) => {
     delete Navigator.prototype.serviceWorker;
     if (sessionStorage.getItem("primed")) return;

@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -55,11 +55,10 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 // Chromium running its bytecode alone, and keeping it: its compilers, and its flushing of bytecode left idle, add and
 // drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps
-const browser = await pw[ENGINE].launch(ENGINE === "chromium" ? { ...LAUNCH, args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : LAUNCH);
+const browser = await launch(pw, ENGINE === "chromium" ? { args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : {});
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
 const ctx = await browser.newContext();
-// nothing leaves this machine, and the cache of third-party files, which the stand-in never needs, is off
-await ctx.route(offSite(origin), (r) => r.abort());
+// the cache of third-party files, which the stand-in never needs, is off
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();

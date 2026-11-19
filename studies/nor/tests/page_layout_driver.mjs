@@ -12,11 +12,11 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -57,7 +57,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 // every drawn canvas and image: how far its shown width / height strays from its pixels' own
 const measure = (page) => page.evaluate(() => [...document.querySelectorAll("canvas, img")].filter((c) => c.offsetWidth && c.offsetHeight).map((c) => {
@@ -73,7 +73,6 @@ for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
   await asTagger(ctx);
   await withItemView(ctx); // the switch to the shelved item view
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-bars-v1", JSON.stringify({ left: 200, right: 200 })); });
   await standInDrive(ctx);
   const page = await ctx.newPage();
@@ -141,7 +140,6 @@ for (const width of [1000, 1600]) {
 stage = "GT";
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-bars-v1", JSON.stringify({ left: 200, right: 200 })); });
   await standInDrive(ctx);

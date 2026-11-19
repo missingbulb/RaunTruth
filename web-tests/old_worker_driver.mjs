@@ -7,10 +7,9 @@ import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
-import { ENGINE, LAUNCH } from "./engine.mjs";
 import { until } from "./page_until.mjs";
+import { keptContext } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -40,7 +39,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "old-worker-")), LAUNCH);
+const ctx = await keptContext(pw);
 const page = ctx.pages()[0] || await ctx.newPage();
 const scopes = () => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => new URL(r.scope).pathname));
 try {

@@ -20,11 +20,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { keptContext } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -109,7 +108,6 @@ await ctx.route("https://www.googleapis.com/**", (route) => {
   downloads[id]++;
   return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: PNG });
 });
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
 await ctx.route(CORE.at(-1), (r) => r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/json", body: JSON.stringify(LOCK) }));
 await ctx.addInitScript((seed) => {
   delete Navigator.prototype.serviceWorker;

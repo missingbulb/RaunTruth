@@ -13,12 +13,12 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { writeTiff } from "../../../web/tiff_file.js";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -59,12 +59,11 @@ const model = {
 };
 const site = await serve(repo, studies, model, "GT");
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
@@ -76,7 +75,7 @@ const doc = () => page.evaluate(() => window.vascular.model().model);
 const frames = () => framesOf(page);
 // the model canvas's pixel at a place on it, [r, g, b]
 const pixel = (x, y) => page.evaluate(([x, y]) => { const c = document.querySelector("#mcv"), k = c.width / c.clientWidth;
-  return [...c.getContext("2d").getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
+  return [...testCopy(c).getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
 const MAGENTA = ([r, g, b]) => r > 180 && b > 150 && g < 140, AMBER = ([r, g, b]) => r > 180 && g > 110 && b < 90;
 const near = (rgb, want) => rgb && want(rgb);
 // a vessel of the look by its line's y in µm

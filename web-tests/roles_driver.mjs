@@ -5,12 +5,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
+import { expecting } from "./harness.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { motion } from "./page_motions.mjs";
 
 const [answers, studies, rootDir, image, shots] = process.argv.slice(2);
 const shot = (page, name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
-const { ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
+const { google, ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
 const OTHER = "someone@example.com";
 
 // what the page shows: the role named, the roles listed, the line under them, and each role's tools (the ground-truth
@@ -107,8 +108,11 @@ page = await open(true);
 s = await seen(page);
 await page.click("#role-menu summary"); await shot(page, "menu"); await page.click("#role-menu summary");
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.data, "a study manager is offered Study Manager, and sees no Data Management until choosing it", s);
-await choose(page, "Study Manager");
-await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
+// the tree asks Drive what the site may do in each folder: of one it was never approved for, Drive knows nothing
+await expecting(/status of 404/, async () => {
+  await choose(page, "Study Manager");
+  await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
+});
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column, folded or open, once its motion has ended at the width asked for
 const widthReaches = (open) => page.waitForFunction((open) => {
@@ -131,35 +135,32 @@ await page.context().close();
 
 // Google's token lasts an hour, and only a click may ask for another: the page opening after it ran out shows the
 // roles Drive last gave this user, and opening the menu renews the token and asks Drive again
-const GSI = `window.google = { ...window.google, accounts: { oauth2: { initTokenClient(o) {
-  window.asked = [];
-  return { requestAccessToken(opts = {}) { window.asked.push(opts); queueMicrotask(() => o.callback({ access_token: "tok-" + Date.now(), expires_in: 3599, scope: o.scope })); } };
-} } } };`;
-const stubGoogle = (ctx) => ctx.route("https://accounts.google.com/gsi/client", (r) => r.fulfill({ contentType: "text/javascript", body: GSI }));
-const asked = (page) => page.evaluate(() => (window.asked || []).length);
-page = await open(true, { prepare: stubGoogle });
+// what Google's window was asked for since the page opened
+let askedBefore = 0;
+const asked = () => google.asked.length - askedBefore;
+const opened = async (...a) => { const p = await open(...a); askedBefore = google.asked.length; return p; };
+page = await opened(true);
 const record = await page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")));
 await page.context().close();
 const ranOut = (r) => ({ "nor-google-sign-in": JSON.stringify({ ...r, until: Date.now() - 1000 }) });
-page = await open(true, { seed: ranOut(record), prepare: stubGoogle });
+page = await opened(true, { seed: ranOut(record), keepSettings: true });
 s = await seen(page);
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager", "the token run out, the menu still lists the roles Drive last gave", s);
-await check(await asked(page) === 0, "and nothing asks Google for a token before a click", await asked(page));
+await check(asked() === 0, "and nothing asks Google for a token before a click", asked());
 await page.click("#role-menu summary");
-await page.waitForFunction(() => (window.asked || []).length === 1);
 await page.waitForFunction(() => $("#role-hint").hidden);
 s = await seen(page);
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.hint, "opening the menu renews the token and Drive confirms the roles", s);
 await page.context().close();
 // never told before on this device: Viewer, until opening the menu renews the token and Drive answers
 const { learned, ...fresh } = record;
-page = await open(true, { seed: ranOut(fresh), prepare: stubGoogle });
+page = await opened(true, { seed: ranOut(fresh), keepSettings: true });
 s = await seen(page);
 await check(s.list.join() === "Viewer" && !!s.hint, "with nothing remembered, Viewer alone, and a line saying why", s);
 await page.click("#role-menu summary");
 await page.waitForFunction(() => document.querySelectorAll("#role-list .item").length === 3);
 s = await seen(page);
-await check(!s.hint && await asked(page) === 1, "and opening the menu brings the roles Drive gives", { ...s, asked: await asked(page) });
+await check(!s.hint && asked() === 1, "and opening the menu brings the roles Drive gives", { ...s, asked: asked() });
 await page.context().close();
 
 // a site with no Google client signs no one in, so no one there may tag ground truth

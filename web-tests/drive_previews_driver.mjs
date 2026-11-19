@@ -14,11 +14,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { keptContext } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -66,7 +65,6 @@ await ctx.route("https://www.googleapis.com/**", async (route) => {
       : { status: 200, headers: cors, contentType: "image/tiff", body: f.bytes });
   } finally { inflight--; }
 });
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
 // Drive's own small pictures, by file name: the image the study opens beside TIFFs and PNGs is a JPEG here
 const driveThumbs = [];
 await ctx.route(DRIVE_THUMB + "*", (route) => {

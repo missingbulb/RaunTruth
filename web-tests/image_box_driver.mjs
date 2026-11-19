@@ -14,11 +14,11 @@ import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { helpTip } from "./help_tip.mjs";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { motion, record, begun, moved } from "./page_motions.mjs";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
+import { launch } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -49,7 +49,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
@@ -58,7 +58,6 @@ const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } })
 await localStudy(ctx, "fixture");
 
 await asTagger(ctx);
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await record(ctx);
 const page = await ctx.newPage();
@@ -76,13 +75,13 @@ const loadImage = async (file = image) => {
 const box = (sel) => page.evaluate((s) => { const e = document.querySelector(s); if (!e || !e.offsetParent) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, sel);
 const visible = async (sel) => !!(await box(sel));
 // the base canvas's pixel, red green blue
-const pixel = (x, y) => page.evaluate(([x, y]) => [...document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data].slice(0, 3), [x, y]);
+const pixel = (x, y) => page.evaluate(([x, y]) => [...testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data].slice(0, 3), [x, y]);
 const opacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector("#minimap")).opacity));
 // until the page shows what the next check reads, or a few seconds pass and the check says what it shows instead
 const opacityNear = (want) => page.waitForFunction((w) => Math.abs(Number(getComputedStyle(document.querySelector("#minimap")).opacity) - w) < 1e-6, want, { timeout: 3000 }).catch(() => {});
-const pixelIs = (x, y, rgb) => page.waitForFunction(([x, y, rgb]) => [...document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: 3000 }).catch(() => {});
+const pixelIs = (x, y, rgb) => page.waitForFunction(([x, y, rgb]) => [...testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: 3000 }).catch(() => {});
 // its red within 1 of a value, for a change made in more than one step, each of which the page may draw on its own
-const redNear = (x, y, v) => page.waitForFunction(([x, y, v]) => Math.abs(document.querySelector("#base").getContext("2d").getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: 3000 }).catch(() => {});
+const redNear = (x, y, v) => page.waitForFunction(([x, y, v]) => Math.abs(testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: 3000 }).catch(() => {});
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----
@@ -209,7 +208,7 @@ await page.$eval("#channels .channel:nth-child(1) input[type=color]", (i) => { i
 const swatch = await page.locator("#channels .channel:nth-child(1) input[type=color]").screenshot();
 const shade = await page.evaluate(async (b64) => {
   const im = new Image(); im.src = "data:image/png;base64," + b64; await im.decode();
-  const c = new OffscreenCanvas(im.width, im.height), g = c.getContext("2d"); g.drawImage(im, 0, 0);
+  const c = new OffscreenCanvas(im.width, im.height), g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0);
   const at = (fx, fy) => g.getImageData(Math.round(fx * (im.width - 1)), Math.round(fy * (im.height - 1)), 1, 1).data[0];
   return { topLeft: at(0.3, 0.3), centre: at(0.5, 0.5), bottomRight: at(0.7, 0.7) };
 }, swatch.toString("base64"));

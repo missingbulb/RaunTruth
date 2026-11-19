@@ -15,8 +15,8 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE } from "./engine.mjs";
+
+import { launch } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -46,7 +46,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch();
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
@@ -70,7 +70,6 @@ async function session(left) {
     }
     return json(route, { error: { code: 404, message: "File not found" } }, 404);
   });
-  await ctx.route(offSite(origin, "https://www.googleapis.com/", "https://accounts.google.com/"), (r) => r.abort());
   await ctx.addInitScript(({ who, folder }) => {
     delete Navigator.prototype.serviceWorker;
     localStorage.setItem("nor-google-sign-in", JSON.stringify(who));

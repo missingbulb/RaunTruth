@@ -20,10 +20,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
-import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { until } from "./page_until.mjs";
+import { keptContext } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -100,7 +99,6 @@ await ctx.route("https://www.googleapis.com/**", async (route) => {
   if (u.searchParams.get("alt") === "media") { calls.push("download"); return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: f.bytes }); }
   return json(meta(f));
 });
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
 // the browser's own file picker, where the browser has one, stands in as one handing over picked.png, a file of the
 // page's private storage, so the reference the page keeps to it is a real one; picks counts the times it was shown
 await ctx.addInitScript((png) => {
