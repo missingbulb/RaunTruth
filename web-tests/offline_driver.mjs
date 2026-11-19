@@ -242,7 +242,7 @@ try {
   for (let t = 0; t < 20; t++) {
     errors = (await cdp.send("Page.getInstallabilityErrors")).installabilityErrors.map((e) => e.errorId);
     if (!errors.length) break;
-    await page.waitForTimeout(500); // waits on purpose: Chromium tells installability only when asked, with no event to wait on
+    await page.waitForTimeout(500); // waits on purpose (no event): Chromium tells installability only when asked, with no event to wait on
   }
   check(!errors.length, "once asked for, the site is installable" + (errors.length ? ": " + errors.join(", ") : ""));
   await page.keyboard.press("Escape");

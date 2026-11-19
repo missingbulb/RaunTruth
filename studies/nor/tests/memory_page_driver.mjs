@@ -124,7 +124,7 @@ async function measure() {
   // count is the same whatever they last read.
   // the page's frames done first: the item view draws its cards in them as they come near, which a slow machine
   // can still be doing when the work itself has settled
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the cards drawn as they come near; being reworked on #932
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the cards drawn as they come near; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
   // element it writes into an action's log, and the page adds attributes as it goes (a class the first time an
   // animation is seen off screen): each one in the document is read here, made a node whoever read it before, and
@@ -154,7 +154,7 @@ async function measure() {
 }
 // the page's counts after a collection; twice, as DOM nodes freed by the first are swept only after it
 async function collected() {
-  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose: the page runs between the two collections, so the second sweeps what the first freed
+  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose (no event): the page runs between the two collections, so the second sweeps what the first freed
   return Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]));
 }
 // the nodes in the document, by the nearest ancestor with an id, and how many that is in all

@@ -251,7 +251,7 @@ try {
   await expire();
   const before = seen.length;
   // to light, by a script, once the user activation a test's evaluate itself carries (5 s) is over
-  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
+  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
   await shows(b.page, () => document.documentElement.dataset.theme === "light", undefined, 10000);
   check(await local(b.page, "nor-theme") === "light" && await askedNow() === 0 && file()["nor-theme"] === "dark", "a change no user made asks Google for nothing");
   const calls = await googleCalls(b.page);

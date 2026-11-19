@@ -34,7 +34,7 @@ const LATE = 600; // ms each answer takes
 const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
-const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose: it stands in for a slow computer's Python
+const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose (a slow computer): it stands in for a slow computer's Python
 let finder, runs = 0;
 postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0, heap: 300 * 2 ** 20, files: 80 * 2 ** 20 });
 onmessage = async ({ data: m }) => {
@@ -63,11 +63,11 @@ const server = http.createServer((q, r) => {
   if (u === "/web/image_open.js") {
     r.writeHead(200, { "content-type": "text/javascript" });
     return r.end(`import * as real from "./image_open.real.js"; export * from "./image_open.real.js";
-export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose: it stands in for a slow computer reading the image
+export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose (a slow computer): it stands in for a slow computer reading the image
   }
   if (u === "/studies/nor/web/nor.js" && !q.headers["x-late"]) {
     // the study's code comes after its algorithm list, so the page has listed them before its own start has run
-    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose: it stands in for a slow computer fetching the study's code
+    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose (a slow computer): it stands in for a slow computer fetching the study's code
   }
   const f = u === "/web/image_open.real.js" ? path.join(repo, "web", "image_open.js")
     : u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);

@@ -23,3 +23,13 @@
   a pull request (#974) found it past.
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
+
+## 2026-11-19 · strengthened · a wait on purpose names one of a closed list of kinds
+- **Source:** #935's "narrow the escapes" item, taken up on #1025 at the owner's word.
+- **Reason:** any sentence after `waits on purpose:` passed, so the quiet spell behind a #1025 flake
+  was excused as readily as the browser's 5 s user activation; a new kind is now a pack edit the
+  owner sees.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
+- **Mechanism:** the escape regex, the kinds (no event, user activation, a measured rate, a slow
+  computer) in it alone; the other wait checks accept the marker in either form.

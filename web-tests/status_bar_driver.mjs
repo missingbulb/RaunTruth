@@ -334,7 +334,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   const boxes = [];
   for (const t of ["storage", "network", "cpu", "memory"]) {
     await page.click(`#usage-dlg [role=tab][data-tab=${t}]`);
-    for (let k = 0; k < 3; k++) { boxes.push(await page.evaluate(() => { const r = document.querySelector("#usage-dlg").getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(); })); await page.waitForTimeout(150); } // waits on purpose: samples the box over the tab's first redraws
+    for (let k = 0; k < 3; k++) { boxes.push(await page.evaluate(() => { const r = document.querySelector("#usage-dlg").getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(); })); await page.waitForTimeout(150); } // waits on purpose (no event): samples the box over the tab's first redraws
   }
   await check(new Set(boxes).size === 1, "switching tabs leaves the dialog the same size and place", [...new Set(boxes)]);
   // the network tab, by its tab: the page's files, Python and Google Drive, adding up to the status bar's
@@ -501,11 +501,11 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.evaluate(() => { window.st.heap = window.st.heapWas; });
   await foldsLater("memory back under 1 GB");
   // downloading: kb KB every 250 ms for 8 s
-  const download = (kb) => page.evaluate(async (u) => { const end = Date.now() + 8000; while (Date.now() < end) { await fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()); await new Promise((r) => setTimeout(r, 250)); } }, origin + "/some/" + kb); // waits on purpose: the pause between downloads sets the rate the page measures
+  const download = (kb) => page.evaluate(async (u) => { const end = Date.now() + 8000; while (Date.now() < end) { await fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()); await new Promise((r) => setTimeout(r, 250)); } }, origin + "/some/" + kb); // waits on purpose (a measured rate): the pause between downloads sets the rate the page measures
   await download(25);
   await isOpen(false, "about 100 KB/s for 8 s does not open it: under 250 KB/s", 100);
   const pull = download(200);
-  await page.waitForTimeout(2500); // waits on purpose: the page opens the block on a rate held for 5 s of real downloads
+  await page.waitForTimeout(2500); // waits on purpose (a measured rate): the page opens the block on a rate held for 5 s of real downloads
   await isOpen(false, "the network over 250 KB/s for 2 s does not open it yet", 100);
   await pull;
   await isOpen(true, "over 250 KB/s for more than 5 s opens it", 2500);
