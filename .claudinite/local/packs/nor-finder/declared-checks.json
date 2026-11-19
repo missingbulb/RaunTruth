@@ -30,7 +30,7 @@
   {
     "id": "browser-from-harness",
     "on_fail": "block",
-    "failureMessage": "a browser a test launches itself misses the harness: the fakes of the outside systems the page reaches, and the check that the run wrote no warning or error it did not expect",
+    "failureMessage": "a browser a test launches itself misses the harness: the outside systems' fakes, and the check that the run wrote no warning or error it did not expect",
     "fix": "launch through launch() or keptContext() from web-tests/harness.mjs",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!harness\\.mjs$)[^/]+\\.m?js$/",
     "matchLines": [
