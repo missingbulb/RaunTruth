@@ -202,8 +202,10 @@ const awayAndBack = async (page, p) => {
   await page.waitForFunction(() => document.querySelector("[data-study-panel]") !== window.panelsBefore);
   await ready(page); await settled(page);
   const there = await snapshot(page), away = page.url();
+  // the study swapped back, not only the address: the page shows the one it left until its own has mounted
+  await page.evaluate(() => { window.panelsBefore = document.querySelector("[data-study-panel]"); });
   await page.goBack();
-  await page.waitForFunction((h) => location.href === h, home);
+  await page.waitForFunction((h) => location.href === h && document.querySelector("[data-study-panel]") !== window.panelsBefore, home);
   await ready(page); await settled(page);
   const back = await snapshot(page);
   // the fresh loads start from the storage the switched page left, not the path's seed

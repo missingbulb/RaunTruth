@@ -151,6 +151,8 @@ const before = writes.length;
 await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  // the list as the page shows it offline, whatever it drew again as the network went
+  await page.waitForSelector(cell("e plain.tif") + " .mark-gt", { state: "visible" });
   await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
   await turned();
   await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));

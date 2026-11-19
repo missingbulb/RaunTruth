@@ -224,10 +224,11 @@ try {
 
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
-    google.revokeAll();
-    // off the page first: a sync still running on it would write the sign-in back, an hour long
+    // off the page first: a sync still running on it would write the sign-in back, an hour long, and a request still
+    // on its way would meet the revoked token
     const at = b.page.url();
     await expecting(/status of 404/, () => b.page.goto(origin + "/web/no-page-here"));
+    google.revokeAll();
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
       localStorage.removeItem("nor-seen-version"); // the page writes it again as it loads: a setting that changes with no click

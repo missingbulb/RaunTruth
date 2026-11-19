@@ -124,7 +124,6 @@ async function measure() {
   // The status bar's numbers hold a node or more for each character of their last change, and the network's
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
-  // every picture the page shows loaded first: one still loading holds its load and error listeners until it has
   await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
   await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the page's last frames; being reworked on #932
@@ -187,7 +186,8 @@ for (const [name, act] of Object.entries({ open, find, tune })) {
   // what holds the nodes outside the document, read before the base so its own reading is in it
   const held = await detached(cdp), base = await measure();
   for (let r = 0; r < ROUNDS; r++) await act();
-  const m = await measure();
+  // read after the same snapshot as the base, so work the last round left running has ended in both or neither
+  const after = await detached(cdp), m = await measure();
   console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
   for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over ${ROUNDS} rounds`);
   // where the nodes went, so a growth seen only on another machine says where to look
@@ -196,7 +196,7 @@ for (const [name, act] of Object.entries({ open, find, tune })) {
     const grew = Object.keys({ ...a, ...b }).filter((k) => (a[k] || 0) !== (b[k] || 0)).map((k) => `${k} ${a[k] || 0} -> ${b[k] || 0}`);
     problems.push(`${name}: in the document ${grew.join(", ") || "nothing changed"}; outside it ${base.nodes - base.where.all} -> ${m.nodes - m.where.all}`);
     // and, outside it, which nodes and what holds them
-    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, await detached(cdp))) problems.push(`${name}: outside the document, ${d}`);
+    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, after)) problems.push(`${name}: outside the document, ${d}`);
   }
 }
 await browser.close(); server.close();
