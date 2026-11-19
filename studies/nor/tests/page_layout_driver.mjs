@@ -34,9 +34,9 @@ postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs:
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+  } else if (m.type === "call" && m.action === "run") {
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
   }
@@ -80,7 +80,7 @@ for (const width of [1000, 1600]) {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");
@@ -149,7 +149,7 @@ for (const width of [1000, 1600]) {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");

@@ -1,11 +1,11 @@
 {
- "finders": {
-  "tl": "traffic light",
-  "rf": "red-first",
-  "fill": "fill",
-  "walk": "walk",
-  "blobs": "blobs"
- },
+ "finders": [
+  "tl",
+  "rf",
+  "fill",
+  "walk",
+  "blobs"
+ ],
  "about": {
   "tl": {
    "filters": [
@@ -263,16 +263,6 @@
       255
      ]
     },
-    "in nucleus": {
-     "letter": "N",
-     "title": "In nucleus",
-     "text": "The red lies mostly on a cell nucleus (DAPI).",
-     "color": [
-      90,
-      140,
-      255
-     ]
-    },
     "red not rectangular": {
      "letter": "C",
      "title": "Crooked red",
@@ -282,10 +272,18 @@
       220,
       0
      ]
+    },
+    "in nucleus": {
+     "letter": "N",
+     "title": "In nucleus",
+     "text": "The red lies mostly on a cell nucleus (DAPI).",
+     "color": [
+      90,
+      140,
+      255
+     ]
     }
    },
-   "about": "- Slide a green-red-green stencil over the whole image\n  - at every angle\n  - at a few spacings\n- Mark the spots where all three windows show their own colour\n- Keep only spots with both greens already in place: these are the candidates\n- For each candidate, colour in the red and the two greens under the stencil",
-   "icon": "\ud83d\udea6",
    "help": {
     "green_frac": "Share of the image's pixels that may count as green (the brightest ones). Raise it to pick up fainter paranodes.",
     "red_frac": "Share of the image's pixels that may count as red (the brightest ones). Raise it to pick up fainter nodes.",
@@ -349,6 +347,47 @@
     "nucleus_frac": "A NoR is rejected when at least this share of its red lies on a nucleus (the blue mask).",
     "red_floor_q": "A NoR is rejected when its red is dimmer than this share of the image's NoRs (0.1 = the dimmest tenth; 0 = off).",
     "max_shared": "A NoR is rejected as a duplicate when a stronger NoR already owns its red, or more than this share of either green."
+   },
+   "presets": {
+    "precise": {
+     "min_green_balance": 0.35,
+     "min_snr": 4.1,
+     "purity": 0.16,
+     "min_opposite": 116.0,
+     "max_off_u": 0.8,
+     "max_axis_dev": 19.0,
+     "min_aspect": 3.6,
+     "min_solid": 0.86,
+     "nucleus_frac": 0.68,
+     "max_shared": 0.22,
+     "red_floor_q": 0.16
+    },
+    "balanced": {
+     "min_green_balance": 0.25,
+     "min_snr": 3.5,
+     "purity": 0.2,
+     "min_opposite": 100.0,
+     "max_off_u": 1.0,
+     "max_axis_dev": 25.0,
+     "min_aspect": 3.0,
+     "min_solid": 0.8,
+     "nucleus_frac": 0.8,
+     "max_shared": 0.3,
+     "red_floor_q": 0.1
+    },
+    "recalling": {
+     "min_green_balance": 0.19,
+     "min_snr": 2.9,
+     "purity": 0.28,
+     "min_opposite": 92.0,
+     "max_off_u": 1.4,
+     "max_axis_dev": 33.0,
+     "min_aspect": 2.6,
+     "min_solid": 0.68,
+     "nucleus_frac": 0.88,
+     "max_shared": 0.42,
+     "red_floor_q": 0.06
+    }
    }
   },
   "rf": {
@@ -615,16 +654,6 @@
       255
      ]
     },
-    "in nucleus": {
-     "letter": "N",
-     "title": "In nucleus",
-     "text": "The red lies mostly on a cell nucleus (DAPI).",
-     "color": [
-      90,
-      140,
-      255
-     ]
-    },
     "red not rectangular": {
      "letter": "C",
      "title": "Crooked red",
@@ -634,10 +663,18 @@
       220,
       0
      ]
+    },
+    "in nucleus": {
+     "letter": "N",
+     "title": "In nucleus",
+     "text": "The red lies mostly on a cell nucleus (DAPI).",
+     "color": [
+      90,
+      140,
+      255
+     ]
     }
    },
-   "about": "- Find every red spot, from the red alone\n- For each red spot\n  - grow it outwards while it stays compact\n  - every green blob touching it is a possible paranode\n  - any two greens on opposite sides make a candidate, so one red can give several\n- Keep the best candidate that passes the filters\n- No pixel belongs to two NoRs",
-   "icon": "\ud83d\udd34",
    "help": {
     "green_frac": "Share of the image's pixels that may count as green (the brightest ones). Raise it to pick up fainter paranodes.",
     "red_frac": "Share of the image's pixels that may count as red (the brightest ones). Raise it to pick up fainter nodes.",
@@ -701,6 +738,47 @@
     "nucleus_frac": "A NoR is rejected when at least this share of its red lies on a nucleus (the blue mask).",
     "red_floor_q": "A NoR is rejected when its red is dimmer than this share of the image's NoRs (0.1 = the dimmest tenth; 0 = off).",
     "max_shared": "A NoR is rejected as a duplicate when a stronger NoR already owns its red, or more than this share of either green."
+   },
+   "presets": {
+    "precise": {
+     "min_green_balance": 0.35,
+     "min_snr": 4.1,
+     "purity": 0.16,
+     "min_opposite": 122.0,
+     "max_off_u": 0.8,
+     "max_axis_dev": 19.0,
+     "min_aspect": 3.6,
+     "min_solid": 0.86,
+     "nucleus_frac": 0.68,
+     "max_shared": 0.22,
+     "red_floor_q": 0.0
+    },
+    "balanced": {
+     "min_green_balance": 0.25,
+     "min_snr": 3.5,
+     "purity": 0.2,
+     "min_opposite": 110.0,
+     "max_off_u": 1.0,
+     "max_axis_dev": 25.0,
+     "min_aspect": 3.0,
+     "min_solid": 0.8,
+     "nucleus_frac": 0.8,
+     "max_shared": 0.3,
+     "red_floor_q": 0.0
+    },
+    "recalling": {
+     "min_green_balance": 0.19,
+     "min_snr": 2.9,
+     "purity": 0.28,
+     "min_opposite": 98.0,
+     "max_off_u": 1.4,
+     "max_axis_dev": 33.0,
+     "min_aspect": 2.6,
+     "min_solid": 0.68,
+     "nucleus_frac": 0.88,
+     "max_shared": 0.42,
+     "red_floor_q": 0.0
+    }
    }
   },
   "fill": {
@@ -946,16 +1024,6 @@
       255
      ]
     },
-    "in nucleus": {
-     "letter": "N",
-     "title": "In nucleus",
-     "text": "The red lies mostly on a cell nucleus (DAPI).",
-     "color": [
-      90,
-      140,
-      255
-     ]
-    },
     "red not rectangular": {
      "letter": "C",
      "title": "Crooked red",
@@ -965,10 +1033,18 @@
       220,
       0
      ]
+    },
+    "in nucleus": {
+     "letter": "N",
+     "title": "In nucleus",
+     "text": "The red lies mostly on a cell nucleus (DAPI).",
+     "color": [
+      90,
+      140,
+      255
+     ]
     }
    },
-   "about": "- For each bright red dot\n  - turn to face along the fibre (the way with green on both sides)\n  - walk out each way until landing on the brightest green\n  - colour in the red and both greens from their peaks\n    - stop where each drops below a fraction of its own peak",
-   "icon": "\ud83e\udea3",
    "help": {
     "green_frac": "Share of the image's pixels that may count as green (the brightest ones). Raise it to pick up fainter paranodes.",
     "red_frac": "Share of the image's pixels that may count as red (the brightest ones). Raise it to pick up fainter nodes.",
@@ -1032,6 +1108,47 @@
     "nucleus_frac": "A NoR is rejected when at least this share of its red lies on a nucleus (the blue mask).",
     "red_floor_q": "A NoR is rejected when its red is dimmer than this share of the image's NoRs (0.1 = the dimmest tenth; 0 = off).",
     "max_shared": "A NoR is rejected as a duplicate when a stronger NoR already owns its red, or more than this share of either green."
+   },
+   "presets": {
+    "precise": {
+     "min_green_balance": 0.398,
+     "min_snr": 4.1,
+     "purity": 0.16,
+     "min_opposite": 116.0,
+     "max_off_u": 0.8,
+     "max_axis_dev": 19.0,
+     "min_aspect": 3.6,
+     "min_solid": 0.86,
+     "nucleus_frac": 0.68,
+     "max_shared": 0.22,
+     "red_floor_q": 0.0
+    },
+    "balanced": {
+     "min_green_balance": 0.33,
+     "min_snr": 3.5,
+     "purity": 0.2,
+     "min_opposite": 100.0,
+     "max_off_u": 1.0,
+     "max_axis_dev": 25.0,
+     "min_aspect": 3.0,
+     "min_solid": 0.8,
+     "nucleus_frac": 0.8,
+     "max_shared": 0.3,
+     "red_floor_q": 0.0
+    },
+    "recalling": {
+     "min_green_balance": 0.238,
+     "min_snr": 2.9,
+     "purity": 0.28,
+     "min_opposite": 92.0,
+     "max_off_u": 1.4,
+     "max_axis_dev": 33.0,
+     "min_aspect": 2.6,
+     "min_solid": 0.68,
+     "nucleus_frac": 0.88,
+     "max_shared": 0.42,
+     "red_floor_q": 0.0
+    }
    }
   },
   "walk": {
@@ -1268,16 +1385,6 @@
       255
      ]
     },
-    "in nucleus": {
-     "letter": "N",
-     "title": "In nucleus",
-     "text": "The red lies mostly on a cell nucleus (DAPI).",
-     "color": [
-      90,
-      140,
-      255
-     ]
-    },
     "red not rectangular": {
      "letter": "C",
      "title": "Crooked red",
@@ -1287,10 +1394,18 @@
       220,
       0
      ]
+    },
+    "in nucleus": {
+     "letter": "N",
+     "title": "In nucleus",
+     "text": "The red lies mostly on a cell nucleus (DAPI).",
+     "color": [
+      90,
+      140,
+      255
+     ]
     }
    },
-   "about": "- For each red peak\n  - pick the direction with green on both sides\n  - walk along that line in a narrow strip\n    - through the red first\n    - then onto the green on each side",
-   "icon": "\ud83d\udeb6",
    "help": {
     "green_frac": "Share of the image's pixels that may count as green (the brightest ones). Raise it to pick up fainter paranodes.",
     "red_frac": "Share of the image's pixels that may count as red (the brightest ones). Raise it to pick up fainter nodes.",
@@ -1354,6 +1469,47 @@
     "nucleus_frac": "A NoR is rejected when at least this share of its red lies on a nucleus (the blue mask).",
     "red_floor_q": "A NoR is rejected when its red is dimmer than this share of the image's NoRs (0.1 = the dimmest tenth; 0 = off).",
     "max_shared": "A NoR is rejected as a duplicate when a stronger NoR already owns its red, or more than this share of either green."
+   },
+   "presets": {
+    "precise": {
+     "min_green_balance": 0.398,
+     "min_snr": 4.1,
+     "purity": 0.16,
+     "min_opposite": 116.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 3.6,
+     "min_solid": 0,
+     "nucleus_frac": 0.68,
+     "max_shared": 0.22,
+     "red_floor_q": 0.0
+    },
+    "balanced": {
+     "min_green_balance": 0.33,
+     "min_snr": 3.5,
+     "purity": 0.2,
+     "min_opposite": 100.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 3.0,
+     "min_solid": 0,
+     "nucleus_frac": 0.8,
+     "max_shared": 0.3,
+     "red_floor_q": 0.0
+    },
+    "recalling": {
+     "min_green_balance": 0.238,
+     "min_snr": 2.9,
+     "purity": 0.28,
+     "min_opposite": 92.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 2.6,
+     "min_solid": 0,
+     "nucleus_frac": 0.88,
+     "max_shared": 0.42,
+     "red_floor_q": 0.0
+    }
    }
   },
   "blobs": {
@@ -1580,16 +1736,6 @@
       255
      ]
     },
-    "in nucleus": {
-     "letter": "N",
-     "title": "In nucleus",
-     "text": "The red lies mostly on a cell nucleus (DAPI).",
-     "color": [
-      90,
-      140,
-      255
-     ]
-    },
     "red not rectangular": {
      "letter": "C",
      "title": "Crooked red",
@@ -1599,10 +1745,18 @@
       220,
       0
      ]
+    },
+    "in nucleus": {
+     "letter": "N",
+     "title": "In nucleus",
+     "text": "The red lies mostly on a cell nucleus (DAPI).",
+     "color": [
+      90,
+      140,
+      255
+     ]
     }
    },
-   "about": "- For each red blob\n  - pair it with the green blobs that touch it\n\nThe simplest finder: fast, but it misses greens that do not quite touch the red.",
-   "icon": "\ud83e\udee7",
    "help": {
     "green_frac": "Share of the image's pixels that may count as green (the brightest ones). Raise it to pick up fainter paranodes.",
     "red_frac": "Share of the image's pixels that may count as red (the brightest ones). Raise it to pick up fainter nodes.",
@@ -1666,6 +1820,47 @@
     "nucleus_frac": "A NoR is rejected when at least this share of its red lies on a nucleus (the blue mask).",
     "red_floor_q": "A NoR is rejected when its red is dimmer than this share of the image's NoRs (0.1 = the dimmest tenth; 0 = off).",
     "max_shared": "A NoR is rejected as a duplicate when a stronger NoR already owns its red, or more than this share of either green."
+   },
+   "presets": {
+    "precise": {
+     "min_green_balance": 0.398,
+     "min_snr": 4.1,
+     "purity": 0.16,
+     "min_opposite": 116.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 3.6,
+     "min_solid": 0,
+     "nucleus_frac": 0.68,
+     "max_shared": 0.22,
+     "red_floor_q": 0.0
+    },
+    "balanced": {
+     "min_green_balance": 0.33,
+     "min_snr": 3.5,
+     "purity": 0.2,
+     "min_opposite": 100.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 3.0,
+     "min_solid": 0,
+     "nucleus_frac": 0.8,
+     "max_shared": 0.3,
+     "red_floor_q": 0.0
+    },
+    "recalling": {
+     "min_green_balance": 0.238,
+     "min_snr": 2.9,
+     "purity": 0.28,
+     "min_opposite": 92.0,
+     "max_off_u": 99,
+     "max_axis_dev": 180,
+     "min_aspect": 2.6,
+     "min_solid": 0,
+     "nucleus_frac": 0.88,
+     "max_shared": 0.42,
+     "red_floor_q": 0.0
+    }
    }
   }
  }

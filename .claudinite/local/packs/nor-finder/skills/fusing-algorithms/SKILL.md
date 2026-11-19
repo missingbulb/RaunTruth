@@ -25,13 +25,13 @@ A pair qualifies when:
 On NoR:
 
 ```
-cd studies/nor/detection && python3 nor_lab.py ablate tl rf
+python3 lab/items.py nor ablate tl rf
 ```
 
 ## 2. Measure the complementarity, with the oracle bounds first
 
 ```
-cd studies/nor/detection && python3 mutate.py table tl rf fill
+python3 lab/items.py nor table tl rf fill
 ```
 
 It prints each version's P and R, the **union's recall** and the **intersection's precision**,
@@ -64,7 +64,7 @@ and the graded items only one version keeps. Items are matched within the lab's 
 A fusion is a version. Register it in the lab, then ablate it against the better parent:
 
 ```
-cd studies/nor/detection && python3 nor_lab.py ablate <better parent> <fusion>
+python3 lab/items.py nor ablate <better parent> <fusion>
 ```
 
 It is a new version of the study's algorithm: record its quality before the page offers it. When it lands within noise of the
@@ -73,10 +73,10 @@ best or better, run the mutation sweep with it as base
 
 ## 4. Keep the registry alive
 
-The **registry** is the set of versions the lab runs in every comparison (NoR: `nor_lab.finders()`,
+The **registry** is the set of versions the lab runs in every comparison (the study's `VERSIONS`,
 which the mutation sweep reads). The page may offer fewer. Every version that is not terrible stays
 in it. A version is terrible when the lab's keep rule finds it worse than every other registered
-version **and** no item is found by it alone (`mutate.py table`'s "only" line is empty).
+version **and** no item is found by it alone (`lab/items.py STUDY table`'s "only" line is empty).
 
 The registry defines "never found" for the mutation signal. It is the pool fusion draws from, and
 it is where a later idea finds a mechanism that already handles its hard case. A version leaves only

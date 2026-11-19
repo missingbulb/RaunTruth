@@ -3,8 +3,9 @@
 // Ground Truth Tasks takes Summary's place and the image is the only view (req/nor/truth/tasks,
 // req/shell/views/second); the tasks are one walk through the image's areas, with Back and Skip
 // (req/nor/truth/order); the image marks what is reviewed, under a task-named Show menu (req/nor/truth/marks,
-// req/nor/show-menu); the summary's mask waits for the summary (req/nor/summary/mask); in a PreGT study the
-// summary is back. Prints what it saw; exits 1 on a failure, 2 when it cannot run.
+// req/nor/show-menu); while tagging a key gives each button's answer (req/nor/truth/keys); the summary's mask
+// waits for the summary (req/nor/summary/mask); in a PreGT study the summary is back. Prints what it saw; exits 1
+// on a failure, 2 when it cannot run.
 //   node tests/truth_tasks_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
@@ -18,6 +19,8 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { frames } from "../../../web-tests/page_frames.mjs";
+import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -35,9 +38,9 @@ postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs:
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+  } else if (m.type === "call" && m.action === "run") {
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
   }
@@ -77,6 +80,7 @@ async function open() {
   if (picture) await ctx.route("https://acme.example/dog.jpg", (r) => r.fulfill({ contentType: "image/jpeg", body: fs.readFileSync(path.join(repo, "web", "poster.jpg")) }));
   await asTagger(ctx); // ground truth is made by a Ground Truth Tagger (req/shell/account/role)
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await keepStudyKeyListeners(ctx);
   await ctx.addInitScript(([k, m]) => localStorage.setItem(k, JSON.stringify(m)), ["nor-mask-v1:" + path.basename(image), MASKED]);
   await standInDrive(ctx);
   // the picture's fetch failing, as the page sees it when the picture is turned away
@@ -86,7 +90,7 @@ async function open() {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
@@ -102,7 +106,7 @@ const shown = (page, sel) => page.evaluate((s) => { const e = document.querySele
 let page = await open();
 await check(await shown(page, "#tasks-box") && !(await shown(page, "#summary-box")), "Ground Truth Tasks is in the left bar, in Summary's place");
 await check(!(await shown(page, "#switch")), "no view switch over the image");
-const tasks = await page.$$eval("#gt-tasks > li", (li) => li.map((l) => l.dataset.task));
+const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
 await check(JSON.stringify(tasks) === JSON.stringify(["pass", "fail", "missed", "submit"]), "the tasks in order: the finalists, the rejected, the missed NoRs, Submit", tasks);
 await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Submit Ground Truth is the last task");
 
@@ -134,7 +138,7 @@ const nextOpen = async (key) => {
 };
 
 const now = () => page.evaluate(() => ({ cur: st.cur, task: st.task, sel: st.sel, card: document.querySelector("#task-card .card")?.dataset.i,
-  rows: [...document.querySelectorAll("#gt-tasks > li")].map((l) => l.querySelector(".task-head").textContent.replace(/\s+/g, " ").trim()),
+  rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((l) => l.querySelector(".task-head").textContent.replace(/\s+/g, " ").trim()),
   open: document.querySelector("#gt-tasks > li.now")?.dataset.task, back: !$("#task-back").disabled,
   bar: [...document.querySelectorAll("#gt-bar > span")].map((b) => ({ grow: +getComputedStyle(b).flexGrow, fill: +b.style.getPropertyValue("--done") })) }));
 const rectOf = (a) => { const r = Math.floor(a / 10), k = r % 2 ? 9 - (a % 10) : a % 10; return [k * IW / 10, r * IH / 10, IW / 10, IH / 10]; };
@@ -146,6 +150,8 @@ const cutShown = () => page.evaluate(() => { const g = document.querySelector("#
 const tagRows = () => page.evaluate(() => ["show-gt-cut", "show-gt-frame"].map((id) => $("#" + id).disabled));
 const startSays = () => page.evaluate(() => { const b = $("#gt-start"); return b && b.offsetParent ? b.textContent.trim() : null; });
 let s = await now();
+await check(W[0].cy != null, "the walk's first step is a candidate's, so a card could open before tagging starts", W[0]);
+await check(await page.evaluate(() => !$("#task-now").offsetParent && !$("#task-card .card .verdict .up")), "found, no card and no thumbs show before Start GT tagging");
 await check(!s.open && !s.card && !(await ring()).shown && !(await frame()) && !(await cutShown()), "found, no task is open: nothing ringed, framed or cut out", s);
 await check(await startSays() === "Start GT tagging" && (await tagRows()).every(Boolean), "Start GT tagging heads the box, and the Show menu's Cut out and Frame rows are off", [await startSays(), await tagRows()]);
 await check(s.rows[0].startsWith(`0/${P} Finalists`), "the rows count the tasks before tagging starts", s.rows);
@@ -166,11 +172,13 @@ await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith(`0/
 // the bar, a part per task as long as the task, filled as far as done
 await check(s.bar.length === 3 && s.bar[0].grow === P && s.bar[1].grow === F && s.bar[2].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
-// clicking a task goes to its next item along the walk
+// clicking a task goes to its next item along the walk, after the one open
 await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
-const first = W.find((x) => x.t === "pass");
+const first = [...W.slice(1), W[0]].find((x) => x.t === "pass");
 s = await now();
-await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's first finalist, its row open", s);
+await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's next finalist, its row open", s);
+// once the card it slid in over has gone
+await page.waitForFunction(() => !document.querySelector("#task-stage .leaving"));
 await check(await page.$$eval("#tasks-box .card", (c) => c.length) === 1, "one card at a time");
 // the open row carries the cogwheel, Back and Skip; the card is the crop and big thumbs under it
 const look = await page.evaluate(() => {
@@ -290,11 +298,13 @@ await check(rcard.bars === 3 && rcard.handles === 6 && !rcard.tag && !rcard.rese
   await page.mouse.move(b.x + b.width / 2 + 15, b.y + b.height / 2 - 10, { steps: 5 }); await page.mouse.up();
 }
 const changed = await page.evaluate(() => ({ edits: st.edits.has(st.sel), text: $("#task-card .card").textContent, reset: $("#task-card .reset-lines")?.textContent.trim() }));
-await check(changed.edits && changed.reset === "Reset measurements" && !/Lengths adjusted/.test(changed.text), "its lengths changed, a Reset measurements button shows, and nothing else says so", changed);
+await check(changed.edits && /^Reset measurements\b/.test(changed.reset) && !/Lengths adjusted/.test(changed.text), "its lengths changed, a Reset measurements button shows, and nothing else says so", changed);
 await page.click("#task-card .reset-lines");
 await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "Reset measurements puts the finder's lengths back");
 
-// a candidate clicked on the image becomes the current one
+// a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
+// tagger's own switch puts it away first
+await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));
@@ -352,13 +362,111 @@ await check(s.task === "submit" && s.rows[2] === "100/100 Areas" && (await page.
 await check(await page.$$eval('#gt-tasks > li[data-task="missed"], #gt-tasks > li[data-task="pass"], #gt-tasks > li[data-task="fail"]', (l) => l.every((x) => x.classList.contains("done"))), "every task is checked done");
 await page.close();
 
+// ---- req/nor/truth/keys: a key per button while tagging, read by its place on the keyboard ----
+page = await open();
+await page.evaluate(() => { document.activeElement?.blur(); window.addEventListener("keydown", (e) => { window.lastKey = e.defaultPrevented; }); });
+// a key pressed as a person does, or as a layout or a held key sends it; true when the page took it
+const key = async (code, o = {}) => {
+  if (!o.as) { await page.keyboard.press(code); return page.evaluate(() => window.lastKey); }
+  return page.evaluate(([code, o]) => { const e = new KeyboardEvent("keydown", { code, key: o.as, repeat: !!o.repeat, bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; }, [code, o]);
+};
+// the key a button shows at its end, while it is shown
+const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
+// the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
+const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
+const VIEWS = ["Finalists 1", "Rejected 2", "Added NoRs 3"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 4", "Frame the area 5"];
+const expectRows = async () => TAGGING_VIEWS.join(", ");
+const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5"].map((code) => ({ code }));
+const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
+let took = await key("KeyF");
+await check(!took && await page.evaluate(() => st.forced.size === 0), "before Start GT tagging, F does nothing");
+// req/shell/image/keys: the legend lists the keys that act now, the views alone out of tagging, each filled blue while on
+const outRows = await legend(page);
+await check(await legendRows(page) === VIEWS.join(", ") && outRows.every((r) => r.lit), "out of tagging the keys legend lists the Show menu's views alone, each on", outRows);
+await page.click("#gt-start");
+await page.evaluate(() => document.activeElement?.blur());
+await page.evaluate((k) => nor.goTo(k), first.key);
+const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
+await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
+await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
+const heard = await studyTakes(page, KEYS);
+await check(heard.listeners >= 1 && heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
+s = await now();
+took = await key("KeyF");
+let s2 = await now();
+await check(took && await verdictNow(i0) === "in" && s2.cur === await nextOpen(first.key) && s2.rows[0].startsWith(`1/${P} Finalists`), "F is the thumbs up: the item is a NoR and the walk moves on", s2);
+// the next items: a finalist and a rejected candidate
+const second2 = W.filter((x) => x.t === "pass")[1], j2 = +second2.key.slice(2);
+await page.evaluate((k) => nor.goTo(k), second2.key);
+took = await key("KeyJ", { as: "ח", repeat: true });
+await check(!took && await verdictNow(j2) === null && (await now()).cur === second2.key, "a key held down does not repeat its verdict");
+took = await key("KeyJ", { as: "ח" });
+s2 = await now();
+await check(took && await verdictNow(j2) === "out" && s2.cur !== second2.key, "J in a Hebrew layout is the thumbs down: not a NoR, and the walk moves on", s2);
+took = await key("Backspace");
+s2 = await now();
+await check(took && s2.cur === second2.key && await page.$eval("#task-card .verdict .down", (b) => b.classList.contains("on")), "Backspace is Back: the item before, its verdict shown", s2);
+await check(await legendRows(page) === await expectRows() && await chip("#task-back") === "⌫", "with an item behind, Back shows its key, off the legend", await legendRows(page));
+took = await key("Alt+KeyS");
+await check(!took && (await now()).cur === second2.key, "with Alt held, S does nothing");
+await page.evaluate(() => { const f = document.createElement("input"); f.id = "typing"; document.body.append(f); f.focus(); });
+took = await key("KeyS");
+await check(!took && (await now()).cur === second2.key && await page.$eval("#typing", (f) => f.value) === "s", "typing in a field, S is a letter typed, not Skip");
+await page.evaluate(() => document.querySelector("#typing").remove());
+await page.click("#card-menu summary");
+took = await key("KeyS");
+await check(!took && (await now()).cur === second2.key, "with a menu open, S does nothing");
+await page.click("#card-menu summary");
+await page.evaluate(() => document.activeElement?.blur());
+took = await key("KeyS");
+s2 = await now();
+await check(took && s2.cur === await nextOpen(second2.key) && await verdictNow(j2) === "out", "S is Skip: the walk's next item not done", s2);
+// R: a rejected candidate's measurements changed, put back
+await page.evaluate((k) => nor.goTo(k), W.find((x) => x.t === "fail").key);
+took = await key("KeyR");
+await check(!took, "with nothing measured differently, R does nothing");
+{
+  const h = page.locator('#task-card .handle[data-k="length"][data-j="1"]'); await h.scrollIntoViewIfNeeded();
+  const b = await h.boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2 + 15, b.y + b.height / 2 - 10, { steps: 5 }); await page.mouse.up();
+}
+const rChip = await chip("#task-card .reset-lines");
+await check(await chip("#task-card .reset-lines") === "R" && await legendRows(page) === await expectRows(), "measured differently, Reset measurements shows its key, off the legend", await legendRows(page));
+took = await key("KeyR");
+await check(rChip === "R" && took && await page.evaluate(() => !st.edits.has(st.sel) && !document.querySelector("#task-card .reset-lines")), "R is Reset measurements, its chip R", rChip);
+// Space: the area's check, even with a button focused
+took = await key("Space");
+await check(!took, "away from an area's check, Space does nothing of the page's");
+const A2 = W.find((x) => x.key.startsWith("a:")).a;
+await page.evaluate((k) => nor.goTo(k), "a:" + A2);
+const okChip = await chip("#area-ok");
+await check(await legendRows(page) === await expectRows() && await chip("#area-ok") === "Space", "on an area's check No missed NoRs here shows Space, off the legend", await legendRows(page));
+await page.focus("#gt-start");
+took = await key("Space");
+s2 = await now();
+await check(okChip === "Space" && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2) && await startSays() === "Stop tagging",
+  "Space is No missed NoRs here, the area checked and the walk on, the focused Stop tagging not pressed", { okChip, s2 });
+await page.click("#gt-start");
+took = await key("KeyS");
+await check(!took && !(await now()).open, "tagging stopped, the keys do nothing");
+await check(await legendRows(page) === VIEWS.join(", "), "and the legend is back to the views alone", await legendRows(page));
+// a view's number key switches its Show menu row, its legend row filled blue while it is held and while the view is on
+await page.keyboard.down("Digit1");
+const heldRow = (await legend(page))[0], passOff = await page.evaluate(() => !$("#show-gt-pass").checked && $("#overlay").classList.contains("no-gt-pass"));
+await page.keyboard.up("Digit1");
+const offRow = (await legend(page))[0];
+await check(passOff && heldRow.lit && !offRow.lit, "1 turns Finalists off: its row blue while 1 is held, grey once let go", { passOff, heldRow, offRow });
+await page.click("#key-show-pass");
+await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
+await page.close();
+
 // ---- the picture's link failing: black, never the browser's broken-picture icon ----
 picture = false;
 page = await open();
 await page.click("#gt-start");
 await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
 await page.pictureFailed;
-await page.evaluate(() => new Promise((ok) => requestAnimationFrame(ok)));
+await frames(page, 1);
 const none = await page.evaluate(() => ({ image: !!document.querySelector("#overlay image.done-reveal"), bg: getComputedStyle(document.querySelector("#overlay .done-bg")).fill }));
 await check(!none.image && none.bg === "rgb(0, 0, 0)", "a picture that cannot load leaves the cut-outs black", none);
 await page.close();

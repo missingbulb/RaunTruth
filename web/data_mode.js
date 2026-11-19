@@ -1,20 +1,21 @@
-// Data Management (req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
+// Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
 // req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the Study Manager role's
-// view, for a signed-in user the store lets write to the study's root: its data folder as a tree in a column left of the left bar, its chevron folding
+// view, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
+// left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
 // it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
 // chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
 // files it creates.
 "use strict";
 import { PREVIEWS } from "./previews.js";
 import { makePreview, buildPreviews } from "./previews_writer.js";
-import { writeTiff } from "./split.js";
+import { writeTiff } from "./tiff_file.js";
 import { readImage } from "./image_open.js";
 import { CONNECTION, holdOwns } from "./offline.js";
 import { asLoaded } from "./as_loaded.js";
 import { accepts, isTiff } from "./accepts.js";
-import { replacedBy, stemOf } from "./edit.js";
 import * as tf from "./truth_folders.js";
-import { setup as setUp, switchMode, previewsFolder, previewsName } from "./study_root.js";
+import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
+import { parseTag, addTag, effective, isHidden, multiNames, FOLDER } from "./tags.js";
 
 const MAX_FOLDERS = 200;
 // what each access means beside a folder
@@ -43,11 +44,15 @@ export function dataMode(ctx) {
   const sd = remote.writer(account);
   // the study's ground-truth folders (req/shell/ground-truth/folders), read with no sign-in and written by the user
   const reader = place.reader;
-  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark, share: sd.share };
+  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark, share: sd.share, ours: sd.ours };
   // gt: {submissions, curated, same}; gtNodes: those folders with their access, outside the tree
   let gt = { submissions: null, curated: null, same: false }, gtNodes = [];
   const root = document.documentElement;
   // the study's folders, by id: {id, name, parent, files, folders (ids), access, el}; roots their ids
+  // unlisted: the root's folders no listed folder is, [{id, name}]
+  let unlisted = [];
+  // the tags file (req/shell/data/tags) and the study file's grouping and hiding (req/shell/data/hidden), as last read
+  let tagsDoc = { images: {}, folders: {} }, look = { group: null, hide: [] };
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
   const on = () => root.dataset.mode === "data";
   // the study's ground-truth folders are not its data: the tree leaves them out
@@ -57,7 +62,7 @@ export function dataMode(ctx) {
   const offline = () => root.classList.contains("offline");
   const msg = (el, text, err) => { el.textContent = text; el.classList.toggle("err", !!err); };
   // what a study's folders change on the page, as it loaded: put back when another study comes in
-  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view"].map((s) => $(s)), holdOwns);
+  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box"].map((s) => $(s)), holdOwns);
 
   // ---------- the folders and their access ----------
   // every folder under the study's own, listed with every file in it; once per study
@@ -71,7 +76,10 @@ export function dataMode(ctx) {
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
       const top = place.root();
-      roots = top ? [s?.data || top] : [];
+      roots = top ? (s?.folders || [s?.data || top]) : [];
+      look = { group: s?.group || null, hide: s?.hide || [] };
+      if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { console.warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
+      if (of !== epoch) return;
       gt = tf.folders(s); previewsId = s?.previews || null;
       gtNodes = [...new Set([gt.curated, gt.submissions].filter(Boolean))].map((id) => ({ id, name: "Ground truth", access: null }));
       drawSetup(s); drawTruthBox(null); truthStatus();
@@ -91,7 +99,14 @@ export function dataMode(ctx) {
       await Promise.all(roots.map(async (id) => {
         try { const n = nodes.get(id), r = await remote.name(id); if (n && r) n.name = r; } catch { /* keeps "Study folder" */ }
       }));
+      // the root's own folders that no listed folder is, to add (the root listed holds them all)
+      unlisted = [];
+      if (top && !roots.includes(top)) {
+        try { unlisted = (await remote.all(top)).filter((f) => f.folder && !roots.includes(f.id) && !isTruth(f.id)).map((f) => ({ id: f.id, name: f.name })); } catch (e) { console.warn("the root's folders were not listed:", e); }
+        if (of !== epoch) return;
+      }
       await checkAccess();
+      await index(of, nodes.size >= MAX_FOLDERS);
     })());
   }
   async function checkAccess() {
@@ -112,6 +127,215 @@ export function dataMode(ctx) {
     } catch (e) { msg($("#data-msg"), e.message || String(e), true); }
   }
   $("#data-approve").onclick = approve;
+
+  // ---------- the study's listed folders and its index (req/shell/data/folders, req/shell/data/index) ----------
+  // every image of the listed folders, in their order, each folder's images then its subfolders', with its path
+  function indexOf() {
+    const images = [];
+    // inherited: the tags of the folders holding the image, nearest first
+    const walk = (id, path, inherited) => {
+      const n = nodes.get(id);
+      if (!n) return;
+      const here = [...path, n.name], held = [folderTags(id), ...inherited];
+      for (const f of imagesOf(n)) {
+        const own = tagsDoc.images[f.id] || {};
+        images.push({ id: f.id, name: f.name, folder: n.id, path: here, size: f.size, sha: f.sha, modified: f.modified,
+          tags: effective(own.tags || [], held), ...(own.description ? { description: own.description } : {}),
+          ...(own.damaged?.length ? { damaged: own.damaged } : {}), ...(own.interest?.length ? { interest: own.interest } : {}) });
+      }
+      for (const c of n.folders) walk(c, here, held);
+    };
+    for (const id of roots) walk(id, [], []);
+    return { folders: roots.map((id) => ({ id, name: nodes.get(id)?.name || "Folder" })), images, group: look.group, hide: look.hide };
+  }
+  // the index written when it differs from the one there; never from a listing cut short or one a folder failed in
+  async function index(of, cut) {
+    const top = place.root(), say = (t, err) => msg($("#data-index"), t, err);
+    if (!top || of !== epoch) return;
+    if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
+    if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
+    const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    try {
+      const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
+      if (of !== epoch) return;
+      place.forgetIndex(); drawStudySet(ix);
+      say(done === "not ours" ? `Study index: ${INDEX_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
+        : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+    } catch (e) { if (of === epoch) say("Study index: not written: " + (e.message || e), true); }
+  }
+  // ---------- tags, descriptions, grouping and hiding (req/shell/data/tags, req/shell/data/hidden) ----------
+  const folderTags = (id) => tagsDoc.folders[id]?.tags || [];
+  // [{tags, from}] the tags the folders holding the chosen folder or image give it, nearest first
+  const inheritedOf = (folderId, self) => {
+    const out = [];
+    for (let n = nodes.get(folderId), first = true; n; n = nodes.get(n.parent), first = false) {
+      if (!(self && first)) out.push({ tags: folderTags(n.id), from: n.name });
+      if (roots.includes(n.id)) break;
+    }
+    return out;
+  };
+  // the tags file and the index written after an edit; what the edit said, or why it was not saved
+  async function saveTags(next, said) {
+    const top = place.root(), was = tagsDoc;
+    if (!top || offline()) return;
+    tagsDoc = next; drawTags();
+    try { await writeTags({ reader, writer, root: top, doc: next }); }
+    catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
+    msg($("#tags-msg"), said || "");
+    await index(epoch);
+  }
+  // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
+  function drawTags() {
+    const box = $("#tags-box"), c = chosen;
+    box.hidden = !c || !on();
+    if (box.hidden) return;
+    const image = c.kind === "image", own = (image ? tagsDoc.images[c.id]?.tags : folderTags(c.id)) || [];
+    const n = nodes.get(image ? c.folder : c.id), name = image ? (n?.files.find((f) => f.id === c.id)?.name || "This image") : n?.name || "This folder";
+    $("#tags-for").textContent = image ? `Image ${name}` : `Folder ${name}: its tags apply to every image in it`;
+    const chip = (t, from) => {
+      const b = Object.assign(document.createElement("span"), { className: "tag-chip" + (from ? " inherited" : "") });
+      b.textContent = t; b.dataset.tag = t;
+      if (from) b.title = `From the folder ${from}`;
+      else {
+        const x = Object.assign(document.createElement("button"), { type: "button", className: "untag", title: `Take ${t} off`, textContent: "×" });
+        x.dataset.needsNetwork = ""; x.onclick = () => untag(t); b.append(x);
+      }
+      return b;
+    };
+    const given = inheritedOf(image ? c.folder : c.id, !image).flatMap((l) => l.tags.filter((t) => !own.includes(t)).map((t) => chip(t, l.from)));
+    $("#tags-list").replaceChildren(...own.map((t) => chip(t)), ...given);
+    $("#tags-desc-row").hidden = !image;
+    if (image && document.activeElement !== $("#tags-desc")) $("#tags-desc").value = tagsDoc.images[c.id]?.description || "";
+    drawAreas();
+  }
+  // the image's damaged areas and area of interest, marked on the image itself, never on its preview
+  function drawAreas() {
+    const c = chosen, image = c?.kind === "image", open = image && ctx.originalOpen(c.id), own = image ? tagsDoc.images[c.id] || {} : {};
+    $("#areas").hidden = !image;
+    if (!image) return;
+    const n = (k, one) => (own[k]?.length ? (own[k].length === 1 ? `1 ${one}` : `${own[k].length} ${one}s`) : "none");
+    $("#areas-damaged-count").textContent = n("damaged", "damaged area");
+    $("#areas-interest-count").textContent = n("interest", "area");
+    for (const [k, b] of [["damaged", "#areas-damaged-mark"], ["interest", "#areas-interest-mark"]]) {
+      $(b).disabled = !open; $(b).title = open ? "" : "Load Original first: areas are marked on the image itself, not its preview";
+      $(b.replace("mark", "clear")).hidden = !own[k]?.length;
+    }
+    $("#areas-hint").hidden = open;
+  }
+  const areasOf = (id) => ({ damaged: tagsDoc.images[id]?.damaged || [], interest: tagsDoc.images[id]?.interest || [] });
+  function markArea(k) {
+    const c = chosen;
+    if (c?.kind !== "image" || !ctx.originalOpen(c.id)) return;
+    ctx.lasso((pts) => {
+      if (chosen?.id !== c.id) return;
+      const next = withImage(tagsDoc, c.id, { [k]: [...(tagsDoc.images[c.id]?.[k] || []), pts] });
+      ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
+      saveTags(next, k === "damaged" ? "Damaged area marked." : "Area of interest marked.");
+    }, k === "damaged" ? "Drag around the damaged area · Esc cancels" : "Drag around the area of interest · Esc cancels");
+  }
+  function clearAreas(k) {
+    const c = chosen;
+    if (c?.kind !== "image") return;
+    const next = withImage(tagsDoc, c.id, { [k]: [] });
+    ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
+    saveTags(next);
+  }
+  $("#areas-damaged-mark").onclick = () => markArea("damaged");
+  $("#areas-interest-mark").onclick = () => markArea("interest");
+  $("#areas-damaged-clear").onclick = () => clearAreas("damaged");
+  $("#areas-interest-clear").onclick = () => clearAreas("interest");
+  const withImage = (doc, id, change) => {
+    const was = doc.images[id] || {}, next = { ...was, ...change };
+    for (const k of ["tags", "damaged", "interest"]) if (!next[k]?.length) delete next[k];
+    if (!next.description) delete next.description;
+    const images = { ...doc.images };
+    if (Object.keys(next).length) images[id] = next; else delete images[id];
+    return { ...doc, images };
+  };
+  const withFolder = (doc, id, tags) => {
+    const folders = { ...doc.folders };
+    if (tags.length) folders[id] = { tags }; else delete folders[id];
+    return { ...doc, folders };
+  };
+  function tag() {
+    const c = chosen, got = parseTag($("#tags-add").value);
+    if (!c) return;
+    if (got.error) return msg($("#tags-msg"), got.error, true);
+    $("#tags-add").value = "";
+    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: addTag(tagsDoc.images[c.id]?.tags || [], got.tag) }));
+    else saveTags(withFolder(tagsDoc, c.id, addTag(folderTags(c.id), got.tag)));
+  }
+  function untag(t) {
+    const c = chosen;
+    if (!c) return;
+    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: (tagsDoc.images[c.id]?.tags || []).filter((x) => x !== t) }));
+    else saveTags(withFolder(tagsDoc, c.id, folderTags(c.id).filter((x) => x !== t)));
+  }
+  $("#tags-add-go").onclick = tag;
+  $("#tags-add").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); tag(); } };
+  $("#tags-desc").onchange = () => {
+    const c = chosen, text = $("#tags-desc").value.trim();
+    if (c?.kind !== "image" || text === (tagsDoc.images[c.id]?.description || "")) return;
+    saveTags(withImage(tagsDoc, c.id, { description: text }), "Description saved.");
+  };
+  // Study images: how Load groups the study's images, and which tags hide one
+  function drawStudySet(ix) {
+    $("#study-set").hidden = !place.root();
+    const names = multiNames(ix?.images || []), sel = $("#study-group");
+    const want = [FOLDER, ...new Set([...names, ...(look.group && look.group !== FOLDER ? [look.group] : [])])];
+    sel.replaceChildren(...want.map((v) => Object.assign(document.createElement("option"), { value: v, textContent: v })));
+    sel.value = look.group || FOLDER;
+    $("#study-hide-list").replaceChildren(...look.hide.map((t) => {
+      const b = Object.assign(document.createElement("span"), { className: "tag-chip" }); b.textContent = t; b.dataset.tag = t;
+      const x = Object.assign(document.createElement("button"), { type: "button", className: "untag", title: `Stop hiding images tagged ${t}`, textContent: "×" });
+      x.dataset.needsNetwork = ""; x.onclick = () => setLook({ hide: look.hide.filter((h) => h !== t) }); b.append(x);
+      return b;
+    }));
+    const hidden = (ix?.images || []).filter((i) => isHidden(i.tags || [], look.hide)).length;
+    $("#study-hide-count").textContent = look.hide.length ? `${hidden === 1 ? "1 image" : hidden + " images"} hidden from viewers and taggers.` : "";
+  }
+  async function setLook(change) {
+    const top = place.root();
+    if (!top || offline()) return;
+    try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
+    catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
+    msg($("#study-msg"), "");
+    await index(epoch);
+  }
+  $("#study-group").onchange = () => setLook({ group: $("#study-group").value === FOLDER ? null : $("#study-group").value });
+  const hideAdd = () => {
+    const got = parseTag($("#study-hide-add").value);
+    if (got.error) return msg($("#study-msg"), got.error, true);
+    $("#study-hide-add").value = "";
+    if (!look.hide.includes(got.tag)) setLook({ hide: [...look.hide, got.tag] });
+  };
+  $("#study-hide-go").onclick = hideAdd;
+  $("#study-hide-add").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); hideAdd(); } };
+
+  // the listed folders changed in the study file, the tree read again, and anything to say after
+  async function setListed(next, said = "") {
+    const top = place.root();
+    if (!top || offline()) return;
+    $("#data-tree").classList.add("busy");
+    try { await setFolders({ reader, writer, root: top, folders: next }); }
+    catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
+    nodes = new Map(); loaded = null; chosen = null; roots = next; msg($("#data-index"), "");
+    await load();
+    $("#data-tree").classList.remove("busy");
+    if (said) msg($("#data-msg"), said);
+  }
+  async function addLink() {
+    const ref = remote.parse($("#data-add-link").value || "");
+    if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);
+    if (roots.includes(ref.id)) return msg($("#data-msg"), "That folder is in the study already.");
+    let open = null;
+    try { open = await remote.publicly(ref.id); } catch { open = null; }
+    $("#data-add-link").value = "";
+    await setListed([...roots, ref.id], open === false ? `Added. It is not shared as "Anyone with the link", so a viewer cannot read its images: share it so in ${remote.label}.` : "");
+  }
+  $("#data-add").onclick = addLink;
+  $("#data-add-link").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } };
+
 
   // ---------- Set up ground truth (req/shell/ground-truth/setup) ----------
   // offered while the study's root names no ground-truth folders, and nudged while it has none at all
@@ -187,11 +411,10 @@ export function dataMode(ctx) {
   };
 
   // ---------- the tree ----------
-  // a folder's images, the kinds the study opens, but those an edit replaced (req/shell/data/edit-save)
+  // a folder's images, the kinds the study opens
   const imagesOf = (n) => {
-    const edited = replacedBy([...n.files, ...n.folders.map((id) => ({ name: nodes.get(id)?.name, folder: true }))]);
     const opens = accepts(manifest.files.accept);
-    return n.files.filter((f) => opens(f.name) && f.name !== PREVIEWS && !edited(f));
+    return n.files.filter((f) => opens(f.name) && f.name !== PREVIEWS);
   };
   function drawTree() {
     if (!on()) return;
@@ -215,7 +438,27 @@ export function dataMode(ctx) {
       el.querySelector(".tree-children").replaceChildren(...n.folders.map(make));
       return el;
     };
-    $("#data-tree").replaceChildren(...roots.map(make));
+    $("#data-tree").replaceChildren(...roots.map((id) => {
+      const el = make(id), row = el.querySelector?.(":scope > .row");
+      if (row && !row.querySelector(".unlist")) {
+        const b = Object.assign(document.createElement("button"), { type: "button", className: "unlist", title: "Remove from study: take this folder out of the study's folders" });
+        b.setAttribute("aria-label", "Remove from study");
+        b.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+        b.dataset.needsNetwork = "";
+        b.onclick = (e) => { e.stopPropagation(); setListed(roots.filter((r) => r !== id)); };
+        row.querySelector(".name").after(b);
+      }
+      return el;
+    }));
+    drawTags();
+    $("#data-unlisted").hidden = !unlisted.length;
+    $("#data-unlisted-list").replaceChildren(...unlisted.map((f) => {
+      const d = Object.assign(document.createElement("div"), { className: "unlisted-folder" });
+      d.innerHTML = `<span class="name"></span><button type="button" class="link add" data-needs-network>Add to study</button>`;
+      d.querySelector(".name").textContent = f.name;
+      d.querySelector(".add").onclick = () => setListed([...roots, f.id]);
+      return d;
+    }));
     const allowed = lacking().length;
     $("#data-approve").hidden = !allowed; $("#data-approve").textContent = `Approve ${allowed === 1 ? "1 folder" : allowed + " folders"}…`;
   }
@@ -429,7 +672,7 @@ export function dataMode(ctx) {
       console.warn(`${f.name}'s preview could not be read:`, err);
       ctx.status(`${f.name}'s preview could not be read: opening the image itself.`); return ctx.loadOriginal(source);
     }
-    ctx.openPreview(stemOf(f.name) + ".preview.tif", previewTiff(e, pages), { ...source, kind: "preview" });
+    ctx.openPreview(f.name.replace(/\.[^.]*$/, "") + ".preview.tif", previewTiff(e, pages), { ...source, kind: "preview" });
   }
 
 
@@ -468,6 +711,8 @@ export function dataMode(ctx) {
   });
 
   return {
+    // an image opened: whether the Tags box may mark its areas
+    opened() { if (on()) drawTags(); },
     // a study comes in (or the user signs in or out): who may do what in it
     mount(m) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
@@ -475,32 +720,14 @@ export function dataMode(ctx) {
       epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
       if (on()) enter(false);
       asStarted(); delete root.dataset.tree;
-      roots = []; gt = tf.folders(null); gtNodes = [];
+      roots = []; unlisted = []; tagsDoc = { images: {}, folders: {} }; look = { group: null, hide: [] }; gt = tf.folders(null); gtNodes = [];
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
-      $("#data-tree").replaceChildren(); msg($("#data-msg"), "");
+      $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true; $("#tags-box").hidden = true; $("#study-set").hidden = true;
     },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },
     // the Study Manager role chosen, or left (req/shell/account/role)
     role(open) { $("#data-col").hidden = !open; enter(open); },
     get on() { return on(); },
-    // the access to the folder an image is in, as the tree knows it ("write", "view", "none", or null when unknown)
-    accessOf: (folder) => nodes.get(folder)?.access ?? null,
-    // Edit Image's files into the folder named after the image, beside it: the page's own one when it made it
-    // before, else a new one; the tree read again after (req/shell/data/edit-save)
-    async saveEdits(folder, image, files, say) {
-      const n = nodes.get(folder);
-      if (!n || n.access !== "write") throw new Error(ACCESS[n?.access || "unknown"][1]);
-      const name = stemOf(image), there = (await remote.all(folder)).find((f) => f.folder && f.name === name);
-      if (there && !(await sd.ours(there.id))) throw new Error(`This folder already holds a folder named ${name} that this page did not make.`);
-      const into = there ? there.id : await sd.folder(folder, name);
-      for (const [k, f] of files.entries()) {
-        say(`Saving ${k + 1} of ${files.length}, ${f.name}…`);
-        await sd.create(into, f.name, new Blob([f.bytes], { type: "image/tiff" }));
-      }
-      nodes = new Map(); loaded = null; chosen = null;
-      await load();
-      if (nodes.has(folder)) await chooseFolder(nodes.get(folder));
-    },
   };
 }

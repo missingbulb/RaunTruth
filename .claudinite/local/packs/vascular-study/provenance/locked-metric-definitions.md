@@ -43,3 +43,9 @@
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
 - **Mechanism:** unchanged carrier, now in the study's own local pack.
+
+## 2026-11-18 · reaffirmed · its check retired with the 2D figure pipeline (#1011)
+- **Reason:** locked-metric-fields read measure_vessels.py, now retired; the definitions still bind
+  any vessel metric the study reports, so the rule stays as prose.
+- **Actor:** @missingbulb (owner), issue #1011.
+- **Model:** claude-opus-5-5

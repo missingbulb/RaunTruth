@@ -115,4 +115,23 @@ out.folders = {
   out.curate = { name: cur?.name, accepted: cur?.doc.accepted && { by: cur.doc.accepted.by, from: cur.doc.accepted.from_sha256.length }, rejected: after.rejected, reason: after.reason };
 }
 
+// the tagger's own file, found from the two listings alone: the submissions folder, then the image's subfolder; nothing read
+{
+  const d = memoryDrive(), reads = [];
+  const text = d.reader.text;
+  d.reader.text = async (id) => (reads.push(id), text(id));
+  const other = { name: "other.tif", sha256: "f".repeat(64) };
+  const sub = d.add({ parent: "S", name: tf.subfolderName(IMG.name, IMG.sha256), folder: true });
+  d.add({ parent: sub.id, name: "gt_bob@lab.org.json", body: JSON.stringify(doc("bob@lab.org", "2026-11-05T09:00:00Z")) });
+  d.add({ parent: sub.id, name: "notes.txt", body: "not ground truth" });
+  d.lists.length = 0;
+  const nobody = await tf.own(d.reader, "S", IMG, "jane@lab.org");
+  d.add({ parent: sub.id, name: "gt_jane@lab.org.json", body: JSON.stringify(doc("jane@lab.org", "2026-11-05T10:00:00Z")), properties: { rejected: "yes", reason: "blurry" } });
+  d.lists.length = 0;
+  const mine = await tf.own(d.reader, "S", IMG, "Jane@Lab.org");
+  const listed = [...d.lists];
+  const elsewhere = await tf.own(d.reader, "S", other, "jane@lab.org");
+  out.own = { nobody, mine: mine && { name: mine.name, rejected: mine.rejected, hasId: !!mine.id, hasTime: !!mine.modified }, listed, subId: sub.id, reads, elsewhere };
+}
+
 console.log(JSON.stringify(out));

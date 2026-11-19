@@ -18,13 +18,7 @@
 #v3-stage:not(.split) #mcv { background: transparent; }
 
 /* Processing: the algorithm, how it works, and Execute at the box's end */
-#vm-algo { width: 100%; }
-#vm-about-note { margin: 8px 0 0; }
-#vm-about-note p { margin: 6px 0 0; }
-#vm-about-note ul, #vm-about-note ol { margin: 4px 0 0; padding-left: 16px; }
-#vm-about-note li > ul, #vm-about-note li > ol { margin-top: 2px; }
 #model-set .row { align-items: center; }
-#model-on { margin-top: 10px; }
 #vm-marks { margin-top: 10px; }
 
 /* the toolbar's Show menu, as NoR's: what the main view shows and how the model is drawn over the stack */
@@ -36,7 +30,7 @@
 #vm-show #reach-o { min-width: 9ch; font-size: 12px; color: var(--dim); }
 
 /* the open area's tools on its row, and its work under it */
-#model-on[hidden], #vm-tasks[hidden], #task-now[hidden], #task-menu[hidden], #task-tools[hidden], #vm-focus[hidden], #gt-mini[hidden] { display: none; }
+#vm-tasks[hidden], #task-now[hidden], #task-menu[hidden], #task-tools[hidden], #vm-focus[hidden], #gt-mini[hidden] { display: none; }
 #vm-tasks { display: flex; flex-direction: column; gap: 8px; }
 #task-now { display: flex; flex-direction: column; gap: 8px; }
 #task-now .hint, #task-now .note { margin: 0; }
@@ -78,7 +72,8 @@
   border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }
 #ctx[hidden] { display: none; }
 #ctx .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
-#ctx .item:hover, #ctx .item:focus-visible { color: var(--accent); }
+#ctx .item:enabled:hover, #ctx .item:focus-visible { color: var(--accent); }
+#ctx .item:disabled { color: var(--dim); cursor: default; }
 #ctx .note { padding: 4px; }
 
 #items-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -105,3 +100,30 @@
 .chip.candidate { border-color: var(--warn); color: var(--warn); }
 .chip.accepted { border-color: var(--yes); color: var(--yes); }
 .chip.rejected { border-color: var(--no); color: var(--no); }
+
+/* Summary: the numbers and their histograms */
+#vm-summary { margin-bottom: 10px; }
+.vm-metrics { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 8px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.vm-metrics dt { color: var(--dim); }
+.vm-metrics dd { margin: 0; }
+.vm-metrics b, #vm-summary .hist b { color: var(--text); font-weight: 600; }
+#vm-summary .dim { color: var(--dim); }
+.vm-metrics dd .dim { display: block; font-size: 11px; }
+#vm-summary .hists { display: flex; flex-direction: column; gap: 10px; }
+#vm-summary .hist { font-size: 12px; color: var(--dim); }
+#vm-summary .hist svg { display: block; width: 100%; height: auto; }
+#vm-summary .hist text { fill: currentColor; font-size: 10px; }
+#vm-summary .hist .bar { fill: var(--pink, #e86ab0); opacity: .75; }
+#vm-summary .hist .grid { stroke: var(--line); }
+#vm-summary .hist .sd { fill: var(--text); opacity: .1; }
+#vm-summary .hist .mean { stroke: var(--text); stroke-width: 1.5; }
+/* the view toggles in the keys legend (req/vascular/model/view): filled while their view is on screen; a held key's
+   chip ringed dashed, unfilled with a blue border while holding it turns its view off; 3D | 2D as two halves, the one
+   shown filled */
+:is(#key-model, #key-outlines, #key-side, #key-swap).held { outline: 1px dashed #fff; outline-offset: 2px; }
+.key-row > :is(#key-model, #key-outlines, #key-side).held[aria-pressed="false"] { color: #b4b9c0; background: #000a; border-color: var(--blue); }
+.key-row > #key-swap { display: flex; padding: 0; overflow: hidden; color: #b4b9c0; background: #000a; border-color: #6b7078; }
+.key-row > #key-swap.held { border-color: var(--blue); }
+#key-swap span { padding: 2px 8px; }
+#key-swap[aria-pressed="false"] span:first-child, #key-swap[aria-pressed="true"] span:last-child { color: #fff; background: var(--blue); }
+.key-row:has(.held) > .key-hint { opacity: 1; color: #fff; }

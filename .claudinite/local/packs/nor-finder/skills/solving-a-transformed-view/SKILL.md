@@ -15,7 +15,7 @@ is the control.
 
 ## 1. Choose the views
 
-Pick three to five tricks that can run here (`python3 studies/nor/detection/mutate.py list` marks
+Pick three to five tricks that can run here (`python3 lab/mutate.py nor list` marks
 them `ok`), choosing by their `try_when` in `dev/tools/trick_pool/pool.yaml` against the wall's
 failure class. Add the trick behind any mutant with signal from the last sweep (the id between `:`
 and `@` in its spec), and always include `raw`. Prefer tricks from different families: a
@@ -24,13 +24,13 @@ background remover, a ridge or blob map, and a texture or symmetry map see diffe
 ## 2. Render the tiles
 
 ```
-cd studies/nor/detection && python3 mutate.py view raw white-tophat frangi-vesselness --out .cache/views
+python3 lab/mutate.py nor view raw white-tophat frangi-vesselness --out studies/nor/data/raw/views
 ```
 
 It renders the same six tiles in every view. They sit over the real items no registered version
 finds first, then the false ones every version keeps, then plain successes if room is left. Each
-has a grid labelled in tile pixels. It writes `.cache/views/<view>/tile_<n>.png` and
-`.cache/views/tiles.json`, which maps marks back to image coordinates.
+has a grid labelled in tile pixels. It writes `studies/nor/data/raw/views/<view>/tile_<n>.png` and
+`studies/nor/data/raw/views/tiles.json`, which maps marks back to image coordinates.
 
 ## 3. Have a fresh agent solve each view
 
@@ -46,7 +46,7 @@ describing its composition and arrangement only - no thresholds, check letters o
 the study's rules>, after the image was processed by <trick name: its `visual` line from the
 pool>. Read nothing else in the repository.
 
-Find every object in every tile. First write JSON to .cache/views/<view>/marks.json:
+Find every object in every tile. First write JSON to studies/nor/data/raw/views/<view>/marks.json:
 {"marks": [{"tile": n, "x": gx, "y": gy, "sure": 0..1}]}. x and y are the numbers printed on the
 grid lines (0-159 along each edge of a tile), never the PNG's own pixels. Use sure >= 0.5 for a
 mark you would count. Then, in at most 8 numbered steps, say how you decided what was an object
@@ -56,7 +56,7 @@ and what was not, concretely enough that someone could write a program from your
 ## 4. Score the marks, then mine the winner
 
 ```
-cd studies/nor/detection && python3 mutate.py marks .cache/views/<view>/marks.json --tiles .cache/views/tiles.json
+python3 lab/mutate.py nor marks studies/nor/data/raw/views/<view>/marks.json --tiles studies/nor/data/raw/views/tiles.json
 ```
 
 It prints the agent's tp and fp on the labelled items inside the tiles, and for each registry
@@ -70,7 +70,7 @@ little. Compare the views on those numbers:
   (implement it literally first).
 - **A view whose agent rejects false items the registry keeps** has a verification rule. When the
   rule is "the map is low over the candidate", run it as
-  `python3 mutate.py one 'verify:<trick>@<chan>:reject'`
+  `python3 lab/mutate.py nor one 'verify:<trick>@<plane>:reject'`
   ([mutating-an-algorithm](../mutating-an-algorithm/SKILL.md)). A rule of any other shape lands as a
   switch in the base and is ablated.
 - **No view beats the raw one**: the trick does not help an eye either.

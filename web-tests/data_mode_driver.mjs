@@ -7,6 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
+import { frames } from "./page_frames.mjs";
+import { click } from "./page_click.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
@@ -24,10 +26,10 @@ approved.add(GT.curated);
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered as a viewer's, with no Preprocessing
+// not signed in: the drawers numbered as a viewer's
 let page = await open(false);
 await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2,3",
-  "the drawers on show, a viewer's without the postprocessing, are numbered without Preprocessing");
+  "the drawers on show, a viewer's without the postprocessing, are numbered");
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
@@ -37,10 +39,12 @@ const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingCli
 const slid = (wide) => page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
   && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }).catch(() => {});
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
-const turned = () => page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+const turned = () => frames(page);
 await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
 await role(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
+// Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
+await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
 await slid(true);
 await check((await width()) > 200, "choosing Study Manager slides the column out, open", await width());
 await page.click("#data-open");
@@ -66,14 +70,14 @@ await check(true, "the list button lays the images out as a list");
 
 await page.click("#update-previews");
 await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
-await check(!writes.length, "a previews file the page did not make is left alone", writes);
+await check(!writes.filter(([, name]) => name !== "rauntruth-index.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "1");
 await page.click("#update-previews");
 await page.waitForFunction(() => /3 previews made/.test($("#folder-msg").textContent), null, { timeout: 30000 });
-await check(JSON.stringify(writes) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
+await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-index.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
 await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, truth: 0, pending: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
@@ -135,7 +139,7 @@ await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .c
 const before = writes.length;
 await page.context().setOffline(true);
 await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.click(cell("e plain.tif") + " .mark-gt", { force: true });
+await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
 await turned();
 await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
 // Data Management as a whole needs the network: its column's chevron does nothing
@@ -147,10 +151,10 @@ await page.context().setOffline(false);
 await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 
 await role(page, "Viewer");
-const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !$("#preprocessing-box").checkVisibility() && !document.documentElement.dataset.mode;
+const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
 await page.waitForFunction(leftMode, null, { timeout: 5000 }).catch(() => {});
 await check(await page.evaluate(leftMode),
-  "another role leaves the mode: the column gone, Load back, Preprocessing gone");
+  "another role leaves the mode: the column gone, Load back");
 // offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode)
 await page.context().setOffline(true);
 await page.waitForFunction(() => document.documentElement.classList.contains("offline"));

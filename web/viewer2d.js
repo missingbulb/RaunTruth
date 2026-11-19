@@ -8,8 +8,13 @@
 // drag, landed on it, pick(null) when it landed on nothing; open(it) when a double click did; step(dir) on a sideways swipe; capturesPointer() while the study's own tool (a
 // lasso, say) takes the pointer; zoomed() after every zoom. A study's press listener that calls preventDefault()
 // takes that press, which then never pans the view nor picks.
+//
+// ring(box | null, {pan}) rings a box of the image, [x0, y0, x1, y1] in its pixels, in a layer of its own that no zoom
+// thins below two screen pixels (the Edit History window's hover, req/shell/ground-truth/history); pan scrolls to it when
+// its middle is out of view (inView(box) says so); null takes the ring away. The 3D viewer's ring sits at the stack's middle depth and never pans.
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
+import { drag } from "./drag.js";
 
 // the user's grid: {colour, um, px}, its colour and the distance between its lines in µm and in pixels
 export const GRID = "nor-grid";
@@ -19,14 +24,25 @@ export const MINIMAP = "nor-minimap";
 // a popup that opens while the pointer is over its button or itself, or the button has the keyboard's focus, and
 // stays while the user is at one of its fields; the button is its anchor, which the stylesheet places it by. The
 // browser's own interest invoker does this where it has one. fill() writes the current values into it as it opens
+// a hover popup closes the stylesheet's moment after the pointer and the focus leave it and what opened it: .leaving
+// waits on its transition, and the end of it closes the popup unless the user came back (keep())
+export function closesOnLeave(pop, keep = () => false) {
+  pop.classList.add("hover-pop");
+  pop.addEventListener("transitionend", (e) => { // ends with animations off: its grace keeps a rule there in style.css
+    if (e.target !== pop || e.propertyName !== "opacity" || !pop.classList.contains("leaving")) return;
+    pop.classList.remove("leaving");
+    if (!keep() && pop.matches(":popover-open")) pop.hidePopover();
+  });
+  pop.addEventListener("focusin", () => pop.classList.remove("leaving"));
+  return { stay: () => pop.classList.remove("leaving"), leave: () => pop.classList.add("leaving") };
+}
+
 export function hoverPop(btn, pop, fill) {
   pop.addEventListener("beforetoggle", (e) => { if (e.newState === "open") fill(); });
   const show = () => { if (!pop.matches(":popover-open")) pop.showPopover({ source: btn }); };
   if ("interestForElement" in HTMLButtonElement.prototype) btn.interestForElement = pop;
   else {
-    let leaving = null;
-    const stay = () => clearTimeout(leaving);
-    const leave = () => { stay(); leaving = setTimeout(() => { if (!pop.matches(":hover, :focus-within") && !btn.matches(":hover, :focus-visible")) pop.hidePopover(); }, 300); };
+    const { stay, leave } = closesOnLeave(pop, () => pop.matches(":hover, :focus-within") || btn.matches(":hover, :focus-visible"));
     for (const on of ["mouseenter", "focus"]) btn.addEventListener(on, () => { stay(); show(); });
     for (const off of ["mouseleave", "blur"]) btn.addEventListener(off, leave);
     pop.addEventListener("mouseenter", stay); pop.addEventListener("mouseleave", leave);
@@ -38,12 +54,29 @@ export function hoverPop(btn, pop, fill) {
 // channel rows
 const HIDEABLE = { ruler: "#ruler-btn", grid: "#grid-btn" };
 
+const make = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+
+// a ruler's length as it reads: d in µm when the unit is "µm", else in pixels
+export function rulerText(d, unit) {
+  return unit === "µm" ? `${d.toFixed(d < 10 ? 2 : d < 100 ? 1 : 0)} µm` : `${d.toFixed(d < 100 ? 1 : 0)} px`;
+}
+// a ruler drawn into svg, in its pixels: the line from a to b ([x, y]) with a tick across each end, the text above
+// its middle clear of the line whatever its slant, and under it the marks under(make) gives
+export function rulerMarks(svg, [x1, y1], [x2, y2], text, under = () => []) {
+  const len = Math.hypot(x2 - x1, y2 - y1), nx = len ? (y1 - y2) / len : 0, ny = len ? (x2 - x1) / len : 1, t = 7;
+  const d = `M${x1},${y1}L${x2},${y2}M${x1 - nx * t},${y1 - ny * t}L${x1 + nx * t},${y1 + ny * t}M${x2 - nx * t},${y2 - ny * t}L${x2 + nx * t},${y2 + ny * t}`;
+  const label = make("text", { "text-anchor": "middle", "dominant-baseline": "central" });
+  label.textContent = text;
+  svg.append(...under(make, len), make("path", { class: "halo", d }), make("path", { class: "mark", d }), label);
+  const { width: w, height: h } = label.getBBox(), s = ny > 0 ? -1 : 1, off = 6 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
+  label.setAttribute("x", (x1 + x2) / 2 + nx * off * s); label.setAttribute("y", (y1 + y2) / 2 + ny * off * s);
+}
+
 export function viewer(shell) {
   const { $, state: st, page } = shell;
   // what an image changes on the page, as it loaded: put back when none is open
   const asBuilt = asLoaded(["#stage", "#minimap .mm-body", "#zoom-label"].map((s) => $(s)));
-  let hooks = {}, declared = [], chans = [];
-  const make = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+  let hooks = {}, declared = [], chans = [], ringAt = null;
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
 
 
@@ -250,8 +283,11 @@ export function viewer(shell) {
       sc.scrollTo(x * st.zoom - sc.clientWidth / 2, y * st.zoom - sc.clientHeight / 2);
     };
     const body = box.querySelector(".mm-body");
-    body.addEventListener("pointerdown", (e) => { body.setPointerCapture(e.pointerId); shell.showImage(); go(e); });
-    body.addEventListener("pointermove", (e) => { if (body.hasPointerCapture(e.pointerId)) go(e); });
+    body.addEventListener("pointerdown", (e) => {
+      const sc = $("#scroller"), was = [sc.scrollLeft, sc.scrollTop];
+      drag(body, e, { move: go, cancel: () => sc.scrollTo(...was) });
+      shell.showImage(); go(e);
+    });
     $("#scroller").addEventListener("scroll", view);
     addEventListener("resize", place);
     return { draw, view, place };
@@ -269,7 +305,7 @@ export function viewer(shell) {
     svg.style.fontSize = 12 / st.zoom + "px";
     sc.scrollLeft = ix * st.zoom - ax; sc.scrollTop = iy * st.zoom - ay;
     $("#zoom-label").textContent = Math.round(st.zoom * 100) + "%";
-    ruler.draw(); grid.draw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
+    ruler.draw(); grid.draw(); ringDraw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
   }
   // the whole image in view, at most at 100%; a view another one covers (the 3D view, say) has no size, and the
   // image is fitted once it has
@@ -289,6 +325,27 @@ export function viewer(shell) {
     const sc = $("#scroller");
     sc.scrollTo({ left: x * st.zoom - sc.clientWidth / 2, top: y * st.zoom - sc.clientHeight / 2, behavior: "smooth" });
   }
+  // the ring round a box of the image, drawn again at every zoom
+  function ringDraw() {
+    const svg = $("#overlay");
+    if (!ringAt) { svg.querySelector(':scope > g[data-layer="ring"]')?.remove(); return; }
+    const g = layer("ring"), [x0, y0, x1, y1] = ringAt, pad = 8 / st.zoom;
+    g.dataset.box = ringAt.join(","); g.style.pointerEvents = "none";
+    const one = (attrs) => make("ellipse", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, rx: (x1 - x0) / 2 * 1.2 + pad, ry: (y1 - y0) / 2 * 1.2 + pad, fill: "none", "vector-effect": "non-scaling-stroke", ...attrs });
+    g.style.stroke = "var(--gt-ring, #ffd400)";
+    g.replaceChildren(one({ "stroke-opacity": 0.3, "stroke-width": 7 }), one({ "stroke-width": 2 }));
+  }
+  // whether the middle of a box of the image is in view
+  function inView(box) {
+    const r = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect();
+    const x = b.left + ((box[0] + box[2]) / 2) * st.zoom, y = b.top + ((box[1] + box[3]) / 2) * st.zoom;
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+  function ring(box, { pan = false } = {}) {
+    ringAt = box && st.img ? box.slice(0, 4) : null;
+    ringDraw();
+    if (ringAt && pan && !inView(ringAt)) focus((ringAt[0] + ringAt[2]) / 2, (ringAt[1] + ringAt[3]) / 2);
+  }
   // a pointer event's place on the image, in its pixels
   function toImage(e) {
     const r = $("#base").getBoundingClientRect();
@@ -305,23 +362,25 @@ export function viewer(shell) {
 
   // drag to move, scroll up and down to zoom, sideways to step
   {
-    const sc = $("#scroller"); let drag = null;
+    // a press, until it moves far enough to be a pan or is let go as a click
+    const sc = $("#scroller"); let press = null;
     sc.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || !st.img || hooks.capturesPointer?.() || ruler.armed) return;
-      drag = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop, c: hooks.pickAt?.(e) ?? null, moved: false, id: e.pointerId, down: e };
+      press = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop, c: hooks.pickAt?.(e) ?? null, down: e };
     });
     // a press the study's own listener took (a glyph of its drawing grabbed) is not the view's: it neither pans nor picks
-    const taken = () => { if (drag?.down.defaultPrevented) drag = null; return !drag; };
+    const taken = () => { if (press?.down.defaultPrevented) press = null; return !press; };
     sc.addEventListener("pointermove", (e) => {
-      if (taken()) return;
-      if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) { drag.moved = true; sc.setPointerCapture(drag.id); sc.classList.add("dragging"); $("#tip").hidden = true; }
-      if (drag.moved) { sc.scrollLeft = drag.l - (e.clientX - drag.x); sc.scrollTop = drag.t - (e.clientY - drag.y); }
+      if (taken() || e.pointerId !== press.down.pointerId || Math.hypot(e.clientX - press.x, e.clientY - press.y) <= 4) return;
+      const p = press; press = null;
+      const to = (ev) => { sc.scrollLeft = p.l - (ev.clientX - p.x); sc.scrollTop = p.t - (ev.clientY - p.y); };
+      const over = () => sc.classList.remove("dragging");
+      sc.classList.add("dragging"); $("#tip").hidden = true;
+      drag(sc, p.down, { move: to, drop: over, cancel: () => { over(); sc.scrollTo(p.l, p.t); } });
+      to(e);
     });
-    const end = () => {
-      if (!taken() && !drag.moved) hooks.pick?.(drag.c);
-      drag = null; sc.classList.remove("dragging");
-    };
-    sc.addEventListener("pointerup", end); sc.addEventListener("pointercancel", () => { drag = null; sc.classList.remove("dragging"); });
+    sc.addEventListener("pointerup", () => { if (!taken()) hooks.pick?.(press.c); press = null; });
+    sc.addEventListener("pointercancel", () => { press = null; });
     sc.addEventListener("dblclick", (e) => {
       if (!st.img || hooks.capturesPointer?.() || ruler.armed) return;
       const it = hooks.pickAt?.(e);
@@ -343,52 +402,42 @@ export function viewer(shell) {
   // the ruler: its button arms it, a drag from a point shows the reach around it, and on release the ruler
   // stays between the two points with their distance, in µm when the file gives the pixel's width and height
   // (each axis its own), else in pixels; the button pressed again takes it away. It draws in its own layer,
-  // in screen pixels, so a study redrawing its overlay keeps it.
+  // in screen pixels, so a study redrawing its overlay keeps it. Another view may take the button over (rulerWith).
   const ruler = (() => {
     const btn = $("#ruler-btn"), svg = $("#ruler"), sc = $("#scroller");
-    let armed = false, from = null, to = null, live = false;
+    let armed = false, from = null, to = null, live = false, takenBy = null;
     function length() {
       const dx = to[0] - from[0], dy = to[1] - from[1];
-      if (st.um && st.umY) { const d = Math.hypot(dx * st.um, dy * st.umY); return `${d.toFixed(d < 10 ? 2 : d < 100 ? 1 : 0)} µm`; }
-      const d = Math.hypot(dx, dy); return `${d.toFixed(d < 100 ? 1 : 0)} px`;
+      return st.um && st.umY ? rulerText(Math.hypot(dx * st.um, dy * st.umY), "µm") : rulerText(Math.hypot(dx, dy), "px");
     }
     function draw() {
       svg.replaceChildren();
       if (!from) return;
       svg.setAttribute("width", st.W * st.zoom); svg.setAttribute("height", st.H * st.zoom);
-      const [x1, y1] = from.map((v) => v * st.zoom), [x2, y2] = to.map((v) => v * st.zoom);
-      const len = Math.hypot(x2 - x1, y2 - y1), nx = len ? (y1 - y2) / len : 0, ny = len ? (x2 - x1) / len : 1, t = 7;
-      const d = `M${x1},${y1}L${x2},${y2}M${x1 - nx * t},${y1 - ny * t}L${x1 + nx * t},${y1 + ny * t}M${x2 - nx * t},${y2 - ny * t}L${x2 + nx * t},${y2 + ny * t}`;
-      const parts = [make("path", { class: "halo", d }), make("path", { class: "mark", d })];
-      if (live) parts.unshift(make("circle", { class: "halo reach", cx: x1, cy: y1, r: len }), make("circle", { class: "mark reach", cx: x1, cy: y1, r: len }));
-      const label = make("text", { "text-anchor": "middle", "dominant-baseline": "central" });
-      label.textContent = length(); parts.push(label);
-      svg.append(...parts);
-      // the length above the middle of the ruler, its box clear of the line whatever the line's slant
-      const { width: w, height: h } = label.getBBox(), s = ny > 0 ? -1 : 1, off = 6 + Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
-      label.setAttribute("x", (x1 + x2) / 2 + nx * off * s); label.setAttribute("y", (y1 + y2) / 2 + ny * off * s);
+      const a = from.map((v) => v * st.zoom);
+      rulerMarks(svg, a, to.map((v) => v * st.zoom), length(), (mk, r) => live
+        ? [mk("circle", { class: "halo reach", cx: a[0], cy: a[1], r }), mk("circle", { class: "mark reach", cx: a[0], cy: a[1], r })] : []);
     }
     function set(on) {
       armed = on; from = to = null; live = false;
       btn.setAttribute("aria-pressed", on); sc.classList.toggle("measuring", on); draw();
     }
-    btn.onclick = () => set(btn.getAttribute("aria-pressed") !== "true");
+    btn.onclick = () => (takenBy ? takenBy() : set(btn.getAttribute("aria-pressed") !== "true"));
     sc.addEventListener("pointerdown", (e) => {
       if (!armed || e.button !== 0 || !st.img || hooks.capturesPointer?.()) return;
-      e.preventDefault(); sc.setPointerCapture(e.pointerId);
+      e.preventDefault();
       from = toImage(e); to = from; live = true; draw();
+      drag(sc, e, { move: (ev) => { to = toImage(ev); draw(); }, drop, cancel: () => { if (live) { live = false; from = to = null; draw(); } } });
     });
-    sc.addEventListener("pointermove", (e) => { if (live) { to = toImage(e); draw(); } });
     // a click with no drag measures nothing, and the ruler stays armed
-    const drop = () => {
+    function drop() {
       if (!live) return;
       live = false;
       if (Math.hypot(to[0] - from[0], to[1] - from[1]) * st.zoom < 3) from = to = null;
       else { armed = false; sc.classList.remove("measuring"); }
       draw();
-    };
-    sc.addEventListener("pointerup", drop); sc.addEventListener("pointercancel", drop);
-    return { draw, reset: () => set(false), get armed() { return armed; } };
+    }
+    return { draw, reset: () => set(false), get armed() { return armed; }, take(fn) { set(false); takenBy = fn; } };
   })();
   // the grid: its button draws it or takes it away; a click or a hover opens the popup of its colour and
   // spacing, in µm when the file gives the pixel's width and height (the cells then square in µm) and in
@@ -429,11 +478,11 @@ export function viewer(shell) {
     st.peek?.stop?.(); st.peeked = false;
     return (st.peek = painter($("#base"), shown, (W, H) => {
       st.img = null; st.plain = null; st.W = W; st.H = H; st.peeked = true; ruler.reset(); rows();
-      $("#overlay").innerHTML = ""; $("#empty").hidden = true; $("#stage").hidden = false;
+      $("#overlay").innerHTML = ""; ringAt = null; $("#empty").hidden = true; $("#stage").hidden = false;
       fit(); tools();
     }));
   }
-  function clear() { $("#overlay").innerHTML = ""; done = []; }
+  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; }
 
   // ---------- what the tagger has done, cut out of the image ----------
   // The study gives the shapes its tagger has decided ([[x, y], ...] in image pixels); the viewer cuts them out of the
@@ -478,9 +527,11 @@ export function viewer(shell) {
     // another viewer's rows under the channels' rows, none to take them away, and the zoom buttons taken over by it
     // (fn(factor)) or given back (null)
     rowsAfter(els) { added = els; rows(); }, rowsWith(fn) { withRow = fn; rows(); }, zoomWith(fn) { zoomer = fn; if (!fn && st.img) $("#zoom-label").textContent = Math.round(st.zoom * 100) + "%"; },
+    // the Ruler button taken over by another view (fn() on each press) or given back (null), this view's ruler gone
+    rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
     doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
-    draw, setZoom, fit, focus, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
+    draw, setZoom, fit, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
     get overlay() { return $("#overlay"); }, get scroller() { return $("#scroller"); },
   };
 }

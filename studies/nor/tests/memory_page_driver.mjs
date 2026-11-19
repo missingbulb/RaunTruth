@@ -33,9 +33,9 @@ postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs:
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+  } else if (m.type === "call" && m.action === "run") {
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][m.echo % 2], echo: m.echo, ms: 0 });
   }
@@ -92,7 +92,7 @@ async function open() {
 async function find() {
   for (const f of ["tl", "rf"]) {
     const done = next("refilter");
-    await page.evaluate((f) => { $("#finder").value = f; $("#finder").dispatchEvent(new Event("change")); $("#find").click(); }, f);
+    await page.evaluate((f) => { $("#algorithm").value = f; $("#algorithm").dispatchEvent(new Event("change")); $("#find").click(); }, f);
     await done; await settled();
   }
 }
@@ -124,7 +124,7 @@ async function measure() {
   // count is the same whatever they last read.
   // the page's frames done first: the item view draws its cards in them as they come near, which a slow machine
   // can still be doing when the work itself has settled
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100)))));
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the cards drawn as they come near; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
   // element it writes into an action's log, and the page adds attributes as it goes (a class the first time an
   // animation is seen off screen): each one in the document is read here, made a node whoever read it before, and
@@ -178,7 +178,8 @@ await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
 await open(); await find(); await tune();
 const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
-  await act(); await act();
+  // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
+  for (let r = 0; r < 10; r++) await act();
   const base = await measure();
   for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
   const m = await measure();

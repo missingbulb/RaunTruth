@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vascular phone tagging: mockup v2</title>
+<style>
+  :root {
+    --page: #eef0f3; --ink: #15181d; --muted: #5d6673; --surface: #ffffff; --line: #d5dae1;
+    --btn: #e6e9ee; --btn-ink: #15181d; --primary: #2457d6; --primary-ink: #ffffff;
+    --bezel: #1b1e24; --track: #d5dae1; --done: #2457d6; --note: #7a4a00; --note-bg: #fff3d6;
+    /* annotation colours: none of them is in the red-to-green depth palette the signal is painted in */
+    --mark: #ffffff; --rim: #05070a; --probe: #35e0ff; --model: #ff4fd8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0e1013; --ink: #e9ecf1; --muted: #98a2b0; --surface: #191c22; --line: #2c313a;
+      --btn: #262b34; --btn-ink: #e9ecf1; --primary: #6f9bff; --primary-ink: #08122b;
+      --bezel: #000000; --track: #333945; --done: #6f9bff; --note: #ffd58a; --note-bg: #3a2c0c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 4px; max-width: 1100px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  header p { margin: 0 0 6px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 6px 24px 0; }
+  .legend i { display: inline-block; width: 26px; height: 10px; border-radius: 5px; vertical-align: middle; margin-right: 6px; border: 1px solid var(--line); }
+  .row { display: flex; flex-wrap: wrap; gap: 28px; padding: 20px 24px 40px; align-items: flex-start; }
+  figure { margin: 0; flex: 0 0 auto; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 376px; height: 756px; padding: 8px; border-radius: 34px; background: var(--bezel); }
+  .screen { width: 360px; height: 740px; border-radius: 27px; overflow: hidden; background: var(--surface);
+            display: flex; flex-direction: column; position: relative; }
+  .top { height: 48px; flex: 0 0 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 13px; color: var(--muted); }
+  .top .x { font-size: 20px; line-height: 1; width: 28px; }
+  .bar { flex: 1; display: flex; gap: 3px; height: 6px; }
+  .bar span { background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+  .bar span b { position: absolute; inset: 0 auto 0 0; background: var(--done); }
+  .img { margin: 0 10px; border-radius: 12px; overflow: hidden; background: #070506; flex: 0 0 auto; line-height: 0; }
+  .img + .img { margin-top: 6px; }
+  .q { padding: 12px 16px 0; font-size: 19px; font-weight: 650; }
+  .hint { padding: 3px 16px 0; font-size: 13px; color: var(--muted); }
+  .grow { flex: 1; }
+  /* everything below here sits in the bottom third: the thumb's reach */
+  .thumb { padding: 0 12px 14px; }
+  .scrub { display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 4px; font-size: 12px; color: var(--muted); }
+  .scrub .play { width: 44px; height: 44px; border-radius: 22px; background: var(--btn); display: grid; place-items: center; font-size: 15px; color: var(--btn-ink); }
+  .scrub .track { flex: 1; height: 44px; position: relative; }
+  .scrub .track::before { content: ""; position: absolute; left: 0; right: 0; top: 20px; height: 4px; border-radius: 2px;
+     background: repeating-linear-gradient(90deg, var(--track) 0 2px, transparent 2px calc(100% / 12)); border-bottom: 1px solid var(--track); }
+  .scrub .knob { position: absolute; top: 6px; width: 32px; height: 32px; border-radius: 16px; background: var(--primary); margin-left: -16px; }
+  .scrub .tick { position: absolute; top: 2px; font-size: 10px; font-weight: 700; color: var(--ink); transform: translateX(-50%); }
+  .scrub .tick::after { content: ""; display: block; width: 2px; height: 14px; margin: 1px auto 0; background: var(--ink); }
+  .btns { display: flex; gap: 10px; }
+  .btn { flex: 1; height: 92px; border-radius: 18px; background: var(--btn); color: var(--btn-ink);
+         display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: 650; text-align: center; }
+  .btn small { font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); }
+  .btn.primary small { color: inherit; opacity: .8; }
+  .btn svg { margin-bottom: 4px; }
+  .links { display: flex; justify-content: space-between; height: 44px; align-items: center; padding: 0 6px; font-size: 14px; color: var(--muted); }
+  .card { margin: 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .kv { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv:last-child { border: 0; }
+  .note { margin: 10px 14px 0; padding: 8px 12px; border-radius: 10px; background: var(--note-bg); color: var(--note); font-size: 12.5px; }
+  svg text { font-family: system-ui, sans-serif; }
+  .v { fill: none; stroke-linecap: round; stroke-linejoin: round; filter: url(#glow); }
+  .d1 { stroke: #ff3f38; } .d2 { stroke: #ff8a2a; } .d3 { stroke: #f1cf35; } .d4 { stroke: #4fd44a; }
+  .ring { fill: none; stroke: var(--mark); stroke-width: 2; paint-order: stroke; }
+  .rim { fill: none; stroke: var(--rim); stroke-width: 5; opacity: .85; }
+  .probe { fill: none; stroke: var(--probe); stroke-width: 1.6; }
+  .model { fill: none; stroke: var(--model); stroke-width: 1.2; opacity: .75; }
+  .lab { fill: var(--probe); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--rim); stroke-width: 3px; }
+  .cap { fill: #c9cfd8; font-size: 10px; paint-order: stroke; stroke: var(--rim); stroke-width: 2.5px; }
+  .step { display: flex; align-items: center; gap: 10px; height: 60px; font-size: 12px; color: var(--muted); }
+  .step .sb { width: 84px; height: 52px; border-radius: 14px; background: var(--btn); color: var(--btn-ink); display: grid; place-items: center; font-size: 13px; font-weight: 600; }
+  .step .mid { flex: 1; text-align: center; }
+  .step .mid i { display: block; height: 6px; border-radius: 3px; background: var(--track); margin: 0 6px 5px; position: relative; }
+  .step .mid i b { position: absolute; top: 0; bottom: 0; background: var(--done); border-radius: 3px; }
+  .btn.three { font-size: 15px; height: 92px; padding: 0 4px; }
+  .a1 { stroke: #35e0ff; } .a2 { stroke: #ffffff; } .a3 { stroke: #ff4fd8; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="haze"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="axial"><feGaussianBlur stdDeviation="9 4"/></filter>
+    <filter id="speckle" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 .55  0 0 0 0 .22  0 0 0 0 .08  0 0 0 .55 -.18"/>
+    </filter>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#000"/><rect width="1" height="6" fill="#444"/>
+    </pattern>
+  </defs>
+</svg>
+
+<header>
+  <h1>Vascular Measurements: ground-truth tagging on a phone (mockup v2)</h1>
+  <p>After the efficiency review: three rounds instead of one deck, one question per dead end, depth shown only in the item's own
+     slices and stepped with two buttons, and the junction question split into the parts an eye can answer. Vessel drawings are
+     placeholders, not data. Outlines and dotted paths blink by themselves; nothing is held.</p>
+</header>
+<div class="legend">
+  <span><i style="background:linear-gradient(90deg,#ff3f38,#ff8a2a,#f1cf35,#4fd44a)"></i>CD31 signal, coloured by depth (shallow red to deep green)</span>
+  <span><i style="background:#fff;border-color:#05070a;border-width:2px"></i>the item asked about (white, dark rim)</span>
+  <span><i style="background:#35e0ff"></i>points, paths and rulers of the question (cyan)</span>
+  <span><i style="background:#ff4fd8"></i>the model's lines (magenta)</span>
+</div>
+
+<div class="row">
+
+<!-- 1 entry -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span style="font-weight:650;color:var(--ink);font-size:15px">Vascular · tagging</span><span class="grow"></span><span>Dana</span></div>
+  <div class="card">
+    <h2>cd31_frontal_x20 r 1</h2>
+    <p>Round 1 of 3 · what exists</p>
+    <svg viewBox="0 0 300 300" width="100%" style="margin-top:10px;border-radius:10px;background:#070506;display:block">
+      <rect width="300" height="300" filter="url(#speckle)" opacity=".7"/>
+      <g class="v" stroke-width="3">
+        <path class="d1" d="M10 60 C80 40 120 110 190 90 S270 40 295 70"/><path class="d2" d="M60 5 C70 80 40 140 80 200 S60 270 90 298"/>
+        <path class="d3" d="M5 190 C90 170 150 230 220 200 S280 230 298 210"/><path class="d4" d="M200 5 C180 80 230 140 210 220 S240 270 230 298"/>
+        <path class="d2" d="M120 100 C140 150 150 180 150 215"/><path class="d4" d="M80 200 C120 250 160 260 215 255"/>
+      </g>
+      <g fill="url(#hatch)"><rect x="0" y="0" width="300" height="75"/><rect x="150" y="75" width="150" height="75"/></g>
+      <rect x="76.5" y="76.5" width="72" height="72" class="rim"/><rect x="76.5" y="76.5" width="72" height="72" class="ring"/>
+      <text x="82" y="92" class="cap">Area 7 · next</text>
+    </svg>
+  </div>
+  <div class="card" style="margin-top:10px;border:0;padding:4px 14px">
+    <div class="kv"><span>Next deck</span><span>40 answers · about 3 min</span></div>
+    <div class="kv"><span>Settled without asking</span><span>82 ends that leave the slab</span></div>
+    <div class="kv"><span>Round 2 · junctions</span><span>opens when round 1 is in</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn primary">Continue<small>Area 7, then part of 8</small></div></div>
+    <div class="links"><span>Other stack</span><span>How to answer</span></div>
+  </div>
+</div></div>
+<figcaption><b>1 · Entry.</b> A deck is about 40 answers, cut by count (areas run from under 10 to about 100). Rounds: what exists,
+then junctions on the settled model, then each area's last look. Between rounds the lab redraws the model from the answers, so no
+question is asked about a piece an earlier answer removed.</figcaption></figure>
+
+<!-- 2 dead end -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:1"><b style="width:30%"></b></span></div><span>12/40</span></div>
+  <div class="img"><svg viewBox="0 0 340 250" width="340" height="250">
+    <rect width="340" height="250" fill="#070506"/><rect width="340" height="250" filter="url(#speckle)"/>
+    <g class="v"><path class="d2" stroke-width="7" d="M-5 190 C70 170 130 190 200 168 S300 160 345 136"/>
+      <path class="d2" stroke-width="3.4" opacity=".85" d="M150 180 C160 150 172 132 182 112"/>
+      <path class="d3" stroke-width="3" opacity=".22" stroke-dasharray="4 9" d="M186 104 C196 84 210 66 228 52"/>
+      <path class="d3" stroke-width="4" d="M236 46 C262 30 300 26 345 10"/></g>
+    <path class="rim" stroke-width="4" d="M143 178 C153 148 165 130 175 110 M157 183 C167 153 179 135 189 115"/>
+    <path class="ring" stroke-width="1.4" d="M143 178 C153 148 165 130 175 110 M157 183 C167 153 179 135 189 115"/>
+    <path class="probe" stroke-dasharray="2 5" d="M190 98 C200 80 214 62 230 50"/>
+    <circle cx="236" cy="46" r="13" class="rim"/><circle cx="236" cy="46" r="13" class="probe" stroke-width="2.2"/>
+    <text x="8" y="242" class="cap">all depths · 60 µm across · outline and path blink</text>
+  </svg></div>
+  <div class="img" style="display:flex;gap:4px;background:none">
+    <svg viewBox="0 0 168 60" width="168" height="60" style="border-radius:10px;background:#070506">
+      <rect width="168" height="60" filter="url(#speckle)"/><rect x="0" y="25.5" width="168" height="9" fill="#ff8a2a" filter="url(#glow)" opacity=".8"/>
+      <text x="6" y="54" class="cap">along the piece</text></svg>
+    <svg viewBox="0 0 168 60" width="168" height="60" style="border-radius:10px;background:#070506">
+      <rect width="168" height="60" filter="url(#speckle)"/><rect x="74" y="24" width="14" height="10" fill="#ff8a2a" filter="url(#glow)" opacity=".6"/>
+      <text x="6" y="54" class="cap">same, turned a quarter</text></svg>
+  </div>
+  <div class="q">The outlined branch ends. What is it?</div>
+  <div class="hint">Dotted: where the tracer thinks it could go on.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn three">Not a vessel</div><div class="btn three">Goes on<small>to the ring</small></div><div class="btn three">Ends here</div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>2 · Dead end</b>: one question where v1 asked two (is it a vessel, then does it connect). The flattened picture, since
+a gap is where one slice shows nothing. The two strips are the extractor's own line test as a picture: a vessel is a band along the
+piece and a blob across it. An end at the stack's top or bottom, heading out, is never asked. About 5 s.</figcaption></figure>
+
+<!-- 3 carries on across -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:1"><b style="width:20%"></b></span></div><span>8/40</span></div>
+  <div class="img"><svg viewBox="0 0 340 320" width="340" height="320">
+    <rect width="340" height="320" fill="#070506"/><rect width="340" height="320" filter="url(#speckle)"/>
+    <g class="v"><path class="d2" stroke-width="7" d="M-5 190 C80 180 150 160 200 156 S290 140 345 110"/>
+      <path class="d3" stroke-width="5" d="M120 -5 C130 60 150 110 168 158"/>
+      <path class="d3" stroke-width="4" opacity=".3" d="M172 170 C184 210 196 260 204 325"/></g>
+    <path class="model" d="M-5 190 C80 180 150 160 200 156 S290 140 345 110 M120 -5 C130 60 150 110 168 158"/>
+    <circle cx="169" cy="160" r="22" class="rim"/><circle cx="169" cy="160" r="22" class="ring"/>
+    <path class="probe" stroke-dasharray="2 6" d="M158 176 L184 320 M196 172 L222 316"/>
+    <text x="8" y="312" class="cap">all depths · 70 µm across · model lines blink</text>
+  </svg></div>
+  <div class="q">Does the branch from above carry on past the vessel?</div>
+  <div class="hint">Look between the dotted lines.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn">Stops here</div><div class="btn">Carries on</div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>3 · Round 2, a three-way junction that might be a crossing.</b> Two vessels that pass each other show four arms from
+above, so a three-way crossing is one whose fourth arm the tracer lost. That is a 2D question the eye can answer; depth is not asked.
+"Carries on" has the lab trace the arm and the spot comes back as a four-way item (frame 4 or 5). Asked only where the branch's
+depth misses the vessel's. About 4 s.</figcaption></figure>
+
+<!-- 4 join or cross, two peaks -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:1"><b style="width:55%"></b></span></div><span>22/40</span></div>
+  <div class="img"><svg viewBox="0 0 340 220" width="340" height="220">
+    <rect width="340" height="220" fill="#070506"/><rect width="340" height="220" filter="url(#speckle)"/>
+    <g class="v"><path class="d1" stroke-width="7" d="M-5 140 C80 130 120 108 170 106 S280 86 345 50"/>
+      <path class="d4" stroke-width="6" d="M90 -5 C110 40 150 80 172 106 S230 180 250 225"/></g>
+    <circle cx="171" cy="106" r="24" class="rim"/><circle cx="171" cy="106" r="24" class="ring"/>
+    <path class="probe" stroke-dasharray="2 6" d="M104 6 L238 206"/>
+    <text x="8" y="212" class="cap">from above · slices 3–11 of 24</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 110" width="340" height="110">
+    <rect width="340" height="110" fill="#070506"/><rect width="340" height="110" filter="url(#speckle)" opacity=".6"/>
+    <ellipse cx="170" cy="30" rx="22" ry="10" fill="#ff3f38" filter="url(#axial)"/>
+    <rect x="-10" y="72" width="360" height="14" fill="#4fd44a" filter="url(#axial)" opacity=".9"/>
+    <path class="probe" d="M306 30 V79 M300 30 H312 M300 79 H312"/>
+    <text x="8" y="14" class="cap">shallow</text><text x="8" y="105" class="cap">deep · cut along the dotted line · 9 slices tall</text>
+    <text x="236" y="58" class="lab" style="font-size:11px">a dark gap</text>
+  </svg></div>
+  <div class="q">Do these vessels join here?</div>
+  <div class="hint">Below: the same spot from the side.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="step"><div class="sb">◀ shallower</div><div class="mid"><i><b style="left:8%;width:38%"></b></i>playing slices 3–11 · 3.6 s</div><div class="sb">deeper ▶</div></div>
+    <div class="btns"><div class="btn">Only cross<small>a dark gap between</small></div><div class="btn">Join<small>one blob</small></div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>4 · Join or only cross</b>, asked only where the stack shows two separate peaks through depth (15 to 34% of junctions
+by the review's probe). The side cut and the strip cover the item's own nine slices, so the cut is 12 px per slice on every stack
+and a loop takes under 4 s; a depth is held with two buttons, not a slider. About 5 s.</figcaption></figure>
+
+<!-- 5 depth tracks -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:1"><b style="width:70%"></b></span></div><span>28/40</span></div>
+  <div class="img"><svg viewBox="0 0 340 150" width="340" height="150">
+    <rect width="340" height="150" fill="#070506"/><rect width="340" height="150" filter="url(#speckle)"/>
+    <g class="v"><path class="d2" stroke-width="7" d="M-5 100 C80 92 120 78 170 76 S280 60 345 30"/>
+      <path class="d3" stroke-width="6" d="M110 -5 C130 30 152 56 172 76 S220 120 236 155"/></g>
+    <g fill="none" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round"><path class="a1" d="M-5 88 C80 80 120 66 170 64 S280 48 345 18"/>
+      <path class="a3" d="M122 -5 C142 30 164 56 184 76 S232 120 248 155"/></g>
+    <circle cx="171" cy="76" r="22" class="rim"/><circle cx="171" cy="76" r="22" class="ring"/>
+    <text x="8" y="142" class="cap">from above · no gap through depth here</text>
+  </svg></div>
+  <div class="img"><svg viewBox="0 0 340 170" width="340" height="170">
+    <rect width="340" height="170" fill="#0b0d11"/>
+    <g stroke="#2b313b" stroke-width="1"><path d="M30 30 H330 M30 65 H330 M30 100 H330 M30 135 H330"/></g>
+    <path d="M180 14 V152" stroke="#ffffff" stroke-width="1" stroke-dasharray="3 4"/>
+    <path d="M30 58 L330 70 L330 58 L30 46 Z" fill="#35e0ff" opacity=".18"/>
+    <path d="M30 52 L330 64" class="a1" fill="none" stroke-width="2.4"/>
+    <path d="M30 128 L330 96 L330 80 L30 112 Z" fill="#ff4fd8" opacity=".18"/>
+    <path d="M30 120 L330 88" class="a3" fill="none" stroke-width="2.4"/>
+    <path class="probe" d="M190 58 V103 M184 58 H196 M184 103 H196" stroke="#ffffff"/>
+    <text x="40" y="86" class="cap" style="font-size:11px">4.5 µm apart here</text><text x="200" y="86" class="cap" style="font-size:11px">touching would be 3.6</text>
+    <text x="34" y="24" class="cap">shallow</text><text x="34" y="164" class="cap">deep · along each vessel · dashed: the junction</text>
+  </svg></div>
+  <div class="q">Do the two lines meet at the dashed line?</div>
+  <div class="hint">Each vessel's measured depth, with its error.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn">Pass apart</div><div class="btn">Meet</div></div>
+    <div class="links"><span>Back</span><span>Can't tell</span></div>
+  </div>
+</div></div>
+<figcaption><b>5 · Where depth shows one blob</b> (a proposal to test, not a known-good view). The eye cannot split two vessels inside
+one blur, but each vessel's depth can be measured along its length far finer than the blur, and two separate vessels cannot sit
+closer than their own widths allow. The person checks a measurement, so the verdict is marked "by measurement", a tier below
+frame 4. What stays "can't tell" is counted, not guessed. About 5 s.</figcaption></figure>
+
+<!-- 6 area check + confirm -->
+<figure><div class="phone"><div class="screen">
+  <div class="top"><span class="x">‹</span>
+    <div class="bar"><span style="flex:1"><b style="width:90%"></b></span></div><span>15/16</span></div>
+  <div class="img"><svg viewBox="0 0 340 300" width="340" height="300">
+    <rect width="340" height="300" fill="#070506"/><rect width="340" height="300" filter="url(#speckle)"/>
+    <g class="v"><path class="d1" stroke-width="5" d="M-5 80 C60 60 120 120 190 100 S300 50 345 70"/>
+      <path class="d2" stroke-width="4" d="M70 -5 C80 70 50 130 90 195 S70 270 100 305"/>
+      <path class="d3" stroke-width="4" d="M90 195 C150 215 200 265 260 255 S320 265 345 245"/>
+      <path class="d4" stroke-width="5" d="M230 -5 C210 70 260 130 240 205 S270 270 262 305"/>
+      <path class="d2" stroke-width="2.4" opacity=".55" d="M250 160 C280 150 310 170 345 156"/></g>
+    <g class="model"><path d="M-5 80 C60 60 120 120 190 100 S300 50 345 70"/><path d="M70 -5 C80 70 50 130 90 195 S70 270 100 305"/>
+      <path d="M90 195 C150 215 200 265 260 255 S320 265 345 245"/><path d="M230 -5 C210 70 260 130 240 205 S270 270 262 305"/></g>
+    <circle cx="296" cy="159" r="24" class="rim"/><circle cx="296" cy="159" r="24" class="ring" stroke-dasharray="5 4"/>
+    <g>
+      <rect x="10" y="150" width="140" height="140" rx="10" fill="#070506" stroke="#ffffff" stroke-width="1.5"/>
+      <rect x="11" y="151" width="138" height="138" rx="9" filter="url(#speckle)"/>
+      <path class="v d2" stroke-width="11" opacity=".6" d="M12 240 C50 214 100 236 148 204"/>
+      <path class="v d4" stroke-width="14" d="M120 176 C126 200 118 250 126 280"/>
+      <circle cx="84" cy="224" r="5" fill="none" stroke="#35e0ff" stroke-width="2"/>
+      <text x="18" y="168" class="cap">4× under your finger</text>
+    </g>
+    <text x="160" y="292" class="cap">all depths · lines blink</text>
+  </svg></div>
+  <div class="q">Is every vessel here drawn, and nothing else?</div>
+  <div class="hint">Touch a spot: it shows enlarged, away from your finger. Lift to mark it.</div>
+  <div class="grow"></div>
+  <div class="thumb">
+    <div class="btns"><div class="btn primary">Something's off<small>1 spot marked</small></div><div class="btn">Looks right</div></div>
+    <div class="links"><span>Back</span><span>Remove last mark</span></div>
+  </div>
+</div></div>
+<figcaption><b>6 · Round 3, the area's last look.</b> A fingertip covers six to eight capillary widths, so the spot under it is shown
+enlarged beside it while it rests, and the mark is where it lifts. Nothing is traced on the phone: the lab traces from the mark and
+the piece comes back in a later deck as a frame-2 question. An area with a mark is not "reviewed" until that piece is answered.
+About 10 s.</figcaption></figure>
+
+</div>
+</body>
+</html>

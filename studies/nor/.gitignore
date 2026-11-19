@@ -1,9 +1,6 @@
-# raw microscope data, fetched from Drive (python3 studies/nor/detection/fetch_data.py), never committed
+# raw microscope data and the lab's records (python3 lab/fetch.py nor, lab/run.py), never committed
 /data/raw/
 
-# detection processing artifacts (image cache, perf timings), never committed
-/detection/.cache/
-
-# browser check (detection/browser), npm install output
-/detection/browser/node_modules/
-/detection/browser/package*.json
+# the page-measuring scripts' npm install output
+/lab/browser/node_modules/
+/lab/browser/package*.json

@@ -4,6 +4,7 @@
   "description": "Cerebral vessels in CD31 confocal z-stacks, traced, counted by branch and measured by length.",
   "visibility": "listed",
   "stage": "GT",
+  "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [
@@ -20,9 +21,7 @@
   "viewer": "image3d",
   "python": {
     "paths": [
-      "py/",
-      "analysis/",
-      "analysis/extraction/"
+      "algorithm/"
     ],
     "entry": "vascular",
     "packages": [
@@ -36,8 +35,9 @@
       "tifffile==2026.3.3"
     ]
   },
-  "generated": {
-    "web/algorithms.GENERATED.json": "analysis/extraction/menu.py"
+  "algorithms": {
+    "list": "web/algorithms.json",
+    "metrics": "web/algorithm_metrics.json"
   },
   "web": {
     "module": "web/vascular.js",
@@ -69,7 +69,7 @@
     "install": "Installing numpy, scipy, scikit-image…",
     "load": "Loading the stack reader…",
     "open": "Reading the stack…",
-    "extract": "Drawing the vessel model (the slow part: a minute or more)…"
+    "run": "Drawing the vessel model (the slow part: a minute or more)…"
   },
   "view": {
     "render": "brightest",
@@ -79,5 +79,20 @@
     "spacingSource": "the owner (2026-10-29)"
   },
   "groundTruth": {
-  }
+    "actions": "web/gt_actions.js",
+    "ring": "#00ff00"
+  },
+  "actions": [
+    {"id": "junction", "label": "Junction", "keys": ["KeyF"], "kind": "press", "legend": false, "control": "#task-card .verdict .yes", "when": ["tagging", "area"]},
+    {"id": "cross", "label": "They cross", "keys": ["KeyJ"], "kind": "press", "legend": false, "control": "#task-card .verdict .no", "when": ["tagging", "area"]},
+    {"id": "area-right", "label": "Area is right", "keys": ["Space"], "kind": "press", "legend": false, "control": "#area-ok", "when": ["tagging", "area"], "ownControl": true},
+    {"id": "skip", "label": "Skip", "keys": ["KeyS"], "kind": "press", "legend": false, "control": "#task-skip", "when": ["tagging", "area"]},
+    {"id": "narrower", "label": "Narrower", "title": "The selected vessel 0.25 µm narrower", "keys": ["Minus", "Shift+Minus", "NumpadSubtract"], "hint": "−", "kind": "press", "legend": false, "control": "#w-narrower", "when": ["look"]},
+    {"id": "wider", "label": "Wider", "title": "The selected vessel 0.25 µm wider", "keys": ["Equal", "Shift+Equal", "NumpadAdd"], "hint": "+", "kind": "press", "legend": false, "control": "#w-wider", "when": ["look"]},
+    {"id": "reset", "label": "Reset", "title": "The algorithm's estimate again as the selected vessel's width", "keys": ["Backspace"], "kind": "press", "legend": false, "control": "#w-reset", "when": ["look"]},
+    {"id": "model", "label": "Model", "title": "Hold 1 to flip Model while held: the model alone, or back over the picture; click to keep it", "keys": ["Digit1", "Numpad1"], "kind": "hold", "legend": true, "on": "alone", "when": ["model"]},
+    {"id": "outlines", "label": "No markings", "title": "Hold 2 to flip No markings while held: the picture without the lines or widths, or with them; click to keep it", "keys": ["Digit2", "Numpad2"], "kind": "hold", "legend": true, "on": "bare", "when": ["model"]},
+    {"id": "side", "label": "Side by side", "title": "Hold 3 to flip Side by side while held: the picture and the model each in a half, or one view; click to keep it", "keys": ["Digit3", "Numpad3"], "kind": "hold", "legend": true, "on": "side", "when": ["model"]},
+    {"id": "swap", "label": "3D / 2D", "title": "Hold 4 to flip 3D | 2D while held: the stack in colour in 3D, or grey from straight above with each vessel's width; click a half to keep it", "keys": ["Digit4", "Numpad4"], "kind": "hold", "legend": true, "on": "swap", "when": ["model"]}
+  ]
 }

@@ -15,7 +15,7 @@ from PIL import Image
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'py'))
+sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 sys.path.insert(0, os.path.join(HERE, '..', '..', '..', 'web-tests'))
 import viewer
 from image_open import open_image
@@ -141,13 +141,6 @@ def test_a_colour_png_is_red_green_and_blue(tmp_path):
     assert [c['colour'] for c in meta['channels']] == ['#ff0000', '#00ff00', '#0000ff']
     assert r[7, 7] == 255 and b[7, 7] == 0 and b[22, 22] == 255 and not g.any()
     assert dict(meta['info'])['Depth'] == '8-bit RGB'
-
-
-def test_it_offers_no_action(tmp_path):
-    p = str(tmp_path / 'g.png')
-    Image.fromarray(np.zeros((H, W), np.uint8)).save(p)
-    with pytest.raises(ValueError):
-        viewer.Session(p).call('detect', {})
 
 
 def test_a_z_stack_comes_flattened_then_slice_by_slice_for_the_3d_view(tmp_path):

@@ -1,4 +1,4 @@
-// Drives web/bridge.js in Pyodide under Node, with the Python session replaced by a stand-in whose
+// Drives web/bridge.js in Pyodide under Node, with the study's Python replaced by a stand-in whose
 // answers carry a few megabytes each, and checks that opening, finding and filtering over and over
 // leaves Python holding nothing more and no uploaded file behind. Prints what it measured; exits 1
 // on growth. Run by tests/test_memory.py.
@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 // pyodide at the version the page loads, installed here or beside the browser tools
 let entry;
-for (const base of [here, path.join(here, "..", "..", "..", "web-tests"), path.join(here, "..", "detection", "browser")]) {
+for (const base of [here, path.join(here, "..", "..", "..", "web-tests"), path.join(here, "..", "lab", "browser")]) {
   try { entry = require.resolve("pyodide/pyodide.mjs", { paths: [base] }); break; } catch {}
 }
 if (!entry) { console.error("no pyodide: npm i --prefix web-tests pyodide@314.0.7"); process.exit(2); }
@@ -21,22 +21,17 @@ const { bridge } = await import(pathToFileURL(path.join(here, "..", "..", "..", 
 const STAND_IN = `
 import json
 N = 1000
-def ready():
-    return json.dumps({})
-class Session:
-    def __init__(self, path):
-        with open(path, 'rb') as f:
-            self.size = len(f.read())
-    def call(self, action, args):
-        if action == 'detect':
-            return json.dumps({'finder': args['finder'], 'cands': []}), bytes(2 * N * N)
-        return json.dumps({'fails': [], 'alone': {'counts': {}, 'only': {}}}), None
+def read(path):
+    with open(path, 'rb') as f:
+        return len(f.read())
+VERSIONS = {'tl': lambda image, **overrides: {'finder': 'tl', 'cands': [], 'segments': bytes(2 * N * N)}}
+STAGES = {'refilter': lambda image, answer, spec: {'fails': [], 'alone': {'counts': {}, 'only': {}}}}
 `;
 
 const py = await loadPyodide();
 py.FS.mkdirTree("/py");
-py.FS.writeFile("/py/interactive.py", STAND_IN);
-py.runPython("import sys; sys.path.insert(0, '/py'); import interactive as study, json");
+py.FS.writeFile("/py/nor_finder.py", STAND_IN);
+py.runPython("import sys; sys.path.insert(0, '/py'); import nor_finder as study, json");
 // what Python holds after a collection: bytes in use by malloc, and live objects the collector tracks
 py.runPython(`
 import ctypes, gc
@@ -55,7 +50,7 @@ const ask = (m) => { out = []; answer(m); return out.find((o) => o.type !== "pro
 let opened = 0;
 function round() {
   ask({ type: "open", name: `image ${++opened}.tif`, bytes: new ArrayBuffer(1 << 20) });
-  ask({ type: "call", action: "detect", args: { finder: "tl", overrides: {} } });
+  ask({ type: "call", action: "run", args: { algorithm: "tl" } });
   ask({ type: "call", action: "refilter", args: { spec: { values: {}, off: [] } }, echo: opened });
   return memory();
 }

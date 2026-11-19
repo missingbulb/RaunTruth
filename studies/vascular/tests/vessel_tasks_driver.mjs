@@ -19,6 +19,7 @@ import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -43,11 +44,12 @@ page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.me
 page.setDefaultTimeout(10000);
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
-const brightness = () => page.evaluate(async () => {
-  const v = window.shellForTests.viewer.three;
-  Object.assign(v.S, { rot: v.facing(0, 0), dist: v.FIT_DIST, pivot: [0, 0, 0], clip: null }); v.redraw();
-  // the view draws in the frame after it is changed: two frames on, the change is on the canvas
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+const brightness = async () => {
+  await page.evaluate(() => { const v = window.shellForTests.viewer.three; Object.assign(v.S, { rot: v.facing(0, 0), dist: v.FIT_DIST, pivot: [0, 0, 0], clip: null }); });
+  await viewDrawn(page);
+  return brightnessNow();
+};
+const brightnessNow = () => page.evaluate(() => {
   const gl = document.querySelector("#v3-gl"), c = document.createElement("canvas"); c.width = gl.width; c.height = gl.height;
   const g = c.getContext("2d"); g.drawImage(gl, 0, 0);
   const d = g.getImageData(0, 0, c.width, c.height).data; let s = 0;
@@ -56,58 +58,60 @@ const brightness = () => page.evaluate(async () => {
 });
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
-const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
+const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((li) => li.querySelector(".task-head .t, .task-head #gt-submit").textContent.trim()));
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
 
 try {
   await page.goto(site.origin + "/web/vascular");
   await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
-  // the numbers the page shows are the shipped metrics file's, which the lab's grader writes
+  // the numbers the page shows are the shipped metrics file's, which the lab writes
   const quality = JSON.parse(fs.readFileSync(path.join(repo, "studies", "vascular", "web", "algorithm_metrics.json"), "utf8"));
   const two = (x) => x.toFixed(2).replace(/^0/, "");
-  await page.waitForFunction(() => /\bR\u00a0/.test($("#vm-algo").options[0]?.textContent || ""));
-  const algos = await page.evaluate(() => ({ titles: [...$("#vm-algo").options].map((o) => o.textContent), value: $("#vm-algo").value,
-    about: $("#vm-about summary").textContent, note: $("#vm-about-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
-    nested: !!$("#vm-about-note").querySelector("ul > li > ul > li"), bold: $("#vm-about-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
+  await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
+  const algos = await page.evaluate(() => ({ titles: [...$("#algorithm").options].map((o) => o.textContent), value: $("#algorithm").value,
+    about: $("#algorithm-about summary").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
+    nested: !!$("#algorithm-note").querySelector("ul > li > ul > li"), bold: $("#algorithm-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
   const listed = ALGORITHMS.map((a) => { const q = quality.versions[a.key]; return `${a.icon} ${a.title} (P\u00a0${two(q.precision)}\u00a0·\u00a0R\u00a0${two(q.recall)})`; });
   check(algos.titles.join() === listed.join() && algos.value === ALGORITHMS[0].key, `Processing lists each algorithm with its icon, name, precision and recall, the default first: ${algos.titles}`);
   check(algos.about === `How the ${ALGORITHMS[0].title} algorithm works` && algos.note.includes("touches no junction") && algos.nested,
     `How the algorithm works gives the chosen one's steps as a nested list: ${algos.about}`);
   const q0 = quality.versions[ALGORITHMS[0].key], said = `precision of ${q0.precision.toFixed(2)} and recall of ${q0.recall.toFixed(2)}`;
-  check(algos.bold.startsWith(`Island-free algorithm shows ${said} on ${quality.curves} curves`) && /not the owner/.test(algos.note),
-    `... and ends with its precision and recall in bold, judged by a model, not the owner: ${algos.bold}`);
+  check(algos.bold === `Island-free algorithm shows ${said} ${quality.measured}`,
+    `... and ends with its precision and recall in bold, and what they were measured on: ${algos.bold}`);
   check(algos.run && algos.last === "vm-run", "Execute ends the box, off until a stack is open");
 
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
-  const before = await page.evaluate(() => ({ model: !$("#model-on").hidden, tasks: !$("#vm-tasks").hidden,
+  const before = await page.evaluate(() => ({ model: !$("#vm-review").hidden, tasks: !$("#vm-tasks").hidden,
     modes: [...document.querySelectorAll("#model-mode button")].filter((b) => !b.disabled).map((b) => b.dataset.v),
     switch: !$("#switch").hidden, items: !!$("#items-view") && !$("#items-view").hidden }));
-  check(!before.model && !before.tasks && before.modes.join() === "image", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
+  check(!before.model && !before.tasks && before.modes.join() === "", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
-  await page.selectOption("#vm-algo", "v4");
+  await page.selectOption("#algorithm", "v4");
   await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#model-on").hidden);
+  await page.waitForFunction(() => !$("#vm-review").hidden);
   const ran = await doc();
   check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
     `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
-  check(await page.evaluate(() => $('#model-mode [data-v="overlay"]').getAttribute("aria-pressed") === "true"), "the model opens over the stack");
+  check(await page.evaluate(() => window.vascular.model().view === "overlay"), "the model opens over the stack");
   check(await page.evaluate(() => !!($("#model-set").compareDocumentPosition($("#tasks-box")) & Node.DOCUMENT_POSITION_FOLLOWING) && !$("#tasks-box").hidden && !$("#vm-tasks").hidden),
     "Ground Truth Tasks sits under Processing once a model is open");
 
   const view = () => page.evaluate(() => { const v = window.shellForTests.viewer.three; return { rot: v.S.rot.map((r) => [...r]), clip: v.S.clip && [...v.S.clip], held: !!v.S.held,
-    mode: $("#model-mode [aria-pressed=true]")?.dataset.v, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
+    mode: window.vascular.model().view, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
     cut: { on: $("#m-cut").checked, off: $("#m-cut").disabled }, start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null }; });
   // req/shell/ground-truth/tagging: Execute leaves the stack in view; nothing opens until Start GT tagging
   let t = await tasks(), v = await view();
   check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.mode === "overlay", `drawn, the whole stack stays in view as the Show menu sets it, no task open: ${JSON.stringify({ focused: t.focused, clip: v.clip, show: v.show, focus: v.focus, open: v.open })}`);
   check(v.start === "Start GT tagging" && v.cut.off, `Start GT tagging heads the tasks, and Cut out what is done is off out of tagging: ${JSON.stringify(v)}`);
   // out of tagging the model's points carry no handles on the main view, zoomed in or not; tagging, they do
-  const zoomedHandles = () => page.evaluate(async () => { const v = window.shellForTests.viewer.three, d = v.S.dist; v.S.dist = v.FIT_DIST / 4; v.redraw();
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const h = window.vascular.model().handles; v.S.dist = d; v.redraw(); return h; });
+  const zoomedHandles = async () => {
+    const d = await page.evaluate(() => { const v = window.shellForTests.viewer.three, d = v.S.dist; v.S.dist = v.FIT_DIST / 4; return d; });
+    await viewDrawn(page);
+    return page.evaluate((d) => { const v = window.shellForTests.viewer.three, h = window.vascular.model().handles; v.S.dist = d; v.redraw(); return h; }, d);
+  };
   check(await zoomedHandles() === false, "out of GT tagging, the model's points have no handles on the main view, even zoomed in");
   await page.click("#gt-start");
   check(await page.evaluate(() => window.vascular.model().handles) === true, "... and once tagging starts, they do");
@@ -208,8 +212,7 @@ try {
   // the area turns in 3D
   await page.mouse.move(cx + 5, cy + ch - 5); await page.mouse.down(); await page.mouse.move(cx + 80, cy + ch - 60, { steps: 6 }); await page.mouse.up();
   check(JSON.stringify((await view()).rot) !== JSON.stringify(rot0), "a drag where no point is turns the area");
-  const flat = () => page.evaluate(async () => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0, 0); v.redraw();
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
+  const flat = async () => { await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0, 0); }); await viewDrawn(page); };
 
   // a right-click on the image where no line is offers to draw a missed vessel, from that spot
   {
@@ -289,13 +292,19 @@ try {
     const onScreen = (p) => p && p[0] > 20 && p[0] < cw - 20 && p[1] > 20 && p[1] < ch - 20;
     const at0 = (await page.evaluate(() => window.vascular.model())).at;
     const menuNow = () => page.evaluate(() => (document.querySelector("#ctx").hidden ? [] : [...document.querySelectorAll("#ctx .item")].map((b) => b.textContent)));
+    // req/vascular/model/correct: one list on every vessel, what does not apply greyed with why, never hidden
+    const menuState = () => page.evaluate(() => [...document.querySelectorAll("#ctx .item")].map((b) => ({ label: b.textContent, off: b.disabled, why: b.title })));
+    let pointMenu = null;
     const bend = Object.keys(kinds).find((k) => kinds[k] === "candidate-curve" && onScreen(points[k]) && inArea(at0[k], 10));
     check(!!bend, "a low-confidence vessel's curve point in the area");
     if (bend) {
       const n0 = (await doc()).edges.length, segs0 = (await page.evaluate(() => window.vascular.model())).kinds;
       await page.mouse.click(cx + points[bend][0], cy + points[bend][1], { button: "right" });
       const menu = await menuNow(), k = menu.findIndex((x) => /^Remove this point/.test(x));
+      pointMenu = await menuState();
       check(k >= 0, `a curve point's menu offers to remove it from its line: ${menu}`);
+      const split = pointMenu.find((x) => x.label === "Split this segment here");
+      check(k >= 0 && !pointMenu[k].off && split?.off && !!split.why, `... with a segment's options there too, greyed with why: ${JSON.stringify(pointMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model());
@@ -320,6 +329,10 @@ try {
       await page.mouse.click(cx + mid[0], cy + mid[1], { button: "right" });
       const menu = await menuNow(), k = menu.indexOf("Split this segment here");
       check(k >= 0 && menu.includes("Delete this segment"), `a segment's menu offers Split this segment here beside Delete this segment: ${menu}`);
+      const segMenu = await menuState(), remove = segMenu.find((x) => /^Remove this point/.test(x.label));
+      check(!!pointMenu && JSON.stringify(segMenu.map((x) => x.label)) === JSON.stringify(pointMenu.map((x) => x.label)),
+        `a segment's menu lists the same options, in the same order, as a point's: ${segMenu.map((x) => x.label)} | ${pointMenu?.map((x) => x.label)}`);
+      check(k >= 0 && !segMenu[k].off && remove?.off && !!remove.why, `... a point's options greyed with why: ${JSON.stringify(segMenu)}`);
       if (k >= 0) {
         await page.click(`#ctx .item >> nth=${k}`);
         const after = await page.evaluate(() => window.vascular.model()), fresh = Object.keys(after.at).filter((id) => !m1.at[id]);
@@ -330,25 +343,25 @@ try {
     }
   }
 
-  // Ctrl shows the model alone while it is held, a Model label above Panning saying so, a faded "ctrl" beside it
+  // 1 shows the model alone while it is held, a Model row of the keys legend above Panning saying so, a faded "1" beside it
   const peekLabel = () => page.evaluate(() => {
-    const b = $("#vm-peek"), p = $("#v3-pan").getBoundingClientRect(), r = b?.getBoundingClientRect(), k = b?.nextElementSibling, kr = k?.getBoundingClientRect();
+    const b = $("#key-model"), p = $("#v3-pan").getBoundingClientRect(), r = b?.getBoundingClientRect(), k = b?.nextElementSibling, kr = k?.getBoundingClientRect();
     return b && { text: b.textContent.trim(), shown: b.checkVisibility(), on: b.getAttribute("aria-pressed") === "true", fill: getComputedStyle(b).backgroundColor,
       key: k?.textContent.trim(), keyShown: !!k?.checkVisibility(), keyFaded: !!k && Number(getComputedStyle(k).opacity) < 1,
-      above: r.bottom <= p.top && p.top - r.bottom < 12 && Math.abs(r.left - p.left) < 2, beside: !!kr && kr.left >= r.right && kr.left - r.right < 16 };
+      above: r.bottom <= p.top && Math.abs(r.left - p.left) < 2, beside: !!kr && kr.left >= r.right && kr.left - r.right < 16 };
   });
   const free = await peekLabel();
-  check(free && free.text === "Model" && free.shown && !free.on && free.above && free.key === "ctrl" && free.keyShown && free.keyFaded && free.beside,
-    `in an area a Model label shows right above Panning, off, a faded "ctrl" right beside it: ${JSON.stringify(free)}`);
-  await page.keyboard.down("Control");
+  check(free && free.text === "Model" && free.shown && !free.on && free.above && free.key === "1" && free.keyShown && free.keyFaded && free.beside,
+    `in an area a Model row shows above Panning, off, a faded "1" right beside it: ${JSON.stringify(free)}`);
+  await page.keyboard.down("1");
   const held = (await view()).mode, heldLabel = await peekLabel();
-  await page.keyboard.up("Control");
-  check(held === "model" && (await view()).mode === "overlay", `holding Ctrl shows the model alone, letting go the lines over the stack again: ${held} → ${(await view()).mode}`);
+  await page.keyboard.up("1");
+  check(held === "model" && (await view()).mode === "overlay", `holding 1 shows the model alone, letting go the lines over the stack again: ${held} → ${(await view()).mode}`);
   check(heldLabel.on && /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/.test(heldLabel.fill) && !(await peekLabel()).on,
-    `the Model label is filled blue while Ctrl is held, as Panning is while on, and off once it is let go: ${heldLabel.fill}`);
-  await page.click("#vm-peek");
+    `the Model row is filled blue while 1 is held, as Panning is while on, and off once it is let go: ${heldLabel.fill}`);
+  await page.click("#key-model");
   const clicked = (await view()).mode;
-  await page.click("#vm-peek");
+  await page.click("#key-model");
   check(clicked === "model" && (await view()).mode === "overlay", `clicking the Model label shows the model alone, clicking it again the lines over the stack: ${clicked} → ${(await view()).mode}`);
 
   // the area's junctions, one at a time
@@ -378,7 +391,14 @@ try {
 
   // every junction judged, Area is right does the area
   for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
+  // Area is right opens the area's widths step (req/vascular/truth/widths), whose button waits for the vessels drawn
+  // there: given a width here
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
+  await page.click("#area-ok");
+  check((await tasks()).widths && (await tasks()).area === 0, "Area is right opens the area's widths step, in the same area");
+  check(await page.evaluate(() => $("#area-ok").disabled), "These widths look right waits while a vessel drawn there has no width");
+  await page.evaluate(() => { for (const e of window.vascular.model().model.edges) if (!e.proposed) window.vascular.act({ type: "set-width", segments: e.segment_ids, width: { um: 3, how: "nudge" } }); });
+  check(!(await page.evaluate(() => $("#area-ok").disabled)), "These widths look right is on once every vessel drawn there has a width");
   await page.click("#area-ok");
   m = await doc(); t = await tasks();
   const nodeAt = new Map(m.nodes.map((n) => [n.id, n]));
@@ -434,7 +454,6 @@ try {
   v = await view(); t = await tasks();
   check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.cut.off && v.start === "Start GT tagging", `Stop tagging gives the whole stack back, no task open, Cut out what is done off: ${JSON.stringify(v)}`);
   check(!(await mini()).shown, "out of tagging the map of the areas is gone");
-  check(!(await peekLabel())?.shown && !(await page.evaluate(() => $("#vm-peek")?.nextElementSibling?.checkVisibility())), "out of an area the Model label and its ctrl are gone");
   if (gl) {
     await page.keyboard.press("Control+z");
     const lit = await brightness();
@@ -453,16 +472,28 @@ try {
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
     && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
+  // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
+  const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
+  check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
   await page.click("#gt-close");
 
   await page.keyboard.press("Control+z");
   check(!(await doc()).reviewed_regions.length && !(await doneRows()).length, "Undo takes the area back");
 
   // a file from the three steps: an area whose lines, missed and junctions boxes all cover it is done
-  await page.evaluate(() => window.vascular.edit((m) => ({ ...m, reviewed_regions: ["lines", "missed", "junctions"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) })));
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed", "junctions"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
   check((await doneRows()).join() === "a0", `an area its earlier lines, missed and junctions steps all cover is done: ${await doneRows()}`);
-  await page.evaluate(() => window.vascular.edit((m) => ({ ...m, reviewed_regions: ["lines", "missed"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) })));
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, reviewed_regions: ["lines", "missed"].map((step) => ({ x: [0, m.size_px[0] * m.um_per_px / 2], y: [0, m.size_px[1] * m.um_per_px / 2], z: [0, m.slices - 1], step })) }); });
   check(!(await doneRows()).length, "... and one missing its junctions step is not");
+
+  // req/shell/ground-truth/history-carry: a run after a base that holds a junction the run has no point for says so, and the
+  // study's own line about the run does not take that away
+  await page.evaluate(() => { const m = window.vascular.model().model; window.vascular.base({ ...m, checked_junctions: [987654] }); });
+  // Execute's box is folded while the tagger tags
+  await page.evaluate(() => { $("#status").textContent = ""; $("#vm-run").click(); });
+  await page.waitForFunction(() => $("#status").textContent.trim() !== "" && $("#busy").hidden);
+  const left = await page.textContent("#status");
+  check(/no item for 1 earlier decision or edit, which was left out/.test(left), `a run that cannot carry a checked junction over says so on the status line: ${left}`);
 } catch (e) {
   failed = true; console.error(e);
 }

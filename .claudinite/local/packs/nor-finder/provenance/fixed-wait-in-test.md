@@ -10,3 +10,16 @@
 - **Rejected:** a prose rule (the check sees every instance), and an allowlist of files (the reason
   belongs at the wait).
 - **Retire when:** never while tests drive a page.
+
+## 2026-11-13 · scope-changed · every setTimeout in test code, a stand-in's delay included
+- **Reason:** a stand-in answering late or a sleep inside page.evaluate slipped past the old
+  await-Promise pattern; only a deadline bounding a hang is excused, by its own marker.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
+- **Mechanism:** a regex, widened.
+
+## 2026-11-16 · reworded · the fix cut to the 32 words a declared check's message may run
+- **Reason:** basics/declared-check-messages caps a fix at 32 words; the first run of the checks on
+  a pull request (#974) found it past.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5

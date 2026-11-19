@@ -1,0 +1,296 @@
+{
+ "format": "rauntruth-metrics/1",
+ "measured": "on 1 image with ground truth, 1 of them marked in the lab, not by people",
+ "dataset_sha256": "b3752a3fde148d04de80553ea0d961b0acf3bb60058462c17c9cb0a7e5dd1061",
+ "images": [
+  {
+   "image_sha256": "126752b828cf54bfbe8f95b034e1d7a98ba467e732471846d5c506ab34f89f29",
+   "name": "Slide5_4AP_NoR.sld - Slice1_up_left2.tif",
+   "truth_sha256": "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9",
+   "truth": "lab/truth/claude_v1.json"
+  }
+ ],
+ "scoring": "- A NoR of the answer is a candidate its filters pass; a NoR of the ground truth is an element marked a NoR. Where an element came from is not read\n- Each has a place: its own point, and the middle of its red line; the nearer of the two tells how far apart two are\n- Two are **close** by 1 up to 0.25 of the truth NoR's red length apart, falling evenly to 0 at 1 red length (a truth with no lines: the answer's median red length)\n- Pair them one-to-one, the closest first\n- A pair's **quality** is its closeness; where the ground truth carries lengths, half of it is how well the three lengths agree (smaller over larger, less what unrelated NoRs reach by chance)\n- tp: the sum of the pairs' qualities\n- fn: the rest of each paired truth NoR, and 1 for each unpaired one\n- fp: the rest of each paired answer NoR and 1 for each unpaired one, as far as the ground truth **knows** its place: wholly in an area checked for missed NoRs, else by its closeness to an element marked a NoR or not a NoR\n- An answer NoR on an undecided element counts for nothing by its closeness to it; an undecided element is never a miss\n- A failed candidate is not in the answer",
+ "versions": {
+  "tl": {
+   "precision": 0.8651,
+   "recall": 0.6376,
+   "tp": 45.905445,
+   "fp": 7.155642,
+   "fn": 26.094555,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 34.149416,
+     "fp": 3.495185,
+     "fn": 37.850584,
+     "pairs": 35,
+     "found": 34.149416,
+     "proposed": 27.976026,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.9072,
+     "recall": 0.4743
+    },
+    "recalling": {
+     "tp": 49.226404,
+     "fp": 10.167995,
+     "fn": 22.773596,
+     "pairs": 51,
+     "found": 49.226404,
+     "proposed": 12.893932,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8288,
+     "recall": 0.6837
+    },
+    "unfiltered": {
+     "tp": 61.586573,
+     "fp": 24.246171,
+     "fn": 10.413427,
+     "pairs": 65,
+     "found": 61.586573,
+     "proposed": 0.0,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7175,
+     "recall": 0.8554
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 45.905445,
+     "fp": 7.155642,
+     "fn": 26.094555
+    }
+   }
+  },
+  "rf": {
+   "precision": 0.7864,
+   "recall": 0.6766,
+   "tp": 48.716276,
+   "fp": 13.234485,
+   "fn": 23.283724,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 35.521144,
+     "fp": 6.354775,
+     "fn": 36.478856,
+     "pairs": 36,
+     "found": 35.521144,
+     "proposed": 35.116852,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8482,
+     "recall": 0.4933
+    },
+    "recalling": {
+     "tp": 52.967598,
+     "fp": 14.226292,
+     "fn": 19.032402,
+     "pairs": 55,
+     "found": 52.967598,
+     "proposed": 16.644485,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7883,
+     "recall": 0.7357
+    },
+    "unfiltered": {
+     "tp": 62.588664,
+     "fp": 24.311139,
+     "fn": 9.411336,
+     "pairs": 65,
+     "found": 62.588664,
+     "proposed": 6.789631,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7202,
+     "recall": 0.8693
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 48.716276,
+     "fp": 13.234485,
+     "fn": 23.283724
+    }
+   }
+  },
+  "fill": {
+   "precision": 0.8715,
+   "recall": 0.6056,
+   "tp": 43.603072,
+   "fp": 6.426327,
+   "fn": 28.396928,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 32.515184,
+     "fp": 4.30314,
+     "fn": 39.484816,
+     "pairs": 33,
+     "found": 32.515184,
+     "proposed": 37.790135,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8831,
+     "recall": 0.4516
+    },
+    "recalling": {
+     "tp": 48.879561,
+     "fp": 9.954654,
+     "fn": 23.120439,
+     "pairs": 50,
+     "found": 48.879561,
+     "proposed": 21.368917,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8308,
+     "recall": 0.6789
+    },
+    "unfiltered": {
+     "tp": 61.968843,
+     "fp": 21.999971,
+     "fn": 10.031157,
+     "pairs": 64,
+     "found": 61.968843,
+     "proposed": 7.945654,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.738,
+     "recall": 0.8607
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 43.603072,
+     "fp": 6.426327,
+     "fn": 28.396928
+    }
+   }
+  },
+  "walk": {
+   "precision": 0.833,
+   "recall": 0.5273,
+   "tp": 37.964646,
+   "fp": 7.609717,
+   "fn": 34.035354,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 31.880466,
+     "fp": 5.596712,
+     "fn": 40.119534,
+     "pairs": 33,
+     "found": 31.880466,
+     "proposed": 37.653733,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.8507,
+     "recall": 0.4428
+    },
+    "recalling": {
+     "tp": 43.959329,
+     "fp": 13.297201,
+     "fn": 28.040671,
+     "pairs": 46,
+     "found": 43.959329,
+     "proposed": 24.439115,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7678,
+     "recall": 0.6105
+    },
+    "unfiltered": {
+     "tp": 63.531673,
+     "fp": 34.584317,
+     "fn": 8.468327,
+     "pairs": 67,
+     "found": 63.531673,
+     "proposed": 4.900426,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.6475,
+     "recall": 0.8824
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 37.964646,
+     "fp": 7.609717,
+     "fn": 34.035354
+    }
+   }
+  },
+  "blobs": {
+   "precision": 0.7635,
+   "recall": 0.5264,
+   "tp": 37.90263,
+   "fp": 11.739498,
+   "fn": 34.09737,
+   "note": "with its default filters",
+   "settings": {
+    "precise": {
+     "tp": 28.651409,
+     "fp": 10.069129,
+     "fn": 43.348591,
+     "pairs": 29,
+     "found": 28.651409,
+     "proposed": 41.409462,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.74,
+     "recall": 0.3979
+    },
+    "recalling": {
+     "tp": 44.97325,
+     "fp": 16.205303,
+     "fn": 27.02675,
+     "pairs": 48,
+     "found": 44.97325,
+     "proposed": 24.0,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.7351,
+     "recall": 0.6246
+    },
+    "unfiltered": {
+     "tp": 65.809682,
+     "fp": 40.890955,
+     "fn": 6.190318,
+     "pairs": 69,
+     "found": 65.809682,
+     "proposed": 3.0,
+     "measured": 0,
+     "length_err": 0.0,
+     "red_err": 0.0,
+     "precision": 0.6168,
+     "recall": 0.914
+    }
+   },
+   "truths": {
+    "570fc90f0cecd365d7ec7736a0a1997905cf3a771b5c9f05936eb274981404e9": {
+     "tp": 37.90263,
+     "fp": 11.739498,
+     "fn": 34.09737
+    }
+   }
+  }
+ }
+}

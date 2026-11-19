@@ -10,7 +10,6 @@
     "view": ["image", "items"],
     "selected": ["nothing", "folder", "image"],
     "online": [true, false],
-    "editing": [false, true],
     "stack": [false, true],
     "fromComputer": [false, true],
     "hasSteps": [false, true],
@@ -18,7 +17,8 @@
     "notice": [false, true],
     "imageFits": [true, false],
     "imageLarge": [false, true],
-    "shows3d": [false, true]
+    "shows3d": [false, true],
+    "masks": [false, true]
   },
   "roots": {
     "GT, signed out": {"stage": "GT", "signedIn": false, "role": "viewer"},
@@ -41,9 +41,8 @@
     {"root": "Published, Viewer", "actions": ["load", "count", "items"]},
     {"root": "GT, Tagger", "actions": ["load", "offline", "online"]},
     {"root": "GT, Study Manager", "actions": ["folder", "preview", "original", "offline"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "preview", "edit", "offline", "done"]},
     {"root": "GT, Study Manager", "actions": ["folder", "offline", "online"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "zpreview", "edit", "done"]},
+    {"root": "GT, Study Manager", "actions": ["folder", "zpreview", "original"]},
     {"root": "PreGT, Study Manager", "actions": ["folder"]},
     {"root": "GT, Tagger", "actions": ["load", "ok", "count", "unload"]},
     {"root": "GT, Tagger", "actions": ["load", "count", "viewer"]},
@@ -110,7 +109,54 @@
                   ]
                 },
                 {"name": "Folder tree", "select": "#data-tree", "req": "req/shell/data/mode"},
-                {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"}
+                {"name": "Not in the study", "select": "#data-unlisted", "req": "req/shell/data/folders", "unwalked": "shows only while the study's root holds a folder no listed folder is, and the walked study lists its root",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ],
+                  "children": [
+                    {"name": "Not in the study's title", "select": "#data-unlisted-title", "req": "req/shell/data/folders"},
+                    {"name": "The root's other folders", "select": "#data-unlisted-list", "req": "req/shell/data/folders"}
+                  ]
+                },
+                {"name": "Add a folder", "select": "#data-add-row", "req": "req/shell/data/folders",
+                  "children": [
+                    {"name": "Folder link to add", "select": "#data-add-link", "control": true, "req": "req/shell/data/folders",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Add folder", "select": "#data-add", "control": true, "req": "req/shell/data/folders",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    }
+                  ]
+                },
+                {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"},
+                {"name": "Study index's line", "select": "#data-index", "req": "req/shell/data/index"},
+                {"name": "Study images", "select": "#study-set", "req": "req/shell/data/hidden",
+                  "children": [
+                    {"name": "Study images' title", "select": "#study-set-title", "req": "req/shell/data/hidden"},
+                    {"name": "Group Load by", "select": "#study-group", "control": true, "req": "req/shell/load/study-images",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "Hidden tags", "select": "#study-hide-list", "req": "req/shell/data/hidden"},
+                    {"name": "Tag to hide", "select": "#study-hide-add", "control": true, "req": "req/shell/data/hidden",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "Hide", "select": "#study-hide-go", "control": true, "req": "req/shell/data/hidden",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    },
+                    {"name": "How many are hidden", "select": "#study-hide-count", "req": "req/shell/data/hidden"},
+                    {"name": "Study images' message", "select": "#study-msg", "req": "req/shell/data/hidden"}
+                  ]
+                }
               ]
             }
           ]
@@ -235,73 +281,74 @@
                 {"name": "Folder's message", "select": "#folder-msg", "req": "req/shell/data/folder"}
               ]
             },
-            {"name": "Preprocessing", "select": "#preprocessing-box", "box": true, "req": "req/shell/preprocessing/split",
+            {"name": "Tags", "select": "#tags-box", "box": true, "req": "req/shell/data/tags",
               "rule": [
                 {"when": {"role": ["viewer", "tagger"]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+                {"when": {"selected": ["nothing"]}, "is": "hidden", "approval": "tentative", "about": "the box edits the folder or image chosen"},
+                {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
               ],
               "children": [
-                {"name": "Edit Image", "select": "#edit-open", "control": true, "req": "req/shell/data/edit",
+                {"name": "What the tags are of", "select": "#tags-for", "req": "req/shell/data/tags"},
+                {"name": "Tags' list", "select": "#tags-list", "req": "req/shell/data/tags"},
+                {"name": "Tag to add", "select": "#tags-add", "control": true, "req": "req/shell/data/tags",
                   "rule": [
-                    {"when": {"editing": [true]}, "is": "disabled"}
-                  ]
-                }
-              ]
-            },
-            {"name": "Edit Image box", "select": "#edit-box", "box": true, "req": "req/shell/data/edit",
-              "rule": [
-                {"when": {"editing": [false]}, "is": "hidden"}
-              ],
-              "children": [
-                {"name": "Split", "select": "#edit-split", "req": "req/shell/data/edit"},
-                {"name": "Split hint", "select": "#edit-split-hint", "req": "req/shell/data/edit", "steady": "shows only while an image is split",
-                  "rule": [
-                    {"is": "hidden"}
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
                   ]
                 },
-                {"name": "Crop", "select": "#edit-crop-row", "req": "req/shell/data/edit",
+                {"name": "Add tag", "select": "#tags-add-go", "control": true, "req": "req/shell/data/tags",
                   "rule": [
-                    {"when": {"stack": [true]}, "is": "hidden", "about": "a z-stack is edited in 3D, which has tools of its own"}
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Description", "select": "#tags-desc-row", "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"selected": ["folder"]}, "is": "hidden", "approval": "tentative", "about": "a folder has tags, an image a description too"}
                   ],
                   "children": [
-                    {"name": "Draw", "select": "#edit-crop", "control": true, "req": "req/shell/data/edit"},
-                    {"name": "Crop's size", "select": "#edit-crop-size", "req": "req/shell/data/edit"},
-                    {"name": "Reset crop", "select": "#edit-crop-reset", "control": true, "req": "req/shell/data/edit", "steady": "shows only once a crop is drawn",
+                    {"name": "Description's text", "select": "#tags-desc", "control": true, "req": "req/shell/data/tags",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                    }
+                  ]
+                },
+                {"name": "Image's areas", "select": "#areas", "req": "req/shell/data/damaged",
+                  "rule": [
+                    {"when": {"selected": ["folder"]}, "is": "hidden", "approval": "tentative", "about": "areas are an image's"}
+                  ],
+                  "children": [
+                    {"name": "Damaged areas' count", "select": "#areas-damaged-count", "req": "req/shell/data/damaged"},
+                    {"name": "Mark damaged", "select": "#areas-damaged-mark", "control": true, "req": "req/shell/data/damaged",
+                      "rule": [
+                        {"when": {"image": ["preview"]}, "is": "disabled", "approval": "tentative", "about": "areas are marked on the image itself"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Clear damaged", "select": "#areas-damaged-clear", "control": true, "req": "req/shell/data/damaged", "steady": "shows only once the image has a damaged area, which no path marks",
                       "rule": [
                         {"is": "hidden"}
                       ]
-                    }
-                  ]
-                },
-                {"name": "Slices", "select": "#edit-slices-sec", "req": "req/shell/data/edit",
-                  "rule": [
-                    {"when": {"stack": [false]}, "is": "hidden"}
-                  ],
-                  "children": [
-                    {"name": "Slices' text", "select": "#edit-z-text", "req": "req/shell/data/edit"},
-                    {"name": "Use suggested", "select": "#edit-suggest", "control": true, "req": "req/shell/data/edit",
+                    },
+                    {"name": "Area of interest's count", "select": "#areas-interest-count", "req": "req/shell/data/area-of-interest"},
+                    {"name": "Mark area of interest", "select": "#areas-interest-mark", "control": true, "req": "req/shell/data/area-of-interest",
                       "rule": [
-                        {"is": "disabled", "approval": "tentative", "about": "the slices kept are the suggested ones already, as on the walked z-stack"}
+                        {"when": {"image": ["preview"]}, "is": "disabled", "approval": "tentative", "about": "areas are marked on the image itself"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
                       ]
                     },
-                    {"name": "Slices slider", "select": "#edit-slices", "req": "req/shell/data/edit",
-                      "children": [
-                        {"name": "Suggested band", "select": "#edit-band", "req": "req/shell/data/edit"},
-                        {"name": "First slice", "select": "#edit-z0", "control": true, "req": "req/shell/data/edit"},
-                        {"name": "Last slice", "select": "#edit-z1", "control": true, "req": "req/shell/data/edit"}
+                    {"name": "Clear area of interest", "select": "#areas-interest-clear", "control": true, "req": "req/shell/data/area-of-interest", "steady": "shows only once the image has an area of interest, which no path marks",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    },
+                    {"name": "Areas' hint", "select": "#areas-hint", "req": "req/shell/data/damaged",
+                      "rule": [
+                        {"when": {"image": ["original"]}, "is": "hidden", "approval": "tentative", "about": "the hint asks for the image itself, which is open"}
                       ]
                     }
                   ]
                 },
-                {"name": "Channels kept", "select": "#edit-channels", "req": "req/shell/data/edit"},
-                {"name": "Imperfections", "select": "#edit-flaws-row", "req": "req/shell/data/edit",
-                  "children": [
-                    {"name": "Mark", "select": "#edit-lasso", "control": true, "req": "req/shell/data/edit"},
-                    {"name": "Imperfections' list", "select": "#edit-flaws", "req": "req/shell/data/edit"}
-                  ]
-                },
-                {"name": "Save…", "select": "#edit-save", "control": true, "req": "req/shell/data/edit-save"},
-                {"name": "Done", "select": "#edit-done", "control": true, "req": "req/shell/data/edit"}
+                {"name": "Tags' message", "select": "#tags-msg", "req": "req/shell/data/tags"}
               ]
             },
             {"name": "Processing", "select": "#processing-box", "box": true, "req": "req/shell/left-bar/shells",
@@ -310,6 +357,18 @@
                 {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"},
                 {"when": {"counted": [true]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+              ],
+              "children": [
+                {"name": "Algorithms", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms",
+                  "children": [
+                    {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
+                    {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
+                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring",
+                      "steady": "opens only on a click of the (?), which no path makes",
+                      "rule": [{"is": "hidden", "approval": "tentative"}]},
+                    {"name": "About the algorithm", "select": "#algorithm-about", "req": "req/shell/processing/algorithms"}
+                  ]
+                }
               ]
             },
             {"name": "Ground Truth Tasks", "select": "#tasks-box", "box": true, "req": "req/shell/left-bar/shells",
@@ -319,18 +378,62 @@
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
+                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
+                  "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
+                  ],
+                  "children": [
+                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
+                      "unwalked": "its parent is hidden in every path, no draft being on this device"},
+                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, no study's old store being offered"},
+                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
+                      "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
+                  ]
+                },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
                     {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
-                    {"name": "Continue tagging", "select": "#gt-continue", "control": true, "req": "req/shell/ground-truth/draft",
-                      "steady": "hidden for a study that takes no drafts, the only kind a path opens",
-                      "rule": [
-                        {"is": "hidden", "about": "for a study that takes no drafts"}
-                      ]
-                    },
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                       "children": [
+                        {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+                              "rule": [
+                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft",
+                              "steady": "hidden while no GT action is unsaved, which no path makes",
+                              "rule": [
+                                {"is": "hidden", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            }
+                          ]
+                        },
+                        {"name": "Show Edit History row", "select": "#gt-history-row", "req": "req/shell/ground-truth/history",
+                          "rule": [
+                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                          ],
+                          "children": [
+                            {"name": "Show Edit History", "select": "#gt-history-on", "control": true, "req": "req/shell/ground-truth/history"}
+                          ]
+                        },
+                        {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
+                          "rule": [
+                            {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                          ]
+                        },
                         {"name": "Submit Ground Truth", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                           "rule": [
                             {"when": {"counted": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
@@ -348,6 +451,26 @@
                 {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
                 {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+              ],
+              "children": [
+                {"name": "Mask buttons", "select": "#mask-row", "req": "req/shell/summary/mask",
+                  "rule": [
+                    {"when": {"masks": [false]}, "is": "hidden"}
+                  ],
+                  "children": [
+                    {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/shell/summary/mask"},
+                    {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/shell/summary/mask", "steady": "shows only once a mask is drawn, which no path lassos",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    }
+                  ]
+                },
+                {"name": "Download Summary", "select": "#summary-dl", "control": true, "req": "req/shell/summary/download",
+                  "rule": [
+                    {"is": "shown", "approval": "undecided"}
+                  ]
+                }
               ]
             }
           ]
@@ -366,7 +489,6 @@
             {"name": "Ruler", "select": "#ruler-btn", "control": true, "req": "req/shell/tools/ruler",
               "rule": [
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
                 {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
               ]
             },
@@ -408,6 +530,16 @@
             {"name": "Zoom", "select": "#zoom-label", "req": "req/shell/image/minimap",
               "rule": [
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"}
+              ]
+            },
+            {"name": "Lasso hint", "select": "#lasso-hint", "req": "req/shell/summary/mask", "steady": "shows only while a mask is being lassoed, which no path does",
+              "rule": [
+                {"is": "hidden"}
+              ]
+            },
+            {"name": "Own mask warning", "select": "#mask-warning", "req": "req/shell/data/area-of-interest", "steady": "shows only while the summary counts a mask the viewer drew, which no path draws",
+              "rule": [
+                {"is": "hidden"}
               ]
             },
             {"name": "Busy", "select": "#busy", "req": "req/shell/waiting/visible", "unwalked": "shows only while the study works, and the walk reads the page once it has settled",
@@ -458,8 +590,7 @@
                   ],
                   "children": [
                     {"name": "3D picture", "select": "#v3-gl", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d"},
-                    {"name": "Drawn over the 3D view", "select": "#v3-hud", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d"},
-                    {"name": "Panning", "select": "#v3-pan", "made": "by the 3D view, once a stack opens", "control": true, "req": "req/shell/viewer-3d"}
+                    {"name": "Drawn over the 3D view", "select": "#v3-hud", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d"}
                   ]
                 },
                 {"name": "Minimap", "select": "#minimap", "req": "req/shell/image/minimap",
@@ -472,6 +603,27 @@
                     {"name": "Fold the minimap", "select": "#minimap-fold", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
+                  ]
+                },
+                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only a tagger has a log to show"},
+                    {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                  ],
+                  "children": [
+                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
+                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history"},
+                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history"},
+                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear"}
+                  ]
+                },
+                {"name": "Keys legend", "select": "#keys-legend", "made": "by the shell, as the page starts", "req": "req/shell/image/keys",
+                  "children": [
+                    {"name": "Panning", "select": "#v3-pan", "made": "by the 3D view, once a stack opens", "control": true, "req": "req/shell/viewer-3d",
+                      "rule": [
+                        {"when": {"shows3d": [false]}, "is": "hidden", "req": "req/shell/image/keys"},
+                        {"when": {"stack": [false]}, "is": "hidden"}
+                      ]}
                   ]
                 }
               ]

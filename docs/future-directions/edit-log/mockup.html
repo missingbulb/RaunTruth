@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit History window (mockup)</title>
+<style>
+  :root { --bg: #f4f5f7; --panel: #fff; --line: #dcdfe4; --text: #1d2129; --dim: #6b7280; --accent: #2457d6; --yes: #1a8f4c; --ring: #ffd400;
+    --mm-width: 200px; --mm-height: 224px; --r-ctl: 8px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; color: var(--text); background: var(--bg); display: flex; height: 100vh; min-height: 760px; }
+  #left { width: 320px; background: var(--panel); border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: var(--dim); }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  button[aria-pressed="true"] { background: #eef3ff; border-color: var(--accent); color: var(--accent); }
+  kbd { font: 11px ui-monospace, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; margin-left: 4px; }
+  #bar { display: flex; gap: 3px; height: 8px; flex: none; }
+  #bar span { border-radius: 4px; background: linear-gradient(to right, var(--yes) var(--d), var(--line) var(--d)); }
+  ol.tasks { list-style: none; margin: 0; padding: 0; }
+  ol.tasks > li { border-top: 1px solid var(--line); padding: 7px 0; }
+  ol.tasks > li:first-child { border-top: 0; }
+  .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .now { font-weight: 600; }
+  .card { margin-top: 8px; }
+  .crop { height: 110px; border-radius: 6px; background: #10131a; position: relative; overflow: hidden; }
+  .crop i { position: absolute; left: 30%; right: 30%; top: 46%; height: 9px; background: #2bd36b; border-radius: 4px; }
+  .crop b { position: absolute; left: 46%; width: 8%; top: 44%; height: 13px; background: #e23b4e; border-radius: 3px; }
+  .verdicts { display: flex; gap: 8px; margin-top: 8px; }
+  .verdicts button { flex: 1; padding: 9px; }
+  .tools { display: flex; gap: 12px; font-size: 12px; color: var(--accent); margin-top: 6px; }
+  .edits { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+  .edits .grow { flex: 1; }
+  .save { display: flex; gap: 8px; }
+  .unsaved { font-size: 12px; color: #b26b00; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .link { border: 0; background: none; color: var(--accent); padding: 0; font-size: 12px; }
+
+  #main { flex: 1; position: relative; background: #0b0d12; overflow: hidden; }
+  #main .cand { position: absolute; border: 1px solid rgba(255,255,255,.35); width: 34px; height: 16px; border-radius: 2px; }
+  #main .hl { position: absolute; left: 41%; top: 37%; width: 60px; height: 60px; margin: -22px 0 0 -13px; border: 2px solid var(--ring); border-radius: 50%; box-shadow: 0 0 0 3px rgba(255,212,0,.25); }
+  #main .legend { position: absolute; left: 12px; bottom: 12px; color: #cfd4dc; font-size: 12px; }
+  #main .legend kbd { color: #cfd4dc; border-color: #4a5160; }
+
+  /* floating tool windows over the image: the minimap's frame, shared */
+  .float { position: absolute; z-index: 5; border: 2px solid #fff; border-radius: var(--r-ctl); background: var(--panel); box-shadow: 0 4px 14px #0008; overflow: hidden; display: flex; flex-direction: column; }
+  .float .head { display: flex; align-items: center; gap: 4px; height: 24px; flex: none; padding: 0 2px 0 6px; font-size: 12px; font-weight: 600; color: var(--dim); user-select: none; }
+  .float .head .title { flex: 1; }
+  .float .head small { font-weight: 400; }
+  .mm-btn { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--dim); font-size: 13px; }
+  #minimap { top: 12px; left: 12px; width: var(--mm-width); }
+  #minimap .body { height: 200px; background: #000; position: relative; }
+  #minimap .body i { position: absolute; left: 38%; top: 30%; width: 34%; height: 28%; border: 1.5px solid #fff; }
+
+  /* the edit history: bottom right of the image, 2.5 × the minimap's height, never taller than the view allows */
+  #history { right: 12px; bottom: 12px; width: calc(var(--mm-width) * 1.4); height: min(calc(var(--mm-height) * 2.5), calc(100% - 24px)); }
+  #history ol { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); overscroll-behavior: contain; }
+  #history li { display: flex; gap: 6px; align-items: baseline; padding: 4px 8px; font-size: 12px; border-top: 1px solid var(--line); cursor: pointer; }
+  #history li:first-child { border-top: 0; }
+  #history li:hover { background: #eef3ff; }
+  #history li .dot { width: 8px; flex: none; color: var(--accent); }
+  #history li .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #history li .when { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #history li.undone .what { color: var(--dim); text-decoration: line-through; text-decoration-color: #b8bdc7; }
+  #history li.here { background: #f3f6ff; font-weight: 600; position: sticky; top: 0; bottom: 0; z-index: 1; box-shadow: 0 1px 0 var(--line), 0 -1px 0 var(--line); }
+  #history li.mark { cursor: default; color: var(--dim); font-size: 11px; background: #fafafa; }
+  #history li.floor { cursor: default; color: var(--dim); }
+  #history li.day { cursor: default; font-size: 11px; color: var(--dim); background: #f7f8fa; padding: 2px 8px; }
+  #history .foot { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+  #history .foot .link { color: #c0392b; font-size: 12px; }
+</style>
+</head>
+<body>
+<aside id="left">
+  <h2>Ground Truth Tasks</h2>
+  <button class="primary">Stop tagging</button>
+  <div id="bar"><span style="flex:47;--d:36%"></span><span style="flex:93;--d:11%"></span><span style="flex:100;--d:9%"></span></div>
+  <ol class="tasks">
+    <li><span class="n">17/47</span> <span class="now">Finalists</span>
+      <div class="card">
+        <div class="crop"><i></i><b></b></div>
+        <div class="verdicts"><button>A NoR <kbd>F</kbd></button><button>Not a NoR <kbd>J</kbd></button></div>
+        <div class="tools"><span>Back</span><span>Skip</span></div>
+      </div>
+    </li>
+    <li><span class="n">10/93</span> Rejected</li>
+    <li><span class="n">9/100</span> Missed</li>
+  </ol>
+  <div class="edits">
+    <button title="Undo: Approved #23">Undo<kbd>Ctrl+Z</kbd></button>
+    <button title="Redo: Width of #23 set to 4.1 px">Redo<kbd>Ctrl+Y</kbd></button>
+    <span class="unsaved">· 6 unsaved</span>
+  </div>
+  <label class="toggle"><input type="checkbox" checked> Show Edit History</label>
+  <div class="save"><button>Save Draft</button><button>Submit Ground Truth</button></div>
+</aside>
+<main id="main">
+  <div class="cand" style="left:22%;top:18%"></div><div class="cand" style="left:63%;top:24%"></div>
+  <div class="cand" style="left:41%;top:37%"></div><div class="cand" style="left:71%;top:58%"></div>
+  <div class="cand" style="left:30%;top:66%"></div><div class="cand" style="left:52%;top:80%"></div>
+  <div class="hl"></div>
+
+  <section id="minimap" class="float"><div class="head"><span class="title">Minimap</span><button class="mm-btn">⌃</button></div><div class="body"><i></i></div></section>
+
+  <section id="history" class="float" aria-label="Edit History">
+    <div class="head"><span class="title">Edit History <small>· 212</small></span><button class="mm-btn" title="Hide (Show Edit History in Ground Truth Tasks brings it back)">✕</button></div>
+    <ol>
+      <li class="undone"><span class="dot"></span><span class="what">Deleted #31</span><span class="when">14:09</span></li>
+      <li class="undone"><span class="dot"></span><span class="what">Width of #23 set to 4.1 px</span><span class="when">14:08</span></li>
+      <li class="here"><span class="dot">●</span><span class="what">Approved #23</span><span class="when">14:08</span></li>
+      <li><span class="dot"></span><span class="what">Moved a length end of #23</span><span class="when">14:07</span></li>
+      <li><span class="dot"></span><span class="what">Added a NoR at 812, 440</span><span class="when">14:06</span></li>
+      <li><span class="dot"></span><span class="what">No missed NoRs in area 8</span><span class="when">14:05</span></li>
+      <li><span class="dot"></span><span class="what">Approved 14 finalists</span><span class="when">13:51–14:01</span></li>
+      <li><span class="dot"></span><span class="what">Deleted #4</span><span class="when">13:50</span></li>
+      <li><span class="dot"></span><span class="what">Deleted 9 candidates</span><span class="when">13:41–13:49</span></li>
+      <li><span class="dot"></span><span class="what">Moved a width end of #12</span><span class="when">13:40</span></li>
+      <li><span class="dot"></span><span class="what">Approved 31 finalists</span><span class="when">13:12–13:39</span></li>
+      <li><span class="dot"></span><span class="what">Deleted #2</span><span class="when">13:11</span></li>
+      <li><span class="dot"></span><span class="what">Moved a length end of #7</span><span class="when">13:09</span></li>
+      <li><span class="dot"></span><span class="what">Approved 8 finalists</span><span class="when">13:00–13:08</span></li>
+      <li class="day">Yesterday</li>
+      <li><span class="dot"></span><span class="what">Added a NoR at 1204, 96</span><span class="when">17:22</span></li>
+      <li><span class="dot"></span><span class="what">Approved 52 finalists</span><span class="when">16:40–17:20</span></li>
+      <li><span class="dot"></span><span class="what">Deleted 18 candidates</span><span class="when">16:02–16:39</span></li>
+      <li class="floor"><span class="dot"></span><span class="what">Algorithm ran: walk, Balanced · 140 candidates</span><span class="when">16:01</span></li>
+      <li class="floor"><span class="dot"></span><span class="what">Image opened</span><span class="when">16:00</span></li>
+    </ol>
+    <div class="foot"><span>Click a row to go back to it</span><button class="link">Clear all history…</button></div>
+  </section>
+
+  <div class="legend">Undo <kbd>Ctrl+Z</kbd> &nbsp; Redo <kbd>Ctrl+Y</kbd></div>
+</main>
+</body>
+</html>

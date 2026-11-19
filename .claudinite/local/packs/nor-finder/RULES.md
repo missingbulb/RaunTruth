@@ -22,6 +22,13 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   be regenerated from it. Before replying that work is done, check that nothing the next session
   would need exists only in the project. (working-claude-project)
 
+## What a study gives the shell
+
+- **Giving the shell something that varies by study** (its algorithms, channels, steps, their
+  numbers) - contribute it as data the shell reads, named in `study.json`, and leave every decision
+  about it to the shell; never write study code that builds or draws what the shell could own once.
+  (study-contributes-data)
+
 ## Production and its tests
 
 - **A test needing the page to behave otherwise than it does on the live site** — change the
@@ -32,6 +39,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 - **Testing a motion the page makes** (a transition, an animation, a view transition) - check that it is on where
   it should be, that it starts and that it ends in the right state, through `web-tests/page_motions.mjs`; never
   how it looks on the way. (testing-motion-ends)
+
+- **Waiting in a test for the page to have drawn** (a canvas, the 3D view) - wait for that surface's own draw,
+  through `web-tests/page_frames.mjs`; a count of frames says only that frames passed, and a view that draws on
+  demand may have drawn in none of them. (wait-for-the-draw)
 
 - **Testing code that needs a study's image** - draw a small one in the test (NoR's is
   `studies/nor/tests/synthetic_nor.py`); never a study's real data, which no test downloads.
@@ -74,7 +85,17 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   the owner does not review: never present a case there as approved, and bring each tentative or undecided case,
   and each change to what a state shows, to the owner as a question. (shell-states-unreviewed)
 
+## Pushing
+
+- **Pushing commits to a pull request's branch** - push once the batch of commits in hand is done,
+  not after each one: every push starts a Tests run, so a burst of pushes runs the suite once per
+  commit for a single result. (push-in-batches)
+
 ## Merging
+
+- **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
+  fresh branch off `main`, running the tests after each, and merge the ones that hold; the one that does not stays
+  on the first branch, where the work goes on as a smaller change. (split-out-the-sound)
 
 - **A small pull request fixing a bug** — merge it yourself, unasked, once its first commit added
   a test that failed on the bug, a later commit fixed the bug, and the same test passed with no

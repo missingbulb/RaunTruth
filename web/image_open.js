@@ -1,5 +1,5 @@
 // Opening an image for the viewers, the same way in every study and with no Python (req/shell/image/open): a TIFF
-// read by split.js's reader, a HEIC (a phone's photo) by libheif, any other image as the browser decodes it. Each channel is shown under the name the file
+// read by the page's own TIFF reader, a HEIC (a phone's photo) by libheif, any other image as the browser decodes it. Each channel is shown under the name the file
 // gives it and in the colour the file displays it in; its contrast is set once over the whole stack, between its 0.5%
 // quantile and its upper one (the study's view.upper, else 99.8%), its black point then lifted where the black-point
 // method says (BLACK_POINT), or left as stored where the study's view.stretch is false; a stack comes flattened (each pixel the brightest of every slice) and slice by slice.
@@ -7,7 +7,9 @@
 // file's own samples], images: one buffer, the viewers' whole image: planes, the channels' 8-bit flattened planes
 // one after another, then volume, every slice of every channel, channel by channel, 8-bit, for a stack (Z > 1);
 // planes and volume (null for a flat image) are views into it}.
-import { readTiff, fromPlanes } from "./split.js";
+import { readTiff, fromPlanes } from "./tiff_file.js";
+import { fileFields } from "./file_fields.js";
+import { isVsiAlone, pairFiles, readPair } from "./vsi.js";
 
 const LOWER = 0.005, UPPER = 0.998;
 // a robust standard deviation in median absolute deviations, for normal noise, and how many of them a
@@ -32,15 +34,36 @@ const isTiff = (b) => b.length >= 4 && ((b[0] === 0x49 && b[1] === 0x49 && b[2] 
 // the image in bytes (an ArrayBuffer or Uint8Array) as the viewers show it; view: the study's study.json view
 export async function openImage(bytes, view = {}) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  if (isTiff(b)) return openTiff(b, view);
-  if (isHeif(b)) return openHeif(b, view);
+  if (isVsiAlone(b)) throw new Error("A cellSens .vsi opens only together with its _name_ folder, which holds its pixels.");
+  if (isTiff(b)) return withDetails(b, await openTiff(b, view), view);
+  if (pairFiles(b)) return withDetails(b, await openVsi(b, view), view, "vsi");
+  if (isHeif(b)) return withDetails(b, await openHeif(b, view), view);
   const { W, H, rgba } = await browserPixels(b);
-  return fromPixels(W, H, rgba, view, greyFile(b));
+  return withDetails(b, fromPixels(W, H, rgba, view, greyFile(b)), view);
+}
+
+// the fields each format pins in the details, by their labels; a study's view.details names its own per format
+const PINS = {
+  tiff: ["Field", "Pixel", "Depth", "Series", "Microscope", "Date", "Slices", "Channels", "Saved by"],
+  vsi: ["Field", "Pixel", "Depth", "Slices", "Z-step", "Channels", "Stored", "Saved by"],
+  heic: ["Field", "Depth", "Camera", "Taken"], jpeg: ["Field", "Depth", "Camera", "Taken"], png: ["Field", "Depth"], image: ["Field", "Depth"],
+};
+// the opened image with its details split (req/shell/image/file-info): info, the fields pinned, in the pins' order;
+// more, every other field the file carries, in the file's order; as: the format, where the bytes alone do not say it
+export function withDetails(b, im, view = {}, as = null) {
+  const { format, fields, facts } = as ? { format: as, fields: [], facts: {} } : fileFields(b);
+  const rows = im.info.map(([k, val]) => [k, k === "Depth" && format !== "tiff" && facts.bits ? val.replace(/^\d+-bit/, `${facts.bits}-bit`) : val]);
+  if (format !== "tiff") rows.push(...[["Camera", facts.camera], ["Taken", facts.taken]].filter(([, val]) => val));
+  const all = [], seen = new Set();
+  for (const [k, val] of [...rows, ...fields]) if (!seen.has(k)) { seen.add(k); all.push([k, val]); }
+  const pins = view.details?.[format] || PINS[format];
+  const info = pins.map((k) => all.find(([l]) => l === k)).filter(Boolean);
+  return { ...im, info, more: all.filter(([k]) => !pins.includes(k)) };
 }
 
 async function openHeif(b, view) {
   const { W, H, rgba } = await heifPixels(b);
-  return fromPixels(W, H, rgba, view, false);
+  return fromPixels(W, H, rgba, view, greyFile(b));
 }
 // a HEIC's primary image, turned as the file says it was held, as RGBA
 async function heifPixels(b) {
@@ -63,7 +86,7 @@ async function browserPixels(b) {
   return { W, H, rgba };
 }
 
-// the image in bytes as split.js's reader gives it, read by the decoder the viewers use for it: a TIFF's own
+// the image in bytes as the TIFF reader gives it, read by the decoder the viewers use for it: a TIFF's own
 // planes, a photo's red, green and blue
 export async function readImage(bytes) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -112,8 +135,10 @@ function background(h) {
 // a format's own black-point method: a fluorescence TIFF's background is most of its pixels, a photo's is not
 const FORMAT_BLACK = { tiff: "triangle", photo: "quantile" };
 
-// whether a PNG or a JPEG says it is grey (true) or in colour (false); null for a file that does not say
+// whether a PNG or a JPEG says it is grey (true) or in colour (false), a HEIC always shown in colour; null for a file
+// that does not say
 export function greyFile(b) {
+  if (isHeif(b)) return false;
   if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 && b.length > 25) return b[25] === 0 || b[25] === 4;
   if (b[0] === 0xff && b[1] === 0xd8) {
     for (let at = 2; at + 9 < b.length && b[at] === 0xff;) {
@@ -171,6 +196,21 @@ export async function openTiff(b, view = {}) {
   if (saved) info.push(["Saved by", saved]);
   const spacing = microns && ij.spacing ? Number(ij.spacing) : null;
   return shown(W, H, t.Z, raw, said, view, rgb ? "photo" : "tiff", { um, umY, spacing, info });
+}
+
+// an Olympus cellSens image, its .vsi and .ets kept as one file (req/shell/image/cellsens), shown as a fluorescence
+// TIFF of the same channels is
+async function openVsi(b, view) {
+  const p = await readPair(b), n = Math.min(p.C, MOST), x = p.um, info = [];
+  const raw = p.planes.slice(0, n).map((slices) => slices.map((s) => samples(s, p.bps, 1)));
+  info.push(["Field", x ? `${(p.W * x).toFixed(1)} × ${(p.H * x).toFixed(1)} µm (${p.W} × ${p.H} px)` : `${p.W} × ${p.H} px`]);
+  if (x) info.push(["Pixel", `${x.toFixed(4)} µm`]);
+  info.push(["Depth", `${p.bps * 8}-bit`]);
+  if (p.Z > 1) info.push(["Slices", String(p.Z)]);
+  if (p.spacing) info.push(["Z-step", `${p.spacing} µm`]);
+  info.push(["Channels", n === p.C ? String(p.C) : `${p.C}, the first ${n} shown`]);
+  info.push(["Stored", p.compressed ? "JPEG 2000" : "uncompressed"], ["Saved by", "Olympus cellSens"]);
+  return shown(p.W, p.H, p.Z, raw, p.channels.slice(0, n), view, "tiff", { um: x, umY: x, spacing: p.spacing, info });
 }
 
 // a plane's little-endian bytes as numbers

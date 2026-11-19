@@ -40,11 +40,11 @@ tuning is no longer held out.
 ## 3. Sweep one parameter at a time, then the top pairs
 
 - Sweep each parameter over a range in its own scale-free units, around the current value, with
-  everything else fixed. Plot F1 (and P, R) against it. On NoR, one image and one label file per
-  run:
+  everything else fixed. Plot F1 (and P, R) against it. On NoR, over every image with ground truth
+  (`--truth lab` or `--truth drive` for one set of files):
 
   ```
-  cd studies/nor/detection && NOR_TIF=<image.tif> python3 nor_lab.py ablate tl 'tl:min_snr=3' 'tl:min_snr=4' --labels <labels.json>
+  python3 lab/items.py nor ablate tl 'tl:min_snr=3' 'tl:min_snr=4'
   ```
 
   A study without a lab command that scores a parameter override gets one before its first sweep.

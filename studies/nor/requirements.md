@@ -7,8 +7,8 @@ follows too: tags, their order, **Tentative** and **Undecided**. Its research re
 ## `req/nor` The NoR Finder page: detect once, filter live, in the browser
 
 Set by the owner on 2026-09-28: the shell running the NoR study with no backend. Its engine is
-[`studies/nor/detection/interactive.py`](detection/interactive.py), tested by
-[`studies/nor/tests/test_interactive.py`](tests/test_interactive.py).
+[`studies/nor/algorithm/nor_finder.py`](algorithm/nor_finder.py), tested by
+[`studies/nor/tests/test_algorithm.py`](tests/test_algorithm.py).
 
 - `req/nor/candidates/add-missed` Right-clicking the image adds a NoR the finder missed.
   <details>
@@ -16,11 +16,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Right-clicking the image offers "Add a NoR Here": a NoR the finder proposed nothing for. It is not
   drawn as a mask; it gets measuring lines (level, centred where clicked, as long and wide as the
   image's median finalist) that the user corrects on its card, which is selected at once. It lists
-  among the finalists, marked by an icon rather than text, and among the rejected once thumbed
-  down; its card can also remove it (as can right-clicking it). On the image it shows its lines
+  among the finalists, marked by an icon rather than text; thumbing it down removes it, as its
+  card's Remove does (as can right-clicking it), and Undo brings it back. On the image it shows its lines
   and, until the user gives a verdict, a dashed yellow circle glowing between 0.8 and 0.3 opacity.
-  Like any candidate it enters the ground truth only once the user approves it. Added NoRs are
-  remembered in the browser per file name, whatever the finder.
+  Like any candidate it enters the ground truth only once the user approves it. Added NoRs are kept
+  as GT actions, whatever the finder (`req/nor/candidates/remembered`).
   </details>
 
 - `req/nor/candidates/decide` One selected candidate, decided on its card with a thumbs up or down.
@@ -55,11 +55,34 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   candidate by that number (`studies/nor/tests/test_ground_truth_page.py`).
   </details>
 
-- `req/nor/candidates/remembered` Decisions, lengths and added NoRs are remembered per file name.
+- `req/nor/candidates/remembered` Decisions, lengths, added NoRs and checked areas are GT actions; a tagger saves them with Save Draft.
   <details>
 
-  Decisions and adjusted or approved lengths are saved in the browser per file name and finder,
-  tied to each candidate's position; added NoRs per file name.
+  Each of them is one of the shell's GT actions (`req/shell/ground-truth/history`; owner, 2026-11-17, with the Edit
+  History): approving a candidate, rejecting it (which deletes it from the candidates that remain), taking a verdict
+  back, a length, red length or width end dropped (one action at the drop, none while it is dragged or when Escape
+  cancels it) or Reset measurements, adding a NoR, and "No missed NoRs here". They live in the page until Save Draft
+  (`req/shell/ground-truth/save-draft`), not in the browser per file name. A candidate keeps its id from the run
+  (c87), and a run again, whether from Find Candidates or a filter or preset change, gives each candidate at the
+  same place the same id and carries the tagger's actions over, skipping any whose candidate has gone; an added NoR's
+  id (u3) is never reused. What the five older browser keys hold for a file (decisions, lengths, added NoRs, a
+  pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as Load earlier edits
+  (`req/shell/ground-truth/legacy`): the GT actions they imply on the run's candidates, an old thumbs down a delete of
+  its candidate, recorded when the tagger loads them and undone like any other; the keys go when a draft holds them,
+  and until then Manage storage lists them under their image, as earlier work, to see and delete
+  (`web-tests/test_storage_page.py`). A draft whose candidates are not the page's, each by its id at its place, takes
+  the page's place whole: no candidate the model does not hold is shown as decided. The candidates' pixel masks are not in the log, so a draft loaded with no
+  Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
+  window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
+  ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
+  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
+  `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
+  candidate's id and then by its rounded place: an approval, a rejection (the candidate stays among the rejected), the
+  tagger's lines, the NoRs added and the areas checked. An approval or a rejection of a candidate the run does not have
+  is left out and counted on the status line. A `/2` file read again gives a candidate marked wrong back as a rejected
+  one, and its lines as the tagger's; a `/3` file keeps `next`, the ids it will give next, so one given up is not given again.
+  Test: `studies/nor/tests/test_gt_actions.mjs`, `studies/nor/tests/test_nor_gt_actions.py`, `studies/nor/tests/test_gt_actions_page.py`, `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/nor/cards/adjusters` A card's adjusters correct its lengths and width by dragging.
@@ -105,21 +128,28 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   its lengths corrected before it is approved; its cogwheel holds them, with no sort.
   </details>
 
-- `req/nor/downloads` Download Candidates and Download Summary give CSVs; Submit Ground Truth gives the ground truth.
+- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
   <details>
 
-  Moved by the owner on 2026-10-07. At the bottom of the Summary box, side by side across its width,
-  Download Candidates gives the candidates as CSV (every candidate, its status, its reasons, the
-  user's decision and its measurements) and Download Summary the summary as CSV. Submit Ground
+  Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
+  CSV (every candidate, its status, its reasons, the user's decision and its measurements), and under it the shell's
+  Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
+  finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
-  (`norfinder-ground-truth/2`): a JSON file naming the image (its SHA-256, and where it was loaded
-  from: its Google Drive id and link, or "local") that lists only what the user marked: every
-  candidate voted up (label 1, with its lengths and length lines, marked adjusted or approved) or
-  down (label 0), and every added NoR the user approved (kind `missing`, label 1, with its radius,
-  `origin: "added by user"`, its measurements and lines). A candidate nobody voted on is ambiguous
-  and left out. The lab's `nor_lab.py --labels` reads it: the labels score detection and the
-  checked lengths score measurement (`studies/nor/tests/test_ground_truth.py`).
+  (`norfinder-ground-truth/3`, the model of the tagger's work as the shell's GT actions leave it,
+  `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
+  from: its Google Drive id and link, or "local") and the finder and filters it was run with, with
+  `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
+  approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
+  added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
+  cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
+  `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's scorer (`algorithm/truth.py`) reads it, and the `/2` files already
+  curated, which list `labels` (every candidate voted up or down, and every added NoR approved). The scorer reads
+  each element's state alone (a NoR, not a NoR, undecided), never where it came from, and scores an answer's place
+  and, where the element carries lengths, its lengths ([`docs/scoring.md`](docs/scoring.md),
+  `studies/nor/tests/test_truth.py`). A candidate nobody voted on is undecided: in `candidates` without
+  `approved`, and neither a miss nor an invention.
   </details>
 
 - `req/nor/filters/live` Filters are live dials: each can be switched off, and every marking follows it at once.
@@ -127,7 +157,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Every check in `nor3.CHECKS`, the nucleus rule (N) and one-pixel-per-NoR (O) is a control that
   can be switched off. Each shows a letter, a one- or two-word title and a line saying what it
-  means (the page's own names, from `detection/finder_help.py`; the lab's review sheets keep
+  means (the page's own names, from `algorithm/finder_help.py`; the lab's review sheets keep
   theirs), and two counts: how many candidates it rejects, whatever the other filters do, and how
   many only it rejects among the filters switched on (what switching it off would let through), as
   plain text reading "X (Y)" after the cards' thumbs-down icon, whose tooltip explains that X is the
@@ -158,10 +188,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   They re-run the finder. Each finder names its main settings (its function's `MAIN`), shown first;
   every setting is under a collapsed Advanced box. Each finder shows how it works under "How the
   <finder> algorithm works", its steps as a nested list (written as a Markdown outline), and every
-  setting and filter value has a ? that says what it does (`detection/finder_help.py`; the test fails
-  when one is missing). Changed by the owner on 2026-11-03: the note ends with "<Finder> algorithm plus
-  default filters show precision of X and recall of Y based on N images", in bold, the numbers the finder
-  list shows, then "(without filters: …)", the finder's own, not bold;
+  setting and filter value has a ? that says what it does (`algorithm/finder_help.py`; the test fails
+  when one is missing). Changed by the owner on 2026-11-03: the note ends with "<Finder> algorithm shows
+  precision of X and recall of Y with its default filters, on N images", in bold, the numbers the finder
+  list shows, then "(without filters: …)", the finder's own, not bold (the list and the note are the shell's
+  since 2026-11-13, `req/shell/processing/algorithms`, from the study's data: `web/algorithms.json`, each finder's
+  name, icon and steps, and `web/algorithm_metrics.json`, its numbers);
   each finder in the list carries its own icon, the study's choice; the settings start folded.
   Test: `studies/nor/tests/test_processing_box.py`.
   </details>
@@ -169,7 +201,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/lab-parity` The page runs the lab's code, and at our settings passes what the lab passes.
   <details>
 
-  The Python it runs is the study's `detection/` as it is, so the finder stays
+  The Python it runs is the study's `algorithm/` as it is, the code the lab runs, so the finder stays
   malleable. At our settings, the page passes what the lab passes with the blue mask applied after
   finding.
   </details>
@@ -253,20 +285,31 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   shaded, and the mean, SD and n written above it, with no separate table.
   </details>
 
-- `req/nor/summary/mask` A lassoed summary mask limits the summary and the CSVs to the candidates inside it.
+- `req/nor/summary/mask` The shell's summary mask limits the summary and the CSVs to the candidates inside it.
   <details>
 
-  Set by the owner on 2026-10-06. Add mask, on its own row below the Summary box's title (moved
-  there by the owner on 2026-10-31), switches to the image
-  view, zooms out to show the whole image and lets the user lasso an area by dragging (Esc
-  cancels). The summary then counts only the candidates whose centre is inside the mask, and the
-  Candidates and Summary CSVs hold only those; the ground truth ignores the mask. Lassoing again
-  adds an area by exclusive or, so a lasso inside another cuts a hole. The mask's borders show as a
-  pulsing dashed line, and its inside is tinted a very transparent white only when areas overlap or
-  nest. Clear mask, shown while a mask is on, removes it. The mask is remembered in the browser per
-  file name (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on 2026-11-04: the mask
-  shows only while the summary does, so while the study makes ground truth it is neither drawn nor
-  listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  Set by the owner on 2026-10-06; the mask itself is the shell's since 2026-11-16 (`req/shell/summary/mask`). The
+  summary counts only the candidates whose centre is inside the mask, and the Candidates and Summary CSVs hold only
+  those; the ground truth ignores the mask (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on
+  2026-11-04: the mask shows only while the summary does, so while the study makes ground truth it is neither drawn
+  nor listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  </details>
+
+- `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.
+  <details>
+
+  Set by the owner on 2026-11-15, one scheme for every study. F is a NoR (the thumbs up), J is not
+  (the thumbs down), Space is the area's "No missed NoRs here", Backspace is Back, S is Skip and R is
+  Reset measurements. A key is read by where it sits on the keyboard, so it works in any layout
+  (Hebrew too), and does just what clicking its button does, and nothing while that button is not
+  shown or is off. Keys act only while tagging (`req/shell/ground-truth/tagging`) with an item or an
+  area's check open, never while typing in a field, holding a key down, with Ctrl, Alt or Cmd held, or with a
+  menu or dialog open; a key that does nothing there keeps its usual effect. Each button shows its key
+  in a small chip beside its label. Changed by the owner on 2026-11-16: the keys are the shell's
+  (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
+  bottom left while they act, the study listening to no key itself; and the Show menu's ground-truth rows are
+  on number keys, 1 Finalists, 2 Rejected, 3 Added NoRs, and while tagging 4 Cut out what is done and 5 Frame
+  the area, each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image, revealing a picture behind it.

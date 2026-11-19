@@ -46,19 +46,18 @@ def answers(png, tmp_path_factory):
     study's ready() on loading, with the image as the page's own reader opens it, and the build's list of studies:
     (answers.json, studies.json)."""
     import base64, json, sys
-    sys.path.insert(0, os.path.join(HERE, '..', 'studies', 'fixture', 'py'))
+    sys.path.insert(0, os.path.join(HERE, '..', 'studies', 'fixture', 'algorithm'))
     import fixture
     d = tmp_path_factory.mktemp('answers')
     from image_open import open_image
     meta, planes, _ = open_image(d, png, view={'stretch': False})
     opened = json.dumps(dict(W=meta['W'], H=meta['H'], um=None, um_y=None, info=meta['info']))
     images = planes.tobytes()
-    s = fixture.Session(png)
-    count, mask = s.call('count', {'threshold': 100})
+    ran = fixture.VERSIONS['above'](fixture.read(png), threshold=100)
+    mask = ran.pop('above')
+    count = json.dumps(ran)
     out = d / 'answers.json'
-    sys.path.insert(0, os.path.join(HERE, '..', 'studies', 'nor', 'detection'))
-    import interactive
-    ready = dict(fixture={}, viewer={}, nor=json.loads(interactive.ready()))
+    ready = dict(fixture={}, viewer={}, nor={})
     out.write_text(json.dumps(dict(ready=ready, opened=json.loads(opened), count=json.loads(count),
                                    images=base64.b64encode(images).decode(), mask=base64.b64encode(mask).decode())))
     sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))

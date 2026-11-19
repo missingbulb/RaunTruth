@@ -15,7 +15,8 @@ Nothing existed. R2 was a promise with no way to check it, and the project had n
 ## What changed
 
 A **scale-free baseline detector** (`detection/nor.py`) and a **transform-invariance harness**
-(`detection/harness.py`), pinned by `tests/test_invariance.py`.
+(`detection/harness.py`), pinned by `tests/test_invariance.py`. All three were retired on 2026-11-18, when
+the study moved onto the shared lab; git history keeps them.
 
 The detector is deliberately naive — it is the baseline
 [`../literature/prior-art-detection.md`](../literature/prior-art-detection.md) says anything more
@@ -56,7 +57,7 @@ arrives, precisely because a single image is what overfitting looks like.
 *The figure, kept in this folder's git history up to #620, showed: original, transpose, rotated 34°, scaled 0.5×. Each panel shows that panel's own detections;
 the caption reports agreement with the 1× detection after inverse mapping. Overlay hue is chosen
 against the data's own colours at render time and asserted rare — see `pick_overlay` in
-`detection/render.py`.*
+`detection/render.py` (retired 2026-11-18).*
 
 ```
 transform   ref  got  match  miss  spur  rms/u  unit×

@@ -1,12 +1,13 @@
 // The Ground Truth Tasks, in the left bar while the study makes ground truth: the stack's areas, a row each, then
 // Submit. An area is open only while the owner tags, from Start GT tagging to Stop tagging; then the main view shows
 // it alone (model_view.js), its lines, points and junctions corrected there in one pass, each of its junctions judged
-// in the box, and Area is right does it. Back to image shows the whole stack and Back to task the area again; the
+// in the box; Area is right then opens its widths step, and These widths look right does it. Back to image shows the whole stack and Back to task the area again; the
 // areas float as a map over the view meanwhile. Every verdict is an edit of the model, so it is undone, saved and
 // submitted with the rest.
 import * as Mo from './model.js';
 import * as MV from './model_view.js';
 import { build, junctionPicture } from './items.js';
+import { umText } from './widths.js';
 
 const $ = (id) => document.getElementById(id);
 // the areas across the field, each way, that the person may choose; the field cut into GRID × GRID until they do
@@ -19,8 +20,9 @@ const PROBES = 4;
 const MIN_PX = 160;
 
 // tools: the open area's cogwheel and Skip, for its row; work: what is done in it, under its row
-let V = null, T = null, n = GRID, st = null, items = null, heard = () => {}, tools = null, work = null;
-const fresh = () => ({ area: null, submit: false, junction: null, focused: true, dir: 0 });
+let V = null, keys = null, T = null, n = GRID, st = null, items = null, heard = () => {}, tools = null, work = null;
+// widths: the open area is in its widths step
+const fresh = () => ({ area: null, submit: false, junction: null, focused: true, dir: 0, widths: false });
 
 // ---------- the areas, in the order they are worked through ----------
 // rows of areas top to bottom, each the way back from the last, so the next area always borders the one before
@@ -39,8 +41,6 @@ function areaOf(m, p) {
   const r = cell(p.y, H), k = cell(p.x, W);
   return r * n + (r % 2 ? n - 1 - k : k);
 }
-// an area done, as the model's reviewed_regions keep it: through every slice, with the day and the step
-const region = (m, b) => ({ x: [b.x0, b.x1], y: [b.y0, b.y1], z: [0, m.slices - 1], on: new Date().toISOString().slice(0, 10), step: STEP });
 // a box kept before the steps had names was an area checked for missed vessels
 const stepOf = (g) => g.step || 'missed';
 function covered(m, a, step) {
@@ -65,16 +65,20 @@ function itemsOf(m) {
   const { vessels, junctions } = build(m);
   const js = junctions.map((j) => ({ ...j, key: `j${j.id}`, at: { x: j.x, y: j.y, z: j.z }, done: Mo.checkedJunction(m, j.id) }))
     .sort((p, q) => p.y - q.y || p.x - q.x);
-  return { vessels: vessels.map((v) => ({ ...v, at: v.path[v.path.length >> 1] })), junctions: js };
+  return { vessels: vessels.map((v) => ({ ...v, at: v.path[v.path.length >> 1], said: Mo.widthOf(m, v.segments) })), junctions: js };
 }
 const junctionsIn = (m, a) => items.junctions.filter((j) => areaOf(m, j) === a);
+const vesselsIn = (m, a) => items.vessels.filter((v) => areaOf(m, v.at) === a && Mo.live(v));
+// the vessels the person drew in an area that still have no width set by hand, nor said in a file from before to be one
+// that cannot be told (req/vascular/truth/widths)
+const drawnWithout = (m, a) => vesselsIn(m, a).filter((v) => !v.proposed && !Mo.measured(v.said) && v.said?.how !== 'cannot');
 
 // ---------- moving through the areas ----------
 // to: an area, or null for Submit
 function go(to, dir = 1) {
   if (!MV.current()) return;
   st.area = to ?? st.area; st.submit = to == null;
-  st.junction = null; st.focused = to != null; st.dir = dir;
+  st.junction = null; st.focused = to != null; st.dir = dir; st.widths = false;
   show(true);
 }
 const moveOn = () => { const m = MV.current(); go(nextOpen(m, (st.area + 1) % count())); };
@@ -90,25 +94,31 @@ function setGrid(k) {
 }
 
 // ---------- the verdicts ----------
-// Area is right: the area done, each vessel whose middle lies in it, confident ones accepted, low-confidence ones
-// not kept declined
+// Area is right: the area's widths step, or with no vessel there the area done
 function areaRight() {
   const m = MV.current(); if (!m || st.area == null) return;
-  let o = { ...m, reviewed_regions: [...(m.reviewed_regions || []), region(m, areaBox(m, st.area))] };
-  for (const v of items.vessels) {
-    if (areaOf(m, v.at) !== st.area || !v.proposed) continue;
-    const open = v.segments.filter((i) => o.segments[i].state === v.proposed);
-    if (open.length) o = Mo.decide(o, open, v.proposed === 'vessel' ? 'accepted' : 'rejected');
-  }
-  MV.edit(o); moveOn();
+  if (st.widths) return widthsRight();
+  if (junctionsIn(m, st.area).some((j) => !j.done)) return;
+  if (!vesselsIn(m, st.area).length) return widthsRight();
+  st.widths = true; st.junction = null; show(false);
+}
+// These widths look right: the area done, each vessel whose middle lies in it, confident ones accepted, low-confidence
+// ones not kept declined, and each one's width the person said nothing of looked at (never measured), all one GT action
+// (gt_actions.js); it waits while a vessel the person drew there has no width
+function widthsRight() {
+  const m = MV.current(); if (!m || st.area == null || drawnWithout(m, st.area).length) return;
+  if (MV.act({ type: 'widths-right', area: st.area, box: areaBox(m, st.area), slices: [0, m.slices - 1] })) moveOn();
 }
 function verdict(j, v) {
-  const m = MV.current();
-  MV.edit(v === 'cross' ? Mo.splitJunction(m, j.id, V.S.zs) : Mo.checkJunction(m, j.id, true));
+  MV.act(v === 'cross' ? { type: 'split-junction', node: j.id, zScale: V.S.zs } : { type: 'check-junction', node: j.id, on: true });
   st.junction = null; st.dir = 1; show(false);
 }
 
 // ---------- drawing the box and the map ----------
+// the junctions step's hint, as the page writes it
+let HINT = '';
+// a button's words, its key kept beside them
+const label = (b, text) => { if (b.firstChild?.nodeType === 3) { if (b.firstChild.textContent.trim() !== text) b.firstChild.textContent = text; } else b.prepend(text); };
 const button = (label, fn, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (cls) b.className = cls; b.onclick = fn; return b; };
 function card(m, j) {
   const el = document.createElement('div'), cv = document.createElement('canvas'), acts = document.createElement('div');
@@ -119,6 +129,25 @@ function card(m, j) {
   acts.firstChild.title = 'Three or more vessels really meet here'; acts.lastChild.title = 'The vessels only pass each other at different depths: split them';
   requestAnimationFrame(() => junctionPicture(cv, m, j, px));
   el.append(cv, acts);
+  return el;
+}
+// the widths step's selected vessel: its width, a step narrower or wider, and the estimate again; or a word to select one
+function widthCard() {
+  const el = document.createElement('div'), v = MV.selectedWidth();
+  el.id = 'w-card'; el.className = 'task-card';
+  if (!v) { const p = document.createElement('p'); p.className = 'note'; p.textContent = 'Click a vessel to select it.'; el.append(p); return el; }
+  el.dataset.key = `v${v.n}`;
+  const head = document.createElement('p'), um = document.createElement('strong'), how = document.createElement('span'), acts = document.createElement('div');
+  head.className = 'w-head'; head.append(`Vessel ${v.n} `, um, ' ', how);
+  um.id = 'w-um'; um.textContent = v.um != null ? umText(v.um) : '?';
+  how.className = 'note'; how.textContent = { set: 'set by you', estimate: "the algorithm's estimate", cannot: 'could not be told', none: 'no width yet' }[v.kind];
+  acts.className = 'verdict';
+  const narrower = button('−', () => MV.stepWidth(-1)), wider = button('+', () => MV.stepWidth(1)), reset = button('Reset', () => MV.resetWidth());
+  narrower.id = 'w-narrower'; wider.id = 'w-wider'; reset.id = 'w-reset';
+  narrower.title = '0.25 µm narrower'; wider.title = '0.25 µm wider'; reset.title = "The algorithm's estimate again";
+  reset.disabled = !['set', 'cannot'].includes(v.kind);
+  acts.append(narrower, wider, reset);
+  el.append(head, acts);
   return el;
 }
 // how far an area has got: its junctions judged, and itself once done
@@ -185,11 +214,11 @@ function map(m, on) {
 }
 // the current junction's options, under the cogwheel
 function options(j) {
-  const m = MV.current(), out = [];
+  const out = [];
   const item = (label, fn) => { const b = button(label, () => { $('task-menu').open = false; fn(); }); b.className = 'item'; out.push(b); };
   if (j) {
     item('Look at it from the side', () => MV.lookAt(j.id));
-    if (j.done) item('Take back the verdict', () => MV.edit(Mo.checkJunction(m, j.id, false)));
+    if (j.done) item('Take back the verdict', () => MV.act({ type: 'check-junction', node: j.id, on: false }));
   }
   $('task-opts').replaceChildren(...out);
   $('task-menu').hidden = !out.length;
@@ -214,7 +243,7 @@ function show(moved) {
   // rows made anew for another grid take what was on the open one with them
   $('vm-tasks').append(tools, work);
   T.list(m ? rows() : null);
-  if (!m) { MV.mark(null, null); MV.focusArea(null); map(null, false); return; }
+  if (!m) { keys?.report({ tagging: on, area: false }); MV.mark(null, null); MV.focusArea(null); map(null, false); return; }
   items = itemsOf(m);
   $('area-grid').value = String(n);
   for (let a = 0; a < count(); a++) { const p = progress(m, a); T.count(keyOf(a), p.did, p.of, p.done, ''); }
@@ -227,27 +256,43 @@ function show(moved) {
   const js = open ? junctionsIn(m, st.area) : [];
   let j = js.find((x) => x.id === st.junction) || js.find((x) => !x.done) || null;
   st.junction = j?.id ?? null;
-  if (open) {
+  const widths = open && st.widths;
+  if (!widths) work.querySelector('.hint').textContent = HINT;
+  if (open && !widths) {
     const left = js.filter((x) => !x.done).length;
     $('junctions-note').textContent = !js.length ? 'No junctions in this area.' : left ? `${js.length - left + 1} of ${js.length} junctions here` : `All ${js.length} junctions here judged.`;
+    $('widths-note').textContent = '';
+    label($('area-ok'), 'Area is right');
     $('area-ok').disabled = left > 0;
-    $('area-ok').title = left ? `${left} junction${left === 1 ? '' : 's'} here still to judge` : 'Every line, point and junction here is right: on to the next area';
+    $('area-ok').title = left ? `${left} junction${left === 1 ? '' : 's'} here still to judge` : "Every line, point and junction here is right: on to the area's widths";
+  } else if (widths) {
+    j = null;
+    work.querySelector('.hint').textContent = 'Click a vessel to select it, then make it narrower or wider. Hold 4 to see the area in colour in 3D.';
+    $('junctions-note').textContent = '';
+    const bare = drawnWithout(m, st.area).length;
+    $('widths-note').textContent = bare ? `${bare} vessel${bare === 1 ? '' : 's'} you drew here still need${bare === 1 ? 's' : ''} a width.` : '';
+    label($('area-ok'), 'These widths look right');
+    $('area-ok').disabled = bare > 0;
+    $('area-ok').title = bare ? `${bare} vessel${bare === 1 ? '' : 's'} you drew here without a width`
+      : 'Every width here is right: on to the next area; a width you did not set is kept as looked at, not measured';
   } else j = null;
   options(j);
-  const was = $('task-card').firstElementChild, card_ = j ? card(m, j) : null;
+  const was = $('task-card').firstElementChild, card_ = j ? card(m, j) : widths ? widthCard() : null;
   $('task-card').replaceChildren(...(card_ ? [card_] : []));
   if (was && card_ && was.dataset.key !== card_.dataset.key && st.dir) slideIn(was, card_, st.dir);
   st.dir = 0;
   const box = open ? areaBox(m, st.area) : null;
-  if (!on) { MV.mark(null, null); if (MV.focusedArea()) MV.focusArea(null); heard(); return; }
+  if (!on) { MV.mark(null, null); if (MV.focusedArea()) MV.focusArea(null); keys?.report({ tagging: on, area: open }); heard(); return; }
   MV.mark(j ? { node: j.id } : null, box);
   // the area alone in the main view, or the whole stack once it is left
   const focus = st.focused && box, f = MV.focusedArea();
   if (focus && (moved || !f || JSON.stringify(f.box) !== JSON.stringify(box))) MV.focusArea(box);
   else if (!focus && f) MV.focusArea(null);
+  MV.widthsStep(focus && widths);
   $('vm-focus').textContent = focus ? 'Back to image' : 'Back to task';
   $('vm-focus').title = focus ? 'The whole stack, as the Show menu sets it' : 'The task again: its area alone';
   $('vm-focus').disabled = !box;
+  keys?.report({ tagging: on, area: open });
   heard();
 }
 // the next junction's card slides in over the last one's, which slides out the other way
@@ -268,9 +313,10 @@ export function open() {
   return [{ level: 'warn', grade: true, ok: !left, text: left ? `Areas: ${left} of ${count()} left` : 'Areas: every one done' }];
 }
 
-// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them
-export function init(view, tasks, changed, submit) {
-  V = view; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
+// view: the shell's 3D view; tasks: the shell's list of them; changed() hears every redraw of the tasks; submit() sends them;
+// actions: the shell's keys, which press the tasks' buttons while an area is open (the study's declared actions)
+export function init(view, tasks, changed, submit, actions) {
+  V = view; keys = actions; T = tasks; n = GRID; tools = $('task-tools'); work = $('task-now');
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
   $('area-grid').replaceChildren(...GRIDS.map((k) => new Option(k === 1 ? 'The whole field' : `${k} × ${k}`, String(k))));
@@ -285,6 +331,8 @@ export function init(view, tasks, changed, submit) {
     st.junction = j.id; show(false);
     return true;
   });
+  HINT = work.querySelector('.hint').textContent;
+  MV.onWidthPick(() => show(false));
   $('task-skip').onclick = skip;
   $('area-ok').onclick = areaRight;
   $('vm-focus').onclick = () => { if (st.area == null) return; st.focused = !st.focused; show(true); };
@@ -292,6 +340,6 @@ export function init(view, tasks, changed, submit) {
 // for the study's page tests, which drive it from outside
 export const inspect = () => {
   const m = MV.current();
-  return { area: st.submit ? null : st.area, grid: n, focused: !!MV.focusedArea(), box: st.area != null && m ? areaBox(m, st.area) : null,
+  return { area: st.submit ? null : st.area, grid: n, widths: st.widths, focused: !!MV.focusedArea(), box: st.area != null && m ? areaBox(m, st.area) : null,
     key: st.junction != null ? `j${st.junction}` : null, junctions: m && items && st.area != null ? junctionsIn(m, st.area).map((j) => ({ key: j.key, done: j.done })) : [] };
 };

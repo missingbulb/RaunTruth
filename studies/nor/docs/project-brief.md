@@ -1,7 +1,7 @@
 # Project brief — automated detection of Nodes of Ranvier
 
 Durable ingest of the owner's overview document (`NoR_detection_project.pdf`, 4 pages). Session
-upload paths do not persist, so **this file and [`figures/`](figures/) are the record** — the PDF
+upload paths do not persist, so **this file, its figures described in words, is the record** — the PDF
 itself is not the source of truth for any later session.
 
 The verbatim extracted text is kept beside it in
@@ -18,8 +18,6 @@ conduction. Node **structure and length** govern conduction speed and fidelity; 
 **reduced node number** are observed in models of myelin injury and are linked to impaired axonal
 conduction. Automated quantification of node number and length is therefore the research tool this
 project is building.
-
-![Node of Ranvier and its flanking domains](figures/fig1-node-domain-schematic.png)
 
 *Overview Figure 1 — the node (Na<sup>+</sup>, green), the flanking paranodes (Caspr, blue) and the
 juxtaparanodes (K<sup>+</sup>, red). Note this schematic's colours are **cartoon domain colours and
@@ -56,23 +54,15 @@ detection route.
 
 ### The example data shown in the overview
 
-![Caspr channel](figures/fig3a-caspr-channel.png)
-![Nav1.6 channel](figures/fig3b-nav16-channel.png)
-![Merged](figures/fig3c-merged.png)
-
 *Overview Figure 3 — the two individual channels and the merged image. Measured from the extracted
 bitmaps, the merged panel is the exact per-pixel sum of the two: green is carried only by Caspr and
 red only by Na<sub>v</sub>1.6, with no bleed. The two channels are cleanly separable in this
 example.*
 
-![Full-field corpus callosum image](figures/fig4-full-field-corpus-callosum.png)
-
 *Overview Figure 4 — a full-field image (corpus callosum) of the kind used as input. This is the
 regime the MVP must survive: **hundreds of candidate blobs, densely packed, many axons crossing**,
 and a non-uniform background (note the brighter blur across the top of the field). It carries no
 scale bar.*
-
-![Close-up of a single node](figures/fig5-single-node-closeup.png)
 
 *Overview Figure 5 — a single node, circled: two green Caspr blobs either side, one red
 Na<sub>v</sub>1.6 blob between them, all three collinear. The neighbourhood around the circled node
@@ -129,8 +119,6 @@ Caspr blobs; a threshold (**e.g. 50% or 30% of peak height**) defines each peak'
 Required: automate this per horizontal node — sample the profile, detect the two peaks, compute the
 length with a **tunable intensity threshold parameter**.
 
-![Intensity profile with 50% and 30% thresholds](figures/fig6-intensity-profile-thresholds.png)
-
 *Overview Figure 6 — the worked profile. Two peaks (~54 and ~67 intensity units) with the node's
 low-intensity gap between them; the vertical dotted lines are the entry/exit crossings that bound
 the measurement.*
@@ -149,8 +137,6 @@ the measurement.*
 by byte-identical extraction), so it adds no new specification — it points at the reference paper's
 panel set (node length distributions, node diameter, summed Na<sub>v</sub>1.6 intensity) as the
 menu of plausible further measurements.
-
-![Node length across brain regions](figures/fig2-node-length-across-regions.png)
 
 *Overview Figures 2 and 7 — reproduced from Arancibia-Cárcamo et al., eLife 2017 (see
 [`literature/arancibia-carcamo-2017.md`](literature/arancibia-carcamo-2017.md)). Panel B is

@@ -9,6 +9,7 @@
 "use strict";
 import { CONNECTION } from "./offline.js";
 import { multipart } from "./drive.js";
+import { settle as afterQuiet } from "./pacing.js";
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client";
 export const DRIVE_READ = "https://www.googleapis.com/auth/drive.readonly";
@@ -22,6 +23,23 @@ const MARGIN_MS = 60 * 1000;
 // a token this close to running out is renewed by a click that reads Drive, while still used (req/shell/drive/renewal)
 const EARLY_MS = 10 * 60 * 1000;
 const SAVE_AFTER_MS = 400;
+// The guide to Google's windows (req/shell/account/consent-guide, web/guide.js): while the site is unverified Google
+// hides the way in. The screenshots are other apps' screens on Google, published where each step's from says.
+const shot = (name) => new URL(`guide-shots/${name}.webp`, import.meta.url).href;
+const IFUNPLAY = "another app's screen, from ifunplay's help centre";
+const UNVERIFIED = [
+  { text: "If Google says it hasn't verified this site, click <b>Advanced</b>.", shot: shot("advanced"), from: IFUNPLAY },
+  { text: "Then click <b>Go to rauntruth.com (unsafe)</b> at the bottom.", shot: shot("unsafe"), from: IFUNPLAY },
+];
+const SIGN_IN_GUIDE = {
+  title: "Signing in with Google", go: "Open Google's window", wait: "Waiting for Google: follow these steps in Google's window.",
+  steps: [
+    { text: "Choose your Google account." },
+    ...UNVERIFIED,
+    { text: "Tick every box, the Google Drive one too, then click <b>Continue</b>. Without the Drive box, your Drive files do not open as you.",
+      shot: shot("consent-read"), from: "Google's example screen, from developers.google.com, CC BY 4.0" },
+  ],
+};
 // who is signed in on this device: {user: {name, email, picture}, token, until (ms), scopes (what the token may do,
 // as Google listed it), fileId, changed, learned}, changed the keys whose settings this device changed since Drive last
 // had them, learned {name: what the page last learned from Google for this user under it}
@@ -30,11 +48,12 @@ export const SIGNED_IN = "nor-google-sign-in";
 export const SIGNED_IN_LABEL = "Who is signed in with Google, and Google's token for the hour";
 
 // keys: the browser keys whose settings follow the user; applied(): runs once Drive's settings have replaced them;
-// changed(): runs whenever who is signed in may have changed
-export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {} }) {
+// changed(): runs whenever who is signed in may have changed; guide: the guide to Google's windows (guide.js)
+export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {}, guide }) {
   const $ = (s) => menu.querySelector(s);
   // waiting: {ok, fail} of a sign-in the popup is waiting on (req/shell/account/welcome)
-  let me = read(), client = null, script = null, saving = null, waiting = null;
+  let me = read(), client = null, script = null, waiting = null;
+  const saving = afterQuiet(SAVE_AFTER_MS, () => save().catch((e) => console.warn("settings not saved to Google Drive:", e.message)));
   // renewal: the token Google's window is being asked for, {promise, done(token or null)}
   let renewal = null;
   const settle = (token) => { const r = renewal; renewal = null; r?.done(token); };
@@ -148,23 +167,30 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     return true;
   };
 
-  // in the user's click: the signed-in user goes on as themselves, asked nothing while their token lasts; settles
-  // once Google has answered, failing when it gave no token
-  const signIn = () => new Promise((ok, fail) => {
-    if (!clientId) return fail(new Error("no Google client"));
-    if (live()) return ok();
-    answered("fail", "asked again");
-    waiting = { ok, fail: (why) => fail(new Error(why)) };
-    ready().then(() => {
-      if (!client) return answered("fail", "Google's sign-in did not load");
-      client.requestAccessToken(me?.user ? { prompt: "", login_hint: me.user.email } : undefined);
-    });
-  });
+  // in the user's click: the signed-in user goes on as themselves, asked nothing while their token lasts; anyone else
+  // first goes through the guide to Google's screens (req/shell/account/consent-guide), Google asked in its click;
+  // settles once Google has answered, failing when it gave no token, or with cancelled set when the guide was closed
+  const signIn = async () => {
+    if (!clientId) throw new Error("no Google client");
+    if (live()) return;
+    const first = !me?.user;
+    if (first) { ready(); await guide.open(SIGN_IN_GUIDE); }
+    try {
+      await new Promise((ok, fail) => {
+        answered("fail", "asked again");
+        waiting = { ok, fail: (why) => fail(new Error(why)) };
+        ready().then(() => {
+          if (!client) return answered("fail", "Google's sign-in did not load");
+          client.requestAccessToken(first ? undefined : { prompt: "", login_hint: me.user.email });
+        });
+      });
+    } finally { if (first) guide.done(); }
+  };
   const signOut = () => {
-    clearTimeout(saving);
+    saving.cancel();
     me = null; keep(); show(); menu.open = false;
   };
-  $("#sign-in").onclick = () => { if (client) client.requestAccessToken(); };
+  $("#sign-in").onclick = () => { signIn().catch(() => {}); };
   menu.addEventListener("toggle", () => { if (menu.open && clientId && !me) ready(); });
   $("#sign-out").onclick = signOut;
 
@@ -176,7 +202,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
   addEventListener("storage", (e) => {
     if (e.key !== SIGNED_IN && e.key !== null) return;
     me = clientId ? read() : null;
-    if (!me) clearTimeout(saving);
+    if (!me) saving.cancel();
     show();
   });
   // a change made offline waits for the network, then syncs while the token lasts; with none, Google's script
@@ -194,8 +220,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
       if (!me || !keys.includes(key)) return;
       me.changed = [...new Set([...(me.changed || []), key])]; keep();
       if (!live()) return void renew();
-      clearTimeout(saving);
-      saving = setTimeout(() => save().catch((e) => console.warn("settings not saved to Google Drive:", e.message)), SAVE_AFTER_MS);
+      saving();
     },
     signedIn: () => !!(me && me.user),
     // what the welcome popup keeps as the choice of signing in
@@ -214,6 +239,8 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     // the user is reaching for Sign in: Google's script, so their click can ask at once
     preload() { if (clientId) ready(); },
     signIn, signOut,
+    // the guide to Google's windows, for a click that asks Google more, and the steps through its unverified-app screen
+    guide, unverified: UNVERIFIED, shot,
     email: () => (me && me.user && me.user.email) || null,
     // the token while it lasts, else null; renewing it needs the user's click (renew)
     token: () => (live() ? me.token : null),

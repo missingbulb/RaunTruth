@@ -12,7 +12,7 @@ Working on a study? Read its own warm-up next: [NoR Finder](../studies/nor/docs/
 
 | Layer | Where | Swapped by |
 |---|---|---|
-| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google), the Python runtime, status and memory, notices, theme, side bars, version history, downloads, ground-truth submission, Data Management for a study's study managers (`web/data_mode.js`: the folder tree, previews made in the browser by `web/previews_writer.js`), Edit Image in Data Management's Preprocessing (`web/image_edit.js`, what an edit draws in `web/edit.js`, the files written by `web/split.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
+| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google), the Python runtime, status and memory, notices, theme, side bars, version history, downloads, ground-truth submission, Data Management for a study's study managers (`web/data_mode.js`: the tree of the study's listed folders, the Tags box and Study images, the study index it writes and Load study images reads, kept in the study's root with the tags file by `web/study_root.js`, the tag rules in `web/tags.js`, previews made in the browser by `web/previews_writer.js`), the TIFF reader and writer (`web/tiff_file.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
 | Viewer: shows the opened image and what a study draws over it, zoom, pan, the minimap, each channel's row and its black and white points (`web/channels.js`) | `web/viewer2d.js`; `web/viewer3d.js` adds a 3D view of a z-stack | a study's `viewer` |
 | Study: its panels, its flow, its Python | `studies/<id>/` | `/app/<id>` (rauntruth.com/app/nor) |
 | The site's own pages around the app: the landing page, privacy, terms, license, icons, poster, the retired root service worker | `site/` | — |
@@ -61,12 +61,22 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   `shown` at first, and optionally `depth` (in 3D, coloured by depth from the start: `true`, or a palette's name), `about` (the (?)'s description, at most 100 words) and `black` and
   `white` (its first points, 0–255). A channel it leaves out takes what the file says, then its place
   (red, green, blue…); the Image Viewer names none.
+- `actions` — optional, the study's keyboard shortcuts as data, which the shell wires, lists in the keys legend and
+  marks on the buttons they mirror (`req/shell/image/keys`); the module hands over only their handlers and the
+  states they wait on, through `shell.actions.handle` and `shell.actions.report`.
 - `progress` — the status line while Python installs (`install`), loads the study (`load`), takes the
   image's file (`open`) and runs each action (by its name).
 - `generated` — optional, files under `web/` the site's build writes from the study's own scripts (output path:
   script), for what the page needs before any Python (Vascular's algorithm list).
-- `groundTruth` — for a GT or PostGT study: its `button`. Its folders are made by Data Management's Set up ground
-  truth, under the root; the layout and the reader's rule are `web/truth_folders.js`'s.
+- `groundTruth` — for a GT or PostGT study: its `button`, its `actions` (the module of pure functions that keeps its
+  ground truth as GT actions: `start`, `run`, `describe`, `where`, `document`, `load`) and optionally its `ring`
+  colour. Its folders are made by Data Management's Set up ground truth, under the root; the layout and the reader's
+  rule are `web/truth_folders.js`'s. Every study records what its tagger does through `shell.gt` (`act`, `ran`, `model`,
+  `on`, and `legacy` for a store from before the log; its own status line about a run goes before `ran`, which may say
+  what the run could not carry over): the log, Undo and Redo, Save Draft and Load draft, the Edit
+  History window, the file's `history` and the tagger's own submission offered back from Drive are the shell's
+  (`req/shell/ground-truth/history` and its neighbours, `web/truth_actions.js`, `web/truth_history.js`,
+  `web/edit_history.js`); the study draws the model it is handed.
 - `driveThumbs` — optional, the folder of ready-made thumbnails for the Google Drive dialog.
 
 The shell's controls draw from one page state (`web/page_state.js`: the image open, the minimap) and
@@ -121,11 +131,12 @@ the offline test's build, writes each file whole.
 ```
 web/              the shell, the viewer, the Python runtime (worker.js, bridge.js)
 web-tests/        the shell's tests, run on the fixture study
-studies/nor/      the NoR Finder study: study.json, requirements.md, web/, detection/, data/, docs/, tests/
-studies/vascular/ the Vascular Measurements study: study.json, requirements.md, py/, web/, analysis/, data/, docs/, tests/
-studies/shelves/  the Bookshelf Reader, an image-processing outlier: study.json, requirements.md, py/, web/, reading/, docs/, tests/
+studies/nor/      the NoR Finder study: study.json, requirements.md, web/, algorithm/, lab/, data/, docs/, tests/
+studies/vascular/ the Vascular Measurements study: study.json, requirements.md, algorithm/, web/, lab/, data/, docs/, tests/
+studies/shelves/  the Bookshelf Reader, an image-processing outlier: study.json, requirements.md, algorithm/, web/, data/, docs/, tests/
 studies/viewer/   the Image Viewer, the page's default: any image, no analysis
 studies/fixture/  the smallest study, for the shell's tests (`/fixture`); states.json, its part of the shell's states tree
+lab/              the shared lab: fetches a study's data and ground truth, runs and scores every version (lab/README.md)
 docs/             this map
 dev/requirements/ the shell's spec and the repo's checks, and the shell's states tree
 dev/tools/build/  the site build, the version history and the tests' pytest hooks

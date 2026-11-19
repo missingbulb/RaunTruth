@@ -1,10 +1,9 @@
 // Drives web/bridge.js in Pyodide under Node with the vascular study's own Python and only the packages its
-// study.json names (web/python_files.js, as the worker picks them): Python is ready, opens a stack, and Execute's call
-// draws a vessel model from it with each algorithm asked for, named as the list the build ships names it; the page
-// reads and shows the stack itself, so Python only holds it.
+// study.json names (web/python_files.js, as the worker picks them): Python opens a stack, and Execute's `run` draws a
+// vessel model from it with each algorithm asked for, named as its version's module names it, every vessel with its
+// widths; the page reads and shows the stack itself, so Python only holds it.
 // Exits 1 on a wrong answer, 2 when it cannot run (no pyodide, or Pyodide's packages cannot be downloaded).
 //   node studies/vascular/tests/extract_bridge_driver.mjs STACK.tif TIFFFILE_DIR ALGORITHM...
-import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
@@ -38,9 +37,7 @@ for (const d of study.python.paths) for (const f of fs.readdirSync(path.join(stu
 py.runPython(`import sys, json, importlib; sys.path.insert(0, '/py'); study = importlib.import_module('${study.python.entry}')`);
 
 const problems = [];
-JSON.parse(py.runPython("study.ready()"));
-const offered = JSON.parse(execFileSync("python3", [study.generated["web/algorithms.GENERATED.json"]], { cwd: studyDir, encoding: "utf8" }));
-const keys = offered.map((a) => a.key);
+const keys = JSON.parse(fs.readFileSync(path.join(studyDir, study.algorithms.list), "utf8")).map((a) => a.key);
 let out = [];
 const answer = bridge(py, (m) => out.push(m), study.progress);
 const ask = (m) => { out = []; answer(m); return out; };
@@ -48,11 +45,12 @@ const bytes = fs.readFileSync(stack);
 if (!ask({ type: "open", name: "stack.tif", bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) }).some((m) => m.type === "held")) problems.push("the stack is not held");
 for (const a of algorithms.length ? algorithms : [keys[0]]) {
   const t = Date.now();
-  const r = ask({ type: "call", action: "extract", args: { algorithm: a, source: "stack.tif", z_step: 2 } }).find((m) => m.type === "result");
-  const m = r?.meta, name = offered.find((x) => x.key === a)?.name;
+  const r = ask({ type: "call", action: "run", args: { algorithm: a, source: "stack.tif", z_step: 2 } }).find((m) => m.type === "result");
+  const m = r?.meta, name = py.runPython(`importlib.import_module(study.VERSIONS['${a}'].args[0]).NAME`);
   console.log(`${a}: ${m?.algorithm}, ${m?.nodes?.length} nodes, ${m?.edges?.length} edges, ${(Date.now() - t) / 1000} s`);
-  if (!m || m.format !== "vessel-model/2" || m.algorithm !== name || !(m.edges.length > 0) || m.source !== "stack.tif" || m.z_step_um !== 2 || !m.score)
-    problems.push(`extract ${a}: ${JSON.stringify(m && { format: m.format, algorithm: m.algorithm, edges: m.edges?.length, source: m.source, z: m.z_step_um })}`);
+  if (!m || m.format !== "vessel-model/2" || m.algorithm !== name || !(m.edges.length > 0) || m.source !== "stack.tif" || m.z_step_um !== 2 || !(m.score?.seconds >= 0)
+      || !m.edges.some((e) => e.r_a > 0 && e.r_b > 0 && typeof e.taper_known === "boolean"))
+    problems.push(`run ${a}: ${JSON.stringify(m && { format: m.format, algorithm: m.algorithm, edges: m.edges?.length, source: m.source, z: m.z_step_um })}`);
 }
 for (const p of problems) console.error(p);
 process.exit(problems.length ? 1 : 0);

@@ -27,10 +27,11 @@ are tuned and scored against.
 
 All of it runs in your browser: images are analysed on your own machine, never uploaded to a
 server. The image analysis is the
-study's own Python code (`studies/nor/detection/`), run under Pyodide (CPython compiled to WebAssembly)
+study's own Python code (each study's `algorithm/` folder), run under Pyodide (CPython compiled to WebAssembly)
 with numpy, scipy and scikit-image, inside a Web Worker so the page stays responsive. A small
-bridge passes the image's file in and the candidates and filter results back out; Python starts only when an
-algorithm runs. The JavaScript does everything that isn't image analysis: reading and drawing the image and its overlays, the item views, the
+bridge passes the image's file in and the study's answer back out; Python starts only when an
+algorithm runs. The same code runs in the repository's lab (`lab/`), which scores every version of a study's
+algorithm against the ground truth people submitted. The JavaScript does everything that isn't image analysis: reading and drawing the image and its overlays, the item views, the
 measurement editors, the summary statistics, the CSVs, the Drive browser and your saved settings.
 The site is plain static files served by Cloudflare, with no server and no build framework. Signing in
 with Google is optional: Google signs you in, in its own window, and gives the page a token for about an

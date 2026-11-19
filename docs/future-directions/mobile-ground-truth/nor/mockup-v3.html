@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoR phone tagging mockup v3</title>
+<style>
+  :root {
+    --page: #eef0f3; --ink: #15181d; --soft: #5b6470; --frame: #1b1e24;
+    --screen: #ffffff; --panel: #f3f5f8; --line: #d5dae1;
+    --yes: #0b6bcb; --yes-ink: #ffffff; --no: #e4e7ec; --no-ink: #15181d;
+    --accent: #0b6bcb; --warn: #9a5b00; --ok: #17753a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0e1014; --ink: #eceff3; --soft: #9aa3af; --frame: #000000;
+      --screen: #171a20; --panel: #20242c; --line: #333a45;
+      --yes: #4da3ff; --yes-ink: #06121f; --no: #2b313b; --no-ink: #eceff3;
+      --accent: #4da3ff; --warn: #f0b354; --ok: #5fd08a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 40px; background: var(--page); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lede { color: var(--soft); margin: 0 0 20px; max-width: 70ch; }
+  .row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
+  figure { margin: 0; flex: 0 0 auto; }
+  figcaption { width: 360px; margin-top: 10px; color: var(--soft); font-size: 13px; }
+  figcaption b { color: var(--ink); display: block; font-size: 14px; }
+  .phone { width: 360px; height: 740px; border: 8px solid var(--frame); border-radius: 34px;
+    background: var(--screen); display: flex; flex-direction: column; overflow: hidden; }
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px;
+    font-size: 13px; color: var(--soft); }
+  .bar strong { color: var(--ink); font-size: 14px; }
+  .prog { display: flex; gap: 3px; padding: 0 16px; }
+  .prog i { height: 5px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
+  .prog i::after { content: ""; position: absolute; inset: 0; width: var(--f, 0%); background: var(--accent); }
+  .body { flex: 1; padding: 14px 16px 0; display: flex; flex-direction: column; min-height: 0; }
+  .q { font-size: 22px; font-weight: 650; margin: 2px 0 10px; letter-spacing: -0.01em; }
+  .hint { color: var(--soft); font-size: 13px; margin: 8px 0 0; }
+  .chip { background: #000; border-radius: 12px; overflow: hidden; display: block; width: 100%; }
+  .strips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .strips span { display: block; font-size: 11px; color: var(--soft); margin-top: 2px; }
+  .thumb { padding: 12px 16px 22px; display: grid; gap: 10px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; border: 0; border-radius: 16px; min-height: 72px; font-size: 20px; font-weight: 650; }
+  .yes { background: var(--yes); color: var(--yes-ink); }
+  .no { background: var(--no); color: var(--no-ink); }
+  .small { min-height: 44px; font-size: 15px; font-weight: 500; background: transparent; color: var(--soft);
+    border: 1px solid var(--line); border-radius: 12px; }
+  .links { display: flex; justify-content: space-between; font-size: 14px; color: var(--accent); padding: 0 4px; }
+  .card { background: var(--panel); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .card h3 { margin: 0 0 2px; font-size: 16px; }
+  .card p { margin: 0; color: var(--soft); font-size: 13px; }
+  .stat { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .stat:last-child { border-bottom: 0; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  .good { color: var(--ok); } .flag { color: var(--warn); }
+  .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .opts div { border: 2px solid var(--line); border-radius: 12px; padding: 3px; text-align: center; font-size: 12px; color: var(--soft); }
+  .opts div.sel { border-color: var(--accent); color: var(--ink); }
+  .opts svg { border-radius: 8px; display: block; width: 100%; background: #000; }
+  .big { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+  .sec { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .sec button { min-height: 48px; font-size: 16px; font-weight: 550; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; }
+  .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sheet svg { border-radius: 10px; display: block; width: 100%; background: #000; border: 3px solid transparent; }
+  .sheet svg.sel { border-color: var(--accent); }
+
+  .top { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 16px 0; }
+  .q3 { font-size: 17px; font-weight: 650; margin: 2px 0 6px; }
+  .reveal { flex: 1; min-height: 40px; border-radius: 12px; background: var(--panel); border: 1px dashed var(--line);
+    display: flex; align-items: center; justify-content: center; color: var(--soft); font-size: 12px; text-align: center; padding: 8px; margin-bottom: 10px; }
+  .stack { padding: 0 16px; display: grid; gap: 3px; }
+  .stack svg { display: block; width: 100%; background: #000; }
+  .stack svg:first-child { border-radius: 12px 12px 0 0; } .stack svg:last-of-type { border-radius: 0 0 12px 12px; }
+  .meter { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--soft); padding: 5px 16px 0; }
+  .meter i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); position: relative; }
+  .meter i::after { content: ""; position: absolute; top: -3px; left: var(--at); width: 3px; height: 12px; background: var(--ink); border-radius: 2px; }
+  .thumb3 { padding: 10px 16px 18px; display: grid; gap: 8px; }
+  .thumb3 .sec { margin-bottom: 0; }
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .sheet3 { padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .sheet3 svg { border-radius: 10px; display: block; width: 100%; background: #000; }
+  .mini { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
+  .mini svg { border-radius: 5px; display: block; width: 100%; background: #000; border: 2px solid transparent; }
+  .mini svg.cur { border-color: var(--accent); }
+  .rows { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-top: 10px; }
+  .rows i { height: 8px; border-radius: 2px; background: var(--line); } .rows i.d { background: var(--accent); } .rows i.c { background: var(--ok); }
+  .note { color: var(--soft); font-size: 12px; padding: 4px 16px 0; margin: 0; }
+  .armed { opacity: .45; }
+</style>
+</head>
+<body>
+<h1>NoR Finder on a phone: six moments, v3</h1>
+<p class="lede">Placeholder drawings, made-up numbers. Chips stay black in both themes because they are microscope crops. Marks are white, since the data is red, green and blue. What moved since v2: the picture sits on the buttons, a sheet pick is decided in place, squares carry a margin, and a row is a sitting.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="soft2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <g id="node">
+      <rect x="-62" y="-9" width="46" height="18" rx="8" fill="#2fe04a"/>
+      <rect x="16" y="-9" width="46" height="18" rx="8" fill="#2fe04a"/>
+      <rect x="-13" y="-8" width="26" height="16" rx="6" fill="#ff3030"/>
+    </g>
+    <g id="noise">
+      <circle cx="40" cy="38" r="9" fill="#2fe04a" opacity=".5"/>
+      <circle cx="286" cy="52" r="7" fill="#ff3030" opacity=".55"/>
+      <rect x="230" y="180" width="60" height="10" rx="5" fill="#2fe04a" opacity=".45" transform="rotate(-24 260 185)"/>
+      <circle cx="62" cy="196" r="6" fill="#ff3030" opacity=".4"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="row">
+
+<figure>
+  <div class="phone">
+    <div class="bar"><strong>Slide5 up-left 2</strong><span>Dana</span></div>
+    <div class="body">
+      <p class="q">Row 4 of 10</p>
+      <div class="card"><h3>About 2 minutes left in this row</h3><p>Chips 14 of 22. Then 10 sheets and 10 squares.</p><div class="rows"><i class="c"></i><i class="c"></i><i class="c"></i><i class="d"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div></div>
+      <div class="reveal" style="flex:0 0 150px">Rows 1 to 3 of the picture, uncovered.<br>Row 4 opens when its squares are done.</div>
+      <p class="hint">Three warm-up chips first; they show the answer.</p>
+      <div style="flex:1"></div>
+    </div>
+    <div class="thumb3"><button class="yes">Carry on</button></div>
+  </div>
+  <figcaption><b>1. Resume</b>A row of ten squares is a sitting: its chips, its sheets, its squares, then that strip of the picture. Coming back costs one tap and three known chips with the answer shown. Owner's call: this is the area walk at row size.</figcaption>
+</figure>
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Row 4 · chips</span><span>15 of 22</span></div>
+    <div class="prog"><i style="flex:1;--f:64%"></i></div>
+    <div class="top"><p class="q3">Is the one between the ticks a node?</p><div class="reveal">Free space is at the top now,<br>so the picture sits on the buttons</div></div>
+    <div class="stack"><svg viewBox="0 0 328 150" role="img" aria-label="Colour crop, the asked triplet between white ticks">
+        <rect width="328" height="150" fill="#000"/>
+        <circle cx="262" cy="34" r="26" fill="#3a56ff" opacity=".5" filter="url(#soft)"/>
+        <g filter="url(#soft)"><circle cx="40" cy="30" r="8" fill="#2fe04a" opacity=".5"/><circle cx="60" cy="126" r="6" fill="#ff3030" opacity=".4"/><use href="#node" x="164" y="70"/><g transform="translate(214 112) rotate(-8) scale(.8)"><use href="#node"/></g></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v14M232 0v14M96 136v14M232 136v14"/></g>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Caspr alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="102" y="18" width="46" height="16" rx="7"/><rect x="180" y="18" width="46" height="16" rx="7"/><rect x="178" y="42" width="36" height="9" rx="4" opacity=".6"/><rect x="232" y="38" width="36" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Caspr</text>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Nav alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="151" y="19" width="26" height="14" rx="6"/><rect x="204" y="41" width="20" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Nav</text>
+      </svg></div>
+    <div class="meter"><span>Red in this image: faint</span><i style="--at:22%"></i><span>bright</span></div>
+    <div class="thumb3"><div class="two"><button class="no">No</button><button class="yes">Yes</button></div><div class="sec"><button>Undo</button><button>Can't tell</button></div></div>
+  </div>
+  <figcaption><b>2. Chip</b>The crop sits on the buttons: 44 mm from its centre to Yes, was 77. Caspr and Nav are at the same scale and place, the ticks running down through all three, so the eye drops straight down. DAPI is drawn. No swipe. The red scale is an owner question.</figcaption>
+</figure>
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Row 4 · chips</span><span>15 of 22</span></div>
+    <div class="prog"><i style="flex:1;--f:64%"></i></div>
+    <div class="top"><p class="q3">Is the one between the ticks a node?</p><div class="reveal">Free space is at the top now,<br>so the picture sits on the buttons</div></div>
+    <div class="stack"><svg viewBox="0 0 328 150" role="img" aria-label="Colour crop, the asked triplet between white ticks">
+        <rect width="328" height="150" fill="#000"/>
+        <circle cx="262" cy="34" r="26" fill="#3a56ff" opacity=".5" filter="url(#soft)"/>
+        <g filter="url(#soft)"><circle cx="40" cy="30" r="8" fill="#2fe04a" opacity=".5"/><circle cx="60" cy="126" r="6" fill="#ff3030" opacity=".4"/><use href="#node" x="164" y="70"/><g transform="translate(214 112) rotate(-8) scale(.8)"><use href="#node"/></g></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v14M232 0v14M96 136v14M232 136v14"/></g><g transform="translate(296 30)"><circle r="18" fill="#fff"/><path d="M-8 0l6 7 11-14" stroke="#000" stroke-width="4" fill="none"/></g>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Caspr alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="102" y="18" width="46" height="16" rx="7"/><rect x="180" y="18" width="46" height="16" rx="7"/><rect x="178" y="42" width="36" height="9" rx="4" opacity=".6"/><rect x="232" y="38" width="36" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Caspr</text>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Nav alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="151" y="19" width="26" height="14" rx="6"/><rect x="204" y="41" width="20" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Nav</text>
+      </svg></div>
+    <div class="meter"><span>Red in this image: faint</span><i style="--at:22%"></i><span>bright</span></div>
+    <div class="thumb3"><div class="two"><button class="yes">Yes</button><button class="no">No</button></div><div class="sec"><button>Can't tell</button><button>Undo: Yes</button></div></div>
+  </div>
+  <figcaption><b>3. Just answered, left thumb</b>Yes is under the thumb that was chosen once at the start. A white tick stamps the chip as it leaves, and the small button names the last answer: one tap brings that chip back with the answer showing.</figcaption>
+</figure>
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Row 4 · sheets</span><span>3 of 10</span></div>
+    <div class="prog"><i style="flex:1;--f:25%"></i></div>
+    <div class="top"><p class="q3">Tap any that might be a node</p><div class="reveal">Unsure counts as "might be".<br>A tapped one opens big, right away.</div></div>
+    <div class="sheet3"><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="30" y="45" width="38" height="14" rx="7" fill="#2fe04a"/><rect x="70" y="46" width="20" height="12" rx="5" fill="#ff3030"/></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><g opacity=".45" transform="translate(80 52) scale(.75)"><use href="#node"/></g></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g><g transform="translate(134 20)"><circle r="13" fill="#fff"/><path d="M-6 0l4 5 8-10" stroke="#000" stroke-width="3" fill="none"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><circle cx="62" cy="44" r="8" fill="#2fe04a"/><circle cx="80" cy="56" r="11" fill="#ff3030"/></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="40" y="45" width="80" height="14" rx="7" fill="#2fe04a"/><rect x="74" y="48" width="12" height="8" rx="3" fill="#ff3030" opacity=".5"/></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><rect x="28" y="56" width="36" height="13" rx="6" fill="#2fe04a" transform="rotate(28 46 62)"/><rect x="68" y="46" width="20" height="12" rx="5" fill="#ff3030"/><rect x="92" y="34" width="36" height="13" rx="6" fill="#2fe04a" transform="rotate(-30 110 40)"/></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g></svg><svg viewBox="0 0 160 104"><g filter="url(#soft2)"><g transform="translate(80 52) scale(.75)"><use href="#node"/></g></g><g stroke="#fff" stroke-width="2"><path d="M34 0v10M126 0v10M34 94v10M126 94v10"/></g><rect x="1.5" y="1.5" width="157" height="101" rx="9" fill="none" stroke="#fff" stroke-width="3"/></svg></div>
+    <div class="thumb3"><button class="yes">No more here</button><div class="sec"><button>Undo</button><button>Can't tell any</button></div></div>
+  </div>
+  <figcaption><b>4. Sheet</b>Bottom-anchored: the top row is 60 mm from the button, was 88. The button arms 0.4 s after the sheet appears, so a carried-over tap cannot write six labels. A ticked chip was already decided in place.</figcaption>
+</figure>
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Row 4 · sheets</span><span>3 of 10</span></div>
+    <div class="prog"><i style="flex:1;--f:25%"></i></div>
+    <div class="top"><p class="q3">This one: a node?</p><div class="mini"><svg viewBox="0 0 160 104" class=""><g filter="url(#soft2)" opacity="0.5"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg><svg viewBox="0 0 160 104" class=""><g filter="url(#soft2)" opacity="0.5"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg><svg viewBox="0 0 160 104" class=""><g filter="url(#soft2)" opacity="0.5"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg><svg viewBox="0 0 160 104" class=""><g filter="url(#soft2)" opacity="0.5"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg><svg viewBox="0 0 160 104" class=""><g filter="url(#soft2)" opacity="0.5"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg><svg viewBox="0 0 160 104" class="cur"><g filter="url(#soft2)" opacity="1"><g transform="translate(80 52) scale(.7)"><use href="#node"/></g></g></svg></div><div class="reveal">Chip 6 of this sheet</div></div>
+    <div class="stack"><svg viewBox="0 0 328 150" role="img" aria-label="Colour crop, the asked triplet between white ticks">
+        <rect width="328" height="150" fill="#000"/>
+        <circle cx="262" cy="34" r="26" fill="#3a56ff" opacity=".5" filter="url(#soft)"/>
+        <g filter="url(#soft)"><circle cx="40" cy="30" r="8" fill="#2fe04a" opacity=".5"/><circle cx="60" cy="126" r="6" fill="#ff3030" opacity=".4"/><use href="#node" x="164" y="70"/><g transform="translate(214 112) rotate(-8) scale(.8)"><use href="#node"/></g></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v14M232 0v14M96 136v14M232 136v14"/></g>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Caspr alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="102" y="18" width="46" height="16" rx="7"/><rect x="180" y="18" width="46" height="16" rx="7"/><rect x="178" y="42" width="36" height="9" rx="4" opacity=".6"/><rect x="232" y="38" width="36" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Caspr</text>
+      </svg><svg viewBox="0 0 328 56" role="img" aria-label="Nav alone, same scale and position">
+        <rect width="328" height="56" fill="#000"/><g filter="url(#soft2)" fill="#cfcfcf"><rect x="151" y="19" width="26" height="14" rx="6"/><rect x="204" y="41" width="20" height="9" rx="4" opacity=".6"/></g>
+        <g stroke="#fff" stroke-width="2"><path d="M96 0v56M232 0v56" stroke-dasharray="3 5" opacity=".7"/></g>
+        <text x="8" y="16" fill="#9aa3af" font-size="11" font-family="system-ui,sans-serif">Nav</text>
+      </svg></div>
+    <div class="thumb3"><div class="three"><button class="no">No</button><button class="no" style="font-size:15px">Can't tell</button><button class="yes">Yes</button></div><div class="sec"><button>Undo</button><button>Back to sheet</button></div></div>
+  </div>
+  <figcaption><b>5. A tapped chip, in place</b>The pick is judged now, at 4x with its tracks, while the sheet is still in mind, instead of returning alone later (5.8 s becomes about 3.8 s). The six small crops say where it will go back to.</figcaption>
+</figure>
+<figure>
+  <div class="phone">
+    <div class="bar"><span>Row 4 · squares</span><span>6 of 10</span></div>
+    <div class="prog"><i style="flex:1;--f:55%"></i></div>
+    <div class="top"><p class="q3">Any node here without an outline?</p><div class="reveal">Tap it to ring it, tap the ring to take it back.<br>The one on the left edge belongs to the next square.</div></div>
+    <div style="padding:0 16px"><svg class="chip" viewBox="0 0 328 328" role="img" aria-label="One square with a dimmed margin; pool items outlined; a node on the border is whole; one dashed ring where the helper tapped">
+        <rect width="328" height="328" fill="#000"/>
+        <g filter="url(#soft2)">
+          <g transform="translate(96 92) rotate(18) scale(.42)"><use href="#node"/></g><g transform="translate(222 120) rotate(-40) scale(.42)"><use href="#node"/></g>
+          <g transform="translate(228 236) rotate(-12) scale(.42)"><use href="#node"/></g>
+          <g transform="translate(40 200) rotate(4) scale(.42)"><use href="#node"/></g>
+          <circle cx="150" cy="170" r="5" fill="#2fe04a" opacity=".6"/><circle cx="110" cy="262" r="4" fill="#ff3030" opacity=".6"/><circle cx="270" cy="60" r="20" fill="#3a56ff" opacity=".45"/>
+        </g>
+        <path d="M0 0h328v328H0zM38 38v252h252V38z" fill="#000" fill-rule="evenodd" opacity=".55"/>
+        <g stroke="#fff" stroke-width="2" fill="none"><path d="M38 52V38h14M276 38h14v14M290 276v14h-14M52 290H38v-14"/></g>
+        <g fill="none" stroke="#fff" stroke-width="1" opacity=".6"><rect x="64" y="76" width="64" height="32" rx="4" transform="rotate(18 96 92)"/><rect x="190" y="104" width="64" height="32" rx="4" transform="rotate(-40 222 120)"/></g>
+        <circle cx="228" cy="236" r="24" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="5 4"/>
+      </svg></div>
+    <div class="thumb3"><button class="yes">Done (1 marked)</button><div class="sec"><button>Undo</button><button>Can't tell</button></div></div>
+  </div>
+  <figcaption><b>6. Square, with its margin</b>An 18 px margin, dimmed, shows a node on the border whole (51 of 222 passes cross one); a mark counts where its centre falls. Outlines are the pool, so squares open from the start. Costs zoom: 2.0x, the ring is the 12 px radius, 4 mm.</figcaption>
+</figure>
+
+</div>
+</body>
+</html>

@@ -40,16 +40,17 @@ versions it read. A non-terrible version missing from it makes its finds look ne
 
 ## 2. Run the sweep
 
-A study supplies an adapter that runs its base with a mutation and hands per-item hit vectors to
-`mutation_signal.signal`. The NoR adapter is the example:
+The shared lab's sweep runs any study whose image is a dict of planes and whose `score` returns
+`items` (`lab/mutate.py`'s header says what else it needs). On NoR:
 
 ```
-cd studies/nor/detection && python3 mutate.py sweep --base tl
+python3 lab/mutate.py nor sweep --base tl
 ```
 
-It writes `.cache/mutate/sweep.json` (gitignored). For each flagged mutant it also writes a sheet,
-`.cache/mutate/<spec with : and @ as _>.png`. `python3 mutate.py list` shows which tricks run in
-this container. A study without an adapter gets one before its first sweep.
+It writes `studies/nor/data/raw/mutate/sweep.json` (never in git). For each flagged mutant it also
+writes a sheet, `<mutation with : and @ as _>.png`, beside it. `python3 lab/mutate.py nor list` shows
+which tricks run in this container. A study the sweep cannot run yet gets what it needs before its
+first sweep.
 
 **Before the sweep, build the catalog-only tricks the study can run.** Most of the pool has no
 function yet, and a sweep over the runnable ones alone silently skips it. Triage every entry whose
@@ -61,11 +62,11 @@ A sweep over the base's own constants is not this route: it is
 [tuning-parameters](../tuning-parameters/SKILL.md)' work, even when the ask was to mutate the
 algorithm randomly.
 
-The adapter places each trick in three **slots**:
+The sweep places each trick in three **slots**, on the image's planes (NoR: `nav`, `caspr`):
 
-- `pre:<trick>@<chan>` transforms a channel before the base runs.
-- `verify:<trick>@<chan>:reject` fails the passes lowest on the trick's output.
-- `verify:<trick>@<chan>:rescue` un-fails the filtered candidates highest on it.
+- `pre:<trick>@<plane>[+<plane>]` transforms planes before the base runs.
+- `verify:<trick>@<plane>:reject` fails the passes lowest on the trick's output (the study's `verify` stage).
+- `verify:<trick>@<plane>:rescue` un-fails the filtered candidates highest on it.
 
 A `verify` slot takes any runnable trick's output as its map, whatever the trick's catalog hook.
 Its threshold is a quantile of the passes' own values, so no constant is tuned to the image.
@@ -106,7 +107,7 @@ Take the flagged mutants, strongest first, and for each one:
    channel, the slot and the quantile:
 
    ```
-   cd studies/nor/detection && python3 mutate.py one 'verify:unsharp-mask(r_u=1.5)@red:reject=0.2'
+   python3 lab/mutate.py nor one 'verify:unsharp-mask(r_u=1.5)@nav:reject=0.2'
    ```
 
    `one` reads the chance bar from the last sweep in its `--out`, and says so when there is none.

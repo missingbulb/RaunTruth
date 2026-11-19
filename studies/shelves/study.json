@@ -8,6 +8,7 @@
     ]
   },
   "stage": "GT",
+  "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [
@@ -25,7 +26,7 @@
   "viewer": "image2d",
   "python": {
     "paths": [
-      "py/"
+      "algorithm/"
     ],
     "entry": "shelves",
     "packages": [
@@ -38,6 +39,18 @@
       "pillow-heif"
     ],
     "wheels": []
+  },
+  "algorithms": {
+    "list": "web/algorithms.json",
+    "metrics": "web/algorithm_metrics.json"
+  },
+  "services": {
+    "det": "https://cdn.jsdelivr.net/npm/@gutenye/ocr-models@1.4.2/assets/ch_PP-OCRv4_det_infer.onnx",
+    "tessdata": "web/tessdata",
+    "words": [
+      "https://cdn.jsdelivr.net/gh/hermitdave/FrequencyWords@525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/he/he_50k.txt",
+      "web/words/names.txt"
+    ]
   },
   "web": {
     "module": "web/shelves.js",
@@ -83,11 +96,12 @@
     "install": "Installing numpy, scipy, scikit-image, Pillow, pillow-heif…",
     "load": "Loading the book finder…",
     "open": "Reading the photo…",
-    "view": "Getting the photo ready for the text finder…",
-    "find": "Finding the books…",
+    "run": "Finding the books and reading their titles…",
     "straighten": "Straightening each book…"
   },
   "groundTruth": {
+    "actions": "web/gt_actions.js",
+    "ring": "#ff00ff"
   },
   "view": {
     "stretch": false,
@@ -96,5 +110,12 @@
       "grid",
       "channels"
     ]
-  }
+  },
+  "actions": [
+    {"id": "right", "label": "Right", "keys": ["Enter", "NumpadEnter"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"right\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item", "ownControl": true},
+    {"id": "back", "label": "Back", "keys": ["Alt+ArrowLeft"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"back\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "next", "label": "Next", "keys": ["Alt+ArrowRight"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"next\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "flip", "label": "Flip", "keys": ["Ctrl+ArrowUp"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"flip\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "wrong", "label": "Not a book", "keys": ["Ctrl+Backspace"], "hint": "Ctrl+Backspace", "kind": "press", "legend": false, "control": ".bs-item [data-do=\"wrong\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"}
+  ]
 }

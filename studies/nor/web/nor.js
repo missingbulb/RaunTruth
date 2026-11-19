@@ -1,9 +1,11 @@
 // The NoR Finder study's page: a finder proposes candidates once, then the filters judge them live, and the
 // user's verdicts, lengths, added NoRs and mask become the summary, the CSVs and the ground truth. All
-// detection and filtering is the study's Python (detection/interactive.py); this module draws, keeps the
+// detection and filtering is the study's Python (algorithm/nor_finder.py); this module draws, keeps the
 // user's settings, decisions and measurements, and asks Python to refilter. It runs in the shell's page
 // (web/shell.js), which hands it the services below.
 import "./peek.js";
+import * as N from "./gt_actions.js";
+import { oldMarks, OLD_KEYS } from "./old_marks.js";
 
 export function mount(shell) {
   const { $, status, busy, slow, until, readJSON, writeJSON, esc, saveFile } = shell, st = shell.state;
@@ -11,24 +13,16 @@ export function mount(shell) {
   const here = { signal: shell.signal };
   const SVGNS = "http://www.w3.org/2000/svg";
   const STORE = "nor-filter-settings-v1"; // {values: {param: number}, off: [filter key]}; only what the user changed
-  const MARKS = "nor-marks-v1:"; // + file name + "|" + finder: {"x,y": "in" | "out"}, the user's keepers and removals
-  const EDITS = "nor-edits-v1:"; // + file name + "|" + finder: {"x,y": {length, red, approved}}, the user's measurements
   const SHOW = "nor-show-v1"; // the image view's Show menu
   const SORT = "nor-sort-v1"; // the item views' Sort menu, one per view: {pass, fail}
   const CARDS = "nor-cards-v3"; // the item views' Options menu, one per view: {pass: {...}, fail: {...}}, only what the user changed
-  // + file name: [{lines: {length, red, width}, verdict: "in" | "out" | null}], the NoRs the user added
-  // where the finder proposed none
-  const ADDED = "nor-added-v1:";
-  const MISSING = "nor-missing-v1:"; // + file name: [[x, y]], what ADDED replaced; read once and converted
-  const MASK = "nor-mask-v1:"; // + file name: [[[x, y]...]...], the lassoed areas the summary counts, combined by exclusive or
-  const AREAS_KEY = "nor-areas-v1:"; // + file name: [area], the image's areas the user checked for missed NoRs
   // while the study makes ground truth its tasks are in the left bar, one candidate at a time, and the image is the only view
   const TRUTH = shell.makesTruth;
   // the tagger tags now: the walk's item is ringed, its area framed and what is done cut out only then
   // (req/shell/ground-truth/tagging)
   const tagging = () => TRUTH && shell.tasks.tagging();
   // the image cut into GRID × GRID areas, each task's candidates taken area by area so the review fills one area after another
-  const GRID = 10;
+  const GRID = N.GRID;
   // an added NoR counts as found when a candidate lies within this distance of its middle: about half a
   // NoR's length on the lab's slide (median 26 px)
   const MISSING_RADIUS = 12;
@@ -56,7 +50,7 @@ export function mount(shell) {
     meta: null, seg: null, cands: [],
     fails: [], alone: null, forced: new Map(), edits: new Map(), defaults: {}, values: {}, off: new Set(),
     about: {}, detectValues: {}, lastRun: null, filtersFor: null, seq: 0, inflight: false, pending: false,
-    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], lasso: null, numbers: new Map(), order: [], sel: null, tab: "pass",
+    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null, tab: "pass",
     show: { ...SHOW_DEFAULTS, ...readJSON(SHOW) }, opt: readOpts(), sort: { pass: "number", fail: "number", ...readJSON(SORT) }, crops: new Map(),
   });
 
@@ -73,27 +67,17 @@ export function mount(shell) {
 
   // what each of the study's browser keys holds, for the shell's Manage storage dialog
   const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [SORT]: "Sort menus of the item views", [CARDS]: "Options menus of the item views" };
-  const PER_FILE = [[MARKS, "keepers and removals"], [EDITS, "measurements"], [ADDED, "added NoRs"], [MISSING, "added NoRs"], [MASK, "mask"], [AREAS_KEY, "areas checked for missed NoRs"]];
+  // what the page kept per image before the tagger's work was GT actions (old_marks.js): listed, so it can be seen and deleted, for as
+  // long as a browser still holds it
   function stored(key) {
     if (SETTINGS[key]) return { group: "settings", what: SETTINGS[key] };
-    const [prefix, what] = PER_FILE.find(([p]) => key.startsWith(p)) || [];
+    const [prefix, what, byFinder] = OLD_KEYS.find(([p]) => key.startsWith(p)) || [];
     if (!prefix) return null;
-    const rest = key.slice(prefix.length), bar = rest.lastIndexOf("|"), byFinder = prefix === MARKS || prefix === EDITS;
+    const rest = key.slice(prefix.length), bar = rest.lastIndexOf("|");
     return byFinder && bar >= 0
-      ? { group: "images", image: rest.slice(0, bar), what: `${what} (${rest.slice(bar + 1)})` }
-      : { group: "images", image: rest, what };
+      ? { group: "images", image: rest.slice(0, bar), what: `earlier ${what} (${rest.slice(bar + 1)})` }
+      : { group: "images", image: rest, what: `earlier ${what}` };
   }
-
-  // the tagger's progress on the image open, every per-file key of it, forgotten (req/shell/ground-truth/clear)
-  shell.clearable("votes, measurements, added NoRs, mask and checked areas", () => {
-    const name = st.fileName, keys = [];
-    try { for (let k = 0; k < localStorage.length; k++) keys.push(localStorage.key(k)); } catch { return; }
-    for (const key of keys) {
-      const [prefix] = PER_FILE.find(([p]) => key.startsWith(p)) || [];
-      const rest = prefix && key.slice(prefix.length);
-      if (prefix && (rest === name || rest.startsWith(name + "|"))) try { localStorage.removeItem(key); } catch { /* no storage */ }
-    }
-  });
 
   // ---------- saved filter settings ----------
   const loadSaved = () => readJSON(STORE, { values: {}, off: [] });
@@ -104,18 +88,27 @@ export function mount(shell) {
     markPreset();
   }
 
-  // ---------- filter presets: each finder's precision and recall on the ground truth (detection/finder_metrics.py) ----------
+  // ---------- filter presets: each finder's precision and recall on the ground truth (the lab's metrics, lab/run.py) ----------
+  // the balanced preset is the finder's own filters, its default numbers; the others are the lab's settings of the same
+  // names, and each preset's filter values are the finders' list's (algorithm/controls.py)
   const PRESETS = { precise: "Precise", balanced: "Balanced", recalling: "Recalling" };
   // never settles once the study has left: what waited on it would reach for panels that are gone
-  const quality = fetch(new URL("finder_metrics.json", import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  const quality = fetch(new URL("algorithm_metrics.json", import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     .then((q) => (here.signal.aborted ? new Promise(() => {}) : q));
+  // {preset: {precision, recall, tp, fp, fn, values}} of a finder, or null when the lab has not measured it
+  const presetsOf = (q, finder) => {
+    const v = q?.versions?.[finder], values = st.about?.[finder]?.presets;
+    if (!v || !values) return null;
+    const by = { ...(v.settings || {}), balanced: v };
+    return Object.fromEntries(Object.keys(PRESETS).filter((k) => by[k] && values[k]).map((k) => [k, { ...by[k], values: values[k] }]));
+  };
   const two = (x) => x.toFixed(2).replace(/^0/, "");
   const pr = (r) => `P\u00a0${two(r.precision)}\u00a0·\u00a0R\u00a0${two(r.recall)}`; // one unbroken pair
   async function buildPresets() {
-    const q = await quality, box = $("#presets"), per = q && q.finders[st.filtersFor] && q.finders[st.filtersFor].filtered;
+    const q = await quality, box = $("#presets"), per = presetsOf(q, st.filtersFor);
     box.hidden = !per; if (!per) return;
-    const real = q.images.reduce((a, im) => a + im.real, 0), not = q.images.reduce((a, im) => a + im.not_nor, 0);
-    box.title = `After the filters: precision (P) and recall (R) on ${real} real and ${not} not-NoR marked spots in ${q.images.length} image${q.images.length > 1 ? "s" : ""}`;
+    const real = per.balanced ? Math.round(per.balanced.tp + per.balanced.fn) : 0, n = q.images.length;
+    box.title = `After the filters: precision (P) and recall (R) on ${real} real NoRs marked in ${n} image${n === 1 ? "" : "s"}`;
     box.replaceChildren(...Object.entries(PRESETS).filter(([k]) => per[k]).map(([k, name]) => {
       const b = document.createElement("button"); b.type = "button"; b.dataset.preset = k;
       b.innerHTML = `${name}<small>${pr(per[k])}</small>`;
@@ -127,7 +120,7 @@ export function mount(shell) {
   // a preset is lit while the filters hold exactly its values
   function markPreset() {
     quality.then((q) => {
-      const per = q && q.finders[st.filtersFor] && q.finders[st.filtersFor].filtered;
+      const per = presetsOf(q, st.filtersFor);
       if (!per) return;
       for (const b of $("#presets").children) {
         const v = per[b.dataset.preset].values;
@@ -136,49 +129,113 @@ export function mount(shell) {
     });
   }
 
-  // ---------- the user's decisions and measurements: saved per file and finder, tied to each candidate's position ----------
-  const posKey = (c) => `${Math.round(c.cx)},${Math.round(c.cy)}`;
-  const fileKey = () => st.fileName + "|" + st.meta.finder;
-  function loadMarks() {
-    st.forced = new Map(); st.edits = new Map();
-    const marks = readJSON(MARKS + fileKey()), edits = readJSON(EDITS + fileKey());
-    for (const c of st.cands) {
-      const m = marks[posKey(c)], e = edits[posKey(c)];
-      if (m) st.forced.set(c.i, m);
-      if (e) st.edits.set(c.i, e);
-    }
-  }
-  function saveMap(prefix, map) {
-    const out = {};
-    for (const [j, v] of map) out[posKey(st.cands[j])] = v;
-    writeJSON(prefix + fileKey(), out);
-  }
-  // the user's word on a candidate: "approve" (a NoR, with the lengths shown), "reject" (not one), or null (the filters decide)
+  // ---------- the tagger's work: GT actions, which the page draws (req/shell/ground-truth/history) ----------
+  // The shell's log holds the decisions, the lengths moved, the NoRs added and the areas checked, as GT actions on candidates named
+  // by id (gt_actions.js). The page reads them as st.forced (a candidate's index -> "in" | "out"), st.edits (-> {length, red, width,
+  // approved}), st.added ([{id, lines, verdict}]) and st.areas, which sync() derives from the log's model after every change.
+  const act = (action) => shell.gt.act(action);
+  // the user's word on a candidate: "approve" (a NoR, with the lengths shown), "reject" (not one: it is taken out of the candidates
+  // that remain), or null (back to the filters' word)
   function decide(i, d) {
-    d ? st.forced.set(i, d === "approve" ? "in" : "out") : st.forced.delete(i);
-    const e = { ...(st.edits.get(i) || {}) };
-    d === "approve" ? (e.approved = true) : delete e.approved;
-    Object.keys(e).length ? st.edits.set(i, e) : st.edits.delete(i);
-    saveMap(MARKS, st.forced); saveMap(EDITS, st.edits); render();
+    const c = candOf(i);
+    if (c) act({ type: d === "approve" ? "approve" : d === "reject" ? "delete" : "undecide", cand: c.id });
   }
-  function edit(i, change) {
-    const e = { ...(st.edits.get(i) || {}), ...change };
-    for (const k of Object.keys(e)) if (e[k] == null || e[k] === false) delete e[k];
-    Object.keys(e).length ? st.edits.set(i, e) : st.edits.delete(i);
-    saveMap(EDITS, st.edits); drawLines(st.cands[i]); render();
+  const imageInfo = () => {
+    const src = st.source || { kind: "local" };
+    return { name: st.fileName, sha256: st.sha, width: st.W, height: st.H, um_per_px: st.um || null, location: shell.remote.owns(src) ? shell.remote.locate(src) : { source: "local" } };
+  };
+  // the model's candidates as the page's, with no outline: its masks are not in the log (the run's output holds none)
+  function adopt(m) {
+    const all = [...m.cands, ...m.deleted];
+    st.meta = { finder: m.meta.finder, drafted: true }; st.seg = null; st.alone = null; st.crops = new Map(); st.cands = []; st.fails = [];
+    for (const c of all) {
+      st.cands[c.i] = { i: c.i, id: c.id, cx: c.x, cy: c.y, bb: c.bb, fail0: null, x0: 0, y0: 0, h: 0, w: 0, blk: [], ...(c.lines ? { lines: c.lines, m: c.m } : {}) };
+      st.fails[c.i] = c.fail ?? null;
+    }
+    st.order = [...all].sort((a, b) => a.n - b.n).map((c) => st.cands[c.i]);
+    st.numbers = new Map(all.map((c) => [c.i, c.n]));
+    st.sel = null; st.task = null; st.cur = undefined; st.back = []; st.runOverrides = m.meta.finder_settings || {};
+    if (st.about?.[m.meta.finder]) st.reasons = st.about[m.meta.finder].reasons;
+    for (const id of ["#filters", "#presets"]) $(id).inert = true;
+    buildOverlay();
+    shell.statusBar();
   }
+  // whether the page's candidates are those the model holds
+  const aligned = (m) => N.holds(m, st.order.map((c) => ({ i: c.i, id: c.id, x: c.cx, y: c.cy })));
+  // the filters as the log's run had them, in the dials; true when that moved one
+  function followFilters(m) {
+    const f = m.meta.filters;
+    if (!f?.values || st.filtersFor !== m.meta.finder || !st.defaults) return false;
+    const values = { ...st.defaults, ...f.values }, off = new Set(f.off || []);
+    if (JSON.stringify([values, [...off]]) === JSON.stringify([st.values, [...st.off]])) return false;
+    st.values = values; st.off = off; showFilterValues(); save();
+    return true;
+  }
+  // the run recorded last for this detection, by what it holds of the filters' word: a fresh one only when that moves
+  let recorded = null;
+  const filtersKey = (fails, values, off) => JSON.stringify([fails, values, off]);
+  const modelKey = (m) => filtersKey([...m.cands, ...m.deleted].sort((a, b) => a.i - b.i).map((c) => c.fail ?? null), m.meta.filters?.values, m.meta.filters?.off);
+  // the model's word on the page: what the tagger decided, measured, added and checked
+  function sync(m, why) {
+    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.areas = new Set(); recorded = null; return; }
+    if (!aligned(m)) adopt(m);
+    if (why !== "act" && why !== "run") recorded = modelKey(m);
+    const was = st.edits;
+    st.forced = new Map(); st.edits = new Map();
+    for (const c of m.cands) {
+      if (c.approved) st.forced.set(c.i, "in");
+      const e = { ...c.edited, ...(c.approved ? { approved: true } : {}) };
+      if (Object.keys(e).length) st.edits.set(c.i, e);
+    }
+    for (const c of m.deleted) { st.forced.set(c.i, "out"); if (c.edited) st.edits.set(c.i, { ...c.edited }); }
+    for (const c of [...m.cands, ...m.deleted]) st.fails[c.i] = c.fail ?? null;
+    st.added = m.added.map((a) => ({ id: a.id, lines: a.lines, verdict: a.approved ? "in" : null }));
+    st.areas = new Set(m.areas);
+    if (isAdded(st.sel) && !candOf(st.sel)) st.sel = null;
+    const refilterToo = why !== "act" && why !== "run" && followFilters(m);
+    for (const c of st.order) if (JSON.stringify(was.get(c.i)) !== JSON.stringify(st.edits.get(c.i)) && c.lineEl) drawLines(c);
+    drawAdded(); drawReveal();
+    if (st.meta) render();
+    if (refilterToo && st.meta && !st.meta.drafted) refilter();
+  }
+  shell.gt.on(sync, shell.signal);
+
+  // the run, as the log keeps it: the numbered candidates, each with its place, box, lines and the filters' word on it
+  function outputOf() {
+    const cands = [...st.order].sort((a, b) => a.i - b.i).map((c) => ({ i: c.i, n: st.numbers.get(c.i), x: c.cx, y: c.cy, bb: c.bb, ...(c.lines ? { lines: c.lines, m: c.m } : {}), fail: st.fails[c.i] ?? null }));
+    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, grid: GRID, numbered: cands.length, cands };
+  }
+  // Recorded once the filters' word on the candidates is known after a detection, and again when a later answer moves it
+  function recordRun() {
+    if (!st.meta || st.meta.drafted) return;
+    const out = outputOf(), key = filtersKey(out.cands.map((c) => c.fail), out.filters.values, out.filters.off);
+    if (key === recorded) return;
+    const first = recorded === null;
+    recorded = key;
+    const output = N.identify(out, shell.gt.model());
+    for (const c of output.cands) st.cands[c.i].id = c.id;
+    shell.gt.ran({ algorithm: { key: st.meta.finder, params: st.runOverrides || {} }, output });
+    if (first) shell.gt.legacy(oldMarks(readJSON, { name: st.fileName, finder: st.meta.finder, output, typical: (x, y) => typicalLines(x, y) }));
+  }
+  // the log's first entry where no finder has run: the image alone, with no candidate
+  function rooted() {
+    if (shell.gt.model()) return true;
+    shell.gt.base(N.blank(imageInfo(), { finder: shell.algorithm.key }), { note: "the image alone, before Find Candidates" });
+    return !!shell.gt.model();
+  }
+  function edit(c, lines) { act({ type: "set-lines", cand: c.id, lines }); }
 
   const fmt = (v, d = 2) => (v == null || !isFinite(v) ? "–" : Number(v).toFixed(d));
 
   function detect() {
-    const finder = $("#finder").value, overrides = detectOverrides(finder);
+    const finder = shell.algorithm.key, overrides = detectOverrides(finder);
     st.running = runKey(); st.runOverrides = overrides; $("#find").disabled = true;
     busy(true, "Finding candidates…");
-    shell.call("detect", { finder, overrides });
+    shell.call("run", { algorithm: finder, ...overrides });
   }
 
   function refilter() {
-    if (!st.meta) return;
+    if (!st.meta || st.meta.drafted) return;
     if (st.inflight) { st.pending = true; return; }
     st.inflight = true;
     shell.call("refilter", { spec: { values: st.values, off: [...st.off] } }, ++st.seq);
@@ -212,6 +269,8 @@ export function mount(shell) {
 
   function onDetected(meta, seg) {
     st.meta = meta; st.seg = seg; st.crops = new Map(); st.sel = null; st.alone = null; st.task = null; st.cur = undefined; st.back = [];
+    st.forced = new Map(); st.edits = new Map(); recorded = null;
+    for (const id of ["#filters", "#presets"]) $(id).inert = false;
     if (st.filtersFor !== meta.finder) useFilters(meta.finder);
     st.cands = meta.cands.map((c) => {
       const blk = seg.subarray(c.off, c.off + c.h * c.w);
@@ -225,8 +284,7 @@ export function mount(shell) {
     st.order = st.cands.filter((c) => c.bb[2] > c.bb[0] && (c.fail0 === null || st.reasons[c.fail0]))
       .sort((a, b) => a.cy - b.cy || a.cx - b.cx);
     st.numbers = new Map(st.order.map((c, k) => [c.i, k + 1]));
-    loadMarks();
-    buildOverlay(); drawAdded(); drawMask();
+    buildOverlay(); drawAdded();
     refilter();
   }
 
@@ -237,7 +295,8 @@ export function mount(shell) {
   };
 
   function buildOverlay() {
-    const svg = $("#overlay"); svg.innerHTML = "";
+    // its own drawing goes; the shell's layers (the summary's mask) stay
+    const svg = $("#overlay"); for (const n of [...svg.children]) if (!n.matches?.("g[data-layer]")) n.remove();
     svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
     const frag = document.createDocumentFragment();
     for (const c of st.order) {
@@ -272,17 +331,8 @@ export function mount(shell) {
   }
 
   // ---------- added candidates: NoRs the user added where the finder proposed none ----------
-  // Each has measuring lines the user corrects on its card, and lists first among the finalists until
-  // thumbed down. Until the user gives a verdict, a glowing circle marks it on the image.
-  function loadAdded(name) {
-    const added = readJSON(ADDED + name, null);
-    if (added) return added;
-    return readJSON(MISSING + name, []).map(([x, y]) => ({ lines: typicalLines(x, y), verdict: null }));
-  }
-  function saveAdded() {
-    writeJSON(ADDED + st.fileName, st.added);
-    try { localStorage.removeItem(MISSING + st.fileName); } catch { /* private mode */ }
-  }
+  // Each has measuring lines the user corrects on its card, and lists first among the finalists until it is removed. Until the
+  // user gives a verdict, a glowing circle marks it on the image. It has an id of its own kind, u1, u2, …, that stays its own.
   // level lines centred on (x, y), as long and wide as this image's finalists' medians
   function typicalLines(x, y) {
     const med = (k) => { const s = stats((st.passes || []).filter((c) => !c.added).map((c) => c.m && c.m[k])); return s.n ? s.med : TYPICAL[k]; };
@@ -297,29 +347,28 @@ export function mount(shell) {
     const L = a.lines, pts = [...L.length, ...L.red, ...L.width], [[p, q], [r, t]] = L.length;
     const m = { length: dist(L.length), red_length: dist(L.red), width: dist(L.width) };
     m.red_over_length = m.red_length / m.length; m.length_over_width = m.length / m.width;
-    return { i: "u" + (k + 1), k, added: true, lines: L, cx: (p + r) / 2, cy: (q + t) / 2, m, x0: 0, y0: 0, h: 0, w: 0, blk: [],
+    return { i: a.id, id: a.id, k, added: true, lines: L, cx: (p + r) / 2, cy: (q + t) / 2, m, x0: 0, y0: 0, h: 0, w: 0, blk: [],
       bb: [Math.min(...pts.map((v) => v[0])), Math.min(...pts.map((v) => v[1])), Math.max(...pts.map((v) => v[0])), Math.max(...pts.map((v) => v[1]))] };
   }
-  const candOf = (i) => (i == null ? null : isAdded(i) ? addedCand(+i.slice(1) - 1) : st.cands[i]);
+  const candOf = (i) => (i == null ? null : isAdded(i) ? addedCand(st.added.findIndex((a) => a.id === i)) : st.cands[i]);
   const addedCands = () => st.added.map((_, k) => addedCand(k));
   // a candidate's one number: the finder's top to bottom, then the added NoRs in the order added
   const numOf = (c) => (c.added ? st.order.length + c.k + 1 : st.numbers.get(c.i));
   const nameOf = (c) => "#" + numOf(c);
-  function addedChanged() {
-    saveAdded(); drawAdded();
-    if (st.meta) render(); else { renderSelected(); placeRing(); }
-  }
   function addAdded(x, y) {
-    st.added.push({ lines: typicalLines(Math.round(x * 10) / 10, Math.round(y * 10) / 10), verdict: null });
-    st.sel = "u" + st.added.length;
-    addedChanged(); if (tagging() && st.meta) goTo("c:" + st.sel);
+    if (!rooted()) return;
+    const id = N.nextAdded(shell.gt.model()), r1 = (v) => Math.round(v * 10) / 10, to = [r1(x), r1(y)];
+    if (!act({ type: "add", cand: id, to, lines: typicalLines(...to) })) return;
+    st.sel = id;
+    if (tagging() && st.meta) goTo("c:" + st.sel);
   }
+  // thumbing an added NoR down removes it, as its card's Remove does
   function removeAdded(k) {
-    const was = st.sel; st.added.splice(k, 1);
-    if (isAdded(was)) { const j = +was.slice(1) - 1; st.sel = j === k ? null : j > k ? "u" + j : was; }
-    addedChanged();
+    const id = st.added[k]?.id;
+    if (id == null) return;
+    if (st.sel === id) st.sel = null;
+    act({ type: "delete", cand: id });
   }
-  function setAdded(k, change) { st.added[k] = { ...st.added[k], ...change }; addedChanged(); }
   const radiusOf = (c) => Math.max(MISSING_RADIUS, dist(c.lines.length) / 2 + 4);
   // on the image: the lines, and until the user decides, the circle, glowing
   function drawAdded() {
@@ -329,7 +378,7 @@ export function mount(shell) {
     svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
     const g = el("g", { class: "added-marks" });
     for (const c of addedCands()) {
-      const v = st.added[c.k].verdict, a = el("g", { "data-i": c.i, class: "added" + (v === "out" ? " out" : "") + (TRUTH ? " " + reviewed(v) : "") });
+      const v = st.added[c.k].verdict, a = el("g", { "data-i": c.i, class: "added" + (TRUTH ? " " + reviewed(v) : "") });
       const t = el("text", { x: c.cx + radiusOf(c) + 1, y: c.cy - radiusOf(c) }); t.textContent = numOf(c);
       if (!v) a.append(el("circle", { class: "glow", cx: c.cx, cy: c.cy, r: radiusOf(c) }));
       const lines = el("g", { class: "lines" });
@@ -368,7 +417,7 @@ export function mount(shell) {
 
   // the result shown for candidate i: null = pass, else a failure reason
   function result(i) {
-    if (isAdded(i)) return st.added[+i.slice(1) - 1]?.verdict === "out" ? BY_YOU : null;
+    if (isAdded(i)) return null;
     const f = st.forced.get(i);
     if (f === "in") return null;
     if (f === "out") return BY_YOU;
@@ -492,20 +541,8 @@ export function mount(shell) {
 
   // the finder's settings: its main ones on show, every one under Advanced; both edit the same values
   function buildDetect() {
-    const finder = $("#finder").value, about = st.about[finder];
+    const finder = shell.algorithm.key, about = st.about[finder];
     const defs = about.detection_params, vals = (st.detectValues[finder] ||= { ...defs });
-    $("#about-box summary").textContent = `How the ${st.names[finder]} algorithm works`;
-    const note = $("#finder-note");
-    note.replaceChildren(shell.outline(about.about + (about.exact_refilter ? "" : "\n\nIt picks between alternatives using the filters, so after a filter change, find again for its exact result.")));
-    quality.then((q) => {
-      const own = q && q.finders[finder];
-      if (!own || $("#finder").value !== finder) return;
-      const said = (r) => `precision of ${r.precision.toFixed(2)} and recall of ${r.recall.toFixed(2)}`, n = q.images.length;
-      const name = st.names[finder][0].toUpperCase() + st.names[finder].slice(1);
-      const p = document.createElement("p"), b = document.createElement("strong");
-      b.textContent = `${name} algorithm plus default filters show ${said(own.filtered.balanced)} based on ${n} image${n > 1 ? "s" : ""}`;
-      p.append(b, ` (without filters: ${said(own.finder)})`); note.append(p);
-    });
     const row = (k) => dial(k, defs[k], vals[k], (v) => {
       vals[k] = v;
       document.querySelectorAll(`#main-params .param[data-name="${k}"], #detect-params .param[data-name="${k}"]`).forEach((o) => { if (!o.contains(document.activeElement)) o.set(v); });
@@ -521,9 +558,9 @@ export function mount(shell) {
     for (const [k, v] of Object.entries(st.detectValues[finder] || {})) if (JSON.stringify(v) !== JSON.stringify(defs[k])) o[k] = v;
     return o;
   }
-  const runKey = () => JSON.stringify([$("#finder").value, detectOverrides($("#finder").value)]);
+  const runKey = () => JSON.stringify([shell.algorithm.key, detectOverrides(shell.algorithm.key)]);
   function updateFind() {
-    const finder = $("#finder").value; if (!st.about[finder]) return;
+    const finder = shell.algorithm.key; if (!st.about?.[finder]) return;
     const o = detectOverrides(finder);
     $("#reset-detect").disabled = !Object.keys(o).length;
     $("#find").disabled = !st.img || !!st.running;
@@ -534,7 +571,7 @@ export function mount(shell) {
   // says the ground truth is complete, so the crumb never moves on while the button says it cannot
   function steps() {
     const ran = !!st.meta && runKey() === st.lastRun, finalists = (st.passes || []).filter((c) => !c.added);
-    const name = st.names?.[$("#finder").value];
+    const name = shell.algorithm.title;
     shell.step("find", ran, ran ? `${name}: ${st.order.length} candidates, ${finalists.length} finalists` : st.lastRun ? "The finder or its settings changed since the last run." : "");
     shell.boxDone($("#finder-box"), ran ? `${name} executed` : null);
     const gt = gtState(), left = gt.items.filter((t) => t.grade && !t.ok).map((t) => t.text + ".");
@@ -582,6 +619,7 @@ export function mount(shell) {
     let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
     const take = (p) => { const [u, v] = toUV(p); u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); };
     for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) if (c.blk[y * c.w + x]) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) take([c.x0 + x + dx, c.y0 + y + dy]);
+    if (!c.blk.length) for (const p of [[c.bb[0], c.bb[1]], [c.bb[2], c.bb[1]], [c.bb[0], c.bb[3]], [c.bb[2], c.bb[3]]]) take(p);
     if (L) for (const k of ["length", "red", "width"]) L[k].forEach(take);
     u0 -= pad; u1 += pad; v0 -= pad; v1 += pad;
     const uw = u1 - u0, vw = v1 - v0, s = Math.max(2, Math.min(size / 10, size / Math.max(uw, vw))), dpr = devicePixelRatio || 1;
@@ -657,20 +695,21 @@ export function mount(shell) {
     // a handle goes wherever it is dragged; the result is kept in image coordinates
     svg.addEventListener("pointerdown", (e) => {
       const h = e.target.closest(".handle"); if (!h) return;
-      e.preventDefault(); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
+      e.preventDefault(); e.stopPropagation();
       const k = h.dataset.k, j = +h.dataset.j, from = L;
       const move = (ev) => {
         const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
         const q = pt.matrixTransform(svg.getScreenCTM().inverse());
         L = dragLines(from, k, j, g.toXY([q.x, q.y])); draw();
       };
-      const up = () => {
-        svg.removeEventListener("pointermove", move); svg.removeEventListener("pointerup", up);
+      const drop = () => {
         if (L === from) return;
-        const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), lines = { length: r2(L.length), red: r2(L.red), width: r2(L.width) };
-        c.added ? setAdded(c.k, { lines }) : edit(c.i, lines);
+        // only the lines that moved are the action's
+        const r2 = (seg) => seg.map((p) => p.map((v) => Math.round(v * 100) / 100)), moved = {};
+        for (const k of ["length", "red", "width"]) if (JSON.stringify(r2(L[k])) !== JSON.stringify(r2(from[k]))) moved[k] = r2(L[k]);
+        if (Object.keys(moved).length) edit(c, moved);
       };
-      svg.addEventListener("pointermove", move); svg.addEventListener("pointerup", up);
+      shell.drag(svg, e, { move, drop, cancel: () => { L = from; draw(); } });
     });
     return svg;
   }
@@ -683,7 +722,7 @@ export function mount(shell) {
   const COG = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
   const GOTO = `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" class="dot"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>`;
   function card(c, where) {
-    const r = result(c.i), f = c.added ? st.added[c.k].verdict : st.forced.get(c.i), d = document.createElement("div");
+    const r = result(c.i), f = verdictOf(c), d = document.createElement("div");
     d.className = "card " + (r === null ? "pass" : "fail") + (f === "in" ? " approved" : f === "out" ? " byyou" : "") + (c.added ? " added" : "") +
       (where === "list" && c.i === st.sel ? " selected" : "");
     d.dataset.i = c.i;
@@ -698,10 +737,10 @@ export function mount(shell) {
       // on a task's card, a verdict moves on to the task's next candidate
       b.onclick = (e) => { e.stopPropagation(); st.sel = c.i; fn(); if (where === "task" && verdictOf(c)) moveOn(); }; acts.append(b);
     };
-    const say = (v) => (c.added ? setAdded(c.k, { verdict: v === "approve" ? "in" : v === "reject" ? "out" : null }) : decide(c.i, v));
+    const say = (v) => decide(c.i, v);
     btn("up", f === "in", f === "in" ? "You said this is a NoR. Click to undo" : "A NoR: keep it, with its lengths as shown (saved as ground truth)",
       () => say(f === "in" ? null : "approve"));
-    btn("down", f === "out", f === "out" ? (c.added ? "You said this is not a NoR. Click to undo" : "You said this is not a NoR. Click to let the filters decide again") : "Not a NoR: reject it (saved as ground truth)",
+    btn("down", f === "out", f === "out" ? "You said this is not a NoR. Click to let the filters decide again" : c.added ? "Not a NoR: remove it" : "Not a NoR: reject it (saved as ground truth)",
       () => say(f === "out" ? null : "reject"));
     if (c.added) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
@@ -725,7 +764,7 @@ export function mount(shell) {
     if (e.length || e.red || e.width) {
       d.insertAdjacentHTML("beforeend", where === "task" ? `<button class="link reset-lines" type="button">Reset measurements</button>`
         : `<div class="tag">Lengths adjusted <button class="link">reset</button></div>`);
-      d.querySelector(".reset-lines, .tag button").onclick = () => edit(c.i, { length: null, red: null, width: null });
+      d.querySelector(".reset-lines, .tag button").onclick = () => edit(c, null);
     }
     // a task's card: the crop, the thumbs under it; no number or state
     if (where === "task") {
@@ -744,7 +783,7 @@ export function mount(shell) {
 
   // ---------- the item views' order ----------
   const SORTS = [["number", "By number"], ["verified-first", "Verified first"], ["verified-last", "Verified last"], ["filters", "Most filters first", "fail"]];
-  const verified = (c) => !!(c.added ? st.added[c.k].verdict : st.forced.get(c.i));
+  const verified = (c) => !!verdictOf(c);
   // the cards of the view on show, in its chosen order; ties go by number
   function listed() {
     const items = [...((st.tab === "pass" ? st.passes : st.rejects) || [])], how = st.sort[st.tab];
@@ -887,11 +926,19 @@ export function mount(shell) {
     $("#summary").innerHTML = `<div>${passes.length} NoRs${st.mask.length ? " inside the mask" : ""}. ${scale}</div>
       <div class="density">Density: <b>${fmt(D.value, 0)}</b> ${D.unit} (${passes.length} in ${fmt(D.area, 4)} ${D.areaUnit})</div>
       <div class="hists">${rows.map(([l, s]) => hist(l, s)).join("")}</div>`;
+    // the summary as the shell's Download Summary saves it (req/shell/summary/download)
+    shell.summary.set({ over: st.mask.length ? `a mask of ${st.mask.length} lassoed area${st.mask.length === 1 ? "" : "s"}` : "the whole image", rows: [
+      { measurement: "Finalists", unit: "count", value: passes.length },
+      { measurement: "Density", unit: D.unit, value: D.value },
+      { measurement: "Area counted", unit: D.areaUnit, value: D.area },
+      ...rows.map(([, s], k) => ({ measurement: MEASURES[k][1], unit: MEASURES[k][2] ? unitName() : "ratio", n: s.n, mean: s.mean, sd: s.sd, median: s.med, min: s.min, max: s.max })),
+      ...Object.entries(counts).map(([k, n]) => ({ measurement: `Rejected: ${reasonOf(k).letter} ${reasonOf(k).title}`, unit: "count", value: n }))] });
   }
 
   // ---------- downloads ----------
   function downloads(on) {
-    for (const id of ["#dl-cands", "#dl-summary"]) $(id).disabled = !on || !st.meta;
+    $("#dl-cands").disabled = !on || !st.meta;
+    if (!on) shell.summary.set(null);
     gtButton();
   }
   const base = () => st.fileName.replace(/\.[^.]+$/, "") || "nors";
@@ -901,54 +948,19 @@ export function mount(shell) {
     const u = st.um ? "um" : "px";
     const head = ["n", "x_px", "y_px", "status", "reason", "rejected_by", "decision", "lengths", ...MEASURES.map(([k, , s]) => (s ? `${k}_${u}` : k))];
     const rows = [...addedCands(), ...st.order].filter(inMask).map((c) => {
-      const r = result(c.i), f = c.added ? st.added[c.k].verdict : st.forced.get(c.i);
+      const r = result(c.i), f = verdictOf(c);
       return [numOf(c), fmt(c.cx, 1), fmt(c.cy, 1), r === null ? "finalist" : "rejected", r === null ? "" : reasonOf(r).title,
         whyAll(c).map((k) => reasonOf(k).letter).join(" "), { in: "approved", out: "rejected by you" }[f] || (c.added ? "added by you" : ""), measured(c) || "",
         ...measures(c).map(([, v]) => fmt(v, 3))];
     });
     saveFile(base() + "_candidates.csv", csv([head, ...rows]), "text/csv");
   };
-  $("#dl-summary").onclick = () => {
-    const { passes } = counted(), D = density(passes.length), u = D.unit.replace("per ", "").replace("mm²", "mm2").replace(" px²", "_px2").replace(/ /g, "_");
-    const rows = [["measurement", "n", "mean", "sd", "median", "min", "max"],
-      ...summaryRows(passes).map(([l, s]) => [l, s.n, fmt(s.mean, 3), fmt(s.sd, 3), fmt(s.med, 3), fmt(s.min, 3), fmt(s.max, 3)]),
-      [], ["density", "value"], [`finalists_per_${u}`, fmt(D.value, 3)], [`area_${u}`, fmt(D.area, 6)], ["finalists", passes.length],
-      [], ["rejected", "count"], ...Object.entries(st.counts).map(([k, n]) => [`${reasonOf(k).letter} ${reasonOf(k).title}`, n]),
-      ...(st.mask.length ? [[], ["counted", `inside a mask of ${st.mask.length} lassoed areas`]] : [])];
-    saveFile(base() + "_summary.csv", csv(rows), "text/csv");
-  };
-  // What a person decided on this image, for scoring finders in the lab (detection/nor_lab.py reads it
-  // with --labels) and for the repo's ground truth (detection/ground_truth.py): only what the user marked.
-  // A candidate nobody voted on is ambiguous, so it is left out.
-  function truth() {
-    const labels = [];
-    for (const c of st.order) {
-      const f = st.forced.get(c.i); if (!f) continue;
-      const L = linesOf(c), px = measuresPx(c);
-      labels.push({ id: numOf(c), x: c.cx, y: c.cy, label: f === "in" ? 1 : 0, source: "user",
-        decision: f === "in" ? "approved" : "rejected", measured: f === "in" ? measured(c) : null,
-        length_px: px.length ?? null, red_length_px: px.red_length ?? null, width_px: px.width ?? null,
-        lines: L ? { length: L.length, red: L.red, width: L.width } : null });
-    }
-    // an added NoR the user approved, with its measurements; until then it is only a suggestion
-    for (const c of addedCands()) {
-      if (st.added[c.k].verdict !== "in") continue;
-      labels.push({ id: numOf(c), kind: "missing", origin: "added by user", x: c.cx, y: c.cy, label: 1, source: "user",
-        radius_px: MISSING_RADIUS, decision: "approved", measured: "adjusted", length_px: c.m.length, red_length_px: c.m.red_length,
-        width_px: c.m.width, lines: { length: c.lines.length, red: c.lines.red, width: c.lines.width } });
-    }
-    const src = st.source || { kind: "local" };
-    const location = shell.remote.owns(src) ? shell.remote.locate(src) : { source: "local" };
-    return { format: "norfinder-ground-truth/2", exported: new Date().toISOString(),
-      image: { name: st.fileName, sha256: st.sha, width: st.W, height: st.H, um_per_px: st.um || null, location },
-      finder: st.meta ? st.meta.finder : null, finder_settings: st.runOverrides || {}, filters: { values: st.values, off: [...st.off] }, labels };
-  }
   // How finished the user's ground truth is, as a checklist of every issue it can have, each resolved or not
   // (the graded ones set the button's state):
   // "done" when every finalist has a verdict, "part" when some candidates have one but a finalist does not,
   // "todo" when none has one yet or an added NoR still waits for one
   function gtState() {
-    const verdict = (c) => (c.added ? st.added[c.k].verdict : st.forced.get(c.i));
+    const verdict = verdictOf;
     const waiting = st.added.filter((a) => !a.verdict).length, voted = st.forced.size + st.added.length - waiting;
     const finalists = TRUTH ? taskItems("pass") : (st.passes || []).filter((c) => !c.added), open = finalists.filter((c) => !verdict(c)).length;
     const rejected = TRUTH ? taskItems("fail") : [], left = rejected.filter((c) => !verdict(c)).length;
@@ -972,9 +984,12 @@ export function mount(shell) {
       (open.length ? open.map((t) => t.text + ".").join(" ") : TRUTH ? "Every task is done." : "Every finalist has your verdict.") + " Click to export or submit.");
     steps();
   }
+  // The file Submit Ground Truth gives is the shell's: the log's model as gt_actions.js's document, with the history that made it. What it
+  // marks, for the popup: each candidate approved or rejected, each added NoR approved. A candidate nobody voted on is ambiguous and
+  // is only listed.
   const submit = () => {
-    const doc = truth();
-    shell.submitTruth({ doc, count: doc.labels.length, file: base() + "_ground_truth.json", items: gtState().items,
+    const m = shell.gt.model(), count = m ? m.cands.filter((c) => c.approved).length + m.deleted.length + m.added.filter((a) => a.approved).length : 0;
+    shell.submitTruth({ count, file: base() + "_ground_truth.json", items: gtState().items,
       empty: "Vote on candidates with the thumbs, or right-click the image to add a NoR the finder missed." });
   };
 
@@ -984,7 +999,7 @@ export function mount(shell) {
   // current item; a verdict moves on to the next with none. What is done is cut out of the image.
   const TASKS = ["pass", "fail", "missed", "submit"];
   const AREAS = GRID * GRID;
-  const verdictOf = (c) => (c.added ? st.added[c.k]?.verdict : st.forced.get(c.i));
+  const verdictOf = (c) => (c.added ? st.added.find((a) => a.id === c.id)?.verdict : st.forced.get(c.i));
   const reviewed = (v) => (v === "in" ? "yes" : v === "out" ? "no" : "todo");
   // the image's areas by their place in the walk: rows of areas top to bottom, each the way back from the
   // last, so the next area always borders the one before
@@ -1060,7 +1075,7 @@ export function mount(shell) {
   };
   $("#area-ok").onclick = () => {
     if (st.area == null) return;
-    st.areas.add(st.area); writeJSON(AREAS_KEY + st.fileName, [...st.areas]); drawReveal(); gtButton();
+    act({ type: "check-area", area: st.area, on: true });
     moveOn();
   };
   // the image pans to the candidate only when it is out of the middle of the view
@@ -1093,6 +1108,19 @@ export function mount(shell) {
     for (const a of st.areas) if (areaDone(a, w)) holes.push(areaRect(a));
     shell.viewer.doneMask(holes.map(([x, y, width, height]) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height]]));
   }
+  // the keys (req/nor/truth/keys, req/shell/image/keys), wired by the shell from study.json's actions: it presses the
+  // open item's buttons itself; the Show menu's views are switched here, and the states the keys wait on told as
+  // they change
+  const VIEW_KEYS = { "show-pass": "show-gt-pass", "show-fails": "show-gt-fails", "show-added": "show-gt-added", "show-cut": "show-gt-cut", "show-frame": "show-gt-frame" };
+  shell.actions.handle(Object.fromEntries(Object.entries(VIEW_KEYS).map(([a, id]) => [a, (phase) => {
+    if (phase === "up") return;
+    const b = $("#" + id); b.checked = !b.checked; b.oninput();
+  }])));
+  function tellKeys() {
+    const v = st.show || {};
+    shell.actions.report({ tagging: tagging(), step: !!st.cur, views: TRUTH && !!st.meta,
+      gtPass: v.gtPass, gtFails: v.gtFails, gtAdded: v.gtAdded, gtCut: v.gtCut, gtFrame: v.gtFrame });
+  }
   function renderTasks() {
     if (!TRUTH) return;
     const ready = !!st.meta && !!st.passes;
@@ -1111,7 +1139,7 @@ export function mount(shell) {
     for (const t of ["pass", "fail", "missed"]) shell.tasks.count(t, ready ? did[t] : null, count[t], ready && taskDone(t));
     // the open task: its tools on its row, and its item's card under it
     const li = shell.tasks.open(ready ? st.task : null), now = $("#task-now"), tools = $("#task-tools");
-    const c = ready && st.sel != null ? candOf(st.sel) : null;
+    const c = ready && tagging() && st.sel != null ? candOf(st.sel) : null;
     if (li && st.task !== "submit") {
       li.querySelector(".task-head").append(tools);
       (st.task === "missed" ? li.querySelector(".missed-slot") : li.querySelector(".task-body")).append(now);
@@ -1130,6 +1158,7 @@ export function mount(shell) {
     if (was && fresh && was.dataset.i !== fresh.dataset.i) slideIn(was, fresh, st.taskDir || 1);
     st.taskDir = 0;
     drawReveal();
+    tellKeys();
   }
   // the next item's card slides in over the last one's, which slides out the other way
   function slideIn(was, fresh, dir) {
@@ -1148,6 +1177,7 @@ export function mount(shell) {
       { key: "missed", name: "Areas", title: "The image's areas, each checked for NoRs the finder missed" }],
     { submit, pick: (t) => { if (st.meta) goTask(t); }, tagging: (on) => {
       for (const id of ["#show-gt-cut", "#show-gt-frame"]) $(id).disabled = !on;
+      tellKeys();
       if (!st.meta || !st.passes) return;
       // started, the walk opens where it is, its area framed and brought into view; stopped, the image is as viewed
       renderTasks(); placeRing(); frameArea(on && st.area != null);
@@ -1157,42 +1187,9 @@ export function mount(shell) {
     shell.tasks.row("missed").querySelector(".task-body").append($("#nor-tasks .missed-slot"), $("#area-check"));
   }
 
-  // ---------- the summary mask: areas lassoed on the image, combined by exclusive or ----------
-  // a point is inside a polygon when a ray from it crosses the border an odd number of times
-  function inPoly(poly, x, y) {
-    let k = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const [xi, yi] = poly[i], [xj, yj] = poly[j];
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) k = !k;
-    }
-    return k;
-  }
-  const inMask = (c) => !st.mask.length || st.mask.reduce((k, poly) => k !== inPoly(poly, c.cx, c.cy), false);
-  function crosses([a, b], [c, d]) {
-    const side = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
-    return side(a, b, c) !== side(a, b, d) && side(c, d, a) !== side(c, d, b);
-  }
-  // whether any two areas overlap or one holds another: only then is the inside tinted, to show the holes
-  function complexMask() {
-    const edges = (p) => p.map((q, i) => [q, p[(i + 1) % p.length]]);
-    for (let i = 0; i < st.mask.length; i++) for (let j = i + 1; j < st.mask.length; j++) {
-      const A = st.mask[i], B = st.mask[j];
-      if (inPoly(B, ...A[0]) || inPoly(A, ...B[0])) return true;
-      const eb = edges(B);
-      if (edges(A).some((e) => eb.some((f) => crosses(e, f)))) return true;
-    }
-    return false;
-  }
-  function drawMask() {
-    const svg = $("#overlay"); svg.querySelector(".mask-marks")?.remove();
-    $("#mask-add").disabled = !st.img; $("#mask-clear").hidden = !st.mask.length;
-    // the mask belongs to the summary: shown only while it is
-    if (TRUTH || !st.W || !st.mask.length) return;
-    const g = el("g", { class: "mask-marks" }), d = (p) => "M" + p.map((q) => q.join(" ")).join("L") + "Z";
-    if (complexMask()) g.append(el("path", { class: "fill", d: st.mask.map(d).join(""), "fill-rule": "evenodd" }));
-    for (const p of st.mask) g.append(el("path", { class: "edge under", d: d(p) }), el("path", { class: "edge", d: d(p) }));
-    svg.append(g);
-  }
+  // ---------- the summary mask: the shell's (req/shell/summary/mask), a candidate counted where its centre lies ----------
+  const inMask = (c) => shell.mask.inside(c.cx, c.cy);
+  shell.mask.on(() => { st.mask = shell.mask.polygons(); renderSummary(); }, shell.signal);
   // the area the summary counts over, in pixels: the whole image, or the mask's pixels (filled by exclusive or,
   // as inMask tests a point), counted once per mask
   function countedArea() {
@@ -1213,50 +1210,6 @@ export function mount(shell) {
     return st.um ? { value: px ? n / (px * st.um * st.um * 1e-6) : null, unit: "per mm²", area: px * st.um * st.um * 1e-6, areaUnit: "mm²" }
       : { value: px ? n / (px * 1e-6) : null, unit: "per million px²", area: px * 1e-6, areaUnit: "million px²" };
   }
-  function setMask(mask) {
-    st.mask = mask; writeJSON(MASK + st.fileName, mask); drawMask(); renderSummary();
-  }
-  // Add mask: the whole image in view, then a lasso drawn by dragging; a click or Esc draws nothing
-  function startLasso() {
-    showView("image");
-    shell.viewer.fit();
-    const sc = $("#scroller");
-    st.lasso = { pts: null }; sc.classList.add("lassoing"); $("#lasso-hint").hidden = false;
-  }
-  function endLasso() {
-    st.lasso = null; $("#scroller").classList.remove("lassoing"); $("#lasso-hint").hidden = true;
-    $("#overlay").querySelector(".lasso-live")?.remove();
-  }
-  $("#mask-add").onclick = startLasso;
-  $("#mask-clear").onclick = () => setMask([]);
-  {
-    const sc = $("#scroller");
-    const at = (e) => shell.viewer.toImage(e);
-    sc.addEventListener("pointerdown", (e) => {
-      if (!st.lasso || e.button !== 0) return;
-      // no text selection or native drag may start under the lasso: either would cancel the pointer
-      e.preventDefault(); sc.setPointerCapture(e.pointerId);
-      st.lasso.pts = [at(e)]; st.lasso.line = el("polyline", { class: "lasso-live" }); $("#overlay").append(st.lasso.line);
-    }, here);
-    sc.addEventListener("pointermove", (e) => {
-      const L = st.lasso; if (!L || !L.pts) return;
-      const p = at(e), q = L.pts[L.pts.length - 1];
-      if (Math.hypot(p[0] - q[0], p[1] - q[1]) * st.zoom < 3) return;
-      L.pts.push(p.map((v) => Math.round(v * 10) / 10));
-      L.line.setAttribute("points", L.pts.map((q) => q.join(",")).join(" "));
-    }, here);
-    sc.addEventListener("pointerup", () => {
-      const L = st.lasso; if (!L || !L.pts) return;
-      const pts = L.pts.map(([x, y]) => [Math.min(Math.max(x, 0), st.W), Math.min(Math.max(y, 0), st.H)]);
-      const area = Math.abs(pts.reduce((a, [x, y], i) => { const [p, q] = pts[(i + 1) % pts.length]; return a + x * q - p * y; }, 0)) / 2;
-      endLasso();
-      // a lasso smaller than a NoR's footprint is a slip, not an area
-      if (pts.length >= 3 && area * st.zoom * st.zoom >= 100) setMask([...st.mask, pts]);
-    }, here);
-    sc.addEventListener("pointercancel", () => { if (st.lasso) endLasso(); }, here);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.lasso) endLasso(); }, here);
-  }
-
   // ---------- the image view ----------
   const focusOn = (c) => shell.viewer.focus(c.cx, c.cy);
   function candAt(e) {
@@ -1275,9 +1228,9 @@ export function mount(shell) {
   $("#overlay").addEventListener("mousemove", tip, here);
   $("#overlay").addEventListener("mouseleave", () => ($("#tip").hidden = true), here);
 
-  $("#finder").onchange = () => { buildDetect(); if (!st.meta) useFilters($("#finder").value); };
+  shell.algorithm.on((k) => { if (!st.about) return; buildDetect(); if (!st.meta) useFilters(k); });
   $("#find").onclick = detect;
-  $("#reset-detect").onclick = () => { const f = $("#finder").value; st.detectValues[f] = { ...st.about[f].detection_params }; buildDetect(); };
+  $("#reset-detect").onclick = () => { const f = shell.algorithm.key; st.detectValues[f] = { ...st.about[f].detection_params }; buildDetect(); };
 
   // ---------- the Show and Options menus, remembered in this browser ----------
   function applyShow() {
@@ -1299,7 +1252,7 @@ export function mount(shell) {
       inp.type === "checkbox" ? (inp.checked = st.show[k]) : (inp.value = st.show[k]);
       inp.oninput = () => {
         st.show[k] = inp.type === "checkbox" ? inp.checked : inp.type === "range" ? +inp.value : inp.value;
-        writeJSON(SHOW, st.show); applyShow(); if (/C$/.test(k) && st.meta) { st.crops.clear(); if (st.view === "items") renderList(); renderSelected(); }
+        writeJSON(SHOW, st.show); applyShow(); tellKeys(); if (/C$/.test(k) && st.meta) { st.crops.clear(); if (st.view === "items") renderList(); renderSelected(); }
       };
     }
     applyShow();
@@ -1344,26 +1297,28 @@ export function mount(shell) {
     if (v === "image") { lazy.seen?.disconnect(); lazy.near.clear(); $("#list").replaceChildren(); shell.viewer.minimapView(); }
   });
 
+  // the Edit History window yields to the selected candidate's card at the top right: how much of that corner the card holds, and the gap under it
+  {
+    const box = $("#selected-box"), view = $("#view");
+    const hold = () => view.style.setProperty("--eh-yield", box.hidden ? "0px" : `${box.offsetHeight + 12}px`);
+    const watch = new ResizeObserver(hold);
+    watch.observe(box); hold();
+    shell.signal.addEventListener("abort", () => { watch.disconnect(); view.style.removeProperty("--eh-yield"); if (!view.getAttribute("style")) view.removeAttribute("style"); });
+  }
+
   // for the study's page tests, which drive it from outside
-  window.nor = { taskItems, walk, goTo, focusOn, truth, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
+  window.nor = { taskItems, walk, goTo, focusOn, model: () => shell.gt.model(), document: () => shell.gt.document(), imageInfo, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
-  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands", "#dl-summary"]) slow($(id));
+  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
 
-  // the finders and each one's controls, as detection/finder_list.py lists them, so they never wait for Python
-  fetch(new URL("finders.GENERATED.json", import.meta.url)).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then((info) => {
-      if (shell.signal.aborted) return;
-      const sel = $("#finder");
-      st.names = info.finders;
-      sel.replaceChildren(...Object.entries(info.finders).map(([k, v]) => new Option(`${info.about[k].icon} ${v}`.trim(), k)));
-      quality.then((q) => {
-        if (q) sel.title = "Precision (P) and recall (R) of each finder with its default filters";
-        for (const o of sel.options) if (q && q.finders[o.value]) o.textContent += ` (${pr(q.finders[o.value].filtered.balanced)})`;
-      });
-      sel.disabled = false;
+  // each finder's controls, as algorithm/controls.py lists them, so they never wait for Python; the finder itself
+  // is chosen above them, in the shell's list
+  Promise.all([fetch(new URL("finders.GENERATED.json", import.meta.url)).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }), shell.algorithm.ready])
+    .then(([info]) => {
+      if (shell.signal.aborted || !shell.algorithm.key) return;
       st.about = info.about; st.help = Object.values(info.about)[0].help;
-      buildDetect(); useFilters(sel.value);
+      buildDetect(); useFilters(shell.algorithm.key);
     }, (e) => shell.status(`The finders could not be listed: ${e.message || e}`, true));
   // the file's channels in the study's order, Nav, Caspr, DAPI (data/README.md): Caspr the one the file displays
   // green, DAPI the other with the larger blobs, Nav the rest; none for a file not shaped so
@@ -1382,46 +1337,57 @@ export function mount(shell) {
     painter: (canvas, shown, onSize) => NorPeek.painter(canvas, shown, onSize),
     order,
     opening(name) {
-      st.added = loadAdded(name); st.mask = readJSON(MASK + name, []); st.areas = new Set(readJSON(AREAS_KEY + name, [])); st.task = null; st.area = null; st.cur = undefined; st.back = []; endLasso(); st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
+      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
       $("#list").replaceChildren(); $("#summary").textContent = "No candidates yet.";
       downloads(false); renderSelected(); renderTasks();
     },
     // a curated ground truth's final results (req/shell/ground-truth/view): each NoR it marks, ringed, numbered as in its
-    // file, and none of the tasks' marks (no areas, no rejected candidates, nothing blacked out)
+    // file, and none of the tasks' marks (no areas, no rejected candidates, nothing blacked out). A /3 file's NoRs are its approved
+    // candidates and added NoRs; a /2 file's, its labels marked right, and what it judged not NoRs
     showTruth(doc) {
-      const svg = $("#overlay"), labels = doc.labels || [];
+      const svg = $("#overlay");
       svg.querySelector(".truth-marks")?.remove();
       svg.setAttribute("viewBox", `0 0 ${st.W} ${st.H}`);
       const g = el("g", { class: "truth-marks" });
-      for (const L of labels.filter((x) => x.label === 1)) {
-        const r = L.radius_px || MISSING_RADIUS, t = el("text", { x: L.x + r + 1, y: L.y - r });
+      let nors, added, not = null;
+      if (doc.format === N.FORMAT) {
+        const m = N.load(doc);
+        nors = [...m.cands.filter((c) => c.approved).map((c) => ({ id: c.n, x: c.x, y: c.y })),
+          ...m.added.filter((a) => a.approved).map((a) => { const [[p, q], [r, t]] = a.lines.length; return { id: N.numberOf(m, a.id), x: (p + r) / 2, y: (q + t) / 2, added: true }; })];
+        added = nors.filter((x) => x.added).length;
+      } else {
+        const labels = doc.labels || [];
+        nors = labels.filter((x) => x.label === 1).map((L) => ({ id: L.id, x: L.x, y: L.y, r: L.radius_px, added: L.kind === "missing" }));
+        added = nors.filter((x) => x.added).length; not = labels.filter((x) => x.label === 0).length;
+      }
+      for (const L of nors) {
+        const r = L.r || MISSING_RADIUS, t = el("text", { x: L.x + r + 1, y: L.y - r });
         t.textContent = L.id ?? "";
         g.append(el("circle", { cx: L.x, cy: L.y, r }), t);
       }
       svg.append(g);
-      const nors = labels.filter((x) => x.label === 1), added = nors.filter((x) => x.kind === "missing").length, not = labels.filter((x) => x.label === 0).length;
-      return `${nors.length} NoR${nors.length === 1 ? "" : "s"} (${added} added by hand), ${not} candidate${not === 1 ? "" : "s"} judged not NoRs`;
+      return `${nors.length} NoR${nors.length === 1 ? "" : "s"} (${added} added by hand)${not == null ? "" : `, ${not} candidate${not === 1 ? "" : "s"} judged not NoRs`}`;
     },
     opened() {
-      updateFind(); drawAdded(); drawMask();
+      updateFind(); drawAdded();
       status("Image loaded. Press Find Candidates.");
     },
     result(action, meta, bytes, seq) {
-      if (action === "detect") {
+      if (action === "run") {
         busy(false);
         st.lastRun = st.running; st.running = null;
         onDetected(meta, bytes); shell.statusBar(); updateFind();
         status(meta.exact_refilter ? "Done." : "This finder picks between alternatives using the filters, so after a filter change press Find Candidates again for its exact result.");
       } else if (action === "refilter") {
         st.inflight = false;
-        if (seq === st.seq) { st.fails = meta.fails; st.alone = meta.alone; shell.statusBar(); render(); }
+        if (seq === st.seq) { st.fails = meta.fails; st.alone = meta.alone; recordRun(); shell.statusBar(); render(); }
         if (st.pending) { st.pending = false; refilter(); }
       }
     },
     error() { st.running = null; st.inflight = st.pending = false; updateFind(); },
     // a button held for a finder run, or a refilter, is held until that is done
     async settled() {
-      if (st.running) await until("result:detect");
+      if (st.running) await until("result:run");
       if (st.inflight) await until("result:refilter");
     },
     // a refilter counts as done once none is queued behind it
@@ -1432,7 +1398,6 @@ export function mount(shell) {
     pick: (c) => (TRUTH ? c && tagging() && takeUp(c) : select(c && st.sel !== c.i ? c.i : null)),
     open: (c) => (TRUTH ? tagging() && takeUp(c) : (select(c.i), showView("items"))),
     step,
-    capturesPointer: () => !!st.lasso,
     zoomed: placeRing,
     stored,
     memory: () => (st.seg ? [{ name: "The candidates", what: `${st.cands.length} candidates' outlines`, size: st.seg.byteLength }] : []),

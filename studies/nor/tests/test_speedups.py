@@ -14,7 +14,7 @@ import pytest
 
 pytestmark = pytest.mark.full
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'detection'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'algorithm'))
 import nor3
 
 

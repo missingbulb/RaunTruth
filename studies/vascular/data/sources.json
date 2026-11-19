@@ -1,0 +1,25 @@
+{
+ "images": [
+  {
+   "path": "cd31_ca1_x20_r_1_slices13-30.tif",
+   "drive_id": "11qVsq-PTC9Z2wv8_pVf-DhyZ9TRqYhf8",
+   "sha256": "a25e94ce1a8018df10e30a28765607bdce4e8791b49b5729a8eac56e79adc0b9"
+  },
+  {
+   "path": "cd31_ca1_x20_r_2_slices1-24.tif",
+   "drive_id": "1htQj9j2I027zi-h_K3fULtFrjy9-jnL3",
+   "sha256": "9c9ee12ef7f07b49d13137357f08a75f7c5e9d1a2a578a9fefb8bb793b54c7a7"
+  },
+  {
+   "path": "cd31_frontal_x20_r_1_slices1-12.tif",
+   "drive_id": "1wNx8OWiyaQZROq5-2WXSEdJsMVYW6Ag8",
+   "sha256": "cd0751375503d1bfe1e4d1f8330393cdd435ae87db850d4add092ad4a9fb48a8"
+  },
+  {
+   "path": "cd31_frontal_x20_r_2_slices6-29.tif",
+   "drive_id": "1lSP6zMPN34JjC8QYFL5vkLQD_YIJINR1",
+   "sha256": "3d89d38992080e9228ecd1603d76f5d320c3355c09f6f985207503e1b56058df"
+  }
+ ],
+ "skip": "(^|/)rauntruth-previews\\.tiff$|^Originals uncropped/"
+}

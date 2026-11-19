@@ -56,6 +56,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   const viewOnly = new Set();
   // the folders Drive's sharing lets the user write to, though the site was never approved for them
   const shared = new Set(gt ? [GT.curated, GT.submissions] : []);
+  // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
+  const hidden = new Set();
   // who Drive's sharing lets write to ROOT, which makes them its study manager (req/shell/data/roles)
   const writers = new Set([EMAIL]);
   // the folders the page shared with anyone with the link
@@ -85,7 +87,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     // a study ANSWERS names as live answers from its own Python, on the file it was handed last
     else if (m.type === "call" && A.live?.includes(id)) {
       let s = ""; for (let k = 0; k < self.lastOpen.bytes.length; k += 32768) s += String.fromCharCode(...self.lastOpen.bytes.subarray(k, k + 32768));
-      const r = await (await fetch("/py", { method: "POST", body: JSON.stringify({ id, name: self.lastOpen.name, bytes: btoa(s), action: m.action, args: m.args }) })).json();
+      const r = await (await fetch("/py", { method: "POST", body: JSON.stringify({ id, name: self.lastOpen.name, bytes: btoa(s), action: m.action, args: m.args, damaged: m.damaged }) })).json();
       if (r.error) throw new Error(r.error);
       const b = r.bytes == null ? null : bytes(r.bytes);
       postMessage({ type: "result", action: m.action, meta: r.meta, bytes: b, echo: m.echo }, b ? [b.buffer] : []);
@@ -93,7 +95,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
   };`;
   const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "123456-stand.apps.googleusercontent.com" } };`;
-  const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
+  const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   // the studies' own Python, for the live studies' calls: one request a line, answered in turn
   let py = null;
   const waiting = [];
@@ -113,7 +115,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (u === "/py" && q.method === "POST") {
       const chunks = [];
       calls++;
-      q.on("data", (c) => chunks.push(c)).on("end", async () => { send("application/json", await ask(Buffer.concat(chunks).toString())); setTimeout(() => calls--, 200); });
+      q.on("data", (c) => chunks.push(c)).on("end", async () => { send("application/json", await ask(Buffer.concat(chunks).toString())); setTimeout(() => calls--, 200); }); // waits on purpose: the answer's way back to the page, until the page says when it is idle
       return;
     }
     if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
@@ -188,6 +190,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (!id) {
       if (u.searchParams.get("spaces") === "appDataFolder") return json(route, { files: [] });
       const parent = u.searchParams.get("q").match(/'([^']+)' in parents/)[1];
+      if (!auth && hidden.has(parent)) return json(route, { error: { message: "File not found" } }, 404);
       return json(route, { files: FILES.filter((f) => f.parent === parent).map((f) => meta(f, fields)) });
     }
     if (auth) {
@@ -213,7 +216,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     if (id === ROOT) return json(route, { name: "Study folder one" });
     const f = FILES.find((g) => g.id === id);
-    if (!f) return json(route, { error: { message: "File not found" } }, 404);
+    if (!f || (!auth && (hidden.has(id) || hidden.has(f.parent)))) return json(route, { error: { message: "File not found" } }, 404);
     if (u.searchParams.get("alt") !== "media") return json(route, meta(f));
     return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/octet-stream", body: f.bytes });
   }
@@ -222,10 +225,10 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     scopes: "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file" };
   // scopes: what the signed-in user's token may do, in place of SIGNED_IN's; email: who is signed in, in place of the
   // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
-  // named; study: what its study.json says otherwise for this page (its stage, say); prepare(ctx): routes of a
+  // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
   // driver's own, taking precedence over these
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare } = {}) {
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1 } = {}) {
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
     await ctx.route("https://www.googleapis.com/**", google);
     await ctx.route(DRIVE_THUMB + "*", (r) => {
       thumbs.push(FILES.find((f) => r.request().url().endsWith(f.id))?.name);
@@ -258,5 +261,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
   }
 
-  return { ROOT, FILES, SUB, GT, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
+  return { ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
 }

@@ -175,7 +175,9 @@ const tests = {
     const out = Mo.toJSON(m);
     assert.equal(out.format, 'vessel-model/2'); assert.equal('segments' in out, false);
     assert.deepEqual(out.nodes, SAMPLE.nodes);
-    assert.deepEqual(out.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })), SAMPLE.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })));
+    // a curve point is written with the id it keeps
+    const bare = (via) => via.map(({ id: _id, ...p }) => p);
+    assert.deepEqual(out.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via: bare(via) })), SAMPLE.edges.map(({ a, b, vessel, via }) => ({ a, b, vessel, via })));
     assert.deepEqual(out.reviewed_regions, SAMPLE.reviewed_regions);
   },
   'the curve passes through every point, and smoothly through a curve point'() {
@@ -255,6 +257,30 @@ const tests = {
     assert.equal(drawn.state, 'vessel'); assert.equal(drawn.confidence, undefined);
     assert.deepEqual(Mo.drawSegment(o, { node: 1 }, { node: 1 }), [o, null]);
   },
+  'a vessel a person draws has a width at once: that of the vessel it joins, else the mean of the model\'s vessels'() {
+    // req/vascular/model/every-width. Two vessels, 2 µm in radius along y = 0 (40 µm long) and 5 µm along y = 50 (20 µm long)
+    const wide = { format: 'vessel-model/2', source: 'acme.tif', slices: 4, size_px: [100, 100], um_per_px: 1,
+      nodes: [{ id: 1, x: 0, y: 0, z: 0, r: 2 }, { id: 2, x: 40, y: 0, z: 0, r: 2 }, { id: 3, x: 0, y: 50, z: 0, r: 5 }, { id: 4, x: 20, y: 50, z: 0, r: 5 }],
+      edges: [{ id: 1, a: 1, b: 2, state: 'vessel', r_a: 2, r_b: 2, via: [] }, { id: 2, a: 3, b: 4, state: 'vessel', r_a: 5, r_b: 5, via: [] }] };
+    const m = Mo.parse(wide);
+    const drawnEdges = (o) => Mo.toJSON(o).edges.filter((e) => e.drawn);
+    // from a point on the thin vessel out into the open: the thin vessel's width, on the edge and on its new point
+    let [o, id] = Mo.drawSegment(m, { segment: 0, t: .5 }, { point: { x: 20, y: 20, z: 0 } });
+    assert.deepEqual([drawnEdges(o)[0].r_a, drawnEdges(o)[0].r_b, o.nodes.get(id).r], [2, 2, 2]);
+    // drawn on from there, it keeps that width; ending on the wide vessel, it runs from its own width to that vessel's
+    [o, id] = Mo.drawSegment(o, { node: id }, { point: { x: 20, y: 35, z: 0 } });
+    [o] = Mo.drawSegment(o, { node: id }, { node: 4 });
+    const e = drawnEdges(o)[0];
+    assert.deepEqual([[e.r_a, e.r_b].sort(), e.via.map((p) => p.r)], [[2, 5], [2, 2]]);
+    // in the open at both ends: the mean of the model's vessels by their length, (2 × 40 + 5 × 20) / 60
+    const [alone, end] = Mo.drawSegment(m, { point: { x: 70, y: 70, z: 0 } }, { point: { x: 90, y: 70, z: 0 } });
+    assert.deepEqual([drawnEdges(alone)[0].r_a, drawnEdges(alone)[0].r_b, alone.nodes.get(end).r], [3, 3, 3]);
+    // a model with no width anywhere has none to give
+    const bare = Mo.parse(base([[1, 0, 0, 0], [2, 20, 0, 0]], [[1, 2, 'vessel', .9]]));
+    assert.equal(drawnEdges(Mo.drawSegment(bare, { node: 2 }, { point: { x: 30, y: 10, z: 0 } })[0])[0].r_a, undefined);
+    // a width is the vessel's own from then on: a person's word on it still goes in `width`, never over it
+    assert.equal(drawnEdges(alone)[0].width, undefined);
+  },
   'an area marked as damaged leaves the vessels inside it out of the counts'() {
     // a vessel 1-2-3 along y = 0 with a branch 2-4-5 down to y = 50, and a damaged area around the branch
     const m = Mo.parse(base([[1, 0, 0, 0], [2, 20, 0, 0], [3, 40, 0, 0], [4, 20, 30, 0], [5, 20, 50, 0]], [[1, 2], [2, 3], [2, 4], [4, 5]]));
@@ -276,8 +302,48 @@ const tests = {
     assert.throws(() => Mo.parse({ ...Mo.toJSON(o), excluded_regions: [{ polygon: [[0, 0], [1, 1]] }] }), Mo.ModelError);
     assert.throws(() => Mo.parse({ ...Mo.toJSON(o), excluded_regions: [{ polygon: [[0, 0], [1, 'x'], [2, 0]] }] }), Mo.ModelError);
   },
+  'a vessel has one width a person set, kept on every segment of it and written on its edge, the estimate untouched'() {
+    // one vessel 1-2-3 through a curve point, its estimate a taper, and a second vessel 3-4
+    const j = { ...base([[1, 0, 0, 0], [3, 20, 0, 0], [4, 20, 20, 0]], []), format: 'vessel-model/2',
+      edges: [{ a: 1, b: 3, via: [{ x: 10, y: 0, z: 0, r: 1.5 }], r_a: 1.4, r_b: 1.6, taper_known: false }, { a: 3, b: 4, via: [], r_a: 2, r_b: 2 }] };
+    delete j.segments;
+    const m = Mo.parse(j), first = Mo.edges(m).find((e) => e.ids.includes(1)).segments;
+    assert.equal(Mo.widthOf(m, first), null, 'nobody said anything of it: no width');
+    assert.ok(Mo.toJSON(m).edges.every((e) => !('width' in e)), 'and none is written');
+    const o = Mo.measure(m, first, [[10, -2.2], [10, 1.3]], '2026-11-15');
+    assert.equal(m.segments.find((s) => s.width), undefined, 'the model it was given is unchanged');
+    assert.deepEqual(Mo.widthOf(o, first), { um: 3.5, how: 'walls', walls: [[10, -2.2], [10, 1.3]], on: '2026-11-15' });
+    const out = Mo.toJSON(o), e1 = out.edges.find((e) => e.a === 1 || e.b === 1);
+    assert.equal(out.edges.length, 2, 'the width keeps the vessel one edge');
+    assert.deepEqual(e1.width, { um: 3.5, how: 'walls', walls: [[10, -2.2], [10, 1.3]], on: '2026-11-15' });
+    assert.deepEqual([e1.r_a, e1.r_b, e1.taper_known, e1.via[0].r], [1.4, 1.6, false, 1.5], 'the estimate stays as the algorithm wrote it');
+    assert.ok(!('width' in out.edges.find((e) => e !== e1)), 'the other vessel has none');
+    assert.deepEqual(Mo.toJSON(Mo.parse(out)), out, 'it reads back as written');
+    // a bend added keeps the width on both halves of the one vessel
+    const [bent] = Mo.splitSegment(o, first[0], .5);
+    assert.deepEqual(Mo.toJSON(bent).edges.find((e) => e.a === 1 || e.b === 1).width.um, 3.5);
+    assert.equal(Mo.widthOf(Mo.setWidth(o, first, null), first), null, 'taken back, the estimate again');
+  },
+  'a nudge steps the width a quarter of a µm: from the estimate, or a measured one by its walls'() {
+    const m = Mo.parse(base([[1, 0, 0, 0], [2, 20, 0, 0]], [[1, 2]])), segs = [0];
+    const a = Mo.nudge(m, segs, .25, 3, '2026-11-15');
+    assert.deepEqual(Mo.widthOf(a, segs), { um: 3.25, how: 'nudge', on: '2026-11-15' });
+    assert.equal(Mo.widthOf(Mo.nudge(a, segs, -.25, 3), segs).um, 3, 'a nudged width steps from itself, not the estimate');
+    const w = Mo.widthOf(Mo.nudge(Mo.measure(m, segs, [[5, -1], [5, 2]]), segs, .25, 3), segs);
+    assert.equal(w.how, 'walls'); assert.equal(round(w.um), 3.25);
+    assert.deepEqual(w.walls.map((p) => p.map(round)), [[5, -1.125], [5, 2.125]], 'its walls move apart evenly');
+    assert.equal(Mo.nudge(m, segs, .25, null), m, 'with no estimate and no width there is nothing to step from');
+    assert.equal(Mo.widthOf(Mo.nudge(Mo.setWidth(m, segs, { how: 'cannot' }), segs, -.25, 3), segs).um, 2.75, 'a "cannot" stepped is the estimate stepped');
+  },
+  'parse refuses a width it cannot read, and keeps one it can'() {
+    const one = (width) => ({ ...base([[1, 0, 0, 0], [2, 20, 0, 0]], []), format: 'vessel-model/2', segments: undefined, edges: [{ a: 1, b: 2, via: [], width }] });
+    assert.throws(() => Mo.parse(one({ how: 'guessed' })), Mo.ModelError);
+    assert.throws(() => Mo.parse(one({ how: 'walls' })), Mo.ModelError, 'a measured width carries its µm');
+    assert.throws(() => Mo.parse(one({ how: 'nudge', um: 0 })), Mo.ModelError, 'and never a zero');
+    assert.deepEqual(Mo.widthOf(Mo.parse(one({ how: 'looked' })), [0]), { how: 'looked' });
+  },
 };
 
 let n = 0;
 for (const [name, fn] of Object.entries(tests)) { fn(); n++; console.log('ok', name); }
-assert.equal(n, 32);
+assert.equal(n, 36);

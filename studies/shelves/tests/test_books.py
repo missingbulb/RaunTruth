@@ -10,9 +10,10 @@ import pytest
 from PIL import Image
 from scipy import ndimage as ndi
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'py'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'algorithm'))
 import books
 import shelves
+from stand_in_services import STAND_IN, drive
 
 
 def photo():
@@ -36,20 +37,20 @@ def photo():
 def test_every_single_2d_format_opens_as_rgb(tmp_path, ext):
     path = tmp_path / ('shelf' + ext)
     Image.fromarray(photo()).save(path)
-    assert shelves.Session(str(path)).rgb.shape == (240, 320, 3)
+    assert shelves.read(str(path)).shape == (240, 320, 3)
 
 
 def test_an_iphone_heic_opens_as_rgb(tmp_path):
     import pillow_heif
     pillow_heif.from_pillow(Image.fromarray(photo())).save(tmp_path / 'shelf.heic', quality=-1)
-    rgb = shelves.Session(str(tmp_path / 'shelf.heic')).rgb
+    rgb = shelves.read(str(tmp_path / 'shelf.heic'))
     assert rgb.shape == (240, 320, 3) and np.abs(rgb.astype(int) - photo()).mean() < 8
 
 
 def test_a_grey_16_bit_tiff_is_stretched_to_grey(tmp_path):
     a = np.linspace(1000, 3000, 320 * 240).reshape(240, 320).astype(np.uint16)
     Image.fromarray(a).save(tmp_path / 'grey.tif')
-    rgb = shelves.load(str(tmp_path / 'grey.tif'))
+    rgb = shelves.read(str(tmp_path / 'grey.tif'))
     assert rgb.shape == (240, 320, 3) and rgb.min() == 0 and rgb.max() == 255 and (rgb[..., 0] == rgb[..., 2]).all()
 
 
@@ -58,9 +59,9 @@ def test_a_photo_is_turned_as_the_camera_was_held(tmp_path):
     exif = im.getexif()
     exif[0x0112] = 6  # turned a quarter clockwise to view
     im.save(tmp_path / 'held.jpg', exif=exif)
-    assert shelves.load(str(tmp_path / 'held.jpg')).shape == (320, 240, 3)
+    assert shelves.read(str(tmp_path / 'held.jpg')).shape == (320, 240, 3)
     im.save(tmp_path / 'level.jpg')
-    assert shelves.load(str(tmp_path / 'level.jpg')).shape == (240, 320, 3)
+    assert shelves.read(str(tmp_path / 'level.jpg')).shape == (240, 320, 3)
 
 
 def test_the_finder_gives_four_corners_clockwise_inside_the_photo_and_a_view():
@@ -386,7 +387,8 @@ def test_books_lying_cover_up_are_boxed_as_covers_and_the_planks_are_not():
 
 def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkeypatch):
     """The page's Pyodide installs only study.json's packages: a module of any other installed distribution is
-    blocked here, as it is missing there."""
+    blocked here, as it is missing there. Every version the page offers, run end to end on stand-in services, and the
+    straightening the tagger's readers ask for."""
     import importlib
     import importlib.abc
     import importlib.metadata
@@ -406,19 +408,21 @@ def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkey
     blocker = Missing()
     sys.meta_path.insert(0, blocker)
     try:
-        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves')]:
+        for name in [n for n in sys.modules if missing(n.split('.')[0]) or n in ('books', 'shelves', 'reading', 'score', 'r8_precise', 'r5_edges')]:
             monkeypatch.delitem(sys.modules, name)
         Image.fromarray(photo()).save(tmp_path / 'shelf.png')
-        s = importlib.import_module('shelves').Session(str(tmp_path / 'shelf.png'))
-        found = json.loads(s.call('find', {})[0])['books']
-        s.call('straighten', {'corners': [b['corners'] for b in found]})
+        study = importlib.import_module('shelves')
+        rgb = study.read(str(tmp_path / 'shelf.png'))
+        for version, run in study.VERSIONS.items():
+            found = drive(run(rgb), STAND_IN)['books']
+            assert found, f'the photo has books for {version} to box'
+            study.STAGES['straighten'](rgb, None, corners=[b['corners'] for b in found])
         error = None
     except ModuleNotFoundError as e:
         error = e
     finally:
         sys.meta_path.remove(blocker)
     assert error is None, f'the page has no {error.name!r}'
-    assert found, 'the photo has books to box'
 
 
 def banded_shelf():

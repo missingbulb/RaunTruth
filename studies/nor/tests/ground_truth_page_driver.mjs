@@ -42,9 +42,9 @@ postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs:
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+  } else if (m.type === "call" && m.action === "run") {
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
   }
@@ -94,7 +94,7 @@ async function open(drive) {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   if (drive) {
     await page.click("#load-remote");
     await page.dblclick(`#remote-list .item[data-id="${DRIVE_ID}"]`);
@@ -134,6 +134,14 @@ const handle = async (page, k, j) => {
 async function drag(page, [x, y], dx, dy) {
   await page.mouse.move(x, y); await page.mouse.down();
   await page.mouse.move(x + dx, y + dy, { steps: 5 }); await page.mouse.up();
+}
+// the same drag with Escape pressed before the release (req/shell/drag/escape); during() sees it under way
+async function escapedDrag(page, [x, y], dx, dy, during) {
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps: 5 });
+  const seen = await during();
+  await page.keyboard.press("Escape"); await page.mouse.move(x + dx + 10, y + dy + 10, { steps: 2 }); await page.mouse.up();
+  return seen;
 }
 // how far the four ends of a candidate's length and red lines are from one straight line, in pixels
 const offAxis = (L) => {
@@ -194,6 +202,14 @@ async function markAndVote(page) {
   await drag(page, await handle(page, "width", 0), 0, -25);
   const w1 = await page.evaluate(() => nor.candOf("u1").m.width);
   await check(w1 > w0 + 1, `a dragged width end widens the NoR (${w0.toFixed(1)} to ${w1.toFixed(1)} px)`);
+  // Escape in the middle of a handle's drag puts it back, and the NoR keeps its lines
+  {
+    const lines = () => page.evaluate(() => JSON.stringify(nor.candOf("u1").lines)), kept = await lines(), at = await handle(page, "width", 0);
+    const mid = await escapedDrag(page, at, 0, -25, () => handle(page, "width", 0));
+    const back = await handle(page, "width", 0);
+    await check(Math.abs(mid[1] - at[1]) > 10 && Math.hypot(back[0] - at[0], back[1] - at[1]) < 1 && await lines() === kept,
+      "Escape mid-drag puts a handle back where it was, the NoR's lines unchanged", { at, mid, back });
+  }
   // with another candidate voted on, only the added NoR keeps the button red
   await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
   const waiting = await page.$eval("#gt-submit", (b) => ({ state: b.dataset.state, why: b.title }));
@@ -211,7 +227,7 @@ async function markAndVote(page) {
     await drag(page, await handle(page, "red", 0), 15, 20);
     const M = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
     const moved = Math.hypot(M.red[0][0] - L.red[0][0], M.red[0][1] - L.red[0][1]);
-    await check(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length.map((p) => p.map((v) => Math.round(v * 100) / 100))) && moved > 0.5,
+    await check(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length) && moved > 0.5,
       `a red end dragged off the axis slides along it (${moved.toFixed(1)} px), the green ends unmoved (${offAxis(M).toFixed(3)} px off)`);
   }
   await page.click("#task-card .verdict .down");
@@ -295,6 +311,18 @@ async function lasso(page, pts) {
 
 async function mask(page) {
   const passes = await page.evaluate(() => st.passes.length);
+  // a lasso cancelled by Escape before it is let go draws no mask
+  {
+    const masked = await page.evaluate(() => st.mask.length);
+    await page.click("#mask-add");
+    const box = await page.evaluate(() => { const b = $("#base").getBoundingClientRect(); return { l: b.left, t: b.top, w: b.width, h: b.height }; });
+    const live = await escapedDrag(page, [box.l + box.w * 0.2, box.t + box.h * 0.2], box.w * 0.5, box.h * 0.5, async () => {
+      await page.mouse.move(box.l + box.w * 0.2, box.t + box.h * 0.7, { steps: 4 });
+      return page.evaluate(() => !!$("#overlay .lasso-live"));
+    });
+    const after = await page.evaluate(() => ({ mask: st.mask.length, lassoing: $("#scroller").classList.contains("lassoing"), line: !!$("#overlay .lasso-live") }));
+    await check(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
+  }
   await lasso(page, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]]);
   const fit = await page.evaluate(() => ({ view: st.view, w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
   await check(fit.view === "image" && fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
@@ -314,8 +342,9 @@ async function mask(page) {
   await check((await csvRows(page, "#dl-cands")).length === want.length, "the Candidates CSV holds only the candidates inside the mask");
   // density: the finalists inside over the lassoed square's area, a quarter of the image, per mm²
   const n = want.filter(([, p]) => p).length, sq = await page.evaluate(() => 0.25 * st.W * st.H * st.um * st.um * 1e-6);
-  const dens = (await csvRows(page, "#dl-summary")).find((r) => r.startsWith("finalists_per_mm2,"));
-  const got = dens && parseFloat(dens.split(",")[1]);
+  // the shell's Download Summary (req/shell/summary/download): measurement, unit and value in its fourth to sixth columns
+  const dens = (await csvRows(page, "#summary-dl")).map((r) => r.split(",")).find((r) => r[3] === "Density" && r[4] === "per mm²");
+  const got = dens && parseFloat(dens[5]);
   await check(got && Math.abs(got / (n / sq) - 1) < 0.05, `the Summary CSV gives the finalists' density inside the mask (${got} vs ${(n / sq).toFixed(0)} per mm²)`);
   await check((await page.textContent("#summary .density")).includes(Math.round(got).toString()), `the summary shows the density: "${await page.textContent("#summary .density")}"`);
   // a second lasso inside the first cuts a hole
@@ -345,12 +374,20 @@ async function mask(page) {
   const { said, gt, after } = await download(page);
   await check(after === "gt-close", `after the export of a local image, which cannot be sent, Close turns blue (${after})`);
   await check(/have no vote/.test(said), `the popup names the finalists left without a verdict: "${said}"`);
-  const kinds = gt.labels.map((L) => (L.kind === "missing" ? "missing" : L.decision)).sort().join(",");
-  await check(gt.format === "norfinder-ground-truth/2" && kinds === "approved,missing,rejected" && undecided > 0,
-    `the file holds only the voted candidates and the mark (${kinds}; ${undecided} undecided left out)`);
-  const miss = gt.labels.find((L) => L.kind === "missing");
-  await check(miss.label === 1 && miss.radius_px > 0 && miss.origin === "added by user" && miss.width_px > 0 && miss.lines.width,
-    `an added NoR is a real NoR with its radius, its origin and its measurements (${miss.radius_px} px, ${miss.width_px.toFixed(1)} px wide)`);
+  // the file is the model (req/nor/downloads): the candidates that remain, listing each, the one approved marked; the added NoR with its
+  // approval; the one rejected absent, and read from the history
+  const total = await page.evaluate(() => st.order.length);
+  const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
+  await check(gt.format === "norfinder-ground-truth/3" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+    && gt.areas.length === 0 && gt.grid === 10 && undecided > 0 && !("labels" in gt),
+    `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
+  const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
+  const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);
+  const gone = out.cands.filter((c) => !gt.candidates.some((x) => x.id === c.id));
+  await check(gt.history.format === "rauntruth-gt-history/1" && kinds[0] === "open" && kinds.includes("add") && kinds.includes("approve") && kinds.includes("delete")
+    && gone.length === 1 && gt.history.actions.some((a) => a.type === "delete" && a.cand === gone[0].id) && out.cands.every((c) => /^c\d+$/.test(c.id) && !("blk" in c) && !("mask" in c)),
+    `the history holds the run, with no masks, and the delete of the rejected candidate ${gone[0]?.id} (${kinds.join(", ")})`);
+  await check(miss.id === "u1" && miss.lines.width && miss.lines.length && miss.lines.red, `an added NoR has its id and its lines (${miss.id})`);
   // one number per candidate, finalists and rejected alike, the added NoR after the found ones; the image,
   // the cards and the file all name a candidate by it
   const nums = await page.evaluate(() => {
@@ -361,8 +398,9 @@ async function mask(page) {
   const all = Array.from({ length: nums.found + 1 }, (_, k) => String(k + 1));
   await check(JSON.stringify([...nums.image].sort()) === JSON.stringify([...all].sort()), `the image numbers every candidate once, 1 to ${nums.found}, the added NoR ${nums.found + 1}`);
   await check(nums.cards.every(([n, shown]) => shown === "#" + n), "each card shows its candidate's number");
-  await check(miss.id === nums.found + 1 && gt.labels.every((L) => nums.at[L.id] && Math.hypot(nums.at[L.id][0] - L.x, nums.at[L.id][1] - L.y) < 1e-6),
-    `the file names each candidate by its number on the image, the added NoR by ${miss.id}`);
+  const mid = miss.lines.length[0].map((v, k) => (v + miss.lines.length[1][k]) / 2);
+  await check(gt.candidates.every((c) => nums.at[c.n] && Math.hypot(nums.at[c.n][0] - c.x, nums.at[c.n][1] - c.y) < 1e-6) && Math.hypot(nums.at[nums.found + 1][0] - mid[0], nums.at[nums.found + 1][1] - mid[1]) < 1e-6,
+    `the file names each candidate by its number on the image, the added NoR by ${nums.found + 1}`);
   await check(gt.image.location.source === "local", "the file says the image was local");
   await check(!("mask" in gt), "the file holds no mask");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
@@ -374,7 +412,7 @@ async function mask(page) {
   await check(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
   await check(all_ === "Load image › Run algorithm › Review all items › Submit GT | ", `with every task done and the file exported, every step is done: ${all_}`);
-  await page.selectOption("#finder", { index: 1 });
+  await page.selectOption("#algorithm", { index: 1 });
   const changed = await crumbs(page);
   await check(changed === "Load image › Run algorithm* | #find,#sb-find", `another finder makes Run algorithm the step to do again: ${changed}`);
   await ctx.close();
@@ -390,7 +428,7 @@ async function mask(page) {
   await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
-    return ["#dl-cands", "#dl-summary"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });
+    return ["#dl-cands", "#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });
   });
   await check(!/Rejected/.test(await page.textContent("#summary")), "the summary lists no filter reasons");
   const hists = await page.evaluate(() => {
@@ -408,8 +446,8 @@ async function mask(page) {
   await page.mouse.click(...(await (async () => { const m = await middle(page); return [m.sx, m.sy]; })()), { button: "right" });
   await page.click("#ctx button");
   await mask(page);
-  const gt = await page.evaluate(() => nor.truth());
-  await check(gt.labels.length === 0 && !("mask" in gt), "the ground truth ignores the mask");
+  const gt = await page.evaluate(() => nor.document());
+  await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
   await sorting(page);
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");

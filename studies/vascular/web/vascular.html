@@ -1,24 +1,13 @@
 <template data-slot="processing">
     <div id="model-set">
-      <select id="vm-algo" disabled aria-label="Extraction algorithm"></select>
-      <details id="vm-about" class="fold">
-        <summary>How the algorithm works</summary>
-        <div id="vm-about-note" class="hint"></div>
-      </details>
       <div class="row">
         <button type="button" id="vm-run" class="primary" disabled>Execute</button>
-      </div>
-      <div id="model-on" class="col" hidden>
-        <div class="views" id="vm-edits">
-          <button type="button" id="m-undo">Undo</button>
-          <button type="button" id="m-redo">Redo</button>
-          <button type="button" id="m-reset">Discard edits</button>
-        </div>
       </div>
       <p class="note" id="model-msg"></p>
     </div>
 </template>
 <template data-slot="summary">
+    <div id="vm-summary"></div>
     <p class="note" id="model-facts">No vessel model yet: Execute the algorithm.</p>
 </template>
 <template data-slot="tasks">
@@ -28,6 +17,7 @@
       <div id="task-now">
         <p class="hint">Drag a point to move it; right-click a line or a point to delete, bend, connect or split, or the image to draw a missed vessel. Click a faint line to keep it. Judge each junction here, then the area.</p>
         <p class="note" id="junctions-note"></p>
+        <p class="note" id="widths-note"></p>
         <div id="task-stage"><div id="task-card"></div></div>
         <button id="area-ok" class="primary" type="button">Area is right</button>
         <p class="note" id="draw-note"></p>
@@ -45,11 +35,14 @@
       <details class="menu" id="vm-show">
         <summary>Show</summary>
         <div class="pop">
-          <div class="seg" id="model-mode" role="group" aria-label="Show">
-            <button type="button" data-v="image" aria-pressed="true" title="The stack alone">Image</button>
-            <button type="button" data-v="model" aria-pressed="false" title="The vessel model alone" disabled>Model</button>
-            <button type="button" data-v="overlay" aria-pressed="false" title="The vessel model over the stack" disabled>Overlay</button>
-            <button type="button" data-v="side" aria-pressed="false" title="The stack and the vessel model side by side, turning together" disabled>Side by side</button>
+          <div class="seg" id="model-mode" role="group" aria-label="Views">
+            <button type="button" data-v="alone" aria-pressed="false" title="The vessel model alone; click again for the model over the stack" disabled>Model</button>
+            <button type="button" data-v="bare" aria-pressed="false" title="The picture without the lines or widths drawn over it; click again to draw them" disabled>No markings</button>
+            <button type="button" data-v="side" aria-pressed="false" title="The picture and the vessel model side by side, turning together; click again for one view" disabled>Side by side</button>
+          </div>
+          <div class="seg" id="model-dim" role="group" aria-label="3D or 2D">
+            <button type="button" data-v="3d" aria-pressed="true" title="The stack in colour in 3D" disabled>3D</button>
+            <button type="button" data-v="2d" aria-pressed="false" title="Grey from straight above in the stack's own pixels, every slice flattened, with each vessel's width" disabled>2D</button>
           </div>
           <label title="Draw each vessel as wide as the model says"><input type="checkbox" id="m-widths" checked> Vessel widths</label>
           <label id="m-cut-row" title="While you tag: each area done in every step, blacked out of the stack" hidden><input type="checkbox" id="m-cut" checked disabled> Cut out what is done</label>

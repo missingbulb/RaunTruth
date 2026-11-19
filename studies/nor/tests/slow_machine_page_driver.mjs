@@ -31,17 +31,17 @@ const LATE = 600; // ms each answer takes
 const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
-const late = () => new Promise((ok) => setTimeout(ok, ${LATE}));
+const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose: it stands in for a slow computer's Python
 let finder, runs = 0;
 postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0, heap: 300 * 2 ** 20, files: 80 * 2 ** 20 });
 onmessage = async ({ data: m }) => {
   await late();
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
-  } else if (m.type === "call" && m.action === "detect") {
+  } else if (m.type === "call" && m.action === "run") {
     if (++runs === 3) return postMessage({ type: "error", text: "MemoryError" });
-    finder = m.args.finder; const seg = await bin("seg_" + finder + ".bin");
-    postMessage({ type: "result", action: "detect", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
+    finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
+    postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
   } else if (m.type === "call" && m.action === "refilter") {
     postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
   }
@@ -62,6 +62,10 @@ const server = http.createServer((q, r) => {
     return r.end(`import * as real from "./image_open.real.js"; export * from "./image_open.real.js";
 export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose: it stands in for a slow computer reading the image
   }
+  if (u === "/studies/nor/web/nor.js" && !q.headers["x-late"]) {
+    // the study's code comes after its algorithm list, so the page has listed them before its own start has run
+    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose: it stands in for a slow computer fetching the study's code
+  }
   const f = u === "/web/image_open.real.js" ? path.join(repo, "web", "image_open.js")
     : u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
@@ -75,6 +79,10 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
 
+// the page's own start has run: the study mounted, the status bar filled and the low-memory popup asked for; the
+// algorithm list, fetched without the page waiting on it, can be ready before it
+const started = (page) => page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false
+  && document.querySelector("#status").textContent === "Ready. Load an image.");
 async function open(gb) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await asTagger(ctx);
@@ -89,7 +97,7 @@ async function open(gb) {
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(10000);
   await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await started(page);
   return { ctx, page };
 }
 const held = (page, id) => page.evaluate((id) => { const b = $(id); return b.disabled && b.classList.contains("working"); }, id);
@@ -120,7 +128,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(await held(page, "#image-pick") && !(await page.evaluate(() => !!st.img)), "the image selector is held while the image opens");
   await free(page, "#image-pick");
   await check(await page.evaluate(() => !!st.img), "the selector is free again once the image is open");
-  const detected = answered(page, "detect");
+  const detected = answered(page, "run");
   await page.click("#find");
   await check(await held(page, "#find"), "Find Candidates is held at once, with its spinner");
   await shot(page, "find_working", ".row:has(#find)");
@@ -160,7 +168,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await shot(page, "memory_popup");
   await shot(page, "memory_popup_box", "#memory-dlg");
   await page.check("#memory-off"); await page.click("#memory-dlg button.primary");
-  await page.reload(); await page.waitForFunction(() => document.querySelector("#finder")?.disabled === false);
+  await page.reload(); await started(page);
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "after Don't show this again, it does not come back");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");

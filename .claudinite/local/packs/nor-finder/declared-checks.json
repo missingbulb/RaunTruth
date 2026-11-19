@@ -17,13 +17,27 @@
     "id": "fixed-wait-in-test",
     "on_fail": "block",
     "failureMessage": "a test that sleeps a fixed time guesses how long the page takes: too short on a slow runner, so it flakes, and wasted on every fast one",
-    "fix": "wait for what the next check reads (waitForFunction, waitForSelector, until()), or move the page's clock with ctx.clock; where only real time will do, end the line `// waits on purpose: <reason>`",
+    "fix": "wait for what the next check reads, hold a stand-in's answer with held(), or move ctx.clock; else end the line `// waits on purpose: <reason>`, or `// bounds a hang: <reason>`",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.(m?js|py)$/",
     "matchLines": [
       {
-        "match": "/\\.waitForTimeout\\(|\\bawait\\s+pause\\(|\\bawait\\s+new\\s+Promise\\(\\(?\\s*\\w+\\s*\\)?\\s*=>\\s*setTimeout\\(|\\btime\\.sleep\\(/",
-        "what": "sleeps a fixed time instead of waiting for what it needs: {match}",
-        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)|(\\/\\/|#)\\s*waits on purpose:/"
+        "match": "/\\.waitForTimeout\\(|\\bawait\\s+pause\\(|\\bsetTimeout\\(|\\btime\\.sleep\\(/",
+        "what": "waits a fixed time instead of for what it needs: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)|(\\/\\/|#)\\s*(waits on purpose|bounds a hang):/"
+      }
+    ]
+  },
+  {
+    "id": "frame-wait-in-one-file",
+    "on_fail": "block",
+    "failureMessage": "a frame wait copied into each driver drifts: one waits one frame, the next two, and nobody can say which a page needs",
+    "fix": "import frames(page, n) from web-tests/page_frames.mjs; where a wait in the page itself is needed, end the line `// waits on purpose: <reason>`",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!page_frames\\.mjs$).*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/requestAnimationFrame\\(\\s*(\\(\\)|\\w+)\\s*=>\\s*(\\{\\s*)?\\w*\\(?\\s*requestAnimationFrame\\(|requestAnimationFrame\\(\\s*(ok|r|done|resolve)\\s*\\)/",
+        "what": "waits for frames outside web-tests/page_frames.mjs: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*waits on purpose:/"
       }
     ]
   },
@@ -38,6 +52,79 @@
         "match": "/google|(?<!\\/)drive(?!\\/|\\s+(it|them)\\b)/i",
         "what": "names Google or Drive outside web/drive.js and web/account.js: {match}",
         "unlessLineMatches": "/Google Chrome|^\\s*(export )?const [A-Z_]+ = \"(nor-)?(drive|google)[\\w:/-]*\";$/"
+      }
+    ]
+  },
+  {
+    "id": "timers-in-one-file",
+    "on_fail": "block",
+    "failureMessage": "a timer set anywhere in page code is a cadence nobody can list, a visual effect guessing how long it takes, or a poll running on in a hidden tab",
+    "fix": "make a visual effect a CSS motion that animations off keeps running where needed, background work every(), settle(), within() or after() from web/pacing.js; else end the line `// timed here: <reason>`",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!pacing\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/\\bset(Timeout|Interval)\\(|\\bAbortSignal\\.timeout\\(/",
+        "what": "sets a timer outside web/pacing.js: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*timed here:/"
+      }
+    ]
+  },
+  {
+    "id": "literature-summaries-only",
+    "on_fail": "block",
+    "failureMessage": "a study's literature folder holds only Markdown; a PDF, a figure, a crop or supplementary code copies the publisher's material into a public repository",
+    "fix": "fold what the file says into the paper's studies/<study>/docs/literature/<slug>.md, link the original at its publisher (DOI, supplementary URL), and delete the file; the paper-intake skill says how",
+    "scanFiles": "/^studies\\/[^/]+\\/docs\\/literature\\/(?!.*\\.md$)/",
+    "scanTracked": true,
+    "checkEachFile": [
+      {
+        "whenFileMatches": "/[\\s\\S]?/",
+        "require": "/(?!)/",
+        "what": "is not Markdown, in the literature folder",
+        "fix": "fold it into the paper's <slug>.md as text and links, then delete it"
+      }
+    ]
+  },
+  {
+    "id": "motion-end-with-animations-off",
+    "on_fail": "block",
+    "failureMessage": "the page's animations-off setting stops every CSS transition and animation, so code waiting on one's end never runs: a popup stays open, a class is never cleared",
+    "fix": "keep the motion ending under :root[data-motion=\"off\"] in web/style.css, or show it never starts then; test it so, and end the line `// ends with animations off: <how>`",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/(transition|animation)(end|cancel)\\b/",
+        "what": "acts on a CSS motion's end, which animations off never fires: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*ends with animations off:/"
+      }
+    ]
+  },
+  {
+    "id": "python-only-where-allowed",
+    "on_fail": "block",
+    "failureMessage": "Python belongs to the studies, the lab, the page tests' fixtures and the dev tools; elsewhere it is a second language in a part of the repo that is JavaScript",
+    "fix": "write it in JavaScript, or move it into the study, test or build tool it serves",
+    "scanFiles": "/^(?!\\.claudinite\\/|studies\\/[^/]+\\/(?!web\\/)|web-tests\\/|dev\\/tools\\/|lab\\/).*\\.py$/",
+    "scanTracked": true,
+    "checkEachFile": [
+      {
+        "whenFileMatches": "/[\\s\\S]?/",
+        "require": "/(?!)/",
+        "what": "is Python outside the folders Python is allowed in"
+      }
+    ]
+  },
+  {
+    "id": "python-started-in-one-place",
+    "on_fail": "block",
+    "failureMessage": "the page reaches a study's Python only through the worker's ready() and Session.call(action, args); page code that starts or drives Pyodide itself is a second way in",
+    "fix": "add the action to the study's Session.call and ask for it through the worker",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!(worker|bridge|tiff_codecs)\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/\\bloadPyodide\\(|\\.runPython(Async)?\\(|\\.pyimport\\(|\\.globals\\.(set|get)\\(/",
+        "what": "starts or drives Python outside the worker: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
       }
     ]
   },

@@ -1,26 +1,10 @@
 {
   "about": "The Vascular Measurements study's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow; its roots and paths open this study. `samples` names the module writing the image or z-stack its paths load; `differ` says where a shell element shows otherwise in this study. `counted` is its first step, Run algorithm, done.",
   "grafts": [
-    {"under": "Processing", "tree": [
+    {"under": "Processing", "after": "Algorithms", "tree": [
       {"name": "The model", "select": "#model-set", "req": "req/vascular/model/run",
         "children": [
-          {"name": "Algorithm", "select": "#vm-algo", "control": true, "req": "req/vascular/model/run"},
-          {"name": "About the algorithm", "select": "#vm-about", "req": "req/vascular/model/run"},
           {"name": "Run algorithm", "select": "#vm-run", "control": true, "req": "req/vascular/model/run"},
-          {"name": "The model's controls", "select": "#model-on", "req": "req/vascular/model/correct", "unwalked": "shown once Execute is done, when Processing has folded",
-            "rule": [
-              {"when": {"counted": [false]}, "is": "hidden"}
-            ],
-            "children": [
-              {"name": "Edits", "select": "#vm-edits", "req": "req/vascular/model/correct",
-                "children": [
-                  {"name": "Undo", "select": "#m-undo", "control": true, "req": "req/vascular/model/correct"},
-                  {"name": "Redo", "select": "#m-redo", "control": true, "req": "req/vascular/model/correct"},
-                  {"name": "Discard edits", "select": "#m-reset", "control": true, "req": "req/vascular/model/correct"}
-                ]
-              }
-            ]
-          },
           {"name": "Model's message", "select": "#model-msg", "req": "req/vascular/model/run"}
         ]
       }
@@ -52,6 +36,7 @@
         ],
         "children": [
           {"name": "Junctions' note", "select": "#junctions-note", "req": "req/vascular/truth/tasks"},
+          {"name": "Widths' note", "select": "#widths-note", "req": "req/vascular/truth/widths"},
           {"name": "The junction's stage", "select": "#task-stage", "req": "req/vascular/truth/tasks",
             "children": [
               {"name": "The junction's card", "select": "#task-card", "req": "req/vascular/truth/tasks"}
@@ -63,6 +48,7 @@
       }
     ]},
     {"under": "Summary", "tree": [
+      {"name": "The model's numbers", "select": "#vm-summary", "req": "req/vascular/summary/metrics"},
       {"name": "What the model holds", "select": "#model-facts", "req": "req/vascular/model/run"}
     ]},
     {"under": "Image view", "after": "Minimap", "tree": [
@@ -76,6 +62,16 @@
           {"name": "The areas", "select": "#gt-mini-areas", "req": "req/vascular/truth/tasks"}
         ]
       }
+    ]},
+    {"under": "Keys legend", "tree": [
+      {"name": "Image alone's key", "select": "#key-image-alone", "made": "by the shell, from the study's actions", "control": true, "req": "req/vascular/truth/widths",
+        "unwalked": "shows only in the widths look", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Model's key", "select": "#key-model", "made": "by the shell, from the study's actions", "control": true, "req": "req/vascular/model/view",
+        "rule": [{"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Outlines' key", "select": "#key-outlines", "made": "by the shell, from the study's actions", "control": true, "req": "req/vascular/model/view",
+        "rule": [{"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Side by side's key", "select": "#key-side", "made": "by the shell, from the study's actions", "control": true, "req": "req/vascular/model/view",
+        "rule": [{"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]}
     ]},
     {"under": "Main view", "after": "Tasks/Items switch", "tree": [
       {"name": "Back to image", "select": "#vm-focus", "control": true, "req": "req/vascular/truth/tasks",

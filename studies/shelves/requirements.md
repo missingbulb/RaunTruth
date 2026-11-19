@@ -10,7 +10,7 @@ Set by the owner on 2026-11-04: a study of image processing, not biology, an out
 takes a photo of bookshelves, boxes every book on it and reads the text on each, and writes what it
 read for a title matcher; matching the titles is not part of it.
 
-- `req/shelves/books/find` Find books boxes every book on the photo: four corners, spine or cover, standing or lying.
+- `req/shelves/books/find` Find books boxes every book on the photo and reads its title, in one go: four corners, spine or cover, standing or lying.
   <details>
 
   Find books runs the study's finder over the photo and draws each book it finds as four corners
@@ -43,6 +43,10 @@ read for a title matcher; matching the titles is not part of it.
   the study is in its GT stage Find books favours finding every book over boxing nothing wrong: a wrong box costs the
   tagger one click to drop, a missed book a box drawn by hand. Versions are compared by F2, recall weighted twice
   precision (Claude's default for the weighting and the stage; not yet confirmed by the owner). Set by the owner on
+  2026-11-18 (#1011), the algorithm is both the boxing and the reading of the titles: Find books is one run of the
+  study's algorithm (`algorithm/`, its one entry point the page and the lab both run), which boxes the books and
+  reads each one's title (`req/shelves/read/readers`), and its answer holds both; the page answers the engines the run
+  asks for with its own (`web/reading.js`), and the lab with the same models run natively (`lab/services.py`). Set by the owner on
   2026-11-10, Find books finds the same books in a photo the camera took turned, in one taken with one side of the
   shelf nearer than the other, and in one where shade cuts across the books. Test: `studies/shelves/tests/test_books.py`,
   `studies/shelves/tests/test_shelves_page.py`.
@@ -58,17 +62,39 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_books.py`, `web-tests/test_image_open.py`.
   </details>
 
+- `req/shelves/books/versions` Find books runs the finder chosen: text-guided (R9), the default, precise (R8) or edge-only (R5).
+  <details>
+
+  Set by the owner on 2026-11-13: the finder's versions are offered side by side, as NoR's and Vascular's are, in
+  the shell's list (`req/shell/processing/algorithms`), today's first under a name of its own and beside it an
+  earlier one that behaves differently enough to be worth choosing. Text-guided is R9, the finder as it stands
+  (`algorithm/books.py`), recall first. Set by the owner on 2026-11-15, once R9 had replaced it, precise is R8 as it was
+  (`algorithm/r8_precise.py`), precision first. Edge-only is R5 as it was (`algorithm/r5_edges.py`), which finds the
+  books from the photo's edges alone, so its run asks for no text finder over the photo. Each reads the titles of the
+  books it boxed with the same reader. The list is the study's data (`web/algorithms.json`, its order the page's), and
+  so are their numbers: each one's precision and recall over every ground truth, measured once per version by the
+  lab (`python3 lab/run.py shelves --write`, into `web/algorithm_metrics.json`), and how far they can be trusted.
+  Set by the owner on 2026-11-18, the score of record is the lab's native run (Tesseract 5.3, ONNX Runtime), not the
+  page's (tesseract.js), whose readings differ slightly; and the score holds both results: each book is half its box
+  and half its title, a spare box costs only the share of it that adds no new cover of a book, and text read on a
+  book the ground truth gives no title costs nothing (`algorithm/score.py`, its outline the (?) beside the list).
+  Every version is measured again under it; no number from the earlier box-only score is carried. Test:
+  `studies/shelves/tests/test_versions.py`, `studies/shelves/tests/test_score.py`,
+  `studies/shelves/tests/test_shelves_page.py`, `studies/shelves/tests/test_find_bridge.py`.
+  </details>
+
 - `req/shelves/matcher/export` Download for the matcher writes each book's text, view, corners and how sure the reading is.
   <details>
 
   Outside ground truth the Summary box lists each book's text in the order found, shelf by shelf
   from the top; Download for the matcher saves `<image>_books.json`: the image, its size, and per
   book an id, its view, its text (empty when nothing was read), the reader's confidence (0 to 1,
-  null when it was not read) and the reader's name, and its corners. Test:
+  null when it was not read) and the reader's name, and its corners. With a summary mask on, the list and the file hold
+  only the books inside it, each keeping its number (`req/shelves/summary`). Test:
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shelves/read/readers` Read titles reads each book with the reader chosen, in Hebrew and English, the same in the page as in the sandbox.
+- `req/shelves/read/readers` Find books reads each book's title in the same run; Read titles reads every book again with the reader chosen, in Hebrew and English.
   <details>
 
   Set by the owner on 2026-11-04, three readers are offered, kept side by side until the ground
@@ -77,18 +103,46 @@ read for a title matcher; matching the titles is not part of it.
   (English only: it has no Hebrew, and on Hebrew it reads Latin letters with high confidence). Each
   book is straightened to an upright rectangle first and read at each turn its shape allows, the
   most confident kept. The page loads pinned builds of the engines from jsDelivr (the text finder already on Find books) and the two
-  languages from the site; the sandbox (`studies/shelves/reading/read.mjs`) runs the same builds on
-  the same straightened crops, so a reading there is the page's. The reader last chosen is kept in
-  the browser. Set by the owner on 2026-11-10, a dictionary sets each reading's Hebrew words right: a word of three
+  languages from the site. The reader last chosen is kept in the browser. Set by the owner on 2026-11-18 (#1011), the
+  reading of the titles is part of the algorithm: Find books reads every book it boxed in the same run, with the
+  algorithm's reader (lines: PaddleOCR's text finder, then Tesseract on each line; `algorithm/reading.py`), whatever
+  reader is chosen. The reader choice, Read titles and the re-reading of a book while it is tagged are the page's own
+  tools for making ground truth (`web/reading.js`), like the boxes' handles: not the algorithm, and free to use other
+  engines. Set by the owner on 2026-11-10, a dictionary sets each reading's Hebrew words right: a word of three
   letters or more that is not in it, nor is once a prefix letter or two (ו, ה, ב, כ, ל, מ, ש) is taken off, becomes the most
   frequent word in it that differs by one letter for a letter print makes look alike (ב כ נ, ד ר ך, ה ח ת, ו ז ן י,
   ס ם ט, ג נ, ע צ), or by a ו or a י added or dropped (full and defective spelling), and stays as read when none is.
   A final letter (ך ם ן ף ץ) ends a word, so one read inside a run of letters ends a word there, and a run no listed
   word fits is parted into the likeliest listed words, of three letters or more each. The words are FrequencyWords'
-  subtitle list, fetched from jsDelivr at a pinned commit on Read titles' first run and kept offline with the study's
+  subtitle list, fetched from jsDelivr at a pinned commit on Find books' first run and kept offline with the study's
   Python, then, the owner's choice of 2026-11-10, the names of Hebrew Wikipedia's article titles (authors, book
   titles, publishers), the site's own file, made by the lab from one dated dump. Test: `studies/shelves/tests/test_reading.py`, `studies/shelves/tests/test_spelling.py`,
   `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shelves/summary` Summary counts the books, spines and covers, and lists each one's text, over the books the mask touches.
+  <details>
+
+  Set by the owner on 2026-11-16. Outside ground truth, once books are found, the Summary box says how many books it
+  counts, how many of them spines and how many covers, above the list of their texts. A book counts when any part of
+  its box lies inside the shell's summary mask (`req/shell/summary/mask`), every book with no mask. The shell's
+  Download Summary saves the three counts and a row per book, its number, view and text
+  (`req/shell/summary/download`). Test: `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.
+  <details>
+
+  Set by the owner on 2026-11-15, as for NoR's and Vascular Measurements' tasks, but with keys the title's text box
+  leaves free, since letters there are typing: Enter, in the title or anywhere in the task, is Right with the title
+  typed, the same as the button, and moves on. A title still exactly as the reader read it is never approved by one
+  key: the first Enter says "Left as read: Enter again if it is exactly right" under it, and a second Enter approves.
+  Alt+← is Back, Alt+→ Next, Ctrl+↑ Flip and Ctrl+Backspace Not a book. The keys are read by where they sit on the
+  keyboard, so they work in any layout (Hebrew too); they act only while tagging with a book open, a key held down
+  acts once, a key does nothing while its button is hidden or off, and an Enter that ends a word being composed (an
+  IME) approves nothing. Each button shows its key in small type. Changed by the owner on 2026-11-16: the keys are the
+  shell's (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
+  bottom left while a book is open, the study listening to no key itself. Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/truth/task` One ground-truth task: each book in turn, in the order they stand, has its corners, turn and title set right, and the missed books are added.
@@ -142,14 +196,33 @@ read for a title matcher; matching the titles is not part of it.
   - Flip alone turns the picture: no Turn 90°, and no language choice, the title's language being plain from what is
     typed; a book read again is read in Hebrew and English.
   - The approved books are cut out of the photo while tagging (`req/shell/ground-truth/tagging`).
-  - The tagger's work on a photo (each book's corners, turn, text, verdict and what was proposed) is the draft the
-    shell keeps and Continue tagging brings back (`req/shell/ground-truth/draft`).
-  - The file lists the books in the walk's order.
+  - Each book has an id, kept in the model and in the file and never shown; a book the tagger adds has an id of its
+    own kind, so that finding again never gives two books one id. The tagger's work is the shell's GT actions
+    (`req/shell/ground-truth/history`): a corner's drop (one action, none while it is dragged or when Escape cancels
+    it), Flip, a title committed (another book opened or the field left: one action, not one a key), Right, Not a
+    book or Delete this book, a book added, None missed, and each answer of the reader landing on a book, which
+    carries the answer and is never read again when the history is replayed. Right on a title typed and not yet
+    committed, by Enter or by its button, is one action, the approval carrying the title: Undo takes the verdict and
+    the title back together. A book may be added before Find books has run: the log then starts from the photo
+    alone, with no book, and the books added are carried over when Find books runs. Save Draft keeps them and
+    Load draft brings them back (`req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`); a draft
+    kept before Edit History is offered once (`req/shell/ground-truth/legacy`).
+    A run after stored ground truth (`req/shell/ground-truth/history-carry`) carries it onto the new books: a verdict, a
+    typed title, a turn and moved corners go to the book with the same id (a book moved since is found by the corners the
+    finder proposed for it), the books added and None missed stand as they were, and a book the tagger had worked on that
+    the run does not find is left out and counted on the status line. The file keeps `next`, the ids the finder's books and
+    the added ones are given next, so an id given up is not given again after the file is read.
+    Test: `studies/shelves/tests/test_gt_actions.mjs`.
+  - The file lists every book with its id and its verdict (right, or none while it is not decided), in the walk's
+    order; the readers and the lab take the books marked right.
 
   Changed by the owner on 2026-11-10, replacing what is above where the two differ: Not a book, and Delete this
   book, take a box off the photo and out of the walk, found or added alike; nothing is left faint on the photo,
-  and Back no longer brings it back. The file keeps only the books marked right. Continue GT tagging opens the
-  book the tagger last had open.
+  and Back no longer brings it back.
+
+  Changed on 2026-11-17 with the GT action log (`docs/future-directions/edit-log/README.md`), replacing what is above
+  where the two differ: Undo brings a book taken off back. Continue GT tagging is gone: Load draft, then Start GT
+  tagging, begins the walk at the first book not yet decided. The file lists every book, not only those marked right.
 
   Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>

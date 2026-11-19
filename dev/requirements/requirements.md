@@ -16,6 +16,24 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/shell` The shell, whichever study it runs
 
+- `req/shell/account/consent-guide` Before the page opens a Google window that will ask the user something, a guide shows its screens, framing what to click, and stays until Google answers.
+  <details>
+
+  Set by the owner on 2026-11-17, since while the site is unverified Google hides the way in. Signing in when no
+  one is signed in on this device (the welcome popup's Sign in with Google, the avatar menu's), and approving a
+  study's folders (`req/shell/data/drive-access`, the ground-truth setup, the Tagger's Approve…), first open the
+  guide: numbered steps, each with a screenshot of Google's screen and what to click framed. Signing in: choose the
+  account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (Drive
+  among them) and Continue. Approving folders: the same unverified-app steps and the per-file Drive box, unless
+  that permission was given already, then Google's picker: tick the study's folders and press Select. The guide's
+  Open Google's window asks Google in that click; the guide stays, saying it waits for Google, until Google
+  answers, then closes; its Cancel asks Google nothing. Over the picker, which opens in the page, the guide steps
+  aside to the page's left edge, under the picker. A renewal Google answers by itself shows no guide. The
+  screenshots are of other apps' screens on Google, published on help pages (owner, 2026-11-17, the source under
+  each), and served from the site; the picker's step is drawn. Test: `web-tests/test_welcome_page.py`,
+  `web-tests/test_data_mode_page.py`.
+  </details>
+
 - `req/shell/account/role` Beside the study's name, a menu picks the role the user works in; the page shows that role's own view.
   <details>
 
@@ -162,6 +180,36 @@ nobody has decided: what the page does there is not a requirement yet.
   (`studies/shelves/tests/test_shelves_page.py`).
   </details>
 
+- `req/shell/data/area-of-interest` A Study Manager marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
+  <details>
+
+  Set by the owner on 2026-11-17. In Data Management's Tags box (`req/shell/data/tags`) a Study Manager lassoes an
+  image's area of interest, drawn and combined as the summary's mask is (`req/shell/summary/mask`), on the image itself
+  once Load Original has opened it, never on its preview, whose pixels are not the image's; Clear takes it off. The
+  page keeps it in the tags file and the study index (`req/shell/data/index`). Opened by anyone, the image shows the
+  area outlined, whether or not the summary shows, and its summary's mask starts as the area. A viewer may draw their
+  own mask in its place; while the summary counts a mask of the viewer's own, a warning line at the bottom of the view
+  says so, and Clear mask, named "Use the study's area" then, puts the study's area back. Tentative: an image with no
+  area of interest counts the whole image, with no warning, until the viewer draws a mask of their own, which is
+  warned of. Test: `web-tests/test_study_index_page.py`.
+  </details>
+
+- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; the study's Python is handed them, the summary leaves them out and every viewer sees them marked.
+  <details>
+
+  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes
+  the damaged areas of an image in Data Management's Tags box, on the image itself once Load Original has opened it;
+  Clear takes them off. The image is never changed: the outlines are kept in the tags file and the study index
+  (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. The image, opened by
+  anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
+  (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
+  every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
+  fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
+  the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
+  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
+  `web-tests/test_study_runs.py`.
+  </details>
+
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
   <details>
 
@@ -173,45 +221,6 @@ nobody has decided: what the page does there is not a requirement yet.
   again. Changed by the owner on 2026-11-03: the page asks nowhere else, and no bar over the image asks
   for the folders. The page only creates files and changes or trashes the ones it created; it never changes
   a file anyone else made. Test: `web-tests/test_data_mode_page.py`.
-  </details>
-
-- `req/shell/data/edit` Edit Image opens the image itself and marks what to do with it: split, crop, slices, channels, imperfections; the view shows the result.
-  <details>
-
-  Set by the owner on 2026-11-03. In Data Management, Preprocessing's Edit Image (off until an image is
-  open, and while its box is open: set by the owner on 2026-11-04) opens the image itself, from the copy on this device or Drive, when a preview is on show, and
-  opens the Edit Image box below Preprocessing. Every choice there redraws the image as it will be saved,
-  the view staying as the user left it (a stack turned as it was): Split cuts it 2 × 2 or 3 × 3, the parts drawn apart with a gap between them, so a
-  stack in 3D looks cut; on a flat image the cut lines over the image drag, never closer than a twentieth of the crop
-  to the next, and a click on a part leaves it out (drawn dim) and keeps it again. Crop draws a rectangle
-  on the whole image and then shows only it. Slices, for a stack, is one slider with two marks, the first
-  and the last slice kept, the slices outside dropped from the view; a band on the slider marks the
-  suggested slices, those holding signal (each slice's 99th percentile above its median, at least a
-  quarter of the best slice's), and Use suggested sets the marks there. Channels ticks each channel kept,
-  a dropped one shown empty. Imperfections lassoes a part on the image to
-  leave out, drawn as if no data were there; each is listed with its share of the image
-  and can be removed, and the box's folded title sums them up ("4% imperfections"). Crop and the cut lines
-  draw on a flat image, so a stack, shown in 3D only (`req/shell/viewer-3d`), has neither (owner,
-  2026-11-03: each viewer gets tools made for it). Changed by the owner on 2026-11-07, Vascular Measurements' damaged
-  areas moving here out of its ground truth: a stack has Imperfections too. Mark turns it to straight above and holds
-  it there while armed, the lasso draws on it, and what it encloses is left out through every slice, outlined over the
-  view as it zooms and pans. Done leaves the box
-  and shows the image as it was. Test: `web-tests/test_image_edit_page.py`, `web-tests/test_image_edit.py`.
-  </details>
-
-- `req/shell/data/edit-save` Save… writes the edited image, or its parts, into a folder named after the image, beside it.
-  <details>
-
-  Set by the owner on 2026-11-03. The page changes no file it did not make (`req/shell/data/drive-access`),
-  so an edit goes into a folder named after the image (its name without the extension), which the page
-  creates beside it, or uses when the page made it before. Save… shows where the files will go, their
-  names (the image's name and a pattern: `_edited` with no split, `_r{row}c{col}` with one, kept as the
-  user's setting; the pattern's fields as `req/shell/preprocessing/split` lists them), and holds the save
-  while two files would share a name, no channel is kept or every part is left out. Save to Google Drive
-  writes them there, while the folder is writable; Download gives the one file, or a ZIP of the parts.
-  Wherever the page lists a folder's images (the tree, the folder view and Load's Drive dialog), an image
-  beside a folder of its name is not listed: that folder, and the edited files in it, take its place.
-  Test: `web-tests/test_image_edit_page.py`.
   </details>
 
 - `req/shell/data/folder` A folder chosen shows its images as a grid or a list, and the left bar sums it up.
@@ -227,9 +236,55 @@ nobody has decided: what the page does there is not a requirement yet.
   out of date (the image's SHA-256 differs from the preview's), how many have ground truth beside
   them (`<name>.ground_truth.*`, `<name>` the image's name without its extension) and how many are
   marked as needing it (`req/shell/data/preview-images`). The toolbar's tools stay over the folder's
-  images, waiting for an image (set by the owner on 2026-11-04: Data Management has its own tools to cut
-  and crop, and the viewer's basic ones may sit beside them). Test: `web-tests/test_data_mode_page.py`,
+  images, waiting for an image (set by the owner on 2026-11-04: the viewer's basic ones may sit there). Test: `web-tests/test_data_mode_page.py`,
   `web-tests/test_shell_states_page.py`.
+  </details>
+
+- `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a Study Manager's explicit act, adding an image is not.
+  <details>
+
+  Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
+  the folders the study's images come from, by id, under `folders`; a study file naming none has the data folder its
+  root names, else the root itself, as its one listed folder. A Study Manager adds a folder there, or takes one out, as
+  an act of its own: Data Management's tree shows each listed folder with Remove from study, and under it the folders
+  of the root no listed folder holds, each with Add to study; a folder elsewhere in Drive is added by pasting its link,
+  and the page says so when that folder is not shared as "Anyone with the link", which a viewer needs to read it. An
+  image added to a listed folder in Drive changes nothing in the study file. An image is in the study while it is in a
+  listed folder, a folder under one included. A folder beside an image of its name, a `.vsi`'s `_<name>_` folder
+  (`req/shell/image/cellsens`), is part of that image and not listed. The page writes the study file only where it made
+  it; one made by hand it leaves alone, and says to delete it in Drive to let the page manage it. Every other key of
+  the study file stays as it was. The Image Viewer, with no root, has the folder whose link was pasted.
+  </details>
+
+- `req/shell/data/hidden` A Study Manager hides images by their tags; hidden images are left out of Load study images.
+  <details>
+
+  Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`), under `hide`, set in Data
+  Management's Study images: an image carrying a tag or a tag value a rule names is hidden (a rule naming a
+  multi-value tag alone, `group`, hides every image holding any value of it), and Load study images
+  (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth Taggers. A Study Manager still sees
+  hidden images, marked so. Tentative: a hidden image a user opened before stays in their recent images. Test:
+  `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`.
+  </details>
+
+- `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
+  <details>
+
+  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root,
+  `rauntruth-index.json`, the study index: the listed folders (`req/shell/data/folders`), each by id and name, and
+  every image in them with its Drive id, name, the folder it is in, its path of folder names from the listed folder
+  down, size, SHA-256 and when Drive last changed it; its tags, description, damaged areas (`req/shell/data/damaged`)
+  and area of interest (`req/shell/data/area-of-interest`) join it as those are built; it carries the study file's
+  grouping tag and hiding rules too, so the index alone draws Load study images offline. Only a Study Manager's page
+  writes it: each time Data Management has listed the study's folders, and after a folder is added or taken out, a
+  tag or a description changed, or the grouping or hiding set, it
+  writes the index when what it holds differs from the one there, saying when it was built and by whom; an index the
+  same as the one there is not written again. An index the page did not make is left alone, and the page says to
+  delete it in Drive. A Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from
+  them; an image added in Drive since the index was built is not listed until a Study Manager's page rebuilds it. The
+  tags, descriptions and areas are kept here, in files the page made, never on the images
+  (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits beside it.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
   </details>
 
 - `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
@@ -241,16 +296,15 @@ nobody has decided: what the page does there is not a requirement yet.
   chevron folds it to a narrow strip and opens it again. The tree shows every folder and subfolder, open,
   each with its access (`req/shell/data/drive-access`); a folder's images stay folded under it until
   its image count is clicked, each with a small preview. In the mode the left bar keeps the Image box
-  and Preprocessing (`req/shell/preprocessing/split`) and hides the study's own drawers, its item view
+  and hides the study's own drawers, its item view
   and the steps; Load vanishes in a puff, Unload in its line with it: choosing another image or folder
   replaces the one open (set by the owner on 2026-11-04). The steps hidden are the status bar's breadcrumbs, with the item
   view's switch and its tasks' bar (set by the owner on 2026-11-04). Set by the owner on
   2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, Study Manager is listed in the role
   menu but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`). Going offline
   inside Data Management keeps what is open: the column and the folder's box say they need the internet and do
-  nothing until the network is back, and what reaches Drive (Save to Google Drive, Approve, Update previews, Needs
-  GT) is held with them; Preprocessing and an Edit Image under way stay usable, its marks being local, and the
-  Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
+  nothing until the network is back, and what reaches Drive (Approve, Update previews, Needs
+  GT) is held with them; the Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
   </details>
 
 - `req/shell/data/preview-images` An image chosen in Data Management opens from its preview; Load Original opens the image itself.
@@ -281,6 +335,25 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
+- `req/shell/data/tags` A Study Manager tags images and folders and describes each image; a folder's tags apply to every image in it.
+  <details>
+
+  Set by the owner on 2026-11-17. A tag is a single hyphenated word (`damaged-slide`) or a value of a multi-value tag, written
+  `name:value` (`group:wild-type`, `group:sick`); an image holds at most one value of each multi-value tag. A Study
+  Manager adds any tag to an image, or to a listed folder, where it applies to every image in it and under it, and
+  writes a description of each image. Every image carries `folder:<path>`, its folder's path from the listed folder
+  down, given by the page and never edited. What a file holds, "2D · 3 channels" or "3D · 24 slices"
+  (`req/shell/drive/stacks`), is not a tag. In Data Management the Tags box, below the Image box, edits the tags of the
+  folder or image chosen, and an image's description: Enter adds a tag, a tag's × takes it off, and a folder's tags
+  show on its images, dimmed, naming the folder they come from. Tentative: a tag is written in lower case, words of
+  letters and digits joined by hyphens, and a multi-value tag's name and value alike; `folder` is the page's own name
+  and no tag may use it. Tentative: an image's own value of a multi-value tag wins over one a folder gives it, and a
+  folder's over one the folder holding it gives. The tags and descriptions are written by the page into a file of
+  their own in the study's root, `rauntruth-tags.json`, never on the images, and from there into the study index
+  (`req/shell/data/index`), each image with the tags it carries; a tags file the page did not make is left alone.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`, `web-tests/test_study_root.py`.
+  </details>
+
 - `req/shell/data/update-previews` Update previews makes the folder's previews for the images that lack one or changed, and keeps the rest.
   <details>
 
@@ -305,6 +378,25 @@ nobody has decided: what the page does there is not a requirement yet.
   opens, the Welcome on arrival say, appears at once, as does every dialog with animations off
   (`req/shell/resources-dialog/animations`) or reduced motion asked for. Test:
   `web-tests/test_dialog_motion_page.py`.
+  </details>
+
+- `req/shell/drag/escape` Escape in the middle of any drag cancels it: what the drag changed goes back, and the rest of the press does nothing.
+  <details>
+
+  Set by the owner on 2026-11-15. Every drag on the page, the shell's and a study's, cancels on Escape
+  pressed before the button is let go: a ground-truth handle, corner or lasso, the summary's mask lasso, the ruler, the left bar's width, the minimap, the image's pan and the 3D view's turn all go
+  back to where they were when the press began. That Escape does nothing else, no dialog closes on it,
+  and letting go afterwards is no click and no drop.
+  Every drag goes through one wrapper, so a new one cancels the same way. Test:
+  `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
+  </details>
+
+- `req/shell/drag/hint` While anything is dragged, a label at the bottom center of the page says "Hit 'esc' to cancel".
+  <details>
+
+  Set by the owner on 2026-11-16. It shows once the pointer pressed has moved, on every drag that Escape cancels
+  (`req/shell/drag/escape`), and goes when the drag ends: released, cancelled or Escaped. A click that does not move
+  shows nothing. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
   </details>
 
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
@@ -345,7 +437,7 @@ nobody has decided: what the page does there is not a requirement yet.
   is shown only while it is still the folder asked for. One fetched stays for the page's life:
   closing the dialog stops the rest, and reopening it shows those at once and fetches what the rows
   in view still lack. Test: `web-tests/test_drive_thumbs_page.py`. An image opened from Drive saves its own in the browser (the latest 100), shown from then
-  on without a download. All but Drive's own are in the colours the page gives the
+  on without a download; set by the owner on 2026-11-17, it is kept as a JPEG in cache storage, not in the settings' storage (`req/shell/storage/manage`). All but Drive's own are in the colours the page gives the
   channels. Show thumbnails in Settings (on at first, `req/shell/account/settings`) turns the downloads off; set by the
   owner on 2026-11-07, the dialog itself holds no such checkbox. The status bar's message says, while they load ("Thumbnails 3 of 10 ·
   1.2 MB"), how many have arrived and their size; once they are in, the message says again what it said
@@ -454,14 +546,17 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_throttle_page.py`.
   </details>
 
-- `req/shell/ground-truth/clear` Clear progress, in the Ground Truth Tasks, forgets the open image's tagging on this device.
+- `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
-  Set by the owner on 2026-11-05. A tagger's progress on an image (votes, added items, masks, the areas
-  checked) is kept in the browser, so they can come back to it. Clear progress, at the Ground Truth Tasks
-  box's end beside Submit Ground Truth (owner, 2026-11-07), asks first, naming what goes ("your votes, added items and checked areas on <image>"), then forgets
-  only the open image's progress: other images keep theirs, and anything already submitted stays in Drive.
-  Test: `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-05, as Clear progress, beside Submit Ground Truth: a tagger's progress on an image is kept in
+  the browser so they can come back to it, and clearing forgets only the open image's. Changed by the owner on 2026-11-17:
+  every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`), so it is Clear all history…, at
+  the foot of the Edit History window, and there is no Clear progress. It asks first, naming the image, then forgets this
+  image's draft on this device and returns the model to the algorithm's output, or to the base the log stands on when a
+  run is not its root (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the
+  status line say which; other images keep theirs and anything submitted stays in Drive. Test:
+  `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/curate` A Study Manager accepts or rejects each pending submission into the curated folder.
@@ -477,19 +572,38 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/ground-truth/draft` Continue tagging brings back a tagger's draft of the image open, where the study takes drafts.
+- `req/shell/ground-truth/draft` A tagger's draft of the image open is their GT actions kept on this device, saved by Save Draft and offered by Load draft.
   <details>
 
-  Set by the owner on 2026-11-10, a shell feature, not a study's. A study that takes drafts hands the shell its
-  progress on the image open as data each time the tagger changes something, and the shell keeps it in the browser
-  by the study, the image's name and its SHA-256. Beside Start GT tagging, Continue tagging shows while an image is
-  open in such a study, and is on only while a draft of that image is kept, the box then open as the image opens: it hands the draft back to the study,
-  which puts its results and the tagger's progress back with no step run again, and starts tagging. Manage storage
-  lists a draft among its image's selections, and Clear progress forgets it with the rest. Changed by the owner on
-  2026-11-10: in such a study the box offers one of three, never two at once. Start GT tagging, while no draft
-  of the image is kept, before the study's algorithm has run or after; Continue GT tagging, once one is, which
-  goes back to the item the tagger last had open; and Stop tagging while the tagger tags. Clear progress
-  brings back Start GT tagging. Test: `studies/shelves/tests/test_shelves_page.py`.
+  Set by the owner on 2026-11-10, a shell feature, not a study's: a tagger comes back to an image with their progress on
+  it. Changed by the owner on 2026-11-17: every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`),
+  so the shell keeps no progress of a study's own and there is no Continue GT tagging. The draft is the log and its model,
+  saved by Save Draft (`req/shell/ground-truth/save-draft`) and offered by Load draft (`req/shell/ground-truth/draft-offer`);
+  the box offers Start GT tagging, or Stop tagging while the tagger tags, never two at once, and tagging then begins at the
+  first item not done. Manage storage lists a draft among its image's selections, and still lists a key an earlier version
+  kept (`gt-draft|…`), which a study offers once as its old store (`req/shell/ground-truth/legacy`). Clear all history forgets
+  the draft (`req/shell/ground-truth/clear`). Tests: `web-tests/test_gt_history_page.py`,
+  `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shell/ground-truth/draft-offer` Opening an image that has a draft on this device offers Load draft; nothing is loaded unasked.
+  <details>
+
+  Set by the owner on 2026-11-17. When the image open has a draft on this device, by the study and the image's SHA-256
+  (`req/shell/ground-truth/save-draft`), the Ground Truth Tasks box opens with the image and shows Load draft above
+  Start GT tagging, before the study has listed its tasks too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
+  Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
+  (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
+  asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
+  `pending` from the image's opening and `done` once the looks for its draft, and for a tagger's own submission, have ended, for tests to wait on. Tentative: the button stays while the
+  draft on the device is not the one loaded. Approved by the owner on 2026-11-16: for a Ground Truth Tagger, on an image
+  from the remote store, the offer also names their own submission there ("Load your submission · submitted 12 Nov,
+  14:08"), found from two listings as the image opens (the submissions folder, then the image's subfolder, when it has one), the
+  file read only on that click, checked as a draft is, and one from before the log loaded as a base with no history.
+  Nothing is cached, and no other call is made. Set by the owner on 2026-11-17: those two listings, and the one download
+  on the click, are the only calls this adds. Tentative: both offers show when the device holds a draft too, and
+  a submission made or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
+  `web-tests/test_gt_resume_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/ground-truth/folders` A study's ground truth lives in a submissions folder and a curated folder under its root; one folder for both is free submission.
@@ -503,6 +617,83 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
   </details>
 
+- `req/shell/ground-truth/history` A tagger's ground truth is an ordered log of GT actions, undone and redone one at a time down to the algorithm's run.
+  <details>
+
+  Set by the owner on 2026-11-17. Each change to an image's ground truth is one GT action, `{at, type, …}`: when, and
+  the least data that says what happened, with no label, no inverse and no number; `at` is only ever the time, so a
+  place in an action has another name. One gesture is one action, done whole by the study (a drag is one action, at its
+  drop; a drag Escaped is none, `req/shell/drag/escape`). The shell keeps them in order in the action log, after its
+  own: `open` (the image and the study), `run` (the algorithm, its settings and what it emitted) and `base` (stored
+  ground truth that has no log). A study names a module of pure functions in its `study.json` (`groundTruth.actions`):
+  `start(output, previous)`, the run's output as a model, lending it the ids of the model before by place; `run(model,
+  action)`, the next model, or `{skip}` when its target is not there, never changing the one it was given;
+  `describe(action, count, model)`; `where(action, model)`; `document(model)`, the study's file; and `load(document)`,
+  its inverse. The study records an action with `shell.gt.act` and draws the model the shell hands it; the log, replay,
+  undo and redo are the shell's, the same in every study. Undo takes the last action off the log and replays the rest
+  (`req/shell/ground-truth/history-replay`); Redo puts it back; a new action forgets what was undone. Undo stops at the
+  first run or base, and there is none to undo before one; undoing a later run goes back to the model on the run before.
+  Two runs with no action between them are one, the later.
+
+  The log is shown as Edit History, a tool window floating over the image at its bottom right, framed and headed as the
+  minimap is, 2.5 times the minimap's height and never taller than the view less its margins, 1.4 times its width. Show
+  Edit History, in Ground Truth Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
+  has a run or a base. Newest on top, a dot at the current state; what was undone sits above the dot, dimmed and struck,
+  until a new action clears it. A click on a row goes to it, the run's row back to the algorithm's output; the image's
+  opening closes the list and is no row to go to. A row's words are the study's `describe`, its time at the right. Runs
+  of one type fold into one row with its count and its span of time, unfolded by its chevron; Undo still takes one
+  action. A day rule breaks sittings. The list scrolls inside the window, the current row pinned to its edge while
+  scrolled away, and past 1,000 rows only those in view are drawn. An action a later run could not carry is greyed
+  ("didn't carry over"), and so is a log a mismatch set aside ("earlier history, not replayable in this version"), the
+  image's opening apart: it was never history to replay.
+  Hovering a row rings its item on the image, from the study's `where`; when the item is out of view the row's title says
+  "Off screen — click to go there" and nothing is ringed, and a click pans there
+  (Tentative: in the 3D view the ring sits at the stack's middle depth and nothing pans). The ring is yellow, or the
+  colour a study names for it in its `study.json` (`groundTruth.ring`) where its image or its own marks carry yellow.
+  Undo's tooltip names what it
+  will undo. Tests: `web-tests/test_truth_actions.py`, `web-tests/test_gt_history_page.py`.
+  </details>
+
+- `req/shell/ground-truth/history-carry` A run after stored ground truth, or after earlier work, carries that work onto its new output; only what no longer fits is left out, and said.
+  <details>
+
+  Set by the owner on 2026-11-17 (the design's decision 4). Ground truth read from a file with no log, a draft that did not
+  replay, or Load earlier edits is a base; the algorithm then runs, and the study's `start(output, previous)` is handed that
+  base as `previous`. It puts the base's ground truth onto the new output: decisions (approvals, rejections, verdicts),
+  edited lines, widths, corners and titles, the areas and junctions checked, and the items the tagger added, each matched
+  to the new output by its id and then by its place within the study's tolerance. An added item is kept as added. A decision
+  or edit on an item the new output does not have is dropped, and the model lists what was dropped, in `dropped`; the shell
+  says how many on the status line, and on the run's row in Edit History ("Algorithm ran: 12 vessels · 3 not carried
+  over"), whose tooltip names them by the ids the study gave them. An item the base does not hold but the new output does is the output's own, undecided.
+  Run after run with no base, `previous` holds no ground truth and nothing is carried. A study says its own line about a run
+  before it records the run (`shell.gt.ran`), so that the count of what was left out is the line that stands. Tests: `web-tests/test_truth_actions.py`,
+  `web-tests/test_gt_resume_page.py`, each study's `tests/test_gt_actions.mjs`, `studies/nor/tests/test_gt_actions_page.py` and
+  `studies/vascular/tests/test_vessel_tasks_page.py`.
+  </details>
+
+- `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
+  <details>
+
+  Set by the owner on 2026-11-17. Submit and Export write the study's document of the model and add
+  `history: {format: "rauntruth-gt-history/1", replay, actions}`: the actions still in force, in order, each with its
+  time, the runs with their outputs deflated; what was undone is not written. A reader that knows only the study's own
+  fields is not disturbed, and the shell takes `history` off before it hands a file to a study. A file without
+  `history` loads as a base, with no history. Test: `web-tests/test_gt_history_page.py`.
+  </details>
+
+- `req/shell/ground-truth/history-replay` The model and its log are both kept; replaying the log must give the stored model, and where it does not the stored model wins.
+  <details>
+
+  Set by the owner on 2026-11-17. A replay is the model of the last run (or base), then the study's `run` for every
+  other action in order, those from before a later run too, by id: no algorithm, no page, no clock, the same under Node
+  as in the page. An action whose item the new run no longer has is skipped and stays in the log. When a stored model is
+  loaded with its log, the shell replays the log and compares the two as the study's documents, by SHA-256: `verified`,
+  the replayed model with its whole history undoable; `mismatch`, the stored model taken as a base and the earlier log
+  kept but no longer replayed; `none`, a model stored without a log, taken as a base. No study version is kept: a study
+  whose code changed what an action does shows as a mismatch, as does a log whose replay fails. Tests:
+  `web-tests/test_truth_actions.py`.
+  </details>
+
 - `req/shell/ground-truth/layout` Both folders hold one subfolder per image and one file per tagger in it, and a reader takes the newest that is not rejected.
   <details>
 
@@ -513,6 +704,24 @@ nobody has decided: what the page does there is not a requirement yet.
   a viewer, the lab) takes, in an image's subfolder, the file with the latest `created` that is not
   marked rejected. Only an image opened from Google Drive can be submitted; for one opened from the
   computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/ground-truth/legacy` What a study kept of a tagger's edits before it kept GT actions is offered once, as a base, and never loaded unasked.
+  <details>
+
+  Set by the owner on 2026-11-17, for the edits Vascular kept in this browser. A study that kept them somewhere of its own
+  hands them over with `shell.gt.legacy({model, count, from, forget})` once its run is in the log: `model` is the study's
+  document, `count` how many edits it holds, `from` what to call it, `forget` removes the old store; `shell.gt.legacy(null)`
+  withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
+  beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
+  when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
+  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
+  A study whose old store means something only on the run's items (the NoR Finder's votes, kept by a candidate's place) hands
+  over `actions` in place of `model` and `count`: the GT actions the store implies. The click then records each on the model as
+  it stands, stamped then, as the tagger's own: nothing is replaced, so nothing is asked; each is a row of Edit History, undone
+  like any other, and counted unsaved; one whose item is not there is left out, and with none recorded the offer stays (tentative:
+  the owner set the base, for Vascular; the actions are the validator's of the NoR Finder's move, 2026-11-17). Tentative: the offer has no path in the
+  shell's states, the studies that keep an old store being offered it by their own code. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/pending` Taggers and Study Managers see which images have ground truth, and which have it pending, in two listings.
@@ -529,6 +738,23 @@ nobody has decided: what the page does there is not a requirement yet.
   GT wanted in the Drive dialog and the recent images (set by the owner on 2026-11-10). Data
   Management's summary counts the folder's images with ground truth, pending, and marked as needing it. A viewer sees only curated ground
   truth. Tests: `web-tests/test_truth_folders.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/ground-truth/save-draft` Save Draft, beside Submit Ground Truth, keeps the tagger's work on this device; until it is pressed nothing is saved.
+  <details>
+
+  Set by the owner on 2026-11-17. The log and its model live in the page while the tagger works, so they can try
+  things without touching what is saved. Save Draft writes the log and the model to this device (IndexedDB database
+  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Submit saves the draft too. Actions
+  not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
+  said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
+  Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
+  actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
+  image, or unloading this one, with actions not yet saved asks first. Tentative: so does choosing another study from the
+  study menu, and the user's own change of role away from Ground Truth Tagger. What no question can stop gives up the
+  unsaved actions without asking, and the spec says so plainly here: the browser's Back and
+  Forward buttons, which swap the study at once, and a sign-in that runs out, which changes the roles held and so the
+  role shown. The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's settings file.
@@ -556,7 +782,9 @@ nobody has decided: what the page does there is not a requirement yet.
   the image's subfolder in the submissions folder (`req/shell/ground-truth/layout`), creating the
   subfolder when it lacks one. The popup says when the file landed, or why it did not, the export still
   there to keep a copy. Submit is off, saying why, for an image opened from the computer and for a tagger
-  Drive does not let write there (`req/shell/ground-truth/tagger-access`).
+  Drive does not let write there (`req/shell/ground-truth/tagger-access`). Set by the owner on 2026-11-17: for a study
+  with GT actions the file is the model's document with its `history` (`req/shell/ground-truth/history-file`), and
+  Submit saves the draft.
   Tests: `studies/nor/tests/test_ground_truth_page.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
@@ -621,7 +849,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
   last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
-  the study's ground truth, Clear progress beside it (`req/shell/ground-truth/clear`). A task is open only while
+  the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
   the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
   ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's
@@ -643,7 +871,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Ground truth box offers Load GT tagging. Only that click reads the image's subfolder and its newest
   file, then shows its final results on the image, with no algorithm run: none of the tagging tasks' marks
   (no blacked-out areas, no rejected candidates, no work areas). A summary follows: whose file, when it was
-  made, and its counts. Test: `web-tests/test_gt_drive_page.py`.
+  made, and its counts. Changed by the owner on 2026-11-16, an image shows its ground truth or the algorithm's results,
+  never both: once its ground truth is loaded, Processing is not shown, nor the Items view and its switch, until another
+  image opens. Test: `web-tests/test_gt_drive_page.py`.
   </details>
 
 - `req/shell/header` A header with the logo, the study switcher and a dark/light switch (remembered).
@@ -661,14 +891,80 @@ nobody has decided: what the page does there is not a requirement yet.
   GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Test: `web-tests/test_study_runs.py`.
   </details>
 
+- `req/shell/image/cellsens` An Olympus cellSens image, a `.vsi` and its `_<name>_` folder, is one image: one row in the Drive dialog, opened in 2D or 3D like any other.
+  <details>
+
+  Set by the owner on 2026-11-16, for the microglia study's IX83 images. cellSens saves an image as a `.vsi` file
+  (its details) beside a folder `_<name>_` whose `stack1/frame_t_0.ets` holds the pixels. The Google Drive dialog
+  lists the pair as one image row, named after the `.vsi`, and does not list the `_<name>_` folder. Opening it
+  downloads the `.vsi`, lists the `_<name>_` folder and its `stack1` folder, and downloads the `.ets`: three requests
+  more than a TIFF takes, all to Drive (approved by the owner on 2026-11-16); the two files are kept together as one
+  image (`req/shell/drive/kept-images`). The page reads the `.vsi`'s own details, never a guess: the pixel size, the
+  z-step, each channel's name and its display colour; and the `.ets`'s slices, every channel of every one, stored
+  uncompressed or as JPEG 2000. JPEG 2000 is decoded by OpenJPEG's WebAssembly build, fetched from jsDelivr at a
+  pinned version only when such an image is first opened (owner, 2026-11-16, as libheif is for a HEIC). A stack
+  opens in 3D, a single plane in 2D, both through `req/shell/image/open`'s contrast and channel rows. A `.vsi`
+  whose pixels are stored otherwise (JPEG, PNG, a slide scanner's tiled pyramid) says why it cannot be read.
+  Opening one from this computer is not offered yet (owner, 2026-11-16: Google Drive only for now): a `.vsi` opened
+  from this computer says it opens only together with its folder. Test:
+  `web-tests/test_cellsens.py`.
+  </details>
+
 - `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say.
   <details>
 
   Folded at first: the field in µm and px, the pixel size, the bit depth, the ImageJ series, the
   microscope and date when the file names them (the lab's ImageJ exports never do), and the software that saved
-  it (`web-tests/test_file_info.py`). What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
+  it (`web-tests/test_file_info.py`). Changed by the owner on 2026-11-13: each format pins the fields worth
+  seeing, a HEIC or JPEG photo its field, bit depth, camera (make and model) and when it was taken (with
+  its UTC offset), a PNG its field and bit depth, a TIFF the lines above; a study's `view.details` may name,
+  per format (`tiff`, `heic`, `jpeg`, `png`), the fields it pins instead, by the labels the details show.
+  Every other field the file carries is listed below them in More details, folded at first: a TIFF's tags
+  and ImageJ header, a photo's EXIF (GPS included), JFIF and XMP fields, a HEIC's container (its images,
+  thumbnails, auxiliary images and colour profile), a PNG's chunks. Binary blobs (a maker note, an embedded
+  profile's bytes, a thumbnail, a list of more than 16 values) are left out. The bit depth is the file's
+  own, even where the page shows the image in 8 bits. What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
   line says the microscope or acquisition is missing, and with no image open the box names none and shows no
   details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
+  </details>
+
+- `req/shell/image/keys` A study declares its keyboard shortcuts as data; the shell wires them and lists those that act now at the image's bottom left.
+  <details>
+
+  Set by the owner on 2026-11-16: every study's shortcuts are the shell's, each study saying what it supports and the
+  shell wiring the keys, drawing the controls and adapting them. A study's `study.json` lists its `actions`, in the
+  order the legend shows them, each with:
+
+  - `id`, and `label`, what it does in a word or two, and optionally `title`, its tooltip;
+  - `keys`, each by its place on the keyboard (`KeyF`, `Digit1`, `Space`, `ArrowLeft`), after the modifiers held with
+    it (`Ctrl+Backspace`, `Alt+ArrowLeft`), which must be exactly those; and optionally `hint`, how the legend writes
+    them when it is not the first key's own name (`−/+`);
+  - `kind`: `press`, acting once as the key goes down; `toggle`, the same, keeping something on or off; `hold`, on
+    while the key is held and off when it is let go;
+  - optionally `control`, the button it mirrors: the key presses it, it acts only while that button is shown and on,
+    and the button carries the key, small, at its end; with none, the study's handler for it does what it does;
+  - `legend`, `true` for a state of the image's view (a view held or kept on, a layer shown or hidden), listed in the
+    keys legend, or `false` for anything else (a verdict, a step, an edit, a task's mode), its key shown only on its
+    control; an action saying neither is refused, never wired (owner, 2026-11-16);
+  - optionally `when`, the states the study reports that must all hold for it to act (`area`, `!look`), and `on`, the
+    state that says a toggle or a hold is on (a toggle's control's own pressed or ticked state when none is named);
+  - optionally `inField`, an element inside which a text field with the focus still lets the key act, and
+    `ownControl`, that the key on a focused button, link or summary is that control's own.
+
+  The study hands the shell only its handlers, by id, and its states, as they change; it listens to no key of its
+  own for these. The shell hears every key once: a key acts only while its action does, never while typing in a field
+  (but as `inField` says), with a menu, popover or dialog open, or as an input method composes, and once per press
+  however long it is held, a held key let go wherever the focus went; only a key that acted is kept from the page, and its repeats while it is held, so a held Alt+← never takes the browser back.
+
+  At the image's bottom left, over the image in the 2D and 3D views alike, the keys legend lists one row for each
+  state of the view whose shortcut acts just now, in the study's order, the viewer's own last (the 3D view's Panning,
+  `req/shell/viewer-3d`): what it does in a small label, its key beside it in a faded grey. A row is filled blue while
+  its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
+  a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
+  legend is empty. Set by the owner on 2026-11-17, the shell's own: Undo (Ctrl+Z, ⌘Z) and Redo (Ctrl+Shift+Z, ⌘⇧Z, Ctrl+Y)
+  press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
+  browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
+  study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
   </details>
 
 - `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.
@@ -702,7 +998,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07. The shell reads a TIFF (ImageJ hyperstacks, OME-TIFFs in one file and plain
   TIFFs; uncompressed, LZW, Deflate or PackBits), a HEIC (set by the owner on 2026-11-10: by libheif's
   WebAssembly build, fetched from jsDelivr at a pinned version only when a HEIC is first opened, in every browser)
-  and any image the browser decodes (PNG, JPEG), and opens it in
+  an Olympus cellSens `.vsi` with its pixels (`req/shell/image/cellsens`) and any image the browser decodes (PNG,
+  JPEG), and opens it in
   the study's viewer: its channels in the file's own order, each under the name the file gives it and in the
   colour the file displays it in, a z-stack flattened (each pixel the brightest of every slice) and slice by
   slice. Each channel's contrast is set once over the whole stack, never per slice, so signal that fades with
@@ -910,6 +1207,27 @@ nobody has decided: what the page does there is not a requirement yet.
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
   </details>
 
+- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the Study Manager chooses, not by folder.
+  <details>
+
+  Set by the owner on 2026-11-17. In a study with a study index (`req/shell/data/index`), Load's Google Drive dialog
+  (`req/shell/drive/dialog`) becomes Load study images: every image the index holds, less the hidden ones
+  (`req/shell/data/hidden`), in groups, one per value of the multi-value tag the study file names for grouping
+  (`req/shell/data/tags`), `folder` while it names none: a group per folder, headed by its path, in the order of the
+  listed folders and then by path. Each row shows what the dialog shows today; a TIFF's picture comes from its folder's
+  previews file (`req/shell/drive/previews`), read once that folder's group scrolls into view. Tentative: a row marks
+  no image "new", there being no listing on this device to compare with. Set by the owner on 2026-11-17: the Image
+  Viewer, with no root and no index, lists the pasted folder one folder at a time as before, and so does a study before
+  a Study Manager's page has written its index. Set by the owner on 2026-11-18: the index Load last read is kept on this
+  device, the latest five studies', and offline the dialog lists from it just as online, an image not kept on this
+  device greyed as the offline dialog greys one (`req/shell/offline/default`); a study whose index this device never
+  read lists offline as before. The grouping tag is set in Data Management's Study images, which offers `folder` and
+  every multi-value tag the study's images carry. Grouped by a tag, a group per value, its head `<tag>: <value>`, in
+  the values' order; an image with no value of it sits in a last group, "No <tag>" (Tentative). Each row also shows the
+  image's tags, and its description under its name; to a Study Manager a hidden image shows, marked hidden. Test:
+  `web-tests/test_study_index_page.py`.
+  </details>
+
 - `req/shell/memory/no-growth` Memory does not grow with use.
   <details>
 
@@ -934,7 +1252,8 @@ nobody has decided: what the page does there is not a requirement yet.
   The status bar's online icon (`req/shell/status-bar/online`) shows it, the network's tooltip and its
   Network tab saying the page is offline too. No
   network is the browser saying so, or the site not answering, asked every 30 seconds all session long and every
-  5 seconds while offline, so the network going mid-session shows within 30 seconds and coming back within
+  5 seconds while offline, while the tab is shown: a hidden tab asks nothing, and asks once it is shown again if
+  that long has passed (set by the owner on 2026-11-13), so the network going mid-session shows within 30 seconds and coming back within
   seconds, even with a release that landed meanwhile still being copied (set by the owner on 2026-11-04), the browser saying online or not, and a Wi-Fi's
   sign-in page answering in the site's place counts as no network. What the page is doing follows it, set by the
   owner on 2026-11-03: a study whose Python could not load loads it once the network is back, with no reload;
@@ -947,7 +1266,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Request and Data Management (`req/shell/data/mode`). A change to a setting that follows the user (`req/shell/account/sign-in`) waits and is saved once the network is
   back. A visit the browser cannot reach a copy for, never opened online, shows the browser's own
   offline page: no site opens there. Nothing here installs the site as an app or asks the browser
-  for anything. Test: `web-tests/test_offline_page.py`.
+  for anything. Test: `web-tests/test_offline_page.py`, `web-tests/test_background_tab_page.py` (a hidden tab).
   </details>
 
 - `req/shell/offline/mark` What is available offline says so, quietly: a study, and an image from Google Drive.
@@ -1002,27 +1321,31 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_image_box_page.py`.
   </details>
 
-- `req/shell/preprocessing/split` Preprocessing, in Data Management, holds Edit Image; each file it saves is an ImageJ TIFF recording where it lay.
+- `req/shell/processing/algorithms` A study offering several algorithms lists them atop its Processing box, the first the default, each with its icon, title and precision and recall.
   <details>
 
-  Set by the owner on 2026-10-31. A large image is hard to annotate in one sitting; its parts can be
-  annotated one at a time, by several people at once, and give the finders smaller samples to tune on.
-  Changed by the owner on 2026-10-31: it is the shell's, in every study, the Image Viewer included.
-  Changed by the owner on 2026-11-02: it exists only in Data Management (`req/shell/data/mode`), below
-  the Image box; out of it no drawer, number or crumb names it. Changed by the owner on 2026-11-03: Split
-  into parts became Edit Image (`req/shell/data/edit`), whose Save… (`req/shell/data/edit-save`) writes
-  the files; there is no separate dialog.
-  Each part is an ImageJ TIFF (uncompressed, little-endian) of the channels and slices kept, every time point
-  kept, its pixels the image's own, bit for bit at its own bit depth, but 0 inside an imperfection: the image's scale, unit, slice spacing,
-  channel colours (the file's LUTs, else the page's colours), names, display ranges and Info are kept, and
-  its Info gains a line `rauntruth.split={…}`: the image it came from (name, SHA-256, Drive id, size,
-  channels, slices, frames), the grid's cuts, the part's row, column, number, x, y, width and height, the
-  channels and slices kept (from 0), the parts of the image left blank as imperfections (`removed`, polygons
-  in the image's pixels, every slice), and for a part of a part where it lies in the first image (`root`).
-  That record is enough to join the parts' ground truth back into the whole image's. It reads ImageJ
-  hyperstacks, OME-TIFFs in one file and plain TIFFs (strips or tiles; uncompressed, LZW, Deflate or
-  PackBits, either byte order; 8, 16, 32 or 64 bits), and a PNG as the browser decodes it; it refuses a
-  BigTIFF, and a part over 4 GB. Test: `web-tests/test_split.py`, `web-tests/test_image_edit.py`.
+  Set by the owner on 2026-11-13: what NoR Finder and Vascular Measurements each drew for themselves is the shell's,
+  so every study with more than one algorithm shows it the same way. Changed by the owner on 2026-11-14: the algorithms
+  are data the study contributes, and the shell does the deciding. A study's `study.json` names in `algorithms` its
+  `list`, a JSON file of `[{key, title, icon, about}]`, the first its default, and its `metrics`, a JSON file of
+  `{measured, versions: {key: {precision, recall, note}}}` that its lab writes; no study code builds either for the
+  shell, and an entry may carry fields of the study's own. The shell joins the two and draws a list at the top of
+  Processing, each entry its icon, title and `(P .xx · R .xx)` where measured, its tooltip saying what they were measured on; under it a fold,
+  How the *title* algorithm works, the chosen one's `about` as a Markdown outline, ending in bold with its precision
+  and recall and what they were measured on, its `note` beside it. An algorithm with no precision and recall shows
+  neither. The study reads the choice (`shell.algorithm`: `ready`, `key`, `title`, `on(fn)`) and runs it; it draws no
+  list of its own. Test: `web-tests/test_study_contract.py`, `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
+- `req/shell/processing/scoring` Beside the algorithm list, a (?) shows how the study scores its precision and recall.
+  <details>
+
+  Set by the owner on 2026-11-18: every study's precision and recall can be explained, so the method is shown, not
+  only the numbers. The study's metrics file carries `scoring`, a short Markdown outline of how its scorer counts,
+  which the lab writes there from the scorer itself, so the explanation is always the one the numbers were counted
+  by. The shell draws a (?) at the right of the list, titled How precision and recall are scored, and a click on it
+  opens and closes that outline under the list. A study whose metrics carry no `scoring`, or that names no metrics,
+  shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
   </details>
 
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
@@ -1053,11 +1376,16 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/python/one-call` Python is reached through one generic call.
   <details>
 
-  The shell's Python runtime opens a file with the study's `Session(path)` and forwards every other
-  request as `call(action, args)`, returning JSON and optional bytes. It never names an action.
-  Test: `web-tests/test_study_runs.py` runs the fixture study through the bridge in Pyodide and through
-  the real worker in the page; the NoR study's memory test checks that repeated calls leave nothing
-  behind.
+  The shell's Python runtime runs the study contract the lab runs too (`lab/README.md`; the owner, 2026-11-17: each
+  study gives one algorithm entry point that both the page and the lab run). It opens a file with the study's
+  `read(path)`; `run` runs one of its `VERSIONS` on it, and any other action one of its `STAGES` on the last run's
+  answer, which stays in Python. An answer comes back as JSON, its arrays as bytes. A version that needs a service
+  only the page has (reading text) asks for it, the page's study answers through its `serve` hook, and the version
+  goes on. A version or stage that takes `damaged` is handed the image's damaged areas with every call
+  (`req/shell/data/damaged`), `[[[x, y], ...], ...]` in the image's pixels, `[]` for none. It never names a study's
+  action. Test: `web-tests/test_study_runs.py` runs the fixture study, and a
+  version asking for a service, through the bridge in Pyodide and the fixture through the real worker in the page;
+  the NoR study's memory test checks that repeated calls leave nothing behind.
   </details>
 
 - `req/shell/report/action-log` The page keeps the user's last 200 actions on this device, for a problem report, and sends them nowhere.
@@ -1183,8 +1511,9 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/site/out-of-date` An open page knows when it is out of date.
   <details>
 
-  Every 5 minutes it compares its version with the published one; when a newer one is out, the
-  version box in the status bar lights up and refreshes the page when clicked.
+  Every 5 minutes while the tab is shown it compares its version with the published one, and once a hidden tab is
+  shown again when 5 minutes have passed (set by the owner on 2026-11-13); when a newer one is out, the
+  version box in the status bar lights up and refreshes the page when clicked. Test: `web-tests/test_background_tab_page.py`.
   </details>
 
 - `req/shell/site/policies` The site publishes its privacy policy and terms of service, linked from its landing page and the avatar's menu.
@@ -1206,8 +1535,8 @@ nobody has decided: what the page does there is not a requirement yet.
   The published site is the shell's page and, from each study, only what its standard layout says
   the page loads: `study.json`, the study's page part under `web/` (never its Python), and the
   modules directly in the folders its Python is imported from (`python.paths`), which is all the
-  page's importer can reach, and the files its `generated` names under `web/`, each the output of one of
-  its scripts the build runs. A study's docs, data, tests and lab notes stay in the repo, and nothing
+  page's importer can reach; the build runs none of a study's code (owner, 2026-11-14: a study contributes data).
+  A study's docs, data, tests and lab notes stay in the repo, and nothing
   in a study says how, where or whether it is published. The build (`dev/tools/build/build.py`)
   assembles the set under `dev/build/site/`, the tree the release uploads. Test:
   `web-tests/test_published_site.py`.
@@ -1351,6 +1680,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   A browser key an existing study saves under keeps its name across the split and every later
   change to the shell, so a person's settings, decisions and measurements survive a release.
+  The thumbnails' keys are the exception: they left for cache storage (owner, 2026-11-17), their pictures carried over.
   </details>
 
 - `req/shell/storage/manage` The user sees, and can clear, what this device keeps, study by study.
@@ -1363,8 +1693,8 @@ nobody has decided: what the page does there is not a requirement yet.
   takes to work offline (`req/shell/offline/default`, `req/shell/offline/per-study`): one per study, whose title says whether the study is
   available offline (`req/shell/offline/mark`), holding its Python packages no other study uses, by package; its own
   pages and code, part of the site's copy; the images kept from Google Drive in it, by name; one
-  record for all their thumbnails and its Drive folders' previews; and, for the study on show, the
-  selections per image, by image name. An image, a thumbnail or a preview kept before images were
+  record for all their thumbnails and its Drive folders' previews (set by the owner on 2026-11-17, a thumbnail is kept as a JPEG in the browser's cache storage beside the folders' previews, the latest 100, never in the settings' storage; one kept there before moves over the first time the page opens, and one the cache would not take stays where it was for the next opening, while what was kept there and is no picture is dropped); and, for the study on show, the
+  selections per image, by image name, a ground-truth draft among them, in any study's section (`req/shell/ground-truth/save-draft`, set by the owner on 2026-11-17). An image, a thumbnail or a preview kept before images were
   told apart by study, and opened in none of them since, is listed with the study on show. The study sections sit under a
   **Studies** heading; then, under a **Shared** heading, the **Shared** section (set by the owner on 2026-11-07): the site itself, Python itself, the packages two studies or more use,
   and, as one record, code no study uses now. Each entry can be deleted, but a study's pages, kept
@@ -1469,6 +1799,39 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_visibility_page.py`.
   </details>
 
+- `req/shell/summary/download` Download Summary, at the Summary box's foot, saves the study's summary as one standard CSV.
+  <details>
+
+  Set by the owner on 2026-11-16: the study works out the numbers worth reporting, the shell exports them, the same
+  way for every study. A study hands the shell its summary as data, `shell.summary.set({over, rows})`, and takes it
+  back with `set(null)`; while it has one the box ends with Download Summary. The file, `<image name>_summary.csv`, is
+  one table with a row per measurement: `image`, `study`, `counted_over` (what the study says it counted over, such as
+  a mask), `measurement`, `unit`, `value` for a single number, and `n`, `mean`, `sd`, `median`, `min`, `max` for a
+  distribution, a column left empty where the row has none. A summary goes with the study that set it, and with the
+  image: opening another image or study takes the button away until the study sets one again. Test:
+  `web-tests/study_page_driver.mjs` (the fixture study), `studies/vascular/tests/model_page_driver.mjs`.
+  </details>
+
+- `req/shell/summary/mask` Add mask, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
+  <details>
+
+  Set by the owner on 2026-11-16, in place of NoR's and Vascular's own masks: one mask for every study, offered only
+  by a study whose `study.json` says it can count inside one (`"summary": {"mask": true}`; every study filling the
+  Summary box says true or false). Add mask switches to the image, shows all of it (a stack seen from straight above,
+  held still, the area running through every slice) and lets the user lasso an area by dragging; Esc cancels, and a
+  lasso a few pixels across is no area. Lassoing again adds an area by exclusive or, so one inside another cuts a hole.
+  The borders show as a pulsing dashed line over the image, or over the stack following the view as it turns, and the
+  inside is tinted a very transparent white only when areas overlap or nest. Clear mask, shown while a mask is on,
+  removes it. The mask is kept in the image's pixels on this device, per study and file name, under the study's
+  `<id>-mask-v1:<file>` key (NoR's mask from before keeps its key), and the Storage tab lists it with the image's
+  selections. It shows only while the summary does: while the study makes ground truth it is neither drawn nor
+  offered, and comes back with the summary. The study reads `shell.mask`: `polygons()`, `inside(x, y)`, `damaged()` and `on(fn)`
+  for each change; `inside` is false in a damaged area (`req/shell/data/damaged`). Set by the owner on 2026-11-17: an
+  image with an area of interest starts with it as its mask (`req/shell/data/area-of-interest`), and a mask the
+  viewer draws is theirs, kept as above. Test: `web-tests/test_study_contract.py`, `studies/nor/tests/test_ground_truth_page.py`,
+  `studies/vascular/tests/test_model_page.py`, `studies/shelves/tests`.
+  </details>
+
 - `req/shell/tools/grid` A Grid button beside the Ruler draws a grid over the image, its colour and spacing the user's.
   <details>
 
@@ -1489,7 +1852,10 @@ nobody has decided: what the page does there is not a requirement yet.
   its own axis, which may differ; in pixels when it does not. A click with no drag measures nothing.
   Once the ruler is down the image pans again; pressing the button again takes the ruler away, as
   does opening another image. The ruler keeps its place and size through zoom and the study's own
-  drawing. Test: `web-tests/test_ruler_page.py`.
+  drawing. On a stack in 3D (`req/shell/viewer-3d`) the Ruler works the same, on the plane of the top slice
+  shown, where its first point lands: while dragging, a transparent white orb shows the reach around that point in
+  depth too, and on release the ruler alone stays between the two points with their distance, through the view's turns,
+  zoom and pans (owner, 2026-11-15). Test: `web-tests/test_ruler_page.py`, `web-tests/test_viewer3d_page.py`.
   </details>
 
 - `req/shell/version-history` Clicking the version opens a Version history; a bubble points at it after an update.
@@ -1524,9 +1890,9 @@ nobody has decided: what the page does there is not a requirement yet.
   2026-11-07), a faded grey "shift" right beside it (owner, 2026-11-08); clicking it turns panning on or off, so that a plain drag
   pans instead of turning. Holding shift turns it on until shift is let go, which returns it to the state
   the label holds. That state lives only while the page is open: it is never stored or restored (owner,
-  2026-11-05). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
+  2026-11-05). Panning is the bottom row of the image's keys legend (`req/shell/image/keys`, owner, 2026-11-16). The toolbar's right holds, beside Zoom, one icon button, its tooltip "Reset view to top", that puts
   the view back to looking straight down; no menu of other views (owner, 2026-11-08), and the 2D view's Zoom, which zooms the 3D view (owner,
-  2026-11-04); the 2D view's other tools step aside. Brightest shows the brightest point along each
+  2026-11-04) and its Ruler, measuring on the top slice shown (`req/shell/tools/ruler`, owner, 2026-11-15); the 2D view's other tools step aside. Brightest shows the brightest point along each
   ray, Surface a lit surface where the signal crosses a level, and colour by depth paints by the
   depth of that point so crossings at different depths read apart: the study's `view` sets the render
   it opens with. The depth is a row of the image box under the
@@ -1599,7 +1965,9 @@ nobody has decided: what the page does there is not a requirement yet.
   is marked `full` and runs only in the full set, nightly (the workflow's own schedule)
   and on every push to main, so it has run on anything a release can ship: a green full run on main
   wakes the site release (`.github/workflows/tests-full.yml`, `web-tests/test_ci_split.py`). The nightly run also
-  runs the full set on Firefox and WebKit (`req/checks/other-engines`).
+  runs the full set on Firefox and WebKit (`req/checks/other-engines`). The repo's Claudinite checks run on every PR and
+  every push to main, in a job of their own beside the fast set (set by the owner on 2026-11-16), so a PR breaking one
+  is red before it merges.
   </details>
 
 - `req/checks/other-engines` Every night the full set also runs on Firefox and WebKit; their failures fail the night only once the page supports their browser.
@@ -1630,7 +1998,7 @@ nobody has decided: what the page does there is not a requirement yet.
   open the study the file names, the fixture; a study's own paths open it, on the shell's tree with its own elements
   alone grafted in. Each element gives only what differs from its parent: cases over the state (the
   study's stage, who is signed in, the role, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
-  has selected, whether the page is online, whether Edit Image is open, whether the image fits the view, whether it is larger than the view,
+  has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
   never shown when shelved, `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
@@ -1638,7 +2006,7 @@ nobody has decided: what the page does there is not a requirement yet.
   role) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen
   (to or from Ground Truth Tagger the study opens afresh), another study and Back, the notice's OK, zooming in until
-  the image no longer fits, Data Management's folder, preview and Edit Image, and
+  the image no longer fits, Data Management's folder, preview and Load Original, and
   the network lost and back.
   `dev/tools/build/shell_states.py` writes from it the matrix, `dev/requirements/shell-states.GENERATED.md`, one table
   per path, and the browser test's expectations. It fails on what the walk would leave unchecked: a case no state

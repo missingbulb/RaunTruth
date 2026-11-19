@@ -1,7 +1,7 @@
 # First-pass measured results — categorize / count / measure
 
-> Output of [`measure_vessels.py`](../analysis/measure_vessels.py) on the 16 `VESSEL_*.png` gP-CD31 panels.
-> Measured companion to the visual [`expected-results.md`](literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md).
+> Output of `measure_vessels.py` (retired 2026-11-18 with its panels; in git at commit e49f676, in the study's former `analysis` folder) on the 16 `VESSEL_*.png` gP-CD31 panels.
+> Measured companion to the visual [`expected-results.md`](literature/wang-2022-cd31-vascular-network.md#figures).
 > **First pass — parameters not yet tuned; treat rankings as the real result, absolute numbers as directional.**
 
 ## Scale calibration (px → µm) — measured from the figures
@@ -75,4 +75,4 @@ data, since these are downsampled figure crops.
 3. **Figure-resolution crops** — µm/px is calibrated, but the underlying panels are downsampled from raw
    confocal; recompute absolute length on raw `.oib` for publication numbers.
 
-Regenerate overlays: `python3 analysis/measure_vessels.py --overlays` (writes to `analysis/overlays/`, gitignored).
+The overlays were made by `measure_vessels.py --overlays`, now retired (above).

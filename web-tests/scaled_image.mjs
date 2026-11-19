@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeTiff } from "../web/split.js";
+import { writeTiff } from "../web/tiff_file.js";
 
 export function scaledImage(answers, um) {
   const A = JSON.parse(fs.readFileSync(answers, "utf8")), plane = Buffer.from(A.images, "base64");

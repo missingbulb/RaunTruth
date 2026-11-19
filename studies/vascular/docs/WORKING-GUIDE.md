@@ -8,7 +8,7 @@
 
 Detect and quantify the fluorescently-labeled cerebral blood vessels in the **gP-CD31 (red) confocal
 panels** from Wang et al. 2022. The professor's three asks: **categorize, count, measure (length)**.
-Biology + imaging numbers: [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network/digest.md`](literature/wang-2022-cd31-vascular-network/digest.md).
+Biology + imaging numbers: [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network.md`](literature/wang-2022-cd31-vascular-network.md).
 
 **Working dataset:** every `references/*/figures/panels/VESSEL_*.png` — the isolated vessel channel,
 one folder per source paper. The **16 Wang gP-CD31 (red) rat panels** are the primary set, the one
@@ -24,7 +24,7 @@ paper** so the sets are never averaged together. Paper index and the intake prot
    When establishing what a good result looks like, actually *look* at the images and reason about
    them. Never invent/fabricate numbers, and never run the analysis pipeline and present its own
    output as if it were ground truth — that is circular. The visual, LLM-derived expectations live in
-   [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md`](literature/wang-2022-cd31-vascular-network/figures/panels/expected-results.md)
+   [`studies/vascular/docs/literature/wang-2022-cd31-vascular-network.md#figures`](literature/wang-2022-cd31-vascular-network.md#figures)
    and are the reference the automated pipeline is judged against.
 
 2. **We converse on visual assertions.** Progress is discussed by *overlaying the extracted data on
@@ -56,16 +56,16 @@ paper** so the sets are never averaged together. Paper index and the intake prot
 
 6. **Commit rule for images.** Commit image files **only if** they come from real data, or we agree
    they are valuable as progress or ground truth. In practice:
-   - **Rendered overlay PNGs are gitignored** (`analysis/overlays/`, `analysis/annotated/`) —
-     regenerate them from the scripts; do not commit them without explicit agreement.
+   - **Rendered overlay PNGs are not committed** — regenerate them; do not commit them without
+     explicit agreement.
    - **Commit the scripts and the derived numeric results** (the markdown tables) — those are the
      tracked progress.
 
 ## Visualization conventions (how we show progress)
 
-The annotated overlay is the standard way we look at progress. **Source of truth:**
-[`annotate_overlays.py`](../analysis/annotate_overlays.py). Regenerate:
-`python3 analysis/annotate_overlays.py [name-substring ...]` → writes to `analysis/annotated/` (gitignored).
+The annotated overlay is the standard way we look at progress. It was first built for the 2D figure panels
+(`annotate_overlays.py`, retired with that pipeline; in git at commit e49f676); the page now draws a version's
+model over the stack, and the style below still holds for any figure made of one.
 
 The owner iterated to this exact style — keep it:
 
@@ -85,8 +85,6 @@ The owner iterated to this exact style — keep it:
   (capillary/artery split), total length + density, junction count, area %. An uncalibrated panel
   gets no overlay at all — `annotate_overlays.py` skips it and says so, rather than drawing a bar
   it cannot justify.
-- **Tuning knobs** (in `annotate_overlays.py`): `CONTOUR_A` (contour opacity), `ARROW_A` / `RING_A`
-  (arrow/ring alpha), `SC` (render scale), `ARTERY_DIAM_PX` (caliber threshold, in `measure_vessels.py`).
 
 ## File map
 
@@ -96,14 +94,16 @@ The owner iterated to this exact style — keep it:
 | `references/METHODS-SYNTHESIS.md` | Cross-paper method comparison: what the literature does, what we adopted, what we rejected. |
 | `references/<paper>/digest.md` | Self-contained digest per paper — read this instead of the PDF. |
 | `references/<paper>/figures/` + `panels/` | Full figures and cropped panels; `VESSEL_*.png` = working-dataset inputs; each `README.md` = inventory + descriptions. |
-| `references/wang-2022-cd31-vascular-network/figures/panels/expected-results.md` | Visual (LLM) expected results for the primary 16 panels — the validation reference. |
-| `analysis/measure_vessels.py` | Extraction + metrics (categorize/count/measure). `--overlays` writes a 3-panel debug view. |
-| `analysis/annotate_overlays.py` | Presentation overlays in the style above. |
-| `analysis/results-first-pass.md` | Measured results, calibration, limitations. |
-| `analysis/STATUS.md` | Current state and agreed next step. |
-| `analysis/3D-STACKS.md` | The 3D work on the raw stacks: why flattening is not enough, what the literature does, open questions, ledger. |
-| `analysis/extraction/` | Versioned 3D-stack vessel extractors, their shared score, provisional labels and ledger; `lab.py` runs them all. |
-| `analysis/export_stack_view.py` + `analysis/stack_view/` | One raw stack → a rotatable 3D web viewer for the owner's feedback. |
-| `data/README.md` | The owner's raw confocal stacks: kept in the study root's `Data` folder on Google Drive, never in git; fetched by `analysis/stacks.py` the first time one is needed. What is known about the microscope and how to read the stacks. |
+| `references/wang-2022-cd31-vascular-network.md#figures` | Visual (LLM) expected results for the primary 16 panels — the validation reference. |
+| `algorithm/` | The study's algorithm, the only Python the page loads: `vascular.py` (read a stack, the versions, the scorer), `vessel_model.py` (the tracer), `evidence.py` (widths and the plausibility card), `v2_…` to `v5_…` (the versions). |
+| `lab/` | Research records: `LEDGER.md` (every extraction attempt) and `truth/` (the provisional Fable labels). The shared harness that runs and scores the versions is the repo's `lab/`. |
+| `docs/results-first-pass.md` | The first pass's measured results on the figure panels, calibration, limitations. |
+| `docs/STATUS.md` | Current state and agreed next step. |
+| `docs/3D-STACKS.md` | The 3D work on the raw stacks: why flattening is not enough, what the literature does, open questions, ledger. |
+| `data/README.md` | The owner's raw confocal stacks: kept in the study root's `Data` folder on Google Drive, never in git; fetched by `python3 lab/fetch.py vascular`. What is known about the microscope and how to read the stacks. |
 
-Setup: `pip install -r requirements.txt` (numpy, scipy, scikit-image, Pillow, gdown, tifffile). Raw stacks: `python3 analysis/stacks.py`.
+The 2D figure-panel pipeline (`measure_vessels.py`, `annotate_overlays.py`) and the early 3D spikes
+(`trace_vessel_graph.py`, `export_stack_view.py` with its `stack_view/` viewer) are retired; they are in git at
+commit e49f676, in the study's former `analysis` folder.
+
+Setup: `pip install -r requirements.txt` (numpy, scipy, scikit-image, Pillow, gdown, tifffile). Raw stacks: `python3 lab/fetch.py vascular`.

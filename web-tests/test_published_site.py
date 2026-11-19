@@ -51,24 +51,6 @@ def test_nothing_else_of_a_study_ships():
         assert rest == 'study.json' or python or page, p
 
 
-def test_the_files_a_study_generates_ship_as_its_scripts_write_them(tmp_path):
-    """req/shell/site/published-files: each file a study's generated names is published, its script's output, run
-    from the study's folder."""
-    import contextlib, io, runpy
-    build.assemble(ROOT, str(tmp_path), {})
-    got, made = published(), 0
-    for sid in STUDIES:
-        base = os.path.join(ROOT, 'studies', sid)
-        for out, script in json.load(open(os.path.join(base, 'study.json'))).get('generated', {}).items():
-            assert out.startswith('web/'), out
-            assert f'studies/{sid}/{out}' in got, out
-            with contextlib.redirect_stdout(io.StringIO()) as want:
-                runpy.run_path(os.path.join(base, script), run_name='__main__')
-            assert open(tmp_path / 'studies' / sid / out).read() == want.getvalue(), out
-            made += 1
-    assert made, 'no study generates a file: the sweep is not looking at the manifests'
-
-
 def test_every_file_a_study_page_fetches_is_published():
     """req/nor/metrics: a file the page reads beside its own module (new URL(..., import.meta.url)) must ship with it; a
     folder it reads under (a base address handed to an engine) must ship with files in it."""
@@ -85,8 +67,8 @@ def test_every_file_a_study_page_fetches_is_published():
 def test_research_files_stay_home():
     got = published()
     for kept in ('studies/nor/docs/requirements.md', 'studies/nor/tests/test_red_floor.py',
-                 'studies/nor/detection/lab/ledger.md', 'studies/nor/detection/STATE.md',
-                 'studies/nor/detection/browser/bench_live.mjs', 'studies/nor/data/sources.json',
+                 'studies/nor/lab/ledger.md', 'studies/nor/lab/STATE.md',
+                 'studies/nor/lab/browser/bench_live.mjs', 'studies/nor/data/sources.json',
                  'studies/nor/docs/WARMUP.md'):
         assert os.path.exists(os.path.join(ROOT, kept)), f'{kept} moved: pick another research file'
         assert kept not in got, kept

@@ -9,6 +9,7 @@
 // like one loaded from the computer.
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
+import { isVsi, pairBytes } from "./vsi.js";
 
 const GOOGLE = (window.NOR_CONFIG && window.NOR_CONFIG.google) || {};
 // what a study's image from Drive is, as its source records it on this device and in the documents it writes
@@ -21,6 +22,13 @@ const FOLDER = "application/vnd.google-apps.folder";
 // the private property every file the page creates carries, which only this site's own reads see
 const MINE = { rauntruth: "made" };
 const THROTTLING = "Google is throttling this site's downloads";
+const PICKER_TITLE = "Choose the study's folders this site may work in";
+const FOLDERS_GUIDE = { title: "Letting this site into the study's folders", go: "Open Google's window", wait: "Waiting for Google: follow these steps in Google's window." };
+const PICKER_STEP = { text: "Google's window lists the study's folders: tick each one, then click <b>Select</b>.",
+  drawn: `<div class="guide-picker" aria-hidden="true"><div class="gp-title">${PICKER_TITLE}</div>
+<div class="gp-row"><span class="gp-box"></span><span class="gp-folder"></span>Study folder</div>
+<div class="gp-row"><span class="gp-box"></span><span class="gp-folder"></span>GT submissions</div>
+<div class="gp-foot"><span class="gp-select">Select</span><span class="gp-cancel">Cancel</span></div></div>` };
 const RUN_OUT = "Your Google sign-in has run out: click again to renew it";
 
 // The bodies of Drive's uploads, written out as bytes, not a FormData or a Blob: Playwright's WebKit hands a page test
@@ -97,6 +105,7 @@ export const remote = (() => {
   // the bytes so far at the start of buffer; total is null when Drive does not say
   async function file(id, name, onStart, onChunk) {
     need();
+    if (pairs.has(id)) return pair(id, name || pairs.get(id).name, onStart);
     const at = `${API}/${encodeURIComponent(id)}`;
     if (!name) {
       const r = await get(`${at}?fields=name,mimeType`);
@@ -148,11 +157,41 @@ export const remote = (() => {
     const q = encodeURIComponent(`'${id}' in parents and trashed = false`);
     const r = await get(`${API}?q=${q}&fields=files(id,name,mimeType,size,createdTime,thumbnailLink,sha256Checksum)&pageSize=1000&orderBy=folder,name`);
     if (!r.ok) throw refused(r, "folder");
-    return (await r.json()).files
+    const all = (await r.json()).files
       .map((f) => ({ id: f.id, name: f.name, folder: f.mimeType === "application/vnd.google-apps.folder",
         size: f.size == null ? null : +f.size, created: f.createdTime ? new Date(f.createdTime) : null,
         preview: driveThumb(f), sha: f.sha256Checksum || null }))
       .filter((f) => f.folder || opens(f.name));
+    // a cellSens image is one row: its .vsi, its _<name>_ folder not listed (req/shell/image/cellsens); its size is
+    // the pixels', unknown until its folder is read
+    const held = new Set();
+    for (const f of all) {
+      const folder = !f.folder && isVsi(f.name) && all.find((g) => g.folder && g.name === `_${f.name.replace(/\.vsi$/i, "")}_`);
+      if (!folder) continue;
+      pairs.set(f.id, { name: f.name, folder: folder.id });
+      held.add(folder.id); f.size = null;
+    }
+    return all.filter((f) => !held.has(f.id));
+  }
+
+  // the cellSens images listed so far, by their .vsi's id: {name, folder} (req/shell/image/cellsens)
+  const pairs = new Map();
+  // a folder's one entry named name, whatever its kind
+  async function child(folder, name) {
+    const q = encodeURIComponent(`'${folder}' in parents and trashed = false`);
+    const r = await get(`${API}?q=${q}&fields=files(id,name)&pageSize=1000`);
+    if (!r.ok) throw refused(r, "folder");
+    const f = (await r.json()).files.find((x) => x.name === name);
+    if (!f) throw new Error(`${name} is missing from this cellSens image's folder.`);
+    return f.id;
+  }
+  // a cellSens image as one file: its .vsi, then its folder's stack1 and the .ets in it, the three reads its .vsi
+  // adds, zipped together
+  async function pair(id, name, onStart) {
+    const at = pairs.get(id), vsi = await download(id);
+    if (onStart) onStart(name);
+    const ets = await download(await child(await child(at.folder, "stack1"), "frame_t_0.ets"));
+    return { name, bytes: (await pairBytes(name, new Uint8Array(await vsi.arrayBuffer()), new Uint8Array(await ets.arrayBuffer()))).buffer };
   }
 
   // [{id, name, folder, size, sha, modified, properties, preview}] every file and folder in a folder, whatever its kind,
@@ -181,6 +220,15 @@ export const remote = (() => {
     return !!(await r.json()).capabilities?.canAddChildren;
   }
 
+  // whether the site's key alone reads a file or a folder, as one shared "Anyone with the link" is read: true, false,
+  // or null when the site has no key to ask with (req/shell/data/folders)
+  async function publicly(id) {
+    if (!key) return null;
+    const r = await fetch(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
+    if (r.status === 404 || r.status === 403) return false;
+    return r.ok ? true : null;
+  }
+
   // a file's or a folder's name
   async function name(id) {
     need();
@@ -193,6 +241,10 @@ export const remote = (() => {
   // The writer for a study's own folders, for a signed-in user: account the sign-in (account.js)
   function writer(account) {
     let script = null;
+    // the guide to Google's windows on approving folders (req/shell/account/consent-guide): the per-file permission's
+    // box, and Google's picker as the page opens it, drawn
+    const fileStep = () => ({ text: "Tick the box to <b>see, edit, create and delete only the specific Google Drive files you use with this app</b> (or <b>Select all</b>), then click <b>Continue</b>.",
+      shot: account.shot("consent-file"), from: "another app's screen, from ifunplay's help centre" });
     // a live token, renewed in the user's click where it has run out, else an Error asking for another click
     const token = async () => {
       const t = await account.forRead();
@@ -206,6 +258,27 @@ export const remote = (() => {
       let why = "";
       try { why = (await r.json()).error?.message || ""; } catch { /* no words */ }
       throw Object.assign(new Error(`Google refused (${r.status})${why ? ": " + why : ""}`), { status: r.status });
+    }
+    // Google's picker script, loaded once, a failed load tried again on the next call
+    const picker = () => (script ||= new Promise((ok, fail) => document.head.append(Object.assign(document.createElement("script"), { src: PICKER_SCRIPT, async: true, onload: ok, onerror: fail })))
+      .then(() => new Promise((ok) => window.gapi.load("picker", ok)))
+      .catch((e) => { script = null; throw e; }));
+    // in the guide's click: Google's per-file permission where still missing, then its picker on just these folders,
+    // the guide aside under it; true once the picker closes, false when the user gave no permission
+    async function pick(folders) {
+      if (!account.may(DRIVE_FILE) && !(await account.more(DRIVE_FILE))) return false;
+      await picker();
+      const p = window.google.picker, t = await token();
+      account.guide.aside(PICKER_STEP);
+      return new Promise((ok) => {
+        const view = new p.DocsView().setFileIds(folders.map((f) => f.id).join(",")).setIncludeFolders(true)
+          .setSelectFolderEnabled(true).setMimeTypes(FOLDER).setMode(p.DocsViewMode.LIST);
+        new p.PickerBuilder().addView(view).enableFeature(p.Feature.MULTISELECT_ENABLED)
+          .setTitle(PICKER_TITLE)
+          .setOAuthToken(t).setDeveloperKey(key).setAppId((GOOGLE.clientId || "").split("-")[0])
+          .setCallback((d) => { if (d.action === p.Action.PICKED || d.action === p.Action.CANCEL) ok(true); })
+          .build().setVisible(true);
+      });
     }
     return {
       // "write", "view" (approved, but Drive gives the user no more than a view), "none" (not approved for this
@@ -221,23 +294,13 @@ export const remote = (() => {
           throw e;
         }
       },
-      // In the user's click: Google's per-file permission, then its picker on just these folders ([{id, name}]) to
-      // approve all or some. Resolves once the picker closes; false when the user gave no permission.
+      // In the user's click: the guide to Google's screens (req/shell/account/consent-guide), then, in its click,
+      // Google's per-file permission, then its picker on just these folders ([{id, name}]) to approve all or some.
+      // Resolves once the picker closes; false when the user gave no permission or closed the guide.
       async approve(folders) {
-        if (!account.may(DRIVE_FILE) && !(await account.more(DRIVE_FILE))) return false;
-        await (script ||= new Promise((ok, fail) => document.head.append(Object.assign(document.createElement("script"), { src: PICKER_SCRIPT, async: true, onload: ok, onerror: fail })))
-          .then(() => new Promise((ok) => window.gapi.load("picker", ok)))
-          .catch((e) => { script = null; throw e; }));
-        const p = window.google.picker, t = await token();
-        return new Promise((ok) => {
-          const view = new p.DocsView().setFileIds(folders.map((f) => f.id).join(",")).setIncludeFolders(true)
-            .setSelectFolderEnabled(true).setMimeTypes(FOLDER).setMode(p.DocsViewMode.LIST);
-          new p.PickerBuilder().addView(view).enableFeature(p.Feature.MULTISELECT_ENABLED)
-            .setTitle("Choose the study's folders this site may work in")
-            .setOAuthToken(t).setDeveloperKey(key).setAppId((GOOGLE.clientId || "").split("-")[0])
-            .setCallback((d) => { if (d.action === p.Action.PICKED || d.action === p.Action.CANCEL) ok(true); })
-            .build().setVisible(true);
-        });
+        const g = { ...FOLDERS_GUIDE, steps: account.may(DRIVE_FILE) ? [PICKER_STEP] : [...account.unverified, fileStep(), PICKER_STEP] };
+        try { await account.guide.open(g); } catch { return false; }
+        try { return await pick(folders); } finally { account.guide.done(); }
       },
       // a new file in folder parent: its id
       async create(parent, name, blob) {
@@ -299,7 +362,7 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, canWrite, writer, study,
+    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),

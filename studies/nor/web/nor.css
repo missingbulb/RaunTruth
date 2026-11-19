@@ -32,10 +32,6 @@
 .param.bool { grid-template-columns: 1fr auto; }
 .param.bool .name { grid-column: 1; }
 .param.text input { grid-column: 1 / 3; padding: 2px 6px; background: var(--panel); }
-#finder-note { margin: 8px 0 0; }
-#finder-note p { margin: 6px 0 0; }
-#finder-note ul, #finder-note ol { margin: 4px 0 0; padding-left: 16px; }
-#finder-note li > ul, #finder-note li > ol { margin-top: 2px; }
 /* the filter presets: each one's precision and recall on the ground truth */
 #presets { display: flex; margin: 0 0 8px; }
 #presets[hidden] { display: none; }
@@ -119,6 +115,11 @@
    over the bottom of its crop */
 #selected-box { position: absolute; top: 12px; right: 24px; z-index: 5; max-width: calc(100% - 260px); box-shadow: 0 4px 14px #0008; border-radius: var(--r-ctl); }
 #selected-box[hidden] { display: none; }
+/* the Edit History window (req/shell/ground-truth/history) is the one thing this card can meet: its top yields, nor.js telling
+   how much of the top right the card holds */
+#edit-history { max-height: calc(100% - 24px - var(--eh-yield, 0px)); }
+/* its ring is mint, near enough the image's green that it needs an edge: the glow under it is a dark casing here */
+#overlay g[data-layer="ring"] > :first-child { stroke: #000; stroke-opacity: .8; }
 #selected .card { background: var(--panel); margin: 0; }
 .stepper { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; background: var(--panel); }
 .stepper button { border: 0; border-radius: 0; background: transparent; width: 32px; padding: 2px 0; font-size: 16px; line-height: 1.2; }
@@ -158,30 +159,18 @@
 #ctx .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
 #ctx .item:hover, #ctx .item:focus-visible { color: var(--accent); }
 #ctx[hidden], #card-menu[hidden] { display: none; }
-
-/* the summary mask: its borders as a pulsing dashed line; its inside tinted only when areas overlap or nest */
-.mask-btns { display: flex; gap: 6px; margin-bottom: 10px; }
-.mask-btns button { padding: 3px 10px; font-size: 12px; }
 #settings-box .reset-row { display: flex; justify-content: flex-end; margin-top: 4px; }
-.mask-btns button[hidden] { display: none; }
-#overlay .mask-marks { pointer-events: none; }
-#overlay .mask-marks .edge { fill: none; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke;
-  animation: mask-pulse 1.6s ease-in-out infinite alternate; }
-#overlay .mask-marks .edge.under { stroke: #000; stroke-dasharray: none; stroke-width: 2.5; stroke-opacity: .5; animation: none; }
-#overlay .mask-marks .fill { fill: #fff; fill-opacity: .07; stroke: none; }
-@keyframes mask-pulse { from { stroke-opacity: 1; } to { stroke-opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { #overlay .mask-marks .edge { animation-duration: 6s; } }
-#overlay .lasso-live { fill: #ffffff14; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-#scroller.lassoing, #scroller.lassoing #overlay g[data-i] { cursor: crosshair; }
-#lasso-hint { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 5px 14px; border-radius: 999px;
-  background: var(--shade); border: 1px solid var(--line); font-weight: 600; font-size: 13px; pointer-events: none; }
-#lasso-hint[hidden] { display: none; }
+
 
 /* the open ground-truth task's tools on its row, and its item's card under it */
 #task-now[hidden], #card-menu[hidden], #task-tools[hidden], #area-check[hidden], #show-menu [hidden] { display: none; }
 #area-ok { width: 100%; margin-top: 6px; }
 #task-tools { display: inline-flex; align-items: center; gap: 6px; }
 #task-tools .link { font-size: 12px; padding: 2px 0; white-space: nowrap; }
+/* each task button's key, the shell's, a small chip beside its label (req/nor/truth/keys) */
+#tasks-box kbd.key-on { font: 10px/1 ui-monospace, monospace; padding: 2px 4px;
+  margin-left: 6px; border: 1px solid currentColor; border-bottom-width: 2px; border-radius: 4px; opacity: .6; vertical-align: middle; }
+#task-tools kbd.key-on { margin-left: 3px; padding: 1px 3px; font-size: 9px; }
 #task-tools .link:disabled { opacity: .4; }
 #task-tools #card-menu summary { padding: 2px 4px; border: 0; background: none; color: var(--dim); display: inline-flex; }
 #task-tools #card-menu summary::after { content: none; }

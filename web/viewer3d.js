@@ -4,6 +4,8 @@
 // of the 3D view's own under them shows part of the depth and sets the spacing between slices. Each channel may be
 // coloured by depth instead of in its colour: an icon tick on its row, and its colour picker then a palette picker
 // (the channel's `depth`, a palette's key; a study's channels may set it, true taking a palette no other channel has).
+// The 2D view's Ruler measures here too, on the plane of the top slice shown. ring(box) rings a box of the image over the
+// stack at its middle depth, and never pans.
 // The study's `view` in study.json sets what the 3D view opens with: render ("brightest" | "surface") and the
 // spacing between slices when the file does not say, with who stated it (spacingSource).
 //
@@ -11,6 +13,9 @@
 // slice of every channel, channel by channel.
 "use strict";
 import { asLoaded } from "./as_loaded.js";
+import { drag } from "./drag.js";
+import { rulerMarks, rulerText } from "./viewer2d.js";
+import { PALETTES, paletteAt, rgb } from "./depth_palettes.js";
 
 const MAX_SIDE = 640; // the GPU's budget: a ray samples every voxel it crosses, so a wider volume is binned to this
 const CHANNELS = 4;   // the most channels the 3D view adds together
@@ -140,30 +145,6 @@ void main(){
   o = vec4(0.,0.,0.,1.);
 }`;
 
-const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-// the Turbo palette's colours, a depth (0..1) to [r, g, b] of 0 to 1
-function turbo(x) {
-  x = 0.12 + 0.8 * Math.min(Math.max(x, 0), 1);
-  const p = (k, k2) => k[0] + k[1] * x + k[2] * x * x + k[3] * x ** 3 + k2[0] * x ** 4 + k2[1] * x ** 5;
-  return [p([0.13572138, 4.6153926, -42.66032258, 132.13108234], [-152.94239396, 59.28637943]),
-    p([0.09140261, 2.19418839, 4.84296658, -14.18503333], [4.27729857, 2.82956604]),
-    p([0.1066733, 12.64194608, -60.58204836, 110.36276771], [-89.90310912, 27.34824973])].map((v) => Math.min(Math.max(v, 0), 1));
-}
-
-// the palettes a channel coloured by depth is painted in, from its first slice shown to its last: eight stops each,
-// the shader blending between them
-const hexes = (...h) => h.map((x) => rgb("#" + x));
-const PALETTES = {
-  turbo: { name: "Turbo", stops: Array.from({ length: 8 }, (_, i) => turbo(i / 7)) },
-  viridis: { name: "Viridis", stops: hexes("440154", "46327e", "365c8d", "277f8e", "1fa187", "4ac16d", "a0da39", "fde725") },
-  plasma: { name: "Plasma", stops: hexes("0d0887", "5302a3", "8b0aa5", "b83289", "db5c68", "f48849", "febd2a", "f0f921") },
-  cool: { name: "Cool", stops: Array.from({ length: 8 }, (_, i) => [i / 7, 1 - i / 7, 1]) },
-};
-// a palette's colour at x, 0..1 through the slices shown, [r, g, b] of 0 to 1, as the shader blends it
-function paletteAt(key, x) {
-  const st = PALETTES[key].stops, t = Math.min(Math.max(x, 0), 1) * 7, i = Math.min(Math.floor(t), 6), f = t - i;
-  return st[i].map((v, c) => v + (st[i + 1][c] - v) * f);
-}
 const gradient = (key) => `linear-gradient(90deg, ${PALETTES[key].stops.map((c) => `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`).join(",")})`;
 
 // planes: C channel volumes of Z × H × W, channel by channel, binned in x and y by `bin` (block mean), slice by slice
@@ -185,14 +166,14 @@ function binned(planes, at, C, Z, W, H, bin) {
 export function viewer3d(shell, flat) {
   const { $, page } = shell;
   const html = (tag, props) => Object.assign(document.createElement(tag), props);
-  let active = false, gl = null, U = {}, tex = [], dirty = true, vol = null, mode3d = false;
+  let active = false, gl = null, U = {}, tex = [], frame = 0, vol = null, mode3d = false;
   // clip: [x0, y0, x1, y1] in world units, the part of the stack shown, or null for all; spot: {x, y, r}, the part of the
   // screen kept clear while the rest dims (x and y fractions of the width and height, r of the height), or null;
   // held: a drag neither turns nor pans the view, which only zooms
   const S = { mode: 0, iso: 0.35, z0: 0, z1: 0, zs: 1, rot: facing(0, 0), dist: FIT_DIST, pivot: [0, 0, 0], dragging: false, clip: null, spot: null, held: false };
   let mask = null, keepSide = 0;
   const drawers = [], spacingHeard = [], resetHeard = [];
-  let half = [1, 1, 0.1];
+  let half = [1, 1, 0.1], perWorld = 1; // perWorld: µm (or the image's pixels) in a world unit across x and y
 
   // ---------- the page's parts: Reset view to top in the toolbar beside Zoom, the slices' row and Colour by depth
   // under the channels' rows, the stage in the 2D one's place ----------
@@ -243,21 +224,26 @@ export function viewer3d(shell, flat) {
   const depthRows = () => { flat.rowsWith(mode3d ? depthRow : null); redraw(); };
   const stage = html("div", { id: "v3-stage", hidden: true });
   const cv = html("canvas", { id: "v3-gl" }), hudCv = html("canvas", { id: "v3-hud" });
-  // whether a plain drag pans rather than turns: the label's state, and shift held over it; kept only while the page is open
-  const panBtn = html("button", { id: "v3-pan", type: "button", textContent: "Panning", title: "Press Shift to pan, or click to keep panning on" });
+  // whether a plain drag pans rather than turns: its row's state in the keys legend, and shift held; kept only while
+  // the page is open. Shift is heard here, wherever the focus is, its row only lit by it
   let panOn = false, shiftHeld = false;
   const panning = () => panOn || shiftHeld;
-  const showPan = () => panBtn.setAttribute("aria-pressed", String(panning()));
-  panBtn.onclick = () => { panOn = !panOn; showPan(); };
-  const heldShift = (on) => { if (shiftHeld !== on) { shiftHeld = on; showPan(); } };
-  addEventListener("keydown", (e) => { if (e.key === "Shift") heldShift(true); });
-  addEventListener("keyup", (e) => { if (e.key === "Shift") heldShift(false); });
-  addEventListener("blur", () => heldShift(false));
-  showPan();
-  // the labels at the bottom left, one above the other, each with the key that holds it on beside it; a study may add its own above
-  const keys = html("div", { className: "v3-keys" });
-  keys.append(panBtn, html("span", { className: "v3-key", textContent: "shift" }));
-  stage.append(cv, hudCv, keys);
+  addEventListener("keydown", (e) => { if (e.key === "Shift") { shiftHeld = true; shell.actions.refresh(); } });
+  addEventListener("keyup", (e) => { if (e.key === "Shift") { shiftHeld = false; shell.actions.refresh(); } });
+  addEventListener("blur", () => { shiftHeld = false; shell.actions.refresh(); });
+  // its row in the keys legend, there while this viewer is the study's
+  let panRow = null;
+  function panKey(on) {
+    panRow?.abort(); panRow = on ? new AbortController() : null;
+    if (on) shell.actions.add({ id: "v3-pan", label: "Panning", title: "Press Shift to pan, or click to keep panning on", keys: ["ShiftLeft", "ShiftRight"],
+      hint: "shift", kind: "toggle", legend: true, wired: false, active: () => !stage.hidden, on: panning, handler: (phase) => { if (phase === "click") panOn = !panOn; } }, panRow.signal);
+  }
+  const rulerSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  rulerSvg.id = "v3-ruler";
+  // the ring the Edit History window hovers, over the stage: a box of the image, [x0, y0, x1, y1], at the stack's middle depth
+  const ringEl = html("div", { className: "v3-ring", hidden: true });
+  let ringBox = null;
+  stage.append(cv, hudCv, rulerSvg, ringEl);
 
   // ---------- GL ----------
   function initGL() {
@@ -311,12 +297,11 @@ export function viewer3d(shell, flat) {
   }
   function geometry() {
     const um = page.get("image")?.um || 1, ext = [vol.X * vol.bin * um, vol.Y * vol.bin * um, vol.Z * S.zs], m = Math.max(...ext);
-    half = ext.map((e) => e / m);
+    half = ext.map((e) => e / m); perWorld = m / 2;
   }
 
   // ---------- drawing ----------
   function render() {
-    dirty = false;
     if (!vol || stage.hidden || !gl) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (S.dragging ? 0.6 : 1);
     const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
@@ -343,6 +328,7 @@ export function viewer3d(shell, flat) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     zoomText();
     hud(vp);
+    rulerDraw(vp);
     for (const fn of drawers) fn();
   }
   // the stack's box and its size, and its three axes through the pivot, the one point that stays put while it turns
@@ -381,37 +367,40 @@ export function viewer3d(shell, flat) {
     for (const [t, , b] of ends) c.fillText(t, b[0] + 3, b[1] - 3);
     c.restore();
   }
-  const redraw = () => { dirty = true; };
-  const loop = () => { if (dirty) render(); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
+  // drawn on the next frame after a change, a run of changes drawn once, and no frame drawn with nothing changed
+  const redraw = () => { frame ||= requestAnimationFrame(() => { frame = 0; render(); }); };
+  redraw();
   new ResizeObserver(redraw).observe(stage);
   flat.onDrawn(redraw);
 
   // ---------- turning, zooming and panning: drag turns about the screen's axes, a sideways scroll about the line of
   // sight, a drag pans while panning is on (or shift is held), as a right-drag does, wheel or pinch zooms ----------
-  // on any canvas that shows the stack's camera; grab(e), when given, sees each press first and may take that pointer
-  // for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where it began
+  // on any canvas that shows the stack's camera; an armed ruler takes each press first, then grab(e), when given, may
+  // take that pointer for its own drag by returning {move(e), up(e), cancel()}; click(e) hears a left press let go where
+  // it began
   function controls(el, grab, click) {
-    const pts = new Map(), own = new Map(), down = new Map();
-    let last = null;
+    const pts = new Map(), down = new Map();
+    // the camera as the gesture's first press found it, for a cancelled gesture to put back
+    let last = null, was = null;
     el.addEventListener("pointerdown", (e) => {
-      el.setPointerCapture(e.pointerId);
-      const g = grab && !pts.size ? grab(e) : null;
-      if (g) { own.set(e.pointerId, g); return; }
+      const g = pts.size ? null : rulerGrab(e, el) || grab?.(e);
+      if (g) return drag(el, e, { move: g.move, drop: g.up, cancel: () => g.cancel?.() });
       if (e.button === 0 && !pts.size) down.set(e.pointerId, [e.clientX, e.clientY]); else down.clear();
+      if (!pts.size) was = { rot: S.rot, pivot: S.pivot, dist: S.dist };
       pts.set(e.pointerId, [e.clientX, e.clientY]); S.dragging = true; last = null;
+      drag(el, e, { move, drop: end, cancel });
     });
-    const end = (e) => {
-      const g = own.get(e.pointerId);
-      if (g) { own.delete(e.pointerId); if (e.type === "pointerup") g.up(e); else g.cancel?.(); return; }
+    function end(e) {
       const d = down.get(e.pointerId); down.delete(e.pointerId);
       pts.delete(e.pointerId); if (!pts.size) { S.dragging = false; redraw(); } last = null;
-      if (click && d && e.type === "pointerup" && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
-    };
-    el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
-    el.addEventListener("pointermove", (e) => {
-      const g = own.get(e.pointerId);
-      if (g) return g.move(e);
+      if (click && d && Math.hypot(e.clientX - d[0], e.clientY - d[1]) < CLICK_PX) click(e);
+    }
+    function cancel() {
+      if (!pts.size) return;
+      pts.clear(); down.clear(); last = null;
+      Object.assign(S, was, { dragging: false }); redraw();
+    }
+    function move(e) {
       if (!pts.has(e.pointerId)) return;
       const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
       const dx = e.clientX - prev[0], dy = e.clientY - prev[1], k = 2.2 / el.clientHeight;
@@ -423,7 +412,7 @@ export function viewer3d(shell, flat) {
       else if (panning() || e.shiftKey || e.buttons === 2) pan((-dx * k * S.dist) / 3, (dy * k * S.dist) / 3);
       else { S.rot = turn(S.rot, 1, -dx * TURN_PER_PX); S.rot = turn(S.rot, 0, -dy * TURN_PER_PX); }
       redraw();
-    });
+    }
     el.addEventListener("contextmenu", (e) => e.preventDefault());
     el.addEventListener("wheel", (e) => {
       e.preventDefault();
@@ -433,6 +422,56 @@ export function viewer3d(shell, flat) {
       redraw();
     }, { passive: false });
     new ResizeObserver(redraw).observe(el);
+  }
+
+  // ---------- the ruler, the 2D view's (req/shell/tools/ruler) on the plane of the top slice shown: its points in
+  // world coordinates, and while dragging an orb of the reach around the first ----------
+  const R = { armed: false, from: null, to: null, live: false }, rulerBtn = $("#ruler-btn");
+  function rulerSet(on) {
+    Object.assign(R, { armed: on, from: null, to: null, live: false });
+    rulerBtn.setAttribute("aria-pressed", on); stage.classList.toggle("measuring", on); redraw();
+  }
+  // where the line of sight through a pointer on el meets the plane z of the world, [x, y, z]; null where the view looks along it
+  function atDepth(e, z, el = cv) {
+    const r = el.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
+    const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height) * 2;
+    const [a, b] = [-1, 1].map((d) => { const w = M.xf(iv, [nx, ny, d]); return w.slice(0, 3).map((v) => v / w[3]); });
+    if (Math.abs(b[2] - a[2]) < 1e-9) return null;
+    const t = (z - a[2]) / (b[2] - a[2]);
+    return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), z];
+  }
+  const topSlice = () => half[2] * (1 - (2 * S.z0) / vol.Z);
+  function rulerDraw(vp) {
+    rulerSvg.replaceChildren();
+    if (!R.from) return;
+    const W = cv.clientWidth, H = cv.clientHeight;
+    rulerSvg.setAttribute("width", W); rulerSvg.setAttribute("height", H);
+    const P = (p) => { const v = M.xf(vp, p); return v[3] > 0 ? [((v[0] / v[3] + 1) / 2) * W, ((1 - v[1] / v[3]) / 2) * H] : null; };
+    const a = P(R.from), b = P(R.to), reach = Math.hypot(R.to[0] - R.from[0], R.to[1] - R.from[1]);
+    if (!a || !b) return;
+    const rim = R.live && P(R.from.map((v, i) => v + reach * S.rot[0][i]));
+    rulerMarks(rulerSvg, a, b, rulerText(reach * perWorld, page.get("image")?.um ? "µm" : "px"), (mk) => {
+      if (!rim) return [];
+      const fill = mk("radialGradient", { id: "v3-orb-fill", cx: 0.38, cy: 0.34, r: 0.7 });
+      for (const [o, op] of [[0, 0.42], [0.65, 0.12], [1, 0.26]]) fill.append(mk("stop", { offset: o, "stop-color": "#fff", "stop-opacity": op }));
+      const defs = mk("defs", {}); defs.append(fill);
+      return [defs, mk("circle", { class: "orb", cx: a[0], cy: a[1], r: Math.hypot(rim[0] - a[0], rim[1] - a[1]), fill: "url(#v3-orb-fill)" })];
+    });
+  }
+  // an armed ruler takes every left press for its drag, on the top slice shown; one let go within a few pixels, or where
+  // the view looks along that slice, measures nothing
+  function rulerGrab(e, el) {
+    if (!R.armed || e.button !== 0 || !vol) return null;
+    const p = atDepth(e, topSlice(), el);
+    if (!p) return { move() {}, up() {} };
+    Object.assign(R, { from: p, to: p, live: true, at: [e.clientX, e.clientY] }); redraw();
+    const drop = (e) => {
+      R.live = false;
+      if (!e || Math.hypot(e.clientX - R.at[0], e.clientY - R.at[1]) < CLICK_PX) R.from = R.to = null;
+      else { R.armed = false; stage.classList.remove("measuring"); }
+      redraw();
+    };
+    return { move(e) { const q = atDepth(e, R.from[2], el); if (q) { R.to = q; redraw(); } }, up: drop, cancel: () => drop(null) };
   }
   controls(cv);
 
@@ -495,7 +534,9 @@ export function viewer3d(shell, flat) {
     stage.hidden = !mode3d; tools.hidden = !mode3d; $("#scroller").hidden = mode3d;
     flat.rowsAfter(mode3d ? [slicesRow] : []); flat.rowsWith(mode3d ? depthRow : null);
     flat.zoomWith(mode3d ? (k) => { S.dist = Math.min(Math.max(S.dist / k, MIN_DIST), 12); redraw(); } : null);
+    rulerSet(false); flat.rulerWith(mode3d ? () => rulerSet(rulerBtn.getAttribute("aria-pressed") !== "true") : null);
     if (mode3d) $("#view").dataset.v3 = ""; else delete $("#view").dataset.v3;
+    if (ringBox) { flat.ring(mode3d ? null : ringBox); placeRing(); }
     redraw();
   }
 
@@ -507,11 +548,8 @@ export function viewer3d(shell, flat) {
     const drawn = !!initGL();
     const bin = Math.max(1, Math.ceil(Math.max(im.W, im.H) / (drawn ? Math.min(MAX_SIDE, gl.getParameter(gl.MAX_3D_TEXTURE_SIZE)) : MAX_SIDE)));
     const { vols, X, Y } = binned(im.planes, C * im.W * im.H, Math.min(C, CHANNELS), im.Z, im.W, im.H, bin);
-    // an edit redrawn (req/shell/data/edit) is the same image: the view stays as the user left it, turned
-    const again = im.edited && !!vol;
     vol = { vols, X, Y, Z: im.Z, bin };
     const v = shell.study?.view || {};
-    if (again) { Object.assign(S, { z0: 0, z1: im.Z - 1 }); ui("v3-z0").max = ui("v3-z1").max = im.Z - 1; upload(); sync(); return show3d(drawn); }
     Object.assign(S, { mode: v.render === "surface" ? 1 : 0, z0: 0, z1: im.Z - 1,
       rot: facing(0, 0), dist: FIT_DIST, pivot: [0, 0, 0], clip: null, spot: null, held: false });
     ui("v3-z0").max = ui("v3-z1").max = im.Z - 1;
@@ -530,10 +568,11 @@ export function viewer3d(shell, flat) {
   const first = () => { const rows = flat.levels(); const k = rows.findIndex((c, i) => c.on && i < vol.vols.length); return k < 0 ? 0 : k; };
   const three = {
     M, S, FIT_DIST, facing,
+    // the ruler on the view: its first and last point in world coordinates, while it is drawn
+    get ruler() { return R.from ? { from: [...R.from], to: [...R.to] } : null; },
     get meta() { return vol ? { shape: [vol.Z, vol.Y, vol.X], um_per_px: (page.get("image")?.um || 1) * vol.bin } : null; },
     get half() { return half; },
     get stage() { return stage; },
-    get keys() { return keys; },
     camera, redraw, controls, axes,
     // whether a drag pans rather than turns just now, for a study's own drags to give way to it
     get panning() { return panning(); },
@@ -559,13 +598,8 @@ export function viewer3d(shell, flat) {
     // a pointer's place on the shown image's pixels at the stack's middle depth, [x, y]; null where the view looks along
     // that plane. From straight above it is the pixel under the pointer, through every slice.
     toImage(e) {
-      if (!vol) return null;
-      const r = cv.getBoundingClientRect(), iv = M.inv(camera(r.width / r.height));
-      const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height) * 2;
-      const [a, b] = [-1, 1].map((d) => { const w = M.xf(iv, [nx, ny, d]); return w.slice(0, 3).map((v) => v / w[3]); });
-      if (Math.abs(b[2] - a[2]) < 1e-9) return null;
-      const t = -a[2] / (b[2] - a[2]), x = a[0] + t * (b[0] - a[0]), y = a[1] + t * (b[1] - a[1]);
-      return [((x / half[0] + 1) / 2) * vol.X * vol.bin, ((1 - y / half[1]) / 2) * vol.Y * vol.bin];
+      const w = vol && atDepth(e, 0);
+      return w && [((w[0] / half[0] + 1) / 2) * vol.X * vol.bin, ((1 - w[1] / half[1]) / 2) * vol.Y * vol.bin];
     },
     // where a pixel of the shown image at the stack's middle depth lies on the view, [x, y] from its top left; null
     // behind the camera
@@ -614,6 +648,14 @@ export function viewer3d(shell, flat) {
     // the first shown channel's volume, slices of Y rows of X, and its colour for a value at a depth (0..1 through the
     // slices shown), as the 3D view paints it: [r, g, b] of 0 to 255
     volume: () => vol && vol.vols[first()],
+    // the same channel at the stack's own pixels, never binned: {X, Y, Z, data}, slices of Y rows of X, a view into the
+    // page's image rather than a copy
+    pixels() {
+      const im = page.get("image");
+      if (!vol || !im) return null;
+      const n = im.W * im.H, C = Math.floor(im.planes.length / (n * (1 + im.Z))), c = first(), at = C * n + c * im.Z * n;
+      return { X: im.W, Y: im.H, Z: im.Z, data: im.planes.subarray(at, at + im.Z * n) };
+    },
     // the depth colours of the first shown channel coloured by depth, as the 3D view paints them: a depth (0..1
     // through the slices shown) to [r, g, b] of 0 to 1; null while no shown channel is coloured by depth
     depthPalette() {
@@ -627,11 +669,26 @@ export function viewer3d(shell, flat) {
     },
   };
 
+  function placeRing() {
+    const at = ringBox && mode3d ? three.toScreen((ringBox[0] + ringBox[2]) / 2, (ringBox[1] + ringBox[3]) / 2) : null;
+    ringEl.hidden = !at;
+    if (at) { ringEl.style.left = `${at[0]}px`; ringEl.style.top = `${at[1]}px`; }
+  }
+  drawers.push(placeRing);
+
   return {
     ...flat,
     three,
+    // rings a box of the image (viewer2d.js's ring): at the stack's middle depth while the stack is shown in 3D, with no pan
+    // the 3D view has no pan, so what it rings is always in view
+    inView: (box) => (mode3d ? true : flat.inView(box)),
+    ring(box, opts) {
+      ringBox = box ? box.slice(0, 4) : null;
+      flat.ring(mode3d ? null : box, opts);
+      placeRing();
+    },
     // the shell says whether this is the viewer of the study on the page; the 3D parts go when it is not
-    active(on) { active = on; placed(on); take(on ? page.get("image") : null); },
+    active(on) { active = on; panKey(on); placed(on); take(on ? page.get("image") : null); },
     get overlay() { return flat.overlay; }, get scroller() { return flat.scroller; },
   };
 }

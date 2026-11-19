@@ -1,7 +1,7 @@
 {
   "about": "The fixture study's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow.",
   "grafts": [
-    {"under": "Processing", "tree": [
+    {"under": "Processing", "after": "Algorithms", "tree": [
       {"name": "Study: its processing", "select": "#fx-box", "req": "req/shell/study/knows-none",
         "children": [
           {"name": "Threshold", "select": "#fx-threshold", "control": true, "req": "req/shell/study/knows-none"},
@@ -15,6 +15,16 @@
       {"name": "Study: the count is right", "select": "#fx-check", "req": "req/shell/ground-truth/tasks",
         "children": [
           {"name": "Study: its tick", "select": "#fx-done", "control": true, "req": "req/shell/ground-truth/tasks"}
+        ]
+      },
+      {"name": "Study: its marks' tools", "select": "#fx-marks-tools", "req": "req/shell/ground-truth/history",
+        "children": [
+          {"name": "Study: Add a mark", "select": "#fx-add", "control": true, "req": "req/shell/ground-truth/history"},
+          {"name": "Study: Delete mark", "select": "#fx-del", "control": true, "req": "req/shell/ground-truth/history",
+            "rule": [
+              {"is": "disabled", "approval": "tentative", "about": "no path selects a mark"}
+            ]
+          }
         ]
       }
     ]},

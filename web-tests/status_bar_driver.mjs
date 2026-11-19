@@ -278,7 +278,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
-    const rows = [...document.querySelectorAll("#gt-tasks > li")], part = document.querySelector('#gt-bar > span[data-task="check"]'), s = document.querySelector("#gt-submit");
+    const rows = [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")], part = document.querySelector('#gt-bar > span[data-task="check"]'), s = document.querySelector("#gt-submit");
     return { rows: rows.map((li) => (li.querySelector(".t") || li.querySelector("#gt-submit")).textContent.trim()), last: rows.at(-1).contains(s),
       open: rows[0].classList.contains("now"), done: rows[0].classList.contains("done"), tick: getComputedStyle(rows[0].querySelector(".tick")).display !== "none",
       body: !!document.querySelector("#fx-done").offsetParent && rows[0].querySelector(".task-body").contains(document.querySelector("#fx-done")),
@@ -308,7 +308,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await steps(page, ["Load image", "Count", "Submit GT"], []);
   await check(/squares_gt\.json/.test(await tip(page, "Submit GT")), "Submit GT says what was exported");
   await shot(page, "3-done");
-  // another image starts over
+  // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
+  page.once("dialog", (d) => d.accept());
   await loadImage(page);
   await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
 
@@ -457,8 +458,13 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
     const squeezed = await page.evaluate(() => {
       const bar = document.querySelector("#statusbar").getBoundingClientRect(), box = (s) => document.querySelector(s).getBoundingClientRect();
       const whole = (e) => { const r = e.getBoundingClientRect(); return r.width >= e.scrollWidth - 1 && r.left >= bar.left && r.right <= bar.right; };
+      // a crumb's own words inside it: its scrollWidth also counts the shine sweeping past its clipped edge
+      const wordsWhole = (e) => {
+        const r = e.getBoundingClientRect(), w = document.createRange(); w.selectNodeContents(e); const t = w.getBoundingClientRect();
+        return t.left >= r.left - 0.5 && t.right <= r.right + 0.5 && r.left >= bar.left && r.right <= bar.right;
+      };
       const right = ["#sb-res-icon", "#sb-online", "#sb-report", "#sb-version"];
-      return { steps: [...document.querySelectorAll("#sb-steps .crumb")].every(whole), right: right.filter((id) => !whole(document.querySelector(id))),
+      return { steps: [...document.querySelectorAll("#sb-steps .crumb")].every(wordsWhole), right: right.filter((id) => !whole(document.querySelector(id))),
         overlap: right.slice(1).filter((id, k) => box(right[k]).right > box(id).left),
         outside: box("#sb-res-icon").right > box("#sb-res").right + 0.5,
         status: box("#sb-now").width < document.querySelector("#status").scrollWidth };
@@ -584,8 +590,12 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   // another study's label speaks of that study
   const other = await hoverStage(page, "nor");
   await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a PreGT study, hovering NoR Finder's label highlights GT, its own", other);
+  // with animations off, leaving it closes it all the same
+  const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
   await page.mouse.move(700, 600);
-  await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"));
+  const closed = await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: 3000 }).then(() => true, () => false);
+  await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
+  await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
   await loadImage(page);
   await switchIs(page, "Items", false, "the shell keeps the switch off until the study has counted its items");

@@ -37,7 +37,7 @@ let origin, clientId = CLIENT;
 // Google's script: its token client answers each request at once with a new token, recording what it was asked
 const SCRIPT = `window.google = { accounts: { oauth2: { initTokenClient(o) {
   window.tokenClient = { client: o.client_id, scope: o.scope, asked: [] };
-  return { requestAccessToken(opts) { window.tokenClient.asked.push(opts || {}); setTimeout(() => o.callback({ access_token: "tok-" + Date.now(), expires_in: 3599 })); } };
+  return { requestAccessToken(opts) { window.tokenClient.asked.push(opts || {}); queueMicrotask(() => o.callback({ access_token: "tok-" + Date.now(), expires_in: 3599 })); } };
 } } } };`;
 
 // the user's app folder in Drive: at most one file, and every request the page made to Google
@@ -95,7 +95,7 @@ const until = async (fn, ms = 5000) => {
   for (const end = Date.now() + ms; ; ) {
     if (await fn()) return true;
     if (Date.now() >= end) return false;
-    await new Promise((ok) => { const wake = () => { clearTimeout(t); waiting.delete(wake); ok(); }, t = setTimeout(wake, end - Date.now()); waiting.add(wake); });
+    await new Promise((ok) => { const wake = () => { clearTimeout(t); waiting.delete(wake); ok(); }, t = setTimeout(wake, end - Date.now()); waiting.add(wake); }); // bounds a hang: a request that never comes ends the wait
   }
 };
 // a page showing something, within ms
@@ -132,9 +132,12 @@ async function device(seed) {
   await page.waitForFunction(() => document.querySelector("#title").textContent);
   return { ctx, page };
 }
+// no one signed in here, a sign-in first opens the guide to Google's screens (req/shell/account/consent-guide): on through it
+const throughGuide = async (page) => { await page.waitForSelector("#guide-dlg[open]"); await page.click("#guide-go"); };
 const signInVia = async (page) => {
   await page.click("#user-menu summary");
   await page.click("#sign-in");
+  await throughGuide(page);
   // a sign-in that never finishes says how far it got
   await page.waitForFunction(() => !document.querySelector("#sign-out").hidden).catch(async (e) => {
     const state = await page.evaluate(() => ({ asked: window.tokenClient?.asked?.length ?? "no token client", calls: window.googleCalls, status: document.querySelector("#status")?.textContent }))
@@ -162,6 +165,7 @@ try {
     "signing in asks for the user's name, email and picture, the app's own Drive folder and to read their Drive, no more of it", drives);
   await shot(a.page, "account_signed_out");
   await a.page.click("#sign-in");
+  await throughGuide(a.page);
   await a.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
   check(await a.page.textContent("#who-name") === "Ada Lovelace" && await a.page.textContent("#who-where") === "ada@acme.example",
     "signed in, the menu names the user");
@@ -238,18 +242,21 @@ try {
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
     drive.validFrom = Date.now();
+    // off the page first: a sync still running on it would write the sign-in back, an hour long
+    const at = b.page.url();
+    await b.page.goto(origin + "/web/no-page-here");
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
       localStorage.removeItem("nor-seen-version"); // the page writes it again as it loads: a setting that changes with no click
     });
-    await b.page.reload();
+    await b.page.goto(at);
     await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden && window.tokenClient);
   };
   const askedNow = () => b.page.evaluate(() => window.tokenClient.asked.length);
   await expire();
   const before = seen.length;
   // to light, by a script, once the user activation a test's evaluate itself carries (5 s) is over
-  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500));
+  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
   await shows(b.page, () => document.documentElement.dataset.theme === "light", undefined, 10000);
   check(await local(b.page, "nor-theme") === "light" && await askedNow() === 0 && file()["nor-theme"] === "dark", "a change no user made asks Google for nothing");
   const calls = await googleCalls(b.page);

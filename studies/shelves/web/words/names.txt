@@ -1,7 +1,7 @@
 # Hebrew words of Hebrew Wikipedia's article titles, in 3 titles or more, most titles first, less those of the
 # subtitle word list the page fetches beside this one. From https://dumps.wikimedia.org/hewiki/20261101/hewiki-20261101-all-titles-in-ns0.gz
 # (sha256 92790b80debed2894a7c9f4e43c67e65319406b236d660154d4cf372e8a64e4c); Wikipedia's text is licensed CC BY-SA 4.0 (creativecommons.org/licenses/by-sa/4.0/), as this
-# file is. Written by studies/shelves/lab/words.py.
+# file is. Written by lab/shelves_words.py.
 פירושונים
 יהדות
 אהרן

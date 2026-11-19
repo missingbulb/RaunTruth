@@ -26,7 +26,7 @@ export function welcome({ dialog, account, avatar, tip }) {
     const remember = $("#welcome-remember").checked;
     $("#welcome-failed").hidden = true;
     account.signIn().then(() => { write({ choice: account.kind, remember }); dialog.close(); },
-      () => { $("#welcome-failed").hidden = false; });
+      (e) => { $("#welcome-failed").hidden = !!e.cancelled; });
   };
   $("#welcome-anonymous").onclick = () => { choose("anonymous"); dialog.close(); if (account.signedIn()) account.signOut(); };
 

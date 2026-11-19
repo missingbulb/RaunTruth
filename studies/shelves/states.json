@@ -1,7 +1,7 @@
 {
   "about": "The Bookshelf Reader's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow; its roots and paths open this study. `samples` names the module writing the image or z-stack its paths load; `standIn` the module standing in for what its page reaches off the site; `differ` says where a shell element shows otherwise in this study. `counted` is its first step, Find books, done.",
   "grafts": [
-    {"under": "Processing", "tree": [
+    {"under": "Processing", "after": "Algorithms", "tree": [
       {"name": "Finding and reading", "select": "#bs-box", "req": "req/shelves/books/find",
         "children": [
           {"name": "Reader", "select": "#bs-reader", "control": true, "req": "req/shelves/read/readers"},
@@ -25,10 +25,13 @@
     {"under": "Summary", "tree": [
       {"name": "Titles", "select": "#bs-titles", "req": "req/shelves/read/readers",
         "children": [
+          {"name": "Books counted", "select": "#bs-count", "req": "req/shelves/summary"},
           {"name": "Titles' list", "select": "#bs-list", "req": "req/shelves/read/readers"},
           {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export"}
         ]
       }
+    ]},
+    {"under": "Keys legend", "tree": [
     ]},
     {"under": "Image view", "after": "Minimap", "tree": [
       {"name": "Drawing hint", "select": "#bs-draw-hint", "req": "req/shelves/truth/task", "steady": "shows only while a book is drawn",
@@ -46,12 +49,6 @@
   "samples": "tests/state_samples.py",
   "standIn": "tests/reader_stand_in.mjs",
   "differ": {
-    "Continue tagging": {
-      "steady": "hidden in every state of this study: no path keeps a draft",
-      "rule": [
-        {"is": "hidden", "req": "req/shell/ground-truth/draft", "about": "until a draft of the photo is kept on this device, which no path leaves, Start GT tagging shown in its place"}
-      ]
-    },
     "Ruler": {
       "steady": "hidden in every state of this study",
       "rule": [

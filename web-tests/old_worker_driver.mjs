@@ -56,8 +56,10 @@ try {
   const left = await scopes();
   check(!left.length, "after: the old registration is gone: " + JSON.stringify(left));
   await page.goto(origin + "/app/");
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 }).catch(() => {});
-  check(JSON.stringify(await scopes()) === '["/app/"]', "after: /app/ registers its own worker, scoped to the app: " + JSON.stringify(await scopes()));
+  await until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }).catch(() => {});
+  // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
+  const now = await scopes();
+  check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));
 } catch (e) {
   failed = true; console.error("FAILED:", e.message);
 } finally {

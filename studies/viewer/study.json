@@ -10,7 +10,7 @@
   "viewer": "image3d",
   "python": {
     "paths": [
-      "py/"
+      "algorithm/"
     ],
     "entry": "viewer",
     "packages": [],
@@ -20,9 +20,12 @@
     "module": "web/viewer.js"
   },
   "files": {
-    "from": ["local", "drive"],
-    "accept": ".tif,.tiff,.png",
-    "empty": "Load a TIFF or PNG to look at it, each channel in its own colour."
+    "from": [
+      "local",
+      "drive"
+    ],
+    "accept": ".tif,.tiff,.png,.vsi",
+    "empty": "Load a TIFF, a PNG or a cellSens .vsi to look at it, each channel in its own colour."
   },
   "channels": [],
   "progress": {

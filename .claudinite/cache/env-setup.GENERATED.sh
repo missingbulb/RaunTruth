@@ -8,15 +8,15 @@
 cd "$(dirname "$0")/../.." || exit 0
 npx --yes --prefer-offline @claudinite/setup@1.0.1 >/dev/null || echo 'cn env: the engine was not pre-warmed; SessionStart fetches it' >&2
 
-echo '=== Python imaging stack (numpy, scipy, pillow, matplotlib) and the page tests'\'' Pyodide (pack local/nor-finder) ==='
+echo '=== Python imaging stack (numpy, scipy, pillow, matplotlib, onnxruntime), the Tesseract command, and the libraries the page tests run (Pyodide, libheif, OpenJPEG) (pack local/nor-finder) ==='
 if ! (
-python3 -m pip install --quiet --root-user-action=ignore -r requirements.txt && python3 -m pip install --quiet --root-user-action=ignore --ignore-installed pillow && npm install --silent --prefix web-tests pyodide@314.0.7
+python3 -m pip install --quiet --root-user-action=ignore -r requirements.txt && python3 -m pip install --quiet --root-user-action=ignore --ignore-installed pillow && python3 web-tests/page_libraries.py && (command -v tesseract >/dev/null || (apt-get update -qq && apt-get install -y -qq --no-install-recommends tesseract-ocr))
 ); then
-  echo 'cn env: Python imaging stack (numpy, scipy, pillow, matplotlib) and the page tests'\'' Pyodide (pack local/nor-finder): setup failed' >&2
+  echo 'cn env: Python imaging stack (numpy, scipy, pillow, matplotlib, onnxruntime), the Tesseract command, and the libraries the page tests run (Pyodide, libheif, OpenJPEG) (pack local/nor-finder): setup failed' >&2
 elif ! (
-python3 -c "import numpy, scipy, PIL, matplotlib" >/dev/null 2>&1 && test -f web-tests/node_modules/pyodide/package.json
+python3 -c "import numpy, scipy, PIL, matplotlib, onnxruntime" >/dev/null 2>&1 && command -v tesseract >/dev/null && python3 web-tests/page_libraries.py --check
 ); then
-  echo 'cn env: Python imaging stack (numpy, scipy, pillow, matplotlib) and the page tests'\'' Pyodide (pack local/nor-finder): setup ran, but its probe still fails' >&2
+  echo 'cn env: Python imaging stack (numpy, scipy, pillow, matplotlib, onnxruntime), the Tesseract command, and the libraries the page tests run (Pyodide, libheif, OpenJPEG) (pack local/nor-finder): setup ran, but its probe still fails' >&2
 fi
 
 exit 0

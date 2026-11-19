@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookshelf Reader: phone ground truth (mock-up)</title>
+<style>
+  :root {
+    --page: #e9e6e0; --ink: #1c1b19; --soft: #6a665f; --screen: #faf8f4; --card: #ffffff;
+    --line: #d6d1c7; --go: #1f6f4a; --go-ink: #ffffff; --no: #9b2c2c; --btn: #efece5;
+    --mark: #ffd400; --mark-under: #111; --bezel: #24221f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #121110; --ink: #f0ede6; --soft: #a39e94; --screen: #1b1a18; --card: #26241f;
+      --line: #3a372f; --go: #3fa873; --go-ink: #0c1a12; --no: #e07a7a; --btn: #302d27;
+      --bezel: #050505;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--page); color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Hebrew", Arial, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 36px 0 12px; color: var(--soft); font-weight: 600; }
+  p.lead { margin: 0 0 20px; color: var(--soft); max-width: 70ch; }
+  .row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+  figure { margin: 0; flex: none; }
+  figcaption { width: 360px; margin-top: 10px; font-size: 13px; color: var(--soft); }
+  figcaption b { color: var(--ink); }
+  .phone { width: 360px; height: 740px; border: 8px solid var(--bezel); border-radius: 34px; background: var(--screen);
+    display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .bar { padding: 14px 16px 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--soft); }
+  .bar .count { color: var(--ink); font-weight: 600; }
+  .bar .fill { flex: 1; }
+  .prog { display: flex; gap: 3px; padding: 0 16px; }
+  .prog i { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; display: block; }
+  .prog i b { display: block; height: 100%; background: var(--go); }
+  .stage { flex: 1; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .q { font-size: 22px; font-weight: 650; margin: 2px 0 0; }
+  .hint { font-size: 13px; color: var(--soft); margin: -6px 0 0; }
+  .thumb { padding: 12px 16px 22px; display: grid; gap: 10px; }
+  .two { grid-template-columns: 1fr 1fr; }
+  .five { grid-template-columns: repeat(5, 1fr); }
+  button { font: inherit; font-size: 17px; font-weight: 600; min-height: 60px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--btn); color: var(--ink); padding: 8px 10px; }
+  button.go { background: var(--go); color: var(--go-ink); border-color: transparent; }
+  button.no { color: var(--no); }
+  button.small { min-height: 46px; font-size: 14px; font-weight: 500; }
+  button.read { min-height: 58px; font-size: 20px; text-align: start; padding-inline: 16px; background: var(--card); }
+  .links { display: flex; justify-content: space-between; font-size: 13px; color: var(--soft); padding: 0 4px; }
+
+  /* spines */
+  .shelf { display: flex; align-items: flex-end; gap: 2px; background: #3b2a1c; padding: 8px 6px 0; border-bottom: 9px solid #5a4028;
+    border-radius: 4px; height: var(--h, 120px); overflow: hidden; }
+  .sp { flex: none; width: var(--w, 20px); height: var(--t, 96%); background: var(--c, #456); border-radius: 2px 2px 0 0;
+    color: var(--f, #f3e9c8); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; letter-spacing: .3px; position: relative; }
+  .sp.lean { transform: rotate(-5deg); transform-origin: bottom left; margin-right: 6px; }
+  .sp.cut { background: #000 !important; color: transparent; }
+  .sp.cur { outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); z-index: 1; }
+  .sp.dim { opacity: .35; }
+  .gap { flex: none; display: flex; gap: 2px; align-items: flex-end; height: 100%; padding: 0 2px; position: relative;
+    outline: 2px dashed var(--mark); outline-offset: 1px; box-shadow: 0 0 0 4px var(--mark-under); }
+  .chip { border-radius: 6px; height: var(--h, 62px); background: var(--c, #456); color: var(--f, #f3e9c8); display: flex;
+    align-items: center; justify-content: space-between; padding: 0 14px; gap: 12px; font-weight: 700; position: relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25), inset 0 10px 14px -10px rgba(255,255,255,.35); }
+  .chip .t { font-size: 22px; } .chip .a { font-size: 14px; font-weight: 600; opacity: .9; } .chip .p { font-size: 10px; opacity: .8;
+    border: 1px solid currentColor; padding: 2px 5px; border-radius: 3px; }
+  .chip .flip { position: absolute; top: -12px; inset-inline-end: -6px; background: var(--card); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 20px; font-size: 12px; padding: 4px 10px; font-weight: 600; }
+  .linebox { outline: 2px solid var(--mark); box-shadow: 0 0 0 4px var(--mark-under); border-radius: 3px; padding: 0 4px; }
+  .zoom { border-radius: 8px; background: var(--c); color: var(--f); height: 96px; display: flex; align-items: center;
+    justify-content: center; font-size: 40px; font-weight: 800; letter-spacing: 1px; filter: blur(.5px) contrast(.92); }
+  .swipe { display: flex; justify-content: space-between; font-size: 12px; color: var(--soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .toks { display: flex; flex-wrap: wrap; gap: 8px; direction: rtl; }
+  .tok { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 20px; background: var(--card); }
+  .tok.bad { border: 2px solid var(--no); }
+  .alts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .alts button { font-size: 20px; min-height: 54px; }
+  .entry { flex: 1; display: flex; flex-direction: column; padding: 28px 20px 0; gap: 14px; }
+  .entry h3 { font-size: 26px; margin: 0; }
+  .photo { display: flex; gap: 12px; align-items: center; }
+  .photo .pic { width: 64px; height: 48px; border-radius: 6px; background: repeating-linear-gradient(90deg, #7a3b2e 0 7px, #2d4a66 7px 12px, #c8a24a 12px 20px, #2f5d43 20px 26px); border-bottom: 5px solid #5a4028; flex: none; }
+  .photo small { color: var(--soft); display: block; }
+  .switch { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .switch i { width: 46px; height: 28px; border-radius: 14px; background: var(--line); position: relative; flex: none; }
+  .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--card); }
+  .big { font-size: 54px; font-weight: 700; margin: 0; }
+  .tally { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 16px; }
+  .tally b { text-align: end; }
+  .seam { position: absolute; top: -6px; bottom: 0; width: 0; border-left: 2px dashed var(--mark); filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000); }
+</style>
+</head>
+<body>
+<h1>Bookshelf Reader: ground truth on a phone</h1>
+<p class="lead">A design mock-up, nothing built. Each frame is 360 × 740. Spines, titles and counts are invented. Marks are yellow over black, a pair that shows on any spine colour.</p>
+
+<div class="row">
+
+<figure>
+  <div class="phone">
+    <div class="entry">
+      <div style="color:var(--soft);font-size:13px">Bookshelf Reader</div>
+      <h3>Tag books</h3>
+      <div class="card photo"><div class="pic"></div><div><b>Living room, left case</b><small>60 books · 12 decided · about 22 min left</small></div></div>
+      <div class="card photo"><div class="pic" style="filter:hue-rotate(80deg)"></div><div><b>Study, top shelves</b><small>19 books · not started</small></div></div>
+      <div class="card photo" style="opacity:.6"><div class="pic" style="filter:grayscale(1)"></div><div><b>Hallway</b><small>Open it on the computer first: not yet found and read</small></div></div>
+      <div class="switch"><i></i><span>I am standing at this shelf<br><small style="color:var(--soft)">Lets you read a title off the book itself</small></span></div>
+    </div>
+    <div class="thumb">
+      <button class="go">Continue: Living room</button>
+      <button class="small">Take a new photo</button>
+    </div>
+  </div>
+  <figcaption><b>1. Entry.</b> One tap from the link or QR code to the first open task. Photos already found and read on a computer are ready; the phone runs no finder.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">13/60 Books</span><span class="fill"></span><span>Shelf 2 of 5</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:14%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <div class="shelf" style="--h:150px">
+        <div class="sp cut" style="--w:22px"></div><div class="sp cut" style="--w:17px;--t:88%"></div>
+        <div class="sp cur" style="--w:26px;--c:#7a2f2a">חולית</div>
+        <div class="sp" style="--w:26px;--c:#7a2f2a">משיח חולית</div>
+        <div class="sp" style="--w:19px;--c:#22405e;--t:90%">FOUNDATION</div>
+        <div class="sp" style="--w:30px;--c:#d9c27a;--f:#2a2412">זר בארץ נוכריה</div>
+        <div class="sp" style="--w:15px;--c:#2f5d43;--t:84%">עם עובד</div>
+        <div class="sp lean" style="--w:21px;--c:#5b3a6b">Ubik</div>
+        <div class="sp" style="--w:24px;--c:#1d1d1f">NEUROMANCER</div>
+        <div class="sp" style="--w:18px;--c:#a34b23;--t:92%">המוסד</div>
+        <div class="sp" style="--w:27px;--c:#3d5a80">יד שמאל של חושך</div>
+        <div class="sp" style="--w:20px;--c:#6b705c">סולאריס</div>
+      </div>
+      <p class="q">One book?</p>
+      <div class="chip" dir="rtl" style="--c:#7a2f2a;--h:74px">
+        <span class="a">פרנק הרברט</span><span class="t">חולית</span><span class="p">מעריב</span>
+        <span class="flip">⟲ Flip</span>
+      </div>
+      <div class="swipe"><span>← swipe: not a book</span><span>swipe: one book →</span></div>
+    </div>
+    <div class="thumb">
+      <div class="thumb two" style="padding:0"><button class="small">Two or more</button><button class="small">Box is off</button></div>
+      <div class="thumb two" style="padding:0"><button class="no">Not a book</button><button class="go">One book</button></div>
+      <div class="links"><span>‹ Back</span><span>Next ›</span></div>
+    </div>
+  </div>
+  <figcaption><b>2. One book?</b> The spine straightened and laid on its side, text reading across, with its place on the shelf above. Decided books are cut out to black. About 2 s.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">13/60 Books</span><span class="fill"></span><span>Line 2 of 3</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:14%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <div class="chip" dir="rtl" style="--c:#d9c27a;--f:#2a2412;--h:52px">
+        <span class="a">רוברט היינליין</span><span class="t linebox" style="font-size:17px">זר בארץ נוכריה</span><span class="p">עם עובד</span>
+      </div>
+      <div class="zoom" dir="rtl" style="--c:#d9c27a;--f:#2a2412">זר בארץ נוכריה</div>
+      <p class="q">What does this line say?</p>
+    </div>
+    <div class="thumb">
+      <button class="read" dir="auto">זר בארץ נוכריה</button>
+      <button class="read" dir="auto">זר כארץ נוכריה</button>
+      <button class="read" dir="auto">זר בארץ נוכרית</button>
+      <div class="thumb two" style="padding:0"><button class="small">None of these</button><button class="small">Can't read</button></div>
+      <div class="links"><span>‹ Back</span><span>No text here</span></div>
+    </div>
+  </div>
+  <figcaption><b>3. Title, a line at a time.</b> The line enlarged; the readers' different readings as buttons, the look-alike letters (ב/כ, ה/ת) being exactly what they disagree on. About 3 s when one is right.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">Shelf 2</span><span class="fill"></span><span>14 books, 3 added</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:100%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <p class="q">Anything left that is a book?</p>
+      <p class="hint">Every decided book is cut out. Drag sideways to see the whole shelf.</p>
+      <div class="shelf" style="--h:230px">
+        <div class="sp cut" style="--w:30px"></div><div class="sp cut" style="--w:24px;--t:88%"></div><div class="sp cut" style="--w:34px"></div>
+        <div class="sp cut" style="--w:34px"></div><div class="sp cut" style="--w:26px;--t:90%"></div><div class="sp cut" style="--w:38px"></div>
+        <div class="sp" style="--w:9px;--c:#e8e2d2;--t:70%"></div>
+        <div class="sp cut" style="--w:20px;--t:84%"></div><div class="sp cut" style="--w:28px"></div><div class="sp cut" style="--w:31px"></div>
+        <div class="sp cut" style="--w:24px;--t:92%"></div>
+      </div>
+      <p class="hint" style="margin-top:0">One thin pale strip is still showing: a pamphlet, or the wall?</p>
+    </div>
+    <div class="thumb">
+      <button class="small">Tap what is left on the picture</button>
+      <button class="go">Nothing left</button>
+      <div class="links"><span>‹ Back</span><span></span></div>
+    </div>
+  </div>
+  <figcaption><b>4. Shelf check.</b> The one coarse step, last on each shelf and the owner's: whatever is not black has not been decided. About 4 s.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="entry" style="justify-content:center">
+      <div style="color:var(--soft);font-size:13px">Living room, left case</div>
+      <p class="big">63 books</p>
+      <div class="card tally">
+        <b>39</b><span>the finder's boxes kept</span>
+        <b>24</b><span>missed books added</span>
+        <b>5</b><span>boxes that were no book</span>
+        <b>4</b><span>titles nobody could read</span>
+        <b>27 min</b><span>in 3 sittings</span>
+      </div>
+      <p class="hint" style="margin:0">Saved as the same ground-truth file the computer makes.</p>
+    </div>
+    <div class="thumb">
+      <button class="go">Submit ground truth</button>
+      <button class="small">Next photo: Study, top shelves</button>
+    </div>
+  </div>
+  <figcaption><b>5. Done.</b> Submit is the last task, as on the desktop, with the same counts in its checklist.</figcaption>
+</figure>
+
+</div>
+
+<h2>The hard cases</h2>
+<div class="row">
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">Shelf 2</span><span class="fill"></span><span>Gap 3 of 4</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:70%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <p class="q">How many books here?</p>
+      <p class="hint">Count only inside the dashed frame.</p>
+      <div class="shelf" style="--h:290px;justify-content:center">
+        <div class="sp dim" style="--w:44px;--c:#22405e;font-size:13px">FOUNDATION</div>
+        <div class="gap">
+          <div class="sp" style="--w:46px;--c:#14342b;font-size:14px">שר הטבעות א</div>
+          <div class="sp" style="--w:46px;--c:#14342b;font-size:14px">שר הטבעות ב</div>
+          <div class="sp" style="--w:46px;--c:#14342b;font-size:14px">שר הטבעות ג</div>
+        </div>
+        <div class="sp dim" style="--w:40px;--c:#a34b23;--t:90%;font-size:13px">המוסד</div>
+      </div>
+    </div>
+    <div class="thumb">
+      <div class="thumb five" style="padding:0"><button>0</button><button>1</button><button>2</button><button class="go">3</button><button>4+</button></div>
+      <div class="links"><span>‹ Back</span><span>0 = wall, board or empty</span></div>
+    </div>
+  </div>
+  <figcaption><b>6. Missed books as a count.</b> Three volumes of one series, one colour, no visible edge: the finder boxed none. The person answers "3"; the finder is run again on this stretch alone, told to find three.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">Shelf 2</span><span class="fill"></span><span>Gap 3 of 4</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:75%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <p class="q">Are the cuts between the books right?</p>
+      <p class="hint">Tap a line and tap again where it should be. It snaps to the nearest edge.</p>
+      <div class="shelf" style="--h:290px;justify-content:center">
+        <div class="gap" style="outline-style:solid">
+          <div class="sp" style="--w:66px;--c:#14342b;font-size:16px">שר הטבעות א</div>
+          <div class="sp" style="--w:66px;--c:#14342b;font-size:16px">שר הטבעות ב</div>
+          <div class="sp" style="--w:66px;--c:#14342b;font-size:16px">שר הטבעות ג</div>
+          <span class="seam" style="left:69px"></span><span class="seam" style="left:148px"></span>
+        </div>
+      </div>
+    </div>
+    <div class="thumb">
+      <div class="thumb two" style="padding:0"><button class="small">It is not 3 books</button><button class="go">Yes</button></div>
+      <div class="links"><span>‹ Back</span><span></span></div>
+    </div>
+  </div>
+  <figcaption><b>7. Seams, not corners.</b> A cut between two books is one tap along one line; no corner is ever under the finger. The second cut here is off and gets moved. The same screen serves "Two or more" on a box holding two books.</figcaption>
+</figure>
+
+<figure>
+  <div class="phone">
+    <div class="bar"><span class="count">13/60 Books</span><span class="fill"></span><span>Line 1 of 3</span></div>
+    <div class="prog"><i style="flex:11"><b style="width:100%"></b></i><i style="flex:14"><b style="width:14%"></b></i><i style="flex:12"></i><i style="flex:13"></i><i style="flex:10"></i></div>
+    <div class="stage">
+      <div class="zoom" dir="rtl" style="--c:#d9c27a;--f:#2a2412;height:80px;font-size:34px">רוברט היינליין</div>
+      <p class="q">Tap the wrong word</p>
+      <div class="toks"><span class="tok">רוברט</span><span class="tok bad">היינלין</span><span class="tok" style="color:var(--soft)">+</span></div>
+      <p class="hint" style="margin:0">The words run right to left, as on the spine.</p>
+    </div>
+    <div class="thumb">
+      <div class="alts"><button dir="rtl">היינליין</button><button dir="rtl">היינלון</button><button dir="rtl">הייגלין</button></div>
+      <div class="thumb two" style="padding:0"><button class="small">Type this word</button><button class="small no">Delete word</button></div>
+      <button class="go">Line is right</button>
+      <div class="links"><span>‹ Back</span><span>Type the whole line</span></div>
+    </div>
+  </div>
+  <figcaption><b>8. Fix one word.</b> After "None of these": the best reading as words, the alternatives for the tapped word from the look-alike table and the names list (ו and י added or dropped). Typing is one word, with completion, before it is ever a whole line.</figcaption>
+</figure>
+
+</div>
+</body>
+</html>

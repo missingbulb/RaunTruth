@@ -1,11 +1,9 @@
 {
   "about": "The NoR Finder's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow; its roots and paths open this study. `samples` names the module writing the image or z-stack its paths load; `differ` says where a shell element shows otherwise in this study. `counted` is its first step, Run algorithm, done.",
   "grafts": [
-    {"under": "Processing", "tree": [
+    {"under": "Processing", "after": "Algorithms", "tree": [
       {"name": "The finder", "select": "#finder-box", "req": "req/nor/find/finders",
         "children": [
-          {"name": "Algorithm", "select": "#finder", "control": true, "req": "req/nor/find/finders"},
-          {"name": "About the algorithm", "select": "#about-box", "req": "req/nor/find/finders"},
           {"name": "Settings", "select": "#settings-box", "req": "req/nor/find/settings"},
           {"name": "Filters", "select": "#filters-fold", "req": "req/nor/filters/live",
             "rule": [
@@ -19,15 +17,8 @@
     {"under": "Summary", "tree": [
       {"name": "The NoR summary", "select": "#nor-summary", "req": "req/nor/summary/density",
         "children": [
-          {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/nor/summary/mask"},
-          {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/nor/summary/mask", "steady": "shows only once a mask is drawn",
-            "rule": [
-              {"is": "hidden"}
-            ]
-          },
           {"name": "Summary's text", "select": "#summary", "req": "req/nor/summary/density"},
-          {"name": "Download Candidates", "select": "#dl-cands", "control": true, "req": "req/nor/downloads"},
-          {"name": "Download Summary", "select": "#dl-summary", "control": true, "req": "req/nor/downloads"}
+          {"name": "Download Candidates", "select": "#dl-cands", "control": true, "req": "req/nor/downloads"}
         ]
       }
     ]},
@@ -69,6 +60,13 @@
         ]
       }
     ]},
+    {"under": "Keys legend", "tree": [
+      {"name": "Finalists' key", "select": "#key-show-pass", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Rejected's key", "select": "#key-show-fails", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Added NoRs' key", "select": "#key-show-added", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Cut out what is done's key", "select": "#key-show-cut", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
+      {"name": "Frame the area's key", "select": "#key-show-frame", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]}
+    ]},
     {"under": "Main view", "after": "Tasks/Items switch", "tree": [
       {"name": "Show menu", "select": "#show-menu", "req": "req/nor/show-menu", "steady": "always shown"},
       {"name": "Finalists tab", "select": "#tab-pass", "control": true, "req": "req/nor/candidates/decide", "unwalked": "the item view is shelved",
@@ -90,13 +88,6 @@
       {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/views", "unwalked": "the item view is shelved",
         "rule": [
           {"is": "hidden", "req": "req/shell/views/second", "about": "its item view is shelved"}
-        ]
-      }
-    ]},
-    {"under": "Main view", "after": "Busy", "tree": [
-      {"name": "Lasso hint", "select": "#lasso-hint", "req": "req/nor/summary/mask", "steady": "shows only while a mask is drawn",
-        "rule": [
-          {"is": "hidden"}
         ]
       }
     ]},

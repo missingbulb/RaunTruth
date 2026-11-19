@@ -8,26 +8,37 @@ page must do is `req/shelves` in [its requirements](../requirements.md).
 ## Map
 
 ```
-study.json            the study's contract with the shell; stage GT
-py/shelves.py         the Python entry: opens the photo (HEIC through pillow-heif), answers view, find and straighten
-py/books.py           the finder (find), its text finder's view of the photo, and the straightening of four corners
-lab/photos.py         the owner's photos from Drive (data/sources.json), and with --gt the ground truth
-lab/grade.py          the finder and the readers scored against a submitted ground truth
-lab/perf.py           the performance pass: signature, time and peak of `find` over eight inputs (Performance)
-lab/words.py          the names list from one dated dump of Hebrew Wikipedia's titles, into web/words/
-web/shelves.js        the page: Find books, Read titles, the titles in Summary, the ground-truth task and its pictures
-web/reading.js        the three readers, the same module in the page and in the sandbox
-web/words/names.txt   Hebrew Wikipedia titles' words the readings are spelled by after the subtitle list (CC BY-SA 4.0, lab/words.py)
-web/tessdata/         Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
-reading/              the sandbox: read.mjs, find.mjs, perf_pyodide.mjs and the pinned engine builds (package.json)
-tests/                test_books.py and test_grade.py (fast), test_reading.py and test_shelves_page.py (full)
+study.json               the study's contract with the shell and the lab (lab/README.md); stage GT; its `services`
+algorithm/               the study's algorithm, the only Python the page loads; the lab runs the same files
+  shelves.py             the entry: read (HEIC through pillow-heif), VERSIONS (r9, r8, r5, each one go: boxes, then
+                         titles), STAGES (straighten, for the tagger's readers), score, SCORING, NOTES
+  books.py               R9, the text-guided finder (find), its text finder's view of the photo, and the straightening of four corners
+  r8_precise.py          R8, the precise finder, kept as it was (2026-11-10); it straightens with books.py
+  r5_edges.py            R5, the edge-only finder, kept as it was (2026-11-07); it straightens with books.py
+  reading.py             the titles read: the text finder's map, the lines and tesseract readers and the spelling,
+                         asking the environment for det, tesseract and words
+  score.py               how one answer did against one ground truth: half the box, half the title (Score, SCORING.md)
+web/algorithms.json      the page's list of versions, the first its default: each one's title, icon and steps
+web/algorithm_metrics.json  each version's precision and recall, written by `python3 lab/run.py shelves --write`
+web/shelves.js           the page: Find books (one run), Read titles, the titles in Summary, the ground-truth task and its pictures
+web/gt_actions.js        the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: each book has an id (b1, b2, … the finder's, u1, u2, … the tagger's), never shown
+web/old_draft.js         the draft kept before Edit History, offered once through shell.gt.legacy
+web/reading.js           the page's engines: the services the run asks for, and the tagger's three readers
+web/words/names.txt      Hebrew Wikipedia titles' words the readings are spelled by after the subtitle list (CC BY-SA 4.0, lab/shelves_words.py)
+web/tessdata/            Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
+data/sources.json        the owner's photos on Drive, each with its SHA-256, which `python3 lab/fetch.py shelves` fetches
+tests/                   test_books.py, test_score.py, test_versions.py (fast), test_reading.py, test_spelling.py, test_find_bridge.py, test_shelves_page.py, test_gt_actions.py (full)
+docs/literature/         what spine detection, dense-shelf detection and library science already know (start at its README)
 ```
 
 ## The pipeline
 
-1. **Find** (`books.find`, Python, R8, req/shelves/books/find): first the page runs PaddleOCR's text finder
-   (`reading.textMap`, the `lines` reader's own) over Python's view of the photo (`books.text_view`, long side 1280)
-   and hands the finder its map of where text is. Shelves are rows a horizontal edge crosses at least half
+1. **Find** (a version of `shelves.VERSIONS`, req/shelves/books/find): the version chosen in the shell's list
+   (req/shelves/books/versions), R9 (`books.find`, text-guided) at first, R8 (`r8_precise.find`, precise: R9 less its
+   gap search, dark-spine waiver, extra runs and levelling) or R5 (`r5_edges.find`, edge-only: no text finder, the
+   perspective check still on). Text-guided: first the run asks for PaddleOCR's text finder
+   (`reading.text_map`, the `det` service) over its view of the photo (`books.text_view`, long side 1280) and hands
+   the finder its map of where text is. Shelves are rows a horizontal edge crosses at least half
    the photo on, each looked at with a margin. Within a shelf, the edges between books are lines found as Osef does
    (unblurred Sobel, 80% of the rows every book crosses, strongest first, none crossing, wide gaps searched again),
    at leans up to 30°, two of them one when closer at both ends than 0.7 of the shelf's own spacing between its
@@ -48,13 +59,18 @@ tests/                test_books.py and test_grade.py (fast), test_reading.py an
    rectangle, as wide as the box's top and bottom edges on average and as tall as its sides. It samples only the
    photo's pixels around the box (bit-identical to sampling the whole photo, 300 random boxes on a 12 MP photo, and
    about 70 ms a book instead of 120), and a corner may lie outside the photo: what falls outside is black.
-3. **Read** (`reading.js`, JavaScript): the crop at each turn its shape allows (a tall crop turned a quarter either
-   way, a wide one as is or upside down), the most confident kept, by one of three readers:
+3. **Read** (`reading.py`, in the same run): every book boxed, by the `lines` reader (the version's `reader`
+   parameter, `tesseract` the other). The crop at each turn its shape allows (a tall crop turned a quarter either
+   way, a wide one as is or upside down), the most confident kept. Its engines are services: `det` and `tesseract`
+   are, on the page, onnxruntime-web and tesseract.js (`services` in `web/reading.js`), and in the lab, ONNX Runtime
+   and the Tesseract command on the same model and languages (`lab/services.py`). The lab's is the score of record.
+   The tagger's tools on the page (Read titles, a book read again while tagged) are `reader` in `web/reading.js`, the
+   reader chosen of three:
    - `tesseract`: Tesseract 5 (tesseract.js 7.0.0, core 7.0.0), Hebrew and English, on the whole crop;
    - `lines`: PaddleOCR's PP-OCRv4 text finder (ONNX on onnxruntime-web 1.31.1) marks each line, Tesseract reads it;
    - `ppocr`: PP-OCRv4 finds and reads (its reader is Chinese and English: **no Hebrew**).
 
-   Each reading's Hebrew words are then spelled (`spelling` in `reading.js`, R7) by FrequencyWords' subtitle list,
+   Each reading's Hebrew words are then spelled (`spelling`, in `reading.py` and `reading.js` alike, R7) by FrequencyWords' subtitle list,
    fetched from jsDelivr at a pinned commit and kept offline, then the site's names list: a word not on them becomes
    the most frequent listed word one look-alike letter, or one ו or י, away; a final letter inside a run of letters
    ends a word; a run no word fits is parted into listed words. The problems of Hebrew on spines, their classic fixes and the word sources are in
@@ -87,48 +103,69 @@ python3 -m pytest studies/shelves -q -m "not full"
 python3 -m pytest studies/shelves -q
 ```
 
-The sandbox reads like the page does:
+The photos and the ground truth (the study's curated folder on Drive), then every version end to end, natively, scored
+by `algorithm/score.py`; `--write` records the numbers the page lists (`web/algorithm_metrics.json`):
 
 ```
-npm ci --prefix studies/shelves/reading
+python3 lab/fetch.py shelves
+python3 lab/run.py shelves --write
 ```
 
-```
-node studies/shelves/reading/read.mjs PHOTO find lines out.json
-```
+The native run needs `pip install onnxruntime` and `apt-get install tesseract-ocr`; the text finder's model and the
+subtitle word list are fetched once into `data/raw/services/`. Run Tesseract on one thread (`OMP_THREAD_LIMIT=1`):
+its OpenMP threads only fight over a small crop, three times slower on four cores. A run of all three versions on
+the six photos takes about 6 minutes with each version in a process of its own (`lab/run.py shelves r9`, and r8 and
+r5 beside it), then `--write` scores the answers kept in `data/raw/runs/`, kept until the algorithm's code changes. The speed pass is the lab's too: `python3 lab/perf.py shelves snapshot r9`.
 
-`find` runs the study's finder as the page does, the text finder first; a ground-truth file in its place reads its own boxes. `read.mjs` runs the study's
-Python on the npm build of the page's Pyodide (314.0.7), not the container's Python: the container's Pillow decodes
-a JPEG to slightly different pixels than Pyodide's, and on the R0 smoke test that changed four books' readings.
-With Pyodide on both sides the page and the sandbox gave the same text for every book.
+### Score
+
+Since 2026-11-18 (the owner's choices, #1011): a book is a box and its title, half each; a spare box costs only the
+share of it that covers no part of a true book its pair left uncovered; text read on a book the ground truth gives no
+title costs nothing. Every version measured again under it, natively; no number of the earlier box-only score
+(IoU > 0.5) is carried. How it counts: `SCORING` in `algorithm/score.py`, the (?) beside the list; how it was
+designed and validated, and where it breaks: [SCORING.md](SCORING.md).
+
+| version | precision | recall | the page's path, same photos (tesseract.js, Pyodide) |
+|---|---|---|---|
+| R9 | 0.499 | 0.598 | 0.479 / 0.596 |
+| R8 | 0.594 | 0.534 | 0.572 / 0.504 |
+| R5 | 0.538 | 0.367 | 0.521 / 0.360 |
+
+Six ground truths, 133 books. The page's numbers come from the sandbox runs of the scoring's validation, the last
+page-path scoring, made before the sandbox was retired. The two paths agree on the score within 0.03, not book by
+book: the container's Pillow decodes a JPEG to slightly other pixels than Pyodide's, so only about half the boxes
+fall within 2 px of the page's (R9 86 of 170), and Tesseract 5.3 reads otherwise than tesseract.js (29 of those 86
+titles the same). Tuned on: R9 five of the photos, R8 three, R5 none (by eye).
 
 ## Ground truth
 
 One task, Books (`req/shelves/truth/task`): every book, found or added, its corners, turn and text set right or
-the book dropped, walked in the order the books stand (`inPlace` in `shelves.js`), then the missed ones added (the
-photo's right-click menu, or Draw a book), each one more book to review. The tagger's work is the draft the shell keeps
-(`shell.tasks.draft`, `resume`) and Continue tagging brings back; the approved books are cut out of the photo by
+the book dropped, walked in the order the books stand (`inPlace` in `gt_actions.js`), then the missed ones added (the
+photo's right-click menu, or Draw a book), each one more book to review. Every change of the books is a GT action in the
+shell's log (`shell.gt`; `gt_actions.js`): a corner dropped, Flip, a title committed (one `set-text`, not one a key), Right (one `approve`,
+carrying the title when one was typed and not yet committed: Enter or the button is one gesture), Not a book,
+a book added, None missed, and each answer of the reader landing on a book (`read`, which carries the answer). The find and its first
+reading are the log's `run`; a book added before any find starts the log from a `base` with no book (`blank`), which a later find
+carries over. The page draws the model it hands over. Save Draft and Load draft are the shell's; a draft kept before Edit
+History is offered once (`old_draft.js`). The ring Edit History draws is magenta (`groundTruth.ring`), the shell's yellow being the open
+book's outline, guarded by `tests/test_ring_colour.mjs`. The approved books are cut out of the photo by
 the viewer (`viewer.doneMask`). The book's picture in the task is
 the page's own, warped in JS from the photo the viewer shows (`picture` in `shelves.js`), so it follows a dragged
 corner at once; what the reader reads is still Python's straightening of the file, run behind it with the photo
-never covered. Flip reads the book again at that turn alone, in both languages. The submitted `<photo>_books_gt.json` keeps, for each found book, what the
-finder and the reader proposed beside the corrected values, so one file scores both the finder (corners, view) and
-each reader (text), which `lab/grade.py` does. The ground truth is in the study's GT folder on Drive
-(`GT/<photo>__<sha8>/gt_<tagger>.json` under the study's root), fetched by `python3 studies/shelves/lab/photos.py --gt`
-into `data/raw/gt/<photo's drive id>__<tagger>.json`. Four photos so far: `1g4iFN`, re-tagged 2026-11-10 after the task's rework, 13 books right (4 of them added
+never covered. Flip reads the book again at that turn alone, in both languages. The submitted `<photo>_books_gt.json` lists every book with its id and verdict (right, or null), the log in `history`, and keeps, for each found book, what the
+finder and the reader proposed beside the corrected values, so one file scores both the boxes and the titles (`algorithm/score.py`). The ground truth is in the study's curated
+folder on Drive (`<photo>__<sha8>/gt_<tagger>.json`), fetched by `python3 lab/fetch.py shelves` into `data/raw/truth/`. Four photos so far: `1g4iFN`, re-tagged 2026-11-10 after the task's rework, 13 books right (4 of them added
 as missed) and 1 found box marked no book; `1HyJrL`, tagged 2026-11-10, 19 books right, all found (the book the
 frame cuts at its left edge left untagged); and, new for R8, `1zktX1`, 60 books right (24 added as missed), a
 bookcase of two cabinets side by side, and `16w5nW`, 8 books right (2 added as missed), **held out** since R8:
 scored once per iteration, never tuned on; new for R9, `16acjV`, 18 books right (3 added as missed), and `1sdDdH`,
 15 books right, all found (the two black Herbert spines of one series). The other five are the tuning photos.
 
-A score is the page's: `node studies/shelves/reading/find.mjs PHOTO OUT.json`, then
-`python3 studies/shelves/lab/grade.py GT.json --found OUT.json`. Robustness inputs come from
-`python3 studies/shelves/lab/warp.py PHOTO GT.json OUTDIR --rotate ... --tilt ... --vtilt ... [--crop]`: the photo and its
-ground truth through one homography. `grade.py --photo` runs the finder without the
-text map, and the container's own JPEG decoding moves R8 by up to 6 books on `1zktX1` (below).
-
 ## Iterations
+
+The notes below are each iteration's record as made: their numbers are the box-only score of the time (IoU > 0.5,
+`lab/grade.py`), measured with the study's own lab and sandbox (`lab/finder_metrics.py`, `lab/warp.py`,
+`reading/*.mjs`), all retired on 2026-11-18 when the shared lab took the study over; they are not comparable with Score.
 
 ### R9 — a shelf searched between its books; dark plain spines; three runs; a turned photo levelled (2026-11-13)
 
@@ -437,23 +474,10 @@ number below is a score.
 
 ## Performance
 
-A pass that keeps a change only when every box is bit-identical (the `speeding-up-an-algorithm` skill). The inputs are the
-page's decoded pixels and its text map for six photos, and `1g4iFN` turned 20° and 90° (`lab/warp.py`'s own warp, text
-map included), so the roll and quarter-turn paths are covered. `lab/perf.py` hashes every box, all fields, per input:
-
-```
-python3 studies/shelves/lab/perf.py snapshot
-python3 studies/shelves/lab/perf.py check
-python3 studies/shelves/lab/perf.py profile 1zktX1
-```
-
-`SHELVES_PERF_DIR` names the folder of `rgb_<id>.npy` and `tm_<id>.json` (default `lab/.cache/perf/inputs`, not committed);
-`check` exits 1 when any signature moved and prints time (minimum of 3) and tracemalloc peak for `1zktX1` and `1g4iFN`;
-`sigs` is the signatures alone, on 4 processes. The page's Pyodide, which is what the owner waits on:
-
-```
-REPS=1 node studies/shelves/reading/perf_pyodide.mjs PHOTO TEXTMAP.json
-```
+Since 2026-11-18 the speed pass is the shared lab's (`python3 lab/perf.py shelves snapshot|check|profile VERSION`):
+every version end to end on the photos with ground truth, each answer's signature. The pass below was made with the
+study's own tool of the time, on the finder alone, its inputs the page's decoded pixels and text map for six photos and
+`1g4iFN` turned 20° and 90°, and the page's Pyodide timed by the sandbox's `perf_pyodide.mjs`.
 
 It prints load, open, find and the heap after (the page's text finder runs instead when the map is left out). Pyodide
 is 32-bit WebAssembly: an array whose nominal size passes 2 GB raises (the first prefix-sum window view did) and the

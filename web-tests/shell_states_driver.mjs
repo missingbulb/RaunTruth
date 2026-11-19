@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
+import { frames } from "./page_frames.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done, calls } = await standIn({ answers, studies, rootDir });
@@ -30,7 +31,7 @@ const settled = async (page) => {
   // is reported as the item not showing
   await page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }).catch(() => {});
   // and the frame after them drawn
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+  await frames(page);
 };
 // an image open, nothing working on it, and the button of the study's first step ready for it
 const opened = (button) => !!shellForTests.page.get("image") && document.querySelector("#busy").hidden
@@ -95,15 +96,6 @@ const ACTIONS = {
   async preview(page) { await previewOf(page, 0); },
   // the folder's z-stack previewed
   async zpreview(page) { await previewOf(page, 1); },
-  async edit(page) {
-    await page.click("#edit-open");
-    await page.waitForFunction(() => !document.querySelector("#edit-box").hidden && document.querySelector("#edit-open").disabled
-      && shellForTests.page.get("image")?.source.kind === "drive" && document.querySelector("#busy").hidden);
-  },
-  async done(page) {
-    await page.click("#edit-done");
-    await page.waitForFunction(() => document.querySelector("#edit-box").hidden);
-  },
   async offline(page) {
     await page.context().setOffline(true);
     await page.waitForFunction(() => document.documentElement.classList.contains("offline"));

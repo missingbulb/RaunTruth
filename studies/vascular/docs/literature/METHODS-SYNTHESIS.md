@@ -2,10 +2,11 @@
 
 > **Accumulating doc.** Every paper that lands in [`references/`](README.md) folds its method here.
 > This is the bridge from reading to pipeline work: the per-paper digests hold the detail, this
-> holds the *decisions*. Current pipeline: [`studies/vascular/analysis/measure_vessels.py`](../../analysis/measure_vessels.py).
+> holds the *decisions*. Current pipeline: the extraction versions in [`studies/vascular/algorithm/`](../../algorithm/); the first, 2D figure-panel pipeline (`measure_vessels.py`) is retired, in git at commit e49f676.
 
-**Papers folded in:** all ten — wang-2022, rust-2020, freitas-andrade-2022, stefanitsch-2015,
-hill-2020, bizou-2026, blinder-2013, cassot-2010, ji-2021, smith-2019. The last four are biology references for scoring a
+**Papers folded in:** all fourteen — wang-2022, rust-2020, freitas-andrade-2022, stefanitsch-2015,
+hill-2020, bizou-2026, blinder-2013, cassot-2010, ji-2021, smith-2019, walchli-2020, pfau-2024,
+sweeney-2019, zhang-2022. Zhang adds nothing: it reports no vessel metric. The last four are biology references for scoring a
 vessel *graph*, not methods for the pixel pipeline; their numbers live in
 [`BIOLOGY-INVARIANTS.md`](BIOLOGY-INVARIANTS.md), and only the cautions below are folded in here. **Rust's supplementary toolbox is in the repo**, which closed the last
 open parameter gaps and made a direct method-vs-method comparison possible (§3.1).
@@ -39,7 +40,7 @@ Our three locked asks against what the literature reports:
 | Pruning | **none** (`prune=none`) | **iterative, remove globally smallest first, threshold S ≈ vessel diameter** | fixed `min_len = 8 px`, 40 passes | Rust does not prune at all; Pyvane's is principled and scale-linked; **ours is a magic number** |
 | Gap bridging | not mentioned | not mentioned | binary closing (disk 2) + fill holes | **ours alone** — a response to figure-crop dropout that neither paper needs |
 | Batch | in the script | processor pipeline | glob over `references/*/figures/panels/VESSEL_*.png` | equivalent |
-| Visualization | **grid heatmap**, **15 × 15** squares, own LUT supplied | per-pixel tortuosity maps | outline-over-original overlays | complementary; see §4.4 — the exact recipe is now in the repo |
+| Visualization | **grid heatmap**, **15 × 15** squares, own LUT supplied | per-pixel tortuosity maps | outline-over-original overlays | complementary; see §4.4 — the exact recipe is transcribed in the Rust summary |
 
 **Structural agreement is the reassuring part:** three independent groups all do
 *binarize → skeletonize → graph → count and sum*. Our architecture is not idiosyncratic.
@@ -90,7 +91,7 @@ Freitas-Andrade's three ground-truth panels add: 22.60 / 16.72 / 8.84 mm/mm² an
 ### 3.1 The decisive test — same method, same image ⭐
 
 Rust's supplementary material supplies both their **exact macro** and a **µm-calibrated,
-native-resolution vessel image** (`references/rust-2020-fiji-vascular-analysis/supplementary/`).
+native-resolution vessel image** ([publisher's supplementary material](https://doi.org/10.3389/fnins.2020.00244), transcribed in [`rust-2020-fiji-vascular-analysis.md`](rust-2020-fiji-vascular-analysis.md) §7).
 Reimplementing their recipe step-for-step and running both on that one image is the only true
 apples-to-apples comparison in the whole corpus:
 
@@ -144,6 +145,16 @@ so the 9 px threshold means **5.45 µm** there) our pipeline classifies **101 of
 29% — as artery**. Stefanitsch measures only **10%** of CD31⁺ cortical vessels above 10 µm. We
 are over-calling arteries by roughly 3×, exactly as the unit analysis predicts.
 
+**Two newer papers agree.** Pfau 2024 measures CD31 capillary diameter the way our pipeline can
+(CD31-covered area ÷ vessel length): **3.95 ± 0.49 µm** in mouse somatosensory cortex, per-image
+3.3–4.75 µm, and identifies arteries by αSMA, never by caliber. Our 5.45–5.9 µm threshold sits
+above every per-image capillary mean but below anything clearly arterial. Wälchli 2020 cuts
+capillaries at a **7 µm inner (lumen) diameter**, above our threshold even though CD31 marks the
+wall and so measures wider than a lumen. Sweeney 2019 adds why no cut is natural: vessel type is
+defined by wall cells (1–3 SMC layers on penetrating arteries, one on arterioles, pericytes on
+capillaries), and the endothelium CD31 labels changes gradually along the tree. Any caliber
+threshold is a convention over a continuum.
+
 ### 4.3 Re-examine the pruning and small-object thresholds before blaming segmentation
 Rust prunes **not at all** (`prune=none`) and drops objects below **20 µm²**; Pyvane prunes
 iteratively with a threshold tied to vessel diameter and drops below **50 µm²**. Ours prunes
@@ -161,7 +172,7 @@ count is untrustworthy.
 **Rust and Bizou independently converge on this construct.** Not a replacement for the outline
 overlays (which stay the agreed QA style), but it answers a different and very on-topic question:
 *where* is the tissue under-vascularized. That is the ischemic-core/penumbra question directly.
-**Rust's exact macro is now in the repo** (`supplementary/Heatmap.ijm`, 15 × 15 squares, with
+**Rust's exact heatmap macro is transcribed** in [`rust-2020-fiji-vascular-analysis.md`](rust-2020-fiji-vascular-analysis.md) §7.2 (15 × 15 squares, with
 their `hm_stroke.lut`) — there is a concrete recipe to copy rather than invent.
 
 ### 4.6 Try the published segmentation choices
@@ -185,6 +196,16 @@ the originals and compare in the overlay style. This is external ground truth �
 use. Neither has been read yet.
 
 ## 5. Cross-paper cautions
+
+- **A fully stated 3D graph recipe exists, in µm.** Wälchli 2020 (casts + synchrotron µCT,
+  0.73 µm isotropic voxels) removes a spur when its length is under twice its end radius, drops
+  isolated pieces under 5 µm and merges junctions closer than 2 µm: the model for §4.1 and §4.6.
+  P60 cortex segments average ~30 µm long (Blinder's median 50 µm). Its densities are per mm³ and
+  compare with none of our per-mm² 2-D numbers.
+- **Density moves both ways with condition.** Sweeney 2019 (review) collects lower microvascular
+  density in AD and ALS and after sensory deprivation, and higher in Huntington's (R6/2 mice) and
+  hippocampal epilepsy. A group difference in segments or length density is not rarefaction by
+  default.
 
 - **Time point flips the sign of the ischemia effect.** Wang (rat, 24 h post-MCAO) finds *more*
   gP-CD31 signal in the ischemic area; Rust (mouse, 3 weeks post-photothrombosis) finds *less*
