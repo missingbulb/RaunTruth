@@ -217,12 +217,18 @@ export function describe(a, count = 1) {
     case "set-text": return count === 1 ? (a.text ? `Set a title: ${a.text}` : "Cleared a title") : `Set ${count} titles`;
     case "set-fields": {
       const ks = FIELDS.filter((k) => k in (a.fields ?? {}));
-      if (count > 1) return `Set ${count} books' text`;
+      if (count > 1) return `Set ${count} fields`;
       if (ks.length !== 1) return "Moved text between fields";
       return a.fields[ks[0]] ? `Set ${NAMES[ks[0]]}: ${a.fields[ks[0]]}` : `Cleared ${NAMES[ks[0]]}`;
     }
-    case "swap-fields": return count === 1 ? `Swapped the ${NAMES[a.a].split(" ").slice(1).join(" ")} and the ${NAMES[a.b].split(" ").slice(1).join(" ")}` : `Swapped fields ${count} times`;
-    case "approve": return count === 1 ? (a.text ? `Approved a book: ${a.text}` : "Approved a book") : `Approved ${count} books`;
+    case "swap-fields": {
+      const [x, y] = [a.a, a.b].sort((p, q) => FIELDS.indexOf(p) - FIELDS.indexOf(q)).map((k) => NAMES[k].split(" ").slice(1).join(" "));
+      return count === 1 ? `Swapped the ${x} and the ${y}` : `Swapped fields ${count} times`;
+    }
+    case "approve": {
+      const t = a.fields ? joined(only(a.fields)) : a.text;
+      return count === 1 ? (t ? `Approved a book: ${t}` : "Approved a book") : `Approved ${count} books`;
+    }
     case "add": return plural(count, "Added a missed book", `Added ${count} missed books`);
     case "delete": return plural(count, "Deleted a book", `Deleted ${count} books`);
     case "none-missed": return count > 1 ? `Judged none missed ${count} times` : a.on ? "Said no book was missed" : "Took back none missed";

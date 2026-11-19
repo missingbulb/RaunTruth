@@ -116,6 +116,8 @@
     {"id": "back", "label": "Back", "keys": ["Alt+ArrowLeft"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"back\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
     {"id": "next", "label": "Next", "keys": ["Alt+ArrowRight"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"next\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
     {"id": "flip", "label": "Flip", "keys": ["Ctrl+ArrowUp"], "kind": "press", "legend": false, "control": ".bs-item [data-do=\"flip\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
-    {"id": "wrong", "label": "Not a book", "keys": ["Ctrl+Backspace"], "hint": "Ctrl+Backspace", "kind": "press", "legend": false, "control": ".bs-item [data-do=\"wrong\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"}
+    {"id": "wrong", "label": "Not a book", "keys": ["Ctrl+Backspace"], "hint": "Ctrl+Backspace", "kind": "press", "legend": false, "control": ".bs-item [data-do=\"wrong\"]", "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "down", "label": "Field down", "title": "Swap the field with the one below, or move the text selected there", "keys": ["Alt+ArrowDown"], "kind": "press", "legend": false, "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"},
+    {"id": "up", "label": "Field up", "title": "Swap the field with the one above, or move the text selected there", "keys": ["Alt+ArrowUp"], "kind": "press", "legend": false, "when": ["tagging", "book", "!drawing"], "inField": ".bs-item"}
   ]
 }
