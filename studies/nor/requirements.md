@@ -171,6 +171,17 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
 - `req/nor/find/blue-mask` The blue mask is only a filter: no finder blanks nuclei before finding.
 
+- `req/nor/find/damaged` The finders analyse no pixel of a damaged area, and the scorer counts no NoR in one.
+  <details>
+
+  Set by the owner on 2026-11-19. The Study Manager's damaged areas (`req/shell/data/damaged`) join the pixels each
+  finder leaves out of its colour thresholds and its green and red segments, as a finder that blanks the blue mask
+  does, so no candidate is made of their pixels. A NoR that crosses the line keeps only its outside part, and is
+  found only if that part is still a red between two greens. The blue mask stays a filter (`req/nor/find/blue-mask`):
+  a damaged area is never reported as "in nucleus". The scorer leaves out the ground truth's elements and the answer's
+  candidates whose centre lies in a damaged area. Test: `studies/nor/tests/test_nor_damaged.py`.
+  </details>
+
 - `req/nor/find/finders` All finders are offered; Traffic light is the default.
 
 - `req/nor/find/one-slow-step` One image, one slow step: the finder runs only on Find Candidates.
