@@ -82,6 +82,12 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call" && m.action === "run")
     run(m).then((meta) => postMessage({ type: "result", action: "run", meta, bytes: null, echo: m.echo }),
       (e) => postMessage({ type: "error", text: String(e.message || e) }));
+  // the texts the page's readers read, read into fields as the study's Python reads them, but for this stand-in at a
+  // slash alone: "author / title"
+  else if (m.type === "call" && m.action === "label") {
+    const books = m.args.texts.map((t) => { const i = t.indexOf(" / "); return { fields: i < 0 ? (t ? { title: t } : {}) : { author: t.slice(0, i), title: t.slice(i + 3) }, regions: {} }; });
+    postMessage({ type: "result", action: "label", meta: { books }, bytes: null, echo: m.echo });
+  }
   else if (m.type === "call" && m.action === "straighten") {
     const sizes = m.args.corners.map(size), bytes = new Uint8Array(sizes.reduce((a, [w, h]) => a + w * h * 4, 0)).fill(200);
     let at = 0;
@@ -354,7 +360,56 @@ try {
   check(!(await press({ key: "a", code: "KeyA", ctrlKey: true })), "a key the task does not use is left to the page");
   await page.context().close();
 
-  // a tagger: one book at a time, in the order the books stand, the missed ones added, then Submit
+  // req/shelves/truth/fields: a book's text set field by field
+  page = await open("tagger", KEPT);
+  await page.click("#bs-find");
+  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  await page.click("#gt-start");
+  await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  const fieldsShown = () => page.$$eval(".bs-item input[data-field]", (l) => l.map((x) => `${x.dataset.field}=${x.value}`));
+  const adds = () => page.$$eval(".bs-item .bs-add a", (l) => l.map((x) => x.textContent));
+  const chips = () => page.$$eval(".bs-item .bs-chip", (l) => l.map((x) => x.textContent));
+  const focusedField = () => page.evaluate(() => document.activeElement?.dataset?.field ?? null);
+  const fHistory = (n = 1) => history(page).then((h) => h.slice(0, n).join());
+  check((await fieldsShown()).join() === "title=Title 260x40,author=" && (await chips()).join() === "T,A"
+    && (await adds()).join() === "+ Publisher,+ Volume,+ Library mark",
+    "Title and Author are shown, each led by its letter, and the other fields wait behind small links", [await fieldsShown(), await chips(), await adds()]);
+  await page.keyboard.press("Tab");
+  check(await focusedField() === "author", "Tab moves from the title to the author", await focusedField());
+  await page.keyboard.type("Herbert");
+  await page.keyboard.press("Tab");
+  check(await fHistory() === "Set an author: Herbert", "leaving a field commits it: one GT action", await history(page));
+  await page.focus('.bs-item input[data-field="author"]');
+  await page.keyboard.press("Alt+ArrowUp");
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "title");
+  check((await fieldsShown()).join() === "title=Herbert,author=Title 260x40" && await fHistory() === "Swapped the title and the author",
+    "Alt+↑ swaps a field with the one above, the focus going with its text", [await fieldsShown(), await history(page)]);
+  await page.click(".bs-item .bs-swap");
+  check((await fieldsShown()).join() === "title=Title 260x40,author=Herbert", "⇅ swaps them back", await fieldsShown());
+  // part of the title selected and sent down to the author
+  await page.fill('.bs-item input[data-field="title"]', "Dune Frank");
+  await page.evaluate(() => { const t = $('.bs-item input[data-field="title"]'); t.focus(); t.setSelectionRange(5, 10); });
+  await page.keyboard.press("Alt+ArrowDown");
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "author");
+  check((await fieldsShown()).join() === "title=Dune,author=Frank Herbert", "Alt+↓ with text selected moves only that text to the field below", await fieldsShown());
+  await page.click('.bs-item .bs-add a[data-open="volume"]');
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "volume");
+  check((await adds()).join() === "+ Publisher,+ Library mark", "+ Volume opens the volume's box, focused", await adds());
+  await page.keyboard.type("IV");
+  await page.keyboard.press("Enter");
+  check((await rowsOf(page))[0] === "1/3 Books" && await fHistory() === "Approved a book: IV",
+    "Enter approves the book, carrying the field typed and not yet committed: one GT action", await history(page));
+  check(!(await fieldsShown()).some((f) => f.startsWith("volume")), "the next book has no volume, and shows none", await fieldsShown());
+  await page.click('.bs-item .bs-add a[data-open="library"]');
+  await page.keyboard.type("892.4 הר");
+  await page.keyboard.press("Tab");
+  await page.click('.bs-verdicts [data-do="right"]');
+  check((await fieldsShown()).some((f) => f === "library="), "once a book on the photo has a library mark, every book shows its box open", await fieldsShown());
+  check(await page.evaluate(() => $(".bs-item .bs-field input[data-field=title]").style.borderLeftColor || getComputedStyle($(".bs-item .bs-field input[data-field=title]")).borderLeftColor) === "rgb(41, 121, 255)",
+    "each field's box carries its colour", null);
+  await page.context().close();
+
+    // a tagger: one book at a time, in the order the books stand, the missed ones added, then Submit
   page = await open("tagger", KEPT);
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
@@ -510,7 +565,7 @@ try {
   const kinds = gt.doc.history.actions.map((a) => a.type);
   check(gt.doc.history.replay === "verified" && kinds[0] === "open" && kinds[1] === "run" && kinds.includes("move-corners") && kinds.includes("flip") && kinds.includes("add") && kinds.includes("delete")
     && kinds.includes("none-missed") && kinds.includes("read") && !kinds.includes("set-text-per-key"), "the file's history replays to it, every GT action in order", kinds);
-  const typedOnce = gt.doc.history.actions.filter((a) => a.text?.startsWith("הארי"));
+  const typedOnce = gt.doc.history.actions.filter((a) => (a.text ?? a.fields?.title)?.startsWith("הארי"));
   check(typedOnce.length === 1 && typedOnce[0].type === "approve", "the Hebrew title filled in and marked right is one GT action, whatever the keys it took", typedOnce);
   check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
   // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again

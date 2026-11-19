@@ -88,7 +88,14 @@ read for a title matcher; matching the titles is not part of it.
   page's (tesseract.js), whose readings differ slightly; and the score holds both results: each book is half its box
   and half its title, a spare box costs only the share of it that adds no new cover of a book, and text read on a
   book the ground truth gives no title costs nothing (`algorithm/score.py`, its outline the (?) beside the list).
-  Every version is measured again under it; no number from the earlier box-only score is carried. Test:
+  Every version is measured again under it; no number from the earlier box-only score is carried. Set by the owner
+  on 2026-11-19 (#899), the title half is a field half: each field's text is compared with the same field's in the
+  truth, by letter pairs and weighted by its letters, and text read in another field than the truth's keeps 0.9 of
+  its credit (`SLIP`), so a publisher read as the title costs little. A publisher, volume or library mark the truth
+  lacks costs nothing; Title and Author, which the task always shows, say the spine has none when left empty. A
+  ground-truth file from before the fields reads its text as the title, its one box having held the whole spine, so
+  text read in any field counts against it. Every version is measured again under
+  this score. Test:
   `studies/shelves/tests/test_versions.py`, `studies/shelves/tests/test_score.py`,
   `studies/shelves/tests/test_shelves_page.py`, `studies/shelves/tests/test_find_bridge.py`.
   </details>
@@ -98,10 +105,32 @@ read for a title matcher; matching the titles is not part of it.
 
   Outside ground truth the Summary box lists each book's text in the order found, shelf by shelf
   from the top; Download for the matcher saves `<image>_books.json`: the image, its size, and per
-  book an id, its view, its text (empty when nothing was read), the reader's confidence (0 to 1,
+  book an id, its view, its text (empty when nothing was read; every field joined), its fields
+  (`req/shelves/read/fields`), the reader's confidence (0 to 1,
   null when it was not read) and the reader's name, and its corners. With a summary mask on, the list and the file hold
   only the books inside it, each keeping its number (`req/shelves/summary`). Test:
   `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shelves/read/fields` The algorithm reads a spine into fields: title, author and publisher, and a volume and a library mark where it carries them.
+  <details>
+
+  Set by the owner on 2026-11-19 (#899): a spine carries several blocks of text in different fonts, sizes and
+  colours, sometimes parted by separators and sometimes turned 90° to the rest. The algorithm returns each book's
+  text as fields rather than as one string: at most one block each for `title`, `author` and `publisher`, and the
+  optional `volume` (as printed: "C", "IV", "ג", "Vol 1", "4") and `library` (a call-number sticker, at the spine's
+  head or foot, in Dewey or the Hebrew libraries' notation). A field it does not find is absent, never empty. The
+  reader parts the lines it read into blocks at a separator (`/`, `|`, a dot `•`, `·` or a lone `o`), at a wide gap
+  along the spine, and where the letters' height changes sharply; two lines side by side across the spine are one
+  block. It labels each block: a library mark by its pattern (three digits with a decimal, a short author code or
+  both) at the spine's head or foot; a volume by `Vol`, `כרך`, `חלק` with one, or a bare roman numeral, number or
+  letter where a separator sets it apart or it stands alone at the head or foot; a publisher by name or as a block
+  of letters at the spine's foot; of the rest, the block before a slash, or one bearing an initial, is the author,
+  and the larger words the title over a smaller name; with no such cue the text stays in the title. Since
+  a library's shelf stickers every book, once one spine on the photo carries a clear mark, a looser one at the
+  head or foot of the others is taken too. Each block keeps where it was read on the straightened book (its
+  `regions`), which the ground-truth task outlines. The answer keeps `title` as every field's text joined, for
+  the matcher. The routes and what they cost: `docs/fields/EXTRACTION.md`. Test: `studies/shelves/tests/test_reading.py`.
   </details>
 
 - `req/shelves/read/readers` Find books reads each book's title in the same run; Read titles reads every book again with the reader chosen, in Hebrew and English.
@@ -140,6 +169,25 @@ read for a title matcher; matching the titles is not part of it.
   (`req/shell/summary/download`). Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
+- `req/shelves/truth/fields` A book's text is set field by field: Title and Author always, Publisher, Volume and Library mark when used.
+  <details>
+
+  Set by the owner on 2026-11-19 (#899), replacing the single title box of `req/shelves/truth/task` where the two
+  differ. The task shows a text box per field, each filled with what the reader read for it: Title and Author
+  always, and Publisher, Volume and Library mark only once the reader read one or the tagger opens it from a
+  small `+ Publisher`, `+ Volume` or `+ Library mark` link, so a book without them costs nothing. Once any book on
+  the photo has a library mark, the Library mark box is open on every book. Each field has its own colour and
+  letter (T, A, P, V, L), on its box and on the outline of where the reader read it on the book's picture, never
+  the colour alone; the tagger never draws or corrects those outlines. A ⇅ between two boxes swaps them, and Alt+↓ /
+  Alt+↑ (`req/shelves/truth/keys`) do the same or move only the selected text. Leaving a box commits its text as
+  one action, Right carries the boxes not yet committed, and approves every field as it stands. The file keeps,
+  per book, `fields` (only the fields that hold text), `text` (every field joined, as before) and `regions` (the
+  reader's outlines, as shares of the straightened book at its first turn), and for a found book what the reader
+  proposed for each field. A file from before the fields reads its text as the title. The reasoning behind the
+  panel: `docs/fields/GT-UI.md`. Test: `studies/shelves/tests/test_gt_actions.mjs`,
+  `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
 - `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.
   <details>
 
@@ -152,7 +200,10 @@ read for a title matcher; matching the titles is not part of it.
   acts once, a key does nothing while its button is hidden or off, and an Enter that ends a word being composed (an
   IME) approves nothing. Each button shows its key in small type. Changed by the owner on 2026-11-16: the keys are the
   shell's (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
-  bottom left while a book is open, the study listening to no key itself. Test: `studies/shelves/tests/test_shelves_page.py`.
+  bottom left while a book is open, the study listening to no key itself. Set by the owner on 2026-11-19 (#899),
+  with the book's fields (`req/shelves/truth/fields`): Alt+↓ and Alt+↑ in a field swap it with the field below or
+  above, or move only the text selected in it there; Tab moves between the fields; and the second Enter is asked
+  while the title and the author are both exactly as read. Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/truth/task` One ground-truth task: each book in turn, in the order they stand, has its corners, turn and title set right, and the missed books are added.

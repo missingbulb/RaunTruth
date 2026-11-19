@@ -12,6 +12,7 @@ from scipy import ndimage as ndi
 from skimage.draw import polygon as fill_polygon
 
 import books
+import fields
 import r5_edges
 import r8_precise
 import reading
@@ -74,7 +75,8 @@ def without_damaged(rgb, damaged):
 
 def version(find, reads_text):
     """A version: its finder's boxes, found with the photo's text map where it reads text, each book then read by
-    `reader` (a key of reading.READERS). The answer: {books: [{corners, view, title, confidence, turn}], reader}. A
+    `reader` (a key of reading.READERS) into fields (fields.photo). The answer: {books: [{corners, view, title (every
+    field joined), fields, regions, confidence, turn}], reader}. A
     text finder the environment cannot run (its `det` answering None) leaves the boxes found without the text map,
     and the lines reader with no lines to read. Nothing of the photo's damaged areas is seen: a version finds and
     reads the photo they are painted over in."""
@@ -84,11 +86,15 @@ def version(find, reads_text):
         found = find(rgb, text)
         words = yield ('words',)
         spell = reading.spelling(words) if words else (lambda t: t)
-        out = []
+        reads = []
         for b in found:
-            r = yield from reading.read(books.straighten(rgb, b['corners']), reader, spell)
+            reads.append((yield from reading.read(books.straighten(rgb, b['corners']), reader, spell)))
+        out = []
+        for b, r, (f, regions) in zip(found, reads, fields.photo([r['blocks'] for r in reads])):
             out.append(dict(corners=[[float(x), float(y)] for x, y in b['corners']], view=b['view'],
-                            title=r['text'], confidence=float(r['confidence']), turn=int(r['turn'])))
+                            title=' / '.join(f[k] for k in fields.FIELDS if k in f), fields=f,
+                            regions={k: [float(v) for v in box] for k, box in regions.items()},
+                            confidence=float(r['confidence']), turn=int(r['turn'])))
         return dict(books=out, reader=reader)
     return run
 
@@ -109,4 +115,10 @@ def straighten(rgb, answer, corners):
     return dict(crops=[books.straighten(rgb, c) for c in corners])
 
 
-STAGES = {'straighten': straighten}
+def label(rgb, answer, texts, library_seen=False):
+    """The text the page's own readers read for each book, read into fields: its place on the book unknown, on its
+    text alone."""
+    return dict(books=[dict(zip(('fields', 'regions'), fields.label([dict(text=t)], library_seen=library_seen))) for t in texts])
+
+
+STAGES = {'straighten': straighten, 'label': label}

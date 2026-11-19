@@ -11,13 +11,14 @@ page must do is `req/shelves` in [its requirements](../requirements.md).
 study.json               the study's contract with the shell and the lab (lab/README.md); stage GT; its `services`
 algorithm/               the study's algorithm, the only Python the page loads; the lab runs the same files
   shelves.py             the entry: read (HEIC through pillow-heif), VERSIONS (r9, r8, r5, each one go: boxes, then
-                         titles), STAGES (straighten, for the tagger's readers), score, SCORING, NOTES
+                         titles), STAGES (straighten and label, for the tagger's readers), score, SCORING, NOTES
   books.py               R9, the text-guided finder (find), its text finder's view of the photo, and the straightening of four corners
   r8_precise.py          R8, the precise finder, kept as it was (2026-11-10); it straightens with books.py
   r5_edges.py            R5, the edge-only finder, kept as it was (2026-11-07); it straightens with books.py
   reading.py             the titles read: the text finder's map, the lines and tesseract readers and the spelling,
-                         asking the environment for det, tesseract and words
-  score.py               how one answer did against one ground truth: half the box, half the title (Score, SCORING.md)
+                         asking the environment for det, tesseract and words; each line kept as a block
+  fields.py              a spine's blocks read into title, author, publisher, volume and library mark (F1), per photo
+  score.py               how one answer did against one ground truth: half the box, half the text, field by field (Score, SCORING.md)
 web/algorithms.json      the page's list of versions, the first its default: each one's title, icon and steps
 web/algorithm_metrics.json  each version's precision and recall, written by `python3 lab/run.py shelves --write`
 web/shelves.js           the page: Find books (one run), Read titles, the titles in Summary, the ground-truth task and its pictures
@@ -27,7 +28,8 @@ web/reading.js           the page's engines: the services the run asks for, and 
 web/words/names.txt      Hebrew Wikipedia titles' words the readings are spelled by after the subtitle list (CC BY-SA 4.0, lab/shelves_words.py)
 web/tessdata/            Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
 data/sources.json        the owner's photos on Drive, each with its SHA-256, which `python3 lab/fetch.py shelves` fetches
-tests/                   test_books.py, test_score.py, test_versions.py (fast), test_reading.py, test_spelling.py, test_find_bridge.py, test_shelves_page.py, test_gt_actions.py (full)
+tests/                   test_books.py, test_score.py, test_fields.py, test_versions.py (fast), test_reading.py, test_spelling.py, test_find_bridge.py, test_shelves_page.py, test_gt_actions.py (full)
+docs/fields/             the two designs behind the fields (#899): the tagger's panel, and the routes to reading them
 docs/literature/         what spine detection, dense-shelf detection and library science already know (start at its README)
 ```
 
@@ -125,11 +127,20 @@ title costs nothing. Every version measured again under it, natively; no number 
 (IoU > 0.5) is carried. How it counts: `SCORING` in `algorithm/score.py`, the (?) beside the list; how it was
 designed and validated, and where it breaks: [SCORING.md](SCORING.md).
 
-| version | precision | recall | the page's path, same photos (tesseract.js, Pyodide) |
-|---|---|---|---|
-| R9 | 0.499 | 0.598 | 0.479 / 0.596 |
-| R8 | 0.594 | 0.534 | 0.572 / 0.504 |
-| R5 | 0.538 | 0.367 | 0.521 / 0.360 |
+Since 2026-11-19 (#899) the title half is a text half, field by field, text in the wrong field keeping 0.9
+([SCORING.md](SCORING.md) §10). Every version measured again with F1's fields; on the same photos and truths, today's
+reader with everything in the title gives exactly the numbers before (R9 0.499 / 0.598, R8 0.594 / 0.534, R5
+0.538 / 0.367), so the drop below is F1's alone:
+
+| version | precision | recall | before F1 | the page's path before F1 (tesseract.js, Pyodide) |
+|---|---|---|---|---|
+| R9 | 0.498 | 0.594 | 0.499 / 0.598 | 0.479 / 0.596 |
+| R8 | 0.592 | 0.529 | 0.594 / 0.534 | 0.572 / 0.504 |
+| R5 | 0.534 | 0.363 | 0.538 / 0.367 | 0.521 / 0.360 |
+
+**What these numbers cannot say yet**: every ground truth holds its text in one title box, so an author or a
+publisher F1 parts out right earns 0.9 of its letters, not all: the drop is the split being charged, not a worse
+reading. Only ground truth tagged field by field measures the fields.
 
 Six ground truths, 133 books. The page's numbers come from the sandbox runs of the scoring's validation, the last
 page-path scoring, made before the sandbox was retired. The two paths agree on the score within 0.03, not book by
@@ -161,7 +172,44 @@ bookcase of two cabinets side by side, and `16w5nW`, 8 books right (2 added as m
 scored once per iteration, never tuned on; new for R9, `16acjV`, 18 books right (3 added as missed), and `1sdDdH`,
 15 books right, all found (the two black Herbert spines of one series). The other five are the tuning photos.
 
+Since 2026-11-19 (#899, `req/shelves/truth/fields`) a book's text is set field by field: Title and Author always,
+Publisher, Volume and Library mark behind small links until used, each box led by its letter and colour and the
+reader's region outlined in that colour on the picture; ⇅ and Alt+↑/↓ swap fields or move the selected text
+(`set-fields`, `swap-fields`; `set-text` still replays, as the title). A book whose text is a title alone writes the
+file exactly as before, so drafts kept earlier replay unchanged; others add `fields` and `regions`. The page's own
+re-reads are labelled by the study's Python (the `label` stage), on their text alone. Every ground truth so far is
+title-only: see Score for what that does to the numbers.
+
 ## Iterations
+
+### F1 — a spine's text read into fields (2026-11-19, #899)
+
+- **What was wrong**: the reader returned one string per book; a spine carries an author, a title, a publisher and
+  sometimes a volume or a library sticker, in their own blocks, and the owner wants them apart (`req/shelves/read/fields`).
+- **What changed**: `algorithm/fields.py`, after the reader, over the lines it read (each now kept with its box):
+  parts at separators (`/ \ | - . •` and a lone `o` or `0` between Hebrew words); labels by pattern (a call number,
+  three digits with a decimal or an author's code, at the head or foot; a volume as `חלק`/`כרך`/`Vol` with one, or bare
+  where a separator or an end sets it apart), by name (`PUBLISHERS`, Hebrew and English imprints, matched at a
+  block's end), by place (a block of letters at the foot is the publisher), and for the author by cue alone: the block
+  before a slash, one bearing an initial, or a two-word name in letters 1.25 times smaller than a title of four
+  letters or more. With no cue the text stays in the title: a wrong guess costs both fields their slip, the title
+  holding both only the author's. A clear call number on one spine loosens the bar for the photo's others. Each
+  field keeps its region on the straightened book. Tagged texts, read on their text alone: 50 of the 121 part into
+  two fields or more, every slash right.
+- **Metric delta**: R9 0.499 / 0.598 → 0.498 / 0.594, R8 0.594 / 0.534 → 0.592 / 0.529, R5 0.538 / 0.367 → 0.534 / 0.363
+  (Score above: the title-only truth charges the split).
+- **Tried and rejected**, each seen on the rendered spines (`[ crop | regions ]` of R9's books with two fields or more):
+  - *letters' size alone for the title*: a publisher's logo read as two or three tall letters ("Bes", "בס", "NY") took
+    the title and sent the true title to the author, on 3 of 20 spines. Now only between word-like blocks.
+  - *any lone digit or letter as a volume*, and *three bare digits as a call number*: junk read off pictures and logos
+    ("82", "x", "ו", "27 5") filled the optional boxes, which a tagger must then clear or approve into the truth.
+  - *each line its own block*: a title set in two lines across a wide spine had its second line made the author.
+  - *the first scorer's "a field the truth lacks costs nothing"* for every field: on title-only files the reader's
+    junk escaped into the author and the publisher, R9's precision rising 0.499 → 0.511 for no better reading.
+- **Still failing**: books read upside down (the reader's turn, before F1) give junk in every field; a logo's
+  number at the spine's end still passes as a volume ("11", "88"); a two-line title beside a taller logo is swapped
+  with its author. Routes not built: Tesseract's word boxes, colour and stroke cues, publishers matched across the
+  photo ([fields/EXTRACTION.md](fields/EXTRACTION.md)).
 
 The notes below are each iteration's record as made: their numbers are the box-only score of the time (IoU > 0.5,
 `lab/grade.py`), measured with the study's own lab and sandbox (`lab/finder_metrics.py`, `lab/warp.py`,

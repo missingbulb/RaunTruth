@@ -22,7 +22,7 @@ const tests = {
     const m = start();
     assert.deepEqual(m.books.map((b) => b.id), ['b1', 'b2', 'b3']);
     assert.deepEqual(m.books.map((b) => b.source), ['found', 'found', 'found']);
-    assert.deepEqual(book(m, 'b2').proposed, { corners: rect(10, 20, 50, 280), text: 'Title 2' });
+    assert.deepEqual(book(m, 'b2').proposed, { corners: rect(10, 20, 50, 280), text: 'Title 2', fields: { title: 'Title 2' } });
     assert.equal(book(m, 'b1').verdict, null);
     assert.equal(m.noneMissed, false);
     assert.equal(m.reader, 'tesseract');
@@ -222,6 +222,7 @@ const tests = {
     const docs = [doc(log.model)];
     const acts = [
       { type: 'move-corners', book: 'b1', corners: rect(58, 40, 95, 281) }, { type: 'flip', book: 'b1' }, { type: 'set-text', book: 'b1', text: 'Dune' },
+      { type: 'set-fields', book: 'b1', fields: { author: 'Herbert' } }, { type: 'swap-fields', book: 'b1', a: 'title', b: 'author' },
       { type: 'approve', book: 'b1' }, { type: 'read', book: 'b2', text: 'Re', confidence: .4, reader: 'lines', turn: 1 },
       { type: 'add', book: 'u1', corners: rect(330, 60, 380, 280) }, { type: 'delete', book: 'b3' }, { type: 'none-missed', on: true }];
     for (const a of acts) { assert.ok(log.act(act(a)).model, a.type); docs.push(doc(log.model)); }
@@ -248,7 +249,8 @@ const tests = {
   'no model is changed in place'() {
     let m = frozen(start());
     for (const a of [{ type: 'move-corners', book: 'b1', corners: rect(1, 1, 9, 90) }, { type: 'flip', book: 'b1' }, { type: 'set-text', book: 'b1', text: 'x' }, { type: 'approve', book: 'b1' },
-      { type: 'add', book: 'u1', corners: rect(330, 60, 380, 280) }, { type: 'read', book: 'b1', text: 'y', confidence: 1, reader: 'lines', turn: 0 }, { type: 'none-missed', on: true }, { type: 'delete', book: 'b2' }]) {
+      { type: 'add', book: 'u1', corners: rect(330, 60, 380, 280) }, { type: 'read', book: 'b1', text: 'y', confidence: 1, reader: 'lines', turn: 0 }, { type: 'none-missed', on: true }, { type: 'delete', book: 'b2' },
+      { type: 'set-fields', book: 'b1', fields: { author: 'z' } }, { type: 'swap-fields', book: 'b1', a: 'title', b: 'author' }]) {
       m = frozen(S.run(m, act(a)));
     }
   },
@@ -262,12 +264,68 @@ const tests = {
   },
   'describe reads every action'() {
     for (const a of [{ type: 'move-corners', book: 'b1' }, { type: 'flip', book: 'b1' }, { type: 'set-text', book: 'b1', text: 'Dune' }, { type: 'approve', book: 'b1' },
-      { type: 'add', book: 'u1' }, { type: 'delete', book: 'b1' }, { type: 'none-missed', on: true }, { type: 'none-missed', on: false }, { type: 'read', book: 'b1', text: 'x' }]) {
+      { type: 'add', book: 'u1' }, { type: 'delete', book: 'b1' }, { type: 'none-missed', on: true }, { type: 'none-missed', on: false }, { type: 'read', book: 'b1', text: 'x' },
+      { type: 'set-fields', book: 'b1', fields: { author: 'x' } }, { type: 'swap-fields', book: 'b1', a: 'title', b: 'author' }]) {
       const one = S.describe(act(a), 1), many = S.describe(act(a), 3);
       assert.ok(one && one !== a.type && many !== one, a.type);
     }
     assert.equal(S.describe(act({ type: 'set-text', book: 'b1', text: 'Dune' }), 1), 'Set a title: Dune');
     assert.equal(S.describe({ type: 'run', output: output() }), '3 books');
+  },
+  'set-fields sets each field given, marks it typed, keeps the others, and an empty one removes the field'() {
+    const m = start(), o = S.run(m, act({ type: 'set-fields', book: 'b1', fields: { author: 'Frank Herbert', volume: 'II' } }));
+    const b = book(o, 'b1');
+    assert.deepEqual(b.fields, { title: 'Title 1', author: 'Frank Herbert', volume: 'II' });
+    assert.equal(b.text, 'Title 1 / Frank Herbert / II', 'the text is every field joined, in the fields\' order');
+    assert.deepEqual([b.typed, b.typedFields], [true, { author: true, volume: true }]);
+    const cleared = book(S.run(o, act({ type: 'set-fields', book: 'b1', fields: { volume: '' } })), 'b1');
+    assert.deepEqual(cleared.fields, { title: 'Title 1', author: 'Frank Herbert' });
+    assert.deepEqual(S.run(o, act({ type: 'set-fields', book: 'b1', fields: { author: 'Frank Herbert' } })), { skip: 'nothing to change' });
+    assert.equal(S.describe(act({ type: 'set-fields', book: 'b1', fields: { author: 'Frank Herbert' } }), 1), 'Set an author: Frank Herbert');
+    assert.equal(S.describe(act({ type: 'set-fields', book: 'b1', fields: { library: '' } }), 1), 'Cleared a library mark');
+  },
+  'set-text, as logs kept before the fields hold it, sets the title field'() {
+    const o = S.run(S.run(start(), act({ type: 'set-fields', book: 'b1', fields: { author: 'A' } })), act({ type: 'set-text', book: 'b1', text: 'Dune' }));
+    assert.deepEqual(book(o, 'b1').fields, { title: 'Dune', author: 'A' });
+  },
+  'swap-fields exchanges two fields\' text and regions, both then typed, and is its own inverse'() {
+    const m = start({ books: [{ ...output().books[0], text: 'Herbert / Dune', fields: { title: 'Herbert', author: 'Dune' }, regions: { title: [0, 0, 1, .5], author: [0, .5, 1, 1] } }] });
+    const o = S.run(m, act({ type: 'swap-fields', book: 'b1', a: 'title', b: 'author' }));
+    assert.deepEqual([book(o, 'b1').fields, book(o, 'b1').regions], [{ title: 'Dune', author: 'Herbert' }, { title: [0, .5, 1, 1], author: [0, 0, 1, .5] }]);
+    assert.deepEqual(book(o, 'b1').typedFields, { title: true, author: true });
+    assert.deepEqual(book(S.run(o, act({ type: 'swap-fields', book: 'b1', a: 'title', b: 'author' })), 'b1').fields, book(m, 'b1').fields);
+    const one = S.run(m, act({ type: 'swap-fields', book: 'b1', a: 'author', b: 'publisher' }));
+    assert.deepEqual(book(one, 'b1').fields, { title: 'Herbert', publisher: 'Dune' }, 'swapped with an empty field, the text moves');
+    assert.deepEqual(S.run(m, act({ type: 'swap-fields', book: 'b1', a: 'volume', b: 'library' })), { skip: 'nothing to change' });
+    assert.equal(S.describe(act({ type: 'swap-fields', book: 'b1', a: 'title', b: 'author' }), 1), 'Swapped the title and the author');
+  },
+  'approve carrying fields sets them and marks the book right in one action'() {
+    const o = S.run(start(), act({ type: 'approve', book: 'b1', fields: { title: 'Dune', author: 'Herbert' } }));
+    assert.deepEqual([book(o, 'b1').fields, book(o, 'b1').verdict], [{ title: 'Dune', author: 'Herbert' }, 'right']);
+  },
+  'read lands field by field, never over one the tagger typed, and proposes the fields once'() {
+    const m = S.run(start(), act({ type: 'set-fields', book: 'b1', fields: { author: 'Herbert' } }));
+    const o = S.run(m, act({ type: 'read', book: 'b1', text: 'Dune / Frank / 3', fields: { title: 'Dune', author: 'Frank', volume: '3' }, regions: { title: [0, 0, 1, .4], author: [0, .4, 1, .8], volume: [0, .8, 1, 1] }, confidence: .6, reader: 'lines', turn: 1 }));
+    assert.deepEqual(book(o, 'b1').fields, { title: 'Dune', author: 'Herbert', volume: '3' });
+    assert.deepEqual(book(o, 'b1').regions, { title: [0, 0, 1, .4], volume: [0, .8, 1, 1] }, 'a typed field keeps no region of the reader\'s');
+    assert.deepEqual(book(o, 'b1').proposed.fields, { title: 'Title 1' }, 'what was first proposed stays');
+  },
+  'a book with a title alone writes the file as before; one with more fields writes them, its regions and what was proposed'() {
+    let m = start({ books: [{ ...output().books[0], text: 'Dune / Herbert', fields: { title: 'Dune', author: 'Herbert' }, regions: { title: [0, 0, 1, .5] } }, output().books[1]] });
+    const d = doc(m);
+    const [b2, b1] = d.books;
+    assert.deepEqual(Object.keys(b2).sort(), ['corners', 'id', 'proposed', 'source', 'text', 'turn', 'verdict']);
+    assert.deepEqual([b1.fields, b1.text, b1.regions, b1.proposed.fields], [{ title: 'Dune', author: 'Herbert' }, 'Dune / Herbert', { title: [0, 0, 1, .5] }, { title: 'Dune', author: 'Herbert' }]);
+    m = S.run(m, act({ type: 'swap-fields', book: 'b1', a: 'title', b: 'author' }));
+    const back = S.load(JSON.parse(JSON.stringify(doc(m))));
+    assert.deepEqual(doc(back), doc(m));
+    assert.deepEqual(book(back, 'b1').typedFields, { title: true, author: true }, 'a field unlike the proposal is the tagger\'s');
+  },
+  'a run after a base carries the fields the tagger typed, one by one'() {
+    let m = start();
+    m = S.run(m, act({ type: 'set-fields', book: 'b1', fields: { author: 'Herbert' } }));
+    const got = S.start(output({ books: [{ ...output().books[0], text: 'Re 1 / Re A', fields: { title: 'Re 1', author: 'Re A' } }] }), S.load(doc(m)));
+    assert.deepEqual(book(got, 'b1').fields, { title: 'Re 1', author: 'Herbert' });
   },
   'a check against the document it replays to says verified'() {
     return check(S, [{ type: 'open', at: DAY }, { type: 'run', at: DAY, output: output() }, act({ type: 'approve', book: 'b1' })],

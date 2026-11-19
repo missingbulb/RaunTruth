@@ -30,6 +30,22 @@ export function inPlace(list) {
   return rows.flatMap((r) => r.books.sort((a, c) => mid(a, 0) - mid(c, 0)));
 }
 
+// ---------- a book's text, field by field ----------
+// the fields a spine's text is set in, in the order the task shows them and its text joins them; a field with no text
+// is absent, never ""
+export const FIELDS = ["title", "author", "publisher", "volume", "library"];
+const NAMES = { title: "a title", author: "an author", publisher: "a publisher", volume: "a volume", library: "a library mark" };
+const only = (f) => Object.fromEntries(FIELDS.filter((k) => f?.[k]).map((k) => [k, f[k]]));
+export const joined = (f) => FIELDS.map((k) => f[k]).filter(Boolean).join(" / ");
+// a book, an output's or a file's, from before the fields has its text as its title
+const fieldsOf = (b) => only(b.fields ?? { title: b.text ?? "" });
+const titleAlone = (f) => Object.keys(f).every((k) => k === "title");
+const boxes = (r) => Object.fromEntries(FIELDS.filter((k) => r?.[k]).map((k) => [k, [...r[k]]]));
+const empty = (o) => !Object.keys(o).length;
+// a book with these fields, its text theirs joined and typed when any field is the tagger's
+const withFields = (b, fields, typedFields = b.typedFields, regions = b.regions) => ({ ...b, fields: only(fields), text: joined(only(fields)),
+  typedFields, typed: !empty(typedFields), regions: boxes(regions) });
+
 const number = (id) => +id.slice(1);
 const largest = (books, kind) => books.reduce((n, b) => (b.id[0] === kind ? Math.max(n, number(b.id)) : n), 0);
 const copy = (corners) => corners.map((p) => [...p]);
@@ -48,10 +64,10 @@ export function start(output, previous) {
     return null;
   });
   top = Math.max(top, ...claimed.filter(Boolean).map(number), 0);
-  const books = output.books.map((b, i) => ({
-    id: claimed[i] ?? `b${++top}`, corners: copy(b.corners), view: b.view, turn: b.turn ?? 0, turnSet: false, text: b.text ?? "", typed: false,
+  const books = output.books.map((b, i) => withFields({
+    id: claimed[i] ?? `b${++top}`, corners: copy(b.corners), view: b.view, turn: b.turn ?? 0, turnSet: false,
     confidence: b.confidence ?? null, reader: b.reader ?? output.reader ?? null, source: "found", verdict: null,
-    proposed: { corners: copy(b.corners), text: b.text ?? "" } }));
+    proposed: { corners: copy(b.corners), text: joined(fieldsOf(b)), fields: fieldsOf(b) } }, fieldsOf(b), {}, b.regions));
   return { image: output.image, W: output.W, H: output.H, reader: output.reader ?? null, ...carried(previous, books), next: top + 1 };
 }
 
@@ -59,7 +75,18 @@ export function start(output, previous) {
 const moved = (p) => !!p.proposed && JSON.stringify(p.corners) !== JSON.stringify(p.proposed.corners);
 const worked = (p) => p.verdict != null || p.typed || p.turnSet || moved(p);
 
-// What the tagger did in the model before, put onto a run's books: a verdict, a typed title, a turn and moved corners go to
+// the fields the tagger typed in p, put over the reader's in b
+function typedOnto(b, p) {
+  const fields = { ...b.fields }, regions = { ...b.regions }, typedFields = { ...b.typedFields };
+  for (const k of Object.keys(p.typedFields ?? {})) {
+    if (p.fields?.[k]) fields[k] = p.fields[k]; else delete fields[k];
+    if (p.regions?.[k]) regions[k] = p.regions[k]; else delete regions[k];
+    typedFields[k] = true;
+  }
+  return withFields(b, fields, typedFields, regions);
+}
+
+// What the tagger did in the model before, put onto a run's books: a verdict, typed fields, a turn and moved corners go to
 // the book with the same id; a book the tagger added and none missed stand as they were. A book the run does not have, on
 // which the tagger had done something, is listed in `dropped` by id and left out.
 function carried(previous, found) {
@@ -71,7 +98,7 @@ function carried(previous, found) {
     const hit = now.get(p.id);
     if (!hit) { if (worked(p)) dropped.push(p.id); continue; }
     if (!worked(p)) continue;
-    now.set(p.id, { ...hit, verdict: p.verdict ?? null, ...(p.typed ? { text: p.text, typed: true } : {}), ...(p.turnSet ? { turn: p.turn, turnSet: true } : {}),
+    now.set(p.id, { ...typedOnto(hit, p), verdict: p.verdict ?? null, ...(p.turnSet ? { turn: p.turn, turnSet: true } : {}),
       ...(moved(p) ? { corners: copy(p.corners), view: p.view } : {}) });
   }
   return { books: [...found.map((b) => now.get(b.id)), ...added], noneMissed: !!previous.noneMissed, added: Math.max(previous.added ?? 0, largest(previous.books, "u")),
@@ -79,11 +106,14 @@ function carried(previous, found) {
 }
 
 // ---------- the model and its file ----------
-// the file: every book in the order they stand, with its id and its verdict (right, or null while it is not decided)
+// the file: every book in the order they stand, with its id and its verdict (right, or null while it is not decided). A
+// book whose text is a title alone is written as before the fields, its text the title
+const fieldsKept = (f) => (titleAlone(f) ? {} : { fields: { ...f } });
 export function document(model) {
   return { image: model.image, W: model.W, H: model.H, reader: model.reader,
     books: inPlace(model.books).map((b) => ({ id: b.id, source: b.source, verdict: b.verdict, corners: copy(b.corners), turn: b.turn || 0, text: b.text ?? "",
-      ...(b.proposed ? { proposed: { corners: copy(b.proposed.corners), text: b.proposed.text } } : {}) })),
+      ...fieldsKept(fieldsOf(b)), ...(empty(boxes(b.regions)) ? {} : { regions: boxes(b.regions) }),
+      ...(b.proposed ? { proposed: { corners: copy(b.proposed.corners), text: b.proposed.text, ...fieldsKept(fieldsOf(b.proposed)) } } : {}) })),
     none_missed: model.noneMissed, next: { b: model.next, u: model.added + 1 } };
 }
 
@@ -94,10 +124,13 @@ export const blank = ({ image, W, H, reader }) => ({ image, W, H, reader: reader
 // once none was missed
 export function load(doc) {
   const old = doc.books.some((b) => b.id == null);
-  const books = doc.books.map((b, i) => ({
-    id: b.id ?? `b${i + 1}`, corners: copy(b.corners), view: shape(b.corners), turn: b.turn ?? 0, turnSet: true, text: b.text ?? "",
-    typed: !!b.text && (!b.proposed || b.text !== b.proposed.text), confidence: null, reader: doc.reader ?? null, source: b.source,
-    verdict: b.verdict ?? null, proposed: b.proposed ? { corners: copy(b.proposed.corners), text: b.proposed.text } : null }));
+  // a field unlike what was proposed for it, or on a book none proposed, is the tagger's
+  const typedOf = (f, p) => Object.fromEntries(FIELDS.filter((k) => (p ? (f[k] ?? "") !== (p[k] ?? "") : !!f[k])).map((k) => [k, true]));
+  const books = doc.books.map((b, i) => withFields({
+    id: b.id ?? `b${i + 1}`, corners: copy(b.corners), view: shape(b.corners), turn: b.turn ?? 0, turnSet: true,
+    confidence: null, reader: doc.reader ?? null, source: b.source, verdict: b.verdict ?? null,
+    proposed: b.proposed ? { corners: copy(b.proposed.corners), text: b.proposed.text, fields: fieldsOf(b.proposed) } : null },
+  fieldsOf(b), typedOf(fieldsOf(b), b.proposed ? fieldsOf(b.proposed) : null), b.regions));
   return { image: doc.image, W: doc.W, H: doc.H, reader: doc.reader ?? null, books, noneMissed: old ? true : !!doc.none_missed,
     next: Math.max(doc.next?.b ?? 1, largest(books, "b") + 1), added: Math.max((doc.next?.u ?? 1) - 1, largest(books, "u")) };
 }
@@ -114,6 +147,15 @@ const edit = (m, id, fn) => {
 // the model's reader is the one that read last
 const withReader = (r, reader) => (isSkip(r) || r.reader === reader ? r : { ...r, reader });
 
+// the fields given set and marked the tagger's, the book unchanged when every one already is
+function typed(b, given) {
+  const ks = FIELDS.filter((k) => k in given);
+  if (ks.every((k) => (b.fields[k] ?? "") === (given[k] ?? "") && b.typedFields[k])) return b;
+  const fields = { ...b.fields }, typedFields = { ...b.typedFields };
+  for (const k of ks) { fields[k] = given[k]; typedFields[k] = true; }
+  return withFields(b, fields, typedFields);
+}
+
 function apply(m, a) {
   switch (a.type) {
     case "move-corners": {
@@ -121,22 +163,34 @@ function apply(m, a) {
       return edit(m, a.book, (b) => (JSON.stringify(b.corners) === JSON.stringify(corners) ? b : { ...b, corners, view: shape(corners) }));
     }
     case "flip": return edit(m, a.book, (b) => ({ ...b, turn: ((b.turn || 0) + 2) % 4, turnSet: true }));
-    case "set-text": return edit(m, a.book, (b) => (b.text === a.text && b.typed ? b : { ...b, text: a.text, typed: true }));
-    // Right on a title typed and not yet committed carries the title: the two are one action
+    // a log kept before the fields sets the title alone
+    case "set-text": return edit(m, a.book, (b) => typed(b, { title: a.text }));
+    case "set-fields": return edit(m, a.book, (b) => typed(b, a.fields));
+    case "swap-fields": return edit(m, a.book, (b) => {
+      if (!b.fields[a.a] && !b.fields[a.b]) return b;
+      const fields = { ...b.fields, [a.a]: b.fields[a.b], [a.b]: b.fields[a.a] }, regions = { ...b.regions, [a.a]: b.regions[a.b], [a.b]: b.regions[a.a] };
+      return withFields(b, fields, { ...b.typedFields, [a.a]: true, [a.b]: true }, regions);
+    });
+    // Right on fields typed and not yet committed carries them: the two are one action
     case "approve": return edit(m, a.book, (b) => {
-      const titled = a.text !== undefined && !(b.text === a.text && b.typed);
-      return b.verdict === "right" && !titled ? b : { ...b, ...(titled ? { text: a.text, typed: true } : {}), verdict: "right" };
+      const given = a.fields ?? (a.text !== undefined ? { title: a.text } : null), now = given ? typed(b, given) : b;
+      return b.verdict === "right" && now === b ? b : { ...now, verdict: "right" };
     });
     case "read": return withReader(edit(m, a.book, (b) => {
-      const text = b.typed ? b.text : a.text;
-      const proposed = b.proposed ?? (b.source === "found" ? { corners: copy(b.corners), text: a.text } : null);
-      const now = { ...b, text, confidence: a.confidence ?? null, reader: a.reader, turn: a.turn ?? b.turn, proposed };
+      const said = fieldsOf(a), fields = { ...b.fields }, regions = { ...b.regions };
+      for (const k of FIELDS) {
+        if (b.typedFields[k]) continue;
+        if (said[k]) fields[k] = said[k]; else delete fields[k];
+        if (a.regions?.[k]) regions[k] = a.regions[k]; else delete regions[k];
+      }
+      const proposed = b.proposed ?? (b.source === "found" ? { corners: copy(b.corners), text: joined(said), fields: said } : null);
+      const now = { ...withFields(b, fields, b.typedFields, regions), confidence: a.confidence ?? null, reader: a.reader, turn: a.turn ?? b.turn, proposed };
       return JSON.stringify(now) === JSON.stringify(b) ? b : now;
     }), a.reader);
     case "add": {
       if (m.books.some((b) => b.id === a.book)) return THERE;
       const corners = clockwise(a.corners);
-      const b = { id: a.book, corners, view: shape(corners), turn: 0, turnSet: false, text: "", typed: false, confidence: null, reader: null, source: "missed", verdict: null, proposed: null };
+      const b = withFields({ id: a.book, corners, view: shape(corners), turn: 0, turnSet: false, confidence: null, reader: null, source: "missed", verdict: null, proposed: null }, {}, {}, {});
       return { ...m, books: [...m.books, b], noneMissed: false, added: Math.max(m.added, number(a.book)) };
     }
     case "delete": return m.books.some((b) => b.id === a.book) ? { ...m, books: m.books.filter((b) => b.id !== a.book) } : GONE;
@@ -161,7 +215,20 @@ export function describe(a, count = 1) {
     case "move-corners": return plural(count, "Moved a book's corner", `Moved ${count} books' corners`);
     case "flip": return plural(count, "Flipped a book", `Flipped ${count} books`);
     case "set-text": return count === 1 ? (a.text ? `Set a title: ${a.text}` : "Cleared a title") : `Set ${count} titles`;
-    case "approve": return count === 1 ? (a.text ? `Approved a book: ${a.text}` : "Approved a book") : `Approved ${count} books`;
+    case "set-fields": {
+      const ks = FIELDS.filter((k) => k in (a.fields ?? {}));
+      if (count > 1) return `Set ${count} fields`;
+      if (ks.length !== 1) return "Moved text between fields";
+      return a.fields[ks[0]] ? `Set ${NAMES[ks[0]]}: ${a.fields[ks[0]]}` : `Cleared ${NAMES[ks[0]]}`;
+    }
+    case "swap-fields": {
+      const [x, y] = [a.a, a.b].sort((p, q) => FIELDS.indexOf(p) - FIELDS.indexOf(q)).map((k) => NAMES[k].split(" ").slice(1).join(" "));
+      return count === 1 ? `Swapped the ${x} and the ${y}` : `Swapped fields ${count} times`;
+    }
+    case "approve": {
+      const t = a.fields ? joined(only(a.fields)) : a.text;
+      return count === 1 ? (t ? `Approved a book: ${t}` : "Approved a book") : `Approved ${count} books`;
+    }
     case "add": return plural(count, "Added a missed book", `Added ${count} missed books`);
     case "delete": return plural(count, "Deleted a book", `Deleted ${count} books`);
     case "none-missed": return count > 1 ? `Judged none missed ${count} times` : a.on ? "Said no book was missed" : "Took back none missed";
