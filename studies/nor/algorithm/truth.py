@@ -185,14 +185,32 @@ def agreement(a, t):
 HIT = 0.5
 
 
-def score(cands, doc):
-    """{tp, fp, fn}, soft counts of NoRs. Beside them, not part of the score: `pairs`, the pairs made; `found`, the
+def _in_any(polys, x, y):
+    """Whether x, y lies inside any of the polygons [[x, y], ...]: a ray from it crosses a border an odd number of times."""
+    if x is None or y is None:
+        return False
+    for poly in polys:
+        k = False
+        for (x0, y0), (x1, y1) in zip(poly, poly[1:] + poly[:1]):
+            if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+                k = not k
+        if k:
+            return True
+    return False
+
+
+def score(cands, doc, damaged=()):
+    """{tp, fp, fn}, soft counts of NoRs, the elements of either side whose centre lies in a damaged area left out. Beside them, not part of the score: `pairs`, the pairs made; `found`, the
     sum of their closeness (what tp would be were lengths not scored); `proposed`, the truth NoRs left unpaired that
     a failed candidate lies on; `measured`, the pairs whose truth carries lengths, and `length_err` and `red_err`,
     the sums of how far the answer's are from them (pixels); `items`, every element marked a NoR or not one as
     {id, x, y, label, hit, tp}; `answers`, every NoR of the answer as {id, x, y, pair, tp, fp}."""
     elements, known = truth_of(doc)
     mine = answer_of(cands)
+    if damaged:
+        damaged = [[list(q) for q in p] for p in damaged]
+        elements = [e for e in elements if not _in_any(damaged, e['x'], e['y'])]
+        mine = [e for e in mine if not _in_any(damaged, e['x'], e['y'])]
     passes = [e for e in mine if e['state'] == 'nor']
     failed = [e for e in mine if e['state'] == 'failed']
     reds = [e['red'] for e in passes if e['red']] or [e['red'] for e in elements if e['red']]

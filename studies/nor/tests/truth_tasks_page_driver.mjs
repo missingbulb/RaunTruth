@@ -194,8 +194,8 @@ const look = await page.evaluate(() => {
 await check(look.share >= 0.97 && look.under && look.big && !look.head && !look.ticks && look.cog && look.skip && look.back,
   "the open row has the cogwheel, Back and Skip; the crop takes the box's width, big thumbs side by side under it, no number or go-to, no marks on tasks not done", look);
 await page.click("#card-menu summary");
-await check(await page.evaluate(() => { const p = $("#card-menu .pop"), r = p.getBoundingClientRect(); return getComputedStyle(p).position === "absolute" && r.height > 40 && !!$("#opt-borders").offsetParent && !$("#sort").offsetParent; }),
-  "the cogwheel opens the options as a popup, with no sort");
+await check(await page.evaluate(() => { const p = $("#card-menu .pop"), r = p.getBoundingClientRect(); return getComputedStyle(p).position === "absolute" && r.height > 40 && !!$("#opt-borders").offsetParent; }),
+  "the cogwheel opens the options as a popup");
 await page.click("#card-menu summary");
 
 // req/nor/truth/marks: waiting, a faint outline and nothing else; decided, cut out of the image

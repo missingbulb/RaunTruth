@@ -204,10 +204,13 @@ nobody has decided: what the page does there is not a requirement yet.
   anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
   (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
   every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
-  fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
-  the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
-  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
-  `web-tests/test_study_runs.py`.
+  fixture study leaves out the pixels whose centres lie in one. Set by the owner on 2026-11-19 (missingbulb/RaunTruth#1024):
+  the NoR Finder and the Bookshelf Reader analyse no pixel of a damaged area (`req/nor/find/damaged`,
+  `req/shelves/books/damaged`), Vascular Measurements leaves them out of its model's measurements
+  (`req/vascular/model/damaged`), and each study's scorer leaves what lies in one out of both the answer and the
+  ground truth. The lab reads the damaged areas from the study root's tags file, without signing in, and hands them
+  to the versions and the scorers as the page hands them to its Python, an answer kept for the areas it was run with.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
 
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
@@ -1941,9 +1944,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
   while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
   (a Ground Truth Tagger in a GT or PostGT study, `req/shell/account/role`) there is no item view and no switch:
-  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Set by the
-  owner on 2026-11-04: an item view marked `data-shelved` gets no switch in any role, its code kept for a later
-  use; NoR's is shelved, and missingbulb/RaunTruth#740 decides whether it goes.
+  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
+  owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
+  the shell's `data-shelved` mark.
   Test: `web-tests/test_status_bar_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
@@ -2017,7 +2020,7 @@ nobody has decided: what the page does there is not a requirement yet.
   has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
-  never shown when shelved, `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
+  `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
   not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage and a
   role) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen

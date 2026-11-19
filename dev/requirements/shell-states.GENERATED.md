@@ -3983,10 +3983,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Finalists tab | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Finalists' count | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Rejected tab | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rejected count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Card menu | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
@@ -4034,8 +4030,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cut out what is done's key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Frame the area's key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cards | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's title | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ |
@@ -4206,10 +4200,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Finalists tab | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Finalists' count | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Rejected tab | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Rejected count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Card menu | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
@@ -4257,8 +4247,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cut out what is done's key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Frame the area's key | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Panning | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Item view | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cards | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Folder view | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's title | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ |
