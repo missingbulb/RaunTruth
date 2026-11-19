@@ -28,11 +28,6 @@ let thumbsServed = 0;
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/studies/nor/study.json") {
-    const manifest = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...manifest, driveThumbs: "ready-thumbs/", root: `https://drive.google.com/drive/folders/${ROOT}` }));
-  }
   const ready = u.startsWith("/studies/nor/ready-thumbs/");
   if (ready && u.endsWith(".jpg")) thumbsServed++;
   const f = ready ? path.join(thumbs, u.slice("/studies/nor/ready-thumbs/".length)) : repoFile(repo, u);
@@ -43,6 +38,7 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+siteOf(browser).studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/", root: `https://drive.google.com/drive/folders/${ROOT}` }));
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 const done = async (code, why) => { if (why) console.error(why); await browser.close(); server.close(); process.exit(code); };

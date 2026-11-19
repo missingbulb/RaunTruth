@@ -4,14 +4,13 @@
 // elsewhere; the Image Viewer's opens on the link last pasted in it.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_folder_driver.mjs
-import { repoFile } from "./repo_file.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, siteOf, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -20,25 +19,12 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const folder = (id) => `https://drive.google.com/drive/folders/${id}`;
 const FIXTURE_FOLDER = folder("fixturefolder0000001"), PASTED = folder("pastedfolder00000001");
 const NOR_FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/studies/fixture/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, root: FIXTURE_FOLDER }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw);
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+siteOf(browser).studies.edit("fixture", (m) => ({ ...m, root: FIXTURE_FOLDER }));
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,

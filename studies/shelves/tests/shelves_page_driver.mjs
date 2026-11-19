@@ -14,16 +14,15 @@
 //   node studies/shelves/tests/shelves_page_driver.mjs STUDIES
 import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until, orMissed } from "../../../web-tests/page_until.mjs";
-import { pw, launch, expecting, check } from "../../../web-tests/harness.mjs";
+import { pw, launch, expecting, check, siteOf } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const repo = path.resolve(import.meta.dirname, "..", "..", ".."), [studies] = process.argv.slice(2);
@@ -88,21 +87,14 @@ onmessage = ({ data: m }) => {
     postMessage({ type: "result", action: "straighten", meta: { crops }, bytes, echo: m.echo }, [bytes.buffer]);
   }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
-  if (u === "/web/worker.js") return send("text/javascript", WORKER);
-  if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
-  // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-  if (u === "/studies/shelves/study.json") return send("application/json", JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u), "utf8")), visibility: { accounts: ["tagger@acme.example"] } }));
-  const f = u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": WORKER,
+  "/web/vendor/wheels.json": "[]",
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await launch(pw);
+// the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
+siteOf(browser).studies.edit("shelves", (m) => ({ ...m, visibility: { accounts: ["tagger@acme.example"] } }));
 let failed = false;
 
 const PNG = noisePng(W, H);

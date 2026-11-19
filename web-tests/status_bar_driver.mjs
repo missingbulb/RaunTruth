@@ -14,14 +14,13 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import { helpTip, anyHelp } from "./help_tip.mjs";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { pw, launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting, siteOf } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -51,31 +50,23 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call") { work(${WORK}); const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo, ...mem() }, [b.buffer]); }
 };`;
 let stage = null; // the fixture's stage as served; null: as committed
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/studies/fixture/study.json" && stage) {
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage }));
-  }
-  if (u.startsWith("/some/")) { r.writeHead(200, { "content-type": "application/octet-stream", "cache-control": "no-store" }); return r.end(Buffer.alloc(Number(u.slice(6)) * 1024)); }
-  if (u === "/big") { r.writeHead(200, { "content-type": "application/octet-stream", "cache-control": "no-store" }); return r.end(Buffer.alloc(BIG)); }
-  // the build lists no fixture; served here with it, so its row in the switcher carries its stage
-  if (u === "/web/studies.json") {
-    const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify([...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }]));
-  }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const bytes = (n) => ({ type: "application/octet-stream", headers: { "cache-control": "no-store" }, body: Buffer.alloc(n) });
+const { origin, server } = await serveSite({
+  "/web/worker.js": EARLY + STAND_IN,
+  "/some/": (q, u) => bytes(Number(u.slice(6)) * 1024),
+  "/big": () => bytes(BIG),
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
+const site = siteOf(browser).studies;
+site.edit("fixture", (m) => (stage ? { ...m, stage } : m));
+site.editList(() => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
+  return [...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }];
+});
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#statusbar").screenshot({ path: path.join(shots, name + ".png") }); };

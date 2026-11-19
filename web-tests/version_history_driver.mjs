@@ -5,14 +5,13 @@
 // history that cannot be read says so. Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/version_history_driver.mjs [SHOTS]
-import { repoFile } from "./repo_file.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
 import { pw, launch, expecting } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -28,20 +27,10 @@ const HISTORY = [
 ];
 let history = JSON.stringify(HISTORY);
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/version_history.json") {
-    if (!history) { r.writeHead(404); return r.end(); }
-    r.writeHead(200, { "content-type": "application/json" }); return r.end(history);
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/web/version_history.json": () => history,
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };

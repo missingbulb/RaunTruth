@@ -14,7 +14,7 @@ import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { pw, launch, expecting } from "../../../web-tests/harness.mjs";
+import { pw, launch, expecting, siteOf } from "../../../web-tests/harness.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
@@ -47,11 +47,6 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  // driven in a PreGT study, outside ground truth
-  if (u === "/studies/nor/study.json") {
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage: "PreGT" }));
-  }
   // the page's own reading of an image, slow as on a slow computer
   if (u === "/web/image_open.js") {
     r.writeHead(200, { "content-type": "text/javascript" });
@@ -71,6 +66,8 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// driven in a PreGT study, outside ground truth
+siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage: "PreGT" }));
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
