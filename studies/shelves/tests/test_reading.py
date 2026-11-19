@@ -25,13 +25,13 @@ FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 
 
 @pytest.fixture(scope='module')
-def engines():
+def engines(request):
     if not shutil.which('tesseract'):
         pytest.skip('no tesseract command')
     pytest.importorskip('onnxruntime')
     import services
-    # the engines' files, fetched once into the study's data as the lab keeps them
-    study = types.SimpleNamespace(dir=STUDY, data=os.path.join(STUDY, 'data', 'raw'),
+    # the engines' files, fetched once into pytest's cache rather than the study's downloaded data
+    study = types.SimpleNamespace(dir=STUDY, data=str(request.config.cache.mkdir('shelves-engines')),
                                   manifest=json.load(open(os.path.join(STUDY, 'study.json'))))
     return services.native(study)
 
