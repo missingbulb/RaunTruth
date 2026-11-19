@@ -124,6 +124,8 @@ async function measure() {
   // The status bar's numbers hold a node or more for each character of their last change, and the network's
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
+  // every picture the page shows loaded first: one still loading holds its load and error listeners until it has
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
   await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the page's last frames; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
