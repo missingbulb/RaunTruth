@@ -1,7 +1,6 @@
 // The keyboard's actions (req/shell/image/keys): what a study declares in its study.json's `actions`, and what a
 // viewer adds of its own, wired to the keys here, each listed in the keys legend at the image's bottom left while it
 // acts. A study hands over only its handlers and the states its actions wait on.
-import { fault } from "./log.js";
 
 // how the legend writes a key the declaration names by its place
 const NAMES = { Space: "Space", Backspace: "⌫", Enter: "Enter", NumpadEnter: "Enter", Escape: "Esc", Minus: "−", Equal: "=",
@@ -35,7 +34,7 @@ export function actions(legend) {
   const holds = (c) => (c[0] === "!" ? !state[c.slice(1)] : !!state[c]);
   // every action says whether it is a state of the view, listed in the legend, or not, its key only on its control
   function add(spec, order, signal) {
-    if (typeof spec.legend !== "boolean") return fault(`the action ${spec.id} says nothing of the legend: give it legend true or false`);
+    if (typeof spec.legend !== "boolean") return console.error(`the action ${spec.id} says nothing of the legend: give it legend true or false`);
     const keys = spec.keys.map(parse);
     const a = { spec, keys, order, codes: keys.map((k) => k.code), held: false };
     a.control = () => (typeof spec.control === "string" ? document.querySelector(spec.control) : null);

@@ -4,7 +4,6 @@
 // than MOST values) are left out.
 "use strict";
 import { ifdAt } from "./tiff_file.js";
-import { warn } from "./log.js";
 
 const MOST = 16, LONGEST = 500;
 
@@ -17,7 +16,7 @@ export function fileFields(b) {
     else if (b[0] === 0xff && b[1] === 0xd8) Object.assign(out, { format: "jpeg" }, jpeg(b, v));
     else if (b[0] === 0x89 && four(1) === "PNG\r") Object.assign(out, { format: "png" }, png(b, v));
     else if (four(4) === "ftyp") Object.assign(out, { format: "heic" }, heif(b, v));
-  } catch (e) { warn("the file's details could not all be read:", e); }
+  } catch (e) { console.warn("the file's details could not all be read:", e); }
   return out;
 }
 

@@ -174,7 +174,7 @@ export function mount(shell) {
       if (textless) return { meta: null };
       if (phase === "text") shell.busy(true, "Finding the text…");
       try { return await servedNow().serve(service, meta, bytes); }
-      catch (e) { textless = String(e.message || e); shell.warn("Find books without the text finder:", e); return { meta: null }; }
+      catch (e) { textless = String(e.message || e); console.warn("Find books without the text finder:", e); return { meta: null }; }
       finally { if (phase === "text") shell.busy(true, "Finding the books…"); }
     }
     if (service === "words") { phase = "read"; shell.busy(true, "Reading the titles…"); }
