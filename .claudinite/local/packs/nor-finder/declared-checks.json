@@ -70,6 +70,20 @@
     ]
   },
   {
+    "id": "console-in-one-file",
+    "on_fail": "block",
+    "failureMessage": "the browser keeps every value page code hands the console, its last thousand messages for the page's life: a logged error keeps its stack, a logged result its data",
+    "fix": "log through warn() or note() from web/log.js, which hands the console text alone",
+    "scanFiles": "/^(web|studies\\/[^/]+\\/web)\\/(?!log\\.js$)(?!vendor\\/)[^]*\\.(m?js|html)$/",
+    "matchLines": [
+      {
+        "match": "/\\bconsole\\.\\w+\\(/",
+        "what": "writes to the console outside web/log.js: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
     "id": "literature-summaries-only",
     "on_fail": "block",
     "failureMessage": "a study's literature folder holds only Markdown; a PDF, a figure, a crop or supplementary code copies the publisher's material into a public repository",
