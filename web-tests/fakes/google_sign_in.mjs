@@ -5,6 +5,7 @@
 //   google.answer = "grant" | "deny" | "blocked" | "closed";   what Google's window says next
 //   google.answerAfter = () => promise;                        Google's window answering once it settles, not at once
 //   google.nextToken = "renewed-token";                        the token it grants next, a fresh one if unset
+//   google.hold = (write) => promise;                          a write to the app folder answered once it settles
 //   const record = google.signedIn({ email, name, scopes, token, until });   a token made live, and the page's own
 //     record of a sign-in (its nor-google-sign-in key) to seed
 //   google.asked, google.scriptLoads, google.calls, google.settings   what the page asked for ("METHOD url" for each
@@ -67,7 +68,7 @@ function makeSignIn() {
   let n = 0;
   const google = {
     account: { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: null },
-    answer: "grant", answerAfter: () => null, nextToken: null,
+    answer: "grant", answerAfter: () => null, nextToken: null, hold: () => null,
     asked: [], scriptLoads: 0, calls: [],
     // the app folders' files, each user's own: {id, owner, name, parents, body}
     settings: [], waiting: [],
@@ -107,7 +108,7 @@ export async function fakeGoogleSignIn(ctx, world) {
     return who ? json(route, 200, { ...google.account, email: who.email }) : json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
   });
   // the app folder, on the Drive API's own address: every other request there is the Drive fake's
-  await ctx.route((u) => /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/.test(u.href), (route) => {
+  await ctx.route((u) => /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/.test(u.href), async (route) => {
     const req = route.request(), u = new URL(req.url()), method = req.method();
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)$/)?.[1] || "");
     const who = holder(ctx, bearer(req));
@@ -118,6 +119,7 @@ export async function fakeGoogleSignIn(ctx, world) {
     if (method === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     google.heard(`${method} ${req.url()}`);
     if (!who) return json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
+    if (method === "POST" || method === "PATCH") await google.hold({ method });
     if (!id && method === "GET") {
       const name = (u.searchParams.get("q") || "").match(/name\s*=\s*'([^']+)'/)?.[1];
       return json(route, 200, { files: google.settings.filter((f) => f.owner === who.email && (!name || f.name === name)).map((f) => ({ id: f.id, name: f.name })) });

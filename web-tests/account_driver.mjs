@@ -175,6 +175,29 @@ try {
   check(await local(a.page, "nor-theme") === "dark" && file()["nor-theme"] === "dark", "Cancel changes nothing");
   await a.page.click("#theme"); // back to light, as the rest of this test expects
   await until(() => file()?.["nor-theme"] === "light");
+  // a setting changed while the save before it is on its way is saved too: another tab, opened before it is,
+  // keeps it rather than taking Drive's copy
+  {
+    const gates = [], writes = () => google.calls.filter((c) => /^PATCH /.test(c)).length, before = writes();
+    google.hold = () => new Promise((ok) => gates.push(ok));
+    await a.page.click("#theme");
+    await until(() => writes() > before);
+    // changed while that save is held, and saved after it, held too
+    await a.page.click("#theme");
+    await until(() => writes() > before + 1);
+    gates.shift()();
+    await until(() => file()?.["nor-theme"] === "dark");
+    // opened from the page, as a user opens another tab, which starts from this one's session
+    const [tab] = await Promise.all([a.ctx.waitForEvent("page"), a.page.evaluate(() => { window.open(location.href); })]);
+    await tab.waitForFunction(() => document.querySelector("#sign-out")?.hidden === false);
+    // its sync done: Drive's copy taken, or this device's change kept and saved
+    await orMissed(Promise.race([tab.waitForFunction(() => document.documentElement.dataset.theme === "dark"), untilHeard(() => writes() > before + 2, () => google.next())]));
+    check(await tab.evaluate(() => document.documentElement.dataset.theme) === "light", "a setting changed while the save before it was on its way stays, in another tab too");
+    google.hold = () => null;
+    for (const ok of gates.splice(0)) ok();
+    await until(() => file()?.["nor-theme"] === "light");
+    await tab.close();
+  }
   // the tip closed again, as the rest of this test expects of the file
   settings().body = JSON.stringify({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
   // animations turned off on another device
