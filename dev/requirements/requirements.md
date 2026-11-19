@@ -204,10 +204,13 @@ nobody has decided: what the page does there is not a requirement yet.
   anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
   (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
   every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
-  fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
-  the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
-  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
-  `web-tests/test_study_runs.py`.
+  fixture study leaves out the pixels whose centres lie in one. Set by the owner on 2026-11-19 (missingbulb/RaunTruth#1024):
+  the NoR Finder and the Bookshelf Reader analyse no pixel of a damaged area (`req/nor/find/damaged`,
+  `req/shelves/books/damaged`), Vascular Measurements leaves them out of its model's measurements
+  (`req/vascular/model/damaged`), and each study's scorer leaves what lies in one out of both the answer and the
+  ground truth. The lab reads the damaged areas from the study root's tags file, without signing in, and hands them
+  to the versions and the scorers as the page hands them to its Python, an answer kept for the areas it was run with.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
 
 - `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.

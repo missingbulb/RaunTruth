@@ -185,3 +185,37 @@ def test_only_the_images_with_ground_truth_are_downloaded(acme):
     drive.downloads.clear()
     _, pairs = run.measure(s, transport=drive)
     assert len(pairs) == 1 and 'img20' not in drive.downloads and 'img10' in drive.downloads
+
+
+def tagged(drive, damaged):
+    """The stand-in Drive's root with a tags file marking these damaged areas, by image Drive id."""
+    tags = dict(format='rauntruth-tags/1', images={k: dict(damaged=v) for k, v in damaged.items()}, folders={})
+    drive.files['tags'] = json.dumps(tags).encode()
+    drive.folders['rootfolder00'] = [p for p in drive.folders['rootfolder00'] if p[1] != 'tags'] + [('rauntruth-tags.json', 'tags')]
+
+
+def test_the_damaged_areas_of_the_root_s_tags_file_reach_the_versions(acme):
+    # req/shell/data/damaged: half of the ten bright pixels lie in a damaged area, so `above` counts five of them
+    s, drive = acme
+    tagged(drive, {'img10': [[[0, 0], [5, 0], [5, 1], [0, 1]]]})
+    results, _ = run.measure(s, ['above'], transport=drive)
+    assert {k: results['above'][None][k] for k in ('tp', 'fp', 'fn')} == dict(tp=23, fp=2, fn=5)
+
+
+def test_an_answer_is_run_again_when_its_image_s_damaged_areas_change(acme):
+    s, drive = acme
+    run.measure(s, ['above'], transport=drive)
+    cached = os.listdir(os.path.join(s.data, 'runs', 'above'))
+    tagged(drive, {'img10': [[[0, 0], [5, 0], [5, 1], [0, 1]]]})
+    run.measure(s, ['above'], transport=drive)
+    assert len(os.listdir(os.path.join(s.data, 'runs', 'above'))) == len(cached) + 1
+
+
+def test_the_damaged_areas_reach_a_scorer_that_takes_them(acme, monkeypatch):
+    s, drive = acme
+    area = [[[0, 0], [5, 0], [5, 1], [0, 1]]]
+    tagged(drive, {'img20': area})
+    seen = []
+    monkeypatch.setattr(s.module, 'score', lambda answer, truth, damaged=(): seen.append(damaged) or dict(tp=0, fp=0, fn=0))
+    run.measure(s, ['above'], transport=drive)
+    assert sorted(seen, key=len) == [[], area]
