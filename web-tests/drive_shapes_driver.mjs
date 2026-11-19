@@ -16,7 +16,8 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { until } from "./page_until.mjs";
+import { until, orMissed, untilHeard } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -102,28 +103,26 @@ await ctx.addInitScript((link) => {
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started
 // every row in view, and every row read, has its badge (or holds nothing to tell), and no read is on the way once the
 // page has run its handlers, the rows ahead of the view among them; 10 s at most, the checks after it saying what is
 // missing
 const quiet = async () => {
-  const end = Date.now() + 10000, wants = FILES.map((f) => f.want);
-  const told = () => page.waitForFunction(([wants, read]) => {
+  const wants = FILES.map((f) => f.want);
+  const told = () => orMissed(page.waitForFunction(([wants, read]) => {
     const box = $("#remote-list").getBoundingClientRect(), rows = [...document.querySelectorAll("#remote-list .item")];
     return rows.every((b, k) => { const r = b.getBoundingClientRect(); return !(r.bottom > box.top && r.top < box.bottom || read.includes(k)) || (b.querySelector(".shape")?.textContent || "") === wants[k]; });
-  }, [wants, reads.map((r) => r.k)], { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-  for (;;) {
+  }, [wants, reads.map((r) => r.k)], { timeout: 10000 }));
+  // done when nothing is on the way and no read began since the rows read were told
+  const done = await untilHeard(async () => {
     const asked = reads.length;
     await told();
     await framesOf(page);
-    // done when nothing is on the way and no read began since the rows read were told
-    if (!inflight && reads.length === asked) break;
-    if (Date.now() >= end) break;
-    if (inflight) await page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-  }
-  if (Date.now() >= end) {
+    return !inflight && reads.length === asked;
+  }, () => inflight && orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
+  if (!done) {
     const rows = await inView(), b = await badges();
     console.log("quiet: gave up after 10 s", JSON.stringify({ inflight, rows, badges: rows.map((k) => b[k]) }));
   }
@@ -144,7 +143,7 @@ const thumbOf = (k) => page.evaluate(async (id) => {
   const r = await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href);
   return r ? new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); r.blob().then((b) => f.readAsDataURL(b)); }) : "";
 }, FILES[k].id);
-const thumbSaved = (k, timeout = 3000) => until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }).then(() => true, () => false);
+const thumbSaved = (k, timeout = 3000) => orMissed(until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }));
 
 try {
   await page.goto(origin + "/web/");

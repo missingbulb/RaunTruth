@@ -20,6 +20,7 @@ import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -41,7 +42,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
 const brightness = async () => {

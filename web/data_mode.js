@@ -12,6 +12,7 @@ import { writeTiff } from "./tiff_file.js";
 import { readImage } from "./image_open.js";
 import { CONNECTION, holdOwns } from "./offline.js";
 import { asLoaded } from "./as_loaded.js";
+import { work } from "./pending.js";
 import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
 import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
@@ -71,7 +72,7 @@ export function dataMode(ctx) {
     if (offline()) { msg($("#data-msg"), "You are offline: the study's folders can be read once you are back online."); return Promise.resolve(); }
     msg($("#data-msg"), "");
     const of = epoch;
-    return (loaded = (async () => {
+    return (loaded = work.during((async () => {
       // the root's settings name the data folder and the ground-truth folders
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
@@ -107,7 +108,7 @@ export function dataMode(ctx) {
       }
       await checkAccess();
       await index(of, nodes.size >= MAX_FOLDERS);
-    })());
+    })(), "the study's folders listed"));
   }
   async function checkAccess() {
     await Promise.all([...nodes.values(), ...gtNodes].map(async (n) => {
@@ -175,7 +176,7 @@ export function dataMode(ctx) {
     return out;
   };
   // the tags file and the index written after an edit; what the edit said, or why it was not saved
-  async function saveTags(next, said) {
+  const saveTags = work.counting("tags saved", async (next, said) => {
     const top = place.root(), was = tagsDoc;
     if (!top || offline()) return;
     tagsDoc = next; drawTags();
@@ -183,7 +184,7 @@ export function dataMode(ctx) {
     catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
     msg($("#tags-msg"), said || "");
     await index(epoch);
-  }
+  });
   // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
   function drawTags() {
     const box = $("#tags-box"), c = chosen;
@@ -294,14 +295,14 @@ export function dataMode(ctx) {
     const hidden = (ix?.images || []).filter((i) => isHidden(i.tags || [], look.hide)).length;
     $("#study-hide-count").textContent = look.hide.length ? `${hidden === 1 ? "1 image" : hidden + " images"} hidden from viewers and taggers.` : "";
   }
-  async function setLook(change) {
+  const setLook = work.counting("the study set saved", async (change) => {
     const top = place.root();
     if (!top || offline()) return;
     try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
     catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
     msg($("#study-msg"), "");
     await index(epoch);
-  }
+  });
   $("#study-group").onchange = () => setLook({ group: $("#study-group").value === FOLDER ? null : $("#study-group").value });
   const hideAdd = () => {
     const got = parseTag($("#study-hide-add").value);
@@ -313,7 +314,7 @@ export function dataMode(ctx) {
   $("#study-hide-add").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); hideAdd(); } };
 
   // the listed folders changed in the study file, the tree read again, and anything to say after
-  async function setListed(next, said = "") {
+  const setListed = work.counting("the study's folders changed", async (next, said = "") => {
     const top = place.root();
     if (!top || offline()) return;
     $("#data-tree").classList.add("busy");
@@ -323,7 +324,7 @@ export function dataMode(ctx) {
     await load();
     $("#data-tree").classList.remove("busy");
     if (said) msg($("#data-msg"), said);
-  }
+  });
   async function addLink() {
     const ref = remote.parse($("#data-add-link").value || "");
     if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);

@@ -22,6 +22,8 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -90,16 +92,10 @@ let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 // what the stand-in Google holds changes only as a request reaches it: a wait on it looks again at each one
 const waiting = new Set();
-const heard = () => { for (const w of [...waiting]) w(); };
-const until = async (fn, ms = 5000) => {
-  for (const end = Date.now() + ms; ; ) {
-    if (await fn()) return true;
-    if (Date.now() >= end) return false;
-    await new Promise((ok) => { const wake = () => { clearTimeout(t); waiting.delete(wake); ok(); }, t = setTimeout(wake, end - Date.now()); waiting.add(wake); }); // bounds a hang: a request that never comes ends the wait
-  }
-};
+const heard = () => { for (const w of [...waiting]) { waiting.delete(w); w(); } };
+const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => new Promise((ok) => waiting.add(ok)), { timeout: ms }));
 // a page showing something, within ms
-const shows = (page, fn, arg, ms = 5000) => page.waitForFunction(fn, arg, { timeout: ms }).then(() => true, () => false);
+const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that
 // wants it: there once that action returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
@@ -127,7 +123,7 @@ async function device(seed) {
   });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => document.querySelector("#title").textContent);
   return { ctx, page };
@@ -256,7 +252,7 @@ try {
   await expire();
   const before = seen.length;
   // to light, by a script, once the user activation a test's evaluate itself carries (5 s) is over
-  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
+  await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
   await shows(b.page, () => document.documentElement.dataset.theme === "light", undefined, 10000);
   check(await local(b.page, "nor-theme") === "light" && await askedNow() === 0 && file()["nor-theme"] === "dark", "a change no user made asks Google for nothing");
   const calls = await googleCalls(b.page);

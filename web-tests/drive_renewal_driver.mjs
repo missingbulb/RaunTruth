@@ -17,6 +17,7 @@ import http from "node:http";
 import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -27,13 +28,21 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OLD = "old-token", NEW = "renewed-token", PRIVATE = "privatefolder0000001";
 const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
 const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in-key", clientId: "123456-stand.apps.googleusercontent.com" } };`;
-// Google's script: its token client records each request and answers it a moment later, as Google's window does,
-// with a new token, or, while window.gsiRefuses is set, by the window closing with none
+// Google's script: its token client records each request and answers it, as Google's window does, with a new token,
+// or, while window.gsiRefuses is set, by the window closing with none; once window.googleAfterRead settles, where a
+// case sets it
 const GSI = `window.google = { accounts: { oauth2: { initTokenClient(o) {
   window.asked = [];
   return { requestAccessToken(opts) { window.asked.push(opts || {});
-    setTimeout(() => window.gsiRefuses ? o.error_callback({ type: "popup_closed" }) : o.callback({ access_token: "${NEW}", expires_in: 3599, scope: "${SCOPES}" }), 300); } }; // waits on purpose: Google's window answers after the read, which a renewal while the read goes on needs
+    Promise.resolve(window.googleAfterRead).then(() => window.gsiRefuses ? o.error_callback({ type: "popup_closed" }) : o.callback({ access_token: "${NEW}", expires_in: 3599, scope: "${SCOPES}" })); } };
 } } } };`;
+// Google's window answering only once the page's read of Drive has come back, for a renewal while the read goes on
+const answerAfterRead = (page) => page.evaluate(() => {
+  const fetchNow = window.fetch;
+  window.googleAfterRead = new Promise((ok) => {
+    window.fetch = function (...a) { const p = fetchNow.apply(this, a); if (/googleapis\.com\/drive\//.test(String(a[0]?.url ?? a[0]))) p.finally(ok); return p; };
+  });
+});
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
@@ -85,7 +94,7 @@ async function session(left) {
   }, { who: { user: { name: "Tester", email: "tester@example.com", picture: null }, token: OLD, until: Date.now() + left, scopes: SCOPES }, folder: PRIVATE });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/viewer");
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   return { ctx, page, reads };
@@ -108,6 +117,7 @@ async function click(page) {
 }
 {
   const { ctx, page, reads } = await session(5 * 60e3);
+  await answerAfterRead(page);
   const { got, asked } = await click(page);
   check(got === "private.png" && reads[0] === OLD, "in the token's last ten minutes, a click reads Drive at once with the token it still has", { got, reads });
   check(asked.length === 1, "and renews the token early", asked);
@@ -125,7 +135,7 @@ async function click(page) {
 {
   const { ctx, page, reads } = await session(-3600e3);
   // a read once the user activation a test's evaluate itself carries (5 s) is over: no click behind it
-  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
+  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
     .then(() => import("/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
   const asked = await page.evaluate(() => (window.asked || []).length);
   check(/click again/.test(err) && asked === 0 && reads.length === 0, "a read with no click behind it opens nothing and says to click again", { err, asked, reads });

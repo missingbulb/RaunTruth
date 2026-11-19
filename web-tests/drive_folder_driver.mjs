@@ -14,6 +14,8 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -60,7 +62,7 @@ await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort()
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // what the Drive dialog opens on, in the study at this address: the link in its field where it takes one, else the
 // link of the folder it lists
@@ -72,7 +74,7 @@ const opensOn = async (address) => {
   await pressDrive(page);
   await page.waitForFunction(() => $("#remote-dlg").open);
   // the dialog has opened on something: a folder it lists, or the link in its field
-  await Promise.race([listing, page.waitForFunction(() => window.$ && $("#remote-link")?.checkVisibility() && $("#remote-link").value).catch(() => {})]);
+  await Promise.race([listing, orMissed(page.waitForFunction(() => window.$ && $("#remote-link")?.checkVisibility() && $("#remote-link").value))]);
   const link = (await page.isVisible("#remote-link")) ? await page.inputValue("#remote-link") : listed.length ? folder(listed[listed.length - 1]) : "";
   await page.click("#remote-dlg button[value=close]");
   return link;

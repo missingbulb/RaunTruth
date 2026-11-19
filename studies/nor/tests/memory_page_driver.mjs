@@ -15,6 +15,8 @@ import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
+import { detached, grown } from "./detached_nodes.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -62,7 +64,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fail("page error: " + e.message));
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const cdp = await ctx.newCDPSession(page);
 await cdp.send("Performance.enable");
 if (process.env.THROTTLE) await cdp.send("Emulation.setCPUThrottlingRate", { rate: +process.env.THROTTLE });
@@ -122,7 +124,7 @@ async function measure() {
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
   // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the page's last frames; being reworked on #932
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the page's last frames; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
   // element it writes into an action's log, and the page adds attributes as it goes (a class the first time an
   // animation is seen off screen): each one in the document is read here, made a node whoever read it before, and
@@ -152,7 +154,7 @@ async function measure() {
 }
 // the page's counts after a collection; twice, as DOM nodes freed by the first are swept only after it
 async function collected() {
-  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose: the page runs between the two collections, so the second sweeps what the first freed
+  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose (no event): the page runs between the two collections, so the second sweeps what the first freed
   return Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]));
 }
 // the nodes in the document, by the nearest ancestor with an id, and how many that is in all
@@ -178,7 +180,7 @@ const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
-  const base = await measure();
+  const base = await measure(), held = await detached(cdp);
   for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
   const m = await measure();
   console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
@@ -188,6 +190,8 @@ for (const [name, act] of Object.entries({ open, find, tune })) {
     const a = base.where.by, b = m.where.by;
     const grew = Object.keys({ ...a, ...b }).filter((k) => (a[k] || 0) !== (b[k] || 0)).map((k) => `${k} ${a[k] || 0} -> ${b[k] || 0}`);
     problems.push(`${name}: in the document ${grew.join(", ") || "nothing changed"}; outside it ${base.nodes - base.where.all} -> ${m.nodes - m.where.all}`);
+    // and, outside it, which nodes and what holds them
+    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, await detached(cdp))) problems.push(`${name}: outside the document, ${d}`);
   }
 }
 await browser.close(); server.close();

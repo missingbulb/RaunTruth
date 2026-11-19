@@ -18,6 +18,9 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
+import { held as holding } from "./held.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -69,19 +72,27 @@ const cors = { "access-control-allow-origin": "*" };
 await ctx.route("https://www.googleapis.com/**", async (route) => {
   const q = new URL(route.request().url()).searchParams.get("q") || "";
   const slow = q.includes(SLOW.id);
-  if (slow) await new Promise((ok) => setTimeout(ok, 800)); // waits on purpose: a listing slower than the user, who moves on
+  if (slow) await slowListing.hold();
   const files = slow ? [{ ...IMAGES[0], id: "slowimage00000000001", name: "stale.tif" }]
     : [{ ...SLOW, mimeType: "application/vnd.google-apps.folder" }, ...IMAGES.map((f) => ({ ...f, mimeType: "image/tiff", size: "1000", createdTime: "2026-10-01T10:00:00Z" }))];
   await route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
   if (slow) slowAnswered();
 });
+// the slow folder's listing, held until the user has moved on
+const slowListing = holding();
 // each thumbnail's request, in order, and how many are still unanswered (answered or aborted by the page leaves
-// them); delay(k) says how long row k's answer takes
+// them)
 const asked = [];
-let inflight = 0, delay = () => 0;
-// while held, no thumbnail is answered: the answers are slower than whatever the test does meanwhile
-let held = null, letGo = () => {};
-const hold = () => { held = new Promise((ok) => { letGo = () => { held = null; ok(); }; }); };
+let inflight = 0;
+// while held, no thumbnail is answered, so the answers are slower than whatever the test does meanwhile: gates holds
+// each held answer's release by its row, and letGo(rows) lets those rows' answers go, every one held by default
+let holdingAll = false;
+const gates = new Map();
+const hold = () => { holdingAll = true; };
+const letGo = (rows = [...gates.keys()]) => {
+  if (rows.length === gates.size) holdingAll = false;
+  for (const k of rows) { gates.get(k)?.(); gates.delete(k); }
+};
 // resolves at the next request or answer
 let moved, next = new Promise((ok) => { moved = ok; });
 const note = () => { moved(); next = new Promise((ok) => { moved = ok; }); };
@@ -90,9 +101,10 @@ let slowAnswered, slowListed = new Promise((ok) => { slowAnswered = ok; });
 const atMost = (ms) => new Promise((ok) => setTimeout(ok, ms)); // bounds a hang: a page that never asks fails its check
 await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
   const id = path.basename(new URL(route.request().url()).pathname, ".jpg"), k = IMAGES.findIndex((f) => f.id === id);
-  asked.push(k); inflight++; note();
-  await new Promise((ok) => setTimeout(ok, delay(k))); // waits on purpose: the stand-in answers each row as slowly as the case asks
-  if (held) await held;
+  asked.push(k); inflight++;
+  const gate = holdingAll && new Promise((ok) => gates.set(k, ok));
+  note();
+  if (gate) await gate;
   try { await route.fulfill({ status: 200, contentType: "image/png", body: png(k + 1) }); } catch { /* aborted by the page */ }
   inflight--; note();
 });
@@ -109,7 +121,7 @@ await ctx.addInitScript(() => {
 });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the image rows in view, by row number, and the window the page should fetch for them
 const inView = () => page.evaluate(() => {
@@ -125,18 +137,16 @@ const shown = () => page.evaluate(() => [...document.querySelectorAll("#remote-l
 // waits until every row in view and the next AHEAD has its picture or has been asked for, every request is answered, and the page says
 // its thumbnails are in (the status bar's "Thumbnails n of m" gone); 10 s at most, the checks after it saying what is missing
 const quiet = async () => {
-  const end = Date.now() + 10000, t0 = Date.now();
-  for (;;) {
-    const want = span(await inView()), pics = await shown();
-    if (want.every((k) => asked.includes(k) || pics[k]) && !inflight) {
-      await page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-      await framesOf(page);
-      const now = await shown();
-      if (!inflight && span(await inView()).every((k) => asked.includes(k) || now[k])) return;
-    }
-    if (Date.now() >= end) return console.log(`quiet: gave up after ${Date.now() - t0} ms`, JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
-    await Promise.race([next, page.waitForEvent("requestfinished", { timeout: end - Date.now() }).catch(() => {})]);
-  }
+  let want, pics;
+  const done = await untilHeard(async () => {
+    want = span(await inView()); pics = await shown();
+    if (!want.every((k) => asked.includes(k) || pics[k]) || inflight) return false;
+    await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: 10000 }));
+    await framesOf(page);
+    const now = await shown();
+    return !inflight && span(await inView()).every((k) => asked.includes(k) || now[k]);
+  }, () => Promise.race([next, orMissed(page.waitForEvent("requestfinished", { timeout: 10000 }))]), { timeout: 10000 });
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
 };
 // the page's handlers for what was just done have all run
 const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -151,13 +161,20 @@ try {
   await page.waitForFunction(() => window.$ && $("#title").textContent);
 
   // answers arrive in reverse order of asking: the later rows' first
-  delay = (k) => 400 - 5 * k;
+  hold();
   // the status bar's message, each time it changes
   await page.evaluate(() => {
     window.said = []; window.saidBefore = $("#status").textContent;
     new MutationObserver(() => said.push($("#status").textContent)).observe($("#status"), { childList: true, characterData: true, subtree: true });
   });
   await open();
+  await untilHeard(async () => span(await inView()).every((k) => gates.has(k)), () => next);
+  for (const k of [...gates.keys()].sort((x, y) => y - x)) {
+    const left = inflight;
+    letGo([k]);
+    await untilHeard(() => inflight < left, () => next);
+  }
+  letGo();
   await quiet();
   const told = await page.evaluate(() => ({ said, before: saidBefore, now: $("#status").textContent, own: !!document.querySelector("#sb-thumbs") }));
   check(told.said.some((t) => /^Thumbnails \d+ of \d+ · /.test(t)) && !told.own, `while thumbnails load, the status message says how many: ${JSON.stringify(told.said)}`);
@@ -190,17 +207,18 @@ try {
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
   await quiet();
   const had = (await shown()).flatMap((w, k) => (w ? [k] : []));
-  asked.length = 0; delay = () => 300;
+  asked.length = 0; hold();
+  const from = await page.evaluate(() => window.thumbsAsked);
   await page.evaluate(() => { $("#remote-list").scrollTop = $("#remote-list").scrollHeight / 2; });
   // the first rows there asked for, their answers still on the way
-  const from = await page.evaluate(() => window.thumbsAsked);
-  await page.waitForFunction((n) => window.thumbsAsked > n, from).catch(() => {});
+  await orMissed(page.waitForFunction((n) => window.thumbsAsked > n, from));
   const middle = span(await inView());
   check(had.length >= first.length && middle.length > AHEAD, `${had.length} thumbnails held before closing, ${middle.length} rows wanted midway`);
   // what the page had asked for, read in the same task as the close, so none is asked between the two
   const cut = await page.evaluate(() => { const n = window.thumbsAsked; document.querySelector("#remote-dlg button[value=close]").click(); return n; }) - from;
   // every request made before closing answered or cut off, and the page done with them
-  for (const end = Date.now() + 5000; inflight && Date.now() < end; ) await Promise.race([next, atMost(end - Date.now())]);
+  letGo();
+  await untilHeard(() => !inflight, () => next, { timeout: 5000 });
   await framesOf(page);
   const after = (await page.evaluate(() => window.thumbsAsked)) - from - cut;
   check(cut > 0 && after === 0, `closing the dialog stops the fetches: ${cut} asked before, ${after} after`);
@@ -217,8 +235,10 @@ try {
   // a folder asked for and left before its listing arrives never shows
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
   await page.dblclick("#remote-list .item.folder");
+  await Promise.race([slowListing.asked, atMost(5000)]);
   await page.click("#remote-path button[data-k='0']");
   // the slow listing in, after the user moved on, and the page done with it
+  slowListing.release();
   await Promise.race([slowListed, atMost(5000)]);
   await framesOf(page);
   const rows = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item .name")].map((e) => e.textContent));

@@ -24,6 +24,8 @@ import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -74,7 +76,7 @@ await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 try {
   await page.goto(origin + "/web/index.html?study=fixture");
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
@@ -136,7 +138,7 @@ try {
       return svg instanceof SVGSVGElement ? "generic" : "none";
     };
     const got = () => page.evaluate(look);
-    await page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: 3000 }).catch(() => {});
+    await orMissed(page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: 3000 }));
     const seen = await got();
     if (seen !== want) problems.push(`the switcher's control shows ${seen}, not ${want}`);
   };
@@ -192,7 +194,7 @@ try {
     noHelp: !document.querySelector("#channels .help"), icon: document.querySelector("#favicon").href,
   }));
   await page.click("#study-menu summary");
-  const focused = await page.waitForFunction(() => document.activeElement?.type === "search").then(() => true, () => false);
+  const focused = await orMissed(page.waitForFunction(() => document.activeElement?.type === "search"));
   if (!focused) problems.push("the switcher does not open on its search box");
   const lined = await page.evaluate(() => $("#study-menu .pop").getBoundingClientRect().left - $("#study-menu .caret").getBoundingClientRect().left);
   if (Math.abs(lined) > 1) problems.push(`the switcher's popup does not open under its caret: ${lined} px off`);

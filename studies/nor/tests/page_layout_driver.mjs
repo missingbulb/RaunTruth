@@ -16,6 +16,7 @@ import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -76,7 +77,7 @@ for (const width of [1000, 1600]) {
   await standInDrive(ctx);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
@@ -128,7 +129,7 @@ for (const width of [1000, 1600]) {
   await standInDrive(ctx);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);

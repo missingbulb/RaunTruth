@@ -8,8 +8,9 @@
 export const VOLATILE = {
   // the status bar's measures of the tab, which a switch does not restart: memory, CPU, network, disk
   subtrees: ["#sb-res-items"],
-  // the browser's own reading of what is scrolled out of view, kept on whatever ever animated, to pause it
-  classes: ["offscreen"],
+  // the browser's own reading of what is scrolled out of view, kept on whatever ever animated, to pause it; and the
+  // resources block raised by those measures, which a fresh load has not taken yet
+  classes: ["offscreen", "raised"],
   // attributes that say nothing when empty, which a control set and cleared again leaves behind
   emptied: ["style", "title", "class"],
   // how long Python has run and what it took, which a page that kept Python running counts from its own start, and

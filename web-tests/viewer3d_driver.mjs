@@ -21,6 +21,7 @@ import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -82,7 +83,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
 const picture = async () => { await viewDrawn(page); return pictureNow(); };

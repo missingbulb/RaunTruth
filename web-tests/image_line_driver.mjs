@@ -23,7 +23,8 @@ import { repoFile } from "./repo_file.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
 import { keptContext } from "./kept_context.mjs";
-import { until } from "./page_until.mjs";
+import { until, orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -122,7 +123,7 @@ await ctx.addInitScript(([link, recent]) => {
 }, [FOLDER, RECENT]);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);
 const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, sel);
@@ -268,7 +269,7 @@ try {
   await ctx.setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.click("#image-pick");
-  await until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: 3000 }).catch(() => {});
+  await orMissed(until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: 3000 }));
   r = await rows();
   check(r.find((x) => x.name === "kept.png").grey === false && r.filter((x) => x.name !== "kept.png").every((x) => x.grey), "offline, the selector greys the images not kept here", r);
   await page.keyboard.press("Escape");
@@ -304,7 +305,7 @@ try {
   await shot("new_in_dialog", "#remote-dlg");
   await page.click("#remote-dlg button[value=close]");
   await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: 3000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: 3000 }));
   d = await listed();
   check(d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
   await page.click("#remote-dlg button[value=close]");

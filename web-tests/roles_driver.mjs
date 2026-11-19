@@ -7,6 +7,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { motion } from "./page_motions.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, shots] = process.argv.slice(2);
 const shot = (page, name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
@@ -111,10 +112,10 @@ await choose(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column, folded or open, once its motion has ended at the width asked for
-const widthReaches = (open) => page.waitForFunction((open) => {
+const widthReaches = (open) => orMissed(page.waitForFunction((open) => {
   const w = $("#data-col").getBoundingClientRect().width;
   return (open ? w > 200 : w < 60) && !document.getAnimations().some((a) => a.transitionProperty && a.playState === "running");
-}, open).catch(() => {});
+}, open));
 await widthReaches(true);
 s = await seen(page);
 await shot(page, "data-manager");
