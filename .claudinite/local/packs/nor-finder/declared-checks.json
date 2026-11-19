@@ -75,6 +75,20 @@
     ]
   },
   {
+    "id": "hand-rolled-poll",
+    "on_fail": "block",
+    "failureMessage": "a deadline a test keeps for itself is a poll written again: each copy picks its own bound and its own way to wake, and none says what it gave up waiting for",
+    "fix": "wait with until(page, fn) for the page's state or untilHeard(fn, wake) for the test's own, from web-tests/page_until.mjs; else end the line `// waits on purpose: <reason>`",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!page_until\\.mjs$).*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/=\\s*Date\\.now\\(\\)\\s*\\+/",
+        "what": "keeps a deadline of its own: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*(waits on purpose|bounds a hang):/"
+      }
+    ]
+  },
+  {
     "id": "google-drive-in-one-file",
     "on_fail": "block",
     "failureMessage": "Google is a detail of the remote store and the identity provider, so code elsewhere that depends on it breaks when that detail changes",

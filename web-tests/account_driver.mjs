@@ -22,7 +22,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
-import { orMissed } from "./page_until.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -91,14 +91,8 @@ let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 // what the stand-in Google holds changes only as a request reaches it: a wait on it looks again at each one
 const waiting = new Set();
-const heard = () => { for (const w of [...waiting]) w(); };
-const until = async (fn, ms = 5000) => {
-  for (const end = Date.now() + ms; ; ) {
-    if (await fn()) return true;
-    if (Date.now() >= end) return false;
-    await new Promise((ok) => { const wake = () => { clearTimeout(t); waiting.delete(wake); ok(); }, t = setTimeout(wake, end - Date.now()); waiting.add(wake); }); // bounds a hang: a request that never comes ends the wait
-  }
-};
+const heard = () => { for (const w of [...waiting]) { waiting.delete(w); w(); } };
+const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => new Promise((ok) => waiting.add(ok)), { timeout: ms }));
 // a page showing something, within ms
 const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that

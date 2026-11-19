@@ -18,7 +18,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { orMissed } from "./page_until.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -126,18 +126,16 @@ const shown = () => page.evaluate(() => [...document.querySelectorAll("#remote-l
 // waits until every row in view and the next AHEAD has its picture or has been asked for, every request is answered, and the page says
 // its thumbnails are in (the status bar's "Thumbnails n of m" gone); 10 s at most, the checks after it saying what is missing
 const quiet = async () => {
-  const end = Date.now() + 10000, t0 = Date.now();
-  for (;;) {
-    const want = span(await inView()), pics = await shown();
-    if (want.every((k) => asked.includes(k) || pics[k]) && !inflight) {
-      await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: Math.max(1, end - Date.now()) }));
-      await framesOf(page);
-      const now = await shown();
-      if (!inflight && span(await inView()).every((k) => asked.includes(k) || now[k])) return;
-    }
-    if (Date.now() >= end) return console.log(`quiet: gave up after ${Date.now() - t0} ms`, JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
-    await Promise.race([next, orMissed(page.waitForEvent("requestfinished", { timeout: end - Date.now() }))]);
-  }
+  let want, pics;
+  const done = await untilHeard(async () => {
+    want = span(await inView()); pics = await shown();
+    if (!want.every((k) => asked.includes(k) || pics[k]) || inflight) return false;
+    await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: 10000 }));
+    await framesOf(page);
+    const now = await shown();
+    return !inflight && span(await inView()).every((k) => asked.includes(k) || now[k]);
+  }, () => Promise.race([next, orMissed(page.waitForEvent("requestfinished", { timeout: 10000 }))]), { timeout: 10000 });
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
 };
 // the page's handlers for what was just done have all run
 const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -201,7 +199,7 @@ try {
   // what the page had asked for, read in the same task as the close, so none is asked between the two
   const cut = await page.evaluate(() => { const n = window.thumbsAsked; document.querySelector("#remote-dlg button[value=close]").click(); return n; }) - from;
   // every request made before closing answered or cut off, and the page done with them
-  for (const end = Date.now() + 5000; inflight && Date.now() < end; ) await Promise.race([next, atMost(end - Date.now())]);
+  await untilHeard(() => !inflight, () => next, { timeout: 5000 });
   await framesOf(page);
   const after = (await page.evaluate(() => window.thumbsAsked)) - from - cut;
   check(cut > 0 && after === 0, `closing the dialog stops the fetches: ${cut} asked before, ${after} after`);

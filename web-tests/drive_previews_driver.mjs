@@ -19,7 +19,7 @@ import { keptContext } from "./kept_context.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { orMissed } from "./page_until.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -93,16 +93,14 @@ page.setDefaultTimeout(10000);
 // read is on the way once the page has run its handlers; 10 s at most, the
 // checks after it saying what is missing
 const quiet = async () => {
-  const end = Date.now() + 10000;
-  for (;;) {
+  const done = await untilHeard(async () => {
     await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent)
       && [...document.querySelectorAll("#remote-list .item")].every((b) => !/\.tiff?$/i.test(b.querySelector(".name").textContent) || b.querySelector(".shape").textContent),
-      null, { timeout: Math.max(1, end - Date.now()) }));
+      null, { timeout: 10000 }));
     await framesOf(page);
-    if (!inflight || Date.now() >= end) break;
-    await orMissed(page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }));
-  }
-  if (Date.now() >= end) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight, rows: await rows() }));
+    return !inflight;
+  }, () => orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight, rows: await rows() }));
 };
 const open = async () => {
   await pressDrive(page);
