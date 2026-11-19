@@ -116,14 +116,13 @@ async function findWith(f) {
   await done; await settled();
 }
 async function find() { for (const f of FINDERS) await findWith(f); }
-// moves each numeric filter in turn away from its value and back, in both views, as someone tuning would
+// moves each numeric filter in turn away from its value and back, as someone tuning would
 async function tune() {
   const n = await page.evaluate(() => document.querySelectorAll("#filters .param.number").length);
   assert.ok(n >= 6, `only ${n} filter dials to move`);
   for (let k = 0; k < MOVES; k++) {
     const done = next("refilter");
     await page.evaluate(([k, n]) => {
-      if (k === 0) showView("items"); if (k === 6) showView("image");
       const p = document.querySelectorAll("#filters .param.number")[Math.floor(k / 2) % n], box = p.querySelector(".box");
       const def = st.defaults[p.dataset.name];
       box.value = k % 2 ? def : def * 1.3 + 0.1; box.dispatchEvent(new Event("input"));

@@ -1925,9 +1925,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
   while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
   (a Ground Truth Tagger in a GT or PostGT study, `req/shell/account/role`) there is no item view and no switch:
-  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Set by the
-  owner on 2026-11-04: an item view marked `data-shelved` gets no switch in any role, its code kept for a later
-  use; NoR's is shelved, and missingbulb/RaunTruth#740 decides whether it goes.
+  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
+  owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
+  the shell's `data-shelved` mark.
   Test: `web-tests/test_status_bar_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
@@ -2001,7 +2001,7 @@ nobody has decided: what the page does there is not a requirement yet.
   has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
-  never shown when shelved, `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
+  `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
   not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage and a
   role) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen
