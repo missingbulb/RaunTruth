@@ -836,8 +836,8 @@ nobody has decided: what the page does there is not a requirement yet.
   item's ring, the area's frame and what is cut out of the image, is shown only while tagging, and the Show menu's
   rows for them are off out of it. Tagging stops when another image opens or
   the study leaves. Set by the owner on 2026-11-10, what is cut out can be the viewer's: a study gives it the shapes
-  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, showing there the
-  study's `groundTruth.reveal` picture, black while it names none, and gives the image back whole out of tagging. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
+  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, black where it is cut out,
+  and gives the image back whole out of tagging; changed by the owner on 2026-11-19, no picture shows behind it. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
   `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 

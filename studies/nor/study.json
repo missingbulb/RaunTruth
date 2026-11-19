@@ -79,8 +79,7 @@
   },
   "groundTruth": {
     "actions": "web/gt_actions.js",
-    "ring": "#00ff96",
-    "reveal": "https://urbananimal.co.in/wp-content/uploads/2025/04/image-6.jpg.webp"
+    "ring": "#00ff96"
   },
   "actions": [
     {"id": "yes", "label": "A NoR", "keys": ["KeyF"], "kind": "press", "legend": false, "control": "#task-card .verdict .up", "when": ["tagging", "step"]},
