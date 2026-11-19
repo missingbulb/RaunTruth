@@ -30,7 +30,7 @@ const tests = {
   'a run gives each candidate an id c1, c2, … in the order found, none approved or deleted'() {
     const m = start();
     assert.deepEqual(ids(m.cands), ['c1', 'c2', 'c3', 'c4']);
-    assert.deepEqual([m.deleted, m.added, m.areas, m.nextC, m.nextU], [[], [], [], 5, 1]);
+    assert.deepEqual([m.deleted, m.added, m.checked, m.nextC, m.nextU], [[], [], [], 5, 1]);
     assert.deepEqual(m.meta.size, [400, 300]);
     assert.equal(m.meta.finder, 'tl');
     assert.ok(m.cands.every((c) => !('approved' in c) && c.fail !== undefined));
@@ -114,12 +114,23 @@ const tests = {
     assert.deepEqual(run(gone, { type: 'add', cand: 'u2', to: [1, 1], lines: linesAt(1, 1) }), { skip: 'its id is taken' });
     assert.deepEqual(run(gone, { type: 'delete', cand: 'u2' }), { skip: 'its candidate is gone' });
   },
-  'check-area adds an area, sorted, and takes it back'() {
-    const m = run(run(start(), { type: 'check-area', area: 8, on: true }), { type: 'check-area', area: 3, on: true });
-    assert.deepEqual(m.areas, [3, 8]);
-    assert.deepEqual(run(m, { type: 'check-area', area: 3, on: true }), { skip: 'nothing to change' });
-    assert.deepEqual(run(m, { type: 'check-area', area: 3, on: false }).areas, [8]);
-    assert.deepEqual(run(m, { type: 'check-area', area: 5, on: false }), { skip: 'nothing to change' });
+  'check-area checks the pixels of its box and takes them back, whatever count of areas it was made under'() {
+    const m = run(start(), { type: 'check-area', area: 0, grid: 2, box: [0, 0, 200, 150], on: true });
+    assert.deepEqual(m.checked, [[0, 0, 200, 150]]);
+    assert.deepEqual(run(m, { type: 'check-area', area: 0, grid: 10, box: [0, 0, 40, 30], on: true }), { skip: 'nothing to change' }, 'its pixels are checked already');
+    const back = run(m, { type: 'check-area', area: 0, grid: 10, box: [0, 0, 40, 30], on: false });
+    assert.equal(N.covered(back.checked, [0, 0, 40, 30]), false, 'the area taken back is not checked');
+    for (const b of [[40, 0, 200, 30], [0, 30, 200, 150], [40, 0, 200, 150]]) assert.equal(N.covered(back.checked, b), true, `the rest stays checked: ${b}`);
+    assert.equal(N.covered(back.checked, [0, 0, 200, 150]), false);
+    assert.deepEqual(run(m, { type: 'check-area', area: 3, grid: 2, box: [200, 150, 400, 300], on: false }), { skip: 'nothing to change' });
+    const four = [[0, 0, 200, 150], [200, 0, 400, 150], [200, 150, 400, 300], [0, 150, 200, 300]].reduce((x, box, area) => run(x, { type: 'check-area', area, grid: 2, box, on: true }), start());
+    assert.equal(N.covered(four.checked, [0, 0, 400, 300]), true, 'the whole image, checked under 2 × 2, is checked under any count');
+    assert.equal(N.covered(four.checked, [133, 100, 267, 200]), true);
+  },
+  'a check-area kept before checks named their box checks its area of the model\'s grid'() {
+    const m = run(start(), { type: 'check-area', area: 10, on: true });
+    assert.deepEqual(m.checked, [[360, 30, 400, 60]], 'area 10 of 10 × 10 is the first of the second row, which runs back');
+    assert.deepEqual(run(m, { type: 'check-area', area: 10, on: false }).checked, []);
   },
   'an action on a candidate that is gone is skipped'() {
     for (const a of [{ type: 'approve' }, { type: 'delete' }, { type: 'undecide' }, { type: 'set-lines', lines: null }]) {
@@ -130,7 +141,7 @@ const tests = {
   'every action leaves the model before it as it was'() {
     let m = frozen(start());
     for (const a of [{ type: 'approve', cand: 'c1' }, { type: 'set-lines', cand: 'c1', lines: { length: seg(10, 10, 12) } }, { type: 'delete', cand: 'c3' }, { type: 'undecide', cand: 'c3' },
-      { type: 'add', cand: 'u1', to: [5, 5], lines: linesAt(5, 5) }, { type: 'approve', cand: 'u1' }, { type: 'check-area', area: 2, on: true }, { type: 'delete', cand: 'u1' }]) {
+      { type: 'add', cand: 'u1', to: [5, 5], lines: linesAt(5, 5) }, { type: 'approve', cand: 'u1' }, { type: 'check-area', area: 2, grid: 10, box: [80, 0, 120, 30], on: true }, { type: 'delete', cand: 'u1' }]) {
       m = frozen(run(m, a));
     }
   },
@@ -139,12 +150,13 @@ const tests = {
     m = run(m, { type: 'approve', cand: 'c1' });
     m = run(m, { type: 'delete', cand: 'c2' });
     m = run(m, { type: 'add', cand: 'u1', to: [200, 100], lines: linesAt(200, 100) });
-    m = run(m, { type: 'check-area', area: 4, on: true });
+    m = run(m, { type: 'check-area', area: 4, grid: 10, box: [160, 0, 200, 30], on: true });
     const d = doc(m);
-    assert.equal(d.format, 'norfinder-ground-truth/3');
+    assert.equal(d.format, 'norfinder-ground-truth/4');
     assert.deepEqual(ids(d.candidates), ['c1', 'c3', 'c4'], 'a rejected candidate is absent');
     assert.equal(d.candidates[0].approved, true);
-    assert.deepEqual([d.added.map((a) => a.id), d.areas, d.grid, d.image.name, d.finder], [['u1'], [4], 10, 'slide.tif', 'tl']);
+    assert.deepEqual([d.added.map((a) => a.id), d.checked, d.image.name, d.finder], [['u1'], [[160, 0, 200, 30]], 'slide.tif', 'tl']);
+    assert.ok(!('areas' in d) && !('grid' in d), 'what is checked is its pixels, not areas of a grid');
     assert.ok(!('exported' in d) && !('created' in d), 'no clock');
     assert.equal(canonical(doc(m)), canonical(d));
     assert.equal(canonical(doc(N.load(JSON.parse(JSON.stringify(d))))), canonical(d), 'read again, it is the same file');
@@ -164,7 +176,7 @@ const tests = {
     assert.deepEqual(m.meta.size, [400, 300]);
     assert.deepEqual([m.nextC, m.nextU], [3, 2], 'a rejected candidate\'s id is taken; an added NoR marked wrong is not kept');
     assert.deepEqual(N.document(m).candidates.map((c) => c.id), ['c1'], 'its file keeps what remains');
-    assert.equal(N.document(m).format, 'norfinder-ground-truth/3');
+    assert.equal(N.document(m).format, 'norfinder-ground-truth/4');
     // a run after it: the rejected candidate stays rejected, and the approved one is approved
     const got = N.start(output(), m);
     assert.deepEqual([ids(got.deleted), got.deleted[0].x, cand_(got, 'c1').approved, got.dropped], [['c2'], 50, true, undefined]);
@@ -217,9 +229,18 @@ const tests = {
     assert.equal([...l.skipped.values()][0], 'its candidate is gone');
     assert.deepEqual(l.model.deleted.length + l.model.cands.length, 3);
   },
+  'a /3 file\'s checked areas, each an area of its grid, are read as their pixels'() {
+    const three = { ...doc(start()), format: 'norfinder-ground-truth/3', grid: 10, areas: [4, 10] };
+    delete three.checked;
+    const m = N.load(JSON.parse(JSON.stringify(three)));
+    assert.deepEqual(m.checked, [[160, 0, 200, 30], [360, 30, 400, 60]]);
+    assert.ok(!('areas' in doc(m)) && !('grid' in doc(m)));
+    const odd = N.load({ ...three, image: { ...IMAGE, width: 401, height: 299 }, areas: [0, 1] });
+    assert.deepEqual(odd.checked, [[0, 0, 41, 30], [41, 0, 81, 30]], 'a pixel is in the area its column falls in, as the /3 scorer reads it');
+  },
   'a NoR added before any run is carried over when the finder runs'() {
     const none = N.blank(IMAGE);
-    assert.deepEqual([none.format, none.candidates, none.added, none.areas], ['norfinder-ground-truth/3', [], [], []]);
+    assert.deepEqual([none.format, none.candidates, none.added, none.checked], ['norfinder-ground-truth/4', [], [], []]);
     const l = actionLog(N);
     l.open({ name: 'slide.tif' }, 'nor');
     l.load([...l.actions, { type: 'base', at: DAY, model: none, from: { note: 'the image alone, before Find Candidates' } }]);
@@ -232,7 +253,7 @@ const tests = {
   'a run after a base carries its approvals, edited lines, rejections, added NoRs and checked areas, by id and then by place'() {
     let m = start();
     for (const a of [{ type: 'approve', cand: 'c1' }, { type: 'set-lines', cand: 'c3', lines: { length: seg(80, 80, 14) } }, { type: 'delete', cand: 'c4' },
-      { type: 'add', cand: 'u1', to: [200, 100], lines: linesAt(200, 100) }, { type: 'approve', cand: 'u1' }, { type: 'check-area', area: 4, on: true }]) m = run(m, a);
+      { type: 'add', cand: 'u1', to: [200, 100], lines: linesAt(200, 100) }, { type: 'approve', cand: 'u1' }, { type: 'check-area', area: 4, grid: 10, box: [160, 0, 200, 30], on: true }]) m = run(m, a);
     const base = doc(m);
     const l = actionLog(N);
     l.open({ name: 'slide.tif' }, 'nor');
@@ -245,7 +266,7 @@ const tests = {
     assert.deepEqual(cand_(got, 'c3').edited, { length: seg(80, 80, 14) });
     assert.equal(cand_(got, 'c6').approved, undefined, 'a candidate the base did not have is the finder\'s, undecided');
     assert.equal(cand_(got, 'c5').approved, undefined);
-    assert.deepEqual([ids(got.added), got.added[0].approved, got.areas, got.nextU, got.dropped], [['u1'], true, [4], 2, undefined]);
+    assert.deepEqual([ids(got.added), got.added[0].approved, got.checked, got.nextU, got.dropped], [['u1'], true, [[160, 0, 200, 30]], 2, undefined]);
     assert.deepEqual(got.cands.find((c) => c.id === 'c3').lines, linesAt(80, 80), 'the lines are the run\'s own; the edit sits over them');
   },
   'a run after a base finds a candidate by its place when the output\'s id is another, and lists a decision whose candidate is gone'() {
@@ -270,7 +291,7 @@ const tests = {
   },
   'a run after a run carries nothing: the earlier model holds no ground truth'() {
     const got = N.start(output({ cands: [cand(0, 10, 10)] }), start());
-    assert.deepEqual([got.cands[0].approved, got.deleted, got.added, got.areas, got.dropped], [undefined, [], [], [], undefined]);
+    assert.deepEqual([got.cands[0].approved, got.deleted, got.added, got.checked, got.dropped], [undefined, [], [], [], undefined]);
   },
   'describe names the candidate by its number, and every action reads'() {
     const m = run(run(start(), { type: 'add', cand: 'u1', to: [812.4, 440.2], lines: linesAt(812, 440) }), { type: 'delete', cand: 'c4' });
@@ -298,7 +319,8 @@ const tests = {
     assert.deepEqual(N.where(act({ type: 'approve', cand: 'u1' }), m), [195, 98, 205, 102]);
     assert.equal(N.where(act({ type: 'approve', cand: 'c9' }), m), null);
     assert.equal(N.where({ type: 'run' }, m), null);
-    // area 0 is the top left of 10 × 10, area 10 the first of the second row, which runs back
+    assert.deepEqual(N.where(act({ type: 'check-area', area: 1, grid: 2, box: [200, 0, 400, 150], on: true }), m), [200, 0, 400, 150]);
+    // one kept before checks named their box: area 0 is the top left of 10 × 10, area 10 the first of the second row, which runs back
     assert.deepEqual(N.where(act({ type: 'check-area', area: 0, on: true }), m), [0, 0, 40, 30]);
     assert.deepEqual(N.where(act({ type: 'check-area', area: 10, on: true }), m), [360, 30, 400, 60]);
     assert.deepEqual(N.where(act({ type: 'check-area', area: 19, on: true }), m), [0, 30, 40, 60]);

@@ -1,8 +1,9 @@
 """A ground-truth file read as its elements, and one answer's NoRs paired one-to-one with the truth's, each pair
 credited by how well it is placed and, where the truth carries lengths, how well it is measured.
 
-A file is the page's (norfinder-ground-truth/3: the candidates that remain, the NoRs added and the GT history; /2: its
-`labels`) or the lab's own (its `labels`, as /2 has them).
+A file is the page's (norfinder-ground-truth/4: the candidates that remain, the NoRs added, the boxes checked for
+missed NoRs and the GT history; /3: the same with the areas checked of its `grid`; /2: its `labels`) or the lab's own
+(its `labels`, as /2 has them).
 
 A ground-truth element is read for its own state only: a NoR, not a NoR, or undecided; where it came from (a finder's
 candidate, a mark somebody added) changes nothing. An answer's NoR is a candidate its filters pass; a failed
@@ -15,8 +16,8 @@ import zlib
 
 import numpy as np
 
-FORMATS = ('norfinder-ground-truth/2', 'norfinder-ground-truth/3')
-GRID = 10  # the page's areas, when a file does not say (its `grid`)
+FORMATS = ('norfinder-ground-truth/2', 'norfinder-ground-truth/3', 'norfinder-ground-truth/4')
+GRID = 10  # a /3 file's areas each way, when it does not say (its `grid`)
 
 # Two marks of one NoR agree fully while they are this fraction of the node's (red) length apart: the spread of two
 # descriptions of one node (on the reference slide, of the nearest NoRs two finders give within one red length, 88%
@@ -105,9 +106,9 @@ def truth_of(doc):
     """(elements, known): every element of a ground-truth file as {id, state, x, y, length, red, width}, state one
     of 'nor', 'not' and 'undecided'; and known(x, y), whether the file says that place was checked for missed NoRs.
 
-    /3: an element marked approved is a NoR, one the file still lists unapproved is undecided, one its history
+    /3 and /4: an element marked approved is a NoR, one the file still lists unapproved is undecided, one its history
     deleted is not a NoR. /2 and the lab's files: a label 1 is a NoR, 0 not one, null undecided."""
-    if doc.get('format') != FORMATS[1]:
+    if doc.get('format') not in FORMATS[1:]:
         out = []
         for L in doc.get('labels') or []:
             sizes = dict(length=L.get('length_px'), red=L.get('red_length_px'), width=L.get('width_px'))
@@ -120,7 +121,14 @@ def truth_of(doc):
         out.append(_element('nor' if e.get('approved') else 'undecided', e.get('id'), e.get('x'), e.get('y'), lines))
     out += _removed(doc)
     image = doc.get('image') or {}
-    W, H, grid, areas = image.get('width'), image.get('height'), doc.get('grid') or GRID, set(doc.get('areas') or [])
+    W, H = image.get('width'), image.get('height')
+    if doc.get('format') == FORMATS[2]:
+        boxes = [b for b in doc.get('checked') or [] if len(b) == 4]
+
+        def known(x, y):
+            return any(x0 <= x < x1 and y0 <= y < y1 for x0, y0, x1, y1 in boxes)
+        return out, known
+    grid, areas = doc.get('grid') or GRID, set(doc.get('areas') or [])
 
     def known(x, y):
         if not (areas and W and H) or not (0 <= x < W and 0 <= y < H):

@@ -340,8 +340,8 @@ async function mask(page) {
   // approval; the one rejected absent, and read from the history
   const total = await page.evaluate(() => st.order.length);
   const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
-  await check(gt.format === "norfinder-ground-truth/3" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
-    && gt.areas.length === 0 && gt.grid === 10 && undecided > 0 && !("labels" in gt),
+  await check(gt.format === "norfinder-ground-truth/4" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+    && gt.checked.length === 0 && undecided > 0 && !("labels" in gt),
     `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
   const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
   const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);

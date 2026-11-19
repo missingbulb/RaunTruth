@@ -123,13 +123,15 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
-  (`norfinder-ground-truth/3`, the model of the tagger's work as the shell's GT actions leave it,
+  (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
   from: its Google Drive id and link, or "local") and the finder and filters it was run with, with
   `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
-  added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
-  cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
+  added, each with its id, its lines and `approved`; and `checked`, the parts of the image checked for missed NoRs,
+  each a box `[x0, y0, x1, y1]` in whole pixels, `x0` to `x1` not included (changed by the owner on 2026-11-19: a check
+  covers pixels, whatever count of areas it was made under, `req/shell/ground-truth/areas`; a `/3` file's `areas`, each
+  an area of its `grid`, read as their boxes), and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
   `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's scorer (`algorithm/truth.py`) reads it, and the `/2` files already
   curated, which list `labels` (every candidate voted up or down, and every added NoR approved). The scorer reads
   each element's state alone (a NoR, not a NoR, undecided), never where it came from, and scores an answer's place
@@ -331,8 +333,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/truth/order` The candidates come area by area, so the review fills the image one area after another.
   <details>
 
-  Set by the owner on 2026-11-03. The image is cut into 10 by 10 areas taken row by row, each row
-  the way back from the last (so the next area always borders the one just done). Changed by the
+  Set by the owner on 2026-11-03. The image is cut into areas taken row by row, each row
+  the way back from the last (so the next area always borders the one just done). Changed by the owner on
+  2026-11-19: how many is the tagger's, from the shell's Areas menu (`req/shell/ground-truth/areas`), 10 by 10 at first;
+  an area is checked once all of its pixels are, by checks made under any count. Changed by the
   owner on 2026-11-04: the tasks are one walk through the areas, so after a number of verdicts a
   whole region of the image is done rather than candidates scattered over it. In each area its
   finalists, then its rejected, then the NoRs the user added there, each top to bottom, and last
