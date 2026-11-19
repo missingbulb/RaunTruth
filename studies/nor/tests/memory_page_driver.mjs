@@ -53,7 +53,9 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+// Chromium running its bytecode alone, and keeping it: its compilers, and its flushing of bytecode left idle, add and
+// drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps
+const browser = await pw[ENGINE].launch(ENGINE === "chromium" ? { ...LAUNCH, args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : LAUNCH);
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
 const ctx = await browser.newContext();
 // nothing leaves this machine, and the cache of third-party files, which the stand-in never needs, is off
@@ -169,9 +171,10 @@ const where = () => page.evaluate(() => {
   return { by, all };
 });
 const KB = 1024;
-// the heap settles by a few kilobytes of compiled code and caches over the first rounds; the image
-// alone is a quarter of a megabyte and a candidate's card several kilobytes
-const LIMITS = { heap: 256 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
+// a round keeps the text of the warnings the console holds, a kilobyte or two; an error handed to the console keeps
+// its stack, four kilobytes an open, and the image alone is a quarter of a megabyte
+const ROUNDS = +(process.env.ROUNDS || 8);
+const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
 
 await page.goto(origin + "/web/?study=nor");
 await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
@@ -181,10 +184,10 @@ for (const [name, act] of Object.entries({ open, find, tune })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
   const base = await measure();
-  for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
+  for (let r = 0; r < ROUNDS; r++) await act();
   const m = await measure();
   console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
-  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over 4 rounds`);
+  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over ${ROUNDS} rounds`);
   // where the nodes went, so a growth seen only on another machine says where to look
   if (m.nodes > base.nodes) {
     const a = base.where.by, b = m.where.by;
