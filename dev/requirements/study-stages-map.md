@@ -29,8 +29,8 @@ question, one session, resolved in place and then moved into Decisions so far.
 
 - **Annotation** - a qualified person saying what an image really shows. "Ground truth" (for developing the
   algorithm) and "correction" (for the study's numbers) are the same action; only its use differs.
-- **Actor** - who takes an action: Study Manager, Annotator, Viewer on the page; Developer in the repo; the
-  study's owner, who promotes.
+- **Actor** - who takes an action: anyone, someone Drive lets annotate, someone Drive lets manage the study;
+  Developer in the repo; the study's owner, who promotes. The table's role names predate the role-free decision.
 
 ## Decisions so far
 
@@ -45,35 +45,48 @@ question, one session, resolved in place and then moved into Decisions so far.
 - A new role is added only where it separates permitted actions.
 - The stage directs repo work too, through each study's `STATE.md` and the skills.
 - The Image Viewer is out of the model.
+- No role menu in the main app: Drive permissions only add actions. Before annotating, the page differs between
+  someone who may annotate and someone who may not by one button, **Start Annotating** (name tentative), which
+  moves the page into an annotation mode; every annotation tool shows only in that mode.
+- Images hidden by tag are hidden for everyone in the main app.
+- If study setup leaves the main app (question 0), it is a page of the same site, sharing its code, study files
+  and sign-in.
+- Stages are drawn per app once the apps are settled, with no roles to carry; the draft table is re-cut then.
 
 ## Open questions
 
-### 1. Is Setup / Develop / Analyze / Review / Public the right cut? *(grilling)*
+### 0. Does Data Management leave the main app for a Study Setup app? *(grilling)*
 
-Walk NoR and Vascular through the draft table, cell by cell: where does a real study's next action land, and
-does any stage have no action of its own (merge it) or two unrelated ones (split it)?
+Weigh a separate Study Setup page, opened from the profile menu's "Study Setup...", against keeping Data
+Management in the main app and opening it from a menu. Either way no role is chosen. Decides what moves (the
+folder tree, tags, hiding, GT setup) and blocks every question below.
+
+### 1. Is Setup / Develop / Analyze / Review / Public the right cut, per app? *(grilling, after 0)*
+
+Walk NoR and Vascular through the draft table, cell by cell, once for each app: where does a real study's next
+action land, and does any stage have no action of its own (merge it) or two unrelated ones (split it)?
 
 ### 2. Who sees a study in each stage? *(grilling)*
 
 Today every study is in the public switcher. Is a Setup or Develop study shown to Viewers at all, and does that
 sit beside tag-based hiding (`req/shell/data/hidden`) or replace part of it?
 
-### 3. One Annotator role for ground truth and corrections? *(grilling)*
+### 3. Where does an annotation go? *(grilling)*
 
-Given the Annotation term, does Ground Truth Tagger become Annotator, and where does an annotation go in
-Develop (the GT folders) versus Analyze (the study's results)?
+Annotating is one action (see Terms). Where does it land in Develop (the GT folders, scoring the algorithm)
+versus Analyze (the study's results), and is the Drive permission behind Start Annotating the same in both?
 
-### 4. Is there a Reviewer role? *(grilling, after 1)*
+### 4. Does Review need a permission of its own? *(grilling, after 1)*
 
-Only if Review has an action no other role should have.
+Only if Review has an action no existing permission should carry.
 
-### 5. What does the page show each actor as their next action? *(prototype, after 1)*
+### 5. What does each app show a person as their next action? *(prototype, after 1)*
 
-How the stage directs work on the page: the gate's measured conditions, and the open actions per role.
+How the stage directs work: the gate's measured conditions, and the actions open to what the user may do.
 
 ### 6. Which requirements does the redraw touch? *(research)*
 
-List every requirement and test that reads `stage` or a role, so the rewrite misses none.
+List every requirement and test that reads `stage`, a role or the role menu, so the rewrite misses none.
 
 ## Not yet specified
 
