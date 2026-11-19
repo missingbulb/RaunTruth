@@ -18,6 +18,9 @@ import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { localStudy } from "../../../web-tests/local_study.mjs";
+import { idle } from "../../../web-tests/page_until.mjs";
+import { held as holding } from "../../../web-tests/held.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -176,6 +179,30 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
   await check(await page.evaluate(() => !$("#find").disabled), "Find Candidates is free again after the failure");
+  await ctx.close();
+}
+// ---- an image opened before the study's code has come: once the study is in, the image is loaded and its first
+// step is the one to do ----
+{
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await ctx.route(offSite(origin), (r) => r.abort());
+  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await localStudy(ctx, "nor");
+  // the study's code held until the image has opened, or the page waits for the study to open it
+  const code = holding();
+  await ctx.route("**/studies/nor/web/nor.js", async (r) => { await code.hold(); await r.continue(); });
+  const page = await ctx.newPage();
+  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
+  page.setDefaultTimeout(10000);
+  await page.goto(origin + "/web/index.html?study=nor");
+  await code.asked;
+  await page.waitForFunction(() => window.shellForTests && $("#file").onchange);
+  await page.setInputFiles("#file", image);
+  await page.waitForFunction(() => !!st.img || shellForTests.work.doing.includes("waiting for the study"), null, { timeout: 4 * LATE + 2000 });
+  code.release();
+  await idle(page, { timeout: 4 * LATE + 2000 });
+  const steps = await page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › "));
+  await check(steps === "Load image › Run algorithm*" && await page.evaluate(() => !!st.img), `an image opened as the study came in is loaded, Run algorithm the step to do: ${steps}`);
   await ctx.close();
 }
 await done(0);
