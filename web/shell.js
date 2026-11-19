@@ -1712,7 +1712,10 @@ async function inventory() {
   const code = {}, site = { size: 0, files: 0, del: null };
   for (const { name: c, cache } of stores) {
     for (const req of await cache.keys()) {
-      const res = await cache.match(req), u = new URL(req.url), size = (await res.blob()).size, del = () => cache.delete(req);
+      // one dropped since the keys were read, as the thumbnails beyond the latest hundred are, is gone
+      const res = await cache.match(req);
+      if (!res) continue;
+      const u = new URL(req.url), size = (await res.blob()).size, del = () => cache.delete(req);
       if (c === offlineCopy.siteCache()) {
         const id = u.pathname.match(/\/studies\/([\w-]+)\//)?.[1];
         if (id && sections.some((x) => x.study === id)) code[id] = (code[id] || 0) + size;
