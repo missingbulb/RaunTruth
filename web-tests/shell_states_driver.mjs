@@ -11,9 +11,10 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
+import { idle } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
-const { FILES, open, role, check, done, calls } = await standIn({ answers, studies, rootDir });
+const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
 const { elements: trees, paths } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
@@ -23,8 +24,8 @@ const ROLE = { viewer: "viewer", tagger: "tagger", data: "data" };
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
 // done: the page settled, its drawers and fades over (a spinner going round never ends, so it is left out)
 const settled = async (page) => {
-  // no call of a live study's on its way, nor one more after the last answered
-  for (let quiet = 0; quiet < 3; ) { await new Promise((ok) => setTimeout(ok, 100)); quiet = calls() ? 0 : quiet + 1; } // waits on purpose: a call the page makes after the last one answered can only be ruled out by a quiet spell
+  // nothing of the page's own work under way: its store's and Python's calls, its folders' listing
+  await idle(page);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")
     && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
   // and the disk's count, which the page makes once it is ready and the Storage item waits for; one that never comes

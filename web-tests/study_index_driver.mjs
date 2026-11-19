@@ -6,6 +6,7 @@
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { standIn } from "./stand_in_drive.mjs";
 import { frames } from "./page_frames.mjs";
+import { idle } from "./page_until.mjs";
 import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
@@ -109,7 +110,7 @@ await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-f
 await settled(page);
 const imageOf = (ix, name) => ix.images.find((i) => i.name === name);
 const indexed = (n) => page.waitForFunction((n) => /^Study index/.test(document.querySelector("#data-index").textContent), n, { timeout: 10000 }).then(() => frames(page)).catch(() => {});
-const tagIt = async (text) => { const was = indexes.length; await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await page.waitForFunction(() => true); for (let k = 0; k < 50 && indexes.length === was; k++) await frames(page); };
+const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
 await tagIt("Group:Wild Type");
@@ -138,18 +139,14 @@ await chooseImage("Data", "acme.png");
 await page.fill("#tags-desc", "First slide"); await page.locator("#tags-desc").blur();
 await page.waitForFunction(() => /Description saved/.test(document.querySelector("#tags-msg").textContent), null, { timeout: 10000 }).catch(() => {});
 await indexed();
-for (let k = 0; k < 50 && imageOf(indexes.at(-1), "acme.png")?.description !== "First slide"; k++) await frames(page);
+await idle(page);
 await check(imageOf(indexes.at(-1), "acme.png")?.description === "First slide", "an image's description goes into the index", imageOf(indexes.at(-1), "acme.png"));
 await chooseImage("Elsewhere", "delta.png");
 await tagIt("damaged-slide");
-const studyWrites = () => writes.filter(([, n]) => n === "rauntruth-study.json").length;
-let sw = studyWrites();
 await page.selectOption("#study-group", "group");
-for (let k = 0; k < 50 && studyWrites() === sw; k++) await frames(page);
-sw = studyWrites();
+await idle(page);
 await page.fill("#study-hide-add", "damaged-slide"); await page.press("#study-hide-add", "Enter");
-for (let k = 0; k < 50 && studyWrites() === sw; k++) await frames(page);
-for (let k = 0; k < 50 && !(indexes.at(-1)?.hide || []).length; k++) await frames(page);
+await idle(page);
 await check(studyFile().group === "group" && JSON.stringify(studyFile().hide) === JSON.stringify(["damaged-slide"]) && studyFile().folders.length === 2,
   "Study images writes the grouping tag and the hiding rule into the study file, the folders kept", studyFile());
 await check(indexes.at(-1).group === "group" && JSON.stringify(indexes.at(-1).hide) === JSON.stringify(["damaged-slide"]), "and the index carries them", { group: indexes.at(-1).group, hide: indexes.at(-1).hide });
@@ -196,13 +193,10 @@ await settled(page);
 await chooseImage("Data", "acme.png");
 await page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }).catch(() => {});
 await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open, its areas can be marked");
-let tf = tagFiles.length;
 await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
-for (let k = 0; k < 50 && tagFiles.length === tf; k++) await frames(page);
-tf = tagFiles.length;
+await idle(page);
 await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
-for (let k = 0; k < 50 && tagFiles.length === tf; k++) await frames(page);
-for (let k = 0; k < 50 && !imageOf(indexes.at(-1), "acme.png")?.interest; k++) await frames(page);
+await idle(page);
 const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
 await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
   "a damaged area and the area of interest go into the tags file, the image's description kept", acmeAreas);

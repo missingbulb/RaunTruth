@@ -107,15 +107,12 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     waiting.push(ok); py.stdin.write(body.replace(/\n/g, " ") + "\n");
   });
-  // how many of the live studies' calls are on their way: to Python, or back to the page
-  let calls = 0;
   const server = http.createServer((q, r) => {
     const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
     const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
     if (u === "/py" && q.method === "POST") {
       const chunks = [];
-      calls++;
-      q.on("data", (c) => chunks.push(c)).on("end", async () => { send("application/json", await ask(Buffer.concat(chunks).toString())); setTimeout(() => calls--, 200); }); // waits on purpose: the answer's way back to the page, until the page says when it is idle
+      q.on("data", (c) => chunks.push(c)).on("end", async () => send("application/json", await ask(Buffer.concat(chunks).toString())));
       return;
     }
     if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
@@ -261,5 +258,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
   }
 
-  return { ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
+  return { ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, shared, sharedOut, thumbs, open, role, check, done, origin };
 }
