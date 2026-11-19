@@ -12,8 +12,9 @@
 
 export const FORMAT = "norfinder-ground-truth/4";
 const OLD_FORMAT = "norfinder-ground-truth/2", AREAS_FORMAT = "norfinder-ground-truth/3";
-// the areas each way a /3 file's `grid` names when it names none, and an action checking an area before checks named their box
-const OLD_GRID = 10;
+// the areas each way a /3 file's `grid` names when it names none, an action checking an area before checks named their box,
+// and the areas the browser's older keys kept
+export const OLD_GRID = 10;
 
 const GONE = { skip: "its candidate is gone" }, SAME = { skip: "nothing to change" }, TAKEN = { skip: "its id is taken" };
 const NO_LINES = { skip: "it has no lines" };
