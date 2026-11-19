@@ -16,6 +16,7 @@ import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
 import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
 import { parseTag, addTag, effective, isHidden, multiNames, FOLDER } from "./tags.js";
+import { warn } from "./log.js";
 
 const MAX_FOLDERS = 200;
 // what each access means beside a folder
@@ -78,7 +79,7 @@ export function dataMode(ctx) {
       const top = place.root();
       roots = top ? (s?.folders || [s?.data || top]) : [];
       look = { group: s?.group || null, hide: s?.hide || [] };
-      if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { console.warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
+      if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
       if (of !== epoch) return;
       gt = tf.folders(s); previewsId = s?.previews || null;
       gtNodes = [...new Set([gt.curated, gt.submissions].filter(Boolean))].map((id) => ({ id, name: "Ground truth", access: null }));
@@ -102,7 +103,7 @@ export function dataMode(ctx) {
       // the root's own folders that no listed folder is, to add (the root listed holds them all)
       unlisted = [];
       if (top && !roots.includes(top)) {
-        try { unlisted = (await remote.all(top)).filter((f) => f.folder && !roots.includes(f.id) && !isTruth(f.id)).map((f) => ({ id: f.id, name: f.name })); } catch (e) { console.warn("the root's folders were not listed:", e); }
+        try { unlisted = (await remote.all(top)).filter((f) => f.folder && !roots.includes(f.id) && !isTruth(f.id)).map((f) => ({ id: f.id, name: f.name })); } catch (e) { warn("the root's folders were not listed:", e); }
         if (of !== epoch) return;
       }
       await checkAccess();
@@ -111,7 +112,7 @@ export function dataMode(ctx) {
   }
   async function checkAccess() {
     await Promise.all([...nodes.values(), ...gtNodes].map(async (n) => {
-      try { n.access = (await sd.access(n.id)) || "unknown"; } catch (e) { console.warn("access not read:", e); n.access = "unknown"; }
+      try { n.access = (await sd.access(n.id)) || "unknown"; } catch (e) { warn("access not read:", e); n.access = "unknown"; }
     }));
     drawTree();
   }
@@ -487,7 +488,7 @@ export function dataMode(ctx) {
   async function picture(pic, pv, f) {
     const e = pv?.entry(f.name, f.sha);
     let src = isTiff(f.name) ? null : f.preview;
-    if (e) try { src = await pv.picture(e); } catch (err) { console.warn(`${f.name}'s preview could not be read:`, err); }
+    if (e) try { src = await pv.picture(e); } catch (err) { warn(`${f.name}'s preview could not be read:`, err); }
     if (!src) { pic.classList.add("none"); return; }
     const i = new Image(); i.alt = ""; i.src = src; pic.replaceChildren(i);
   }
@@ -669,7 +670,7 @@ export function dataMode(ctx) {
     if (!e) { ctx.status(isTiff(f.name) ? `${f.name} has no preview yet: opening the image itself.` : `Opening ${f.name} itself.`); return ctx.loadOriginal(source); }
     let pages;
     try { pages = await pv.pages(e); } catch (err) {
-      console.warn(`${f.name}'s preview could not be read:`, err);
+      warn(`${f.name}'s preview could not be read:`, err);
       ctx.status(`${f.name}'s preview could not be read: opening the image itself.`); return ctx.loadOriginal(source);
     }
     ctx.openPreview(f.name.replace(/\.[^.]*$/, "") + ".preview.tif", previewTiff(e, pages), { ...source, kind: "preview" });

@@ -12,6 +12,7 @@ import { CORE, packagesOf } from "./python_files.js";
 import { PREVIEWS } from "./previews.js";
 import { every, within } from "./pacing.js";
 import { studyPlace } from "./study_root.js";
+import { warn } from "./log.js";
 
 // the event each part of the page follows the network by, fired on window as it goes or comes back:
 // detail {online}
@@ -96,7 +97,7 @@ export function offline({ $, esc, sizeText, remote, kept, keptIn, keep, throttle
     const m = await answer;
     siteCache = m.cache;
     if (!!m.unreached !== unreached) { unreached = !!m.unreached; mark(); }
-    if (m.error) console.warn("the site's copy for offline is not up to date:", m.error);
+    if (m.error) warn("the site's copy for offline is not up to date:", m.error);
     return m;
   }
 

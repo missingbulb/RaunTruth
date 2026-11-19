@@ -5,6 +5,7 @@
 "use strict";
 import { actionLog, check, pack, bare, HISTORY_FORMAT } from "./truth_actions.js";
 import { editHistory } from "./edit_history.js";
+import { warn } from "./log.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const clock = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -101,7 +102,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     if (!old || !oldTaken) return;
     const { forget } = old;
     old = null; oldTaken = false;
-    try { forget?.(); } catch (e) { console.warn("shell.gt.legacy: the old store was not forgotten:", e); }
+    try { forget?.(); } catch (e) { warn("shell.gt.legacy: the old store was not forgotten:", e); }
   }
 
   // a stored log and model taken as the image's, the replay checked; what: how the status line names it
@@ -175,11 +176,11 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
       paint(); notify(null, "open");
       if (!img.sha256) { lookup("done"); return false; }
       const device = drafts.get(studyId(), img.sha256).catch((e) => {
-        console.warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true);
+        warn("the draft was not looked up:", e); status(`The draft of this image on this device could not be read: ${e?.message || e}`, true);
         return null;
       });
       const sent = !makesTruth() ? null : submission().catch((e) => {
-        console.warn("the submission was not looked up:", e); status(`Your submission of this image could not be looked up: ${e?.message || e}`, true);
+        warn("the submission was not looked up:", e); status(`Your submission of this image could not be looked up: ${e?.message || e}`, true);
         return null;
       });
       const [d, s] = await Promise.all([device, sent]);
@@ -209,10 +210,10 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     },
     api: {
       act(action) {
-        if (!log) { console.warn("shell.gt.act: this study keeps no GT actions"); return null; }
+        if (!log) { warn("shell.gt.act: this study keeps no GT actions"); return null; }
         let r;
-        try { r = log.act(action); } catch (e) { console.warn("shell.gt.act:", e.message); return null; }
-        if (r.skip) { console.warn("a GT action was not recorded:", r.skip); return null; }
+        try { r = log.act(action); } catch (e) { warn("shell.gt.act:", e.message); return null; }
+        if (r.skip) { warn("a GT action was not recorded:", r.skip); return null; }
         mutated("act");
         return r.model;
       },
@@ -257,7 +258,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   const takeActions = () => {
     let n = 0;
     for (const a of old.actions) {
-      try { if (!log.act({ ...a, at: undefined }).skip) n++; } catch (e) { console.warn("shell.gt.legacy:", e.message); }
+      try { if (!log.act({ ...a, at: undefined }).skip) n++; } catch (e) { warn("shell.gt.legacy:", e.message); }
     }
     if (!n) { status(`None of the earlier edits fits what is here now: ${old.from}.`, true); return; }
     oldTaken = true;

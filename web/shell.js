@@ -1,7 +1,7 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line, a warning to the console as text alone (warn) and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
 // submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js), the resources dialog (storage, memory,
 // network and CPU) and the version history.
 //
@@ -52,6 +52,7 @@ import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
 import { summaryDownload } from "./summary_download.js";
 import { summaryMask } from "./summary_mask.js";
+import { warn, note } from "./log.js";
 
 const $ = (s) => document.querySelector(s);
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
@@ -160,7 +161,7 @@ async function readRoles() {
     signIn.learn(name, got);
     return got;
   } catch (e) {
-    console.warn("roles not read:", e);
+    warn("roles not read:", e);
     return { ...last(), failed: true };
   }
 }
@@ -268,7 +269,7 @@ async function diskBar() {
   let got;
   // what the site keeps can change while it is counted (a cache entry deleted between listing and reading it):
   // the bar keeps its last count until the next one
-  try { got = await inventory(); } catch (e) { return console.warn("what the site keeps could not be counted:", e); }
+  try { got = await inventory(); } catch (e) { return warn("what the site keeps could not be counted:", e); }
   const { sections, settings, overhead } = got;
   showDisk(sections.reduce((a, x) => a + x.entries.reduce((b, e) => b + e.size, 0), settings + overhead));
 }
@@ -641,7 +642,7 @@ async function working(btn, action) {
     await painted(); await action();
     await study.settled?.();
   } catch (e) {
-    console.warn(e);
+    warn(e);
   } finally {
     hold.disconnect(); btn.classList.remove("working"); btn.disabled = false; study.idle?.();
   }
@@ -660,17 +661,17 @@ async function start() {
       await navigator.serviceWorker.register("sw.js");
       // the same worker for the app's address with no slash, which its own scope stops short of, so it opens offline too
       const app = new URL(".", new URL("sw.js", location.href)).pathname.replace(/\/$/, "");
-      navigator.serviceWorker.register("sw.js", { scope: app }).catch((e) => console.info(`no service worker at ${app}:`, e.message));
+      navigator.serviceWorker.register("sw.js", { scope: app }).catch((e) => note(`no service worker at ${app}:`, e.message));
       await navigator.serviceWorker.ready;
       if (!navigator.serviceWorker.controller) {
         // first visit: wait for the cache to take control so the downloads below are kept
         await within(3000, new Promise((r) => navigator.serviceWorker.addEventListener("controllerchange", r, { once: true })));
       }
-    } catch (e) { console.warn("no cache for third-party files:", e); }
-    offlineCopy.keepSite().then(diskBar, (e) => console.warn("no copy of the site for offline:", e));
+    } catch (e) { warn("no cache for third-party files:", e); }
+    offlineCopy.keepSite().then(diskBar, (e) => warn("no copy of the site for offline:", e));
   }
   status("Ready. Load an image."); statusBar(); diskBar();
-  moveThumbs().catch((e) => console.warn("the thumbnails kept before could not be moved:", e));
+  moveThumbs().catch((e) => warn("the thumbnails kept before could not be moved:", e));
   keepPython();
   if (navigator.deviceMemory <= LOW_GB) memoryTip();
 }
@@ -691,7 +692,7 @@ async function keepPython() {
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
     if (manifest?.id === id && !st.worker && offlineCopy.offline()) { st.notHere = true; status(NOT_HERE); }
-    else console.warn("Python's files are not kept yet:", e);
+    else warn("Python's files are not kept yet:", e);
   }
 }
 // Python's thread, on the study the address names, in place of any before it
@@ -997,7 +998,7 @@ async function markRecentTruth() {
   const shas = Object.fromEntries(Object.values(readJSON(LISTINGS)).flatMap((l) => l.items || []).filter((f) => f.sha).map((f) => [f.id, f.sha]));
   for (const r of recentHere(readJSON(RECENT, []))) if (r.sha) shas[r.id] = r.sha;
   let map;
-  try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { console.warn("ground truth status not read:", e); return; }
+  try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { warn("ground truth status not read:", e); return; }
   for (const r of recentAll()) {
     if (r.local || !shas[r.id]) continue;
     putTruthTag($("#recent").querySelector(`.recent[data-id="${r.id}"]:not([data-local]) .gt-tag`), map.get(subfolderName(r.name, shas[r.id])));
@@ -1039,7 +1040,7 @@ async function openLocal(handle, known) {
     writeJSON(LOCAL_RECENT, list);
     const keep = new Set(list.map((r) => r.id));
     await handles("readwrite", (s) => { s.put(handle, id); s.getAllKeys().onsuccess = (e) => e.target.result.forEach((k) => keep.has(k) || s.delete(k)); });
-  } catch (e) { console.warn("this file is not kept among the recent ones:", e); }
+  } catch (e) { warn("this file is not kept among the recent ones:", e); }
   showRecent();
   peek()(bytes, bytes.byteLength);
   openBytes(file.name, bytes, { kind: "local" });
@@ -1177,7 +1178,7 @@ function remoteDialog() {
         kept.push({ id: idOf(q.url), name: decodeURIComponent(r.headers.get(IMAGE_NAME) || ""),
           path: path ? JSON.parse(decodeURIComponent(path)) : [], study: r.headers.get(IMAGE_STUDY), size: (await r.blob()).size, kept: true });
       }
-    } catch (e) { console.warn("cannot read the images kept here:", e); }
+    } catch (e) { warn("cannot read the images kept here:", e); }
     kept.sort((a, b) => (b.study === manifest.id) - (a.study === manifest.id) || a.name.localeCompare(b.name));
     msg(kept.length ? "" : "No image is kept here: Make Available Offline, in Manage storage, keeps a study's.");
     for (const f of kept) {
@@ -1291,7 +1292,7 @@ function remoteDialog() {
   // which images have ground truth, and to a tagger or study manager which have it pending (req/shell/ground-truth/pending)
   const markTruth = async (items, asked) => {
     let map;
-    try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { console.warn("ground truth status not read:", e); return; }
+    try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { warn("ground truth status not read:", e); return; }
     if (asked !== listing) return;
     for (const f of items) {
       const g = !f.folder && f.sha && map.get(subfolderName(f.name, f.sha)), tag = $("#remote-list").querySelector(`.item[data-id="${f.id}"] .gt-tag`);
@@ -1446,7 +1447,7 @@ function remoteDialog() {
           const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
           // the folders and images alone: who built it stays in the store
           writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images, group: ix.group ?? null, hide: ix.hide ?? [] } }], ...rest] : rest));
-        } catch (e) { console.warn("the study index was not read:", e); }
+        } catch (e) { warn("the study index was not read:", e); }
       }
       if (ix?.images.length) return showIndex(ix, off);
     }
@@ -1525,7 +1526,7 @@ async function keepThumb(id, name, url) {
     const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
     all.sort((x, y) => x.at - y.at);
     for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
-  } catch (e) { console.warn("the thumbnail could not be kept:", e); }
+  } catch (e) { warn("the thumbnail could not be kept:", e); }
   diskBar();
   return kept;
 }
@@ -1580,7 +1581,7 @@ async function folderPreviews(folder, f) {
     return readPreviews(got.bytes);
   } catch (e) {
     if (e.throttled) throttle();
-    else console.warn("no previews for this folder:", e);
+    else warn("no previews for this folder:", e);
     return null;
   }
 }
@@ -1624,7 +1625,7 @@ async function saveImage(id, name, bytes, where = {}) {
   const headers = { [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(Date.now()), [IMAGE_PATH]: encodeURIComponent(JSON.stringify(where.path || [])), [IMAGE_STUDY]: where.study || "" };
   try {
     await (await caches.open(IMAGES)).put(imageUrl(id), new Response(body, { headers }));
-  } catch (e) { console.warn("image not saved:", e); }
+  } catch (e) { warn("image not saved:", e); }
   diskBar();
 }
 const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); // UTF-16
@@ -1645,7 +1646,7 @@ const packageOf = (url) => decodeURIComponent(url.split("/").pop()).split("-")[0
 // [{id, title, about, mark, entries}], what the settings take apart from them, and the rest
 async function inventory() {
   const drop = (...keys) => keys.forEach((k) => { try { localStorage.removeItem(k); } catch { /* nothing kept */ } });
-  const studies = await offlineCopy.studyFiles().catch((e) => { console.warn("the studies could not be read:", e); return []; });
+  const studies = await offlineCopy.studyFiles().catch((e) => { warn("the studies could not be read:", e); return []; });
   const live = await offlineCopy.available().catch(() => new Set());
   const sections = studies.map((s) => ({ id: "study:" + s.id, study: s.id, title: s.title, mark: live.has(s.id), folders: !!s.manifest.root, entries: [] }));
   const shared = { id: "shared", title: "Shared", about: SHARED_ABOUT, entries: [] };
@@ -1694,7 +1695,7 @@ async function inventory() {
   }
   // a draft of ground truth kept in IndexedDB joins its image's selections, in its study's section (req/shell/ground-truth/save-draft)
   let kept = [];
-  try { kept = await gtDrafts.all(); } catch (e) { console.warn("the ground-truth drafts could not be read:", e); }
+  try { kept = await gtDrafts.all(); } catch (e) { warn("the ground-truth drafts could not be read:", e); }
   for (const r of kept) {
     const size = JSON.stringify(r).length, del = () => gtDrafts.delete(r.study, r.sha256);
     if (r.study === manifest?.id) {
@@ -1884,7 +1885,7 @@ async function offerTruth() {
   let got;
   const img = { name: st.fileName, sha256: st.sha };
   let has;
-  try { has = await truth.hasCurated(img); } catch (e) { console.warn("curated ground truth not listed:", e); return; }
+  try { has = await truth.hasCurated(img); } catch (e) { warn("curated ground truth not listed:", e); return; }
   if (mine !== offered || !has) return;
   box.hidden = false;
   b.onclick = async () => {
@@ -1957,7 +1958,7 @@ fetch(new URL("browsers.json", import.meta.url)).then((r) => r.json()).then(({ s
   const b = $("#sb-report");
   b.classList.add("unsupported"); b.setAttribute("aria-label", "Unsupported browser");
   b.title = `${browserVerdict.why} Click to report a problem.`;
-}).catch((e) => console.warn("the list of supported browsers could not be read:", e));
+}).catch((e) => warn("the list of supported browsers could not be read:", e));
 // Chromium browsers give their full version only when asked, and the report is opened within the click, so asked now
 const BRANDS = { Chrome: "Google Chrome", Edge: "Microsoft Edge", Opera: "Opera" };
 navigator.userAgentData?.getHighEntropyValues(["fullVersionList"])
@@ -2072,7 +2073,7 @@ function loadedSummary() {
   const text = document.createElement("span"); text.className = "what";
   const name = document.createElement("span"); name.className = "name"; name.textContent = st.fileName;
   const tags = document.createElement("span"); tags.className = "tags";
-  let said = ""; try { const k = st.kept.bytes; said = holds(shape(k.buffer || k)); } catch (e) { console.warn("cannot read what the image holds:", e); }
+  let said = ""; try { const k = st.kept.bytes; said = holds(shape(k.buffer || k)); } catch (e) { warn("cannot read what the image holds:", e); }
   if (isTiff(st.fileName)) for (const w of (said || "2D").split(" · ")) tags.append(Object.assign(document.createElement("span"), { className: "tag", textContent: w }));
   text.append(name, tags); n.append(pic, text);
   return n;
@@ -2228,7 +2229,7 @@ const maySee = (accounts) => !accounts || accounts.includes(signIn.email());
 // link to its address, found by typing; the arrow keys mark one, Enter opens it. A plain click swaps it in place.
 let listed = [];
 async function studyMenu() {
-  try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("no list of studies:", e); }
+  try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { warn("no list of studies:", e); }
   drawStudies();
 }
 function drawStudies() {
@@ -2434,7 +2435,7 @@ function leaveStudy() {
 }
 
 const shell = {
-  $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
+  $, state: st, page, drag, still, status, warn, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
   showImage, boxDone, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,

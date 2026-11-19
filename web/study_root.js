@@ -3,6 +3,8 @@
 // has its folders found by name. read() is cached a minute per root; setup() makes what is missing and writes the
 // file. reader: all(folder) as [{id, name, folder}], text(id); writer: folder(parent, name), create(parent, name,
 // blob), replace(id, blob), share(id) (anyone with the link may view).
+import { warn } from "./log.js";
+
 "use strict";
 
 export const SETTINGS = "rauntruth-study.json";
@@ -187,7 +189,7 @@ export function studyPlace(remote, manifest) {
         if (!s?.previews) return null;
         if (fresh || !previews || previews.folder !== s.previews || Date.now() - previews.at >= KEEP_MS) previews = { at: Date.now(), folder: s.previews, items: await reader.all(s.previews) };
         return previews.items.find((f) => !f.folder && f.name === previewsName(folder)) || null;
-      } catch (e) { console.warn("the study's previews could not be listed:", e); return undefined; }
+      } catch (e) { warn("the study's previews could not be listed:", e); return undefined; }
     },
     // what was written into the root or its Previews folder, read afresh next time
     forgetPreviews() { previews = null; if (root()) known.delete(root()); },

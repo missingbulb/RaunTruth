@@ -10,6 +10,7 @@
 import { CONNECTION } from "./offline.js";
 import { multipart } from "./drive.js";
 import { settle as afterQuiet } from "./pacing.js";
+import { warn } from "./log.js";
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client";
 export const DRIVE_READ = "https://www.googleapis.com/auth/drive.readonly";
@@ -53,7 +54,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
   const $ = (s) => menu.querySelector(s);
   // waiting: {ok, fail} of a sign-in the popup is waiting on (req/shell/account/welcome)
   let me = read(), client = null, script = null, waiting = null;
-  const saving = afterQuiet(SAVE_AFTER_MS, () => save().catch((e) => console.warn("settings not saved to Google Drive:", e.message)));
+  const saving = afterQuiet(SAVE_AFTER_MS, () => save().catch((e) => warn("settings not saved to Google Drive:", e.message)));
   // renewal: the token Google's window is being asked for, {promise, done(token or null)}
   let renewal = null;
   const settle = (token) => { const r = renewal; renewal = null; r?.done(token); };
@@ -109,7 +110,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     if (changed.length) return save();
     keep();
   }
-  const syncing = () => sync().catch((e) => console.warn("settings not synced with Google Drive:", e.message));
+  const syncing = () => sync().catch((e) => warn("settings not synced with Google Drive:", e.message));
 
   const show = () => {
     const user = me && me.user;
@@ -136,22 +137,22 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
       client = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId, scope: SCOPES,
         callback: async (t) => {
-          if (t.error) { console.warn("Google gave no token:", t.error); settle(null); return answered("fail", t.error); }
+          if (t.error) { warn("Google gave no token:", t.error); settle(null); return answered("fail", t.error); }
           const first = !me || !me.user;
           me = { ...(me || {}), token: t.access_token, until: Date.now() + t.expires_in * 1000, scopes: t.scope || SCOPES };
           if (first) {
             try {
               const u = await (await google(USER_INFO)).json();
               me.user = { name: u.name || u.email, email: u.email, picture: u.picture || null };
-            } catch (e) { me = null; keep(); console.warn("Google gave no account details:", e.message); settle(null); return answered("fail", e.message); }
+            } catch (e) { me = null; keep(); warn("Google gave no account details:", e.message); settle(null); return answered("fail", e.message); }
           }
           keep(); show(); syncing(); settle(me.token); answered("ok");
         },
         // Google's window did not open, or was closed before it answered
-        error_callback: (e) => { console.warn("Google's sign-in window:", e.type); settle(null); answered("fail", e.type); },
+        error_callback: (e) => { warn("Google's sign-in window:", e.type); settle(null); answered("fail", e.type); },
       });
     })
-    .catch((e) => { script = null; console.warn("Google sign-in did not load:", e); }));
+    .catch((e) => { script = null; warn("Google sign-in did not load:", e); }));
   const reads = () => (me?.scopes || "").split(" ").includes(DRIVE_READ);
   // a token can be asked for only in the user's own click or key press: Google's window opens, and closes by itself
   // while Google still remembers their consent; the new token syncs at once. A token from before the page read
