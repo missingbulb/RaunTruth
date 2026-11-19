@@ -36,9 +36,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   never `web/` or a study's `web/`: the production code is written for the live site alone.
   (tests-bend-test-surface)
 
-- **Faking something in the tests** - fake only a system the page reaches outside the repo (an API, a CDN, a
-  sign-in), never the repo's own code, once, in `web-tests/fakes/`, active in every test; put each new fake to the
-  owner as its own approval question first. (fakes-for-outside-systems)
+- **Faking something in the tests** - fake a system the page reaches beyond its own code (an API, a CDN, a sign-in,
+  the deploy, a process) once, in `web-tests/fakes/`, active in every test, at the seam nearest that system, replacing
+  only its own part, with knobs a test sets; fake the repo's own code rarely, and put each new fake to the owner as
+  its own approval question first. (fakes-for-outside-systems)
 
 - **A test case that makes the page warn or err** - declare it around that case with the harness's `expecting()`,
   by a loose pattern of a word or two, never the whole message; any other one fails the run, and is a bug to fix now.
