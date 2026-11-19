@@ -124,7 +124,7 @@ This study is one of the page's studies; the repo's own map, and what the shell 
 ```
 web/         the study's page: panels, script, style, algorithm_metrics.json (the lab's numbers)
 web/gt_actions.js  the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: a candidate has an id
-             (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/3`)
+             (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/4`)
 web/old_marks.js   what the page kept in five browser keys before the log, offered once through shell.gt.legacy as the GT actions it implies
 algorithm/   the finders and the page's entry, nor_finder.py: the only Python the page loads, and the code the lab runs
 lab/         the research records: STATE.md, ledger.md, the lab's labels (truth/), browser measurements

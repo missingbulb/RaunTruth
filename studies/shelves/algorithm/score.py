@@ -1,6 +1,6 @@
 """The Bookshelf Reader's score: how one answer (boxes and titles, found in one go) did against one ground-truth file.
 
-    score(answer, truth) -> {tp, fp, fn, ...}      SCORING: the same, as the page shows it
+    score(answer, truth, damaged=()) -> {tp, fp, fn, ...}      SCORING: the same, as the page shows it
 
 answer: {"books": [{"corners": four [x, y] in image pixels, "title": str or None}]}
 truth:  the ground-truth file as submitted: {"books": [{"verdict", "corners", "text"}]}. A book's verdict, corners
@@ -89,10 +89,25 @@ def part(shared, true, said):
     return shared / (true + said - shared), max(0.0, 1 - shared / said), max(0.0, 1 - shared / true)
 
 
-def score(answer, truth):
-    right = [b for b in truth['books'] if b.get('verdict') == 'right']
-    undecided = [b['corners'] for b in truth['books'] if b.get('verdict') is None]
-    found = answer['books']
+def inside(poly, x, y):
+    """Whether x, y lies inside the polygon [[x, y], ...]: a ray from it crosses the border an odd number of times."""
+    k = False
+    for (x0, y0), (x1, y1) in zip(poly, list(poly[1:]) + [poly[0]]):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            k = not k
+    return k
+
+
+def score(answer, truth, damaged=()):
+    """The answer against the truth, every book of either whose box centre lies in a damaged area (outlines in the
+    photo's pixels) left out."""
+    def kept(b):
+        x, y = np.asarray(b['corners'], float).mean(axis=0)
+        return not any(inside(p, x, y) for p in damaged or ())
+    books = [b for b in truth['books'] if kept(b)]
+    right = [b for b in books if b.get('verdict') == 'right']
+    undecided = [b['corners'] for b in books if b.get('verdict') is None]
+    found = [b for b in answer['books'] if kept(b)]
     T, A = [b['corners'] for b in right], [b['corners'] for b in found]
     t_area, a_area = [area(c) for c in T], [area(c) for c in A]
     t_name, a_name = [pairs_of(b.get('text')) for b in right], [pairs_of(b.get('title')) for b in found]
@@ -150,5 +165,6 @@ SCORING = f"""- **A book** is a box and its title. Truth is every book marked ri
 - **A found box left unpaired** adds to fp the share of it that covers no part of a true book its pair left uncovered
   - the spare half of a split book costs little; a box on bare shelf, or a second box on a covered book, costs 1
   - not counted at all when more than {UNDECIDED:g} of it lies on books marked undecided
+- **A damaged area**: a book of either side whose box centre lies in one is left out
 - precision = `tp / (tp + fp)`, recall = `tp / (tp + fn)`, summed over the photos
 """

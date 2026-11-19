@@ -3,11 +3,16 @@
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
 // only while the tagger tags, from Start GT tagging to Stop tagging (req/shell/ground-truth/tagging).
 "use strict";
+import * as Areas from "./gt_areas.js";
 
 // started(): whether the study's first step is done; until it is, Submit stays off whatever the study says; heardBy(on):
 // the shell's own listener, told as the study is each time tagging starts or stops
 export function truthTasks({ $, icon, started, heardBy }) {
   let pick = null, submit = null, heard = null, wants = false, on = false;
+  // the areas each way the study's walk takes, null for a study not walked by areas; who hears each change of it
+  let n = null, moved = [];
+  $("#gt-areas").replaceChildren(...Areas.COUNTS.map((k) => new Option(k === 1 ? "The whole field" : `${k} × ${k}`, String(k))));
+  $("#gt-areas").onchange = (e) => { n = +e.target.value; for (const fn of moved) fn(n); };
   const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit" && li.dataset.task !== "edits");
   const row = (key) => rows().find((li) => li.dataset.task === key) || null;
   const part = (key) => [...$("#gt-bar").children].find((p) => p.dataset.task === key);
@@ -81,6 +86,22 @@ export function truthTasks({ $, icon, started, heardBy }) {
       return on;
     },
     row,
+    // the areas the study's ground truth is walked through (req/shell/ground-truth/areas): count(), the areas each way now,
+    // null for a study not walked by areas; on(fn), fn(count) heard each time the tagger chooses another; place(a), areaAt(fx,
+    // fy) and box(a, W, H), as gt_areas.js, at the count now
+    areas: {
+      count: () => n,
+      on(fn) { moved.push(fn); },
+      place: (a) => Areas.place(a, n),
+      areaAt: (fx, fy) => Areas.areaAt(fx, fy, n),
+      box: (a, W, H) => Areas.box(a, n, W, H),
+    },
+    // the study arriving: start, the count it starts at from its study.json, or none
+    mount(start) {
+      n = start ?? null; moved = [];
+      $("#gt-areas-row").hidden = n == null;
+      if (n != null) $("#gt-areas").value = String(n);
+    },
     // whether Submit can be pressed, whether the ground truth is done, partly done or not started where known, and
     // what is left to do as its tooltip
     ready(on, state, title) {
@@ -94,7 +115,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);
-      pick = submit = heard = null;
+      pick = submit = heard = null; n = null; moved = []; $("#gt-areas-row").hidden = true; $("#gt-areas").selectedIndex = 0;
       for (const li of rows()) li.remove();
       $("#gt-bar").replaceChildren(); $("#gt-list").hidden = true; api.ready(false);
     },

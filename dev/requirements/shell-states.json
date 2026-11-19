@@ -18,7 +18,8 @@
     "imageFits": [true, false],
     "imageLarge": [false, true],
     "shows3d": [false, true],
-    "masks": [false, true]
+    "masks": [false, true],
+    "walksAreas": [false, true]
   },
   "roots": {
     "GT, signed out": {"stage": "GT", "signedIn": false, "role": "viewer"},
@@ -394,6 +395,14 @@
                 },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                   "children": [
+                    {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas",
+                      "rule": [
+                        {"when": {"walksAreas": [false]}, "is": "hidden", "req": "req/shell/ground-truth/areas"}
+                      ],
+                      "children": [
+                        {"name": "How many areas", "select": "#gt-areas", "control": true, "req": "req/shell/ground-truth/areas"}
+                      ]
+                    },
                     {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",

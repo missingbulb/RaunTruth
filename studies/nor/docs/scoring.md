@@ -36,7 +36,7 @@ real file is the lab's own `lab/truth/claude_v1.json` (/2 shape: 200 points, 72 
 | /3 candidate or added NoR with `approved` | a NoR | a truth NoR, with its lines (edited ones over the first) |
 | /3 candidate or added NoR without `approved` | undecided | neither a miss nor an invention |
 | /3 element its history deleted and the file no longer lists (either kind) | not a NoR | an answer NoR on it is an invention |
-| /3 `areas` | that area was checked for missed NoRs | every answer NoR in it is judged |
+| /4 `checked` box, or /3 `areas` | those pixels, that area, were checked for missed NoRs | every answer NoR in it is judged |
 | /2 label 1 / 0 / null | a NoR / not / undecided | as above; points, with no lengths unless the label carries them |
 
 **Where today's scorer reads origin** (all removed): 12 px for an added NoR against 5 px for the rest; negatives only

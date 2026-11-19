@@ -57,7 +57,7 @@ try {
   await opened();
   await execute();
   await page.click("#gt-start");
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);
 

@@ -35,8 +35,6 @@
 #task-now { display: flex; flex-direction: column; gap: 8px; }
 #task-now .hint, #task-now .note { margin: 0; }
 #task-now .note:empty { display: none; }
-.area-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
-#area-grid { font-size: 12px; min-width: 0; flex: 0 1 auto; }
 #area-ok { width: 100%; }
 #area-ok:disabled { opacity: .5; }
 /* the areas while tagging: a map floating over the view's top left, the shell's minimap's size and frame */

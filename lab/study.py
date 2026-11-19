@@ -33,13 +33,20 @@ class Study:
     def read(self, path):
         return self.module.read(path)
 
-    def run(self, version, image, services=None, **params):
-        return drive(self.module.VERSIONS[version](image, **params), {} if services is None else services)
+    def run(self, version, image, services=None, damaged=None, **params):
+        """damaged: the image's damaged areas, handed to a version that takes them, as the page hands them."""
+        fn = self.module.VERSIONS[version]
+        if takes(fn, 'damaged'):
+            params = dict(params, damaged=damaged or [])
+        return drive(fn(image, **params), {} if services is None else services)
 
     def stage(self, name, image, answer, services=None, **args):
         return drive(self.module.STAGES[name](image, answer, **args), {} if services is None else services)
 
-    def score(self, answer, truth):
+    def score(self, answer, truth, damaged=None):
+        """damaged: the image's damaged areas, handed to a scorer that takes them."""
+        if takes(self.module.score, 'damaged'):
+            return self.module.score(answer, truth, damaged=damaged or [])
         return self.module.score(answer, truth)
 
     @property
@@ -49,6 +56,15 @@ class Study:
     def metrics_path(self):
         rel = (self.manifest.get('algorithms') or {}).get('metrics')
         return rel and os.path.join(self.dir, rel)
+
+
+def takes(fn, name):
+    """Whether fn takes a keyword argument of that name, as the page's bridge asks it."""
+    try:
+        ps = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(p.name == name or p.kind == p.VAR_KEYWORD for p in ps)
 
 
 def drive(result, services):

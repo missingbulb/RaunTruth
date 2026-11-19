@@ -1,6 +1,6 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
 // of real results written by tests/test_memory.py, and checks that no image is drawn out of its own
-// proportions when the side bar is narrow: the minimap, the image, the cards in both item views and the
+// proportions when the side bar is narrow: the minimap, the image and the
 // selected card; and where the selected card and Submit Ground Truth sit, with no right bar. Prints what it
 // measured; exits 1 on a skewed image or a misplaced part, 2 when it cannot run.
 //   node tests/page_layout_driver.mjs ANSWERS IMAGE
@@ -15,7 +15,6 @@ import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
@@ -66,14 +65,13 @@ const measure = (page) => page.evaluate(() => [...document.querySelectorAll("can
   return { where: c.closest("[id]").id, skew: Math.abs(r.width / r.height / (w / h) - 1) };
 }));
 let seen = 0, worst = { skew: 0 };
-// the item views and the selected card only show what was found, so they are driven in a PreGT study
+// the selected card only shows what was found, so it is driven in a PreGT study
 // (req/shell/views/second); while the study makes ground truth, the task's card is in the left bar
 let stage = "PreGT";
 // the side bars at their narrowest, in a narrow and a wide window
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
   await asTagger(ctx);
-  await withItemView(ctx); // the switch to the shelved item view
   await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-bars-v1", JSON.stringify({ left: 200, right: 200 })); });
   await standInDrive(ctx);
@@ -110,30 +108,13 @@ for (const width of [1000, 1600]) {
   if (layout.gt !== "Submit Ground Truth" || layout.gtShown) await fail("Submit Ground Truth shows in the image view", layout);
   if (layout.right) await fail("the right bar is still there", layout);
   if (process.env.SHOTS) { await page.evaluate(() => { $("#notice").hidden = true; }); await page.mouse.move(5, 5); await page.screenshot({ path: `${process.env.SHOTS}/${width}_image.png` }); }
-  const views = [["image", async () => {}], ["finalists", async () => {
-    await page.click("#switch"); await page.waitForFunction(() => document.querySelector("#view").dataset.view === "items" && document.querySelector("#list .card:not(.stub)"));
-    // the item view opens on the selected candidate's own tab, which may be the rejected one
-    await page.click("#tab-pass"); await page.waitForFunction(() => document.querySelector("#list .card:not(.stub)"));
-  }], ["rejected", () => page.click("#tab-fail")]];
-  for (const [view, go] of views) {
-    await go(); await page.waitForFunction(() => !document.querySelector("button.working"));
-    // the cards near the view are drawn as the list's observer reports them (req/nor/cards/lazy)
-    if (view !== "image") await page.waitForFunction(() => document.querySelector("#list .card canvas"));
-    const got = await measure(page);
-    const cards = got.filter((g) => g.where === "list").length, selected = got.filter((g) => g.where === "selected").length;
-    console.log(`${width}px ${view}: ${got.length} images, ${cards} cards, ${selected} selected`);
-    if (!selected !== (view !== "image")) { console.error(view === "image" ? "no selected card drawn" : `the selected card shows over the ${view}`); await done(1); }
-    if (view !== "image" && !cards) { console.error(`no ${view} cards drawn`); await done(1); }
+  {
+    await page.waitForFunction(() => !document.querySelector("button.working"));
+    const got = await measure(page), view = "image";
+    const selected = got.filter((g) => g.where === "selected").length;
+    console.log(`${width}px ${view}: ${got.length} images, ${selected} selected`);
+    if (!selected) { console.error("no selected card drawn"); await done(1); }
     seen += got.length;
-    // the rejected are never turned level, so their Options menu does not offer it
-    if (view !== "image") {
-      await page.click("#card-menu summary");
-      const shown = await page.isVisible("#opt-align");
-      if (process.env.SHOTS) await page.evaluate(() => { $("#notice").hidden = true; });
-      if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${width}_${view}.png` });
-      await page.click("#card-menu summary");
-      if (shown !== (view === "finalists")) { console.error(`"align to horizon" ${shown ? "shown" : "missing"} in the ${view} options`); await done(1); }
-    }
     for (const g of got) if (g.skew > worst.skew) worst = { ...g, width, view };
   }
   await ctx.close();
