@@ -57,6 +57,15 @@ const tests = {
     near(s.tissueMm3, 50 * 100 * 10 * 1e-9, 1e-12, 'half the tissue');
     assert.equal(s.junctions, 1);
   },
+  'the image\'s damaged areas are not tissue, whatever the model marks (req/vascular/model/damaged)'() {
+    const left = [[0, 0], [50, 0], [50, 100], [0, 100]];
+    const s = summarize(H(), { zStepUm: 1, damaged: [left] });
+    near(s.tissueMm3, 50 * 100 * 10 * 1e-9, 1e-12, 'half the tissue');
+    assert.equal(s.junctions, 1);
+    const n = nearestVessel(H(), { zStepUm: 1, damaged: [left] });
+    // as many points over half the tissue: the lattice draws closer, by the cube root of a half
+    near(n.spacingUm / nearestVessel(H(), { zStepUm: 1 }).spacingUm, Math.cbrt(0.5), 0.02, 'the lattice over the right half');
+  },
   'the distance to the nearest vessel is measured from tissue outside every vessel, the mask none of its seeds'() {
     const s = { nearest: nearestVessel(H(), { zStepUm: 1, mask: [[[80, 0], [100, 0], [100, 100], [80, 100]]] }) };
     assert.ok(s.nearest.min >= 17 && s.nearest.min <= 19, `the strip's nearest tissue is ~18 µm from the right arms' walls, not ${s.nearest.min}`);
