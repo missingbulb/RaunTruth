@@ -1,8 +1,8 @@
 # Study stages: the map
 
 A [Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md) map for #1015,
-kept as this one file instead of tracker issues (the owner's choice). Each open question below is a ticket: one
-question, one session, resolved in place and then moved into Decisions so far.
+kept as this one file instead of tracker issues (the owner's choice). Every question it charted is resolved; what
+remains is the hand-off below.
 
 ## Destination
 
@@ -11,96 +11,117 @@ question, one session, resolved in place and then moved into Decisions so far.
 
 ## Notes
 
-- A stage exists to **direct work**, not to describe a study: each stage is defined by the actions each actor
-  can take in it, which actions it opens and which it closes.
-- Load `grilling` and `domain-modeling` (Wayfinder's companions, upstream in the same repo) for every question
-  marked *grilling*.
-- Draft model, the owner unsure it is the right cut (question 1 tests it):
-
-  | Stage | Study Manager | Annotator | Developer (repo) | Viewer | Out when |
-  |---|---|---|---|---|---|
-  | Setup | adds images, sets metadata and tags, hides | none | builds a first algorithm and the annotation tools | ? | images and metadata in, an annotation tool works |
-  | Develop | manages images | annotates; the annotations score the algorithm | improves the algorithms, records each version's quality | ? | the owner judges the analysis valid |
-  | Analyze | starts batch runs | annotates; the annotations correct the results | fixes only? | sees the numerical results? | the owner calls the results final |
-  | Review | exports for reviewers | closed | closed | reviewers? | the paper is accepted |
-  | Public | releases data, analysis, algorithms | closed | closed | everyone sees everything released | none |
+- A stage exists to **direct work**, not to describe a study: each stage is defined by the actions it opens and
+  the actions it closes.
+- Load `grilling` and `domain-modeling` (Wayfinder's companions, upstream in the same repo) when reopening any
+  decision.
 
 ### Terms
 
 - **Annotation** - a qualified person saying what an image really shows. "Ground truth" (for developing the
-  algorithm) and "correction" (for the study's numbers) are the same action; only its use differs.
-- **Actor** - who takes an action: anyone, someone Drive lets annotate, someone Drive lets manage the study;
-  Developer in the repo; the study's owner, who promotes. The table's role names predate the role-free decision.
+  algorithm) and "correction" (for the study's numbers) are the same action, stored in the same place; only its
+  use differs by stage.
+- **Member** - someone Drive lets read the study's settings file. Membership, not the stage, decides who sees a
+  study.
+- **Study Setup** - the second app, holding everything Data Management holds today.
+
+## The design
+
+### Two apps, no role menu
+
+- The main app has no role menu. Drive permissions only add actions. Before annotating, the page differs between
+  someone who may annotate and someone who may not by one button, **Start Annotating** (name tentative), which
+  moves the page into annotation mode; every annotation tool, accepting or rejecting submissions included, shows
+  only in that mode.
+- **Study Setup** is a page of the same site, opened from the profile menu's "Study Setup...", sharing the shell's
+  code, study files and sign-in. The aim is simpler code, tests and requirements, not only a simpler screen. All
+  of Data Management moves there: folders, Drive access, ground-truth setup, previews, tags and descriptions, hide
+  rules, the grouping tag, areas of interest, damaged areas, Needs GT. It shows images in the shell's plain view
+  (no study algorithm, steps or item view), is online-only, and has its own requirement prefix (`req/setup/*`)
+  and test folder; what both apps share stays under `req/shell`.
+- Marking an image's inputs is its own step before annotating: short, purely human work, where annotating is the
+  long work the algorithms exist to shorten.
+- Images hidden by tag are hidden for everyone in the main app.
+
+### Who sees a study
+
+- The repo names each study's **settings file** by its Drive ID, and no folder links: the three real root links
+  now in `study.json` come out of the repo. The settings file is shared with named members only and names the
+  study's folders, which stay "anyone with the link"; an unnamed folder cannot be guessed.
+- Signed in, the page asks Drive whether the user can read each study's settings file, **all studies in one Drive
+  batch request per load** (approved by the owner as a batch, not one call per study), and lists only those
+  studies. Signed out, or for a study not yet shared, it lists only released ones. An expired token or offline
+  keeps the list Drive last gave, until sign-out, with a line saying so.
+- **Releasing** a study is sharing its settings file as "anyone with the link"; that is Public's gate action.
+- A study naming an article shows a link to it in the header, with some fanfare, in any stage.
+
+### The stages
+
+Rows are actions, columns stages. "Members" as above. One stage per study.
+
+| | **Setup** | **Develop** | **Analyze** | **Review** | **Public** |
+|---|---|---|---|---|---|
+| **Study Setup** (root write): folders, tags, descriptions, areas of interest, damaged areas, Needs GT, hide rules, GT setup, previews | open | open | open: new images may still be added and marked | closed | closed |
+| **Main app, view and run the algorithm** on the study's images | members | members | members | members, frozen | everyone |
+| **Run the algorithm on your own images**, in the browser only, nothing leaving the device | - | - | - | - | everyone |
+| **Start Annotating** (submissions write) | closed: no annotation tool yet | open: annotations score the algorithm | open: annotations replace the algorithm's answer in the study's numbers | closed | closed |
+| **Accept or reject submissions** (curated write), in annotation mode | closed | open | open | closed | closed |
+| **Batch run** over the study's images | closed | closed | open, on the locked version | closed | closed |
+| **Numbers shown** | none | each version's precision and recall | the study's results | the frozen results | the published results |
+| **Developer** (repo) | first algorithm and annotation tools | improve algorithms, record each version's quality | only output-preserving changes | same | same |
+| **Owner promotes when** | inputs marked, an annotation tool works | the owner judges the analysis valid, locking the version | the owner calls the results final | the article is accepted | none |
+
+- Develop and Analyze differ by whether the algorithm may change: Analyze's numbers come from one locked version.
+- Review adds no permission: reviewers open the study as members, and Review is a freeze.
+- The stage is kept in the study's **settings file** and set by the owner in Study Setup. The page measures each
+  gate's conditions where it can and shows them; promoting is always the owner's act.
+- A study can move back a stage; only the owner moves it, and nothing is measured to suggest it.
+- Each app tells a person their next action in today's stage popup, extended with the gate's conditions and one
+  line per action open to this user (for example "Annotate: 12 images still need it").
+- The stage directs repo work through each study's `STATE.md` and the skills. The settings file is members-only,
+  so a repo session does not read it: `STATE.md` records the stage the owner last gave, and a session that needs
+  it and finds none asks.
+- Today's studies, all at GT, start in Develop. The Image Viewer is outside the model.
 
 ## Decisions so far
 
-- Destination: rewritten requirements, no code.
-- Stages are redrawn; today's PreGT/GT/PostGT/Published is not kept as is.
-- Drive sharing stays the only source of who holds a role; the stage decides which actions each role has.
-- The page measures each stage's exit conditions and shows them; moving on stays the owner's deliberate step.
-- A study can move back a stage.
-- The analysis is valid when the owner judges it so; no preset numeric target for now (no good UI for one yet).
-- One stage per study, each analysis inside it shown against the gate.
-- A stage closes actions as well as opening them (for example a freeze in Review).
-- A new role is added only where it separates permitted actions.
-- The stage directs repo work too, through each study's `STATE.md` and the skills.
-- The Image Viewer is out of the model.
-- No role menu in the main app: Drive permissions only add actions. Before annotating, the page differs between
-  someone who may annotate and someone who may not by one button, **Start Annotating** (name tentative), which
-  moves the page into an annotation mode; every annotation tool shows only in that mode.
-- Images hidden by tag are hidden for everyone in the main app.
-- Stages are drawn per app, with no roles to carry; the draft table is re-cut then.
-- **Question 0, resolved: all of Data Management leaves the main app for a Study Setup app**, a page of the same
-  site opened from the profile menu's "Study Setup...", sharing the shell's code, study files and sign-in. The aim
-  is simpler code, tests and requirements, not only a simpler screen. Everything moves: folders, Drive access,
-  ground-truth setup, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged
-  areas, Needs GT. Marking an image's inputs is its own step before annotating: short, purely human work, where
-  annotating is the long work the algorithms exist to shorten. Study Setup shows images in the shell's plain view
-  (no study algorithm, steps or item view), is online-only, and has its own requirement prefix (`req/setup/*`)
-  and test folder; what both apps share stays under `req/shell`. Accepting or rejecting a submitted annotation
-  stays in the main app's annotation mode. The owner expects the main app to go unused by a study's owner until
-  annotating starts.
+- [Destination](#destination): rewritten requirements, no code.
+- [Two apps, no role menu](#two-apps-no-role-menu): permissions add actions; Start Annotating opens annotation
+  mode; Data Management becomes Study Setup.
+- [Who sees a study](#who-sees-a-study): membership through the settings file, one batch check per load; release
+  is the settings file's public share.
+- [The stages](#the-stages): Setup, Develop, Analyze, Review, Public as in the table; stage in the settings file,
+  owner-promoted, may move back.
+- One store for annotations, two uses: scoring in Develop, the image's final answer in Analyze.
 
-## Open questions
+## Hand-off: the requirements to rewrite
 
-### 1. Is Setup / Develop / Analyze / Review / Public the right cut, per app? *(grilling)*
+Every requirement that names a stage, a role, Data Management or the root (most mentions first):
+`req/shell/study/stage`, `req/shell/account/role`, `req/shell/data/mode`, `req/checks/shell-states`,
+`req/shell/load/study-images`, `req/shell/data/index`, `req/shell/ground-truth/summary`,
+`req/shell/ground-truth/setup`, `req/shell/ground-truth/pending`, `req/shell/data/roles`,
+`req/shell/data/folders`, `req/shell/data/damaged`, `req/shell/left-bar/shells`, `req/shell/ground-truth/folders`,
+`req/shell/ground-truth/curate`, `req/shell/data/tags`, `req/shell/data/hidden`,
+`req/shell/data/area-of-interest`, `req/shell/views/second`, `req/shell/study/switch-in-place`,
+`req/shell/status-bar`, `req/shell/status-bar/breadcrumbs`, `req/shell/report/bug`, `req/shell/report/action-log`,
+`req/shell/python/one-call`, `req/shell/python/on-run`, `req/shell/offline/default`, `req/shell/header`,
+`req/shell/ground-truth/tagger-access`, `req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`,
+`req/shell/drive/renewal`, `req/shell/drive/dialog`, `req/shell/data/preview-images`,
+`req/shell/data/drive-access`, `req/shell/account/sign-in`, `req/shell/account/settings`.
 
-The apps already suggest one boundary: Study Setup carries the Setup stage, the main app everything from
-annotating on. Walk NoR and Vascular through the draft table, cell by cell: where does a real study's next action
-land, and does any stage have no action of its own (merge it) or two unrelated ones (split it)?
-
-### 2. Who sees a study in each stage? *(grilling)*
-
-Today every study is in the public switcher. Is a Setup or Develop study shown to Viewers at all, and does that
-sit beside tag-based hiding (`req/shell/data/hidden`) or replace part of it?
-
-### 3. Where does an annotation go? *(grilling)*
-
-Annotating is one action (see Terms). Where does it land in Develop (the GT folders, scoring the algorithm)
-versus Analyze (the study's results), and is the Drive permission behind Start Annotating the same in both?
-
-### 4. Does Review need a permission of its own? *(grilling, after 1)*
-
-Only if Review has an action no existing permission should carry.
-
-### 5. What does each app show a person as their next action? *(prototype, after 1)*
-
-How the stage directs work: the gate's measured conditions, and the actions open to what the user may do.
-
-### 6. Which requirements does the redraw touch? *(research)*
-
-List every requirement and test that reads `stage`, a role or the role menu, so the rewrite misses none.
+Tests reading a stage or a role: `study_calls.py`, `test_gt_drive_page.py`, `test_roles_page.py`,
+`test_shell_states.py`, `test_status_bar_page.py`, `test_study_contract.py`, `test_study_root.py`, and the shell
+states harness (`dev/requirements/shell-states.json`), whose role and stage axes change shape.
 
 ## Not yet specified
 
-- How today's studies, all at GT, map onto the new stages.
-- What brings a study back a stage, and what it shows when it does.
-- Batch execution and the numerical results view: no requirement for either exists yet.
-- How the stage reaches `STATE.md` and the skills.
 - Study Setup in detail: how the profile menu opens it, how it returns to the main app, which shared pieces move
   from `req/shell/data/*` to `req/setup/*`.
+- What a batch run writes, where, and the study results view: no requirement for either exists yet.
+- The gate conditions the page can measure for each stage, worded for the popup.
 
 ## Out of scope
 
 - The Image Viewer: no stage, set apart by the owner.
+- A preset numeric validity target: the owner judges validity for now, for want of a good UI to set one.
 - Building any of it: this map ends at agreed requirements.
