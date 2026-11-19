@@ -49,22 +49,25 @@ question, one session, resolved in place and then moved into Decisions so far.
   someone who may annotate and someone who may not by one button, **Start Annotating** (name tentative), which
   moves the page into an annotation mode; every annotation tool shows only in that mode.
 - Images hidden by tag are hidden for everyone in the main app.
-- If study setup leaves the main app (question 0), it is a page of the same site, sharing its code, study files
-  and sign-in.
-- Stages are drawn per app once the apps are settled, with no roles to carry; the draft table is re-cut then.
+- Stages are drawn per app, with no roles to carry; the draft table is re-cut then.
+- **Question 0, resolved: all of Data Management leaves the main app for a Study Setup app**, a page of the same
+  site opened from the profile menu's "Study Setup...", sharing the shell's code, study files and sign-in. The aim
+  is simpler code, tests and requirements, not only a simpler screen. Everything moves: folders, Drive access,
+  ground-truth setup, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged
+  areas, Needs GT. Marking an image's inputs is its own step before annotating: short, purely human work, where
+  annotating is the long work the algorithms exist to shorten. Study Setup shows images in the shell's plain view
+  (no study algorithm, steps or item view), is online-only, and has its own requirement prefix (`req/setup/*`)
+  and test folder; what both apps share stays under `req/shell`. Accepting or rejecting a submitted annotation
+  stays in the main app's annotation mode. The owner expects the main app to go unused by a study's owner until
+  annotating starts.
 
 ## Open questions
 
-### 0. Does Data Management leave the main app for a Study Setup app? *(grilling)*
+### 1. Is Setup / Develop / Analyze / Review / Public the right cut, per app? *(grilling)*
 
-Weigh a separate Study Setup page, opened from the profile menu's "Study Setup...", against keeping Data
-Management in the main app and opening it from a menu. Either way no role is chosen. Decides what moves (the
-folder tree, tags, hiding, GT setup) and blocks every question below.
-
-### 1. Is Setup / Develop / Analyze / Review / Public the right cut, per app? *(grilling, after 0)*
-
-Walk NoR and Vascular through the draft table, cell by cell, once for each app: where does a real study's next
-action land, and does any stage have no action of its own (merge it) or two unrelated ones (split it)?
+The apps already suggest one boundary: Study Setup carries the Setup stage, the main app everything from
+annotating on. Walk NoR and Vascular through the draft table, cell by cell: where does a real study's next action
+land, and does any stage have no action of its own (merge it) or two unrelated ones (split it)?
 
 ### 2. Who sees a study in each stage? *(grilling)*
 
@@ -94,6 +97,8 @@ List every requirement and test that reads `stage`, a role or the role menu, so 
 - What brings a study back a stage, and what it shows when it does.
 - Batch execution and the numerical results view: no requirement for either exists yet.
 - How the stage reaches `STATE.md` and the skills.
+- Study Setup in detail: how the profile menu opens it, how it returns to the main app, which shared pieces move
+  from `req/shell/data/*` to `req/setup/*`.
 
 ## Out of scope
 
