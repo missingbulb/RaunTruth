@@ -45,7 +45,7 @@ def test_a_publisher_is_known_by_name_even_with_no_separator():
 
 def test_a_volume_is_known_by_its_pattern_as_printed():
     for v in ('IV', 'Vol 1', 'כרך ג', 'חלק ב׳', '4', 'ג׳'):
-        got = label(line('הנסיכים', 300, 650), line(v, 120, 200))
+        got = label(line('הנסיכים', 300, 650), line(v, 20, 80))     # at the spine's foot
         assert got == dict(title='הנסיכים', volume=v), v
     assert label(line('1984', 300, 650)) == dict(title='1984'), 'a title alone is never a volume'
 
@@ -102,3 +102,22 @@ def test_a_logo_read_as_a_few_large_letters_is_never_the_title_over_smaller_word
     assert 'author' not in label(logo, words)
     assert 'author' not in label(line('Bes', 40, 120, 15, 85), line('רשימות מן המאדים', 250, 650, 30, 70))
     assert 'author' not in label(line('אלפרד בסטר', 300, 650, 20, 80), line('NY', 200, 240, 40, 60)), 'nor two letters the author'
+
+
+def test_a_bare_number_or_letter_is_a_volume_only_set_apart_or_at_an_end_of_the_spine():
+    """read off a logo or a picture, a lone digit or letter in the middle of the spine is junk, not a volume"""
+    assert 'volume' not in label(line('הנסיכים', 400, 650), line('82', 300, 340))
+    assert 'volume' not in label(line('הנסיכים', 400, 650), line('x', 300, 340))
+    assert label(line('הנסיכים | 4', 300, 650))['volume'] == '4'
+    assert label(line('חלק ב׳', 300, 380), line('הנסיכים', 400, 650))['volume'] == 'חלק ב׳', 'a word saying it is enough'
+
+
+def test_a_clear_call_number_has_a_decimal_or_an_authors_code():
+    assert 'library' not in label(line('חולית', 200, 600), line('275', 5, 80))
+    assert F.photo([[line('חולית', 200, 600), line('275', 5, 80)], [line('הרברט', 200, 600), line('27 5', 5, 80)]])[1][0] == dict(title='הרברט 27 5')
+
+
+def test_two_lines_side_by_side_across_the_spine_are_one_block():
+    """a title set in two lines on a wide spine: the second line is not the author, however its letters differ"""
+    got = label(line('המאחז האחרון', 200, 600, 10, 50), line('של בוקרי הדנ"א', 220, 580, 55, 85))
+    assert got == dict(title='המאחז האחרון של בוקרי הדנ"א')

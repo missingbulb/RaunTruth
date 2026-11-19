@@ -137,10 +137,12 @@ read for a title matcher; matching the titles is not part of it.
   optional `volume` (as printed: "C", "IV", "ג", "Vol 1", "4") and `library` (a call-number sticker, at the spine's
   head or foot, in Dewey or the Hebrew libraries' notation). A field it does not find is absent, never empty. The
   reader parts the lines it read into blocks at a separator (`/`, `|`, a dot `•`, `·` or a lone `o`), at a wide gap
-  along the spine, and where the letters' height changes sharply. It labels each block: a library mark by its
-  pattern (three digits, maybe a decimal and a short author code) at the spine's head or foot; a volume by its
-  pattern (a roman numeral, a number, one letter, or `Vol`, `כרך`, `חלק` with one); of the rest, the largest
-  letters are the title, the block before a slash the author, and a block at the spine's foot the publisher. Since
+  along the spine, and where the letters' height changes sharply; two lines side by side across the spine are one
+  block. It labels each block: a library mark by its pattern (three digits with a decimal, a short author code or
+  both) at the spine's head or foot; a volume by `Vol`, `כרך`, `חלק` with one, or a bare roman numeral, number or
+  letter where a separator sets it apart or it stands alone at the head or foot; a publisher by name or as a block
+  of letters at the spine's foot; of the rest, the block before a slash, or one bearing an initial, is the author,
+  and the larger words the title over a smaller name; with no such cue the text stays in the title. Since
   a library's shelf stickers every book, once one spine on the photo carries a clear mark, a looser one at the
   head or foot of the others is taken too. Each block keeps where it was read on the straightened book (its
   `regions`), which the ground-truth task outlines. The answer keeps `title` as every field's text joined, for

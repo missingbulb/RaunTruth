@@ -25,17 +25,21 @@ SLASH = {'/', '\\'}
 INITIAL = re.compile(r"^(?:[א-תA-Z][.׳'])+$")
 # [volume] as printed: a roman numeral, a number, one letter, or a word saying it with one
 VOLUME_WORD = r"(?:(?:חלק|כרך|ספר|מס')\s+\S{1,4}|(?:vol\.?|volume|part|book|no\.?)\s*\S{1,4})"
-VOLUME = re.compile(rf"^(?:{VOLUME_WORD}|[IVXLC]{{1,5}}|\d{{1,2}}|[א-ת][׳']?|[A-Z])$", re.I)
+VOLUME = re.compile(rf"^{VOLUME_WORD}$", re.I)
+# [volume-bare] a bare numeral or letter, only where a separator sets it apart or it stands alone at the spine's head
+# or foot: anywhere else it is as likely a logo's or a picture's letter read as text
+BARE = re.compile(r"^(?:[IVXLC]{1,5}|\d{1,2}|[א-ת][׳']?|[A-Z])$", re.I)
 VOLUME_TAIL = re.compile(rf"^(.+?)\s+({VOLUME_WORD})$", re.I)
-# [library] a call number: a Dewey class of three digits, maybe a decimal, then a short code for the author; at the
-# spine's head or foot, within this share of its length
-CALL = re.compile(r"^\d{3}(?:\.\d+)?(?:\s+[A-Za-zא-ת][A-Za-zא-ת.׳'\"]{0,4}\d*)?$")
+# [library] a call number: a Dewey class of three digits with a decimal, a short code for the author or both (three
+# digits alone are as likely a number read off a picture); at the spine's head or foot, within this share of its length
+CODE = r"[A-Za-zא-ת][A-Za-zא-ת.׳'\"]{0,4}\d*"
+CALL = re.compile(rf"^\d{{3}}(?:\.\d+(?:\s+{CODE})?|\s+{CODE})$")
 END = 0.15
 # [library-seen] a looser mark once one spine of the photo carries a clear one: a short block at an end, of digits
 # for this share of its letters or more
 LOOSE_LONG, LOOSE_DIGITS = 12, 0.3
-# [publisher-foot] a block at the foot, below this share of the spine, of letters no larger than the title's, is
-# its publisher; [title-size] letters this many times larger than another block's are the title's, that block the
+# [publisher-foot] a block of two letters or more at the foot, below this share of the spine, its letters no larger
+# than the title's, is its publisher; [title-size] letters this many times larger than another block's are the title's, that block the
 # author
 FOOT, LARGER = 0.8, 1.25
 # [title-size] the size cue holds only between blocks that read as words: a title of this many letters or more, an
@@ -93,8 +97,39 @@ def pieces(block, at):
             a, b = (x1 - (x1 - x0) * e / n, x1 - (x1 - x0) * s / n) if rtl else (x0 + (x1 - x0) * s / n, x0 + (x1 - x0) * e / n)
             region = share((a, y0, b, y1), block['size'], block['turn'])
             u, h = (region[1] + region[3]) / 2, y1 - y0
-        out.append(dict(text=piece, cut=c, u=u, h=h, region=region, at=(at, k)))
+        out.append(dict(text=piece, cut=c, u=u, h=h, region=region, at=(at, k), parts=len(parts)))
     return out
+
+
+# [two-lines] two lines whose spans along the spine overlap by this share of the shorter stand side by side across
+# it: one block set in two lines
+BESIDE = 0.5
+
+
+def side_by_side(ps):
+    """Whole lines standing side by side across the spine joined into one block, in the order they were read."""
+    out = []
+    for p in sorted(ps, key=lambda p: p['at']):
+        q = next((q for q in out if q['region'] and p['region'] and q['at'][0] != p['at'][0] and q['cut'] is None
+                  and p['cut'] is None and q.get('whole') and whole(p) and along(q['region'], p['region']) >= BESIDE), None)
+        if q is None:
+            out.append(dict(p, whole=whole(p)))
+            continue
+        r = [min(q['region'][0], p['region'][0]), min(q['region'][1], p['region'][1]),
+             max(q['region'][2], p['region'][2]), max(q['region'][3], p['region'][3])]
+        q.update(text=q['text'] + ' ' + p['text'], region=r, u=(r[1] + r[3]) / 2, h=max(q['h'], p['h']))
+    return out
+
+
+def whole(p):
+    """A line no separator parted."""
+    return p['parts'] == 1
+
+
+def along(a, b):
+    """How much two regions' spans along the spine (their y, the book standing) overlap, over the shorter."""
+    lo, hi = max(a[1], b[1]), min(a[3], b[3])
+    return max(0.0, hi - lo) / max(1e-9, min(a[3] - a[1], b[3] - b[1]))
 
 
 def split_tail(p, pattern_or_words):
@@ -146,14 +181,14 @@ def cut_off(p, rest, end, field):
 
 
 def label(blocks, library_seen=False):
-    ps = [p for i, b in enumerate(blocks) for p in pieces(b, i)]
+    ps = side_by_side([p for i, b in enumerate(blocks) for p in pieces(b, i)])
     # along the spine from the head; a line's own pieces in the order read
     ps.sort(key=lambda p: (p['u'] if p['u'] is not None else 0, p['at']))
     out = []
     for p in ps:
         if library_mark(p, library_seen):
             out.append(dict(p, field='library'))
-        elif len(ps) > 1 and VOLUME.match(p['text']):
+        elif len(ps) > 1 and (VOLUME.match(p['text']) or BARE.match(p['text']) and (p['cut'] is not None or at_end(p))):
             out.append(dict(p, field='volume'))
         elif (t := split_tail(p, VOLUME_TAIL)):
             out.extend(cut_off(p, *t, 'volume'))
@@ -165,7 +200,8 @@ def label(blocks, library_seen=False):
     if len(rest) > 1 and not any(p['field'] == 'publisher' for p in out):
         foot = rest[-1]
         top = max(p['h'] or 0 for p in rest[:-1])
-        if foot['u'] is not None and foot['u'] > FOOT and foot['h'] is not None and foot['h'] <= top and foot['at'][1] == 0:
+        if (foot['u'] is not None and foot['u'] > FOOT and foot['h'] is not None and foot['h'] <= top and foot['at'][1] == 0
+                and sum(c.isalpha() for c in foot['text']) >= 2):
             foot['field'], rest = 'publisher', rest[:-1]
     if len(rest) > 1:
         slash = next((k for k, p in enumerate(rest) if p['cut'] in SLASH), None)
