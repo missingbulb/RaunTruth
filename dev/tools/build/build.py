@@ -35,6 +35,8 @@ GENERATED = ('vendor', 'version_history.json', 'studies.json')
 # the list of the app's files, the studies' included, the page keeps a copy of to open offline (req/shell/offline/default)
 OFFLINE = 'offline.json'
 OFFLINE_TREES = (APP, 'studies')
+# the files at the site's top the app's pages load, kept with them
+OFFLINE_FILES = ('analytics.js',)
 
 
 def wheels():
@@ -252,8 +254,8 @@ def headers():
 
 
 def offline_list(out):
-    """Writes out/app/offline.json, {files: [{path, sha256}]}: every file of the app and the studies, by its path
-    from the app, where the app's service worker reads it."""
+    """Writes out/app/offline.json, {files: [{path, sha256}]}: every file of the app and the studies, and the files at
+    the site's top the app's pages load, by its path from the app, where the app's service worker reads it."""
     app, files = os.path.join(out, APP), []
     for top in OFFLINE_TREES:
         for d, _, fs in os.walk(os.path.join(out, top)):
@@ -262,6 +264,12 @@ def offline_list(out):
                 rel = os.path.relpath(path, app).replace(os.sep, '/')
                 if rel != OFFLINE:
                     files.append({'path': rel, 'sha256': hashlib.sha256(open(path, 'rb').read()).hexdigest()})
+    for name in OFFLINE_FILES:
+        path = os.path.join(out, name)
+        # the release's own tree holds the analytics loader; a tree built elsewhere, for a test, may not
+        if not os.path.exists(path):
+            continue
+        files.append({'path': os.path.relpath(path, app).replace(os.sep, '/'), 'sha256': hashlib.sha256(open(path, 'rb').read()).hexdigest()})
     with open(os.path.join(app, OFFLINE), 'w') as f:
         json.dump({'files': sorted(files, key=lambda e: e['path'])}, f, indent=1)
 
