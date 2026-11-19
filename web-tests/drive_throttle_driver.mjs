@@ -1,4 +1,4 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API that can refuse
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake, which can refuse
 // downloads as Google does when it throttles a site (a 403 without the header that lets the page read it, which
 // the page sees as a failed request) while
 // still answering for files' details, or fail outright. Checks req/shell/drive/throttle: a refused download, or a refused read for a
@@ -17,7 +17,8 @@ import path from "node:path";
 import { until } from "./page_until.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext } from "./harness.mjs";
+import { keptContext, expecting } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -46,23 +47,10 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-// mode: "ok", "throttled" (downloads refused, details answered) or "down" (nothing answers); calls: every request
-let mode = "ok";
-const calls = [];
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/files\/?(.*)$/)[1], media = u.searchParams.get("alt") === "media";
-  calls.push(id ? (media ? "download" : "details") : "list");
-  if (mode === "down") return route.abort();
-  // Google's refusal lacks the header that lets the page read it, so the page sees a failed request
-  if (media && mode === "throttled") return route.abort("failed");
-  if (!id) {
-    const files = FILES.map((f) => ({ ...f, mimeType: "image/png", size: String(PNG.length), createdTime: "2026-10-01T10:00:00Z" }));
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
-  }
-  if (!media) return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ id, name: FILES.find((f) => f.id === id).name, mimeType: "image/png" }) });
-  return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: PNG });
-});
+// the Drive fake's folder of three images; calls: every request the page made of Drive since the test cleared them
+const drive = googleDrive(ctx), calls = drive.calls, kinds = () => calls.map((c) => c.kind);
+drive.folder({ id: ROOT, name: "Throttled", access: "public" });
+for (const f of FILES) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -93,10 +81,12 @@ try {
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 1);
 
   // throttled: opening a.png is refused
-  mode = "throttled";
-  await pressDrive(page); await listed();
-  await page.dblclick("#remote-list .item:nth-child(1)");
-  await page.waitForFunction(() => !$("#remote-throttle").hidden);
+  drive.outage = "throttled";
+  await expecting(/ERR_FAILED/, async () => {
+    await pressDrive(page); await listed();
+    await page.dblclick("#remote-list .item:nth-child(1)");
+    await page.waitForFunction(() => !$("#remote-throttle").hidden);
+  });
   let w = await wait();
   check(w.notice && /^1[45]:\d\d$/.test(w.clock) && w.held, `a refused download shows the notice and a countdown from 15:00, and holds the dialog: ${JSON.stringify(w)}`);
   check(/rgb\((1\d\d|2\d\d), \d{1,2}, \d{1,2}\)/.test(w.red), `the countdown is red: ${w.red}`);
@@ -115,7 +105,7 @@ try {
   // the notice is the page holding Drive: it shows in place of the listing it would otherwise ask for
   await page.waitForFunction(() => $("#remote-dlg").open && !$("#remote-throttle").hidden);
   w = await wait();
-  check(w.notice && w.held && calls.length === 0, `no call to Drive while it waits, after a reload too: ${calls}`);
+  check(w.notice && w.held && calls.length === 0, `no call to Drive while it waits, after a reload too: ${kinds()}`);
   await page.click("#remote-dlg button[value=close]");
 
   // a kept image still opens, from this device
@@ -126,29 +116,33 @@ try {
   await page.evaluate(async () => { const c = await caches.open("nor-images-v1"); for (const q of await c.keys()) await c.delete(q); });
   await pickRecent(page);
   await page.waitForFunction(() => $("#remote-dlg").open && !$("#remote-throttle").hidden);
-  check(calls.length === 0, `a recent image no longer kept shows the notice, with no call to Drive: ${calls}`);
+  check(calls.length === 0, `a recent image no longer kept shows the notice, with no call to Drive: ${kinds()}`);
   await page.click("#remote-dlg button[value=close]");
 
   // the countdown ends: the notice goes and the dialog lists its link again
-  mode = "ok";
+  drive.outage = null;
   await pressDrive(page);
   await page.clock.fastForward(15 * 60000);
   await listed();
   w = await wait();
-  check(!w.notice && !w.held && calls.includes("list"), `after 15 minutes the notice goes and the link is listed again: ${JSON.stringify(w)}`);
+  check(!w.notice && !w.held && kinds().includes("list"), `after 15 minutes the notice goes and the link is listed again: ${JSON.stringify(w)}`);
 
   // a failure where the details fail too is an error, not a wait
-  mode = "down";
-  await page.dblclick("#remote-list .item:nth-child(1)");
-  await page.waitForFunction(() => $("#remote-dlg").open && $("#remote-msg").classList.contains("err"));
+  drive.outage = "down";
+  await expecting(/ERR_FAILED/, async () => {
+    await page.dblclick("#remote-list .item:nth-child(1)");
+    await page.waitForFunction(() => $("#remote-dlg").open && $("#remote-msg").classList.contains("err"));
+  });
   w = await wait();
   check(!w.notice && !w.held, `with Drive unreachable, the dialog shows an error and does not wait: "${await page.textContent("#remote-msg")}"`);
 
   // a refused read for a row's badge starts the wait too
-  mode = "throttled";
+  drive.outage = "throttled";
   await page.evaluate(() => localStorage.removeItem("nor-drive-holds"));
-  await page.click("#remote-go");
-  await page.waitForFunction(() => !$("#remote-throttle").hidden);
+  await expecting(/ERR_FAILED/, async () => {
+    await page.click("#remote-go");
+    await page.waitForFunction(() => !$("#remote-throttle").hidden);
+  });
   check((await wait()).notice, "a refused read for a TIFF row's badge starts the wait too");
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);

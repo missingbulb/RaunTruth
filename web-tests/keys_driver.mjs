@@ -16,7 +16,7 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { frames } from "./page_frames.mjs";
 
-import { launch } from "./harness.mjs";
+import { launch, expecting } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -94,8 +94,11 @@ const press = (code, { on = null, repeat = false, altKey = false, ctrlKey = fals
 }, { code, on, repeat, altKey, ctrlKey });
 
 try {
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  // the study's action saying nothing of the legend is refused as the study comes in, with an error naming it
+  await expecting(/unsaid/, async () => {
+    await page.goto(origin + "/web/fixture");
+    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  });
   // no image: the Ruler and Grid buttons are off, so their keys do nothing and the legend lists neither
   check((await legend()).length === 0, "with the buttons off the legend lists nothing", await legend());
   check(!(await press("KeyR")) && !(await ruler()), "R does nothing while the Ruler button is off");

@@ -25,7 +25,7 @@ import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-test
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
-import { launch } from "../../../web-tests/harness.mjs";
+import { launch, expecting } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -223,8 +223,10 @@ try {
 
   // the text finder out of reach: the books are found without it, and Find says so
   page = await open("viewer", KEPT, { textFinder: false });
-  await page.click("#bs-find");
-  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  await expecting(/text finder|status of 404/, async () => {
+    await page.click("#bs-find");
+    await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  });
   const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
   await page.context().close();
@@ -392,7 +394,8 @@ try {
   await page.click('.bs-tools [data-do="back"]');
   check((await rows())[0] === "1/3 Books" && await value() === "הארי פוטר" && await page.$eval('.bs-verdicts [data-do="right"]', (b) => b.getAttribute("aria-pressed")) === "true",
     "Back goes to the book left of this one, its verdict kept and shown", await rows());
-  await page.click('.bs-verdicts [data-do="right"]');
+  // the same verdict again changes nothing, which the page notes as an action not recorded
+  await expecting(/not recorded/, () => page.click('.bs-verdicts [data-do="right"]'));
   check((await rows())[0] === "1/3 Books" && await value() === "Title 240x35", "a verdict given again there moves on to the next book still open", await value());
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "2/3 Books" && await value() === "Title 180x180" && await cut() === 2, "the next verdict moves on along the shelf");

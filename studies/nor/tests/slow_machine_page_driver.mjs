@@ -17,7 +17,7 @@ import path from "node:path";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { launch } from "../../../web-tests/harness.mjs";
+import { launch, expecting } from "../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -171,7 +171,10 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "after Don't show this again, it does not come back");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");
-  for (let k = 0; k < 3; k++) { await unfold(page, "#processing-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
+  // the stand-in's third run answers out of memory, which the page warns of
+  await expecting(/MemoryError/, async () => {
+    for (let k = 0; k < 3; k++) { await unfold(page, "#processing-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
+  });
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
   await check(await page.evaluate(() => !$("#find").disabled), "Find Candidates is free again after the failure");

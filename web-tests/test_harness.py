@@ -68,3 +68,8 @@ def test_sign_in_grants_a_token_that_reads_the_account_and_the_app_folder():
     r = run('signin')
     assert r.returncode == 0, r.stdout + r.stderr
     assert json.loads(r.stdout.split('signin ', 1)[1]) == {'email': 'ada@acme.example', 'kept': '{"theme":"dark"}', 'asked': 1, 'loads': 1}, r.stdout
+
+
+def test_offline_the_fakes_answer_nothing():
+    r = run('offline')
+    assert 'unreachable' in r.stdout and 'INTERNET_DISCONNECTED' in r.stderr, r.stdout + r.stderr

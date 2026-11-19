@@ -258,11 +258,6 @@ try {
   stub = false;
   const real = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(real, "fixture");
-  await real.route("https://cdn.jsdelivr.net/pyodide/**", (r) => {
-    const f = path.join(pyodide, new URL(r.request().url()).pathname.split("/").pop());
-    if (!fs.existsSync(f)) return r.fulfill({ status: 404, body: "" });
-    r.fulfill({ body: fs.readFileSync(f), contentType: TYPES[path.extname(f)] || "application/octet-stream", headers: { "access-control-allow-origin": "*" } });
-  });
   await real.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // each worker the page starts, and the bytes each open hands it, copied before they are transferred
   await real.addInitScript(() => {

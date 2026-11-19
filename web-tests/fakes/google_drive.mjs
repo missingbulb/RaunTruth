@@ -5,7 +5,8 @@
 //   const drive = googleDrive(ctx);
 //   drive.folder({ id, name, parent, access: "public" | "private" });   access: who reads it, the site's key or
 //     the signed-in user's token alone; a file or folder takes its folder's unless it says
-//   drive.file({ id, name, parent, bytes, mimeType, createdTime });   drive.files: every item, a test may change it
+//   drive.file({ id, name, parent, bytes, mimeType, createdTime, also });   also: other folders it is in, as Drive has
+//     let a file sit in several; drive.files: every item, a test may change it
 //     ({id, name, parent, folder, bytes, mine, props, modified}); drive.get(id)
 //   drive.fromDir(dir, parent)                         a directory on disk, its subdirectories as folders
 //   drive.approved, drive.viewOnly                     the folders the site was approved for (its picker), and the
@@ -20,6 +21,7 @@
 //   drive.pick = "picked" | "cancel" | (ids) => promise   what the picker answers once the page shows it
 //   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.keptForever, drive.picked   what the page asked
 //   drive.next(predicate)                              the next call matching it, once it is answered
+//   drive.inflight                                     how many calls are being answered now
 //   drive.offered                                      files the remote files dialog lists in whichever folder it shows
 //     (its listings alone, which ask for thumbnails), as a test hands the user a file to open
 import crypto from "node:crypto";
@@ -76,7 +78,7 @@ function makeDrive() {
     files: [], approved: new Set(), viewOnly: new Set(), writers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
     get: (id) => drive.files.find((f) => f.id === id),
     outage: null, checksums: true, delay: () => 0, uploaded: () => {},
-    calls: [], writes: [], thumbs: [], shared: [], keptForever: [], picked: [],
+    calls: [], writes: [], thumbs: [], shared: [], keptForever: [], picked: [], inflight: 0,
     // the picker's answer once shown: "picked" approves what it was shown, "cancel" nothing; or (ids) => a promise of
     // one, for a test that answers when it is ready
     pick: "picked",
@@ -85,8 +87,8 @@ function makeDrive() {
       drive.files.push(f);
       return f;
     },
-    file({ id = `fakefile${String(++n).padStart(12, "0")}`, name, parent = null, bytes = Buffer.alloc(0), mimeType, access, mine = false, createdTime } = {}) {
-      const f = { id, name, parent, folder: false, mimeType, bytes: Buffer.from(bytes), access, mine, props: {}, createdTime: createdTime || tick(), modified: tick() };
+    file({ id = `fakefile${String(++n).padStart(12, "0")}`, name, parent = null, bytes = Buffer.alloc(0), mimeType, access, mine = false, createdTime, also } = {}) {
+      const f = { id, name, parent, also, folder: false, mimeType, bytes: Buffer.from(bytes), access, mine, props: {}, createdTime: createdTime || tick(), modified: tick() };
       drive.files.push(f);
       return f;
     },
@@ -134,7 +136,7 @@ export async function fakeGoogleDrive(ctx, world) {
     if (call.kind === "list") {
       if (!sees(drive.get(call.parent))) return notFound(route);
       const offered = fields.includes("thumbnailLink") ? [...drive.offered].map((id) => drive.get(id)).filter(Boolean) : [];
-      return json(route, 200, { files: drive.files.filter((g) => g.parent === call.parent).concat(offered).map((g) => meta(g, fields)) });
+      return json(route, 200, { files: drive.files.filter((g) => g.parent === call.parent || g.also?.includes(call.parent)).concat(offered).map((g) => meta(g, fields)) });
     }
     if (u.pathname.startsWith("/upload/")) {
       if (!who) return json(route, 401, { error: { code: 401, message: "Login Required" } });
@@ -191,13 +193,13 @@ export async function fakeGoogleDrive(ctx, world) {
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)/)?.[1] || "");
     const call = {
-      method: req.method(), id: id || null, fields: u.searchParams.get("fields") || "", range: req.headers().range || null,
+      method: req.method(), url: req.url(), id: id || null, fields: u.searchParams.get("fields") || "", range: req.headers().range || null,
       key: u.searchParams.get("key"), token: bearer(req),
       parent: (u.searchParams.get("q") || "").match(/'([^']+)' in parents/)?.[1] || null,
     };
     call.kind = req.method() !== "GET" ? "write" : !id ? "list" : u.searchParams.get("alt") === "media" ? (call.range ? "piece" : "download") : "details";
     if (call.kind === "piece") call.kind = "download", call.piece = true;
-    drive.calls.push(call);
+    drive.calls.push(call); drive.inflight++;
     const ms = drive.delay(call);
     if (ms) await new Promise((ok) => setTimeout(ok, ms)); // waits on purpose: a slow answer, as the test sets
     try {
@@ -205,6 +207,7 @@ export async function fakeGoogleDrive(ctx, world) {
       if (drive.outage === "down" || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return await route.abort("failed");
       return await answer(route, call);
     } finally {
+      drive.inflight--;
       for (const w of [...waiting]) if (w.match(call)) { waiting.splice(waiting.indexOf(w), 1); w.ok(call); }
     }
   });

@@ -170,8 +170,8 @@ const where = () => page.evaluate(() => {
   return { by, all };
 });
 const KB = 1024;
-// a round keeps the text of the warnings the console holds, a kilobyte or two; an error handed to the console keeps
-// its stack, four kilobytes an open, and the image alone is a quarter of a megabyte
+// a round keeps a kilobyte or so; a warning the page writes keeps what it hands the console, an error's stack four
+// kilobytes an open, and the image alone is a quarter of a megabyte
 const ROUNDS = +(process.env.ROUNDS || 8);
 const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
 

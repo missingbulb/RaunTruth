@@ -1,5 +1,5 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API whose files' bytes can
-// change, and which gives each file's SHA-256 only where a request's fields ask for it, as Drive does. Checks req/shell/drive/kept-images:
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake, whose files' bytes can change,
+// and which gives each file's SHA-256 only where a request's fields ask for it, as Drive does. Checks req/shell/drive/kept-images:
 // a recent image opens from this device with no call to Drive; one chosen from Drive, in the list or by its link,
 // opens from this device once its SHA-256 matches Drive's (the listing's, or the file's details for a link); one
 // changed on Drive is downloaded again and kept in place of the old; with no SHA-256 from Drive it is downloaded,
@@ -18,7 +18,8 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext } from "./harness.mjs";
+import { keptContext, expecting } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -32,8 +33,6 @@ const ROOT = "cachefolder000000001";
 // the folder's link, which the dialog remembers until a file's link is opened in its place
 const FOLDER = `https://drive.google.com/drive/folders/${ROOT}`;
 const PNG = noisePng();
-// a.png's bytes on Drive; changed later to the same picture with a byte appended after its end
-const FILE = { id: "cacheimage0000000001", name: "a.png", bytes: PNG };
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
@@ -51,21 +50,12 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-// checksums: whether Drive gives SHA-256s; details: whether file details answer; calls: every request, by kind
-let checksums = true, details = true;
-const calls = [];
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/files\/?(.*)$/)[1], fields = u.searchParams.get("fields") || "";
-  const media = u.searchParams.get("alt") === "media";
-  calls.push(!id ? "list" : media ? "download" : "details");
-  const meta = { id: FILE.id, name: FILE.name, mimeType: "image/png", size: String(FILE.bytes.length), createdTime: "2026-10-01T10:00:00Z",
-    ...(checksums && fields.includes("sha256Checksum") ? { sha256Checksum: sha(FILE.bytes) } : {}) };
-  if (!id) return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files: [meta] }) });
-  if (media) return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: FILE.bytes });
-  if (!details) return route.abort();
-  return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify(meta) });
-});
+const drive = googleDrive(ctx);
+drive.folder({ id: ROOT, name: "Cache", access: "public" });
+// a.png on Drive, whose bytes the test changes
+const FILE = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+// every request the page made of Drive since the test last cleared them, by kind: list, details or download
+const calls = drive.calls, kinds = () => calls.map((c) => c.kind);
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -76,7 +66,7 @@ const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(10000);
 
-const downloads = () => calls.filter((c) => c === "download").length;
+const downloads = () => kinds().filter((c) => c === "download").length;
 // opens a.png from the Drive dialog, or from the recents, and waits until the page holds it
 const fromDialog = async () => {
   await pressDrive(page);
@@ -120,7 +110,7 @@ try {
   // ---- req/shell/drive/kept-images ----
   calls.length = 0;
   await fromDialog(); await settle();
-  check(downloads() === 0 && !calls.includes("details"), `kept, and matching the listing's SHA-256, it opens from this device with no further request: ${calls}`);
+  check(downloads() === 0 && !kinds().includes("details"), `kept, and matching the listing's SHA-256, it opens from this device with no further request: ${kinds()}`);
   check((await tip()) === "recent-files", "and the tip shows");
   const near = await page.evaluate(() => {
     const t = document.querySelector(".tip-bubble[data-tip]").getBoundingClientRect(), a = $("#image-pick").getBoundingClientRect();
@@ -132,10 +122,10 @@ try {
 
   calls.length = 0;
   await fromRecents(); await settle();
-  check(calls.length === 0, `from the recents, it opens from this device with no call to Drive: ${calls}`);
+  check(calls.length === 0, `from the recents, it opens from this device with no call to Drive: ${kinds()}`);
   calls.length = 0;
   await fromLink(); await settle();
-  check(downloads() === 0 && calls.join() === "list,details", `by its link, the file's details give its SHA-256, and it opens from this device: ${calls}`);
+  check(downloads() === 0 && kinds().join() === "list,details", `by its link, the file's details give its SHA-256, and it opens from this device: ${kinds()}`);
 
   // the file changes on Drive
   FILE.bytes = Buffer.concat([PNG, Buffer.from([0])]);
@@ -145,32 +135,34 @@ try {
     const c = await caches.open("nor-images-v1"), [q] = await c.keys(), b = await (await c.match(q)).arrayBuffer();
     return b.byteLength === want;
   }, FILE.bytes.length);
-  check(downloads() === 1, `changed on Drive, it is downloaded again: ${calls}`);
+  check(downloads() === 1, `changed on Drive, it is downloaded again: ${kinds()}`);
   check((await keptSha()) === sha(FILE.bytes), "and kept in place of the old copy");
   calls.length = 0;
   await fromDialog(); await settle();
   check(downloads() === 0, "after which it opens from this device again");
 
   // Drive gives no SHA-256, or cannot be asked: downloaded
-  checksums = false; calls.length = 0;
+  drive.checksums = false; calls.length = 0;
   await fromDialog(); await settle();
-  check(downloads() === 1, `with no SHA-256 in the listing, it is downloaded: ${calls}`);
+  check(downloads() === 1, `with no SHA-256 in the listing, it is downloaded: ${kinds()}`);
   calls.length = 0;
   await fromLink(); await settle();
-  check(downloads() === 1, `with no SHA-256 in the file's details, it is downloaded: ${calls}`);
+  check(downloads() === 1, `with no SHA-256 in the file's details, it is downloaded: ${kinds()}`);
   // a link's details also name the file, so with them unreachable nothing opens: the dialog shows the error
-  checksums = true; details = false; calls.length = 0;
-  await pressDrive(page);
-  await page.evaluate((id) => { st.fileName = ""; st.sha = ""; $("#remote-link").value = `https://drive.google.com/file/d/${id}/view`; }, FILE.id);
-  await page.click("#remote-go");
-  await page.waitForFunction(() => $("#remote-msg").classList.contains("err"));
+  drive.checksums = true; drive.outage = "details"; calls.length = 0;
+  await expecting(/ERR_FAILED/, async () => {
+    await pressDrive(page);
+    await page.evaluate((id) => { st.fileName = ""; st.sha = ""; $("#remote-link").value = `https://drive.google.com/file/d/${id}/view`; }, FILE.id);
+    await page.click("#remote-go");
+    await page.waitForFunction(() => $("#remote-msg").classList.contains("err"));
+  });
   check(!(await page.evaluate(() => st.fileName)), `with the file's details unreachable, the kept copy does not open, and the dialog shows the error: "${await page.textContent("#remote-msg")}"`);
   await page.click("#remote-dlg button[value=close]");
-  details = true;
-  checksums = false; calls.length = 0;
+  drive.outage = null;
+  drive.checksums = false; calls.length = 0;
   await fromRecents(); await settle();
-  check(calls.length === 0, `from the recents it still opens from this device, with no call to Drive: ${calls}`);
-  checksums = true;
+  check(calls.length === 0, `from the recents it still opens from this device, with no call to Drive: ${kinds()}`);
+  drive.checksums = true;
 
   // ---- req/shell/load/recents-tip ----
   // opening the recents above closed the tip for good; start again

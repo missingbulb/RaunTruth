@@ -10,6 +10,7 @@ import http from "node:http";
 import path from "node:path";
 import { until } from "./page_until.mjs";
 import { keptContext } from "./harness.mjs";
+import { siteHeaders } from "./site_headers.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -19,7 +20,9 @@ try { pw = require("playwright"); } catch {
 const [site, oldSw] = process.argv.slice(2);
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let before = true;
-// before: the app at the top, registering the old worker; after: the built site, as Cloudflare serves it
+// before: the app at the top, registering the old worker; after: the built site, as Cloudflare serves it, with the
+// headers its _headers file names
+const HEADERS = siteHeaders(site);
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (before) {
@@ -31,7 +34,7 @@ const server = http.createServer((q, r) => {
   if (u.endsWith("/")) f = path.join(f, "index.html");
   else if (!fs.existsSync(f) && fs.existsSync(f + ".html")) f += ".html";
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" });
+  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream", ...HEADERS[u] });
   fs.createReadStream(f).pipe(r);
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));

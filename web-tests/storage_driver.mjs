@@ -14,7 +14,6 @@
 import { noisePng } from "./png_fixture.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
-import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -23,7 +22,9 @@ import path from "node:path";
 import { cutShort } from "./page_errors.mjs";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext } from "./harness.mjs";
+import { keptContext, expecting } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
+import { cdnFile } from "./fakes/cdn.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -33,7 +34,8 @@ try { pw = require("playwright"); } catch {
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ROOT = "acmefolder0000000001";
+// NoR Finder's own folder, which its dialog lists
+const ROOT = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop();
 // two images in a folder; their bytes need only be a real picture, which the worker never reads
 const PNG = noisePng();
 const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acmeimage00000000002", name: "acme two.png" }];
@@ -88,27 +90,16 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the Drive fake's folder: the two images, and the subfolder holding the first one's twin
+const drive = googleDrive(ctx);
+for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+drive.folder({ ...SUB, parent: ROOT });
+drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
 // how often each image was downloaded from Drive
-const downloads = Object.fromEntries([...DRIVE, TWIN].map((f) => [f.id, 0]));
-const cors = { "access-control-allow-origin": "*" };
-await ctx.route("https://www.googleapis.com/**", (route) => {
-  const id = new URL(route.request().url()).pathname.match(/\/drive\/v3\/files\/?(.*)$/)[1];
-  // each file's SHA-256, where a request's fields ask for it, as Drive gives it
-  const fields = new URL(route.request().url()).searchParams.get("fields") || "";
-  const hash = fields.includes("sha256Checksum") ? { sha256Checksum: createHash("sha256").update(PNG).digest("hex") } : {};
-  if (!id) {
-    const image = (f) => ({ ...f, mimeType: "image/png", size: String(PNG.length), createdTime: "2026-10-01T10:00:00Z", ...hash });
-    const list = new URL(route.request().url()).searchParams.get("q").includes(SUB.id) ? [image(TWIN)]
-      : [...DRIVE.map(image), { ...SUB, mimeType: "application/vnd.google-apps.folder" }];
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files: list }) });
-  }
-  // a file's details, as Drive answers them
-  if (new URL(route.request().url()).searchParams.get("alt") !== "media")
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ id, ...hash }) });
-  downloads[id]++;
-  return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: PNG });
-});
-await ctx.route(CORE.at(-1), (r) => r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/json", body: JSON.stringify(LOCK) }));
+const downloads = new Proxy({}, { get: (_, id) => drive.calls.filter((c) => c.kind === "download" && c.id === id).length });
+// jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
+cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
+for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
 await ctx.addInitScript((seed) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -370,8 +361,11 @@ try {
     sessionStorage.setItem("test-thumbs-cache-refuses", "1");
   }, { pic: PIC, ids: LEGACY });
   const legacyKeys = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort());
-  await page.reload();
-  await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
+  // the page says each thumbnail the cache would not take, and that what it keeps cannot be counted meanwhile
+  await expecting(/no room/, async () => {
+    await page.reload();
+    await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
+  });
   const stayed = await legacyKeys();
   check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
   await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));

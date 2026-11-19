@@ -1,6 +1,7 @@
 // jsDelivr, as the page tests' fake of it: a package's file from web-tests/node_modules, where page_libraries.py
 // installs each library the page loads at the version it pins, and Pyodide's from the Pyodide installed there. A
-// file of any other version, or one not installed, is not found, as a mistyped path on jsDelivr is.
+// file of any other version, or one not installed, is not found, as a mistyped path on jsDelivr is. A CommonJS file
+// asked for as /+esm comes as jsDelivr makes it, a module whose default export is what the file exports.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,6 +33,11 @@ export async function fakeCdn(ctx) {
     if (made) return route.fulfill({ status: 200, headers: cors, contentType: made.contentType, body: made.body });
     const f = local(href);
     if (!f || !fs.existsSync(f) || !fs.statSync(f).isFile()) return route.fulfill({ status: 404, headers: cors, body: "" });
-    return route.fulfill({ status: 200, headers: cors, contentType: TYPES[path.extname(f)] || "application/octet-stream", body: fs.readFileSync(f) });
+    const body = fs.readFileSync(f), esm = /\/\+esm(\?|$)/.test(href);
+    if (esm && !/^\s*export\b/m.test(body.toString())) {
+      return route.fulfill({ status: 200, headers: cors, contentType: "text/javascript",
+        body: `var module = { exports: {} }, exports = module.exports;\n${body}\nexport default module.exports;\n` });
+    }
+    return route.fulfill({ status: 200, headers: cors, contentType: esm ? "text/javascript" : TYPES[path.extname(f)] || "application/octet-stream", body });
   });
 }

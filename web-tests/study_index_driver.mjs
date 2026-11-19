@@ -98,14 +98,17 @@ await page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10
 await check(await page.evaluate(() => st.fileName === "beta.png") && writes.length === reads, "an image chosen there opens", await page.evaluate(() => st.fileName));
 
 // offline, the index kept on this device lists the same groups; only an image kept here opens
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.evaluate(() => document.querySelector("#load-remote").click());
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }).catch(() => {});
-const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
-await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
-  "offline, the kept index lists the same groups, an image not kept here greyed", offline);
-await page.context().close();
+// what the page still asks of the network fails as it would, when it asks anything then
+await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await page.evaluate(() => document.querySelector("#load-remote").click());
+  await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }).catch(() => {});
+  const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
+  await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
+    "offline, the kept index lists the same groups, an image not kept here greyed", offline);
+  await page.context().close();
+}, { maybe: true });
 
 // tags (req/shell/data/tags): a folder's, an image's own value winning over it, a description, a tag refused; grouping
 // and hiding set in Study images (req/shell/data/hidden)

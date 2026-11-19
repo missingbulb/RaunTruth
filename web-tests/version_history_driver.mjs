@@ -14,7 +14,7 @@ import http from "node:http";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { launch } from "./harness.mjs";
+import { launch, expecting } from "./harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -157,11 +157,14 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
 // ---- a history that cannot be read ----
 {
   history = null;
-  const { ctx, page } = await open("0.10928.2");
-  await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
-  await page.click("#sb-version");
-  const msg = await page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)).then(() => true, () => false);
-  await check(msg, "the popup says the history could not be loaded");
-  await ctx.close();
+  // the site answers the history's file not found, as the browser says
+  await expecting(/status of 404/, async () => {
+    const { ctx, page } = await open("0.10928.2");
+    await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
+    await page.click("#sb-version");
+    const msg = await page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)).then(() => true, () => false);
+    await check(msg, "the popup says the history could not be loaded");
+    await ctx.close();
+  });
 }
 await done(0);

@@ -6,6 +6,7 @@
 //   const ctx = await keptContext(pw, options);       a context that keeps what the page stores across a reload
 //   const { drive, signIn } = googleOf(browser);      the browser's Google, to set up before a context opens
 //   await expecting(/could not be read/, async () => { ...the case that makes the page say so... });
+//   await expecting(/ERR_INTERNET_DISCONNECTED/, async () => { ... }, { maybe: true });   one that may come or not
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -31,6 +32,9 @@ function said(kind, text, where) {
   console.log("not expected: " + line);
 }
 
+// an address off this machine
+const offSite = (u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href);
+
 // a test's setup in the page, run on the site's own pages and never on the blank one each new page starts on, whose
 // storage the browser refuses
 function onSitePages(target) {
@@ -44,10 +48,15 @@ function onSitePages(target) {
 // world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
 async function install(ctx, world) {
   onSitePages(ctx);
+  // offline as its test sets it: a route answers whatever the browser's network says, so the fakes answer nothing then
+  let offline = false;
+  const setOffline = ctx.setOffline.bind(ctx);
+  ctx.setOffline = (on) => { offline = on; return setOffline(on); };
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); return page; };
-  await ctx.route((u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href), (r) => r.abort());
+  await ctx.route(offSite, (r) => r.abort());
   for (const fake of FAKES) await fake(ctx, world);
+  await ctx.route(offSite, (r) => (offline ? r.abort("internetdisconnected") : r.fallback()));
   await ctx.addInitScript(COPY);
   ctx.on("console", (m) => {
     if (m.type() !== "warning" && m.type() !== "error") return;
@@ -83,13 +92,15 @@ export const keptContext = async (pw, options) =>
   install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...LAUNCH, ...options }), {});
 
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
-// none matching it fails the case. A loose pattern, a word or two, so a rewording leaves the test as it is.
-export async function expecting(pattern, during) {
+// none matching it fails the case, unless maybe: for one that comes only when work in the background is under way as
+// the case acts (a download the network's going cuts short). A loose pattern, a word or two, so a rewording leaves the
+// test as it is.
+export async function expecting(pattern, during, { maybe = false } = {}) {
   const d = { pattern, seen: 0 };
   declared.add(d);
   let result;
   try { result = await during(); } finally { declared.delete(d); }
-  if (!d.seen) throw new Error(`expected a warning or error matching ${pattern}, and none came`);
+  if (!d.seen && !maybe) throw new Error(`expected a warning or error matching ${pattern}, and none came`);
   return result;
 }
 

@@ -6,7 +6,9 @@
 //   google.nextToken = "renewed-token";                        the token it grants next, a fresh one if unset
 //   const record = google.signedIn({ email, name, scopes, token, until });   a token made live, and the page's own
 //     record of a sign-in (its nor-google-sign-in key) to seed
-//   google.asked, google.scriptLoads, google.calls, google.settings   what the page asked for, and the app folder
+//   google.asked, google.scriptLoads, google.calls, google.settings   what the page asked for ("METHOD url" for each
+//     call), and the app folders' files ({id, owner, name, parents, body}, a test may change one's body)
+//   google.next()                                              resolves at the page's next call to Google's APIs
 //   google.revokeAll();                                        every token so far refused from now on
 const GSI = "https://accounts.google.com/gsi/client";
 const USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -43,11 +45,14 @@ export function multipart(req) {
   return { metadata: JSON.parse(parts[0].toString()), bytes: Buffer.from(parts[1] || []) };
 }
 
-// the script the page loads: initTokenClient's client asks this fake what Google's window answers
+// the script the page loads: initTokenClient's client asks this fake what Google's window answers, and keeps in the
+// page, as window.tokenClient, what it was made with and asked
 const SCRIPT = `(() => {
   const g = (window.google ||= {});
   g.accounts = { oauth2: { initTokenClient(o) {
+    window.tokenClient = { client: o.client_id, scope: o.scope, asked: [] };
     return { requestAccessToken(opts) {
+      window.tokenClient.asked.push(opts || {});
       window.__fakeSignIn({ client: o.client_id, scope: (opts && opts.scope) || o.scope, prompt: opts && opts.prompt, login_hint: opts && opts.login_hint })
         .then((a) => a.error_type ? o.error_callback && o.error_callback({ type: a.error_type }) : o.callback(a));
     } };
@@ -60,8 +65,10 @@ function makeSignIn() {
     account: { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: null },
     answer: "grant", delay: 0, nextToken: null,
     asked: [], scriptLoads: 0, calls: [],
-    // the app folders' files, each user's own: {id, owner, name, body}
-    settings: [],
+    // the app folders' files, each user's own: {id, owner, name, parents, body}
+    settings: [], waiting: [],
+    next: () => new Promise((ok) => google.waiting.push(ok)),
+    heard(call) { google.calls.push(call); for (const ok of google.waiting.splice(0)) ok(call); },
     tokens: new Map(),
     issue: () => `fake-token-${++n}`,
     signedIn({ email = google.account.email, name = google.account.name, scopes = SCOPES, token = google.issue(), until = Date.now() + 3600e3 } = {}) {
@@ -91,7 +98,7 @@ export async function fakeGoogleSignIn(ctx, world) {
   await ctx.route(GSI, (route) => { google.scriptLoads++; return route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
   await ctx.route(USER_INFO, (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
-    google.calls.push("userinfo");
+    google.heard(`GET ${route.request().url()}`);
     const who = holder(ctx, bearer(route.request()));
     return who ? json(route, 200, { ...google.account, email: who.email }) : json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
   });
@@ -105,7 +112,7 @@ export async function fakeGoogleSignIn(ctx, world) {
       || (method === "POST" && u.pathname.startsWith("/upload/") && multipart(req).metadata.parents?.includes(APP));
     if (!app) return route.fallback();
     if (method === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
-    google.calls.push(`${method} ${u.pathname}`);
+    google.heard(`${method} ${req.url()}`);
     if (!who) return json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
     if (!id && method === "GET") {
       const name = (u.searchParams.get("q") || "").match(/name\s*=\s*'([^']+)'/)?.[1];
@@ -113,7 +120,7 @@ export async function fakeGoogleSignIn(ctx, world) {
     }
     if (method === "POST") {
       const { metadata, bytes } = multipart(req);
-      const f = { id: `appdatafile${String(google.settings.length + 1).padStart(8, "0")}`, owner: who.email, name: metadata.name, body: bytes.toString("utf8") };
+      const f = { id: `appdatafile${String(google.settings.length + 1).padStart(8, "0")}`, owner: who.email, name: metadata.name, parents: metadata.parents, body: bytes.toString("utf8") };
       google.settings.push(f);
       return json(route, 200, { id: f.id });
     }

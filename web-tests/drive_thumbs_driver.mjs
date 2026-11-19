@@ -1,4 +1,4 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API listing a folder of
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake listing a folder of
 // N images and a slow subfolder, with a stand-in driveThumbs set whose thumbnail for row k is k + 1 pixels wide,
 // so a thumbnail in the wrong row shows. Checks req/shell/drive/dialog: thumbnails are fetched for the rows in view and the next
 // 10, each landing in its own row whatever order they arrive in; a fast scroll skips the rows passed over; a
@@ -18,6 +18,7 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { launch } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -28,7 +29,8 @@ const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const N = 60, AHEAD = 10;
-const ROOT = "thumbfolder000000001", SLOW = { id: "thumbfolder000000002", name: "slow" };
+// the fixture study's own folder, which its dialog lists
+const ROOT = "fixturefolder00000001", SLOW = { id: "thumbfolder000000002", name: "slow" };
 const IMAGES = Array.from({ length: N }, (_, k) => ({ id: "thumbimage" + String(k).padStart(10, "0"), name: `img ${String(k).padStart(2, "0")}.tif` }));
 // a grey PNG w pixels wide
 function png(w) {
@@ -65,16 +67,13 @@ const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const q = new URL(route.request().url()).searchParams.get("q") || "";
-  const slow = q.includes(SLOW.id);
-  if (slow) await new Promise((ok) => setTimeout(ok, 800)); // waits on purpose: a listing slower than the user, who moves on
-  const files = slow ? [{ ...IMAGES[0], id: "slowimage00000000001", name: "stale.tif" }]
-    : [{ ...SLOW, mimeType: "application/vnd.google-apps.folder" }, ...IMAGES.map((f) => ({ ...f, mimeType: "image/tiff", size: "1000", createdTime: "2026-10-01T10:00:00Z" }))];
-  await route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
-  if (slow) slowAnswered();
-});
+// the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder lists after
+// 800 ms, slower than the user, who moves on
+const drive = googleDrive(ctx);
+drive.folder({ ...SLOW, parent: ROOT });
+drive.file({ id: "slowimage00000000001", name: "stale.tif", parent: SLOW.id, bytes: Buffer.alloc(1000), mimeType: "image/tiff" });
+for (const f of IMAGES) drive.file({ ...f, parent: ROOT, bytes: Buffer.alloc(1000), mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
+drive.delay = (c) => (c.kind === "list" && c.parent === SLOW.id ? 800 : 0);
 // each thumbnail's request, in order, and how many are still unanswered (answered or aborted by the page leaves
 // them); delay(k) says how long row k's answer takes
 const asked = [];
@@ -85,7 +84,7 @@ const hold = () => { held = new Promise((ok) => { letGo = () => { held = null; o
 // resolves at the next request or answer
 let moved, next = new Promise((ok) => { moved = ok; });
 const note = () => { moved(); next = new Promise((ok) => { moved = ok; }); };
-let slowAnswered, slowListed = new Promise((ok) => { slowAnswered = ok; });
+const slowListed = drive.next((c) => c.kind === "list" && c.parent === SLOW.id);
 // a bound on waiting for the stand-in, so a page that never asks fails its check rather than hanging
 const atMost = (ms) => new Promise((ok) => setTimeout(ok, ms)); // bounds a hang: a page that never asks fails its check
 await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {

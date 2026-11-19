@@ -1,6 +1,6 @@
 // Drives one case of the harness itself (req/checks/clean-console) on a page of its own, which writes what CASE
 // names: a warning nobody declared, one declared, a declaration nothing answers, an uncaught error, a request
-// leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in. Prints what the page saw; the harness decides the exit.
+// leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline. Prints what the page saw; the harness decides the exit.
 //   node web-tests/harness_driver.mjs CASE
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
@@ -68,6 +68,10 @@ const CASES = {
       return { email: who.email, kept };
     });
     console.log("signin " + JSON.stringify({ ...seen, asked: google.asked.length, loads: google.scriptLoads }));
+  },
+  offline: async () => {
+    await page.context().setOffline(true);
+    console.log(await page.evaluate(() => fetch("https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/package.json").then(() => "reached", () => "unreachable")));
   },
   cdn: async () => console.log(await page.evaluate(() => fetch("https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/package.json").then((r) => r.json()).then((j) => "served " + j.version))),
 };

@@ -146,18 +146,21 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 // its previews drawn first: Playwright's WebKit, set offline, fails every read of a Blob's bytes, the previews' among them
 await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .cell .pic")].every((p) => p.querySelector("img") || p.classList.contains("none")));
 const before = writes.length;
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
-await turned();
-await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
-// Data Management as a whole needs the network: its column's chevron does nothing
-const folded = () => page.evaluate(() => $("#data-open").getAttribute("aria-expanded"));
-await page.click("#data-open", { force: true });
-await turned();
-await check(await folded() === "true", "and its chevron does nothing", await folded());
-await page.context().setOffline(false);
-await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+// offline, what the page still asks of Drive fails as the network would, when it asks anything then
+await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
+  await turned();
+  await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
+  // Data Management as a whole needs the network: its column's chevron does nothing
+  const folded = () => page.evaluate(() => $("#data-open").getAttribute("aria-expanded"));
+  await page.click("#data-open", { force: true });
+  await turned();
+  await check(await folded() === "true", "and its chevron does nothing", await folded());
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+}, { maybe: true });
 
 await role(page, "Viewer");
 const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
