@@ -381,10 +381,20 @@ def test_text_all_in_the_title_as_the_old_reader_reads_it_is_measured_and_splitt
     assert 0.7 < text_share(joined) < text_share(split) == pytest.approx(1)     # its joins read as overshoot too
 
 
-def test_a_field_the_truth_lacks_costs_nothing():
-    t = fielded(dict(title=DUNE['title']))
-    s = score(one(t, title=DUNE['title'], author='qzx קקק', volume='IV'), t)
+def test_an_optional_field_the_truth_lacks_costs_nothing_but_title_and_author_are_always_set():
+    t = fielded(dict(title=DUNE['title'], author=DUNE['author']))
+    s = score(one(t, title=DUNE['title'], author=DUNE['author'], publisher='qzx קקק', volume='IV'), t)
     assert (s['tp'], s['fp'], s['fn']) == pytest.approx((1, 0, 0))
+    # the task always shows the title and the author: one left empty there says the spine has none
+    alone = fielded(dict(title=DUNE['title']))
+    assert score(one(alone, title=DUNE['title'], author='qzx קקק'), alone)['fp'] > 0
+
+
+def test_in_a_file_from_before_the_fields_the_one_box_held_the_whole_spine():
+    """junk read in any field is junk read on the spine: no field escapes it"""
+    t = shelf([DUNE['title']])
+    s = score(one(t, title=DUNE['title'], publisher='qzx קקק'), t)
+    assert s['fp'] > 0 and s['fp'] == pytest.approx(score(one(t, title=DUNE['title'] + ' qzx קקק'), t)['fp'], rel=0.2)
 
 
 def test_the_truths_text_read_in_a_field_the_truth_lacks_still_earns_the_slip():

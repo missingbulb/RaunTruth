@@ -101,19 +101,31 @@ def part(shared, true, said):
     return shared / (true + said - shared), max(0.0, 1 - shared / said), max(0.0, 1 - shared / true)
 
 
-def text_part(truth, said):
+# the fields the ground-truth task always shows: one left empty there says the spine has none
+SHOWN = {'title', 'author'}
+FIELDS = ('title', 'author', 'publisher', 'volume', 'library')
+
+
+def known(book):
+    """The fields a true book says something of, empty or not: those it holds and those always shown; in a file from
+    before the fields, whose one box held the whole spine's text, every one."""
+    return set(FIELDS) if book.get('fields') is None else SHOWN | {k for k, v in book['fields'].items() if v}
+
+
+def text_part(truth, said, said_of=None):
     """(tp, fp, fn) of a paired book's text, field by field: letter pairs read in the truth's own field count whole,
-    those read in another field SLIP. A field the truth lacks costs nothing; only its text the truth holds in another
-    field counts, as a slip."""
+    those read in another field SLIP. A field the truth says nothing of (`said_of`, the fields it knows) costs
+    nothing; only its text the truth holds in another field counts, as a slip."""
+    said_of = set(truth) | SHOWN if said_of is None else said_of
     T = {k: pairs_of(v) for k, v in truth.items()}
     A = {k: pairs_of(v) for k, v in said.items()}
     right = {k: T[k] & A.get(k, Counter()) for k in T}
     rest_t = sum((T[k] - right[k] for k in T), Counter())
-    held = sum((A[k] - right[k] for k in A if k in T), Counter())
+    held = sum((A[k] - right.get(k, Counter()) for k in A if k in said_of), Counter())
     moved = rest_t & held
-    loose = (rest_t - moved) & sum((A[k] for k in A if k not in T), Counter())
+    loose = (rest_t - moved) & sum((A[k] for k in A if k not in said_of), Counter())
     n = sum(sum(t.values()) for t in T.values())
-    m = sum(sum(A[k].values()) for k in A if k in T) + sum(loose.values())
+    m = sum(sum(A[k].values()) for k in A if k in said_of) + sum(loose.values())
     return part(sum(sum(r.values()) for r in right.values()) + SLIP * (sum(moved.values()) + sum(loose.values())), n, m)
 
 
@@ -124,6 +136,7 @@ def score(answer, truth):
     T, A = [b['corners'] for b in right], [b['corners'] for b in found]
     t_area, a_area = [area(c) for c in T], [area(c) for c in A]
     t_fields, a_fields = [fields_of(b, 'text') for b in right], [fields_of(b, 'title') for b in found]
+    t_known = [known(b) for b in right]
     # pairing reads every field's text together
     t_name, a_name = [pairs_of(' '.join(f.values())) for f in t_fields], [pairs_of(' '.join(f.values())) for f in a_fields]
 
@@ -133,7 +146,7 @@ def score(answer, truth):
         if not t_name[i]:
             # a true book with no text says nothing of the reading: its box is all it is scored on
             return dict(iou=box[0], title=None, tp=box[0], fp=box[1], fn=box[2])
-        name = text_part(t_fields[i], a_fields[j])
+        name = text_part(t_fields[i], a_fields[j], t_known[i])
         tp, fp, fn = (BOX * b + TITLE * t for b, t in zip(box, name))
         return dict(iou=box[0], title=name[0], tp=tp, fp=fp, fn=fn)
 
@@ -171,7 +184,8 @@ SCORING = f"""- **A book** is a box and its text. Truth is every book marked rig
 - **Compare two texts** field by field (title, author, publisher, volume, library), by letter pairs (letters and digits
   only, any word order): the same three shares, each field weighed by its letters
   - text read in another field than the truth's keeps {SLIP:g} of its credit
-  - a field the truth lacks costs nothing; a file with no fields has its text as its title
+  - a publisher, volume or library mark the truth lacks costs nothing; title and author, always shown to the tagger,
+    are known even when empty; a file with no fields has its text as its title, and its one box held every field
 - **Pair** found books with true books, each used once:
   1. texts that match, all fields together (share {TITLE_MATCH:g} of their letter pairs or more), the best box-and-title first
   2. then the rest by box alone, the largest `overlap / union` first, any overlap at all
