@@ -11,13 +11,14 @@ page must do is `req/shelves` in [its requirements](../requirements.md).
 study.json               the study's contract with the shell and the lab (lab/README.md); stage GT; its `services`
 algorithm/               the study's algorithm, the only Python the page loads; the lab runs the same files
   shelves.py             the entry: read (HEIC through pillow-heif), VERSIONS (r9, r8, r5, each one go: boxes, then
-                         titles), STAGES (straighten, for the tagger's readers), score, SCORING, NOTES
+                         titles), STAGES (straighten and label, for the tagger's readers), score, SCORING, NOTES
   books.py               R9, the text-guided finder (find), its text finder's view of the photo, and the straightening of four corners
   r8_precise.py          R8, the precise finder, kept as it was (2026-11-10); it straightens with books.py
   r5_edges.py            R5, the edge-only finder, kept as it was (2026-11-07); it straightens with books.py
   reading.py             the titles read: the text finder's map, the lines and tesseract readers and the spelling,
-                         asking the environment for det, tesseract and words
-  score.py               how one answer did against one ground truth: half the box, half the title (Score, SCORING.md)
+                         asking the environment for det, tesseract and words; each line kept as a block
+  fields.py              a spine's blocks read into title, author, publisher, volume and library mark (F1), per photo
+  score.py               how one answer did against one ground truth: half the box, half the text, field by field (Score, SCORING.md)
 web/algorithms.json      the page's list of versions, the first its default: each one's title, icon and steps
 web/algorithm_metrics.json  each version's precision and recall, written by `python3 lab/run.py shelves --write`
 web/shelves.js           the page: Find books (one run), Read titles, the titles in Summary, the ground-truth task and its pictures
@@ -27,7 +28,8 @@ web/reading.js           the page's engines: the services the run asks for, and 
 web/words/names.txt      Hebrew Wikipedia titles' words the readings are spelled by after the subtitle list (CC BY-SA 4.0, lab/shelves_words.py)
 web/tessdata/            Tesseract's Hebrew and English (4.0.0_best_int, from @tesseract.js-data/*@1.0.0, MIT): served by the site, pinned
 data/sources.json        the owner's photos on Drive, each with its SHA-256, which `python3 lab/fetch.py shelves` fetches
-tests/                   test_books.py, test_score.py, test_versions.py (fast), test_reading.py, test_spelling.py, test_find_bridge.py, test_shelves_page.py, test_gt_actions.py (full)
+tests/                   test_books.py, test_score.py, test_fields.py, test_versions.py (fast), test_reading.py, test_spelling.py, test_find_bridge.py, test_shelves_page.py, test_gt_actions.py (full)
+docs/fields/             the two designs behind the fields (#899): the tagger's panel, and the routes to reading them
 docs/literature/         what spine detection, dense-shelf detection and library science already know (start at its README)
 ```
 
@@ -160,6 +162,14 @@ frame cuts at its left edge left untagged); and, new for R8, `1zktX1`, 60 books 
 bookcase of two cabinets side by side, and `16w5nW`, 8 books right (2 added as missed), **held out** since R8:
 scored once per iteration, never tuned on; new for R9, `16acjV`, 18 books right (3 added as missed), and `1sdDdH`,
 15 books right, all found (the two black Herbert spines of one series). The other five are the tuning photos.
+
+Since 2026-11-19 (#899, `req/shelves/truth/fields`) a book's text is set field by field: Title and Author always,
+Publisher, Volume and Library mark behind small links until used, each box led by its letter and colour and the
+reader's region outlined in that colour on the picture; ⇅ and Alt+↑/↓ swap fields or move the selected text
+(`set-fields`, `swap-fields`; `set-text` still replays, as the title). A book whose text is a title alone writes the
+file exactly as before, so drafts kept earlier replay unchanged; others add `fields` and `regions`. The page's own
+re-reads are labelled by the study's Python (the `label` stage), on their text alone. Every ground truth so far is
+title-only: see Score for what that does to the numbers.
 
 ## Iterations
 

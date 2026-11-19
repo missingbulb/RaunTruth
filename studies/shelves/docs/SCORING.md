@@ -271,3 +271,32 @@ Seen on a render of r9's pairings on `1zktX1` (not kept):
 4. Switching approved: native lab scoring is the score of record, every version measured again, no old number
    carried. Still open: credit for a box near but not touching a missed book (none now); view (`spine` / `cover`)
    is not scored, the ground truth carrying none.
+
+## 10. The fields (2026-11-19, #899)
+
+The owner's direction: the reader returns a spine's text as fields (title, author, publisher, and a volume and a
+library mark where printed), the tagger sets them one by one, and "the scorer should punish very lightly confusion
+between the 3 fields names". The owner's choices: text read in another field than the truth's keeps **0.9** of its
+credit (`SLIP`), and the fields weigh by their letters.
+
+The title half became a text half, `text_part` in `algorithm/score.py`:
+
+- each field's letter pairs are compared with the same field's in the truth; the pairs shared count whole;
+- of what is left, the pairs the truth holds in some field and the answer holds in another count `SLIP`;
+- a publisher, volume or library mark the truth lacks costs nothing; only the truth's own text read in it counts,
+  as a slip. Title and Author are always known, empty or not: the task always shows them. In a file from before the
+  fields every field is known, its one box having held the whole spine. The first cut let any field the truth lacked
+  go free, and on today's title-only files the reader's junk escaped into the author and the publisher: R9's
+  precision rose 0.499 → 0.511 for no better reading;
+- the three shares are `part(shared, truth's letters, answer's letters over the truth's fields)`, as before.
+
+Pairing is unchanged: it reads every field's text joined, on both sides. A file from before the fields, and an
+answer from before them, read their text as the title, so on a title-only truth with everything read in the title
+the score is the old one exactly: every version measured again gave the recorded numbers to the fourth decimal
+(R9 0.4993 / 0.5982, R8 0.5942 / 0.5343, R5 0.5376 / 0.3671).
+
+What it means for a number. **While the ground truth holds titles alone**, an author or a publisher the reader
+parts out of the title earns `SLIP` of its letters, not all of them: a reader splitting right scores a little lower
+on that truth than one that does not split. Only ground truth tagged field by field measures the split; until then
+the field half compares a reader's letters, not its labels. Tests: the `test_*field*` and slip cases in
+`tests/test_score.py`.

@@ -81,8 +81,10 @@ read for a title matcher; matching the titles is not part of it.
   Every version is measured again under it; no number from the earlier box-only score is carried. Set by the owner
   on 2026-11-19 (#899), the title half is a field half: each field's text is compared with the same field's in the
   truth, by letter pairs and weighted by its letters, and text read in another field than the truth's keeps 0.9 of
-  its credit (`SLIP`), so a publisher read as the title costs little. A field the truth lacks costs nothing, and a
-  ground-truth file from before the fields reads its text as the title. Every version is measured again under
+  its credit (`SLIP`), so a publisher read as the title costs little. A publisher, volume or library mark the truth
+  lacks costs nothing; Title and Author, which the task always shows, say the spine has none when left empty. A
+  ground-truth file from before the fields reads its text as the title, its one box having held the whole spine, so
+  text read in any field counts against it. Every version is measured again under
   this score. Test:
   `studies/shelves/tests/test_versions.py`, `studies/shelves/tests/test_score.py`,
   `studies/shelves/tests/test_shelves_page.py`, `studies/shelves/tests/test_find_bridge.py`.
@@ -93,7 +95,8 @@ read for a title matcher; matching the titles is not part of it.
 
   Outside ground truth the Summary box lists each book's text in the order found, shelf by shelf
   from the top; Download for the matcher saves `<image>_books.json`: the image, its size, and per
-  book an id, its view, its text (empty when nothing was read), the reader's confidence (0 to 1,
+  book an id, its view, its text (empty when nothing was read; every field joined), its fields
+  (`req/shelves/read/fields`), the reader's confidence (0 to 1,
   null when it was not read) and the reader's name, and its corners. With a summary mask on, the list and the file hold
   only the books inside it, each keeping its number (`req/shelves/summary`). Test:
   `studies/shelves/tests/test_shelves_page.py`.
