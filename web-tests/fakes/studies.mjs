@@ -31,10 +31,12 @@ export async function fakeStudies(ctx, world) {
     const edits = id ? mine.editsOf(id) : mine.listEdits();
     if (!edits.length) return route.fallback();
     try {
+      // a checkout that has not built the list serves none: the edits then make it from nothing
       const served = await route.fetch();
-      let m = await served.json();
+      let m = served.ok ? await served.json() : null;
       for (const fn of edits) m = fn(m) ?? m;
-      return await route.fulfill({ response: served, contentType: "application/json", body: JSON.stringify(m) });
+      if (m == null) return await route.fulfill({ response: served });
+      return await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(m) });
     } catch (e) {
       // the test closed the page or its context while the study was on its way: nobody is waiting for it
       if (!/disposed|closed/i.test(e.message)) throw e;
