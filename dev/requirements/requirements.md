@@ -1941,8 +1941,9 @@ nobody has decided: what the page does there is not a requirement yet.
   frees its button. Browsers do not say how much memory is free, so when the browser reports 4 GB
   or less in all (Chrome and Edge report it), a popup on opening asks the user to close other tabs
   and apps, with tips (tab groups, the shortcut that reopens closed tabs, Memory Saver) and "Don't
-  show this again". The page running out of memory shows it whatever was chosen, saying so
-  (`studies/nor/tests/test_slow_machine_page.py`).
+  show this again". The page running out of memory shows it whatever was chosen, saying so. An
+  image chosen while the study's own code is still coming in opens once the study is in, as loaded,
+  the study's first step the one to do (`studies/nor/tests/test_slow_machine_page.py`).
   </details>
 
 - `req/shell/waiting/visible` Visible waiting: a spinner and the elapsed time, and a sweeping light while the study works.

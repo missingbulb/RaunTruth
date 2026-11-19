@@ -853,6 +853,8 @@ page.watch("image", imageBox); page.watch("opening", imageBox);
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
 async function openNow(name, bytes, source) {
+  // an image chosen while the study is still coming in opens into it, once it is in
+  await work.during(studyIn.catch(() => {}), "waiting for the study");
   if (st.img && !gtSession.leaving("open another image")) return;
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
