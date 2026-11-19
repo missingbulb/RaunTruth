@@ -93,3 +93,12 @@ def test_nothing_read_is_no_field():
 def test_a_word_that_starts_like_a_volume_is_no_volume_and_a_dash_parts_blocks():
     assert label(line('מבחן קבלה נאוה מקמל-עתיר ידיעות ספרים', 100, 600)) == dict(title='מבחן קבלה נאוה מקמל-עתיר', publisher='ידיעות ספרים')
     assert label(line('תגידי מה את רוצה - רביטל ויטלזון-יעקבס - מודן', 100, 600)) == dict(title='תגידי מה את רוצה רביטל ויטלזון-יעקבס', publisher='מודן')
+
+
+def test_a_logo_read_as_a_few_large_letters_is_never_the_title_over_smaller_words():
+    """a publisher's mark read as two or three letters stands taller than the spine's words; on the photos it took the
+    title and sent the true title to the author"""
+    logo, words = line('בס', 40, 120, 15, 85), line('פני מועדות לכוכבים', 250, 650, 30, 70)
+    assert 'author' not in label(logo, words)
+    assert 'author' not in label(line('Bes', 40, 120, 15, 85), line('רשימות מן המאדים', 250, 650, 30, 70))
+    assert 'author' not in label(line('אלפרד בסטר', 300, 650, 20, 80), line('NY', 200, 240, 40, 60)), 'nor two letters the author'

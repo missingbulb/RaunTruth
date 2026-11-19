@@ -38,6 +38,9 @@ LOOSE_LONG, LOOSE_DIGITS = 12, 0.3
 # its publisher; [title-size] letters this many times larger than another block's are the title's, that block the
 # author
 FOOT, LARGER = 0.8, 1.25
+# [title-size] the size cue holds only between blocks that read as words: a title of this many letters or more, an
+# author of two words of two letters or more. A publisher's mark read as a few letters stands taller than the words
+TITLE_LETTERS = 4
 # [publishers] the imprints most often on Hebrew and English spines, matched as words at a block's end
 PUBLISHERS = [
     'עם עובד', 'כתר', 'ידיעות ספרים', 'זמורה ביתן', 'זמורה ביתן מודן', 'מודן', 'ספריית מעריב', 'מועדון קוראי מעריב', 'מעריב',
@@ -106,6 +109,14 @@ def split_tail(p, pattern_or_words):
     return None
 
 
+def wordy(p):
+    return sum(c.isalpha() for c in p['text']) >= TITLE_LETTERS
+
+
+def named(p):
+    return sum(sum(c.isalpha() for c in w) >= 2 for w in p['text'].split()) >= 2
+
+
 def at_end(p):
     return p['u'] is not None and (p['u'] < END or p['u'] > 1 - END)
 
@@ -166,8 +177,8 @@ def label(blocks, library_seen=False):
         elif len(initial) == 1:
             initial[0]['field'] = 'author'
         elif None not in hs:
-            big = max(hs)
-            small = [p for p in rest if p['h'] * LARGER <= big]
+            top = max((p for p in rest if wordy(p)), key=lambda p: p['h'], default=None)
+            small = [p for p in rest if top and p['h'] * LARGER <= top['h'] and named(p)]
             if small:
                 max(small, key=lambda p: p['h'])['field'] = 'author'
     for p in out:
