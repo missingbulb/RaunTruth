@@ -30,9 +30,14 @@ export async function fakeStudies(ctx, world) {
     const p = new URL(route.request().url()).pathname, id = p.match(STUDY)?.[1];
     const edits = id ? mine.editsOf(id) : mine.listEdits();
     if (!edits.length) return route.fallback();
-    const served = await route.fetch();
-    let m = await served.json();
-    for (const fn of edits) m = fn(m) ?? m;
-    return route.fulfill({ response: served, contentType: "application/json", body: JSON.stringify(m) });
+    try {
+      const served = await route.fetch();
+      let m = await served.json();
+      for (const fn of edits) m = fn(m) ?? m;
+      return await route.fulfill({ response: served, contentType: "application/json", body: JSON.stringify(m) });
+    } catch (e) {
+      // the test closed the page or its context while the study was on its way: nobody is waiting for it
+      if (!/disposed|closed/i.test(e.message)) throw e;
+    }
   });
 }
