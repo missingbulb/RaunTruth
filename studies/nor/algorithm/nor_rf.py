@@ -86,8 +86,11 @@ def quality(c):
     return c['snr'] * math.sqrt(c['green_bright_balance'] * c['green_balance'])
 
 
-def segment_rf(caspr, nav, bm, p=PR):
+def segment_rf(caspr, nav, bm, p=PR, gone=None):
+    """gone: the pixels left out of finding, whatever the blue mask does."""
     none = bm if p['blue'] == 'pre' else np.zeros_like(bm)   # the finder sees the whole image; blue comes last
+    if gone is not None:
+        none = none | gone
     cn, rn, green, red, tg, tr = classify(caspr, nav, none, p)
     valid_ = ~none; F = (cn, rn, green, red, tg, tr, valid_)
     glab, _ = ndi.label(green, EIGHT); gsz = np.bincount(glab.ravel())

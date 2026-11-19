@@ -7,7 +7,8 @@ which git never holds; the study's data/sources.json is the repository's whole r
 The images are the files of the root's data folder (its rauntruth-study.json `data`, else a top folder named Data). The
 ground truth is the newest file per image of the root's curated folder (its `curated`, else a top folder named
 GT curated or GT), in the shell's layout: one subfolder per image, `<image>__<its sha256's first 8>`, one
-`gt_<tagger>.json` per tagger in it. Each file names its image by SHA-256, which is how the lab pairs the two.
+`gt_<tagger>.json` per tagger in it. Each file names its image by SHA-256, which is how the lab pairs the two. Each
+image's damaged areas are those the root's tags file gives it, by Drive id (req/shell/data/damaged).
 Reading needs the folders shared as "Anyone with the link"; nothing here signs in.
 """
 import argparse
@@ -21,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from study import STUDIES
 
 SETTINGS = 'rauntruth-study.json'
+TAGS = 'rauntruth-tags.json'
 # the names each folder is found by while the root's settings file names none, best first
 DATA_NAMES = ('data',)
 CURATED_NAMES = ('gt curated', 'gt')
@@ -85,15 +87,19 @@ class Root:
     def __init__(self, transport, root, raw):
         self.transport, self.root, self.raw = transport, root, raw
         self.listing = transport.list_folder(root)
-        self.settings = {}
-        sid = next((fid for path, fid in self.listing if path == SETTINGS), None)
-        if sid:
-            out = os.path.join(raw, SETTINGS)
-            transport.download(sid, out)
-            try:
-                self.settings = json.load(open(out))
-            except ValueError:
-                pass
+        self.settings = self.own(SETTINGS) or {}
+
+    def own(self, name):
+        """A JSON file of the root's own, fetched afresh: None while the root has none or it is not JSON."""
+        fid = next((fid for path, fid in self.listing if path == name), None)
+        if not fid:
+            return None
+        out = os.path.join(self.raw, name)
+        self.transport.download(fid, out)
+        try:
+            return json.load(open(out))
+        except ValueError:
+            return None
 
     def folder(self, key, names):
         """[(path under the folder, id)] of the folder the settings name under key, else of the first top folder by
@@ -153,18 +159,31 @@ def images(sid, transport=None, pin=False, only=None):
     return [dict(e, local=image_path(raw, e)) for e in entries if only is None or e['sha256'] in only]
 
 
-def truth(sid, transport=None):
-    """The newest ground-truth file of every image in the study's curated folder, kept in data/raw/truth/ (a file
-    fetched before is not fetched again): [{'subfolder', 'path', 'doc', 'sha256'}], and {path: why} for the files
-    refused (not JSON, no image SHA-256, no `created` time)."""
+def study_root(sid, transport=None):
+    """The study's Drive root, listed: None while its study.json names none."""
     sdir = os.path.join(STUDIES, sid)
-    raw = os.path.join(sdir, 'data', 'raw')
-    transport = transport or GoogleDrive()
     with open(os.path.join(sdir, 'study.json')) as f:
         root = root_of(json.load(f))
+    return Root(transport or GoogleDrive(), root, os.path.join(sdir, 'data', 'raw')) if root else None
+
+
+def damaged(root):
+    """{Drive id: the image's damaged areas, [[[x, y], ...], ...] in its pixels} as the root's tags file has them."""
+    tags = (root.own(TAGS) if root else None) or {}
+    images = tags.get('images') if isinstance(tags.get('images'), dict) else {}
+    return {fid: own['damaged'] for fid, own in images.items() if isinstance(own, dict) and own.get('damaged')}
+
+
+def truth(sid, transport=None, root=None):
+    """The newest ground-truth file of every image in the study's curated folder, kept in data/raw/truth/ (a file
+    fetched before is not fetched again): [{'subfolder', 'path', 'doc', 'sha256'}], and {path: why} for the files
+    refused (not JSON, no image SHA-256, no `created` time). root: the study's root, listed already."""
+    raw = os.path.join(STUDIES, sid, 'data', 'raw')
+    root = root or study_root(sid, transport)
     if not root:
         return [], {}
-    listing = Root(transport, root, raw).folder('curated', CURATED_NAMES) or []
+    transport = root.transport
+    listing = root.folder('curated', CURATED_NAMES) or []
     by_image = {}
     for path, fid in listing:
         parts = path.split('/')

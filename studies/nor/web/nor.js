@@ -14,15 +14,15 @@ export function mount(shell) {
   const SVGNS = "http://www.w3.org/2000/svg";
   const STORE = "nor-filter-settings-v1"; // {values: {param: number}, off: [filter key]}; only what the user changed
   const SHOW = "nor-show-v1"; // the image view's Show menu
-  const SORT = "nor-sort-v1"; // the item views' Sort menu, one per view: {pass, fail}
-  const CARDS = "nor-cards-v3"; // the item views' Options menu, one per view: {pass: {...}, fail: {...}}, only what the user changed
+  const CARDS = "nor-cards-v3"; // the cards' options, finalists' and rejected's: {pass: {...}, fail: {...}}, only what the user changed
   // while the study makes ground truth its tasks are in the left bar, one candidate at a time, and the image is the only view
   const TRUTH = shell.makesTruth;
   // the tagger tags now: the walk's item is ringed, its area framed and what is done cut out only then
   // (req/shell/ground-truth/tagging)
   const tagging = () => TRUTH && shell.tasks.tagging();
-  // the image cut into GRID × GRID areas, each task's candidates taken area by area so the review fills one area after another
-  const GRID = N.GRID;
+  // the image cut into the shell's areas, each task's candidates taken area by area so the review fills one area after another
+  // (req/shell/ground-truth/areas)
+  const AREAS = shell.tasks.areas;
   // an added NoR counts as found when a candidate lies within this distance of its middle: about half a
   // NoR's length on the lab's slide (median 26 px)
   const MISSING_RADIUS = 12;
@@ -38,8 +38,8 @@ export function mount(shell) {
   // the gt keys switch the markings of the ground-truth tasks (req/nor/truth/marks)
   const SHOW_DEFAULTS = { pass: true, fails: true, nums: true, letters: true, lines: true, passW: 1, passC: "#ff69c8", failW: 1, failC: "#008cff",
     gtPass: true, gtFails: true, gtAdded: true, gtCut: true, gtFrame: true };
-  // each item view opens with its own options: the finalists with everything needed to check and adjust
-  // lengths, the rejected with just the NoR's borders and more context around it
+  // the finalists' cards open with everything needed to check and adjust lengths, the rejected's with
+  // just the NoR's borders and more context around it
   const CARD_DEFAULTS = {
     pass: { pad: 4, align: true, borders: true, bars: true, lenImg: true, lenCard: false, adjust: true },
     fail: { pad: 10, align: false, borders: true, bars: false, lenImg: false, lenCard: false, adjust: false },
@@ -50,8 +50,8 @@ export function mount(shell) {
     meta: null, seg: null, cands: [],
     fails: [], alone: null, forced: new Map(), edits: new Map(), defaults: {}, values: {}, off: new Set(),
     about: {}, detectValues: {}, lastRun: null, filtersFor: null, seq: 0, inflight: false, pending: false,
-    added: [], mask: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null, tab: "pass",
-    show: { ...SHOW_DEFAULTS, ...readJSON(SHOW) }, opt: readOpts(), sort: { pass: "number", fail: "number", ...readJSON(SORT) }, crops: new Map(),
+    added: [], mask: [], checked: [], areas: new Set(), area: null, task: null, cur: undefined, back: [], numbers: new Map(), order: [], sel: null,
+    show: { ...SHOW_DEFAULTS, ...readJSON(SHOW) }, opt: readOpts(), crops: new Map(),
   });
 
   function readOpts() {
@@ -59,14 +59,14 @@ export function mount(shell) {
     // the rejected are never turned level, whatever an older page saved
     return { pass: { ...CARD_DEFAULTS.pass, ...saved.pass }, fail: { ...CARD_DEFAULTS.fail, ...saved.fail, align: false } };
   }
-  // the options a candidate's card is drawn with: those of the view it is listed in
+  // the options a candidate's card is drawn with: the finalists' or the rejected's
   // (a task's card, finalist or rejected alike: the finalists', so a rejected one can be measured before it is approved)
   const optsOf = (c) => st.opt[TRUTH || result(c.i) === null ? "pass" : "fail"];
   // the task that reviews a candidate: the filters' word on it, whatever the user said
   const groupOf = (c) => (c.added ? "missed" : (st.fails[c.i] ?? null) === null ? "pass" : "fail");
 
   // what each of the study's browser keys holds, for the shell's Manage storage dialog
-  const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [SORT]: "Sort menus of the item views", [CARDS]: "Options menus of the item views" };
+  const SETTINGS = { [STORE]: "Filter settings", [SHOW]: "Show menu of the image view", [CARDS]: "Options of the candidates' cards" };
   // what the page kept per image before the tagger's work was GT actions (old_marks.js): listed, so it can be seen and deleted, for as
   // long as a browser still holds it
   function stored(key) {
@@ -177,7 +177,7 @@ export function mount(shell) {
   const modelKey = (m) => filtersKey([...m.cands, ...m.deleted].sort((a, b) => a.i - b.i).map((c) => c.fail ?? null), m.meta.filters?.values, m.meta.filters?.off);
   // the model's word on the page: what the tagger decided, measured, added and checked
   function sync(m, why) {
-    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.areas = new Set(); recorded = null; return; }
+    if (!m) { st.forced = new Map(); st.edits = new Map(); st.added = []; st.checked = []; st.areas = new Set(); recorded = null; return; }
     if (!aligned(m)) adopt(m);
     if (why !== "act" && why !== "run") recorded = modelKey(m);
     const was = st.edits;
@@ -190,7 +190,7 @@ export function mount(shell) {
     for (const c of m.deleted) { st.forced.set(c.i, "out"); if (c.edited) st.edits.set(c.i, { ...c.edited }); }
     for (const c of [...m.cands, ...m.deleted]) st.fails[c.i] = c.fail ?? null;
     st.added = m.added.map((a) => ({ id: a.id, lines: a.lines, verdict: a.approved ? "in" : null }));
-    st.areas = new Set(m.areas);
+    st.checked = m.checked; st.areas = areasChecked();
     if (isAdded(st.sel) && !candOf(st.sel)) st.sel = null;
     const refilterToo = why !== "act" && why !== "run" && followFilters(m);
     for (const c of st.order) if (JSON.stringify(was.get(c.i)) !== JSON.stringify(st.edits.get(c.i)) && c.lineEl) drawLines(c);
@@ -203,7 +203,7 @@ export function mount(shell) {
   // the run, as the log keeps it: the numbered candidates, each with its place, box, lines and the filters' word on it
   function outputOf() {
     const cands = [...st.order].sort((a, b) => a.i - b.i).map((c) => ({ i: c.i, n: st.numbers.get(c.i), x: c.cx, y: c.cy, bb: c.bb, ...(c.lines ? { lines: c.lines, m: c.m } : {}), fail: st.fails[c.i] ?? null }));
-    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, grid: GRID, numbered: cands.length, cands };
+    return { image: imageInfo(), finder: st.meta.finder, finder_settings: st.runOverrides || {}, filters: { values: { ...st.values }, off: [...st.off] }, numbered: cands.length, cands };
   }
   // Recorded once the filters' word on the candidates is known after a detection, and again when a later answer moves it
   function recordRun() {
@@ -389,7 +389,6 @@ export function mount(shell) {
       g.append(a);
     }
     svg.append(g);
-    if (st.view === "items" && st.meta) renderList();
     renderTasks();
   }
   // right-clicking the image offers to add a NoR there, or to remove the added one under the pointer
@@ -594,12 +593,10 @@ export function mount(shell) {
       const k = d.dataset.key;
       d.querySelector(".n").innerHTML = st.alone ? `${THUMB} ${st.alone.only[k] ?? 0} (${st.alone.counts[k] ?? 0})` : "";
     });
-    $("#n-pass").textContent = passes.length; $("#n-fail").textContent = rejects.length;
-    if (st.view === "items") renderList();
     renderSummary(); renderSelected(); placeRing(); downloads(true); renderTasks();
   }
 
-  // ---------- cards: one per candidate, in the item views and as the selection ----------
+  // ---------- cards: one per candidate, as the selection and as a task's item ----------
   // The crop, turned so the NoR lies level when "align to horizon" is on, with its outlines, bars and
   // length handles drawn over it. Cached until the options or the candidate's lengths change.
   function crop(c, size) {
@@ -723,8 +720,7 @@ export function mount(shell) {
   const GOTO = `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" class="dot"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>`;
   function card(c, where) {
     const r = result(c.i), f = verdictOf(c), d = document.createElement("div");
-    d.className = "card " + (r === null ? "pass" : "fail") + (f === "in" ? " approved" : f === "out" ? " byyou" : "") + (c.added ? " added" : "") +
-      (where === "list" && c.i === st.sel ? " selected" : "");
+    d.className = "card " + (r === null ? "pass" : "fail") + (f === "in" ? " approved" : f === "out" ? " byyou" : "") + (c.added ? " added" : "");
     d.dataset.i = c.i;
     const state = r === null ? "Finalist" : "Rejected";
     const num = c.added ? `<span class="num added" title="Added by you" aria-label="Added by you, #${numOf(c)}">${ADD_ICON}#${numOf(c)}</span>` : `<span class="num">#${numOf(c)}</span>`;
@@ -746,13 +742,9 @@ export function mount(shell) {
       acts.insertAdjacentHTML("beforeend", `<button type="button" class="remove" title="Remove this NoR you added" aria-label="Remove this NoR you added">×</button>`);
       acts.lastChild.onclick = (e) => { e.stopPropagation(); removeAdded(c.k); };
     }
-    if (where === "list") {
-      d.onclick = () => select(c.i);
-      d.ondblclick = (e) => { if (!e.target.closest("button, .handle")) { getSelection().removeAllRanges(); show(); } };
-    }
     const wrap = document.createElement("div"); wrap.className = "crop-wrap";
     // a task's crop takes the box's whole width
-    wrap.append(crop(c, where === "list" ? 170 : where === "task" ? Math.max(160, Math.round($("#gt-tasks").clientWidth || 280)) : 320));
+    wrap.append(crop(c, where === "task" ? Math.max(160, Math.round($("#gt-tasks").clientWidth || 280)) : 320));
     const show = () => { select(c.i); showView("image"); focusOn(c); };
     if (where !== "task") {
       wrap.insertAdjacentHTML("beforeend", `<button class="goto" title="Show it on the image" aria-label="Show it on the image">${GOTO}</button>`);
@@ -781,74 +773,9 @@ export function mount(shell) {
     return d;
   }
 
-  // ---------- the item views' order ----------
-  const SORTS = [["number", "By number"], ["verified-first", "Verified first"], ["verified-last", "Verified last"], ["filters", "Most filters first", "fail"]];
-  const verified = (c) => !!verdictOf(c);
-  // the cards of the view on show, in its chosen order; ties go by number
-  function listed() {
-    const items = [...((st.tab === "pass" ? st.passes : st.rejects) || [])], how = st.sort[st.tab];
-    const key = how === "verified-first" ? (c) => -verified(c) : how === "verified-last" ? (c) => +verified(c) : how === "filters" ? (c) => -whyAll(c).length : () => 0;
-    return items.map((c) => [key(c), numOf(c), c]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , c]) => c);
-  }
-  function showSort() {
-    const s = $("#sort");
-    s.replaceChildren(...SORTS.filter(([, , only]) => !only || only === st.tab).map(([v, t]) => new Option(t, v)));
-    s.value = st.sort[st.tab];
-    if (!s.value) s.value = st.sort[st.tab] = "number";
-  }
-  $("#sort").onchange = () => { st.sort[st.tab] = $("#sort").value; writeJSON(SORT, st.sort); if (st.meta) renderList(); };
-  showSort();
-
-  // Every card takes its place in the list at once, but as an empty outline the height its card last had;
-  // those in view and two rows past it are drawn, each batch the observer reports in one go, as scrolling
-  // brings them near. Cards drawn a moment ago near the view are drawn at once when the list is redrawn.
-  const lazy = { seen: null, near: new Set(), tall: new Map(), of: new WeakMap() };
-  function renderList() {
-    lazy.seen?.disconnect();
-    const items = listed(), near = lazy.near; lazy.near = new Set();
-    if (!items.length) {
-      $("#list").innerHTML = `<p class="dim">${st.tab === "pass" ? "No finalists. Right-click the image to add a NoR the finder missed." : "Nothing rejected."}</p>`;
-      return;
-    }
-    const known = [...lazy.tall.values()], guess = known.length ? known.reduce((a, b) => a + b, 0) / known.length : 230;
-    const gap = parseFloat(getComputedStyle($("#list")).rowGap) || 0;
-    lazy.seen = new IntersectionObserver(drawNear, { root: $("#items-view"), rootMargin: `${Math.round(2 * (guess + gap))}px 0px` });
-    const nodes = items.map((c) => {
-      if (near.has(String(c.i))) return card(c, "list");
-      const d = document.createElement("div");
-      d.className = "card stub" + (c.i === st.sel ? " selected" : ""); d.dataset.i = c.i;
-      d.style.height = (lazy.tall.get(String(c.i)) ?? guess) + "px"; lazy.of.set(d, c);
-      return d;
-    });
-    $("#list").replaceChildren(...nodes);
-    for (const d of nodes) lazy.seen.observe(d);
-  }
-  function drawNear(entries) {
-    const made = [];
-    for (const e of entries) {
-      const i = e.target.dataset.i;
-      if (!e.isIntersecting) { lazy.near.delete(i); continue; }
-      lazy.near.add(i);
-      const c = lazy.of.get(e.target);
-      if (!c || !e.target.isConnected) continue;
-      const d = card(c, "list");
-      lazy.seen.unobserve(e.target); e.target.replaceWith(d); lazy.seen.observe(d); made.push(d);
-    }
-    for (const d of made) lazy.tall.set(d.dataset.i, d.offsetHeight);
-  }
-
   // ---------- selection ----------
   function select(i) {
     st.sel = i; renderSelected(); placeRing();
-    document.querySelectorAll("#list .card").forEach((d) => d.classList.toggle("selected", d.dataset.i === String(i)));
-  }
-  // in the item views, the selected candidate's card is brought into sight, on the tab that lists it
-  function revealSelected(block) {
-    if (st.sel == null || !st.meta || !candOf(st.sel)) return;
-    const t = result(st.sel) === null ? "pass" : "fail";
-    if (t !== st.tab) { setTab(t); renderList(); }
-    const d = $(`#list .card[data-i="${st.sel}"]`);
-    if (d) d.scrollIntoView({ block, behavior: block === "center" ? "auto" : "smooth" });
   }
   // the selected candidate's card over the image's corner, shown only while one is selected, its previous and
   // next buttons over the bottom of its crop
@@ -870,15 +797,13 @@ export function mount(shell) {
     st.ring.setAttribute("r", Math.hypot(cc - a, d - b) / 2 + 4 / st.zoom);
   }
   // the next candidate by number among those on show
-  // (in the item views: among the cards on show)
   function step(dir) {
     if (TRUTH) return tagging() && (dir > 0 ? $("#task-skip").click() : $("#task-back").click());
-    const list = st.view === "items" ? listed()
-      : [...addedCands(), ...st.order].filter((c) => (result(c.i) === null ? st.show.pass : st.show.fails));
+    const list = [...addedCands(), ...st.order].filter((c) => (result(c.i) === null ? st.show.pass : st.show.fails));
     if (!list.length) return;
     const k = list.findIndex((c) => c.i === st.sel);
     const c = list[k < 0 ? (dir > 0 ? 0 : list.length - 1) : (k + dir + list.length) % list.length];
-    select(c.i); if (st.view === "image") focusOn(c); else revealSelected("nearest");
+    select(c.i); focusOn(c);
   }
   $("#sel-prev").onclick = () => step(-1);
   $("#sel-next").onclick = () => step(1);
@@ -971,10 +896,10 @@ export function mount(shell) {
       { level: "error", grade: true, ok: voted > 0, text: "Vote on at least one candidate" },
       { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be exported` : "Vote on every finalist" },
       TRUTH && { level: "warn", grade: true, ok: voted > 0 && !left, text: left ? `Vote on every rejected candidate: ${left} of ${rejected.length} have no vote and won't be exported` : "Vote on every rejected candidate" },
-      TRUTH && { level: "warn", grade: true, ok: st.areas.size === AREAS, text: st.areas.size === AREAS ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${AREAS - st.areas.size} of ${AREAS} left` },
+      TRUTH && { level: "warn", grade: true, ok: st.areas.size === areaCount(), text: st.areas.size === areaCount() ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${areaCount() - st.areas.size} of ${areaCount()} left` },
       { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be submitted` },
     ].filter(Boolean);
-    return { state: !voted || waiting ? "todo" : open || left || (TRUTH && st.areas.size < AREAS) ? "part" : "done", items };
+    return { state: !voted || waiting ? "todo" : open || left || (TRUTH && st.areas.size < areaCount()) ? "part" : "done", items };
   }
   function gtButton() {
     const { state, items } = gtState(), open = items.filter((t) => t.grade && !t.ok);
@@ -998,26 +923,26 @@ export function mount(shell) {
   // The finalists, the rejected, the image's areas checked for missed NoRs, then Submit. The open task shows its
   // current item; a verdict moves on to the next with none. What is done is cut out of the image.
   const TASKS = ["pass", "fail", "missed", "submit"];
-  const AREAS = GRID * GRID;
+  const areaCount = () => AREAS.count() ** 2;
   const verdictOf = (c) => (c.added ? st.added.find((a) => a.id === c.id)?.verdict : st.forced.get(c.i));
   const reviewed = (v) => (v === "in" ? "yes" : v === "out" ? "no" : "todo");
-  // the image's areas by their place in the walk: rows of areas top to bottom, each the way back from the
-  // last, so the next area always borders the one before
-  function areaOf(c) {
-    const r = Math.min(GRID - 1, Math.floor((c.cy / st.H) * GRID)), k = Math.min(GRID - 1, Math.floor((c.cx / st.W) * GRID));
-    return r * GRID + (r % 2 ? GRID - 1 - k : k);
-  }
+  // the image's areas by their place in the walk, the shell's
+  const areaOf = (c) => AREAS.areaAt(c.cx / st.W, c.cy / st.H);
+  // an area's box in whole pixels, [x0, y0, x1, y1]: a pixel is in the area its column and row fall in
+  const areaPixels = (a) => AREAS.box(a, st.W, st.H).map(Math.ceil);
   // an area's rectangle on the image: [x, y, w, h]
   function areaRect(a) {
-    const r = Math.floor(a / GRID), k = r % 2 ? GRID - 1 - (a % GRID) : a % GRID, w = st.W / GRID, h = st.H / GRID;
-    return [k * w, r * h, w, h];
+    const [x0, y0, x1, y1] = areaPixels(a);
+    return [x0, y0, x1 - x0, y1 - y0];
   }
+  // the areas at the count now whose every pixel is checked, by checks made under any count
+  const areasChecked = () => (st.W ? new Set(Array.from({ length: areaCount() }, (_, a) => a).filter((a) => N.covered(st.checked, areaPixels(a)))) : new Set());
   // The tasks as one walk, area by area, so a whole region of the image is done before the next: in each area
   // its finalists, its rejected, the NoRs added there, each top to bottom, and last the area's check.
   // Each step: {key, a, t, c (a candidate's), done}; key "c:<candidate>" or "a:<area>".
   function walk() {
     if (!st.passes) return [];
-    const by = Array.from({ length: AREAS }, () => ({ pass: [], fail: [], missed: [] }));
+    const by = Array.from({ length: areaCount() }, () => ({ pass: [], fail: [], missed: [] }));
     for (const c of [...st.order, ...addedCands()]) by[areaOf(c)][groupOf(c)].push(c);
     const out = [];
     by.forEach((g, a) => {
@@ -1036,7 +961,7 @@ export function mount(shell) {
   const waitingIn = (a) => addedCands().find((c) => !verdictOf(c) && areaOf(c) === a);
   // an area is done once every candidate in it is decided and it is checked for missed NoRs
   const areaDone = (a, w) => st.areas.has(a) && w.every((x) => x.a !== a || x.done);
-  const taskDone = (t) => t !== "submit" && !!st.passes && taskItems(t).every(verdictOf) && (t !== "missed" || st.areas.size === AREAS);
+  const taskDone = (t) => t !== "submit" && !!st.passes && taskItems(t).every(verdictOf) && (t !== "missed" || st.areas.size === areaCount());
   // the walk's next step not done after key (from the start when key is null), else null
   function nextOpen(key, w = walk(), t = null) {
     const k = w.findIndex((x) => x.key === key);
@@ -1075,7 +1000,7 @@ export function mount(shell) {
   };
   $("#area-ok").onclick = () => {
     if (st.area == null) return;
-    act({ type: "check-area", area: st.area, on: true });
+    act({ type: "check-area", area: st.area, grid: AREAS.count(), box: areaPixels(st.area), on: true });
     moveOn();
   };
   // the image pans to the candidate only when it is out of the middle of the view
@@ -1124,6 +1049,7 @@ export function mount(shell) {
   function renderTasks() {
     if (!TRUTH) return;
     const ready = !!st.meta && !!st.passes;
+    st.areas = areasChecked();
     // the walk starts at its first step not done
     if (ready && st.cur === undefined) {
       const x = nextOpen(null);
@@ -1134,7 +1060,7 @@ export function mount(shell) {
     if (ready && st.cur && !walk().some((x) => x.key === st.cur)) { st.cur = "a:" + st.area; st.sel = null; st.task = "missed"; }
     const lists = Object.fromEntries(TASKS.map((t) => [t, ready ? taskItems(t) : []]));
     // a row per task, counting what is done of it; the bar a part per task, as long as it and filled as far as done
-    const count = { pass: lists.pass.length, fail: lists.fail.length, missed: AREAS };
+    const count = { pass: lists.pass.length, fail: lists.fail.length, missed: areaCount() };
     const did = { pass: lists.pass.filter(verdictOf).length, fail: lists.fail.filter(verdictOf).length, missed: st.areas.size };
     for (const t of ["pass", "fail", "missed"]) shell.tasks.count(t, ready ? did[t] : null, count[t], ready && taskDone(t));
     // the open task: its tools on its row, and its item's card under it
@@ -1170,6 +1096,8 @@ export function mount(shell) {
     out.animate([{ transform: "none", opacity: 1 }, { transform: `translateX(${-dir * 60}%)`, opacity: 0 }], t).finished.then(() => out.remove(), () => out.remove());
     fresh.animate([{ transform: `translateX(${dir * 60}%)`, opacity: 0 }, { transform: "none", opacity: 1 }], t);
   }
+  // another count of areas: the walk starts again from its first step not done
+  AREAS.on(() => { st.cur = undefined; st.back = []; renderTasks(); gtButton(); });
   if (TRUTH) {
     $("#card-menu").open = false; $("#task-back").before($("#card-menu"));
     $("#overlay").classList.add("gt"); shell.signal.addEventListener("abort", () => $("#overlay").classList.remove("gt"));
@@ -1252,7 +1180,7 @@ export function mount(shell) {
       inp.type === "checkbox" ? (inp.checked = st.show[k]) : (inp.value = st.show[k]);
       inp.oninput = () => {
         st.show[k] = inp.type === "checkbox" ? inp.checked : inp.type === "range" ? +inp.value : inp.value;
-        writeJSON(SHOW, st.show); applyShow(); tellKeys(); if (/C$/.test(k) && st.meta) { st.crops.clear(); if (st.view === "items") renderList(); renderSelected(); }
+        writeJSON(SHOW, st.show); applyShow(); tellKeys(); if (/C$/.test(k) && st.meta) { st.crops.clear(); renderSelected(); }
       };
     }
     applyShow();
@@ -1260,42 +1188,20 @@ export function mount(shell) {
     const changed = () => {
       const diff = (t) => Object.fromEntries(Object.entries(st.opt[t]).filter(([k, v]) => v !== CARD_DEFAULTS[t][k]));
       writeJSON(CARDS, { pass: diff("pass"), fail: diff("fail") });
-      if (st.meta) { if (st.view === "items") renderList(); renderSelected(); }
+      if (st.meta) renderSelected();
     };
-    for (const [id, k] of Object.entries(opts)) { const inp = $("#" + id); inp.onchange = () => { st.opt[st.tab][k] = inp.checked; changed(); }; }
-    // an empty box puts the view's own padding back
+    // a task's cards, finalist or rejected alike, share the finalists' options (optsOf)
+    for (const [id, k] of Object.entries(opts)) { const inp = $("#" + id); inp.checked = st.opt.pass[k]; inp.onchange = () => { st.opt.pass[k] = inp.checked; changed(); }; }
+    // an empty box puts the default padding back
     const pad = $("#opt-pad");
-    pad.oninput = () => { const v = parseInt(pad.value, 10); st.opt[st.tab].pad = isFinite(v) && v >= 0 ? v : CARD_DEFAULTS[st.tab].pad; changed(); };
-    // the menu shows the options of the view on show
-    st.showOpts = () => {
-      for (const [id, k] of Object.entries(opts)) $("#" + id).checked = st.opt[st.tab][k];
-      if (document.activeElement !== pad) pad.value = st.opt[st.tab].pad;
-      pad.placeholder = CARD_DEFAULTS[st.tab].pad;
-      $("#opt-align").parentElement.hidden = st.tab === "fail";
-      // a task's cards share one set of options, and keep the order of the walk
-      $("#sort").parentElement.hidden = TRUTH;
-      const what = TRUTH ? "Card options" : (st.tab === "pass" ? "Finalist" : "Rejected") + " options", sum = $("#card-menu summary");
-      // a task's options open from a cogwheel
-      if (TRUTH) { sum.innerHTML = COG; sum.title = what; sum.setAttribute("aria-label", what); } else sum.textContent = what;
-    };
-    st.showOpts();
-  }
-  for (const [id, t] of [["#tab-pass", "pass"], ["#tab-fail", "fail"]]) $(id).onclick = () => {
-    if (st.tab !== t) setTab(t); renderList();
-  };
-  function setTab(t) {
-    st.tab = t; $("#tab-pass").classList.toggle("on", t === "pass"); $("#tab-fail").classList.toggle("on", t === "fail"); st.showOpts(); showSort();
+    pad.value = st.opt.pass.pad; pad.placeholder = CARD_DEFAULTS.pass.pad;
+    pad.oninput = () => { const v = parseInt(pad.value, 10); st.opt.pass.pad = isFinite(v) && v >= 0 ? v : CARD_DEFAULTS.pass.pad; changed(); };
+    // the options open from a cogwheel
+    const sum = $("#card-menu summary");
+    sum.innerHTML = COG; sum.title = "Card options"; sum.setAttribute("aria-label", "Card options");
   }
 
-  // ---------- views ----------
-  // the shell's switch shows the view; the cards are built only while the item view shows
   const showView = (v) => shell.views.show(v);
-  st.view = shell.views.now;
-  shell.views.on((v) => {
-    st.view = v;
-    if (v === "items" && st.meta) { renderList(); revealSelected("center"); }
-    if (v === "image") { lazy.seen?.disconnect(); lazy.near.clear(); $("#list").replaceChildren(); shell.viewer.minimapView(); }
-  });
 
   // the Edit History window yields to the selected candidate's card at the top right: how much of that corner the card holds, and the gap under it
   {
@@ -1310,7 +1216,7 @@ export function mount(shell) {
   window.nor = { taskItems, walk, goTo, focusOn, model: () => shell.gt.model(), document: () => shell.gt.document(), imageInfo, candOf, addedCands, linesOf, showView, decide, numOf, whyAll, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
-  for (const id of ["#find", "#tab-pass", "#tab-fail", "#dl-cands"]) slow($(id));
+  for (const id of ["#find", "#dl-cands"]) slow($(id));
 
   // each finder's controls, as algorithm/controls.py lists them, so they never wait for Python; the finder itself
   // is chosen above them, in the shell's list
@@ -1337,8 +1243,8 @@ export function mount(shell) {
     painter: (canvas, shown, onSize) => NorPeek.painter(canvas, shown, onSize),
     order,
     opening(name) {
-      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
-      $("#list").replaceChildren(); $("#summary").textContent = "No candidates yet.";
+      st.added = []; st.forced = new Map(); st.edits = new Map(); st.fails = []; st.mask = []; st.checked = []; st.areas = new Set(); st.task = null; st.area = null; st.cur = undefined; st.back = []; st.meta = null; st.lastRun = null; st.cands = []; st.order = []; st.passes = st.rejects = null; st.sel = null; st.ring = null; st.crops = new Map();
+      $("#summary").textContent = "No candidates yet.";
       downloads(false); renderSelected(); renderTasks();
     },
     // a curated ground truth's final results (req/shell/ground-truth/view): each NoR it marks, ringed, numbered as in its
@@ -1396,7 +1302,7 @@ export function mount(shell) {
     showImage: () => showView("image"),
     pickAt: candAt,
     pick: (c) => (TRUTH ? c && tagging() && takeUp(c) : select(c && st.sel !== c.i ? c.i : null)),
-    open: (c) => (TRUTH ? tagging() && takeUp(c) : (select(c.i), showView("items"))),
+    open: (c) => (TRUTH ? tagging() && takeUp(c) : select(c.i)),
     step,
     zoomed: placeRing,
     stored,

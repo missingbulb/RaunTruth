@@ -6,8 +6,8 @@
 // names what is missing; the file holds only the candidates voted on, the added NoR once approved; for an image
 // from Google Drive (a stand-in Drive API), for a tagger who never approved the site for the submissions folder,
 // Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
-// study, where the summary and the item views are (req/nor/layout), it checks the summary mask: lassoed areas,
-// combined by exclusive or, limit the summary and the CSVs but not the ground truth; and the item views' sort. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
+// study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
+// combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
 // with the settings chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
@@ -22,7 +22,6 @@ import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { withItemView } from "./item_view_shown.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 
 const require = createRequire(import.meta.url);
@@ -74,7 +73,6 @@ const bytes = fs.readFileSync(image);
 async function open(drive) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   await asTagger(ctx, { apiKey: "test-key" });
-  await withItemView(ctx); // the item views' sort, on the shelved view
   const asked = []; // what was asked of github.com
   await ctx.route(offSite(origin), (r) => {
     const u = new URL(r.request().url());
@@ -235,42 +233,6 @@ async function markAndVote(page) {
   return page.evaluate(() => ({ undecided: st.order.length - st.forced.size }));
 }
 
-// the item views' sort, in each view's Options menu: by number (the default), the verified first or last, and on the rejected the most
-// rejecting filters first; remembered per view
-async function sorting(page) {
-  await page.evaluate(() => { const xs = st.passes.filter((c) => !c.added); nor.decide(xs[0].i, "approve"); nor.decide(xs[2].i, "approve"); nor.decide(st.rejects[1].i, "reject"); });
-  await page.click("#switch"); await idle(page);
-  const shown = () => page.evaluate(() => [...document.querySelectorAll("#list .card")].map((d) => {
-    const c = nor.candOf(d.dataset.i[0] === "u" ? d.dataset.i : +d.dataset.i);
-    return { n: nor.numOf(c), v: !!(c.added ? st.added[c.k].verdict : st.forced.get(c.i)), f: nor.whyAll(c).length };
-  }));
-  const sortBy = async (v) => { await page.$eval("#card-menu", (d) => { d.open = true; }); await page.selectOption("#sort", v); await idle(page); return shown(); };
-  const up = (xs) => xs.every((x, k) => !k || xs[k - 1] <= x), down = (xs) => xs.every((x, k) => !k || xs[k - 1] >= x);
-  const byNum = (L) => up(L.map((c) => c.n));
-  for (const tab of ["#tab-pass", "#tab-fail"]) {
-    await page.click(tab); await idle(page);
-    const choices = await page.$$eval("#sort option", (o) => o.map((x) => x.value));
-    const fail = tab === "#tab-fail";
-    await check(JSON.stringify(choices) === JSON.stringify(["number", "verified-first", "verified-last", ...(fail ? ["filters"] : [])]),
-      `the ${fail ? "rejected" : "finalists"} sort by ${choices.join(", ")}`);
-    let L = await shown();
-    await check(await page.$eval("#sort", (s) => s.value) === "number" && byNum(L) && L.length > 2, "by number by default");
-    L = await sortBy("verified-first");
-    await check(down(L.map((c) => +c.v)) && L.some((c) => c.v) && byNum(L.filter((c) => c.v)) && byNum(L.filter((c) => !c.v)), "verified first, each part by number");
-    L = await sortBy("verified-last");
-    await check(up(L.map((c) => +c.v)) && byNum(L.filter((c) => !c.v)), "verified last, each part by number");
-    if (fail) {
-      L = await sortBy("filters");
-      await check(down(L.map((c) => c.f)) && L[0].f > L[L.length - 1].f, `the rejected sort by how many filters reject them, most first (${L[0].f} to ${L[L.length - 1].f})`);
-    }
-  }
-  await page.click("#tab-pass"); await idle(page);
-  await check(await page.$eval("#sort", (s) => s.value) === "verified-last", "each view keeps its own sort");
-  for (const tab of ["#tab-pass", "#tab-fail"]) { await page.click(tab); await idle(page); await sortBy("number"); }
-  await page.$eval("#card-menu", (d) => { d.open = false; });
-  await page.click("#switch"); await idle(page);
-}
-
 // the popup the Ground truth button opens: its text, and the file its Export button downloads
 async function popup(page) {
   // Submit Ground Truth is the last of the tasks (req/nor/truth/tasks)
@@ -324,8 +286,8 @@ async function mask(page) {
     await check(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
   }
   await lasso(page, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]]);
-  const fit = await page.evaluate(() => ({ view: st.view, w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
-  await check(fit.view === "image" && fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
+  const fit = await page.evaluate(() => ({ w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
+  await check(fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
   // what the summary should count: the finalists whose centre lies in the middle square
   const inside = (page) => page.evaluate(() => [...nor.addedCands(), ...st.order].filter((c) => {
     const x = c.cx / st.W, y = c.cy / st.H, mid = x > 0.25 && x < 0.75 && y > 0.25 && y < 0.75, hole = x > 0.4 && x < 0.6 && y > 0.4 && y < 0.6;
@@ -378,8 +340,8 @@ async function mask(page) {
   // approval; the one rejected absent, and read from the history
   const total = await page.evaluate(() => st.order.length);
   const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
-  await check(gt.format === "norfinder-ground-truth/3" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
-    && gt.areas.length === 0 && gt.grid === 10 && undecided > 0 && !("labels" in gt),
+  await check(gt.format === "norfinder-ground-truth/4" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+    && gt.checked.length === 0 && undecided > 0 && !("labels" in gt),
     `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
   const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
   const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);
@@ -418,7 +380,7 @@ async function mask(page) {
   await ctx.close();
 }
 
-// ---- a PreGT study: the summary, its mask and CSVs, and the item views' sort ----
+// ---- a PreGT study: the summary, its mask and CSVs ----
 {
   stage = "PreGT";
   const { ctx, page } = await open(false);
@@ -448,7 +410,6 @@ async function mask(page) {
   await mask(page);
   const gt = await page.evaluate(() => nor.document());
   await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
-  await sorting(page);
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");
   await check(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");

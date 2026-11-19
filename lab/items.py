@@ -59,7 +59,7 @@ class Corpus:
         """Every image's items, one list: [{id, label, hit, image}]."""
         out = []
         for (e, t), a in zip(self.pairs, answers):
-            out += [dict(it, image=os.path.basename(e['path'])) for it in self.study.score(a, t['doc'])['items']]
+            out += [dict(it, image=os.path.basename(e['path'])) for it in self.study.score(a, t['doc'], e.get('damaged'))['items']]
         return out
 
     def hits(self, answers):

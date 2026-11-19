@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11119.140">
+<meta name="version" id="site-version" title="version 0.11119.141">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -162,6 +162,7 @@
       <slot-here data-slot-for="tasks"></slot-here>
       <div id="gt-offers" hidden><button id="gt-load-draft" type="button" hidden></button><button id="gt-load-legacy" type="button" hidden>Load earlier edits</button><button id="gt-load-submission" type="button" data-needs-network hidden></button></div>
       <div id="gt-list" hidden>
+        <label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label>
         <button id="gt-start" type="button" class="primary" title="Work through the tasks, one item at a time">Start GT tagging</button>
         <div id="gt-bar"></div>
         <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled>Undo</button><button id="gt-redo" type="button" disabled>Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="edits" id="gt-history-row" hidden><label><input type="checkbox" id="gt-history-on" checked> Show Edit History</label></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled>Save Draft</button><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button></div></li></ol>

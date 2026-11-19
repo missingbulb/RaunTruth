@@ -236,7 +236,7 @@ def test_every_element_of_a_studys_panels_is_in_its_tree():
         seen += len(p.state)
         if [x for x in p.state if x not in held]:
             left[i] = [x for x in p.state if x not in held]
-    assert seen > 80, f'{seen} ids in the studies\' panels: the sweep is not reading them'
+    assert seen > 70, f'{seen} ids in the studies\' panels: the sweep is not reading them'
     assert not left, f'not in the studies\' states.json: {left}'
 
 
@@ -294,9 +294,9 @@ def test_the_shell_tree_holds_only_the_shells_page():
 
 @pytest.mark.parametrize('study, panels, says', [
     ({'files': {'from': ['local', 'drive']}, 'phases': []}, '', {'fromComputer': True, 'hasSteps': False, 'itemView': False}),
+    ({'files': {'from': ['drive']}, 'phases': [], 'groundTruth': {'areas': 4}}, '', {'walksAreas': True}),
+    ({'files': {'from': ['drive']}, 'phases': [], 'groundTruth': {'actions': 'web/gt_actions.js'}}, '', {'walksAreas': False}),
     ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view" hidden>', {'fromComputer': False, 'hasSteps': True, 'itemView': True}),
-    ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view" data-shelved hidden>', {'itemView': False}),
-    ({'files': {'from': ['drive']}, 'phases': [{}]}, '<div id="items-view-more" data-shelved></div><div id="items-view">', {'itemView': True}),
 ])
 def test_what_a_study_says_of_itself_is_read_from_its_descriptor_and_panels(study, panels, says):
     got = shell_states.facts({'study': study, 'panels': panels})

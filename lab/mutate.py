@@ -90,7 +90,7 @@ def mutant(c, m, base):
         fn = lambda img: fn0(img, unit, **kw)
         if kind == 'pre':
             changed = dict(image, **{k: np.maximum(fn(image[k]), 0) for k in chans})
-            out.append(c.study.run(name, changed, **params))
+            out.append(c.study.run(name, changed, damaged=e.get('damaged'), **params))
         else:
             M = fn(sum(image[k] for k in chans))
             out.append(c.study.stage('verify', image, a, map=M, mode=mode,

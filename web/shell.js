@@ -534,8 +534,8 @@ const roleChooser = roleMenu($("#role-menu"), (r) => {
 // ---------- the image and the item view ----------
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
 // has counted its items: count(total), null until it has any; on(fn) hears the view now shown, "image" or "items".
-// While the study makes ground truth there is none, its tasks being in the left bar. One marked data-shelved is never shown.
-const itemsView = () => { const v = $("#items-view"); return v && !v.hasAttribute("data-shelved") && !makesTruth() && !truthShown ? v : null; };
+// While the study makes ground truth there is none, its tasks being in the left bar.
+const itemsView = () => { const v = $("#items-view"); return v && !makesTruth() && !truthShown ? v : null; };
 const views = {
   now: "image", total: null, heard: [],
   show(v) {
@@ -2370,6 +2370,7 @@ async function mountStudy(id) {
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
   gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  tasks.mount(manifest.groundTruth?.areas);
   // the colour of Edit History's ring, where the study's image or marks carry the shell's
   if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);

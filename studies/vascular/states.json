@@ -10,11 +10,7 @@
       }
     ]},
     {"under": "Ground Truth Tasks", "tree": [
-      {"name": "The tasks", "select": "#vm-tasks", "req": "req/vascular/truth/tasks",
-        "children": [
-          {"name": "How many areas", "select": "#area-grid", "control": true, "req": "req/vascular/truth/order"}
-        ]
-      },
+      {"name": "The tasks", "select": "#vm-tasks", "req": "req/vascular/truth/tasks"},
       {"name": "Task tools", "select": "#task-tools", "req": "req/vascular/truth/order",
         "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)",
         "rule": [

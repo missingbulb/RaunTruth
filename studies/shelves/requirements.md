@@ -10,6 +10,16 @@ Set by the owner on 2026-11-04: a study of image processing, not biology, an out
 takes a photo of bookshelves, boxes every book on it and reads the text on each, and writes what it
 read for a title matcher; matching the titles is not part of it.
 
+- `req/shelves/books/damaged` Find books analyses no pixel of a damaged area; a box may still reach into one.
+  <details>
+
+  Set by the owner on 2026-11-19. Before a version finds or reads anything, the pixels of the Study Manager's damaged
+  areas (`req/shell/data/damaged`) are filled from the pixels around them, so neither the finders, the text finder
+  nor the readers see what was there. A box may still be drawn over a damaged area, as one may run off the photo's
+  edge. The scorer leaves out the ground truth's books and the answer's books whose box centre lies in a damaged
+  area. Test: `studies/shelves/tests/test_shelves_damaged.py`.
+  </details>
+
 - `req/shelves/books/find` Find books boxes every book on the photo and reads its title, in one go: four corners, spine or cover, standing or lying.
   <details>
 

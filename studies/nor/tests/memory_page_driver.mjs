@@ -96,14 +96,13 @@ async function find() {
     await done; await settled();
   }
 }
-// each numeric filter moved away from its value and back, in both views, and a filter switched off and on
+// each numeric filter moved away from its value and back, and a filter switched off and on
 async function tune() {
   const n = await page.evaluate(() => document.querySelectorAll("#filters .param.number").length);
   if (n < 6) await fail(`only ${n} filter dials to move`);
   for (let k = 0; k < 2 * n; k++) {
     const done = next("refilter");
     await page.evaluate(([k, n]) => {
-      if (k === 0) nor.showView("items"); if (k === n) nor.showView("image");
       const p = document.querySelectorAll("#filters .param.number")[Math.floor(k / 2)], box = p.querySelector(".box");
       box.value = k % 2 ? st.defaults[p.dataset.name] : st.defaults[p.dataset.name] * 1.3 + 0.1; box.dispatchEvent(new Event("input"));
     }, [k, n]);
@@ -122,9 +121,8 @@ async function measure() {
   // The status bar's numbers hold a node or more for each character of their last change, and the network's
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
-  // the page's frames done first: the item view draws its cards in them as they come near, which a slow machine
-  // can still be doing when the work itself has settled
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the cards drawn as they come near; being reworked on #932
+  // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the page's last frames; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
   // element it writes into an action's log, and the page adds attributes as it goes (a class the first time an
   // animation is seen off screen): each one in the document is read here, made a node whoever read it before, and

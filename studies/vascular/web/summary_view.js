@@ -4,14 +4,18 @@ import { summarize, nearestVessel } from './summary.js';
 
 const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
 
-let V, shell, model = () => null, mask = [], timer = 0, last = null;
+let V, shell, model = () => null, mask = [], damaged = [], timer = 0, last = null;
 const $ = (id) => document.getElementById(id);
 
 export function init(view, sh, current) {
   V = view; shell = sh; model = current;
   V.onSpacing(later, shell.signal);
   // the shell's outlines are in the image's pixels; the model's, in µm
-  const read = () => { const um = shell.page.get('image')?.um || 1; mask = shell.mask.polygons().map((p) => p.map(([x, y]) => [x * um, y * um])); later(); };
+  const read = () => {
+    const um = shell.page.get('image')?.um || 1, toUm = (p) => p.map(([x, y]) => [x * um, y * um]);
+    // the image's damaged areas, whatever model is shown (req/vascular/model/damaged)
+    mask = shell.mask.polygons().map(toUm); damaged = shell.mask.damaged().map(toUm); later();
+  };
   shell.mask.on(read, shell.signal);
   read();
 }
@@ -24,11 +28,11 @@ function later() { if (!timer) timer = requestAnimationFrame(() => { timer = 0; 
 function render() {
   const m = model(), box = $('vm-summary');
   if (!m) { last = null; box.replaceChildren(); shell.summary.set(null); return; }
-  const s = { ...summarize(m, { mask, zStepUm: V.S.zs }), nearest: nearestVessel(m, { mask, zStepUm: V.S.zs }) };
+  const s = { ...summarize(m, { mask, damaged, zStepUm: V.S.zs }), nearest: nearestVessel(m, { mask, damaged, zStepUm: V.S.zs }) };
   last = { ...s, branchLength: strip(s.branchLength), diameter: strip(s.diameter), tortuosity: strip(s.tortuosity), nearest: strip(s.nearest), masked: mask.length };
   const where = mask.length ? `inside the mask (${mask.length} area${mask.length === 1 ? '' : 's'})` : 'over the whole field';
-  shell.summary.set({ over: `${mask.length ? `a mask of ${mask.length} area${mask.length === 1 ? '' : 's'}` : 'the whole field'}${m.excluded_regions?.length ? ', damaged areas left out' : ''}`, rows: rows(s) });
-  const dmg = m.excluded_regions?.length ? ', damaged areas left out' : '';
+  const dmg = m.excluded_regions?.length || damaged.length ? ', damaged areas left out' : '';
+  shell.summary.set({ over: `${mask.length ? `a mask of ${mask.length} area${mask.length === 1 ? '' : 's'}` : 'the whole field'}${dmg}`, rows: rows(s) });
   box.innerHTML = `<p class="note">Confirmed vessels ${where}${dmg}: ${fmt(s.tissueMm3 * 1e9 / 1e6, 2)} × 10⁶ µm³ of tissue, all ${m.slices} slices at ${fmt(V.S.zs, 2)} µm.</p>
     <dl class="vm-metrics">
       <dt>Vascular volume fraction</dt><dd><b>${fmt(100 * s.volumeFraction, 2)}%</b> <span class="dim">the model's tubes, πr² along each vessel</span></dd>
