@@ -28,6 +28,8 @@ def test_the_worker_the_app_once_registered_at_the_top_retires_itself(tmp_path):
     import build
     site = tmp_path / 'site'
     build.assemble(ROOT, str(site), {})
+    # the analytics loader the release's own tree holds, which the app's pages load from the site's top
+    shutil.copy(os.path.join(ROOT, 'dev', 'build', 'site', 'analytics.js'), site / 'analytics.js')
     r = subprocess.run([NODE, os.path.join(HERE, 'old_worker_driver.mjs'), str(site), str(old)], capture_output=True, text=True, timeout=120)
     print(r.stdout, r.stderr)
     if r.returncode == 2:

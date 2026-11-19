@@ -1,4 +1,4 @@
-// Drives the page (web/) in headless Chromium against stand-ins for Google's sign-in script and account details,
+// Drives the page (web/) in headless Chromium against the fakes of Google's sign-in script and account details,
 // and checks req/shell/account/welcome: where the site has a Google client, opening the page fades it behind a popup offering Sign in
 // with Google or Continue anonymously, with Remember this choice unticked; unticked, the popup comes back on the
 // next visit, signed in or not, and there Continue anonymously signs out; ticked, signed in opens signed in with no
@@ -17,9 +17,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { cutShort } from "./page_errors.mjs";
+import { launch, googleOf, siteOf, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -32,47 +32,32 @@ const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const GSI = "https://accounts.google.com/gsi/client";
-let clientId = "acme-client.apps.googleusercontent.com";
-const SCRIPT = `window.google = { accounts: { oauth2: { initTokenClient(o) {
-  window.tokenClient = { asked: [] };
-  return { requestAccessToken(opts) {
-    window.tokenClient.asked.push(opts || {});
-    const answer = window.googleAnswer || "token";
-    queueMicrotask(() => answer === "cancel" ? o.callback({ error: "access_denied" }) : answer === "blocked" ? o.error_callback?.({ type: "popup_failed_to_open" }) : o.callback({ access_token: "tok", expires_in: 3599 }));
-  } };
-} } } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(`window.NOR_CONFIG = { google: { apiKey: "", clientId: ${JSON.stringify(clientId)} } };`); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST, PATCH" };
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the deploy with a Google key and client
+const site = siteOf(browser).settings;
+site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "acme-client.apps.googleusercontent.com" };
+// the sign-in fake: what Google's window answers, and how often the page loaded Google's script
+const { signIn: google } = googleOf(browser);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 // whether the page asked for Google's script: it appends the script's element in the handler that wants it, so the
 // element is there once the action that would load it returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
 
-let scriptLoads = 0;
 // a device: its own browser storage; offline, the browser says so
 async function device({ offline = false, seed = {} } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.route(GSI, (route) => { scriptLoads++; route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
-  await ctx.route(/^https:\/\/(www|openidconnect)\.googleapis\.com\//, (route) => {
-    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    const u = new URL(route.request().url());
-    const body = u.pathname === "/v1/userinfo" ? { name: "Ada Lovelace", email: "ada@acme.example" } : u.pathname === "/drive/v3/files" ? { files: [] } : { id: "acmefile" };
-    route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify(body) });
-  });
-  await ctx.route((u) => offSite(origin)(u) && u.href !== GSI && !/^https:\/\/(www|openidconnect)\.googleapis\.com\//.test(u.href), (r) => r.abort());
   await ctx.addInitScript(([offline, seed]) => {
     delete Navigator.prototype.serviceWorker;
     if (offline) { window.netDown = sessionStorage.getItem("net") !== "up"; Object.defineProperty(Navigator.prototype, "onLine", { get: () => !window.netDown }); }
@@ -111,14 +96,14 @@ try {
   const a = await device();
   await a.page.hover("#welcome-sign-in");
   await a.page.focus("#welcome-sign-in");
-  check(scriptLoads === 0 && !(await askedGoogle(a.page)), "the mouse passing over Sign in with Google, or focus reaching it, loads nothing from Google");
+  check(google.scriptLoads === 0 && !(await askedGoogle(a.page)), "the mouse passing over Sign in with Google, or focus reaching it, loads nothing from Google");
   check(await popup(a.page), "opening the page fades it behind the sign-in popup");
   check(await a.page.evaluate(() => {
     const d = document.querySelector("#welcome-dlg");
     return /Sign in with Google/.test(d.querySelector("#welcome-sign-in").textContent) && /anonymous/i.test(d.querySelector("#welcome-anonymous").textContent)
       && !d.querySelector("#welcome-remember").checked && getComputedStyle(d, "::backdrop").backgroundColor !== "rgba(0, 0, 0, 0)";
   }), "it offers Sign in with Google and Continue anonymously, Remember this choice unticked, over a faded page");
-  check(scriptLoads === 0, "the popup loads nothing from Google by itself");
+  check(google.scriptLoads === 0, "the popup loads nothing from Google by itself");
   await shot(a.page, "welcome");
 
   // Escape changes nothing
@@ -129,7 +114,7 @@ try {
 
   // anonymously, not remembered
   await a.page.click("#welcome-anonymous");
-  check(!(await popup(a.page)) && !(await signedIn(a.page)) && scriptLoads === 0, "Continue anonymously closes it, signed out, loading nothing from Google");
+  check(!(await popup(a.page)) && !(await signedIn(a.page)) && google.scriptLoads === 0, "Continue anonymously closes it, signed out, loading nothing from Google");
   check(!(await signInTip(a.page)), "and shows no tip while the choice is not remembered");
   await a.open();
   check(await popup(a.page), "unticked, the popup comes back on the next visit");
@@ -142,7 +127,7 @@ try {
   const t = await signInTip(a.page);
   check(t && /sign in/i.test(t.text) && /settings/i.test(t.text) && /data files/i.test(t.text), "a tip suggests signing in to keep the settings everywhere and reach the data files: " + t?.text);
   check(t && t.inside && t.below && t.under && t.arrow, "beside the avatar, inside the window, its arrow at the avatar: " + JSON.stringify(t));
-  check(scriptLoads === 0, "an anonymous visit loads nothing from Google");
+  check(google.scriptLoads === 0, "an anonymous visit loads nothing from Google");
   await shot(a.page, "welcome_tip");
   await a.page.click('.tip-bubble[data-tip="sign-in"] .x');
   await a.open();
@@ -206,7 +191,7 @@ try {
   check(!(await popup(b.page)) && await signedIn(b.page), "signing in from the menu counts as remembered");
 
   // offline
-  const loads = scriptLoads;
+  const loads = google.scriptLoads;
   const c = await device({ offline: true });
   check(await popup(c.page), "offline, the popup still comes");
   const off = await c.page.evaluate(() => ({ held: document.querySelector("#welcome-sign-in").getAttribute("aria-disabled") === "true", note: document.querySelector("#welcome-offline"), }));
@@ -215,7 +200,7 @@ try {
   await shot(c.page, "welcome_offline");
   await c.page.hover("#welcome-sign-in");
   await c.page.click("#welcome-sign-in", { force: true });
-  check(scriptLoads === loads && !(await askedGoogle(c.page)) && await popup(c.page), "clicking it offline reaches nothing and leaves the popup up");
+  check(google.scriptLoads === loads && !(await askedGoogle(c.page)) && await popup(c.page), "clicking it offline reaches nothing and leaves the popup up");
   await c.page.evaluate(() => { window.netDown = false; dispatchEvent(new Event("online")); });
   check(await c.page.isHidden("#welcome-offline") && await c.page.evaluate(() => document.querySelector("#welcome-sign-in").getAttribute("aria-disabled") !== "true"),
     "back online, Sign in with Google is offered again");
@@ -234,18 +219,22 @@ try {
 
   // Google's window cancelled, or blocked: the popup stays, saying so; trying again signs in
   const f = await device();
-  await f.page.evaluate(() => { window.googleAnswer = "cancel"; });
-  await f.page.click("#welcome-sign-in");
-  await throughGuide(f.page);
-  check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#guide-dlg").open)), "Google answering closes the guide");
-  check(await orMissed(f.page.waitForFunction(() => /did not finish/i.test(document.querySelector("#welcome-failed")?.textContent) && !document.querySelector("#welcome-failed").hidden))
-    && await popup(f.page) && !(await signedIn(f.page)), "a cancelled Google window leaves the popup up, saying sign-in did not finish");
-  await f.page.evaluate(() => { window.googleAnswer = "blocked"; });
-  await f.page.click("#welcome-sign-in");
-  await throughGuide(f.page);
-  await orMissed(f.page.waitForSelector("#welcome-failed", { state: "visible" }));
+  google.answer = "deny";
+  await expecting(/no token/, async () => {
+    await f.page.click("#welcome-sign-in");
+    await throughGuide(f.page);
+    check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#guide-dlg").open)), "Google answering closes the guide");
+    check(await orMissed(f.page.waitForFunction(() => /did not finish/i.test(document.querySelector("#welcome-failed")?.textContent) && !document.querySelector("#welcome-failed").hidden))
+      && await popup(f.page) && !(await signedIn(f.page)), "a cancelled Google window leaves the popup up, saying sign-in did not finish");
+  });
+  google.answer = "blocked";
+  await expecting(/sign-in window/, async () => {
+    await f.page.click("#welcome-sign-in");
+    await throughGuide(f.page);
+    await orMissed(f.page.waitForSelector("#welcome-failed", { state: "visible" }));
+  });
   check(await popup(f.page) && await f.page.isVisible("#welcome-failed") && !(await signedIn(f.page)), "and so does a blocked one");
-  await f.page.evaluate(() => { window.googleAnswer = "token"; });
+  google.answer = "grant";
   await f.page.click("#welcome-sign-in");
   await throughGuide(f.page);
   check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#sign-out").hidden)) && !(await popup(f.page)), "trying again signs in and closes it");
@@ -262,6 +251,7 @@ try {
   check(moved && moved.inside && moved.under && moved.arrow, "the tip follows the avatar when the window narrows: " + JSON.stringify(moved));
 
   // a remembered anonymous choice beside a signed-in record (another tab signed in): the popup asks
+  google.signedIn({ token: ada.token, email: ada.user.email, name: ada.user.name });
   const h = await device({ seed: { "nor-google-sign-in": JSON.stringify({ ...ada, until: Date.now() + 3600e3, changed: [] }), "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) } });
   check(await popup(h.page), "a remembered anonymous choice with someone signed in asks again");
 
@@ -280,7 +270,7 @@ try {
   check(await h2.evaluate(() => localStorage.getItem("nor-google-sign-in")) === null, "and a change in the other tab does not sign the user back in");
 
   // no Google client
-  clientId = "";
+  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
   const d = await device();
   check(!(await popup(d.page)) && !(await signInTip(d.page)), "with no Google client there is no popup and no tip");
 } catch (e) {

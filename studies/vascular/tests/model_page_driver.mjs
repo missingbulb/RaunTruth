@@ -10,12 +10,12 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -29,12 +29,11 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 // the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
 const site = await serve(repo, studies, model, "PreGT"), origin = site.origin;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
@@ -54,7 +53,7 @@ const facts = () => page.textContent("#model-facts");
 // the model's own canvas now: how many pixels are lit, and how many of those are coloured rather than grey
 const drawn = async () => { await frames(page); return drawnNow(); };
 const drawnNow = () => page.evaluate(() => {
-  const d = document.querySelector("#mcv").getContext("2d").getImageData(0, 0, document.querySelector("#mcv").width, document.querySelector("#mcv").height).data;
+  const d = testCopy(document.querySelector("#mcv")).getImageData(0, 0, document.querySelector("#mcv").width, document.querySelector("#mcv").height).data;
   let lit = 0, coloured = 0;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 128 || d[i] + d[i + 1] + d[i + 2] < 60) continue;

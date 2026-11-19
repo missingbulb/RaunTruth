@@ -19,13 +19,16 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
+import { launch, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+
+// what the browser and the page say of a request the network does not carry
+const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch/;
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -79,7 +82,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#statusbar").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -102,7 +105,6 @@ async function open(study, mode, clock) {
   if (clock) await ctx.clock.install();
   await localStudy(ctx, "fixture");
   await asTagger(ctx);
-  await ctx.route(offSite(origin), (r) => r.abort());
   await standInDrive(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
@@ -511,14 +513,20 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await pull;
   await isOpen(true, "over 250 KB/s for more than 5 s opens it", 2500);
   await foldsLater("the network quiet again");
-  await ctx.setOffline(true);
-  await ctx.clock.fastForward(3000);
-  await isOpen(false, "going offline does not open it: the online icon says so", 100);
-  await ctx.setOffline(false);
+  // offline, what the page still asks of the network fails as it would, when it asks anything then
+  await expecting(NETWORK_GONE, async () => {
+    await ctx.setOffline(true);
+    await ctx.clock.fastForward(3000);
+    await isOpen(false, "going offline does not open it: the online icon says so", 100);
+    await ctx.setOffline(false);
+  }, { maybe: true });
 
   // with the page's animations off, it folds and unfolds at once
-  await page.evaluate(() => { document.documentElement.dataset.motion = "off"; });
-  const still = await page.evaluate(() => getComputedStyle(document.querySelector("#sb-res-items")).transitionDuration);
+  // set and read at once, so a settings sync the network's return starts cannot set it back between
+  const still = await page.evaluate(() => {
+    document.documentElement.dataset.motion = "off";
+    return getComputedStyle(document.querySelector("#sb-res-items")).transitionDuration;
+  });
   await check(still.split(",").every((d) => parseFloat(d) === 0), "with Animations off, folding and unfolding is not animated", still);
   await page.evaluate(() => { document.documentElement.dataset.motion = "on"; });
 
@@ -530,11 +538,14 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.click("#sb-disk"); await page.check("#res-mode"); await page.keyboard.press("Escape"); await page.mouse.move(700, 300);
   await isOpen(false, "checked again, they fold");
   await check(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-resources"))) === "auto", "and auto-hiding is kept");
-  await ctx.setOffline(true);
-  await isOpen(false, "going offline does not unfold them", 2500);
-  await check(!(await page.$("#sb-res-icon .no-net")), "the icon carries no offline mark: the online icon says so");
-  await shot(page, "11-resources-hidden-offline");
-  await ctx.setOffline(false);
+  // offline, what the page still asks of the network fails as it would, when it asks anything then
+  await expecting(NETWORK_GONE, async () => {
+    await ctx.setOffline(true);
+    await isOpen(false, "going offline does not unfold them", 2500);
+    await check(!(await page.$("#sb-res-icon .no-net")), "the icon carries no offline mark: the online icon says so");
+    await shot(page, "11-resources-hidden-offline");
+    await ctx.setOffline(false);
+  }, { maybe: true });
   await ctx.close();
 }
 // a Hidden always kept from before the setting became one checkbox reads as auto-hiding
@@ -557,27 +568,30 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   const on = await icon();
   await check(on.on && !on.off && /online/i.test(on.title) && /offline/i.test(on.title), "online, a Wi-Fi icon, its tooltip saying online and that it sets up offline", on);
   await check(!(await page.$("#statusbar .no-net")), "no other item in the status bar carries an offline mark");
-  await ctx.setOffline(true);
-  await orMissed(page.waitForFunction(() => document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
-  const off = await icon();
-  const [r, g, bl] = off.colour.match(/\d+/g).map(Number);
-  await check(!off.on && off.off && /offline/i.test(off.title) && !/^online/i.test(off.title), "offline, the Wi-Fi crossed out, its tooltip saying offline", off);
-  await check(r > 150 && g < 120 && bl < 120, "in red", off.colour);
-  await shot(page, "13-online-offline");
-  await page.click("#sb-online");
-  const tab = await page.evaluate(() => document.querySelector("#usage-dlg").open && document.querySelector("#usage-dlg").dataset.tab);
-  await check(tab === "storage", "clicking it opens the Storage tab, where offline is set up", tab);
-  // a clicked item is not left ringed when its dialog closes, by the keyboard or by the mouse
-  const ringed = () => page.evaluate(() => [...document.querySelectorAll("#statusbar *")].filter((e) => {
-    const cs = getComputedStyle(e);
-    return cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0;
-  }).map((e) => e.id || e.className));
-  await page.keyboard.press("Escape");
-  await check(!(await ringed()).length, "closing its dialog with Escape leaves no ring in the status bar", await ringed());
-  await page.click("#sb-online");
-  await page.click('#usage-dlg button[value="close"]');
-  await check(!(await ringed()).length, "closing it with its Close button leaves none either", await ringed());
-  await ctx.setOffline(false);
+  // offline, what the page still asks of the network fails as it would, when it asks anything then
+  await expecting(NETWORK_GONE, async () => {
+    await ctx.setOffline(true);
+    await orMissed(page.waitForFunction(() => document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
+    const off = await icon();
+    const [r, g, bl] = off.colour.match(/\d+/g).map(Number);
+    await check(!off.on && off.off && /offline/i.test(off.title) && !/^online/i.test(off.title), "offline, the Wi-Fi crossed out, its tooltip saying offline", off);
+    await check(r > 150 && g < 120 && bl < 120, "in red", off.colour);
+    await shot(page, "13-online-offline");
+    await page.click("#sb-online");
+    const tab = await page.evaluate(() => document.querySelector("#usage-dlg").open && document.querySelector("#usage-dlg").dataset.tab);
+    await check(tab === "storage", "clicking it opens the Storage tab, where offline is set up", tab);
+    // a clicked item is not left ringed when its dialog closes, by the keyboard or by the mouse
+    const ringed = () => page.evaluate(() => [...document.querySelectorAll("#statusbar *")].filter((e) => {
+      const cs = getComputedStyle(e);
+      return cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0;
+    }).map((e) => e.id || e.className));
+    await page.keyboard.press("Escape");
+    await check(!(await ringed()).length, "closing its dialog with Escape leaves no ring in the status bar", await ringed());
+    await page.click("#sb-online");
+    await page.click('#usage-dlg button[value="close"]');
+    await check(!(await ringed()).length, "closing it with its Close button leaves none either", await ringed());
+    await ctx.setOffline(false);
+  }, { maybe: true });
   await orMissed(page.waitForFunction(() => !document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
   const back = await icon();
   await check(back.on && !back.off, "back online, the Wi-Fi icon again", back);

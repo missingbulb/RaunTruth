@@ -90,13 +90,15 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     return (me.fileId = found.length ? found[0].id : null);
   }
   async function save() {
-    const body = JSON.stringify(here()), id = await fileId();
+    const sent = here(), body = JSON.stringify(sent), id = await fileId();
     if (id) await google(`${UPLOAD}/${id}?uploadType=media`, { method: "PATCH", headers: { "content-type": "application/json" }, body });
     else {
       const upload = await multipart({ name: FILE_NAME, parents: ["appDataFolder"] }, body, "application/json");
       me.fileId = (await (await google(`${UPLOAD}?uploadType=multipart&fields=id`, { method: "POST", ...upload })).json()).id;
     }
-    me.changed = []; keep();
+    // a setting changed again while this was on its way is still this device's to save
+    const now = here();
+    me.changed = (me.changed || []).filter((k) => now[k] !== sent[k]); keep();
   }
   // Drive's file replaces this device's settings, but for those this device changed since, which are saved over it;
   // with no file, this device's start it

@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { watchReads, readsDone } from "./page_reads.mjs";
+import { launch, expecting } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -50,7 +50,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -58,7 +58,6 @@ const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(s
 // a page whose browser last saw `seen` (null: never visited)
 async function open(seen, theme = "dark") {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(([seen, theme]) => {
     delete Navigator.prototype.serviceWorker;
     if (sessionStorage.getItem("primed")) return;
@@ -160,11 +159,14 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
 // ---- a history that cannot be read ----
 {
   history = null;
-  const { ctx, page } = await open("0.10928.2");
-  await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
-  await page.click("#sb-version");
-  const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
-  await check(msg, "the popup says the history could not be loaded");
-  await ctx.close();
+  // the site answers the history's file not found, as the browser says
+  await expecting(/status of 404/, async () => {
+    const { ctx, page } = await open("0.10928.2");
+    await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
+    await page.click("#sb-version");
+    const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
+    await check(msg, "the popup says the history could not be loaded");
+    await ctx.close();
+  });
 }
 await done(0);

@@ -15,12 +15,11 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { frames } from "../../../web-tests/page_frames.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -52,11 +51,11 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  // the study as served: its stage, and a link to a picture to reveal (turned away like every off-site request: black shows under it)
+  // the study as served, at its stage
   if (u === "/studies/nor/study.json") {
     const m = JSON.parse(fs.readFileSync(path.join(repo, u)));
     r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, stage: stage || m.stage, groundTruth: { ...m.groundTruth, reveal: "https://acme.example/dog.jpg" } }));
+    return r.end(JSON.stringify({ ...m, stage: stage || m.stage }));
   }
   const f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
@@ -65,29 +64,24 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const fail = async (what, seen) => { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); };
 const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ") + what); if (!ok) await fail(what, seen); };
 
 // a summary mask the user lassoed on this image before, in the Viewer
 const MASKED = [[[0, 0], [60, 0], [60, 60], [0, 60]]];
-// the picture the study links to, served when picture is true (a small PNG of the repo's), else turned away like
-// every off-site request
-let picture = true;
+// the pictures off the site the page asked for
+const pictures = [];
 async function open() {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 700 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
-  if (picture) await ctx.route("https://acme.example/dog.jpg", (r) => r.fulfill({ contentType: "image/jpeg", body: fs.readFileSync(path.join(repo, "web", "poster.jpg")) }));
   await asTagger(ctx); // ground truth is made by a Ground Truth Tagger (req/shell/account/role)
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   await keepStudyKeyListeners(ctx);
   await ctx.addInitScript(([k, m]) => localStorage.setItem(k, JSON.stringify(m)), ["nor-mask-v1:" + path.basename(image), MASKED]);
   await standInDrive(ctx);
-  // the picture's fetch failing, as the page sees it when the picture is turned away
-  const pictureFailed = new Promise((ok) => ctx.on("requestfailed", (q) => { if (q.url() === "https://acme.example/dog.jpg") ok(); }));
+  ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await ctx.newPage();
-  page.pictureFailed = pictureFailed;
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
@@ -258,10 +252,9 @@ let want = await nextOpen(first.key);
 await check(s.cur === want && s.rows[0].startsWith(`1/${P} Finalists`) && s.bar[0].fill > 0 && s.back, "a thumbs up moves on to the walk's next item and fills the bar", { s, want });
 m = await mark(i0);
 await check(/\byes\b/.test(m.cls) && m.cut && m.outline === "none", "voted up, its area is cut out of the image", m);
-// the picture the study names stands behind the whole image, shown only where it is cut out; black under it
-await page.waitForFunction(() => document.querySelector("#overlay image.done-reveal"));
-const pic = await page.evaluate(() => { const im = document.querySelector("#overlay image.done-reveal"), bg = document.querySelector("#overlay .done-bg"); return { href: im?.getAttribute("href"), clip: im?.getAttribute("clip-path"), w: +im?.getAttribute("width"), bg: bg && getComputedStyle(bg).fill, bgClip: bg?.getAttribute("clip-path") }; });
-await check(pic.href === "https://acme.example/dog.jpg" && /done-mask-clip/.test(pic.clip) && /done-mask-clip/.test(pic.bgClip) && pic.bg === "rgb(0, 0, 0)" && pic.w === IW, "the picture the study links to, behind the whole image, black under it, shown only where it is cut out", pic);
+// where it is cut out, black, and no picture behind it
+const cut = await page.evaluate(() => { const g = document.querySelector("#overlay .done-mask"), bg = g?.querySelector(".done-bg"); return { pictures: g?.querySelectorAll("image").length, bg: bg && getComputedStyle(bg).fill, bgClip: bg?.getAttribute("clip-path"), w: +bg?.getAttribute("width") }; });
+await check(cut.pictures === 0 && !pictures.length && /done-mask-clip/.test(cut.bgClip) && cut.bg === "rgb(0, 0, 0)" && cut.w === IW, "what is cut out shows black, over the whole image's width, and no picture is asked for", { ...cut, asked: pictures });
 await page.click("#show-menu summary");
 await toggle("Cut out what is done");
 await check(await page.evaluate(() => !!document.querySelector("#overlay .done-mask")) && await hidden("#overlay .done-mask"), "with something cut out, Cut out what is done off: the image whole");
@@ -479,18 +472,6 @@ await check(passOff && heldRow.lit && !offRow.lit, "1 turns Finalists off: its r
 await page.click("#key-show-pass");
 await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
 await page.close();
-
-// ---- the picture's link failing: black, never the browser's broken-picture icon ----
-picture = false;
-page = await open();
-await page.click("#gt-start");
-await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
-await page.pictureFailed;
-await frames(page, 1);
-const none = await page.evaluate(() => ({ image: !!document.querySelector("#overlay image.done-reveal"), bg: getComputedStyle(document.querySelector("#overlay .done-bg")).fill }));
-await check(!none.image && none.bg === "rgb(0, 0, 0)", "a picture that cannot load leaves the cut-outs black", none);
-await page.close();
-picture = true;
 
 // ---- a PreGT study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
 stage = "PreGT";

@@ -282,7 +282,7 @@ walk, area by area, a left bar) cannot hold on a phone as written; the phone rou
 |---|---|
 | Layout holds at phone size | contexts from Playwright's `devices` (a Pixel and an iPhone descriptor: viewport, touch, UA): no horizontal scroll, every answer control 48 px or more and 8 px apart, by bounding boxes |
 | Phone route is supported, desktop page still warns on a phone | `browsers.js` unit cases + the report icon on both routes |
-| Nothing heavy loads | no request to jsDelivr or for Pyodide on the phone route (`off_site.mjs` style request log) |
+| Nothing heavy loads | no request to jsDelivr or for Pyodide on the phone route (a log of the page's requests) |
 | Offline deck | fetch a pack, `context.setOffline(true)`, answer, reload: the draft resumes at the same question |
 | Outbox | offline Send queues; back online + a tap flushes once to the stand-in Drive (`stand_in_drive.mjs`); a second flush changes nothing |
 | Wiped storage | clear storage mid-stack: the page resumes after what the stand-in Drive holds |

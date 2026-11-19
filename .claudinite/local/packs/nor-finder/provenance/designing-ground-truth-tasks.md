@@ -42,3 +42,9 @@
   Obviously I'm saying things relevant to the shell and all studies"; "There should be a 'Stop
   tagging' button".
 - **Landed:** #859
+
+## 2026-11-19 · reworded · what is cut out shows black; no picture behind the image
+- **Reason:** the owner asked to delete the reveal picture: "Drop the image, the fetch, the relevant
+  study settings."
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5

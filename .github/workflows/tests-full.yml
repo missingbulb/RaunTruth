@@ -37,8 +37,8 @@ jobs:
       - name: Read the page's libraries
         id: libs
         shell: bash
-        run: echo "list=$(python3 web-tests/page_libraries.py --list | tr '\n' '_')" >> "$GITHUB_OUTPUT"
-      - name: Restore Pyodide and Chromium
+        run: echo "list=$(python3 web-tests/page_libraries.py --list | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore Pyodide, its packages and Chromium
         id: browser
         uses: actions/cache@v5
         with:
@@ -46,7 +46,7 @@ jobs:
             web-tests/node_modules
             ~/.cache/ms-playwright
           key: browser-${{ runner.os }}-${{ steps.libs.outputs.list }}-playwright-${{ env.PLAYWRIGHT }}
-      - name: Install Pyodide, libheif, OpenJPEG and Chromium for the page tests
+      - name: Install Pyodide and its packages, libheif, OpenJPEG and Chromium for the page tests
         run: |
           npm i -g "playwright@$PLAYWRIGHT"
           if [ "${{ steps.browser.outputs.cache-hit }}" != 'true' ]; then
@@ -89,10 +89,20 @@ jobs:
         if: steps.venv.outputs.cache-hit != 'true'
         run: python3 -m venv ~/venv && ~/venv/bin/pip install -r requirements.txt
       - run: echo ~/venv/bin >> "$GITHUB_PATH"
-      - name: Install Pyodide and the engine with its system libraries
+      - name: Read the page's libraries
+        id: libs
+        shell: bash
+        run: echo "list=$(python3 web-tests/page_libraries.py --list | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore Pyodide and its packages
+        id: libraries
+        uses: actions/cache@v5
+        with:
+          path: web-tests/node_modules
+          key: libraries-${{ runner.os }}-${{ steps.libs.outputs.list }}
+      - name: Install Pyodide and its packages, and the engine with its system libraries
         run: |
           npm i -g "playwright@$PLAYWRIGHT"
-          python3 web-tests/page_libraries.py
+          if [ "${{ steps.libraries.outputs.cache-hit }}" != 'true' ]; then python3 web-tests/page_libraries.py; fi
           playwright install --with-deps ${{ matrix.engine }}
       # Mesa's software EGL, which the page tests launch Firefox on for its WebGL (web-tests/engine.mjs)
       - name: Install Mesa's software GL

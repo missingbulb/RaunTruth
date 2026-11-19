@@ -1,4 +1,4 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API listing a folder of
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake listing a folder of
 // N images and a slow subfolder, with a stand-in driveThumbs set whose thumbnail for row k is k + 1 pixels wide,
 // so a thumbnail in the wrong row shows. Checks req/shell/drive/dialog: thumbnails are fetched for the rows in view and the next
 // 10, each landing in its own row whatever order they arrive in; a fast scroll skips the rows passed over; a
@@ -13,11 +13,12 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import zlib from "node:zlib";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { launch, siteOf } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -31,7 +32,8 @@ const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const N = 60, AHEAD = 10;
-const ROOT = "thumbfolder000000001", SLOW = { id: "thumbfolder000000002", name: "slow" };
+// the fixture study's own folder, which its dialog lists
+const ROOT = "fixturefolder00000001", SLOW = { id: "thumbfolder000000002", name: "slow" };
 const IMAGES = Array.from({ length: N }, (_, k) => ({ id: "thumbimage" + String(k).padStart(10, "0"), name: `img ${String(k).padStart(2, "0")}.tif` }));
 // a grey PNG w pixels wide
 function png(w) {
@@ -45,12 +47,10 @@ function png(w) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
 }
 
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
   if (u === "/studies/fixture/study.json") {
     const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
@@ -64,22 +64,20 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const q = new URL(route.request().url()).searchParams.get("q") || "";
-  const slow = q.includes(SLOW.id);
-  if (slow) await slowListing.hold();
-  const files = slow ? [{ ...IMAGES[0], id: "slowimage00000000001", name: "stale.tif" }]
-    : [{ ...SLOW, mimeType: "application/vnd.google-apps.folder" }, ...IMAGES.map((f) => ({ ...f, mimeType: "image/tiff", size: "1000", createdTime: "2026-10-01T10:00:00Z" }))];
-  await route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
-  if (slow) slowAnswered();
-});
-// the slow folder's listing, held until the user has moved on
+// the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
+// held until the user has moved on
+const drive = googleDrive(ctx);
+drive.folder({ ...SLOW, parent: ROOT });
+drive.file({ id: "slowimage00000000001", name: "stale.tif", parent: SLOW.id, bytes: Buffer.alloc(1000), mimeType: "image/tiff" });
+for (const f of IMAGES) drive.file({ ...f, parent: ROOT, bytes: Buffer.alloc(1000), mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
 const slowListing = holding();
+drive.hold = (c) => (c.kind === "list" && c.parent === SLOW.id ? slowListing.hold() : null);
 // each thumbnail's request, in order, and how many are still unanswered (answered or aborted by the page leaves
 // them)
 const asked = [];
@@ -96,7 +94,7 @@ const letGo = (rows = [...gates.keys()]) => {
 // resolves at the next request or answer
 let moved, next = new Promise((ok) => { moved = ok; });
 const note = () => { moved(); next = new Promise((ok) => { moved = ok; }); };
-let slowAnswered, slowListed = new Promise((ok) => { slowAnswered = ok; });
+const slowListed = drive.next((c) => c.kind === "list" && c.parent === SLOW.id);
 // a bound on waiting for the stand-in, so a page that never asks fails its check rather than hanging
 const atMost = (ms) => new Promise((ok) => setTimeout(ok, ms)); // bounds a hang: a page that never asks fails its check
 await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
@@ -108,7 +106,6 @@ await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
   try { await route.fulfill({ status: 200, contentType: "image/png", body: png(k + 1) }); } catch { /* aborted by the page */ }
   inflight--; note();
 });
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   localStorage.setItem("nor-drive-link", JSON.stringify(link));

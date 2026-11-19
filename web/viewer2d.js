@@ -486,16 +486,8 @@ export function viewer(shell) {
 
   // ---------- what the tagger has done, cut out of the image ----------
   // The study gives the shapes its tagger has decided ([[x, y], ...] in image pixels); the viewer cuts them out of the
-  // image while the tagger tags, showing there the picture the study links to (study.json's groundTruth.reveal), black
-  // while it names none or it cannot load. Out of tagging the image is whole.
-  let done = [], tagging = false, revealLoaded = null, revealFor = null;
-  const revealReady = (href) => {
-    if (revealFor !== href) { revealFor = href; revealLoaded = null; }
-    return (revealLoaded ||= new Promise((ok) => {
-      if (!href) return ok(false);
-      const im = new Image(); im.onload = () => ok(true); im.onerror = () => ok(false); im.src = href;
-    }));
-  };
+  // image while the tagger tags, black where it is cut out. Out of tagging the image is whole.
+  let done = [], tagging = false;
   function drawDone() {
     const svg = $("#overlay");
     let g = svg.querySelector(":scope > g.done-mask");
@@ -506,10 +498,6 @@ export function viewer(shell) {
       defs.append(clip);
       g.append(defs, make("rect", { class: "done-bg", x: 0, y: 0, width: st.W, height: st.H, fill: "#000", "clip-path": "url(#done-mask-clip)" }));
       svg.prepend(g);
-      const href = shell.study?.groundTruth?.reveal || null, W = st.W, H = st.H;
-      revealReady(href).then((ok) => {
-        if (ok && g.isConnected) g.append(make("image", { class: "done-reveal", href, x: 0, y: 0, width: W, height: H, preserveAspectRatio: "xMidYMid slice", "clip-path": "url(#done-mask-clip)" }));
-      });
     }
     g.style.display = tagging ? "" : "none";
     g.style.pointerEvents = "none";

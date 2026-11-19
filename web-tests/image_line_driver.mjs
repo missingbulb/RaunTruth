@@ -13,17 +13,17 @@
 //   node web-tests/image_line_driver.mjs ANSWERS STUDIES [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
 import { createRequire } from "node:module";
-import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
-import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { until, orMissed } from "./page_until.mjs";
+import { keptContext } from "./harness.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -37,7 +37,6 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT = "linefolder0000000001", SUB = "linesubfolder0000001";
 const FOLDER = `https://drive.google.com/drive/folders/${ROOT}`;
 const PNG = noisePng();
-const sha = (b) => createHash("sha256").update(b).digest("hex");
 // the folder on Drive: kept.png, opened 30 minutes ago and kept on this device; far.png, opened 6 days ago and not
 // kept; never.png, never opened; and a subfolder the dialog never lists
 const FILES = [
@@ -61,13 +60,11 @@ postMessage({ type: "ready", info: A.ready.fixture });
 onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
 };`;
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
   if (u === "/web/worker.js") return send("text/javascript", STAND_IN);
-  if (u === "/web/config.js") return send("text/javascript", CONFIG);
   if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
   // the fixture's Drive root
   if (u === "/studies/fixture/study.json") {
@@ -84,24 +81,17 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-const calls = [];
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/files\/?(.*)$/)[1];
-  const meta = (f) => ({ id: f.id, name: f.name, mimeType: "image/png", size: String(f.bytes.length), createdTime: "2026-10-01T10:00:00Z", sha256Checksum: sha(f.bytes) });
-  const json = (body) => route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify(body) });
-  if (!id) {
-    calls.push("list");
-    if (/'lineotherfolder00001' in parents/.test(u.searchParams.get("q"))) return json({ files: [] });
-    return json({ files: [{ id: SUB, name: "Sub", mimeType: "application/vnd.google-apps.folder" }, ...FILES.map(meta)] });
-  }
-  if (id === ROOT) return json({ id, name: "Slides", mimeType: "application/vnd.google-apps.folder" });
-  const f = FILES.find((x) => x.id === id);
-  if (!f) return route.fulfill({ status: 404, headers: cors, body: "" });
-  if (u.searchParams.get("alt") === "media") { calls.push("download"); return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: f.bytes }); }
-  return json(meta(f));
-});
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+// the Drive fake's folder, and another folder elsewhere, empty; calls(): the page's lists and downloads since the
+// test cleared them
+const drive = googleDrive(ctx);
+drive.folder({ id: ROOT, name: "Slides", access: "public" });
+drive.folder({ id: SUB, name: "Sub", parent: ROOT });
+drive.folder({ id: "lineotherfolder00001", name: "Other", access: "public" });
+for (const f of FILES) drive.file({ ...f, parent: ROOT, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+let callsFrom = 0;
+const calls = () => drive.calls.slice(callsFrom).map((c) => c.kind).filter((k) => k === "list" || k === "download");
 // the browser's own file picker, where the browser has one, stands in as one handing over picked.png, a file of the
 // page's private storage, so the reference the page keeps to it is a real one; picks counts the times it was shown
 await ctx.addInitScript((png) => {
@@ -202,8 +192,8 @@ try {
   check(!(await shown("#unload")), "with no Unload yet");
   check(await page.evaluate(() => $("#image-pick").classList.contains("primary")), "the selector shines until an image is open");
   check(await page.$("#load-remote svg.remote-logo"), "Drive's button bears Drive's logo");
-  const [pick, drive] = [await box("#image-menu"), await box("#load-remote")];
-  check(drive.x > pick.x + pick.w - 1 && Math.abs(drive.y + drive.h / 2 - (pick.y + pick.h / 2)) < 4, "Drive's button stands at the selector's right, on its line", { pick, drive });
+  const [pick, driveButton] = [await box("#image-menu"), await box("#load-remote")];
+  check(driveButton.x > pick.x + pick.w - 1 && Math.abs(driveButton.y + driveButton.h / 2 - (pick.y + pick.h / 2)) < 4, "Drive's button stands at the selector's right, on its line", { pick, driveButton });
   await page.click("#image-pick");
   let r = await rows();
   check(r.map((x) => x.name).join() === "kept.png,three.png,far.png,undated.png", "the selector lists the study's images opened lately, newest first", r);
@@ -280,20 +270,20 @@ try {
   check(!d.find((x) => x.name === "kept.png").grey && ["Sub", "far.png", "never.png"].every((n) => d.find((x) => x.name === n).grey),
     "the image kept here opens, the others and a folder never listed are greyed", d);
   await shot("offline_dialog", "#remote-dlg");
-  calls.length = 0;
+  callsFrom = drive.calls.length;
   await page.dblclick('#remote-list .item[data-id="linekept000000000001"]');
   await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
-  check(calls.length === 0, "and opens from this device", calls);
+  check(calls().length === 0, "and opens from this device", calls());
 
   // online again: the listing is read again, what changed taking its place
   await ctx.setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
-  FILES.push({ id: "linenew000000000001", name: "new.png", bytes: Buffer.concat([PNG, Buffer.from([3])]) });
-  calls.length = 0;
+  drive.file({ id: "linenew000000000001", name: "new.png", parent: ROOT, bytes: Buffer.concat([PNG, Buffer.from([3])]), mimeType: "image/png" });
+  callsFrom = drive.calls.length;
   await page.click("#image-box.folded");
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5);
-  check(calls.includes("list"), "online, opening the dialog reads the folder again", calls);
+  check(calls().includes("list"), "online, opening the dialog reads the folder again", calls());
   await until(page, (id) => JSON.parse(localStorage.getItem("nor-drive-listings") || "{}")[id]?.items?.some((f) => f.name === "new.png"), ROOT);
   check(true, "and keeps what Drive says now in place of the old listing");
   await until(page, () => document.querySelector('#remote-list .item[data-id="linenew000000000001"] .new'));

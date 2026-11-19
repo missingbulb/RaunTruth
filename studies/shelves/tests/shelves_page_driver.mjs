@@ -19,13 +19,13 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until, orMissed } from "../../../web-tests/page_until.mjs";
+import { launch, expecting } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -109,7 +109,7 @@ const server = http.createServer((q, r) => {
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
@@ -123,7 +123,6 @@ async function open(role, seed = {}, finder = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   await keepStudyKeyListeners(ctx);
   await asTagger(ctx);
-  await ctx.route(offSite(origin), (r) => r.abort());
   await prepare(ctx, finder);
   await ctx.addInitScript(([role, seed]) => {
     delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
@@ -231,8 +230,10 @@ try {
 
   // the text finder out of reach: the books are found without it, and Find says so
   page = await open("viewer", KEPT, { textFinder: false });
-  await page.click("#bs-find");
-  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  await expecting(/text finder|status of 404/, async () => {
+    await page.click("#bs-find");
+    await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  });
   const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
   await page.context().close();
@@ -432,7 +433,7 @@ try {
   check(await page.evaluate(() => !document.querySelector(".bs-item [data-view], .bs-item [data-lang], .bs-item [data-do='turn']")),
     "the task asks no spine or cover, no language and no quarter turn: Flip alone");
   // the stand-in worker's crops are flat grey: a picture with the photo's noise in it is drawn by the page itself
-  check(await page.$eval(".bs-item canvas", (c) => { const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
+  check(await page.$eval(".bs-item canvas", (c) => { const d = testCopy(c).getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
     "the book's picture is drawn by the page from the photo it shows, not by Python");
   // flipped upside down: drawn so, and read again at that turn alone, in both languages
   const reads = await page.evaluate(() => tess.reads);
@@ -449,7 +450,8 @@ try {
   await page.click('.bs-tools [data-do="back"]');
   check((await rows())[0] === "1/3 Books" && await value() === "הארי פוטר" && await page.$eval('.bs-verdicts [data-do="right"]', (b) => b.getAttribute("aria-pressed")) === "true",
     "Back goes to the book left of this one, its verdict kept and shown", await rows());
-  await page.click('.bs-verdicts [data-do="right"]');
+  // the same verdict again changes nothing, which the page notes as an action not recorded
+  await expecting(/not recorded/, () => page.click('.bs-verdicts [data-do="right"]'));
   check((await rows())[0] === "1/3 Books" && await value() === "Title 240x35", "a verdict given again there moves on to the next book still open", await value());
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "2/3 Books" && await value() === "Title 180x180" && await cut() === 2, "the next verdict moves on along the shelf");

@@ -1,4 +1,4 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API serving the folder
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake serving the folder
 // IMAGES, its rauntruth-previews.tiff among them, each file with its SHA-256 where a request's fields ask, as
 // Drive gives it. Checks req/shell/drive/previews: the file is not listed and is downloaded once; the images it covers show their
 // preview and what they hold with no read of their own, a stack turning while the pointer is over its row; one
@@ -8,17 +8,18 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_previews_driver.mjs IMAGES [SHOTS]
 import { createRequire } from "node:module";
-import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { keptContext } from "./harness.mjs";
+import { studies } from "./fakes/studies.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -30,16 +31,13 @@ try { pw = require("playwright"); } catch {
 const [images, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ROOT = "previewfolder0000001", PREVIEWS = "rauntruth-previews.tiff", DRIVE_THUMB = "https://lh3.googleusercontent.com/drive-thumb/";
-const sha = (b) => createHash("sha256").update(b).digest("hex");
-const FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
+const ROOT = "previewfolder0000001", PREVIEWS = "rauntruth-previews.tiff";
+let FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
 const file = (name) => FILES.find((f) => f.name === name);
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -50,35 +48,17 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-// every read of a file's bytes, by name: "whole" or "piece"
-const reads = [];
-let inflight = 0;
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/files\/?(.*)$/)[1], fields = u.searchParams.get("fields") || "";
-  const meta = (f) => ({ id: f.id, name: f.name, mimeType: "image/tiff", size: String(f.bytes.length), createdTime: "2026-10-01T10:00:00Z", ...(fields.includes("sha256Checksum") ? { sha256Checksum: sha(f.bytes) } : {}),
-    ...(fields.includes("thumbnailLink") ? { thumbnailLink: `${DRIVE_THUMB}${f.id}` } : {}) });
-  if (!id) return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files: FILES.map(meta) }) });
-  const f = FILES.find((g) => g.id === id);
-  if (u.searchParams.get("alt") !== "media") return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify(meta(f)) });
-  const range = (route.request().headers().range || "").match(/^bytes=(\d+)-(\d+)$/);
-  reads.push({ name: f.name, how: range ? "piece" : "whole" }); inflight++;
-  try {
-    await route.fulfill(range ? { status: 206, headers: cors, contentType: "image/tiff", body: f.bytes.subarray(+range[1], +range[2] + 1) }
-      : { status: 200, headers: cors, contentType: "image/tiff", body: f.bytes });
-  } finally { inflight--; }
-});
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
-// Drive's own small pictures, by file name: the image the study opens beside TIFFs and PNGs is a JPEG here
-const driveThumbs = [];
-await ctx.route(DRIVE_THUMB + "*", (route) => {
-  driveThumbs.push(FILES.find((f) => route.request().url().endsWith(f.id)).name);
-  return route.fulfill({ status: 200, headers: cors, contentType: "image/jpeg", path: path.join(repo, "web", "poster.jpg") });
-});
-await ctx.route("**/studies/viewer/study.json", async (route) => {
-  const own = await (await route.fetch()).json();
-  return route.fulfill({ json: { ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } } });
-});
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+// the Drive fake's folder IMAGES, its files the test may change; reads(): every read of a file's bytes since the test
+// cleared them, by name, "whole" or "piece"; driveThumbs: Drive's own small pictures asked for, by file name
+const drive = googleDrive(ctx);
+drive.folder({ id: ROOT, name: "Previews test", access: "public" });
+FILES = FILES.map((f) => drive.file({ ...f, parent: ROOT, createdTime: "2026-10-01T10:00:00Z" }));
+let readsFrom = 0;
+const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ name: drive.get(c.id)?.name, how: c.range ? "piece" : "whole" }));
+const driveThumbs = drive.thumbs;
+studies(ctx).edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -99,9 +79,9 @@ const quiet = async () => {
       && [...document.querySelectorAll("#remote-list .item")].every((b) => !/\.tiff?$/i.test(b.querySelector(".name").textContent) || b.querySelector(".shape").textContent),
       null, { timeout: 10000 }));
     await framesOf(page);
-    return !inflight;
+    return !drive.inflight;
   }, () => orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
-  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight, rows: await rows() }));
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows: await rows() }));
 };
 const open = async () => {
   await pressDrive(page);
@@ -112,7 +92,7 @@ const open = async () => {
 const rows = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].map((b) => ({
   name: b.querySelector(".name").textContent, shape: b.querySelector(".shape").textContent, pic: !!b.querySelector(".pic img, .pic canvas") })));
 const row = (all, name) => all.find((r) => r.name === name) || {};
-const readsOf = (name) => reads.filter((r) => r.name === name).map((r) => r.how).join();
+const readsOf = (name) => reads().filter((r) => r.name === name).map((r) => r.how).join();
 
 try {
   await page.goto(origin + "/web/");
@@ -158,13 +138,13 @@ try {
   check(!readsOf("b stack.tif"), "turning reads nothing");
 
   // a reload reads the kept copy; a new previews file on Drive is downloaded again
-  reads.length = 0;
+  readsFrom = drive.calls.length;
   await page.reload(); await page.waitForFunction(() => window.$ && $("#title").textContent);
   await open();
   check(!readsOf(PREVIEWS) && row(await rows(), "b stack.tif").pic, `after a reload it comes from this device: ${readsOf(PREVIEWS) || "no read"}`);
   const pv = file(PREVIEWS); pv.bytes = Buffer.concat([pv.bytes, Buffer.from([0])]);
   await page.click("#remote-dlg button[value=close]");
-  reads.length = 0;
+  readsFrom = drive.calls.length;
   await open();
   // the new file read and its pictures drawn on the rows it covers
   await orMissed(page.waitForFunction(() => [...document.querySelectorAll("#remote-list .item")].find((b) => b.querySelector(".name").textContent === "a flat.tif")?.querySelector(".pic img, .pic canvas"),

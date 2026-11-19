@@ -12,12 +12,12 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
 import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -30,12 +30,11 @@ const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 const site = await serve(repo, studies, model, "GT");
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();

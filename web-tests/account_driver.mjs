@@ -1,4 +1,4 @@
-// Drives the page (web/) in headless Chromium against stand-ins for Google's sign-in script, its account details
+// Drives the page (web/) in headless Chromium against the fakes of Google's sign-in script, its account details
 // and the Drive API's app folder, and checks req/shell/account/sign-in: a visitor who never signs in loads nothing from Google; signing
 // in asks Google for the user's name, email and picture and the app's own Drive folder, nothing else of their
 // Drive; the first sign-in starts the user's settings file from this device's settings that follow the user, not
@@ -19,9 +19,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { cutShort } from "./page_errors.mjs";
+import { launch, googleOf, siteOf, expecting } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -35,23 +35,11 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const CLIENT = "acme-client.apps.googleusercontent.com";
 const GSI = "https://accounts.google.com/gsi/client";
-let origin, clientId = CLIENT;
-// Google's script: its token client answers each request at once with a new token, recording what it was asked
-const SCRIPT = `window.google = { accounts: { oauth2: { initTokenClient(o) {
-  window.tokenClient = { client: o.client_id, scope: o.scope, asked: [] };
-  return { requestAccessToken(opts) { window.tokenClient.asked.push(opts || {}); queueMicrotask(() => o.callback({ access_token: "tok-" + Date.now(), expires_in: 3599 })); } };
-} } } };`;
-
-// the user's app folder in Drive: at most one file, and every request the page made to Google
-const drive = { file: null, nextId: 1, validFrom: 0 }; // validFrom: Google refuses a token issued before it (ms)
-const seen = [];
-const file = () => (drive.file ? JSON.parse(drive.file.body) : null);
-const CONFIG = () => `window.NOR_CONFIG = { google: { apiKey: "", clientId: ${JSON.stringify(clientId)} } };`;
+let origin;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG()); }
   const f = repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
@@ -59,41 +47,21 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 origin = `http://127.0.0.1:${server.address().port}`;
 
-const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST, PATCH" };
-async function google(route) {
-  const q = route.request(), u = new URL(q.url());
-  if (q.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-  seen.push(`${q.method()} ${u.origin}${u.pathname}${u.search}`);
-  queueMicrotask(heard);
-  const json = (status, body) => route.fulfill({ status, headers: cors, contentType: "application/json", body: JSON.stringify(body) });
-  const issued = +((q.headers()["authorization"] || "").match(/^Bearer tok-(\d+)$/) || [])[1];
-  if (!issued || issued < drive.validFrom) return json(401, { error: "no live token" });
-  if (u.href === "https://openidconnect.googleapis.com/v1/userinfo")
-    return json(200, { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: origin + "/web/logo.svg" });
-  if (u.pathname === "/drive/v3/files" && q.method() === "GET")
-    return json(200, { files: u.searchParams.get("spaces") === "appDataFolder" && drive.file && u.searchParams.get("q").includes(drive.file.name) ? [{ id: drive.file.id }] : [] });
-  if (drive.file && u.pathname === `/drive/v3/files/${drive.file.id}` && u.searchParams.get("alt") === "media")
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: drive.file.body });
-  if (u.pathname === "/upload/drive/v3/files" && q.method() === "POST") {
-    const body = q.postDataBuffer().toString("utf8");
-    const parts = body.split(/\r\n--[^\r\n]+/).map((p) => p.split("\r\n\r\n").slice(1).join("\r\n\r\n")).filter(Boolean);
-    const meta = JSON.parse(parts[0]);
-    drive.file = { id: "acmefile" + drive.nextId++, name: meta.name, parents: meta.parents, body: parts[1] };
-    return json(200, { id: drive.file.id });
-  }
-  if (drive.file && u.pathname === `/upload/drive/v3/files/${drive.file.id}` && q.method() === "PATCH") {
-    drive.file.body = q.postData(); return json(200, { id: drive.file.id });
-  }
-  return json(404, { error: "not a call this test knows" });
-}
-
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the deploy with a Google key and client
+const site = siteOf(browser).settings;
+site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: CLIENT };
+// the sign-in fake's account; settings(): the user's settings file in their Drive's app folder, which a test changes to
+// play another device; seen(): every request the page made to Google
+const { drive, signIn: google } = googleOf(browser);
+google.account = { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: origin + "/web/logo.svg" };
+const settings = () => google.settings[0] || null;
+const file = () => (settings() ? JSON.parse(settings().body) : null);
+const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-// what the stand-in Google holds changes only as a request reaches it: a wait on it looks again at each one
-const waiting = new Set();
-const heard = () => { for (const w of [...waiting]) { waiting.delete(w); w(); } };
-const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => new Promise((ok) => waiting.add(ok)), { timeout: ms }));
+// what Google holds changes only as a request reaches it: a wait on it looks again at each one
+const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
 // a page showing something, within ms
 const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that
@@ -102,14 +70,10 @@ const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`s
 // the calls the page has made to Google's APIs, counted as it makes them
 const googleCalls = (page) => page.evaluate(() => window.googleCalls);
 
-let scriptLoads = 0;
 const outside = []; // every address outside the page's own the browser was asked for
 async function device(seed) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   ctx.on("request", (q) => { if (!q.url().startsWith(origin)) outside.push(new URL(q.url()).origin + new URL(q.url()).pathname); });
-  await ctx.route(GSI, (route) => { scriptLoads++; route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
-  await ctx.route(/^https:\/\/(www|openidconnect)\.googleapis\.com\//, google);
-  await ctx.route((u) => offSite(origin)(u) && u.href !== GSI && !/^https:\/\/(www|openidconnect)\.googleapis\.com\//.test(u.href), (r) => r.abort());
   await ctx.addInitScript((seed) => {
     delete Navigator.prototype.serviceWorker;
     if (sessionStorage.getItem("primed")) return;
@@ -138,7 +102,7 @@ const signInVia = async (page) => {
   await page.waitForFunction(() => !document.querySelector("#sign-out").hidden).catch(async (e) => {
     const state = await page.evaluate(() => ({ asked: window.tokenClient?.asked?.length ?? "no token client", calls: window.googleCalls, status: document.querySelector("#status")?.textContent }))
       .then((x) => JSON.stringify(x), (x) => "the page does not answer: " + x.message);
-    console.error(`FAILED: signing in never finished: ${state}; Google saw ${JSON.stringify(seen.slice(-6))}`);
+    console.error(`FAILED: signing in never finished: ${state}; Google saw ${JSON.stringify(seen().slice(-6))}`);
     throw e;
   });
 };
@@ -149,7 +113,7 @@ try {
   // device A: used before, never signed in; it answered the sign-in popup (req/shell/account/welcome) and closed its tip
   const answered = { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) };
   const a = await device({ ...answered, "nor-theme": "dark", "nor-tips-closed": JSON.stringify(["recent-files", "sign-in"]), "nor-bars-v1": JSON.stringify({ left: 300 }) });
-  check(scriptLoads === 0 && !(await askedGoogle(a.page)) && !outside.some((u) => /google/.test(u)), "a visitor who never signs in loads nothing from Google", outside);
+  check(google.scriptLoads === 0 && !(await askedGoogle(a.page)) && !outside.some((u) => /google/.test(u)), "a visitor who never signs in loads nothing from Google", outside);
   check(await a.page.textContent("#who-where") === "On this device, not signed in" && await a.page.isHidden("#sign-out"), "not signed in, the menu says so");
   await a.page.click("#user-menu summary");
   await a.page.waitForFunction(() => window.tokenClient);
@@ -169,7 +133,7 @@ try {
     "the avatar is the user's picture, and Sign in is gone");
   await shot(a.page, "account_signed_in");
   check(await until(() => file()?.["nor-theme"] === "dark"), "a first sign-in starts the user's settings file from this device's");
-  check(same(drive.file.parents, ["appDataFolder"]), "the file is in the app's hidden folder in the user's Drive");
+  check(same(settings().parents, ["appDataFolder"]), "the file is in the app's hidden folder in the user's Drive");
   check(file()["nor-tips-closed"] === JSON.stringify(["recent-files", "sign-in"]) && !("nor-bars-v1" in file()),
     "the file holds the settings that follow the user, not the left bar's width");
   await a.page.click("body", { position: { x: 700, y: 500 } });
@@ -211,10 +175,33 @@ try {
   check(await local(a.page, "nor-theme") === "dark" && file()["nor-theme"] === "dark", "Cancel changes nothing");
   await a.page.click("#theme"); // back to light, as the rest of this test expects
   await until(() => file()?.["nor-theme"] === "light");
+  // a setting changed while the save before it is on its way is saved too: another tab, opened before it is,
+  // keeps it rather than taking Drive's copy
+  {
+    const gates = [], writes = () => google.calls.filter((c) => /^PATCH /.test(c)).length, before = writes();
+    google.hold = () => new Promise((ok) => gates.push(ok));
+    await a.page.click("#theme");
+    await until(() => writes() > before);
+    // changed while that save is held, and saved after it, held too
+    await a.page.click("#theme");
+    await until(() => writes() > before + 1);
+    gates.shift()();
+    await until(() => file()?.["nor-theme"] === "dark");
+    // opened from the page, as a user opens another tab, which starts from this one's session
+    const [tab] = await Promise.all([a.ctx.waitForEvent("page"), a.page.evaluate(() => { window.open(location.href); })]);
+    await tab.waitForFunction(() => document.querySelector("#sign-out")?.hidden === false);
+    // its sync done: Drive's copy taken, or this device's change kept and saved
+    await orMissed(Promise.race([tab.waitForFunction(() => document.documentElement.dataset.theme === "dark"), untilHeard(() => writes() > before + 2, () => google.next())]));
+    check(await tab.evaluate(() => document.documentElement.dataset.theme) === "light", "a setting changed while the save before it was on its way stays, in another tab too");
+    google.hold = () => null;
+    for (const ok of gates.splice(0)) ok();
+    await until(() => file()?.["nor-theme"] === "light");
+    await tab.close();
+  }
   // the tip closed again, as the rest of this test expects of the file
-  drive.file.body = JSON.stringify({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
+  settings().body = JSON.stringify({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
   // animations turned off on another device
-  drive.file.body = JSON.stringify({ ...file(), "nor-motion": "false" });
+  settings().body = JSON.stringify({ ...file(), "nor-motion": "false" });
 
   // device B: its own theme and left bar
   const b = await device({ ...answered, "nor-tips-closed": JSON.stringify(["sign-in"]), "nor-theme": "dark", "nor-bars-v1": JSON.stringify({ left: 400 }) });
@@ -228,7 +215,7 @@ try {
   check(file()["nor-theme"] === "light", "bringing the file's settings does not overwrite the file");
 
   // another device changes the file; a reload within the hour takes it with no click
-  drive.file.body = JSON.stringify({ ...file(), "nor-theme": "dark" });
+  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" });
   const asks = await b.page.evaluate(() => window.tokenClient.asked.length);
   await b.page.reload();
   await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
@@ -237,10 +224,11 @@ try {
 
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
-    drive.validFrom = Date.now();
-    // off the page first: a sync still running on it would write the sign-in back, an hour long
+    // off the page first: a sync still running on it would write the sign-in back, an hour long, and a request still
+    // on its way would meet the revoked token
     const at = b.page.url();
-    await b.page.goto(origin + "/web/no-page-here");
+    await expecting(/status of 404/, () => b.page.goto(origin + "/web/no-page-here"));
+    google.revokeAll();
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
       localStorage.removeItem("nor-seen-version"); // the page writes it again as it loads: a setting that changes with no click
@@ -250,21 +238,21 @@ try {
   };
   const askedNow = () => b.page.evaluate(() => window.tokenClient.asked.length);
   await expire();
-  const before = seen.length;
+  const before = seen().length;
   // to light, by a script, once the user activation a test's evaluate itself carries (5 s) is over
   await b.page.evaluate(() => setTimeout(() => document.querySelector("#theme").click(), 5500)); // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
   await shows(b.page, () => document.documentElement.dataset.theme === "light", undefined, 10000);
   check(await local(b.page, "nor-theme") === "light" && await askedNow() === 0 && file()["nor-theme"] === "dark", "a change no user made asks Google for nothing");
   const calls = await googleCalls(b.page);
   await b.page.mouse.click(700, 500);
-  check(await askedNow() === 0 && await googleCalls(b.page) === calls && seen.length === before, "with the token run out, neither the page's own writes nor a click that needs nothing from Google open anything or reach Drive");
+  check(await askedNow() === 0 && await googleCalls(b.page) === calls && seen().length === before, "with the token run out, neither the page's own writes nor a click that needs nothing from Google open anything or reach Drive");
   await b.page.click("#theme"); // back to dark
   await b.page.click("#theme"); // to light
   check(await until(() => file()?.["nor-theme"] === "light"), "changing a setting renews the token in that click and saves it");
   const renewal = (await b.page.evaluate(() => window.tokenClient.asked))[0];
   check(await askedNow() === 1 && renewal?.prompt === "" && renewal.login_hint === "ada@acme.example", "renewing asks Google once, silently, for the same user");
 
-  drive.file.body = JSON.stringify({ ...file(), "nor-theme": "dark" }); // another device
+  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" }); // another device
   await expire();
   await b.page.click("#image-pick");
   check(await shows(b.page, () => document.documentElement.dataset.theme === "dark"), "opening the image selector renews the token and brings the file's settings");
@@ -288,11 +276,11 @@ try {
   check(await b.page.isHidden("#sign-out"), "a reload after signing out stays signed out");
 
   // a site with no Google client
-  clientId = "";
-  const loads = scriptLoads;
+  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
+  const loads = google.scriptLoads;
   const c = await device({});
   await c.page.click("#user-menu summary");
-  check(scriptLoads === loads && !(await askedGoogle(c.page)) && await c.page.isHidden("#sign-in") && await c.page.isVisible("#manage-storage"), "with no Google client, the menu offers no sign-in");
+  check(google.scriptLoads === loads && !(await askedGoogle(c.page)) && await c.page.isHidden("#sign-in") && await c.page.isVisible("#manage-storage"), "with no Google client, the menu offers no sign-in");
   await c.page.click("#open-settings");
   await c.page.waitForFunction(() => document.querySelector("#settings-dlg").open);
   check(/this device/.test(await c.page.textContent("#settings-where")), "not signed in, Settings says they are kept on this device only");
@@ -305,9 +293,9 @@ try {
   const ROOT = "fixturefolder00000001";
   // and Python's own files, kept on this device ahead of the first Run (req/shell/python/on-run)
   const known = (u) => u === GSI || u === "https://openidconnect.googleapis.com/v1/userinfo" || u.startsWith("https://cdn.jsdelivr.net/pyodide/")
-    || /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files(\/acmefile\d+|\/fixturefolder00000001)?$/.test(u);
+    || /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files(\/appdatafile\d+|\/fixturefolder00000001)?$/.test(u);
   check(services.size >= 4 && [...services].every(known), `the page reached only Google's sign-in script, account details, the Drive API and Python's files (${[...services].join(", ")})`);
-  check(seen.filter((s) => /drive\/v3\/files(\?|$)/.test(s) && s.startsWith("GET")).every((s) => /spaces=appDataFolder/.test(s) || new RegExp(`'${ROOT}'[+ ]in[+ ]parents`).test(decodeURIComponent(s))),
+  check(seen().filter((s) => /drive\/v3\/files(\?|$)/.test(s) && s.startsWith("GET")).every((s) => /spaces=appDataFolder/.test(s) || new RegExp(`'${ROOT}'[+ ]in[+ ]parents`).test(decodeURIComponent(s))),
     "every Drive listing it made looked only in the app's own folder, or the study's root for the roles");
 } catch (e) {
   failed = true; console.error("FAILED: " + (e.stack || e));

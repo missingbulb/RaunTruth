@@ -855,8 +855,8 @@ nobody has decided: what the page does there is not a requirement yet.
   item's ring, the area's frame and what is cut out of the image, is shown only while tagging, and the Show menu's
   rows for them are off out of it. Tagging stops when another image opens or
   the study leaves. Set by the owner on 2026-11-10, what is cut out can be the viewer's: a study gives it the shapes
-  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, showing there the
-  study's `groundTruth.reveal` picture, black while it names none, and gives the image back whole out of tagging. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
+  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, black where it is cut out,
+  and gives the image back whole out of tagging; changed by the owner on 2026-11-19, no picture shows behind it. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
   `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
@@ -1988,6 +1988,17 @@ nobody has decided: what the page does there is not a requirement yet.
   runs the full set on Firefox and WebKit (`req/checks/other-engines`). The repo's Claudinite checks run on every PR and
   every push to main, in a job of their own beside the fast set (set by the owner on 2026-11-16), so a PR breaking one
   is red before it merges.
+  </details>
+
+- `req/checks/clean-console` A page test fails on any warning or error its case did not declare, and the outside systems the page reaches are faked once, in every test.
+  <details>
+
+  Set by the owner on 2026-11-19. Every page test's browser comes from `web-tests/harness.mjs`, which fails the run as
+  it exits on a warning or error the page or the browser wrote that no case declared with `expecting()`, by a loose
+  pattern; a case declaring one that never came fails too. Each context it opens answers the systems the page reaches with
+  the fakes in `web-tests/fakes/`, turns away every other request leaving the machine, and fails the run when a
+  test's own route answers what a fake does.
+  Test: `web-tests/test_harness.py`.
   </details>
 
 - `req/checks/other-engines` Every night the full set also runs on Firefox and WebKit; their failures fail the night only once the page supports their browser.

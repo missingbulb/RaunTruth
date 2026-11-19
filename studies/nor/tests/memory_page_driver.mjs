@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 import { detached, grown } from "./detached_nodes.mjs";
 
@@ -55,11 +55,12 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+// Chromium running its bytecode alone, and keeping it: its compilers, and its flushing of bytecode left idle, add and
+// drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps
+const browser = await launch(pw, ENGINE === "chromium" ? { args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : {});
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
 const ctx = await browser.newContext();
-// nothing leaves this machine, and the cache of third-party files, which the stand-in never needs, is off
-await ctx.route(offSite(origin), (r) => r.abort());
+// the cache of third-party files, which the stand-in never needs, is off
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
@@ -123,6 +124,7 @@ async function measure() {
   // The status bar's numbers hold a node or more for each character of their last change, and the network's
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete));
   // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
   await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the page's last frames; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
@@ -169,9 +171,10 @@ const where = () => page.evaluate(() => {
   return { by, all };
 });
 const KB = 1024;
-// the heap settles by a few kilobytes of compiled code and caches over the first rounds; the image
-// alone is a quarter of a megabyte and a candidate's card several kilobytes
-const LIMITS = { heap: 256 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
+// a round keeps a kilobyte or so; a warning the page writes keeps what it hands the console, an error's stack four
+// kilobytes an open, and the image alone is a quarter of a megabyte
+const ROUNDS = +(process.env.ROUNDS || 8);
+const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
 
 await page.goto(origin + "/web/?study=nor");
 await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
@@ -180,18 +183,20 @@ const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
-  const base = await measure(), held = await detached(cdp);
-  for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
-  const m = await measure();
+  // what holds the nodes outside the document, read before the base so its own reading is in it
+  const held = await detached(cdp), base = await measure();
+  for (let r = 0; r < ROUNDS; r++) await act();
+  // read after the same snapshot as the base, so work the last round left running has ended in both or neither
+  const after = await detached(cdp), m = await measure();
   console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
-  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over 4 rounds`);
+  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over ${ROUNDS} rounds`);
   // where the nodes went, so a growth seen only on another machine says where to look
   if (m.nodes > base.nodes) {
     const a = base.where.by, b = m.where.by;
     const grew = Object.keys({ ...a, ...b }).filter((k) => (a[k] || 0) !== (b[k] || 0)).map((k) => `${k} ${a[k] || 0} -> ${b[k] || 0}`);
     problems.push(`${name}: in the document ${grew.join(", ") || "nothing changed"}; outside it ${base.nodes - base.where.all} -> ${m.nodes - m.where.all}`);
     // and, outside it, which nodes and what holds them
-    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, await detached(cdp))) problems.push(`${name}: outside the document, ${d}`);
+    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, after)) problems.push(`${name}: outside the document, ${d}`);
   }
 }
 await browser.close(); server.close();

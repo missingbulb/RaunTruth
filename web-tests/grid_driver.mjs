@@ -15,9 +15,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { localStudy } from "./local_study.mjs";
+import { launch } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -55,7 +55,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#view").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -90,7 +90,6 @@ const closePop = async (page) => { await page.mouse.move(700, 600); await page.k
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 
 await localStudy(ctx, "fixture");
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
@@ -160,7 +159,6 @@ await check(listed.some((t) => t.includes("Grid colour and spacing")), "Settings
 {
   const old = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(old, "fixture");
-  await old.route(offSite(origin), (r) => r.abort());
   await old.addInitScript(() => { delete Navigator.prototype.serviceWorker; delete HTMLButtonElement.prototype.interestForElement; });
   const p2 = await old.newPage();
   p2.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });

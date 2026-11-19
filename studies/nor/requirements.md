@@ -312,7 +312,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the area, each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
-- `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image, revealing a picture behind it.
+- `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image.
   <details>
 
   Set by the owner on 2026-11-03. The markings that look at what was found (pink and blue, numbers,
@@ -324,10 +324,8 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   done, every candidate in it decided and it checked for missed NoRs, the whole area is removed.
   The Show menu switches each of these markings (`req/nor/show-menu`). The ring, the frame and what is removed
   show only while tagging (`req/shell/ground-truth/tagging`; owner, 2026-11-07), the image otherwise whole.
-  Where the image is removed, a picture shows instead, one picture behind the whole image, so the
-  review uncovers more and more of it: the study's `groundTruth.reveal`, a link to a picture on
-  the web that the browser fetches from there (NoR: a golden retriever; changed by the owner on
-  2026-11-04, not a file the site serves), and black while the study names none or it cannot load. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  Where the image is removed, it shows black. Changed by the owner on 2026-11-19: no picture shows behind it, and
+  the page fetches none. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/order` The candidates come area by area, so the review fills the image one area after another.

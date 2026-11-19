@@ -5,13 +5,14 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { standIn } from "./stand_in_drive.mjs";
+import { expecting } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
-const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+const { ROOT, FILES, hidden, approved, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
   uploaded: (f) => {
     if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
     if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
@@ -25,6 +26,8 @@ settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toStr
 FILES.push({ id: "dmelsewhere000000001", name: "Elsewhere", parent: "someone", folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" },
   { id: "dmelsewherefile00001", name: "delta.png", parent: "dmelsewhere000000001", folder: false, bytes: FILES.find((f) => f.name === "acme.png").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 hidden.add("dmelsewhere000000001");
+// the site approved for every folder here: what it may do in each is not this test's question
+for (const f of FILES) if (f.folder) approved.add(f.id);
 // a screenshot once nothing on the page is still moving
 const shoot = async (sel, name) => {
   if (!shots) return;
@@ -55,10 +58,13 @@ await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data")
   "Add to study writes the folder into the study file, every other key kept", studyFile());
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
-await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
-await page.click("#data-add");
-await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);
-await settled(page);
+// the page asks whether the site's key reads the folder, shared with the study manager alone: Drive knows it not
+await expecting(/status of 404.*googleapis/, async () => {
+  await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
+  await page.click("#data-add");
+  await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);
+  await settled(page);
+});
 await check(studyFile().folders.includes("dmelsewhere000000001"), "a pasted folder link adds that folder", studyFile());
 await shoot("#data-col", "data-management.png");
 await check(/Anyone with the link/.test(await page.textContent("#data-msg")), "and the page says a viewer cannot read it, not being shared as Anyone with the link", await page.textContent("#data-msg"));
@@ -93,14 +99,17 @@ await orMissed(page.waitForFunction(() => st.fileName === "beta.png", null, { ti
 await check(await page.evaluate(() => st.fileName === "beta.png") && writes.length === reads, "an image chosen there opens", await page.evaluate(() => st.fileName));
 
 // offline, the index kept on this device lists the same groups; only an image kept here opens
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.evaluate(() => document.querySelector("#load-remote").click());
-await orMissed(page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }));
-const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
-await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
-  "offline, the kept index lists the same groups, an image not kept here greyed", offline);
-await page.context().close();
+// what the page still asks of the network fails as it would, when it asks anything then
+await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await page.evaluate(() => document.querySelector("#load-remote").click());
+  await orMissed(page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }));
+  const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
+  await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
+    "offline, the kept index lists the same groups, an image not kept here greyed", offline);
+  await page.context().close();
+}, { maybe: true });
 
 // tags (req/shell/data/tags): a folder's, an image's own value winning over it, a description, a tag refused; grouping
 // and hiding set in Study images (req/shell/data/hidden)

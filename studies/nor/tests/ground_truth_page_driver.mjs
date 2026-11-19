@@ -19,10 +19,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
+import { launch, googleOf } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -66,26 +66,17 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const bytes = fs.readFileSync(image);
+// the image on the Drive fake, in the study's own folder
+googleOf(browser).drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", bytes,
+  parent: JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop() });
 
 async function open(drive) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-  await asTagger(ctx, { apiKey: "test-key" });
-  const asked = []; // what was asked of github.com
-  await ctx.route(offSite(origin), (r) => {
-    const u = new URL(r.request().url());
-    if (u.host === "github.com") asked.push(u);
-    if (u.host !== "www.googleapis.com") return r.abort();
-    const headers = { "access-control-allow-origin": "*" };
-    if (u.searchParams.get("alt") === "media") return r.fulfill({ status: 200, headers: { ...headers, "content-length": String(bytes.length) }, body: bytes });
-    // the study's folder, holding the image
-    if (u.searchParams.get("q")) return r.fulfill({ status: 200, headers, contentType: "application/json",
-      body: JSON.stringify({ files: [{ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", size: String(bytes.length) }] }) });
-    return r.fulfill({ status: 200, headers, contentType: "application/json", body: JSON.stringify({ name: "corner.tif", mimeType: "image/tiff" }) });
-  });
+  await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) await localStudy(ctx, "nor");
@@ -101,7 +92,7 @@ async function open(drive) {
     await page.setInputFiles("#file", image);
   }
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  return { ctx, page, asked };
+  return { ctx, page };
 }
 
 // the status bar's steps, the one to do now marked *, and what shines
@@ -320,7 +311,7 @@ async function mask(page) {
 
 // ---- an image from this computer ----
 {
-  const { ctx, page, asked } = await open(false);
+  const { ctx, page } = await open(false);
   const warn = await page.isVisible("#notice") && (await page.textContent("#notice-text"));
   await check(warn && /local files/.test(warn) && warn.split(/\s+/).length <= 15, `a local image warns its ground truth cannot be sent: "${warn}"`);
   const where = await page.evaluate(() => { const n = $("#notice").getBoundingClientRect(), v = $("#view").getBoundingClientRect(); return { top: n.top - v.top, centre: (n.left + n.right) / 2 - (v.left + v.right) / 2 }; });
@@ -422,7 +413,7 @@ async function mask(page) {
 
 // ---- an image from Google Drive ----
 {
-  const { ctx, page, asked } = await open(true);
+  const { ctx, page } = await open(true);
   await check(await page.isHidden("#notice"), "a Drive image shows no warning");
   await markAndVote(page);
   const { said, name, gt, after } = await download(page);

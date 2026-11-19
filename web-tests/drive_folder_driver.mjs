@@ -11,9 +11,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { launch, siteOf } from "./harness.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -26,12 +27,10 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const folder = (id) => `https://drive.google.com/drive/folders/${id}`;
 const FIXTURE_FOLDER = folder("fixturefolder0000001"), PASTED = folder("pastedfolder00000001");
 const NOR_FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root;
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
   if (u === "/studies/fixture/study.json") {
     const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
     r.writeHead(200, { "content-type": "application/json" });
@@ -44,21 +43,20 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-// every folder is empty: what the dialog opens on is what is checked, not what it lists; listed, the folders listed
-const listed = [], onList = [];
+// on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,
+// the folders listed since the test cleared them
+const drive = googleDrive(ctx);
+for (const link of [FIXTURE_FOLDER, PASTED]) drive.folder({ id: link.split("/").pop(), name: "A folder", access: "public" });
+let listedFrom = 0;
+const listed = () => drive.calls.slice(listedFrom).filter((c) => c.kind === "list").map((c) => c.parent);
 // resolves at the next folder the dialog lists
-const nextListing = () => new Promise((ok) => onList.push(ok));
-await ctx.route("https://www.googleapis.com/**", (route) => {
-  const q = new URL(route.request().url()).searchParams.get("q");
-  if (q) { listed.push(q.match(/'([^']+)' in parents/)[1]); onList.splice(0).forEach((ok) => ok()); }
-  return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files: [], name: "A folder" }) });
-});
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
+const nextListing = () => drive.next((c) => c.kind === "list");
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
@@ -69,13 +67,13 @@ page.setDefaultTimeout(STEP);
 const opensOn = async (address) => {
   await page.goto(origin + address);
   await page.waitForFunction(() => window.$ && $("#title").textContent);
-  listed.length = 0;
+  listedFrom = drive.calls.length;
   const listing = nextListing();
   await pressDrive(page);
   await page.waitForFunction(() => $("#remote-dlg").open);
   // the dialog has opened on something: a folder it lists, or the link in its field
   await Promise.race([listing, orMissed(page.waitForFunction(() => window.$ && $("#remote-link")?.checkVisibility() && $("#remote-link").value))]);
-  const link = (await page.isVisible("#remote-link")) ? await page.inputValue("#remote-link") : listed.length ? folder(listed[listed.length - 1]) : "";
+  const link = (await page.isVisible("#remote-link")) ? await page.inputValue("#remote-link") : listed().length ? folder(listed().at(-1)) : "";
   await page.click("#remote-dlg button[value=close]");
   return link;
 };

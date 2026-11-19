@@ -17,7 +17,9 @@ export async function click(page, selector, options) {
       const r = el.getBoundingClientRect(), root = document.documentElement;
       return { found: true, box: [r.x, r.y, r.width, r.height].map(Math.round), hiding, rootClass: root.className, data: { ...root.dataset }, title: document.title };
     }, selector).catch((x) => ({ unread: x.message }));
-    e.message += "\nwhy: " + JSON.stringify(seen);
+    const why = "\nwhy: " + JSON.stringify(seen);
+    // the stack, which Node prints for an error nothing catches, carries the message it was made with
+    e.message += why; e.stack += why;
     throw e;
   }
 }

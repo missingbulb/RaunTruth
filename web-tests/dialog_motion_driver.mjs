@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+
 import { frames } from "./page_frames.mjs";
+import { launch } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -34,7 +34,7 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen ? " " + JSON.stringify(seen) : "")); await done(1); } console.log("ok: " + what); };
 
@@ -42,7 +42,6 @@ const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + 
 async function open({ motion = true, reducedMotion = "no-preference", clock = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, reducedMotion });
   if (clock) await ctx.clock.install();
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript((motion) => {
     delete Navigator.prototype.serviceWorker;
     localStorage.setItem("nor-motion", JSON.stringify(motion));

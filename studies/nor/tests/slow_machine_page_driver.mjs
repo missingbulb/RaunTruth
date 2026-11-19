@@ -13,10 +13,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { launch, expecting } from "../../../web-tests/harness.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
@@ -77,7 +77,7 @@ export const openImage = async (...a) => { await new Promise((ok) => setTimeout(
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -89,7 +89,6 @@ const started = (page) => page.waitForFunction(() => document.querySelector("#al
 async function open(gb) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await asTagger(ctx);
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript((gb) => {
     delete Navigator.prototype.serviceWorker;
     Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true });
@@ -171,7 +170,10 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "after Don't show this again, it does not come back");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");
-  for (let k = 0; k < 3; k++) { await unfold(page, "#processing-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
+  // the stand-in's third run answers out of memory, which the page warns of
+  await expecting(/MemoryError/, async () => {
+    for (let k = 0; k < 3; k++) { await unfold(page, "#processing-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
+  });
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
   await check(await page.evaluate(() => !$("#find").disabled), "Find Candidates is free again after the failure");
@@ -181,7 +183,6 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 // step is the one to do ----
 {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   await localStudy(ctx, "nor");
   // the study's code held until the image has opened, or the page waits for the study to open it

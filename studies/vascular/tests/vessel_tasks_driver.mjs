@@ -14,12 +14,12 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { launch } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
@@ -32,12 +32,11 @@ const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 const site = await serve(repo, studies, model, "GT");
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 let failed = false;
 const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
@@ -142,7 +141,7 @@ try {
   const under = await page.evaluate(() => {
     const cv = $("#gt-mini-image"), v = window.shellForTests.viewer.three;
     if (!cv) return null;
-    const [Z, Y, X] = v.meta.shape, vol = v.volume(), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    const [Z, Y, X] = v.meta.shape, vol = v.volume(), d = testCopy(cv).getImageData(0, 0, cv.width, cv.height).data;
     let worst = 0, lit = 0, n = 0;
     for (let cy = 0; cy < cv.height; cy += 7) for (let cx = 0; cx < cv.width; cx += 5) {
       let mv = -1, mz = 0;
