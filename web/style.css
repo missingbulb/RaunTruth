@@ -339,7 +339,6 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 #switch .count:empty { display: none; }
 /* a card whose task is still open */
 .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; }
-.menu .pop label.sort select { padding: 2px 6px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); }
 .tabs button { border: 0; border-radius: 0; background: transparent; padding: 5px 14px; }
 .tabs button + button { border-left: 1px solid var(--line); }
 .tabs button.on { background: var(--accent); color: #fff; }
@@ -1058,6 +1057,9 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
+#gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
+#gt-areas-row[hidden] { display: none; }
+#gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
 #gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;

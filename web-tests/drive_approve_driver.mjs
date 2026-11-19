@@ -5,6 +5,8 @@
 // Checks req/shell/data/drive-access and req/shell/account/consent-guide. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_approve_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { drive, google, ROOT, SUB, GT, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -25,13 +27,13 @@ if (g) g.asked = google.asked.filter((o) => o.scope?.includes(DRIVE_FILE)).lengt
 await check(!!g && g.asked === 0, "Approve folders… first opens the guide to Google's screens, asking Google nothing yet", g);
 await check(!!g && /unsafe/.test(g.text) && /Select/.test(g.text) && g.shots >= 3, "it shows the unverified-app steps, the per-file box to tick and the picker's Select", g);
 await page.click("#guide-go");
-await page.waitForFunction(() => document.querySelector("#guide-dlg")?.open && !document.querySelector("#guide-dlg").matches(":modal"), null, { timeout: 5000 }).catch(() => {});
+await orMissed(page.waitForFunction(() => document.querySelector("#guide-dlg")?.open && !document.querySelector("#guide-dlg").matches(":modal"), null, { timeout: 5000 }));
 const asked = google.asked.find((o) => o.scope?.includes(DRIVE_FILE))?.scope ?? null;
 await check(!!asked && asked.split(" ").includes(DRIVE_FILE), "Approve folders… asks Google for the per-file permission", asked);
-const shown = await Promise.race([shownNow, page.waitForTimeout(5000).then(() => null)]); // waits on purpose: bounds a picker that never opens
+const shown = await Promise.race([shownNow, page.waitForTimeout(STEP).then(() => null)]); // bounds a hang: a picker that never opens fails the check
 await check(shown === [ROOT, SUB, GT.curated, GT.submissions].join(","), "then Google's picker shows just the study's folders", shown);
 const aside = await page.evaluate(() => ({ open: $("#guide-dlg").open, modal: $("#guide-dlg").matches(":modal"), left: $("#guide-dlg").getBoundingClientRect().left }));
 await check(aside.open && !aside.modal && aside.left < 40, "over the picker, the guide stays, aside at the page's left edge and not over it", aside);
 pick?.();
-await check(await page.waitForFunction(() => !$("#guide-dlg").open, null, { timeout: 5000 }).then(() => true, () => false), "the picker answering closes the guide");
+await check(await orMissed(page.waitForFunction(() => !$("#guide-dlg").open, null, { timeout: 5000 })), "the picker answering closes the guide");
 await done(0);

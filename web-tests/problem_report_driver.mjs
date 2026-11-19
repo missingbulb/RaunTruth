@@ -16,6 +16,7 @@ import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
 import { launch, expecting } from "./harness.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -95,7 +96,7 @@ async function open(ua) {
   await watchReads(ctx, ["browsers.json"]);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { if (!/thrown-for-the-test/.test(e.message)) { console.error("page error: " + e.message); await done(1); } });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => $("#sb-version").textContent && $("#recent .recent"));
   await readsDone(page);

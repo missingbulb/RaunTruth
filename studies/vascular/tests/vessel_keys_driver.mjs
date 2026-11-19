@@ -18,6 +18,7 @@ import { frames } from "../../../web-tests/page_frames.mjs";
 import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -38,7 +39,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -98,7 +99,7 @@ try {
   const keptBare = await mode();
   await page.click("#key-outlines");
   check(keptBare === "image" && (await mode()) === "overlay", `clicking the 2 row keeps the lines hidden, again shows them: ${keptBare} → ${await mode()}`);
-  check(!(await press("Digit2", { on: "#area-grid" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
+  check(!(await press("Digit2", { on: "#gt-areas" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
   await page.evaluate(() => { $("#vm-show").open = true; });
   check(!(await press("Digit2")) && (await mode()) === "overlay", "2 with the Show menu open does nothing");
   await page.evaluate(() => { $("#vm-show").open = false; });
@@ -213,7 +214,7 @@ try {
   // held down, in a field, with a menu open: nothing
   s0 = s1;
   check(!(await press("KeyF", { repeat: true })) && same(await state(), s0), "F held down judges no second junction");
-  check(!(await press("KeyF", { on: "#area-grid" })) && same(await state(), s0), "F in a field does nothing");
+  check(!(await press("KeyF", { on: "#gt-areas" })) && same(await state(), s0), "F in a field does nothing");
   await page.evaluate(() => { $("#task-menu").hidden = false; $("#task-menu").open = true; });
   check(!(await press("KeyF")) && same(await state(), s0), "F with a menu open does nothing");
   await page.evaluate(() => { $("#task-menu").open = false; });

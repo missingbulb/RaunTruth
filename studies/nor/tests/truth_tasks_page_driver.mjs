@@ -20,6 +20,7 @@ import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -82,7 +83,7 @@ async function open() {
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
@@ -106,7 +107,7 @@ await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[da
 
 // req/nor/truth/order: one walk through the areas, the rows of areas back and forth; in each its finalists, its
 // rejected, the NoRs added there, each top to bottom, and last the area's check
-const area = (c, W, H) => { const r = Math.min(9, Math.floor((c.cy / H) * 10)), k = Math.min(9, Math.floor((c.cx / W) * 10)); return r * 10 + (r % 2 ? 9 - k : k); };
+const area = (c, W, H, n = 10) => { const r = Math.min(n - 1, Math.floor((c.cy / H) * n)), k = Math.min(n - 1, Math.floor((c.cx / W) * n)); return r * n + (r % 2 ? n - 1 - k : k); };
 const walk = () => page.evaluate(() => nor.walk().map((x) => ({ key: x.key, a: x.a, t: x.t, cy: x.c?.cy, cx: x.c?.cx, pass: x.c ? st.fails[x.c.i] === null : null })));
 let W = await walk();
 const [IW, IH] = await page.evaluate(() => [st.W, st.H]);
@@ -135,7 +136,8 @@ const now = () => page.evaluate(() => ({ cur: st.cur, task: st.task, sel: st.sel
   rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")].map((l) => l.querySelector(".task-head").textContent.replace(/\s+/g, " ").trim()),
   open: document.querySelector("#gt-tasks > li.now")?.dataset.task, back: !$("#task-back").disabled,
   bar: [...document.querySelectorAll("#gt-bar > span")].map((b) => ({ grow: +getComputedStyle(b).flexGrow, fill: +b.style.getPropertyValue("--done") })) }));
-const rectOf = (a) => { const r = Math.floor(a / 10), k = r % 2 ? 9 - (a % 10) : a % 10; return [k * IW / 10, r * IH / 10, IW / 10, IH / 10]; };
+// an area's rectangle in whole pixels, [x, y, w, h]: a pixel is in the area its column and row fall in
+const rectOf = (a, n = 10) => { const r = Math.floor(a / n), k = r % 2 ? n - 1 - (a % n) : a % n, e = (v, L) => Math.ceil(v * L / n); return [e(k, IW), e(r, IH), e(k + 1, IW) - e(k, IW), e(r + 1, IH) - e(r, IH)]; };
 const same = (p, q) => !!p && !!q && p.every((v, k) => Math.abs(v - q[k]) < 1e-6);
 // req/shell/ground-truth/tagging: found, the image stays as it is viewed until Start GT tagging is pressed
 const ring = () => page.$eval("#overlay .ring", (r) => ({ shown: r.style.display !== "none" && getComputedStyle(r).display !== "none", stroke: getComputedStyle(r).stroke })).catch(() => ({ shown: false }));
@@ -187,8 +189,8 @@ const look = await page.evaluate(() => {
 await check(look.share >= 0.97 && look.under && look.big && !look.head && !look.ticks && look.cog && look.skip && look.back,
   "the open row has the cogwheel, Back and Skip; the crop takes the box's width, big thumbs side by side under it, no number or go-to, no marks on tasks not done", look);
 await page.click("#card-menu summary");
-await check(await page.evaluate(() => { const p = $("#card-menu .pop"), r = p.getBoundingClientRect(); return getComputedStyle(p).position === "absolute" && r.height > 40 && !!$("#opt-borders").offsetParent && !$("#sort").offsetParent; }),
-  "the cogwheel opens the options as a popup, with no sort");
+await check(await page.evaluate(() => { const p = $("#card-menu .pop"), r = p.getBoundingClientRect(); return getComputedStyle(p).position === "absolute" && r.height > 40 && !!$("#opt-borders").offsetParent; }),
+  "the cogwheel opens the options as a popup");
 await page.click("#card-menu summary");
 
 // req/nor/truth/marks: waiting, a faint outline and nothing else; decided, cut out of the image
@@ -347,8 +349,26 @@ s = await now();
 await check((await holes()).some((h) => same(h, rectOf(A))) && s.rows[2].startsWith("1/100 Areas") && s.cur === await nextOpen("a:" + A),
   "No missed NoRs here cuts the whole area out and goes on to the walk's next item", s);
 
+// req/shell/ground-truth/areas: the shell's Areas menu, NoR starting at 10 × 10; another count walks again from its first
+// area not done, and a check stays on the pixels it covers
+await check(await page.$eval("#gt-areas", (m) => m.value === "10" && m.options.length === 8 && !m.closest("[hidden]")), "the Areas menu shows, at NoR's 10 × 10");
+await page.selectOption("#gt-areas", "2");
+s = await now();
+const W2 = await walk();
+await check(s.rows[2].startsWith("0/4 Areas") && W2.filter((x) => x.key.startsWith("a:")).length === 4 && W2.every((x) => x.cy == null || area(x, IW, IH, 2) === x.a)
+  && s.cur === await page.evaluate(() => nor.walk().find((x) => !x.done)?.key), "2 × 2: four areas, the candidates in the quarter they lie in, one area checked of 100 too little of any", s);
+// the top right quarter, its candidates decided, checked under 2 × 2
+await page.evaluate(() => { for (const x of nor.walk()) if (x.a === 1 && x.c && !x.done) nor.decide(x.c.i, "reject"); nor.goTo("a:1"); });
+await page.click("#area-ok");
+await page.selectOption("#gt-areas", "10");
+s = await now();
+const inQuarter = (a) => { const r = Math.floor(a / 10), k = r % 2 ? 9 - (a % 10) : a % 10; return r < 5 && k >= 5; };
+const quarterWant = 25 + (inQuarter(A) ? 0 : 1);
+await check(s.rows[2].startsWith(`${quarterWant}/100 Areas`) && (await holes()).some((h) => same(h, rectOf(A))),
+  `back at 10 × 10, the quarter checked is its 25 areas, with the one checked before: ${quarterWant}`, s);
+
 // everything decided and every area checked: Submit
-await page.evaluate(() => { for (const x of nor.walk()) if (x.c && !x.done) nor.decide(x.c.i, "reject"); });
+await page.evaluate(() => { for (const x of nor.walk()) if (x.c && !x.done) nor.decide(x.c.i, "reject"); nor.goTo(nor.walk().find((x) => !x.done)?.key ?? null); });
 for (let k = 0; k < 120 && await page.evaluate(() => st.task === "missed"); k++) await page.click("#area-ok");
 s = await now();
 await check(s.task === "submit" && s.rows[2] === "100/100 Areas" && (await page.$eval("#gt-submit", (b) => b.dataset.state)) === "done", "every task done: Submit, its icon a check", s);

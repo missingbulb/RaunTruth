@@ -35,3 +35,16 @@ assert.ok(near[0][0] < APART, `the ring's colour is too near ${near[0][1]}: ${ne
 // the shell's yellow, which the current book is drawn in, is what the guard exists to refuse
 assert.ok(carried.some(([, c]) => cos(rgb('#ffd400'), c) >= APART), 'the guard refuses the shell\'s own yellow');
 console.log(`ok the ring's colour is apart from all ${carried.length} colours the photo's channels and the page carry: nearest ${near[0][1]}, ${near[0][0].toFixed(3)}`);
+
+// req/shelves/truth/fields: the fields always shown, Title and Author, apart from each other and from the current book's
+// yellow, so the outline of where each was read is told from the other's and from the book's own; the other fields'
+// letters tell them, five colours all apart being more than the ring and the yellow leave room for
+const js = fs.readFileSync(new URL('../web/shelves.js', here), 'utf8');
+const field = (k) => rgb(new RegExp(`${k}: \\{[^}]*colour: "(#[0-9a-f]{6})"`, 'i').exec(js)?.[1] ?? '#000');
+const [title, author] = [field('title'), field('author')];
+assert.ok(title.some(Boolean) && author.some(Boolean), 'the title\'s and the author\'s colours were read');
+for (const [what, c] of [['each other', author], ['the current book\'s yellow', rgb('#ffd400')]]) {
+  assert.ok(cos(title, c) < APART, `the title's colour is too near ${what}`);
+}
+assert.ok(cos(author, rgb('#ffd400')) < APART, 'the author\'s colour is too near the current book\'s yellow');
+console.log('ok the title\'s and the author\'s colours are apart from each other and from the current book\'s yellow');

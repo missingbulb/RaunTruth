@@ -20,11 +20,12 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { cutShort } from "./page_errors.mjs";
-import { until } from "./page_until.mjs";
+import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { keptContext, expecting } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -108,7 +109,7 @@ await ctx.addInitScript((seed) => {
 }, SEED);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 try {
   await page.goto(origin + "/web/index.html?study=nor");
@@ -130,7 +131,7 @@ try {
   // req/shell/offline/mark: a study whose Python is all here is marked in the switcher, green, a state rather than a
   // prompt: a tiny tooltip and no question-mark pointer, what it means in full said to assistive tech
   await page.click("#study-menu summary");
-  await page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }));
   const marks = await page.$$eval("#study-list a", (as) => as.map((a) => {
     const m = a.querySelector(".offline-mark"), cs = m && getComputedStyle(m);
     const end = Math.max(...[...a.children].filter((c) => c.offsetParent).map((c) => c.getBoundingClientRect().right));
@@ -370,11 +371,11 @@ try {
   check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
   await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
   await page.reload();
-  await until(page, async (ids) => {
+  await orMissed(until(page, async (ids) => {
     const c = await caches.open("nor-thumbs-v1");
     for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
     return !Object.keys(localStorage).some((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs");
-  }, LEGACY).catch(() => {});
+  }, LEGACY));
   const moved = await page.evaluate(async () => {
     const c = await caches.open("nor-thumbs-v1"), of = (id) => c.match(new URL("drive-thumb/" + id, location.href).href);
     return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };

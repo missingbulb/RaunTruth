@@ -34,16 +34,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   made on cards, not by clicking the image, with a thumbs up (a real NoR, with the lengths shown)
   and a thumbs down (not one) at the card's top, each saying what it does in its tooltip; pressing
   the chosen one again undoes it and lets the filters decide. Pressing either also selects that
-  candidate. Cards the user voted up or down have their own border colours. In the item views the
-  selected candidate's card is outlined, clicking a card selects it, and switching to the item
-  views opens the tab that lists the selected candidate and scrolls its card into sight; the
-  previous and next buttons step through that tab's cards. Set by the owner on 2026-10-31: double
-  clicking a candidate on the image selects it and opens the item views at its card, and double
-  clicking a card selects it and shows it on the image, as its go-to button does. Changed by the
-  owner on 2026-11-03: while the study makes ground truth no card hovers over the image; the
+  candidate. Cards the user voted up or down have their own border colours. Changed by the owner on
+  2026-11-19: the item views are gone (missingbulb/RaunTruth#740), so double clicking a candidate on
+  the image selects it, as a click does. Changed by the owner on 2026-11-03: while the study makes ground truth no card hovers over the image; the
   selected candidate is the current task's, its card in the Ground Truth Tasks box
   (`req/nor/truth/tasks`), and clicking or double clicking a candidate on the image makes it the
-  current one there. Test: `studies/nor/tests/test_item_view_page.py`.
+  current one there. Test: `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/nor/candidates/numbering` Each candidate keeps one number for as long as a detection lasts.
@@ -97,35 +93,25 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the summary and the downloads.
   </details>
 
-- `req/nor/cards/lazy` The item views draw only the cards near the view, so a long list opens at once.
+- `req/nor/cards/options` A candidate's card shows it cropped, with the finalists' options or the rejected's.
   <details>
 
-  Set by the owner on 2026-10-31. Every card takes its place in the list at once as an empty
-  outline; only those in view and the two rows past it either way are drawn in full, together in
-  one go per frame rather than card by card, and the rest are drawn as scrolling brings them near.
-  Test: `studies/nor/tests/test_item_view_page.py`.
-  </details>
-
-- `req/nor/cards/views` The item views show the finalists and the rejected as cards, each with its own Options.
-  <details>
-
-  Changed by the owner on 2026-11-03: the item views are only for looking at what was found
-  (`data-viewing`, `req/shell/views/second`); while the study makes ground truth they are not
-  shown, and each card is shown one at a time as its task (`req/nor/truth/tasks`). Each candidate cropped on a card: its number, state and decision buttons on top, the crop below
-  (with a faint go-to button in its corner that shows it on the image), then "Lengths adjusted"
-  with a reset (on a task's card, only a Reset measurements button: the task says the rest; set by
-  the owner on 2026-11-04), and the rest. A rejected card names every filter that rejects it by itself, or says
-  the user rejected it. Each view has its own Options menu (remembered per view) that sets the order
-  of its cards (by number, the default; verified first; verified last; and on the rejected, the most
-  rejecting filters first; ties by number; set by the owner on 2026-10-07), the crop's context
-  padding, turns each crop so the NoR lies level (finalists only; the rejected are never turned),
-  and shows or hides the NoR borders, the measurement bars, the lengths on the crop, the lengths on
-  the card and the measurement adjusters. The finalists open with a 4 px padding and everything on
-  but the lengths on the card; the rejected open with a 10 px padding and only the NoR borders on.
-  The selected card over the image uses the options of the view that lists it. Changed by the owner
-  on 2026-11-04: a task's card, finalist and rejected alike, uses one set of options, the finalists'
-  (the crop turned level, the measurement bars and the adjusters), so a rejected candidate can have
-  its lengths corrected before it is approved; its cogwheel holds them, with no sort.
+  Each candidate cropped on a card: its number, state and decision buttons on top, the crop below
+  (on the selected candidate's card, with a faint go-to button in its corner that shows it on the
+  image), then "Lengths adjusted" with a reset (on a task's card, only a Reset measurements button:
+  the task says the rest; set by the owner on 2026-11-04), and the rest. A rejected card names every
+  filter that rejects it by itself, or says the user rejected it. The options set the crop's context
+  padding, turn each crop so the NoR lies level (finalists only; the rejected are never turned),
+  and show or hide the NoR borders, the measurement bars, the lengths on the crop, the lengths on
+  the card and the measurement adjusters. The finalists' open with a 4 px padding and everything on
+  but the lengths on the card; the rejected's with a 10 px padding and only the NoR borders on. The
+  selected card over the image uses the finalists' or the rejected's, as the candidate is one or the
+  other. Changed by the owner on 2026-11-04: a task's card, finalist and rejected alike, uses one set
+  of options, the finalists' (the crop turned level, the measurement bars and the adjusters), so a
+  rejected candidate can have its lengths corrected before it is approved; its cogwheel holds them.
+  Changed by the owner on 2026-11-19: the item views that listed the cards, each with its own sort
+  and Options menu, are removed (missingbulb/RaunTruth#740); the cogwheel is the only place the
+  options are set.
   </details>
 
 - `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
@@ -137,13 +123,15 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
-  (`norfinder-ground-truth/3`, the model of the tagger's work as the shell's GT actions leave it,
+  (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
   from: its Google Drive id and link, or "local") and the finder and filters it was run with, with
   `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
-  added, each with its id, its lines and `approved`; and `areas`, those checked for missed NoRs, with the `grid` that
-  cuts the image into them, and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
+  added, each with its id, its lines and `approved`; and `checked`, the parts of the image checked for missed NoRs,
+  each a box `[x0, y0, x1, y1]` in whole pixels, `x0` to `x1` not included (changed by the owner on 2026-11-19: a check
+  covers pixels, whatever count of areas it was made under, `req/shell/ground-truth/areas`; a `/3` file's `areas`, each
+  an area of its `grid`, read as their boxes), and `next`, the ids the candidates and added NoRs are given next. A candidate the tagger rejected is absent, and is read from the file's `history`: its
   `delete`, and the output of the run it was in; one the file lacks that no `delete` names is not known, and no label. The lab's scorer (`algorithm/truth.py`) reads it, and the `/2` files already
   curated, which list `labels` (every candidate voted up or down, and every added NoR approved). The scorer reads
   each element's state alone (a NoR, not a NoR, undecided), never where it came from, and scores an answer's place
@@ -170,6 +158,17 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/filters/persist` Filter settings persist across images, visits and days; the Balanced preset returns to the finder's own values.
 
 - `req/nor/find/blue-mask` The blue mask is only a filter: no finder blanks nuclei before finding.
+
+- `req/nor/find/damaged` The finders analyse no pixel of a damaged area, and the scorer counts no NoR in one.
+  <details>
+
+  Set by the owner on 2026-11-19. The Study Manager's damaged areas (`req/shell/data/damaged`) join the pixels each
+  finder leaves out of its colour thresholds and its green and red segments, as a finder that blanks the blue mask
+  does, so no candidate is made of their pixels. A NoR that crosses the line keeps only its outside part, and is
+  found only if that part is still a red between two greens. The blue mask stays a filter (`req/nor/find/blue-mask`):
+  a damaged area is never reported as "in nucleus". The scorer leaves out the ground truth's elements and the answer's
+  candidates whose centre lies in a damaged area. Test: `studies/nor/tests/test_nor_damaged.py`.
+  </details>
 
 - `req/nor/find/finders` All finders are offered; Traffic light is the default.
 
@@ -225,7 +224,8 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the Show menu's task-named rows (`req/nor/show-menu`).
   Changed by the owner on 2026-10-31: there is no right bar (`req/shell/left-bar/width`).
   Changed by the owner on 2026-11-04: the item view is shelved (`req/shell/views/second`), so in
-  every role the main area is the image alone, with the Show menu above it (`req/nor/show-menu`).
+  every role the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
+  removed by the owner on 2026-11-19 (missingbulb/RaunTruth#740).
   </details>
 
 - `req/nor/metrics` On the released site each finder and each filter preset shows its precision and recall.
@@ -331,8 +331,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/truth/order` The candidates come area by area, so the review fills the image one area after another.
   <details>
 
-  Set by the owner on 2026-11-03. The image is cut into 10 by 10 areas taken row by row, each row
-  the way back from the last (so the next area always borders the one just done). Changed by the
+  Set by the owner on 2026-11-03. The image is cut into areas taken row by row, each row
+  the way back from the last (so the next area always borders the one just done). Changed by the owner on
+  2026-11-19: how many is the tagger's, from the shell's Areas menu (`req/shell/ground-truth/areas`), 10 by 10 at first;
+  an area is checked once all of its pixels are, by checks made under any count. Changed by the
   owner on 2026-11-04: the tasks are one walk through the areas, so after a number of verdicts a
   whole region of the image is done rather than candidates scattered over it. In each area its
   finalists, then its rejected, then the NoRs the user added there, each top to bottom, and last
@@ -352,7 +354,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   is marked done with a check (no marks on the others). The rows count; the work is one walk
   (`req/nor/truth/order`), and the row of the current item's task is the open one. Clicking a task
   goes to its next item not done along the walk. The open task's row carries a
-  cogwheel that opens the cards' options as a popup (`req/nor/cards/views`), a small Back link and
+  cogwheel that opens the cards' options as a popup (`req/nor/cards/options`), a small Back link and
   a small Skip link; under it, its candidate's card (`req/nor/candidates/decide`),
   no number, state, separator or go-to button: the crop across the box's whole width, with big
   thumbs up and down side by side under it. A verdict or a skip slides the next card in over the last one (no motion when the user asks

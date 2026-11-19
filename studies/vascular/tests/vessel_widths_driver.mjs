@@ -19,6 +19,7 @@ import { serve, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { launch } from "../../../web-tests/harness.mjs";
+import { orMissed } from "../../../web-tests/page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -164,7 +165,7 @@ try {
   // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
   const [ex, ey] = screen(70, 40, w);
   await page.mouse.move(ex, ey);
-  await page.waitForFunction(() => !!window.vascular.model().widths.lens).catch(() => {});
+  await orMissed(page.waitForFunction(() => !!window.vascular.model().widths.lens));
   w = await look();
   check(!!w.lens && w.lens.vessel === est.n && w.lens.slices.join() === `${FOCUS - 1},${FOCUS + 1}` && w.lens.profile >= 20 && w.lens.half > 0,
     `resting on a vessel opens its lens, slices ${FOCUS}±1, the brightness across it with half its height: ${JSON.stringify(w.lens)}`);

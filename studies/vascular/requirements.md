@@ -68,6 +68,17 @@ owner's decisions on the stacks and the vessel model, are
   `studies/vascular/tests/test_vessel_gt_actions_page.py`, `studies/vascular/tests/test_model_js.py`.
   </details>
 
+- `req/vascular/model/damaged` The model leaves the damaged areas out of its measurements, and the scorer out of the score.
+  <details>
+
+  Set by the owner on 2026-11-19. Each version extracts on the whole stack; the Study Manager's damaged areas
+  (`req/shell/data/damaged`) then join the model's `excluded_regions`, in µm, through every slice, so whatever lies in
+  one is left out of the analysis as damaged sample is: the summary's lengths, counts and tissue volume, and the
+  model's segment count. The summary also leaves out the damaged areas of the image open, whatever model is shown.
+  The scorer leaves the steps of both models that lie in a damaged area out of the score, as it leaves the ground
+  truth's excluded areas out. Test: `studies/vascular/tests/test_vascular_damaged.py`, `studies/vascular/tests/test_vessel_summary.mjs`.
+  </details>
+
 - `req/vascular/model/every-width` Every vessel of the model has a width from the moment it exists, a drawn one too.
   <details>
 
@@ -271,7 +282,8 @@ owner's decisions on the stacks and the vessel model, are
   As NoR's (`req/nor/truth/order`): the stack's field is cut into areas, never drawn on the stack, the rows of areas top to
   bottom, each row the way back from the last; all of an area's work, its lines, its missed vessels and its junctions,
   before the next area. Changed by the owner on 2026-11-07: how many areas is the person's to choose in the tasks
-  box (from one area for the whole field to 10 × 10, 4 × 4 at first), since a bigger area is sometimes the better one to judge
+  box (from one area for the whole field to 10 × 10, 4 × 4 at first; the shell's Areas menu since 2026-11-19,
+  `req/shell/ground-truth/areas`), since a bigger area is sometimes the better one to judge
   whole; an area done stays done in every area it covers whatever is chosen after. Test:
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>

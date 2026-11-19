@@ -27,7 +27,7 @@ const CASES = {
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
   unanswered: () => expecting(/went wrong/, async () => {}),
-  uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose: the page's own throw, a task after
+  uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after
   offsite: async () => console.log(await page.evaluate(() => fetch("https://acme.example/x").then((r) => "reached " + r.status, () => "turned away"))),
   setup: async () => {
     const ctx = await browser.newContext();

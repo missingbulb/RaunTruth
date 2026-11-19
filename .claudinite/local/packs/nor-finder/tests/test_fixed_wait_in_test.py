@@ -18,17 +18,22 @@ def test_each_fixed_wait_is_found_in_a_driver_a_stand_in_and_a_study_test(tmp_pa
         'studies/x/tests/test_c.py': 'import time\ntime.sleep(0.5)\n',
         'web-tests/d_stand_in.mjs': 'send(rows); setTimeout(() => calls--, 200);\n',
         'web-tests/e_driver.mjs': 'const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));\n',
+        'web-tests/f_driver.mjs': ('for (;;) { await new Promise((ok) => setTimeout(ok, 100)); if (!calls()) break; } // waits on purpose: a quiet spell\n'
+                                   'await page.waitForTimeout(300); // waits on purpose (a quiet spell): no more calls\n'),
     }) == ['studies/x/tests/b_driver.mjs:2', 'studies/x/tests/test_c.py:2',
            'web-tests/a_driver.mjs:1', 'web-tests/a_driver.mjs:2', 'web-tests/a_driver.mjs:3',
-           'web-tests/d_stand_in.mjs:1', 'web-tests/e_driver.mjs:1']
+           'web-tests/d_stand_in.mjs:1', 'web-tests/e_driver.mjs:1', 'web-tests/f_driver.mjs:1', 'web-tests/f_driver.mjs:2']
 
 
-def test_a_wait_saying_why_a_bounded_hang_a_comment_a_condition_wait_and_page_code_are_not(tmp_path):
+def test_a_wait_of_a_listed_kind_saying_why_a_bounded_hang_a_comment_a_condition_wait_and_page_code_are_not(tmp_path):
     assert findings(tmp_path, {
-        'web-tests/a_driver.mjs': ('await page.waitForTimeout(6200); // waits on purpose: the browser\'s 5 s user activation lapses\n'
+        'web-tests/a_driver.mjs': ('await page.waitForTimeout(6200); // waits on purpose (user activation): the browser\'s 5 s lapses\n'
+                                   'await page.waitForTimeout(500); // waits on purpose (no event): Chromium tells installability only when asked\n'
+                                   'await page.waitForTimeout(2500); // waits on purpose (a measured rate): 5 s of real downloads\n'
+                                   'const late = () => new Promise((ok) => setTimeout(ok, 600)); // waits on purpose (a slow computer): its Python\n'
                                    'setTimeout(() => process.exit(1), 60000); // bounds a hang: the run never ends\n'
                                    '// await page.waitForTimeout(300) would guess\n'
                                    'await page.waitForFunction(() => document.title);\n'),
-        'studies/x/tests/test_c.py': 'time.sleep(delay)  # waits on purpose: loads started apart\n',
+        'studies/x/tests/test_c.py': 'time.sleep(delay)  # waits on purpose (a measured rate): loads started apart\n',
         'web/page.js': 'await new Promise((ok) => setTimeout(ok, 100));\n',
     }) == []

@@ -20,6 +20,7 @@ import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -40,7 +41,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
 const brightness = async () => {
@@ -121,7 +122,7 @@ try {
   check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Submit Ground Truth/.test(r0[all]),
     `a row per area, 4 × 4 at first, then Submit: ${r0.join(" | ")}`);
   check(await page.evaluate(() => $("#gt-bar").children.length === 16), "the bar has a part per area");
-  check(await page.evaluate(() => !!($("#area-grid").compareDocumentPosition($("#gt-start")) & Node.DOCUMENT_POSITION_FOLLOWING)
+  check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-start")) & Node.DOCUMENT_POSITION_FOLLOWING)
     && !!($("#gt-start").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
   check(await page.evaluate(() => !$("#m-draw") && !$("#m-lasso") && ![...document.querySelectorAll("button")].some((b) => /Draw a missed vessel|No missed vessels|Area done|Lines are right|Mark a damaged area/.test(b.textContent)) && !/Hold Ctrl/.test(document.body.textContent)),
     "no Draw a missed vessel, No missed vessels here, Area done, Mark a damaged area or Ctrl note on the page");
@@ -159,7 +160,7 @@ try {
   check(await page.evaluate(() => !!$("#gt-tasks li.now #task-card canvas") && $("#task-card .verdict").children.length === 2), "the area's current junction is pictured in the box, its two verdicts under it");
 
   // how many areas is the person's to choose
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
   t = await tasks();
   check(t.grid === 2 && (await rows()).length === 5 && Math.abs(t.box.x1 - W / 2) < 0.01 && t.box.x0 === 0 && t.box.y0 === 0, `choosing 2 × 2 makes four areas, the first the top-left quarter: ${JSON.stringify(t.box)}`);
   mm = await mini();
@@ -422,9 +423,9 @@ try {
   check(await page.evaluate(() => { const ps = [...$("#gt-bar").children]; return ps.length === 4 && parseFloat(ps[0].style.getPropertyValue("--done")) === 1; }), "the bar's first part is full");
 
   // a finer choice keeps what was done over the areas it covers
-  await page.selectOption("#area-grid", "4");
+  await page.selectOption("#gt-areas", "4");
   check((await doneRows()).join() === "a0,a1,a6,a7", `the top-left quarter done is four areas of 4 × 4: ${await doneRows()}`);
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
 
   // Back to image: the whole stack, the Show menu again, the map still over it; Back to task returns
   await page.click("#vm-focus");

@@ -15,8 +15,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-
 import { launch, googleOf, expecting } from "./harness.mjs";
+import { ENGINE } from "./engine.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -43,11 +44,16 @@ const browser = await launch(pw);
 let failed = false;
 const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
-// the sign-in fake's window answers a moment after it is asked, as Google's does, with the renewed token; the Drive
-// fake holds the private folder, which only the user's token reads
+// the sign-in fake's window answers with the renewed token; the Drive fake holds the private folder, which only the
+// user's token reads
 const { drive, signIn: google } = googleOf(browser);
 google.account = { sub: "1002", name: "Tester", email: "tester@example.com", picture: null };
-google.delay = 300; google.nextToken = NEW;
+google.nextToken = NEW;
+// Google's window answering only once the page's read of Drive has come back, for a renewal while the read goes on
+const answerAfterRead = () => {
+  const back = drive.next((c) => c.kind === "list" && c.parent === PRIVATE);
+  google.answerAfter = () => back;
+};
 drive.folder({ id: PRIVATE, name: "Private folder", access: "private" });
 drive.file({ id: "privateimage00000001", name: "private.png", parent: PRIVATE, bytes: Buffer.alloc(10), mimeType: "image/png" });
 
@@ -73,7 +79,7 @@ async function session(left) {
   }, { who, folder: PRIVATE });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/viewer");
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   page.asked = asked;
@@ -97,13 +103,14 @@ async function click(page) {
 }
 {
   const { ctx, page, reads } = await session(5 * 60e3);
+  answerAfterRead();
   const { got, asked } = await click(page);
   check(got === "private.png" && reads()[0] === OLD, "in the token's last ten minutes, a click reads Drive at once with the token it still has", { got, reads: reads() });
   check(asked.length === 1, "and renews the token early", asked);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("nor-google-sign-in")).token === "renewed-token");
   const again = await click(page);
   check(again.asked.length === 1 && reads().at(-1) === NEW, "and the next click reads with the renewed token, asking nothing more", { again, reads: reads() });
-  await ctx.close();
+  await ctx.close(); google.answerAfter = () => null;
 }
 {
   const { ctx, page } = await session(50 * 60e3);
@@ -114,7 +121,7 @@ async function click(page) {
 {
   const { ctx, page, reads } = await session(-3600e3);
   // a read once the user activation a test's evaluate itself carries (5 s) is over: no click behind it
-  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose: the browser's 5 s user activation lapses, which no clock moves
+  const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
     .then(() => import("/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
   const asked = page.asked().length;
   check(/click again/.test(err) && asked === 0 && reads().length === 0, "a read with no click behind it opens nothing and says to click again", { err, asked, reads: reads() });

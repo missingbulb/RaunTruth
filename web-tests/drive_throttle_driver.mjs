@@ -19,6 +19,7 @@ import { repoFile } from "./repo_file.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { keptContext, expecting } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -59,7 +60,7 @@ await ctx.addInitScript((link) => {
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 await page.clock.install();
 
 

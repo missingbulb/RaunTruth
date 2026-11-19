@@ -16,6 +16,7 @@ import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
 import { launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -38,7 +39,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const doc = () => page.evaluate(() => window.vascular.model().model);
 // the actions made, none of them saved yet: the count beside Undo
@@ -55,7 +56,7 @@ try {
   await opened();
   await execute();
   await page.click("#gt-start");
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);
 

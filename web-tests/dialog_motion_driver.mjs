@@ -13,6 +13,7 @@ import path from "node:path";
 
 import { frames } from "./page_frames.mjs";
 import { launch } from "./harness.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -58,7 +59,7 @@ async function open({ motion = true, reducedMotion = "no-preference", clock = fa
   }, motion);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html");
   await page.waitForFunction(() => $("#sb-version").textContent);
   return { ctx, page };

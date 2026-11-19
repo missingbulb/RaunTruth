@@ -8,9 +8,10 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { until } from "./page_until.mjs";
+import { until, orMissed } from "./page_until.mjs";
 import { keptContext } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
+import { ENGINE, LAUNCH } from "./engine.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -54,11 +55,11 @@ try {
   await page.goto(origin + "/");
   const title = await page.title();
   check(!!(await page.$('a[href="app/"]')), "after: / shows the landing page: " + title);
-  await until(page, async () => !(await navigator.serviceWorker.getRegistrations()).length).catch(() => {});
+  await orMissed(until(page, async () => !(await navigator.serviceWorker.getRegistrations()).length));
   const left = await scopes();
   check(!left.length, "after: the old registration is gone: " + JSON.stringify(left));
   await page.goto(origin + "/app/");
-  await until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }).catch(() => {});
+  await orMissed(until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }));
   // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
   const now = await scopes();
   check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));

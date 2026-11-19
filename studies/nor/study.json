@@ -78,6 +78,7 @@
     "run": "Finding candidates (the slow part)…"
   },
   "groundTruth": {
+    "areas": 10,
     "actions": "web/gt_actions.js",
     "ring": "#00ff96"
   },

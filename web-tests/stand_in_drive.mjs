@@ -15,6 +15,7 @@ import { repoFile } from "./repo_file.mjs";
 
 import { cutShort } from "./page_errors.mjs";
 import { launch, googleOf } from "./harness.mjs";
+import { STEP } from "./deadlines.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
@@ -100,15 +101,12 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     waiting.push(ok); py.stdin.write(body.replace(/\n/g, " ") + "\n");
   });
-  // how many of the live studies' calls are on their way: to Python, or back to the page
-  let calls = 0;
   const server = http.createServer((q, r) => {
     const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
     const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
     if (u === "/py" && q.method === "POST") {
       const chunks = [];
-      calls++;
-      q.on("data", (c) => chunks.push(c)).on("end", async () => { send("application/json", await ask(Buffer.concat(chunks).toString())); setTimeout(() => calls--, 200); }); // waits on purpose: the answer's way back to the page, until the page says when it is idle
+      q.on("data", (c) => chunks.push(c)).on("end", async () => send("application/json", await ask(Buffer.concat(chunks).toString())));
       return;
     }
     if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
@@ -153,7 +151,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }, [signedIn ? google.signedIn({ email: email || EMAIL, name: "Tester", scopes: scopes || SCOPES }) : null, seed]);
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; console.error("page error: " + e.message); await done(1); });
-    page.setDefaultTimeout(10000);
+    page.setDefaultTimeout(STEP);
     await page.goto(origin + "/web/" + id);
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     return page;
@@ -167,5 +165,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, sharedOut, thumbs, open, role, check, done, origin, calls: () => calls };
+  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, sharedOut, thumbs, open, role, check, done, origin };
 }

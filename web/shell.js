@@ -19,6 +19,7 @@
 import { drag, dragging } from "./drag.js";
 import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
+import { work } from "./pending.js";
 import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
 import { shape, stackPicture, holds, drawVolume, TURN } from "./stack.js";
@@ -534,8 +535,8 @@ const roleChooser = roleMenu($("#role-menu"), (r) => {
 // ---------- the image and the item view ----------
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
 // has counted its items: count(total), null until it has any; on(fn) hears the view now shown, "image" or "items".
-// While the study makes ground truth there is none, its tasks being in the left bar. One marked data-shelved is never shown.
-const itemsView = () => { const v = $("#items-view"); return v && !v.hasAttribute("data-shelved") && !makesTruth() && !truthShown ? v : null; };
+// While the study makes ground truth there is none, its tasks being in the left bar.
+const itemsView = () => { const v = $("#items-view"); return v && !makesTruth() && !truthShown ? v : null; };
 const views = {
   now: "image", total: null, heard: [],
   show(v) {
@@ -697,6 +698,7 @@ async function keepPython() {
 // Python's thread, on the study the address names, in place of any before it
 function pythonWorker() {
   st.worker?.terminate();
+  for (const end of pyCalls.splice(0)) end();
   st.heap = null; // Python's memory, unknown until it says (Python not started holds none)
   st.worker = new Worker("worker.js?study=" + encodeURIComponent(studyOf(location)), { type: "module" });
   st.worker.onmessage = (e) => onWorker(e.data);
@@ -723,6 +725,7 @@ function call(action, args, echo) {
     st.held = st.kept;
   }
   // the Study Manager's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
+  pyCalls.push(work.begin(`Python ${action}`));
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
 
@@ -741,7 +744,10 @@ function memoryTip(ranOut) {
 }
 $("#memory-off").onchange = () => writeJSON(MEMORY_TIP, $("#memory-off").checked);
 
+// Python's calls on their way, each ended by its answer, its error, or Python stopped
+const pyCalls = [];
 function onWorker(m) {
+  if (m.type === "result" || m.type === "error") pyCalls.shift()?.();
   if (m.heap != null) { st.heap = m.heap; st.files = m.files || 0; }
   if (m.busy) cpu.py = m.busy;
   if (m.net != null) net.worker = m.net;
@@ -845,7 +851,10 @@ function imageBox() {
 page.watch("image", imageBox); page.watch("opening", imageBox);
 
 // source: where the image came from, {kind: "local"} or the remote store's source of it
-async function openBytes(name, bytes, source) {
+const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
+async function openNow(name, bytes, source) {
+  // an image chosen while the study is still coming in opens into it, once it is in
+  await work.during(studyIn.catch(() => {}), "waiting for the study");
   if (st.img && !gtSession.leaving("open another image")) return;
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
@@ -2336,7 +2345,10 @@ function swap() {
 // the study's panels, put into the shell's slots, and its stylesheet: what leaves with it
 let lifetime = new AbortController(), mounted = [], css = null;
 // its panels go into the shell's slots, its stylesheet beside the shell's, then its module mounts
-async function mountStudy(id) {
+// counted as the page's work until the study is in, its steps drawn
+let studyIn = Promise.resolve();
+const mountStudy = (id) => (studyIn = work.during(mountNow(id), `study ${id} coming in`));
+async function mountNow(id) {
   if (!/^[\w-]+$/.test(id)) throw new Error(`no study "${id}"`);
   base = `../studies/${id}/`;
   const r = await fetch(base + "study.json");
@@ -2345,7 +2357,7 @@ async function mountStudy(id) {
   if (!maySee(manifest.visibility.accounts)) {
     manifest = null;
     history.replaceState(null, "", addressOf(DEFAULT_STUDY));
-    await mountStudy(DEFAULT_STUDY);
+    await mountNow(DEFAULT_STUDY);
     return notice("That study is shown only to the accounts it names. Signed in with one of them, the switcher offers it.");
   }
   data.mount(manifest);
@@ -2373,6 +2385,7 @@ async function mountStudy(id) {
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
   gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  tasks.mount(manifest.groundTruth?.areas);
   // the colour of Edit History's ring, where the study's image or marks carry the shell's
   if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);
@@ -2513,7 +2526,7 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, mask: summaryMasks.api, get viewer() { return view; } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);

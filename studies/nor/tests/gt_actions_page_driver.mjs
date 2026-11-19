@@ -17,6 +17,7 @@ import path from "node:path";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -61,7 +62,7 @@ const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json
 async function open(ctx) {
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await loadImage(page);

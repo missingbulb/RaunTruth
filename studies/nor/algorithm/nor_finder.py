@@ -2,10 +2,11 @@
 filtered many times.
 
   read(path)                         the channels and the blue (DAPI) mask
-  VERSIONS[finder](image, values=None, off=None, **overrides)
+  VERSIONS[finder](image, values=None, off=None, damaged=(), **overrides)
                                      the slow part: a finder proposes candidates and measures each one (with its
                                      parameters, plus overrides), and the filters judge them (at their own values,
-                                     plus values, less the filters named in off)
+                                     plus values, less the filters named in off); the pixels of the damaged areas
+                                     (outlines in the image's pixels) are left out of finding
   STAGES['refilter'](image, answer, spec)
                                      the fast part: the checks, the nucleus rule and one-pixel-per-NoR run again on
                                      the answer's stored measurements (milliseconds)
@@ -19,6 +20,7 @@ the finder runs again with the new values; at the finder's own values it returns
 import math
 
 import numpy as np
+from skimage.draw import polygon as fill_polygon
 
 import channels
 import controls
@@ -45,13 +47,27 @@ def _num(v):
     return round(v, 6) if math.isfinite(v) else None
 
 
-def detect(image, finder, overrides=None):
-    """Run a finder with its parameters (plus overrides): each candidate's place, measurements and the finder's own
-    verdict, and its segments, an h*w block at the candidate's `off` in `segments` (1 = red, 2 and 3 = the greens)."""
+def damaged_mask(shape, damaged):
+    """The pixels whose centres lie in a damaged area ([[x, y], ...] in the image's pixels)."""
+    out = np.zeros(shape, bool)
+    for poly in damaged or ():
+        q = np.asarray(poly, float)
+        out[fill_polygon(q[:, 1] - 0.5, q[:, 0] - 0.5, shape)] = True
+    return out
+
+
+def detect(image, finder, overrides=None, damaged=()):
+    """Run a finder with its parameters (plus overrides), leaving out the pixels of the damaged areas: each
+    candidate's place, measurements and the finder's own verdict, and its segments, an h*w block at the candidate's
+    `off` in `segments` (1 = red, 2 and 3 = the greens)."""
     fn, P = FINDERS[finder]
     P = dict(P, **(overrides or {}))
     bm = image['blue']
-    cands, info = fn(image['caspr'], image['nav'], bm if finder in OWN_BLUE else np.zeros_like(bm), P)
+    gone = damaged_mask(bm.shape, damaged)
+    if finder in OWN_BLUE:
+        cands, info = fn(image['caspr'], image['nav'], bm, P, gone=gone)
+    else:
+        cands, info = fn(image['caspr'], image['nav'], gone, P)
     H, W = image['caspr'].shape
     blocks, off, rows = [], 0, []
     for i, c in enumerate(cands):
@@ -138,8 +154,8 @@ def alone(image, found, spec):
 
 
 def version(finder):
-    def run(image, values=None, off=None, **overrides):
-        found = detect(image, finder, overrides)
+    def run(image, values=None, off=None, damaged=(), **overrides):
+        found = detect(image, finder, overrides, damaged)
         for row, fail in zip(found['cands'], refilter(image, found, {'values': values or {}, 'off': off or []})):
             row['fail'] = fail
         return found
@@ -193,5 +209,5 @@ NOTES = {f: 'with its default filters' for f in FINDERS}
 SCORING = truth.SCORING
 
 
-def score(answer, doc):
-    return truth.score(answer['cands'], doc)
+def score(answer, doc, damaged=()):
+    return truth.score(answer['cands'], doc, damaged)

@@ -14,8 +14,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-
 import { launch } from "../../../web-tests/harness.mjs";
+import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { orMissed } from "../../../web-tests/page_until.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -47,7 +49,7 @@ const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } })
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => problems.push("page error: " + e.message));
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 try {
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
@@ -89,7 +91,7 @@ try {
     if (!icon || !text.startsWith(icon + " " + LISTED[k].title)) problems.push(`${k} in the list does not start with its icon: ${text}`);
     // the box is folded until an image opens, so the choice is made as the list would make it
     await page.evaluate((k) => { const s = document.querySelector("#algorithm"); s.value = k; s.dispatchEvent(new Event("change")); }, k);
-    await page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title).catch(() => {});
+    await orMissed(page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
     const note = await page.evaluate(() => {
       const n = document.querySelector("#algorithm-note"), sel = document.querySelector("#algorithm");
       return {

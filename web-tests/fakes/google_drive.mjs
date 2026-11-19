@@ -16,7 +16,8 @@
 //   drive.outage = null | "throttled" | "down" | "details";   downloads refused as Google throttles a site (a failed
 //     request), nothing answering, or the files' details alone not answering
 //   drive.checksums = false;                           no SHA-256 for any file, as Drive gives none for some
-//   drive.delay = (call) => ms;                        an answer kept back that long
+//   drive.hold = (call) => promise;                    an answer kept back until the promise settles, as a test
+//     holds one (held.mjs) to make it slower than the user
 //   drive.uploaded = (file) => {};                     each file the page creates or replaces, once it has
 //   drive.pick = "picked" | "cancel" | (ids) => promise   what the picker answers once the page shows it
 //   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.keptForever, drive.picked   what the page asked
@@ -77,7 +78,7 @@ function makeDrive() {
   const drive = {
     files: [], approved: new Set(), viewOnly: new Set(), writers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
     get: (id) => drive.files.find((f) => f.id === id),
-    outage: null, checksums: true, delay: () => 0, uploaded: () => {},
+    outage: null, checksums: true, hold: () => null, uploaded: () => {},
     calls: [], writes: [], thumbs: [], shared: [], keptForever: [], picked: [], inflight: 0,
     // the picker's answer once shown: "picked" approves what it was shown, "cancel" nothing; or (ids) => a promise of
     // one, for a test that answers when it is ready
@@ -200,8 +201,7 @@ export async function fakeGoogleDrive(ctx, world) {
     call.kind = req.method() !== "GET" ? "write" : !id ? "list" : u.searchParams.get("alt") === "media" ? (call.range ? "piece" : "download") : "details";
     if (call.kind === "piece") call.kind = "download", call.piece = true;
     drive.calls.push(call); drive.inflight++;
-    const ms = drive.delay(call);
-    if (ms) await new Promise((ok) => setTimeout(ok, ms)); // waits on purpose: a slow answer, as the test sets
+    await drive.hold(call);
     try {
       // Google's refusal of a throttled download lacks the header that lets the page read it: a failed request
       if (drive.outage === "down" || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return await route.abort("failed");

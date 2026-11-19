@@ -10,6 +10,7 @@
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
 import { isVsi, pairBytes } from "./vsi.js";
+import { work } from "./pending.js";
 
 const GOOGLE = (window.NOR_CONFIG && window.NOR_CONFIG.google) || {};
 // what a study's image from Drive is, as its source records it on this device and in the documents it writes
@@ -280,7 +281,7 @@ export const remote = (() => {
           .build().setVisible(true);
       });
     }
-    return {
+    return work.counted({
       // "write", "view" (approved, but Drive gives the user no more than a view), "none" (not approved for this
       // site), or null when it cannot tell now (no live token)
       async access(id) {
@@ -336,7 +337,7 @@ export const remote = (() => {
       async trash(id) {
         await google(`${API}/${encodeURIComponent(id)}?supportsAllDrives=true`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ trashed: true }) });
       },
-    };
+    }, ["access", "create", "folder", "ours", "replace", "mark", "share", "trash"], "store write");
   }
 
   // the parts of a study's study.json that name Drive: whether its images open from the store, its root folder's id
@@ -346,7 +347,7 @@ export const remote = (() => {
     return { opens: !!m?.files?.from?.includes(KIND), root: r?.kind === "folder" ? r.id : null, thumbs: m?.driveThumbs || null };
   };
 
-  return {
+  return work.counted({
     // what the page calls the store, in full and short
     label: "Google Drive", short: "Drive",
     // the store's logo, an SVG <symbol> the page's sprite takes in, of this id
@@ -370,5 +371,5 @@ export const remote = (() => {
     // what a document records of where an image from the store is: the id field it carries, and its full location
     cite: (src) => ({ drive_id: src.id }),
     locate: (src) => ({ source: KIND, drive_id: src.id, url: `https://drive.google.com/file/d/${src.id}/view` }),
-  };
+  }, ["file", "head", "checksum", "list", "all", "name", "publicly", "canWrite"], "store read");
 })();

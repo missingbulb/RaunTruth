@@ -45,12 +45,12 @@ export async function openFromDrive(page, file) {
     } else {
       const row = `#remote-list .item[data-id="${f.id}"]`;
       // the study's folders listed to choose from: the first. The dialog may redraw meanwhile, moving into the
-      // folder it opened last, so what is listed is read again until the file's row is there.
-      const deadline = Date.now() + 15000;
-      for (;;) {
+      // folder it opened last, so what is listed is read again until the file's row is there, a folder opened between
+      // the readings, as many as a study's folders nest
+      for (let opened = 0; opened <= 4; opened++) {
         // a string: a predicate's element would come back as a handle that keeps it alive
         const shown = await (await page.waitForFunction((r) => (document.querySelector(r) ? "row" : document.querySelector("#remote-list .item.folder:not(:disabled)") ? "folder" : ""), row)).jsonValue();
-        if (shown === "row" || Date.now() > deadline) break;
+        if (shown === "row") break;
         await page.dblclick("#remote-list .item.folder", { timeout: 2000 }).catch(() => {});
       }
       await page.dblclick(row);

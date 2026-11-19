@@ -50,13 +50,9 @@
           <label class="for-gt" title="The area you are working on, framed"><input type="checkbox" id="show-gt-frame" checked> Frame the area</label>
         </div>
       </details>
-      <div class="for-items tabs" role="tablist">
-        <button id="tab-pass" role="tab" class="on">Finalists <span id="n-pass"></span></button><button id="tab-fail" role="tab">Rejected <span id="n-fail"></span></button>
-      </div>
-      <details class="menu for-items" id="card-menu">
+      <details class="menu" id="card-menu" hidden>
         <summary>Options</summary>
         <div class="pop">
-          <label class="sort">sort <select id="sort" title="The order of the cards in this view"></select></label>
           <label class="num">context padding <input type="number" id="opt-pad" placeholder="auto" min="0" max="60" step="1"> px</label>
           <label><input type="checkbox" id="opt-align"> align to horizon</label>
           <label><input type="checkbox" id="opt-borders"> NoR borders</label>
@@ -66,11 +62,6 @@
           <label><input type="checkbox" id="opt-adjust"> length adjusters</label>
         </div>
       </details>
-</template>
-<template data-slot="views">
-    <div id="items-view" data-shelved hidden>
-      <div id="list"></div>
-    </div>
 </template>
 <template data-slot="over-image">
     <section id="selected-box" hidden aria-label="The selected candidate">

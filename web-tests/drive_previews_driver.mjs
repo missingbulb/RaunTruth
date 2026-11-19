@@ -18,6 +18,8 @@ import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { keptContext } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
+import { orMissed, untilHeard } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -66,23 +68,21 @@ await ctx.addInitScript((link) => {
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started
 // every TIFF row says what it holds, the page says its thumbnails are in (the status bar's "Thumbnails n of m" gone), and no
 // read is on the way once the page has run its handlers; 10 s at most, the
 // checks after it saying what is missing
 const quiet = async () => {
-  const end = Date.now() + 10000;
-  for (;;) {
-    await page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent)
+  const done = await untilHeard(async () => {
+    await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent)
       && [...document.querySelectorAll("#remote-list .item")].every((b) => !/\.tiff?$/i.test(b.querySelector(".name").textContent) || b.querySelector(".shape").textContent),
-      null, { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
+      null, { timeout: 10000 }));
     await framesOf(page);
-    if (!drive.inflight || Date.now() >= end) break;
-    await page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-  }
-  if (Date.now() >= end) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows: await rows() }));
+    return !drive.inflight;
+  }, () => orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows: await rows() }));
 };
 const open = async () => {
   await pressDrive(page);
@@ -127,14 +127,14 @@ try {
   // the turning canvas's picture, null when the row shows its still
   const frame = () => page.evaluate((sel) => document.querySelector(sel + " .pic canvas")?.toDataURL() ?? null, stackRow);
   await page.hover(stackRow);
-  await page.waitForFunction((sel) => document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }).catch(() => {});
+  await orMissed(page.waitForFunction((sel) => document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }));
   const f1 = await frame();
-  await page.waitForFunction(([sel, f1]) => document.querySelector(sel + " .pic canvas")?.toDataURL() !== f1, [stackRow, f1], { timeout: 3000 }).catch(() => {});
+  await orMissed(page.waitForFunction(([sel, f1]) => document.querySelector(sel + " .pic canvas")?.toDataURL() !== f1, [stackRow, f1], { timeout: 3000 }));
   const f2 = await frame();
   check(!!f1 && !!f2 && f1 !== f2, "hovering a stack's row turns it");
   if (shots && f2) fs.writeFileSync(path.join(shots, "turning.png"), Buffer.from(f2.split(",")[1], "base64"));
   await page.mouse.move(5, 5);
-  await page.waitForFunction((sel) => !document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }).catch(() => {});
+  await orMissed(page.waitForFunction((sel) => !document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }));
   check((await frame()) === null, "and leaving it shows its still again");
   check(!readsOf("b stack.tif"), "turning reads nothing");
 
@@ -148,8 +148,8 @@ try {
   readsFrom = drive.calls.length;
   await open();
   // the new file read and its pictures drawn on the rows it covers
-  await page.waitForFunction(() => [...document.querySelectorAll("#remote-list .item")].find((b) => b.querySelector(".name").textContent === "a flat.tif")?.querySelector(".pic img, .pic canvas"),
-    null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => [...document.querySelectorAll("#remote-list .item")].find((b) => b.querySelector(".name").textContent === "a flat.tif")?.querySelector(".pic img, .pic canvas"),
+    null, { timeout: 5000 }));
   check(readsOf(PREVIEWS) === "whole" && row(await rows(), "a flat.tif").pic, `changed on Drive, it is downloaded again: ${readsOf(PREVIEWS)}`);
   await page.click("#remote-dlg button[value=close]");
 

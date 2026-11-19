@@ -15,9 +15,12 @@ import http from "node:http";
 import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { launch, expecting } from "../../../web-tests/harness.mjs";
+import { localStudy } from "../../../web-tests/local_study.mjs";
+import { idle } from "../../../web-tests/page_until.mjs";
+import { held as holding } from "../../../web-tests/held.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -31,7 +34,7 @@ const LATE = 600; // ms each answer takes
 const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
-const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose: it stands in for a slow computer's Python
+const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose (a slow computer): it stands in for a slow computer's Python
 let finder, runs = 0;
 postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0, heap: 300 * 2 ** 20, files: 80 * 2 ** 20 });
 onmessage = async ({ data: m }) => {
@@ -51,7 +54,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  // the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
+  // driven in a PreGT study, outside ground truth
   if (u === "/studies/nor/study.json") {
     r.writeHead(200, { "content-type": "application/json" });
     return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage: "PreGT" }));
@@ -60,11 +63,11 @@ const server = http.createServer((q, r) => {
   if (u === "/web/image_open.js") {
     r.writeHead(200, { "content-type": "text/javascript" });
     return r.end(`import * as real from "./image_open.real.js"; export * from "./image_open.real.js";
-export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose: it stands in for a slow computer reading the image
+export const openImage = async (...a) => { await new Promise((ok) => setTimeout(ok, ${LATE})); return real.openImage(...a); };`); // waits on purpose (a slow computer): it stands in for a slow computer reading the image
   }
   if (u === "/studies/nor/web/nor.js" && !q.headers["x-late"]) {
     // the study's code comes after its algorithm list, so the page has listed them before its own start has run
-    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose: it stands in for a slow computer fetching the study's code
+    return setTimeout(() => { q.headers["x-late"] = "1"; server.emit("request", q, r); }, LATE); // waits on purpose (a slow computer): it stands in for a slow computer fetching the study's code
   }
   const f = u === "/web/image_open.real.js" ? path.join(repo, "web", "image_open.js")
     : u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
@@ -86,7 +89,6 @@ const started = (page) => page.waitForFunction(() => document.querySelector("#al
 async function open(gb) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await asTagger(ctx);
-  await withItemView(ctx); // the switch to the shelved item view
   await ctx.addInitScript((gb) => {
     delete Navigator.prototype.serviceWorker;
     Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true });
@@ -94,7 +96,7 @@ async function open(gb) {
   await standInDrive(ctx);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await started(page);
   return { ctx, page };
@@ -146,9 +148,6 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
     const v = st.values[p.dataset.name], box = p.querySelector(".box");
     return !box || box.type !== "number" || +box.value === v;
   }) && $(`#presets [data-preset=precise]`).classList.contains("on")), "and every filter shows the preset's values");
-  await page.click("#switch");
-  await free(page, "#switch");
-  await check(await page.evaluate(() => st.view === "items"), "the Items switch switches views and lets go");
   const playing = () => page.evaluate(() => $("#far").getAnimations({ subtree: true })[0].playState);
   await page.evaluate(() => $("#left").insertAdjacentHTML("beforeend", '<div style="height:3000px"></div><div id="far" class="shine">x</div>'));
   await page.waitForFunction(() => $("#far").classList.contains("offscreen"));
@@ -178,6 +177,29 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
   await check(await page.evaluate(() => !$("#find").disabled), "Find Candidates is free again after the failure");
+  await ctx.close();
+}
+// ---- an image opened before the study's code has come: once the study is in, the image is loaded and its first
+// step is the one to do ----
+{
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await localStudy(ctx, "nor");
+  // the study's code held until the image has opened, or the page waits for the study to open it
+  const code = holding();
+  await ctx.route("**/studies/nor/web/nor.js", async (r) => { await code.hold(); await r.continue(); });
+  const page = await ctx.newPage();
+  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
+  page.setDefaultTimeout(STEP);
+  await page.goto(origin + "/web/index.html?study=nor");
+  await code.asked;
+  await page.waitForFunction(() => window.shellForTests && $("#file").onchange);
+  await page.setInputFiles("#file", image);
+  await page.waitForFunction(() => !!st.img || shellForTests.work.doing.includes("waiting for the study"), null, { timeout: 4 * LATE + 2000 });
+  code.release();
+  await idle(page, { timeout: 4 * LATE + 2000 });
+  const steps = await page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › "));
+  await check(steps === "Load image › Run algorithm*" && await page.evaluate(() => !!st.img), `an image opened as the study came in is loaded, Run algorithm the step to do: ${steps}`);
   await ctx.close();
 }
 await done(0);

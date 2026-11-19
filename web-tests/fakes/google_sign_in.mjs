@@ -2,7 +2,8 @@
 // client, the account's details, and the settings file the page keeps in the user's Drive app folder. It owns the tokens: one it issued or a test registered
 // is live until it runs out or is revoked, and the Drive fake asks it whose a token is.
 //   const google = signIn(ctx);
-//   google.answer = "grant" | "deny" | "blocked" | "closed";   what Google's window says next; google.delay = ms first
+//   google.answer = "grant" | "deny" | "blocked" | "closed";   what Google's window says next
+//   google.answerAfter = () => promise;                        Google's window answering once it settles, not at once
 //   google.nextToken = "renewed-token";                        the token it grants next, a fresh one if unset
 //   const record = google.signedIn({ email, name, scopes, token, until });   a token made live, and the page's own
 //     record of a sign-in (its nor-google-sign-in key) to seed
@@ -16,6 +17,9 @@ const APP = "appDataFolder";
 export const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type, range",
   "access-control-allow-methods": "GET, POST, PATCH, DELETE" };
 export const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
+
+// when a token issued now runs out, as Google's do
+const anHourOn = () => Date.now() + 3599e3;
 
 const fakes = new WeakMap();
 export const signIn = (ctx) => fakes.get(ctx);
@@ -63,7 +67,7 @@ function makeSignIn() {
   let n = 0;
   const google = {
     account: { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: null },
-    answer: "grant", delay: 0, nextToken: null,
+    answer: "grant", answerAfter: () => null, nextToken: null,
     asked: [], scriptLoads: 0, calls: [],
     // the app folders' files, each user's own: {id, owner, name, parents, body}
     settings: [], waiting: [],
@@ -71,7 +75,7 @@ function makeSignIn() {
     heard(call) { google.calls.push(call); for (const ok of google.waiting.splice(0)) ok(call); },
     tokens: new Map(),
     issue: () => `fake-token-${++n}`,
-    signedIn({ email = google.account.email, name = google.account.name, scopes = SCOPES, token = google.issue(), until = Date.now() + 3600e3 } = {}) {
+    signedIn({ email = google.account.email, name = google.account.name, scopes = SCOPES, token = google.issue(), until = anHourOn() } = {}) {
       google.tokens.set(token, { email, scopes, until });
       return { user: { name, email, picture: null }, token, until, scopes };
     },
@@ -88,11 +92,11 @@ export async function fakeGoogleSignIn(ctx, world) {
   fakes.set(ctx, google);
   await ctx.exposeBinding("__fakeSignIn", async (_, ask) => {
     google.asked.push(ask);
-    if (google.delay) await new Promise((ok) => setTimeout(ok, google.delay)); // waits on purpose: Google's window taking its time, as a test sets
+    await google.answerAfter();
     const errors = { deny: { error: "access_denied" }, blocked: { error_type: "popup_failed_to_open" }, closed: { error_type: "popup_closed" } };
     if (errors[google.answer]) return errors[google.answer];
     const token = google.nextToken || google.issue();
-    google.tokens.set(token, { email: google.account.email, scopes: ask.scope, until: Date.now() + 3599e3 });
+    google.tokens.set(token, { email: google.account.email, scopes: ask.scope, until: anHourOn() });
     return { access_token: token, expires_in: 3599, scope: ask.scope };
   });
   await ctx.route(GSI, (route) => { google.scriptLoads++; return route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });

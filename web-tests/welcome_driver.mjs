@@ -20,6 +20,8 @@ import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
 import { launch, googleOf, expecting } from "./harness.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -62,7 +64,7 @@ async function device({ offline = false, seed = {} } = {}) {
   }, [offline, seed]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   // the popup and the tip are decided as the shell's module runs, before the study's title is shown
   const open = async () => { await page.goto(origin + "/web/index.html"); await page.waitForFunction(() => document.querySelector("#title").textContent); };
   await open();
@@ -85,7 +87,7 @@ const guide = (page) => page.evaluate(() => {
   return d?.open ? { text: d.textContent, drawn: [...d.querySelectorAll("img")].map((i) => i.complete && i.naturalWidth > 0), asked: window.tokenClient?.asked?.length || 0 } : null;
 });
 // a sign-in that opens the guide: on through its Open Google's window
-const throughGuide = async (page) => { await page.waitForSelector("#guide-dlg[open]", { timeout: 3000 }).catch(() => {}); if (await guide(page)) await page.click("#guide-go"); };
+const throughGuide = async (page) => { await orMissed(page.waitForSelector("#guide-dlg[open]", { timeout: 3000 })); if (await guide(page)) await page.click("#guide-go"); };
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png") }); };
 
 try {
@@ -134,10 +136,10 @@ try {
   const b = await device();
   await b.page.hover("#welcome-sign-in");
   await b.page.mouse.down();
-  check(await b.page.waitForFunction(() => window.google).then(() => true, () => false), "pressing Sign in with Google loads Google's script");
+  check(await orMissed(b.page.waitForFunction(() => window.google)), "pressing Sign in with Google loads Google's script");
   await b.page.mouse.up();
   const g1 = await b.page.waitForSelector("#guide-dlg[open]", { timeout: 3000 })
-    .then(() => b.page.waitForFunction(() => [...document.querySelectorAll("#guide-dlg img")].every((i) => i.complete), null, { timeout: 5000 }).catch(() => {}))
+    .then(() => orMissed(b.page.waitForFunction(() => [...document.querySelectorAll("#guide-dlg img")].every((i) => i.complete), null, { timeout: 5000 })))
     .then(() => guide(b.page), () => null);
   check(!!g1 && g1.asked === 0 && !(await signedIn(b.page)), "no one signed in here, Sign in with Google first opens the guide to Google's screens, asking Google nothing yet");
   check(!!g1 && /Advanced/.test(g1.text) && /unsafe/.test(g1.text) && /Continue/.test(g1.text) && g1.drawn.length >= 3 && g1.drawn.every(Boolean),
@@ -150,13 +152,13 @@ try {
   await b.page.waitForSelector("#guide-dlg[open]");
   await b.page.click("#guide-go");
   check(await b.page.evaluate(() => window.tokenClient?.asked?.length === 1), "its Open Google's window asks Google in that click");
-  check(await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden).then(() => true, () => false) && !(await popup(b.page)),
+  check(await orMissed(b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden)) && !(await popup(b.page)),
     "Sign in with Google signs the user in and closes the popup");
   await b.open();
   check(await popup(b.page) && await signedIn(b.page), "unticked, the next visit, still signed in, shows the popup again");
   check(/Ada Lovelace/.test(await b.page.textContent("#welcome-dlg")), "naming who is signed in");
   await b.page.click("#welcome-sign-in");
-  check(await b.page.waitForFunction(() => !document.querySelector("#welcome-dlg").open).then(() => true, () => false) && !(await guide(b.page)) && await signedIn(b.page),
+  check(await orMissed(b.page.waitForFunction(() => !document.querySelector("#welcome-dlg").open)) && !(await guide(b.page)) && await signedIn(b.page),
     "signed in already, Sign in with Google goes on as the user with no guide");
   await b.open();
   await b.page.click("#welcome-anonymous");
@@ -181,7 +183,7 @@ try {
   await b.page.click("#user-menu summary");
   await b.page.waitForFunction(() => window.tokenClient);
   await b.page.click("#sign-in");
-  check(await b.page.waitForSelector("#guide-dlg[open]", { timeout: 3000 }).then(() => true, () => false), "the menu's Sign in with Google opens the guide too");
+  check(await orMissed(b.page.waitForSelector("#guide-dlg[open]", { timeout: 3000 })), "the menu's Sign in with Google opens the guide too");
   await b.page.click("#guide-go");
   await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
   await b.open();
@@ -220,30 +222,30 @@ try {
   await expecting(/no token/, async () => {
     await f.page.click("#welcome-sign-in");
     await throughGuide(f.page);
-    check(await f.page.waitForFunction(() => !document.querySelector("#guide-dlg").open).then(() => true, () => false), "Google answering closes the guide");
-    check(await f.page.waitForFunction(() => /did not finish/i.test(document.querySelector("#welcome-failed")?.textContent) && !document.querySelector("#welcome-failed").hidden).then(() => true, () => false)
+    check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#guide-dlg").open)), "Google answering closes the guide");
+    check(await orMissed(f.page.waitForFunction(() => /did not finish/i.test(document.querySelector("#welcome-failed")?.textContent) && !document.querySelector("#welcome-failed").hidden))
       && await popup(f.page) && !(await signedIn(f.page)), "a cancelled Google window leaves the popup up, saying sign-in did not finish");
   });
   google.answer = "blocked";
   await expecting(/sign-in window/, async () => {
     await f.page.click("#welcome-sign-in");
     await throughGuide(f.page);
-    await f.page.waitForSelector("#welcome-failed", { state: "visible" }).catch(() => {});
+    await orMissed(f.page.waitForSelector("#welcome-failed", { state: "visible" }));
   });
   check(await popup(f.page) && await f.page.isVisible("#welcome-failed") && !(await signedIn(f.page)), "and so does a blocked one");
   google.answer = "grant";
   await f.page.click("#welcome-sign-in");
   await throughGuide(f.page);
-  check(await f.page.waitForFunction(() => !document.querySelector("#sign-out").hidden).then(() => true, () => false) && !(await popup(f.page)), "trying again signs in and closes it");
+  check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#sign-out").hidden)) && !(await popup(f.page)), "trying again signs in and closes it");
 
   // the tip follows the avatar when the window is resized
   const g = await device({ seed: { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) } });
   await g.page.setViewportSize({ width: 700, height: 800 });
   // the tip moves with the avatar once the page has laid the narrower window out
-  await g.page.waitForFunction(() => {
+  await orMissed(g.page.waitForFunction(() => {
     const t = document.querySelector('.tip-bubble[data-tip="sign-in"]')?.getBoundingClientRect(), a = document.querySelector("#user-menu summary").getBoundingClientRect();
     return t && t.right <= innerWidth && t.left < a.right && t.right > a.left;
-  }).catch(() => {});
+  }));
   const moved = await signInTip(g.page);
   check(moved && moved.inside && moved.under && moved.arrow, "the tip follows the avatar when the window narrows: " + JSON.stringify(moved));
 
@@ -259,7 +261,7 @@ try {
   await h2.keyboard.press("Escape");
   await h.page.click("#user-menu summary");
   await h.page.click("#sign-out");
-  await h2.waitForFunction(() => document.querySelector("#sign-out").hidden).catch(() => {});
+  await orMissed(h2.waitForFunction(() => document.querySelector("#sign-out").hidden));
   check(await h2.evaluate(() => document.querySelector("#sign-out").hidden), "signing out in one tab signs the other out too");
   // signed out there, the other tab's change starts nothing that could write the record later: a sign-in written
   // back would be written by the click itself

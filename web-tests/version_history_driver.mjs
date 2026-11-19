@@ -15,6 +15,8 @@ import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
 import { launch, expecting } from "./harness.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -66,7 +68,7 @@ async function open(seen, theme = "dark") {
   await watchReads(ctx, ["version_history.json"]);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html");
   await historyRead(page);
   return { ctx, page };
@@ -162,7 +164,7 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
     const { ctx, page } = await open("0.10928.2");
     await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
     await page.click("#sb-version");
-    const msg = await page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)).then(() => true, () => false);
+    const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
     await check(msg, "the popup says the history could not be loaded");
     await ctx.close();
   });
