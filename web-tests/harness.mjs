@@ -54,7 +54,7 @@ async function install(ctx, world) {
   ctx.setOffline = (on) => { offline = on; return setOffline(on); };
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); return page; };
-  await ctx.route(offSite, (r) => r.abort());
+  await ctx.route(offSite, (r) => { said("request", "left this machine: " + r.request().url()); return r.abort(); });
   for (const fake of FAKES) await fake(ctx, world);
   await ctx.route(offSite, (r) => (offline ? r.abort("internetdisconnected") : r.fallback()));
   await ctx.addInitScript(COPY);

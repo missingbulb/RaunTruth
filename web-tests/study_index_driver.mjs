@@ -59,7 +59,7 @@ await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data")
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
 // the page asks whether the site's key reads the folder, shared with the study manager alone: Drive knows it not
-await expecting(/status of 404/, async () => {
+await expecting(/status of 404.*googleapis/, async () => {
   await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
   await page.click("#data-add");
   await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);

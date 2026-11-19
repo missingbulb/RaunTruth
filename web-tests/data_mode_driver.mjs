@@ -44,7 +44,7 @@ const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-
 const turned = () => frames(page);
 await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
 // the tree asks Drive what the site may do in each folder: of one it was never approved for, Drive knows nothing
-await expecting(/status of 404/, async () => {
+await expecting(/status of 404.*googleapis/, async () => {
   await role(page, "Study Manager");
   await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 });
@@ -74,7 +74,7 @@ await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
 await check(true, "the list button lays the images out as a list");
 
 // whether the page made the previews file is asked of Drive, which knows nothing of the page's making it
-await expecting(/status of 404/, async () => {
+await expecting(/status of 404.*googleapis/, async () => {
   await page.click("#update-previews");
   await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
 });
@@ -118,7 +118,7 @@ await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
 await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
-await expecting(/status of 404/, async () => {
+await expecting(/status of 404.*googleapis/, async () => {
   await page.click(cell("b stack.tif") + " .mark-gt");
   await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
 });

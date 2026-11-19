@@ -183,7 +183,7 @@
 .card.task .reset-lines { display: block; margin: 6px auto 0; font-size: 12px; }
 
 /* the image while the study makes ground truth: a candidate waiting is a faint outline and nothing more, the
-   current one has a yellow ring; what is done is cut out, the picture behind showing there; the area being
+   current one has a yellow ring; what is done is cut out; the area being
    checked for missed NoRs is framed */
 #overlay.gt .num, #overlay.gt .let, #overlay.gt .red, #overlay.gt .lines, #overlay.gt .added text { display: none; }
 #overlay.gt g[data-i] path { stroke: #fff; stroke-width: 1px; stroke-opacity: .3; stroke-dasharray: none; }

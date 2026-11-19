@@ -1531,7 +1531,7 @@ async function keepThumb(id, name, url) {
     thumbClock = Math.max(Date.now(), thumbClock + 1);
     await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
     kept = true;
-    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
+    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q))?.headers.get(IMAGE_AT)) || 0 })));
     all.sort((x, y) => x.at - y.at);
     for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
   } catch (e) { console.warn("the thumbnail could not be kept:", e); }
@@ -1673,7 +1673,7 @@ async function inventory() {
   try { keys = Object.keys(localStorage); } catch { /* no storage */ }
   const stores = window.caches ? await Promise.all((await caches.keys()).map(async (n) => ({ name: n, cache: await caches.open(n) }))) : [];
   const images = stores.find((c) => c.name === IMAGES);
-  if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q)).headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
+  if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q))?.headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
 
   const selections = new Map();
   for (const k of keys) {

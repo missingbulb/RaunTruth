@@ -8,7 +8,6 @@
 //   drive.file({ id, name, parent, bytes, mimeType, createdTime, also });   also: other folders it is in, as Drive has
 //     let a file sit in several; drive.files: every item, a test may change it
 //     ({id, name, parent, folder, bytes, mine, props, modified}); drive.get(id)
-//   drive.fromDir(dir, parent)                         a directory on disk, its subdirectories as folders
 //   drive.approved, drive.viewOnly                     the folders the site was approved for (its picker), and the
 //     folders Drive's sharing lets the user only view
 //   drive.writers                                      per folder, who Drive's sharing lets add to it (a Set of
@@ -20,7 +19,7 @@
 //     holds one (held.mjs) to make it slower than the user
 //   drive.uploaded = (file) => {};                     each file the page creates or replaces, once it has
 //   drive.pick = "picked" | "cancel" | (ids) => promise   what the picker answers once the page shows it
-//   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.keptForever, drive.picked   what the page asked
+//   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.keptForever   what the page asked
 //   drive.next(predicate)                              the next call matching it, once it is answered
 //   drive.inflight                                     how many calls are being answered now
 //   drive.offered                                      files the remote files dialog lists in whichever folder it shows
@@ -79,7 +78,7 @@ function makeDrive() {
     files: [], approved: new Set(), viewOnly: new Set(), writers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
     get: (id) => drive.files.find((f) => f.id === id),
     outage: null, checksums: true, hold: () => null, uploaded: () => {},
-    calls: [], writes: [], thumbs: [], shared: [], keptForever: [], picked: [], inflight: 0,
+    calls: [], writes: [], thumbs: [], shared: [], keptForever: [], inflight: 0,
     // the picker's answer once shown: "picked" approves what it was shown, "cancel" nothing; or (ids) => a promise of
     // one, for a test that answers when it is ready
     pick: "picked",
@@ -92,13 +91,6 @@ function makeDrive() {
       const f = { id, name, parent, also, folder: false, mimeType, bytes: Buffer.from(bytes), access, mine, props: {}, createdTime: createdTime || tick(), modified: tick() };
       drive.files.push(f);
       return f;
-    },
-    fromDir(dir, parent) {
-      for (const name of fs.readdirSync(dir).sort()) {
-        const p = path.join(dir, name);
-        if (fs.statSync(p).isDirectory()) drive.fromDir(p, drive.folder({ name, parent }).id);
-        else drive.file({ name, parent, bytes: fs.readFileSync(p) });
-      }
     },
     next: (match = () => true) => new Promise((ok) => drive.waiting.push({ match, ok })),
   };
@@ -216,7 +208,6 @@ export async function fakeGoogleDrive(ctx, world) {
     return route.fulfill({ status: 200, headers: CORS, contentType: "image/jpeg", path: path.join(REPO, "web", "poster.jpg") });
   });
   await ctx.exposeBinding("__fakePicker", async (_, ids) => {
-    drive.picked.push(ids);
     const answer = typeof drive.pick === "function" ? await drive.pick(ids) : drive.pick;
     if (answer === "picked") for (const id of ids) drive.approved.add(id);
     return answer;

@@ -47,6 +47,11 @@ def test_a_request_leaving_the_machine_is_turned_away_and_seen():
     assert 'turned away' in r.stdout and r.returncode == 1, r.stdout + r.stderr
 
 
+def test_a_request_leaving_the_machine_from_a_worker_is_seen_too():
+    r = run('offsiteworker')
+    assert 'turned away' in r.stdout and r.returncode == 1 and 'left this machine' in r.stdout, r.stdout + r.stderr
+
+
 def test_jsdelivr_answers_from_the_installed_libraries():
     r = run('cdn')
     assert r.returncode == 0 and 'served 1.19.8' in r.stdout, r.stdout + r.stderr

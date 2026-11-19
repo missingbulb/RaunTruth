@@ -29,6 +29,11 @@ const CASES = {
   unanswered: () => expecting(/went wrong/, async () => {}),
   uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after
   offsite: async () => console.log(await page.evaluate(() => fetch("https://acme.example/x").then((r) => "reached " + r.status, () => "turned away"))),
+  // a worker's failed request leaves no line in the console of its own
+  offsiteworker: async () => console.log(await page.evaluate(() => new Promise((ok) => {
+    const w = new Worker(URL.createObjectURL(new Blob(['fetch("https://acme.example/x").then((r) => postMessage("reached " + r.status), () => postMessage("turned away"))'], { type: "text/javascript" })));
+    w.onmessage = (e) => ok(e.data);
+  }))),
   setup: async () => {
     const ctx = await browser.newContext();
     await ctx.addInitScript((v) => localStorage.setItem("seeded", v), "yes");

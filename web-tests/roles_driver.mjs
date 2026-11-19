@@ -12,7 +12,7 @@ import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, shots] = process.argv.slice(2);
 const shot = (page, name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
-const { google, ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
+const { google, drive, ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
 const OTHER = "someone@example.com";
 
 // what the page shows: the role named, the roles listed, the line under them, and each role's tools (the ground-truth
@@ -110,7 +110,7 @@ s = await seen(page);
 await page.click("#role-menu summary"); await shot(page, "menu"); await page.click("#role-menu summary");
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.data, "a study manager is offered Study Manager, and sees no Data Management until choosing it", s);
 // the tree asks Drive what the site may do in each folder: of one it was never approved for, Drive knows nothing
-await expecting(/status of 404/, async () => {
+await expecting(/status of 404.*googleapis/, async () => {
   await choose(page, "Study Manager");
   await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 });
@@ -148,10 +148,12 @@ page = await opened(true, { seed: ranOut(record), keepSettings: true });
 s = await seen(page);
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager", "the token run out, the menu still lists the roles Drive last gave", s);
 await check(asked() === 0, "and nothing asks Google for a token before a click", asked());
+const confirmed = drive.next((c) => c.fields.includes("capabilities"));
 await page.click("#role-menu summary");
+await confirmed;
 await page.waitForFunction(() => $("#role-hint").hidden);
 s = await seen(page);
-await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.hint, "opening the menu renews the token and Drive confirms the roles", s);
+await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.hint && asked() === 1, "opening the menu renews the token and Drive confirms the roles", { ...s, asked: asked() });
 await page.context().close();
 // never told before on this device: Viewer, until opening the menu renews the token and Drive answers
 const { learned, ...fresh } = record;

@@ -99,7 +99,7 @@ const user = { name: "Tester", email: "tester@example.com", picture: null };
   const { ctx, page, reads } = await session(null);
   const pub = await listFolder(page, PUBLIC);
   check(pub.names.some((n) => n.includes("private.png")), "signed out, the dialog lists a public folder", pub);
-  const priv = await expecting(/status of 404/, () => listFolder(page, PRIVATE));
+  const priv = await expecting(/status of 404.*googleapis/, () => listFolder(page, PRIVATE));
   check(!priv.names.length, "signed out, a private folder lists nothing", priv);
   check(reads().length > 0 && reads().every((r) => r.key === KEY && r.bearer === null), "signed out, every Drive read carries the site's API key alone", reads());
   await ctx.close();
