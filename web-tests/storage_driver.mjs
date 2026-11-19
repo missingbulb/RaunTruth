@@ -23,7 +23,7 @@ import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { keptContext } from "./kept_context.mjs";
 import { cutShort } from "./page_errors.mjs";
-import { until } from "./page_until.mjs";
+import { until, seen } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 
 const require = createRequire(import.meta.url);
@@ -141,7 +141,7 @@ try {
   // req/shell/offline/mark: a study whose Python is all here is marked in the switcher, green, a state rather than a
   // prompt: a tiny tooltip and no question-mark pointer, what it means in full said to assistive tech
   await page.click("#study-menu summary");
-  await page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }));
   const marks = await page.$$eval("#study-list a", (as) => as.map((a) => {
     const m = a.querySelector(".offline-mark"), cs = m && getComputedStyle(m);
     const end = Math.max(...[...a.children].filter((c) => c.offsetParent).map((c) => c.getBoundingClientRect().right));
@@ -378,11 +378,11 @@ try {
   check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
   await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
   await page.reload();
-  await until(page, async (ids) => {
+  await seen(until(page, async (ids) => {
     const c = await caches.open("nor-thumbs-v1");
     for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
     return !Object.keys(localStorage).some((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs");
-  }, LEGACY).catch(() => {});
+  }, LEGACY));
   const moved = await page.evaluate(async () => {
     const c = await caches.open("nor-thumbs-v1"), of = (id) => c.match(new URL("drive-thumb/" + id, location.href).href);
     return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };

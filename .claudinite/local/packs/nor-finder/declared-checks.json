@@ -56,6 +56,25 @@
     ]
   },
   {
+    "id": "swallowed-wait",
+    "on_fail": "block",
+    "failureMessage": "a wait whose miss is swallowed carries on as though its condition came: a sleep in disguise, and the check after it fails far from the cause or passes on a page still working",
+    "fix": "wrap the wait in seen() from web-tests/page_until.mjs, which says what was not seen and resolves to null, or let the wait fail the test",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/(\\.waitFor(Function|Selector|Event|Response|Request|URL|LoadState)|\\buntil|\\bidle)\\(.*\\.(catch\\(\\s*\\(\\)\\s*=>\\s*(\\{\\s*\\}|null|false|undefined|0)\\s*\\)|then\\(\\s*\\(\\)\\s*=>\\s*true\\s*,\\s*\\(\\)\\s*=>\\s*false\\s*\\))/",
+        "what": "swallows a wait's miss: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      },
+      {
+        "match": "/^\\s*([})\\]]|&&|\\|\\||null\\b|[?:]).*\\)\\.(catch\\(\\s*\\(\\)\\s*=>\\s*(\\{\\s*\\}|null|false|undefined|0)\\s*\\)|then\\(\\s*\\(\\)\\s*=>\\s*true\\s*,\\s*\\(\\)\\s*=>\\s*false\\s*\\))/",
+        "what": "swallows the miss of a wait begun on an earlier line: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
     "id": "google-drive-in-one-file",
     "on_fail": "block",
     "failureMessage": "Google is a detail of the remote store and the identity provider, so code elsewhere that depends on it breaks when that detail changes",

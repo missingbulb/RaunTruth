@@ -16,7 +16,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { until } from "./page_until.mjs";
+import { until, seen } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -110,10 +110,10 @@ page.setDefaultTimeout(10000);
 // missing
 const quiet = async () => {
   const end = Date.now() + 10000, wants = FILES.map((f) => f.want);
-  const told = () => page.waitForFunction(([wants, read]) => {
+  const told = () => seen(page.waitForFunction(([wants, read]) => {
     const box = $("#remote-list").getBoundingClientRect(), rows = [...document.querySelectorAll("#remote-list .item")];
     return rows.every((b, k) => { const r = b.getBoundingClientRect(); return !(r.bottom > box.top && r.top < box.bottom || read.includes(k)) || (b.querySelector(".shape")?.textContent || "") === wants[k]; });
-  }, [wants, reads.map((r) => r.k)], { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
+  }, [wants, reads.map((r) => r.k)], { timeout: Math.max(1, end - Date.now()) }));
   for (;;) {
     const asked = reads.length;
     await told();
@@ -121,7 +121,7 @@ const quiet = async () => {
     // done when nothing is on the way and no read began since the rows read were told
     if (!inflight && reads.length === asked) break;
     if (Date.now() >= end) break;
-    if (inflight) await page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
+    if (inflight) await seen(page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }));
   }
   if (Date.now() >= end) {
     const rows = await inView(), b = await badges();
@@ -144,7 +144,7 @@ const thumbOf = (k) => page.evaluate(async (id) => {
   const r = await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href);
   return r ? new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); r.blob().then((b) => f.readAsDataURL(b)); }) : "";
 }, FILES[k].id);
-const thumbSaved = (k, timeout = 3000) => until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }).then(() => true, () => false);
+const thumbSaved = (k, timeout = 3000) => seen(until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }));
 
 try {
   await page.goto(origin + "/web/");

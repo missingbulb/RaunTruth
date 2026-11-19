@@ -6,7 +6,7 @@
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { standIn } from "./stand_in_drive.mjs";
 import { frames } from "./page_frames.mjs";
-import { idle } from "./page_until.mjs";
+import { idle, seen } from "./page_until.mjs";
 import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
@@ -28,13 +28,13 @@ hidden.add("dmelsewhere000000001");
 // a screenshot once nothing on the page is still moving
 const shoot = async (sel, name) => {
   if (!shots) return;
-  await page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === "running"), null, { timeout: 5000 }).catch(() => {});
+  await seen(page.waitForFunction(() => !document.getAnimations().some((a) => a.playState === "running"), null, { timeout: 5000 }));
   await frames(page);
   await page.locator(sel).screenshot({ path: path.join(shots, name) });
 };
 const studyFile = () => JSON.parse(settings.bytes.toString());
 const names = (ix) => ix.images.map((i) => [i.name, i.path.join(" / ")]);
-const settled = (page) => page.waitForFunction(() => !document.querySelector("#data-tree.busy") && /^Study index/.test(document.querySelector("#data-index").textContent), null, { timeout: 10000 }).catch(() => {});
+const settled = (page) => seen(page.waitForFunction(() => !document.querySelector("#data-tree.busy") && /^Study index/.test(document.querySelector("#data-index").textContent), null, { timeout: 10000 }));
 
 let page = await open(true);
 await role(page, "Study Manager");
@@ -83,20 +83,20 @@ await page.context().close();
 // a viewer's Load: the index's images, grouped by folder, the listed folders' order kept
 page = await open(false);
 await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }));
 const listed = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : e.querySelector(".name").textContent)));
 await check(JSON.stringify(listed) === JSON.stringify(["# Data", "acme.png", "# Data / sub", "beta.png", "# Elsewhere", "delta.png"]), "Load study images lists the index's images, a group per folder", listed);
 await shoot("#remote-dlg", "load-study-images.png");
 const reads = writes.length;
 await page.dblclick('#remote-list .item:has(.name:text-is("beta.png"))');
-await page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }));
 await check(await page.evaluate(() => st.fileName === "beta.png") && writes.length === reads, "an image chosen there opens", await page.evaluate(() => st.fileName));
 
 // offline, the index kept on this device lists the same groups; only an image kept here opens
 await page.context().setOffline(true);
 await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
 await page.evaluate(() => document.querySelector("#load-remote").click());
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 3 && document.querySelectorAll("#remote-list .item:disabled").length > 0, null, { timeout: 10000 }));
 const offline = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : `${e.querySelector(".name").textContent}${e.disabled ? " (greyed)" : ""}`)));
 await check(JSON.stringify(offline) === JSON.stringify(["# Data", "acme.png (greyed)", "# Data / sub", "beta.png", "# Elsewhere", "delta.png (greyed)"]),
   "offline, the kept index lists the same groups, an image not kept here greyed", offline);
@@ -109,7 +109,7 @@ await role(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 const imageOf = (ix, name) => ix.images.find((i) => i.name === name);
-const indexed = (n) => page.waitForFunction((n) => /^Study index/.test(document.querySelector("#data-index").textContent), n, { timeout: 10000 }).then(() => frames(page)).catch(() => {});
+const indexed = (n) => seen(page.waitForFunction((n) => /^Study index/.test(document.querySelector("#data-index").textContent), n, { timeout: 10000 }).then(() => frames(page)));
 const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
@@ -137,7 +137,7 @@ await page.fill("#tags-add", "folder:mine"); await page.press("#tags-add", "Ente
 await check(tagFiles.length === before2 && /page's own tag/.test(await page.textContent("#tags-msg")), "a tag named folder is refused, saying why", await page.textContent("#tags-msg"));
 await chooseImage("Data", "acme.png");
 await page.fill("#tags-desc", "First slide"); await page.locator("#tags-desc").blur();
-await page.waitForFunction(() => /Description saved/.test(document.querySelector("#tags-msg").textContent), null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => /Description saved/.test(document.querySelector("#tags-msg").textContent), null, { timeout: 10000 }));
 await indexed();
 await idle(page);
 await check(imageOf(indexes.at(-1), "acme.png")?.description === "First slide", "an image's description goes into the index", imageOf(indexes.at(-1), "acme.png"));
@@ -153,7 +153,7 @@ await check(indexes.at(-1).group === "group" && JSON.stringify(indexes.at(-1).hi
 await check(/1 image hidden/.test(await page.textContent("#study-hide-count")), "Study images says how many images its rules hide", await page.textContent("#study-hide-count"));
 // the Study Manager's Load: grouped by the tag, the hidden image there, marked
 await page.evaluate(() => document.querySelector("#load-remote").click());
-await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }));
 const rows = () => page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent
   : [e.querySelector(".name").textContent, e.querySelector(".desc")?.textContent, [...e.querySelectorAll(".tags .tag-chip")].map((c) => c.textContent).join(" ")].filter(Boolean).join(" | "))));
 await shoot("#study-set", "study-images.png");
@@ -166,7 +166,7 @@ await page.context().close();
 // a viewer's: the hidden image left out
 page = await open(false);
 await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 2, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 2, null, { timeout: 10000 }));
 const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
@@ -191,7 +191,7 @@ await role(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await chooseImage("Data", "acme.png");
-await page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }));
 await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open, its areas can be marked");
 await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
 await idle(page);
@@ -213,11 +213,11 @@ page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => 
 await page.click("#load-remote");
 await page.waitForSelector('#remote-list .item:has(.name:text-is("acme.png"))');
 await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
-await page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }));
 const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));
 await check(marks.damaged === 1 && marks.interest === 1, "a viewer sees the damaged area marked and the area of interest outlined", marks);
 await page.click("#fx-count");
-await page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }).catch(() => {});
+await seen(page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }));
 const sent = await page.evaluate(() => window.posted.filter((m) => m.type === "call").at(-1)?.damaged);
 await check(sent?.length === 1 && sent[0].length >= 4, "Python is handed the image's damaged areas with each call", sent);
 const maskNow = () => page.evaluate(() => ({ n: window.shellForTests.mask.polygons().length, warned: !$("#mask-warning").hidden, middle: window.shellForTests.mask.inside(40, 40), damaged: window.shellForTests.mask.inside(10, 10), out: window.shellForTests.mask.inside(62, 62) }));

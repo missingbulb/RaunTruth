@@ -11,6 +11,7 @@
 //   node web-tests/gt_drive_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
+import { seen } from "./page_until.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir, gt: false });
@@ -31,7 +32,7 @@ const markNeeded = async (page, f) => {
   await page.waitForSelector(b + ":not([disabled])");
   const n = writes.length;
   await page.click(b);
-  await page.waitForFunction((b) => document.querySelector(b)?.getAttribute("aria-pressed") === "true", b, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction((b) => document.querySelector(b)?.getAttribute("aria-pressed") === "true", b, { timeout: 10000 }));
   return writes.slice(n);
 };
 const pressed = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-items .cell")].map((c) => [c.dataset.id, c.querySelector(".mark-gt").getAttribute("aria-pressed")])));
@@ -57,7 +58,7 @@ await check(!!CUR && !!SUBS && doc?.curated === CUR && doc?.submissions === SUBS
 await check(JSON.stringify(sharedOut) === JSON.stringify([["GT curated", { type: "anyone", role: "reader" }]]), "and shares the curated folder with anyone with the link to view", sharedOut);
 const tree = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder .name")].map((n) => n.textContent));
 await check(!tree.some((n) => /^GT/.test(n)), "the tree leaves the ground-truth folders out of the data", tree);
-await check(await page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 }).then(() => true, () => false), "set up, nothing offers to set it up again");
+await check(await seen(page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 })), "set up, nothing offers to set it up again");
 await page.waitForFunction(() => /No image/.test($("#gt-box").textContent));
 const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!($("#gt-box").compareDocumentPosition($("#data-tree")) & Node.DOCUMENT_POSITION_FOLLOWING) }));
 await check(box.above && /review/i.test(box.text), "a Ground Truth box above the folders says submissions are reviewed and that no image has ground truth yet", box);
@@ -168,7 +169,7 @@ await check(tag === "GT pending", "to the tagger, the image selector marks the s
 
 // req/shell/ground-truth/curate: the study manager sees it pending, reviews it and accepts it into the curated folder
 await role(page, "Study Manager");
-await page.waitForFunction(() => /1 image.*pending/.test($("#gt-box").textContent), null, { timeout: 5000 }).catch(() => {});
+await seen(page.waitForFunction(() => /1 image.*pending/.test($("#gt-box").textContent), null, { timeout: 5000 }));
 await check(/1 image.*pending/.test(await page.textContent("#gt-box")), "the Ground Truth box counts the submission pending", await page.textContent("#gt-box"));
 const sw = await page.evaluate(() => ({ text: $("#gt-switch").textContent.trim(), off: $("#gt-switch").disabled, why: $("#gt-switch").title }));
 await check(sw.text === "Switch to unreviewed…" && sw.off && /1 submission/.test(sw.why), "while a submission is pending, switching to unreviewed waits, saying how many", sw);
@@ -194,7 +195,7 @@ await page.waitForFunction(() => +document.querySelector('#folder-summary dd[dat
 s = await sums();
 await check(s.truth === 1 && s.pending === 0 && !(await page.$(cell + " .review-gt")), "accepted, the image has ground truth and nothing pending", s);
 await check(await page.isDisabled(cell + " .mark-gt"), "an image with ground truth needs no marker");
-await page.waitForFunction(() => /1 image has ground truth/.test($("#gt-box").textContent), null, { timeout: 5000 }).catch(() => {});
+await seen(page.waitForFunction(() => /1 image has ground truth/.test($("#gt-box").textContent), null, { timeout: 5000 }));
 await check(/1 image has ground truth/.test(await page.textContent("#gt-box")), "accepted, the Ground Truth box counts it", await page.textContent("#gt-box"));
 tag = await recentTag();
 await check(tag === "GT", "accepted, the image selector marks the image GT", tag);
@@ -211,7 +212,7 @@ await page.waitForFunction(() => !$("#switch-dlg").open || $("#switch-msg").clas
 const switched = JSON.parse(FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json").bytes.toString());
 await check(switched.curated === CUR && switched.submissions === CUR && switched.review === false && switched.switched?.from?.submissions === SUBS && switched.switched?.by === "tester@example.com" && FILES.length === before && FILES.some((f) => f.id === SUBS),
   "switched, GT curated serves as both, GT submissions stays, and the settings file records the mode before and who switched", { switched, msg: await page.textContent("#switch-msg") });
-await page.waitForFunction(() => /One folder/.test($("#gt-mode").textContent) && /1 image has ground truth/.test($("#gt-counts").textContent), null, { timeout: 5000 }).catch(() => {});
+await seen(page.waitForFunction(() => /One folder/.test($("#gt-mode").textContent) && /1 image has ground truth/.test($("#gt-counts").textContent), null, { timeout: 5000 }));
 await check(/One folder/.test(await page.textContent("#gt-mode")) && /1 image has ground truth/.test(await page.textContent("#gt-counts")), "the Ground Truth box now says one folder, its ground truth still counted", await page.textContent("#gt-box"));
 // Needs GT, one folder for both: the marker lands in that one folder too
 marked = await markNeeded(page, beta);
@@ -230,7 +231,7 @@ await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await page.waitForSelector("#load-gt:not([hidden])", { timeout: 5000 }).catch(() => {});
+await seen(page.waitForSelector("#load-gt:not([hidden])", { timeout: 5000 }));
 await check(await page.isVisible("#load-gt"), "a viewer is offered Load GT tagging for an image with curated ground truth");
 const studyIndex = FILES.find((f) => f.name === "rauntruth-index.json")?.id;
 await check(downloads.every((d) => d === png.id || d === settings.id || d === studyIndex), "before the click, only the image, the root's settings file and its study index are downloaded: the curated folder's listing alone offers it", downloads);

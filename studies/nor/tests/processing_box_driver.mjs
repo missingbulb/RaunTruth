@@ -16,6 +16,7 @@ import http from "node:http";
 import path from "node:path";
 import { offSite } from "../../../web-tests/off_site.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { seen } from "../../../web-tests/page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -90,7 +91,7 @@ try {
     if (!icon || !text.startsWith(icon + " " + LISTED[k].title)) problems.push(`${k} in the list does not start with its icon: ${text}`);
     // the box is folded until an image opens, so the choice is made as the list would make it
     await page.evaluate((k) => { const s = document.querySelector("#algorithm"); s.value = k; s.dispatchEvent(new Event("change")); }, k);
-    await page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title).catch(() => {});
+    await seen(page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
     const note = await page.evaluate(() => {
       const n = document.querySelector("#algorithm-note"), sel = document.querySelector("#algorithm");
       return {

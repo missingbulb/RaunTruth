@@ -23,7 +23,7 @@ import { repoFile } from "./repo_file.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
 import { keptContext } from "./kept_context.mjs";
-import { until } from "./page_until.mjs";
+import { until, seen } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -268,7 +268,7 @@ try {
   await ctx.setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.click("#image-pick");
-  await until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: 3000 }).catch(() => {});
+  await seen(until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: 3000 }));
   r = await rows();
   check(r.find((x) => x.name === "kept.png").grey === false && r.filter((x) => x.name !== "kept.png").every((x) => x.grey), "offline, the selector greys the images not kept here", r);
   await page.keyboard.press("Escape");
@@ -304,7 +304,7 @@ try {
   await shot("new_in_dialog", "#remote-dlg");
   await page.click("#remote-dlg button[value=close]");
   await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: 3000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: 3000 }));
   d = await listed();
   check(d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
   await page.click("#remote-dlg button[value=close]");

@@ -18,6 +18,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
+import { seen } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -129,13 +130,13 @@ const quiet = async () => {
   for (;;) {
     const want = span(await inView()), pics = await shown();
     if (want.every((k) => asked.includes(k) || pics[k]) && !inflight) {
-      await page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
+      await seen(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent), null, { timeout: Math.max(1, end - Date.now()) }));
       await framesOf(page);
       const now = await shown();
       if (!inflight && span(await inView()).every((k) => asked.includes(k) || now[k])) return;
     }
     if (Date.now() >= end) return console.log(`quiet: gave up after ${Date.now() - t0} ms`, JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
-    await Promise.race([next, page.waitForEvent("requestfinished", { timeout: end - Date.now() }).catch(() => {})]);
+    await Promise.race([next, seen(page.waitForEvent("requestfinished", { timeout: end - Date.now() }))]);
   }
 };
 // the page's handlers for what was just done have all run
@@ -194,7 +195,7 @@ try {
   await page.evaluate(() => { $("#remote-list").scrollTop = $("#remote-list").scrollHeight / 2; });
   // the first rows there asked for, their answers still on the way
   const from = await page.evaluate(() => window.thumbsAsked);
-  await page.waitForFunction((n) => window.thumbsAsked > n, from).catch(() => {});
+  await seen(page.waitForFunction((n) => window.thumbsAsked > n, from));
   const middle = span(await inView());
   check(had.length >= first.length && middle.length > AHEAD, `${had.length} thumbnails held before closing, ${middle.length} rows wanted midway`);
   // what the page had asked for, read in the same task as the close, so none is asked between the two

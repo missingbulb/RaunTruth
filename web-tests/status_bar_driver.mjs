@@ -24,6 +24,7 @@ import { ENGINE, LAUNCH } from "./engine.mjs";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
+import { seen } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -132,7 +133,7 @@ const bar = (page) => page.evaluate(() => ({
   shining: [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort(),
 }));
 const steps = async (page, want, shining) => {
-  await page.waitForFunction((w) => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join() === w, want.join()).catch(() => {});
+  await seen(page.waitForFunction((w) => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join() === w, want.join()));
   const b = await bar(page);
   await check(b.crumbs.join() === want.join() && b.shining.join() === shining.join(), `crumbs ${want.join(" › ")}, shining ${shining.join() || "nothing"}`, b);
 };
@@ -175,7 +176,7 @@ const tabIs = async (page, tab) => {
 };
 // the shell's switch to the item view: first in the toolbar, what it reads, whether it can be pressed
 const switchIs = async (page, want, on, what) => {
-  await page.waitForFunction((w) => document.querySelector("#switch")?.textContent.replace(/\s+/g, " ").trim() === w, want).catch(() => {});
+  await seen(page.waitForFunction((w) => document.querySelector("#switch")?.textContent.replace(/\s+/g, " ").trim() === w, want));
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
   await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
@@ -246,7 +247,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(!pointers.length, "nothing in the status bar shows a question-mark pointer", pointers);
 
   // the shining crumb is a way to its button: Load image opens the file chooser, as Load does
-  const chooser = page.waitForEvent("filechooser", { timeout: 3000 }).catch(() => null);
+  const chooser = seen(page.waitForEvent("filechooser", { timeout: 3000 }));
   await page.click("#sb-load");
   await check(!!(await chooser), "clicking the shining Load image presses Load");
 
@@ -265,14 +266,14 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
   await check(true, "and presses Count");
   // Python worked about WORK ms of the last two seconds
-  await page.waitForFunction(() => parseInt(document.querySelector("#sb-cpu").textContent) >= 30, null, { timeout: 3000 }).catch(() => {});
+  await seen(page.waitForFunction(() => parseInt(document.querySelector("#sb-cpu").textContent) >= 30, null, { timeout: 3000 }));
   await check(parseInt(await page.textContent("#sb-cpu")) >= 30, "the CPU shows Python at work", await page.textContent("#sb-cpu"));
-  await page.waitForFunction(() => window.seen["sb-cpu"].spiked, null, { timeout: 3000 }).catch(() => {});
+  await seen(page.waitForFunction(() => window.seen["sb-cpu"].spiked, null, { timeout: 3000 }));
   const cpuSeen = await page.evaluate(() => ({ ...window.seen["sb-cpu"], color: getComputedStyle(document.querySelector("#sb-cpu svg")).color,
     warn: getComputedStyle(document.documentElement).getPropertyValue("--warn") }));
   await check(cpuSeen.spiked, "the CPU's sharp rise flashes it", cpuSeen);
   await check(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
-  await page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }).catch(() => {});
+  await seen(page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }));
   await check(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
   await steps(page, ["Load image", "Count", "Submit GT*"], ["#gt-submit", "#sb-submit"]);
   await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
@@ -367,7 +368,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.keyboard.press("Escape");
   // a fast download flashes the network; every one of the four has rolled to a new value by now
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
-  await page.waitForFunction(() => window.seen["sb-net"].spiked, null, { timeout: 4000 }).catch(() => {});
+  await seen(page.waitForFunction(() => window.seen["sb-net"].spiked, null, { timeout: 4000 }));
   const all = await page.evaluate(() => window.seen);
   await check(all["sb-net"].spiked, "a fast download flashes the network", all["sb-net"]);
   await check(Object.values(all).every((x) => x.rolled > 0 && x.anim.every((a) => a === "roll")), "the disk, memory, network and CPU each rolled to a new value", all);
@@ -375,7 +376,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.emulateMedia({ reducedMotion: "reduce" });
   const before = all["sb-net"].rolled;
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
-  await page.waitForFunction((n) => window.seen["sb-net"].rolled > n, before, { timeout: 4000 }).catch(() => {});
+  await seen(page.waitForFunction((n) => window.seen["sb-net"].rolled > n, before, { timeout: 4000 }));
   const calm = await page.evaluate(() => window.seen["sb-net"]);
   await check(calm.rolled > before && calm.anim.slice(-1)[0] === "none", "with reduced motion asked for, it changes without rolling", calm);
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -408,7 +409,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.waitForFunction(() => !document.querySelector("#sb-net").classList.contains("spike"), null, { timeout: 6000 });
   const net0 = await page.evaluate(() => { const s = window.seen["sb-net"]; s.spiked = false; return s.rolled; });
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
-  await page.waitForFunction((n) => window.seen["sb-net"].rolled > n, net0, { timeout: 4000 }).catch(() => {});
+  await seen(page.waitForFunction((n) => window.seen["sb-net"].rolled > n, net0, { timeout: 4000 }));
   // the number written, and whatever it does about it over
   await page.waitForFunction(() => !document.querySelector("#sb-net").getAnimations({ subtree: true }).length);
   const quiet = await page.evaluate(() => window.seen["sb-net"]);
@@ -427,7 +428,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   const block = () => page.evaluate(() => ({ items: Math.round(document.querySelector("#sb-res-items").getBoundingClientRect().width),
     icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width) }));
   const isOpen = async (want, what, ms = 1500) => {
-    await page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }).catch(() => {});
+    await seen(page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }));
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own
     await page.waitForFunction(() => ["#sb-res-items", "#sb-res-icon"].every((id) => !document.querySelector(id).getAnimations().length));
     const b = await block();
@@ -556,7 +557,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(on.on && !on.off && /online/i.test(on.title) && /offline/i.test(on.title), "online, a Wi-Fi icon, its tooltip saying online and that it sets up offline", on);
   await check(!(await page.$("#statusbar .no-net")), "no other item in the status bar carries an offline mark");
   await ctx.setOffline(true);
-  await page.waitForFunction(() => document.documentElement.classList.contains("offline"), null, { timeout: 40000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
   const off = await icon();
   const [r, g, bl] = off.colour.match(/\d+/g).map(Number);
   await check(!off.on && off.off && /offline/i.test(off.title) && !/^online/i.test(off.title), "offline, the Wi-Fi crossed out, its tooltip saying offline", off);
@@ -576,7 +577,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.click('#usage-dlg button[value="close"]');
   await check(!(await ringed()).length, "closing it with its Close button leaves none either", await ringed());
   await ctx.setOffline(false);
-  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"), null, { timeout: 40000 }).catch(() => {});
+  await seen(page.waitForFunction(() => !document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
   const back = await icon();
   await check(back.on && !back.off, "back online, the Wi-Fi icon again", back);
   await ctx.close();
@@ -593,7 +594,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   // with animations off, leaving it closes it all the same
   const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
   await page.mouse.move(700, 600);
-  const closed = await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: 3000 }).then(() => true, () => false);
+  const closed = await seen(page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: 3000 }));
   await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });

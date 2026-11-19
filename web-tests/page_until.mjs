@@ -23,3 +23,7 @@ export async function idle(page, { timeout = 10000 } = {}) {
     if (Date.now() > end) throw new Error(`the page was still working after ${timeout} ms`);
   }
 }
+
+// What a wait resolves to, or null once it fails, saying on stderr what was not seen: for a wait whose miss the test
+// reads for itself in the check after it, rather than one quietly swallowed.
+export const seen = (wait) => wait.then((x) => x ?? true, (e) => { console.error("not seen: " + String(e?.message ?? e).split("\n")[0]); return null; });

@@ -18,6 +18,7 @@ import { repoFile } from "./repo_file.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { localStudy } from "./local_study.mjs";
+import { seen } from "./page_until.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -114,13 +115,13 @@ await closePop(page);
 // keyboard's focus, and that keeps the popup open
 await page.evaluate(() => document.activeElement.blur());
 await page.hover("#grid-btn");
-await page.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+await seen(page.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
 await check((await pop(page)).open, "hovering the button opens the popup");
 await check(await page.evaluate(() => ("interestForElement" in HTMLButtonElement.prototype ? $("#grid-btn").interestForElement === $("#grid-pop") : !$("#grid-btn").hasAttribute("interestfor"))),
   "the browser's own hover where it has interest invokers, the button one for the popup; the page's own elsewhere");
 await check(await placed(page), "the popup sits under its button, their right edges lined up", await placed(page, true));
 await page.mouse.move(700, 600);
-await page.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+await seen(page.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")));
 await check(!(await pop(page)).open, "moving away from the button and the popup closes it");
 await closePop(page);
 await page.click("#zoom-in");
@@ -167,13 +168,13 @@ await check(listed.some((t) => t.includes("Grid colour and spacing")), "Settings
   await load(p2, [0.2, 0.5]);
   await check(!(await p2.evaluate(() => $("#grid-btn").hasAttribute("interestfor"))), "without interest invokers the button carries none");
   await p2.hover("#grid-btn");
-  await p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await seen(p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
   await check(await placed(p2), "hovering opens the popup under its button all the same", await placed(p2, true));
   await p2.mouse.move(700, 600);
-  await p2.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await seen(p2.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")));
   await check(!(await pop(p2)).open, "and moving away closes it");
   await p2.focus("#grid-btn");
-  await p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await seen(p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
   await check((await pop(p2)).open, "focusing the button opens it too");
 }
 await done(0);

@@ -26,7 +26,7 @@ import os from "node:os";
 import path from "node:path";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { until } from "./page_until.mjs";
+import { until, seen } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
 
@@ -167,10 +167,10 @@ try {
     }
     return out;
   }, listed);
-  await until(page, async (paths) => {
+  await seen(until(page, async (paths) => {
     for (const p of paths) if (!(await caches.match(new URL(p.replace(/(^|\/)index\.html$/, "$1").replace(/\.html$/, ""), location.origin + "/app/").href))) return false;
     return true;
-  }, listed, { timeout: 30000 }).catch(() => {});
+  }, listed, { timeout: 30000 }));
   const left = await missing();
   check(listed.length > 30 && !left.length, `the site's own ${listed.length} files are kept on this device` + (left.length ? `; missing ${left.slice(0, 5)}` : ""));
 
@@ -219,7 +219,7 @@ try {
   check(driveDownloads === 2, `it downloads the two ticked images (${driveDownloads})`);
   check(await page.evaluate((u) => caches.match(u).then((r) => !!r), BEYOND), "and, with its Python, the files beyond it the study names, kept on this device");
   await page.click("#offline-close");
-  await page.waitForFunction(() => document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }));
   check(!!(await page.$('#storage-list .group[data-group="study:vascular"] summary .offline-mark')) && !!(await page.$('#storage-list .group[data-group="study:vascular"] .make-offline')),
     "the study, its Python and images here, is then marked available offline, and with a Drive folder still offers to fetch more");
   await shot(page, "offline-prepared");
@@ -230,7 +230,7 @@ try {
     window.keptImages = out; return out.length;
   });
   await page.click("#usage-dlg [role=tab][data-tab=memory]"); await page.click("#usage-dlg [role=tab][data-tab=storage]");
-  await page.waitForFunction(() => !document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction(() => !document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }));
   check(keptImages === 2 && !(await page.$('#storage-list .group[data-group="study:vascular"] summary .offline-mark')), "with its Python here and none of its images, the study is not marked");
   await page.evaluate(async () => { const c = await caches.open("nor-images-v1"); for (const [u, r] of window.keptImages) await c.put(u, r); });
 
@@ -252,7 +252,7 @@ try {
   const reached = await page.evaluate(() => fetch("https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide-lock.json?offline-probe").then(() => true, () => false));
   check(!reached, "offline, nothing the cache lacks is reached, the service worker's own downloads included");
   await page.goto(origin + "/app/fixture");
-  await page.waitForFunction(() => document.querySelector("#title")?.textContent, null, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelector("#title")?.textContent, null, { timeout: 10000 }));
   check(!!(await page.textContent("#title")), "offline, the page opens at its address: " + (await page.textContent("#title")));
   await count(page); await counted(60000);
   check(true, "offline, the Python already on this device runs");
@@ -266,7 +266,7 @@ try {
   await page.keyboard.press("Escape");
   check(await page.$eval("#study-request", (a) => a.getAttribute("aria-disabled") === "true" && /offline/i.test(a.title)), "Submit New Study Request is held, its tooltip saying why");
   // a click on it opens nothing
-  const popup = page.waitForEvent("popup", { timeout: 1500 }).then(() => true, () => false);
+  const popup = seen(page.waitForEvent("popup", { timeout: 1500 }));
   await page.evaluate(() => document.querySelector("#study-request").click());
   check(!(await popup), "offline, Submit New Study Request opens nothing");
   await shot(page, "offline-page");
@@ -274,7 +274,7 @@ try {
   // the addresses the site redirects online lead where it would: the app's with no slash, a study's with one
   for (const [from, to] of [["/app", "/app/"], ["/app/vascular/", "/app/vascular"]]) {
     await page.goto(origin + from).catch(() => {});
-    await page.waitForFunction(() => window.$ && $("#title").textContent, null, { timeout: 10000 }).catch(() => {});
+    await seen(page.waitForFunction(() => window.$ && $("#title").textContent, null, { timeout: 10000 }));
     const at = new URL(page.url()), styled = await page.evaluate(() => [...document.styleSheets].some((s) => s.cssRules.length)).catch(() => false);
     check(at.origin === origin && at.pathname === to && styled && !!(await page.textContent("#title").catch(() => "")),
       `offline, ${from} opens at ${to}, styled and running: ${page.url()}`);
@@ -283,16 +283,16 @@ try {
   await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent), null, { timeout: 60000 });
   check(true, "offline, the prepared study opens");
   await pressDrive(page);
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length >= 2, null, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length >= 2, null, { timeout: 10000 }));
   const kept = await page.$$eval("#remote-list .item .name", (ns) => ns.map((n) => n.textContent));
   check(kept.includes("stack one.tif") && kept.includes("stack two.tif"), "offline, the Drive dialog lists the images kept here: " + kept.join(", "));
   await shot(page, "offline-drive");
   await page.dblclick('#remote-list .item:has-text("stack two.tif")');
-  await page.waitForFunction(() => window.shellForTests.page.get("image")?.name === "stack two.tif", null, { timeout: 60000 }).catch(() => {});
+  await seen(page.waitForFunction(() => window.shellForTests.page.get("image")?.name === "stack two.tif", null, { timeout: 60000 }));
   check((await page.evaluate(() => window.shellForTests.page.get("image")?.name)) === "stack two.tif", "offline, a kept image opens");
 
   await page.goto(origin + "/app/nor");
-  await page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 60000 }).catch(() => {});
+  await seen(page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 60000 }));
   check(/not on this device/i.test(await statusText()) && !/Error/.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
     "offline, a study whose Python is not here says so before any Run, not as an error: " + (await statusText()));
   // its Make Available Offline, opened offline: nothing to read yet, Download held
@@ -301,21 +301,21 @@ try {
   await page.waitForSelector('#storage-list .group[data-group="study:nor"] .make-offline', { state: "attached", timeout: 20000 });
   await page.$eval('#storage-list .group[data-group="study:nor"] .make-offline', (b) => b.click());
   await page.waitForSelector("#offline-dlg[open]");
-  await page.waitForFunction(() => /once you are online/.test(document.querySelector("#offline-files").textContent), null, { timeout: 10000 }).catch(() => {});
+  await seen(page.waitForFunction(() => /once you are online/.test(document.querySelector("#offline-files").textContent), null, { timeout: 10000 }));
   check(/once you are online/.test(await page.textContent("#offline-files")) && (await page.$eval("#offline-go", (b) => b.disabled)),
     "offline, Make Available Offline says the study's folder waits for the network, Download held");
 
   await ctx.setOffline(false); down = false;
   // what Download would then fetch depends on whether the study's Python, loading again meanwhile, is all here yet
-  await page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }).catch(() => {});
+  await seen(page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }));
   check(/Drive folder holds/.test(await page.textContent("#offline-files")) && !!(await page.textContent("#offline-python")),
     "back online, the open Prepare for Offline popup reads the study's folder and counts again: " + (await page.textContent("#offline-files")) + " " + (await page.textContent("#offline-python")));
   await page.click("#offline-close");
   await page.keyboard.press("Escape");
-  await page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }).catch(() => {});
+  await seen(page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }));
   check(/^Ready/.test(await statusText()), "back online, the study whose Python was not here keeps it, with no reload: " + (await statusText()));
   // the browser here still says it is online, as on a plane's Wi-Fi: the page notices the site answering again
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }).catch(() => {});
+  await seen(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
   check(!(await page.isVisible("#sb-online .off")), "back online, the online icon shows online again");
   check(!/offline/i.test(await page.getAttribute("#sb-net", "title")), "and the network's tooltip is its own again");
   check(await page.$eval("#study-request", (a) => !a.hasAttribute("aria-disabled")), "back online, Submit New Study Request is offered again");
@@ -331,18 +331,18 @@ try {
   const drivePath = () => page.textContent("#remote-path");
   down = true;
   await pastHeartbeat();
-  await page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }).catch(() => {});
+  await seen(page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }));
   check(await page.isVisible("#sb-online .off"), "mid-session, with the browser still saying online, the page notices the site not answering");
   // req/shell/drive/offline-listing: the folder stays as last listed, what is not kept here greyed
   const greyed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#remote-list .item")].map((b) => [b.querySelector(".name").textContent, b.disabled])));
-  await page.waitForFunction(() => document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }));
   let g = await greyed();
   check(g.sub === true && g["stack one.tif"] === false && !/offline/.test(await drivePath()), "the open Drive dialog then greys the subfolder never listed, the kept image left to open: " + JSON.stringify(g) + " " + (await drivePath()));
   down = false;
   await pastOfflineRetry();
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }).catch(() => {});
+  await seen(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
   check(!(await page.isVisible("#sb-online .off")), "and notices it answering again");
-  await page.waitForFunction(() => document.querySelector("#remote-list .item") && !document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }).catch(() => {});
+  await seen(page.waitForFunction(() => document.querySelector("#remote-list .item") && !document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }));
   g = await greyed();
   check(Object.keys(g).length === 2 && !Object.values(g).some(Boolean), "and the Drive dialog's folder can be opened from again: " + JSON.stringify(g));
   await page.keyboard.press("Escape");
@@ -350,11 +350,11 @@ try {
   // a release lands while the page is offline: back online, the icon says so at once, not once the new copy is in
   down = true;
   await pastHeartbeat();
-  await page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }).catch(() => {});
+  await seen(page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }));
   release = true; down = false;
   const back = Date.now();
   await pastOfflineRetry();
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 15000 }).catch(() => {});
+  await seen(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 15000 }));
   check(!(await page.isVisible("#sb-online .off")), `back online with a release to copy, the online icon shows online within seconds (${Date.now() - back} ms)`);
 } catch (e) {
   failed = true; console.error("FAILED: " + (e.stack || e));
