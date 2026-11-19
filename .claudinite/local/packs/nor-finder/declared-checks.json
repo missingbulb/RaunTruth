@@ -89,6 +89,20 @@
     ]
   },
   {
+    "id": "deadline-literal",
+    "on_fail": "advise",
+    "failureMessage": "a deadline written as a number guesses how long one wait may take, and a slow runner then needs every such guess found and raised by hand",
+    "fix": "name the kind of wait in web-tests/deadlines.mjs (STEP for a step of the page's own) and use the name; a pytest's driver goes through run()",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!deadlines\\.mjs$).*\\.(m?js|py)$/",
+    "matchLines": [
+      {
+        "match": "/\\btimeout:\\s*\\d|setDefaultTimeout\\(\\s*\\d|\\btimeout\\s*=\\s*\\d/",
+        "what": "writes a deadline as a number: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)/"
+      }
+    ]
+  },
+  {
     "id": "google-drive-in-one-file",
     "on_fail": "block",
     "failureMessage": "Google is a detail of the remote store and the identity provider, so code elsewhere that depends on it breaks when that detail changes",

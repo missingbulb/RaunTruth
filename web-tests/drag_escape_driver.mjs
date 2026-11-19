@@ -15,6 +15,7 @@ import { repoFile } from "./repo_file.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { localStudy } from "./local_study.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -58,7 +59,7 @@ await ctx.addInitScript(() => {
 });
 const page = await ctx.newPage();
 page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 await page.goto(origin + "/web/fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 await page.setInputFiles("#file", image);

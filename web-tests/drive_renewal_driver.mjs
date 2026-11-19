@@ -17,6 +17,7 @@ import http from "node:http";
 import path from "node:path";
 import { offSite } from "./off_site.mjs";
 import { ENGINE } from "./engine.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -93,7 +94,7 @@ async function session(left) {
   }, { who: { user: { name: "Tester", email: "tester@example.com", picture: null }, token: OLD, until: Date.now() + left, scopes: SCOPES }, folder: PRIVATE });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/viewer");
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   return { ctx, page, reads };

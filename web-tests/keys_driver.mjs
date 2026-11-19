@@ -17,6 +17,7 @@ import { repoFile } from "./repo_file.mjs";
 import { frames } from "./page_frames.mjs";
 import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -71,7 +72,7 @@ const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const BLUE = /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/;
 const legend = () => page.evaluate((blue) => {

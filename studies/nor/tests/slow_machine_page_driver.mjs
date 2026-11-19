@@ -21,6 +21,7 @@ import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -98,7 +99,7 @@ async function open(gb) {
   await standInDrive(ctx);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await started(page);
   return { ctx, page };
@@ -193,7 +194,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await ctx.route("**/studies/nor/web/nor.js", async (r) => { await code.hold(); await r.continue(); });
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await code.asked;
   await page.waitForFunction(() => window.shellForTests && $("#file").onchange);

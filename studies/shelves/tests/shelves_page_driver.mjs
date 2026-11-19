@@ -26,6 +26,7 @@ import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-test
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until, orMissed } from "../../../web-tests/page_until.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -124,7 +125,7 @@ async function open(role, seed = {}, finder = {}) {
   }, [role, seed]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
   page.on("dialog", (d) => d.accept());
   await page.goto(origin + "/web/shelves");

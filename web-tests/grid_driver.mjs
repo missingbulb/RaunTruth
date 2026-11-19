@@ -19,6 +19,7 @@ import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { localStudy } from "./local_study.mjs";
 import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -93,7 +94,7 @@ await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const start = async () => {
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));

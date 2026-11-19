@@ -17,6 +17,7 @@ import { repoFile } from "./repo_file.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { offSite } from "./off_site.mjs";
 import { cutShort } from "./page_errors.mjs";
+import { STEP } from "./deadlines.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
@@ -244,7 +245,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }, [signedIn ? { ...SIGNED_IN, token: `stand-in-token:${email || EMAIL}`, ...(scopes ? { scopes } : {}), ...(email ? { user: { ...SIGNED_IN.user, email } } : {}) } : null, seed]);
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; console.error("page error: " + e.message); await done(1); });
-    page.setDefaultTimeout(10000);
+    page.setDefaultTimeout(STEP);
     await page.goto(origin + "/web/" + id);
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     return page;

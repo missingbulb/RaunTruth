@@ -17,6 +17,7 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { until, orMissed, untilHeard } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -102,7 +103,7 @@ await ctx.addInitScript((link) => {
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started
 // every row in view, and every row read, has its badge (or holds nothing to tell), and no read is on the way once the

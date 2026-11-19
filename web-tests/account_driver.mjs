@@ -23,6 +23,7 @@ import { offSite } from "./off_site.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -122,7 +123,7 @@ async function device(seed) {
   });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => document.querySelector("#title").textContent);
   return { ctx, page };

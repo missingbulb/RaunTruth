@@ -18,6 +18,7 @@ import { asTagger } from "../../../web-tests/tagger.mjs";
 import { withItemView } from "./item_view_shown.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -70,7 +71,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 await page.goto(origin + "/web/index.html?study=nor");
 await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
 await openFromDrive(page, image);

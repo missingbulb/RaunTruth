@@ -20,6 +20,7 @@ import { motion, record, begun, moved } from "./page_motions.mjs";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -64,7 +65,7 @@ await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await record(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 await page.goto(origin + "/web/fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };

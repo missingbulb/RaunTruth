@@ -12,6 +12,7 @@ import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -211,7 +212,7 @@ const awayAndBack = async (page, p) => {
   for (const [url, switched, label] of [[away, there, `away at ${other}`], [home, back, "back"]]) {
     const fresh = await page.context().newPage();
     fresh.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-    fresh.setDefaultTimeout(10000);
+    fresh.setDefaultTimeout(STEP);
     await fresh.goto(url);
     await ready(fresh); await settled(fresh);
     for (const d of differ(switched, await snapshot(fresh))) differences.push(`${where}, ${label}, not as a fresh load: ${d}`);

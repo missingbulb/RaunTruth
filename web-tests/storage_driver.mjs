@@ -25,6 +25,7 @@ import { keptContext } from "./kept_context.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -119,7 +120,7 @@ await ctx.addInitScript((seed) => {
 }, SEED);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 try {
   await page.goto(origin + "/web/index.html?study=nor");
