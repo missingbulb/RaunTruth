@@ -102,6 +102,27 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
+- `req/shelves/read/fields` The algorithm reads a spine into fields: title, author and publisher, and a volume and a library mark where it carries them.
+  <details>
+
+  Set by the owner on 2026-11-19 (#899): a spine carries several blocks of text in different fonts, sizes and
+  colours, sometimes parted by separators and sometimes turned 90° to the rest. The algorithm returns each book's
+  text as fields rather than as one string: at most one block each for `title`, `author` and `publisher`, and the
+  optional `volume` (as printed: "C", "IV", "ג", "Vol 1", "4") and `library` (a call-number sticker, at the spine's
+  head or foot, in Dewey or the Hebrew libraries' notation). A field it does not find is absent, never empty. The
+  reader parts the lines it read into blocks at a separator (`/`, `|`, a dot `•`, `·` or a lone `o`), at a wide gap
+  along the spine, and where the letters' height changes sharply; two lines side by side across the spine are one
+  block. It labels each block: a library mark by its pattern (three digits with a decimal, a short author code or
+  both) at the spine's head or foot; a volume by `Vol`, `כרך`, `חלק` with one, or a bare roman numeral, number or
+  letter where a separator sets it apart or it stands alone at the head or foot; a publisher by name or as a block
+  of letters at the spine's foot; of the rest, the block before a slash, or one bearing an initial, is the author,
+  and the larger words the title over a smaller name; with no such cue the text stays in the title. Since
+  a library's shelf stickers every book, once one spine on the photo carries a clear mark, a looser one at the
+  head or foot of the others is taken too. Each block keeps where it was read on the straightened book (its
+  `regions`), which the ground-truth task outlines. The answer keeps `title` as every field's text joined, for
+  the matcher. The routes and what they cost: `docs/fields/EXTRACTION.md`. Test: `studies/shelves/tests/test_reading.py`.
+  </details>
+
 - `req/shelves/read/readers` Find books reads each book's title in the same run; Read titles reads every book again with the reader chosen, in Hebrew and English.
   <details>
 
@@ -128,27 +149,6 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shelves/read/fields` The algorithm reads a spine into fields: title, author and publisher, and a volume and a library mark where it carries them.
-  <details>
-
-  Set by the owner on 2026-11-19 (#899): a spine carries several blocks of text in different fonts, sizes and
-  colours, sometimes parted by separators and sometimes turned 90° to the rest. The algorithm returns each book's
-  text as fields rather than as one string: at most one block each for `title`, `author` and `publisher`, and the
-  optional `volume` (as printed: "C", "IV", "ג", "Vol 1", "4") and `library` (a call-number sticker, at the spine's
-  head or foot, in Dewey or the Hebrew libraries' notation). A field it does not find is absent, never empty. The
-  reader parts the lines it read into blocks at a separator (`/`, `|`, a dot `•`, `·` or a lone `o`), at a wide gap
-  along the spine, and where the letters' height changes sharply; two lines side by side across the spine are one
-  block. It labels each block: a library mark by its pattern (three digits with a decimal, a short author code or
-  both) at the spine's head or foot; a volume by `Vol`, `כרך`, `חלק` with one, or a bare roman numeral, number or
-  letter where a separator sets it apart or it stands alone at the head or foot; a publisher by name or as a block
-  of letters at the spine's foot; of the rest, the block before a slash, or one bearing an initial, is the author,
-  and the larger words the title over a smaller name; with no such cue the text stays in the title. Since
-  a library's shelf stickers every book, once one spine on the photo carries a clear mark, a looser one at the
-  head or foot of the others is taken too. Each block keeps where it was read on the straightened book (its
-  `regions`), which the ground-truth task outlines. The answer keeps `title` as every field's text joined, for
-  the matcher. The routes and what they cost: `docs/fields/EXTRACTION.md`. Test: `studies/shelves/tests/test_reading.py`.
-  </details>
-
 - `req/shelves/summary` Summary counts the books, spines and covers, and lists each one's text, over the books the mask touches.
   <details>
 
@@ -157,6 +157,25 @@ read for a title matcher; matching the titles is not part of it.
   its box lies inside the shell's summary mask (`req/shell/summary/mask`), every book with no mask. The shell's
   Download Summary saves the three counts and a row per book, its number, view and text
   (`req/shell/summary/download`). Test: `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+- `req/shelves/truth/fields` A book's text is set field by field: Title and Author always, Publisher, Volume and Library mark when used.
+  <details>
+
+  Set by the owner on 2026-11-19 (#899), replacing the single title box of `req/shelves/truth/task` where the two
+  differ. The task shows a text box per field, each filled with what the reader read for it: Title and Author
+  always, and Publisher, Volume and Library mark only once the reader read one or the tagger opens it from a
+  small `+ Publisher`, `+ Volume` or `+ Library mark` link, so a book without them costs nothing. Once any book on
+  the photo has a library mark, the Library mark box is open on every book. Each field has its own colour and
+  letter (T, A, P, V, L), on its box and on the outline of where the reader read it on the book's picture, never
+  the colour alone; the tagger never draws or corrects those outlines. A ⇅ between two boxes swaps them, and Alt+↓ /
+  Alt+↑ (`req/shelves/truth/keys`) do the same or move only the selected text. Leaving a box commits its text as
+  one action, Right carries the boxes not yet committed, and approves every field as it stands. The file keeps,
+  per book, `fields` (only the fields that hold text), `text` (every field joined, as before) and `regions` (the
+  reader's outlines, as shares of the straightened book at its first turn), and for a found book what the reader
+  proposed for each field. A file from before the fields reads its text as the title. The reasoning behind the
+  panel: `docs/fields/GT-UI.md`. Test: `studies/shelves/tests/test_gt_actions.mjs`,
+  `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/truth/keys` While a book is open in the task, the keyboard gives its verdicts: Enter Right, Alt+← Back, Alt+→ Next, Ctrl+↑ Flip, Ctrl+Backspace Not a book.
@@ -257,25 +276,6 @@ read for a title matcher; matching the titles is not part of it.
   tagging, begins the walk at the first book not yet decided. The file lists every book, not only those marked right.
 
   Test: `studies/shelves/tests/test_shelves_page.py`.
-  </details>
-
-- `req/shelves/truth/fields` A book's text is set field by field: Title and Author always, Publisher, Volume and Library mark when used.
-  <details>
-
-  Set by the owner on 2026-11-19 (#899), replacing the single title box of `req/shelves/truth/task` where the two
-  differ. The task shows a text box per field, each filled with what the reader read for it: Title and Author
-  always, and Publisher, Volume and Library mark only once the reader read one or the tagger opens it from a
-  small `+ Publisher`, `+ Volume` or `+ Library mark` link, so a book without them costs nothing. Once any book on
-  the photo has a library mark, the Library mark box is open on every book. Each field has its own colour and
-  letter (T, A, P, V, L), on its box and on the outline of where the reader read it on the book's picture, never
-  the colour alone; the tagger never draws or corrects those outlines. A ⇅ between two boxes swaps them, and Alt+↓ /
-  Alt+↑ (`req/shelves/truth/keys`) do the same or move only the selected text. Leaving a box commits its text as
-  one action, Right carries the boxes not yet committed, and approves every field as it stands. The file keeps,
-  per book, `fields` (only the fields that hold text), `text` (every field joined, as before) and `regions` (the
-  reader's outlines, as shares of the straightened book at its first turn), and for a found book what the reader
-  proposed for each field. A file from before the fields reads its text as the title. The reasoning behind the
-  panel: `docs/fields/GT-UI.md`. Test: `studies/shelves/tests/test_gt_actions.mjs`,
-  `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/visibility` The study is shown to its owner's account alone.
