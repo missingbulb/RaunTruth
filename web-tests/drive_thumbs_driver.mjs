@@ -19,6 +19,7 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
+import { held as holding } from "./held.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -70,19 +71,27 @@ const cors = { "access-control-allow-origin": "*" };
 await ctx.route("https://www.googleapis.com/**", async (route) => {
   const q = new URL(route.request().url()).searchParams.get("q") || "";
   const slow = q.includes(SLOW.id);
-  if (slow) await new Promise((ok) => setTimeout(ok, 800)); // waits on purpose: a listing slower than the user, who moves on
+  if (slow) await slowListing.hold();
   const files = slow ? [{ ...IMAGES[0], id: "slowimage00000000001", name: "stale.tif" }]
     : [{ ...SLOW, mimeType: "application/vnd.google-apps.folder" }, ...IMAGES.map((f) => ({ ...f, mimeType: "image/tiff", size: "1000", createdTime: "2026-10-01T10:00:00Z" }))];
   await route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
   if (slow) slowAnswered();
 });
+// the slow folder's listing, held until the user has moved on
+const slowListing = holding();
 // each thumbnail's request, in order, and how many are still unanswered (answered or aborted by the page leaves
-// them); delay(k) says how long row k's answer takes
+// them)
 const asked = [];
-let inflight = 0, delay = () => 0;
-// while held, no thumbnail is answered: the answers are slower than whatever the test does meanwhile
-let held = null, letGo = () => {};
-const hold = () => { held = new Promise((ok) => { letGo = () => { held = null; ok(); }; }); };
+let inflight = 0;
+// while held, no thumbnail is answered, so the answers are slower than whatever the test does meanwhile: gates holds
+// each held answer's release by its row, and letGo(rows) lets those rows' answers go, every one held by default
+let holdingAll = false;
+const gates = new Map();
+const hold = () => { holdingAll = true; };
+const letGo = (rows = [...gates.keys()]) => {
+  if (rows.length === gates.size) holdingAll = false;
+  for (const k of rows) { gates.get(k)?.(); gates.delete(k); }
+};
 // resolves at the next request or answer
 let moved, next = new Promise((ok) => { moved = ok; });
 const note = () => { moved(); next = new Promise((ok) => { moved = ok; }); };
@@ -91,9 +100,10 @@ let slowAnswered, slowListed = new Promise((ok) => { slowAnswered = ok; });
 const atMost = (ms) => new Promise((ok) => setTimeout(ok, ms)); // bounds a hang: a page that never asks fails its check
 await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
   const id = path.basename(new URL(route.request().url()).pathname, ".jpg"), k = IMAGES.findIndex((f) => f.id === id);
-  asked.push(k); inflight++; note();
-  await new Promise((ok) => setTimeout(ok, delay(k))); // waits on purpose: the stand-in answers each row as slowly as the case asks
-  if (held) await held;
+  asked.push(k); inflight++;
+  const gate = holdingAll && new Promise((ok) => gates.set(k, ok));
+  note();
+  if (gate) await gate;
   try { await route.fulfill({ status: 200, contentType: "image/png", body: png(k + 1) }); } catch { /* aborted by the page */ }
   inflight--; note();
 });
@@ -150,13 +160,20 @@ try {
   await page.waitForFunction(() => window.$ && $("#title").textContent);
 
   // answers arrive in reverse order of asking: the later rows' first
-  delay = (k) => 400 - 5 * k;
+  hold();
   // the status bar's message, each time it changes
   await page.evaluate(() => {
     window.said = []; window.saidBefore = $("#status").textContent;
     new MutationObserver(() => said.push($("#status").textContent)).observe($("#status"), { childList: true, characterData: true, subtree: true });
   });
   await open();
+  await untilHeard(async () => span(await inView()).every((k) => gates.has(k)), () => next);
+  for (const k of [...gates.keys()].sort((x, y) => y - x)) {
+    const left = inflight;
+    letGo([k]);
+    await untilHeard(() => inflight < left, () => next);
+  }
+  letGo();
   await quiet();
   const told = await page.evaluate(() => ({ said, before: saidBefore, now: $("#status").textContent, own: !!document.querySelector("#sb-thumbs") }));
   check(told.said.some((t) => /^Thumbnails \d+ of \d+ · /.test(t)) && !told.own, `while thumbnails load, the status message says how many: ${JSON.stringify(told.said)}`);
@@ -189,16 +206,17 @@ try {
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
   await quiet();
   const had = (await shown()).flatMap((w, k) => (w ? [k] : []));
-  asked.length = 0; delay = () => 300;
+  asked.length = 0; hold();
+  const from = await page.evaluate(() => window.thumbsAsked);
   await page.evaluate(() => { $("#remote-list").scrollTop = $("#remote-list").scrollHeight / 2; });
   // the first rows there asked for, their answers still on the way
-  const from = await page.evaluate(() => window.thumbsAsked);
   await orMissed(page.waitForFunction((n) => window.thumbsAsked > n, from));
   const middle = span(await inView());
   check(had.length >= first.length && middle.length > AHEAD, `${had.length} thumbnails held before closing, ${middle.length} rows wanted midway`);
   // what the page had asked for, read in the same task as the close, so none is asked between the two
   const cut = await page.evaluate(() => { const n = window.thumbsAsked; document.querySelector("#remote-dlg button[value=close]").click(); return n; }) - from;
   // every request made before closing answered or cut off, and the page done with them
+  letGo();
   await untilHeard(() => !inflight, () => next, { timeout: 5000 });
   await framesOf(page);
   const after = (await page.evaluate(() => window.thumbsAsked)) - from - cut;
@@ -216,8 +234,10 @@ try {
   // a folder asked for and left before its listing arrives never shows
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
   await page.dblclick("#remote-list .item.folder");
+  await Promise.race([slowListing.asked, atMost(5000)]);
   await page.click("#remote-path button[data-k='0']");
   // the slow listing in, after the user moved on, and the page done with it
+  slowListing.release();
   await Promise.race([slowListed, atMost(5000)]);
   await framesOf(page);
   const rows = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item .name")].map((e) => e.textContent));
