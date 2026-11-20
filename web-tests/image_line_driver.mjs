@@ -14,7 +14,7 @@
 import { noisePng } from "./png_fixture.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { ENGINE } from "./engine.mjs";
+import { ENGINE, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pw, keptContext, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -252,16 +252,21 @@ try {
     "the image kept here opens, the others and a folder never listed are greyed", d);
   await shot("offline_dialog", "#remote-dlg");
   callsFrom = drive.calls.length;
-  await page.dblclick('#remote-list .item[data-id="linekept000000000001"]');
-  await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
-  check(calls().length === 0, "and opens from this device", calls());
+  if (BLOBS_READ_OFFLINE) {
+    await page.dblclick('#remote-list .item[data-id="linekept000000000001"]');
+    await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
+    check(calls().length === 0, "and opens from this device", calls());
+  } else {
+    console.log(`not checked in this ${ENGINE}: the image kept here opening offline, a blob its offline refuses the page`);
+    await page.click("#remote-dlg button[value=close]");
+  }
 
   // online again: the listing is read again, what changed taking its place
   await ctx.setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
   drive.file({ id: "linenew000000000001", name: "new.png", parent: ROOT, bytes: Buffer.concat([PNG, Buffer.from([3])]), mimeType: "image/png" });
   callsFrom = drive.calls.length;
-  await page.click("#image-box.folded");
+  if (BLOBS_READ_OFFLINE) await page.click("#image-box.folded");
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5);
   check(calls().includes("list"), "online, opening the dialog reads the folder again", calls());

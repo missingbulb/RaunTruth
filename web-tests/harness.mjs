@@ -13,7 +13,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+import { ENGINE, LAUNCH, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { FAKES } from "./fakes/index.mjs";
 import { COPY } from "./page_pixels.mjs";
 import { driveIn } from "./fakes/google_drive.mjs";
@@ -93,9 +93,10 @@ const reading = new Set();
 const READ_MS = 3000;
 function heard(m) {
   const where = m.location()?.url, among = [...declared], going = CUT && m.page() && leaving.has(m.page());
+  const dark = !BLOBS_READ_OFFLINE && m.page() && offlineNow.has(m.page().context());
   // read: whether the text is the values' own, read from the page
   const say = (text, read) => said(m.type(), text, where && !text.includes(where) ? where : "", among,
-    going && (CUT.test(text) || !read) ? "as its page was left" : "");
+    going && (CUT.test(text) || !read) ? "as its page was left" : dark && /Blob/.test(text) ? "a blob Playwright's offline refused" : "");
   const args = m.args();
   // the browser's own messages carry no values
   if (!args.length) return say(m.text(), true);
@@ -116,19 +117,27 @@ const allHeard = () => Promise.all([...reading].map((e) => e.done));
 // a browser or context closes only once what its pages said has been read from them
 const closesHeard = (target) => { const close = target.close.bind(target); target.close = async (...a) => { await allHeard(); return close(...a); }; };
 
-// Firefox's console says nothing of a load the server refused (a 404), and words one that failed as a cross-origin
-// block, where Chromium's says "Failed to load resource" of each. So that a case declares a failed load once, in the
-// same words on every engine, the harness says Chromium's line itself there, from what Playwright saw of the network.
-const SILENT_LOADS = ENGINE === "firefox";
-// Firefox's names for the failures a test or a fake makes, as Chromium names them
-const NET = { NS_ERROR_FAILURE: "ERR_FAILED", NS_ERROR_OFFLINE: "ERR_INTERNET_DISCONNECTED" };
+// Chromium's console says "Failed to load resource" of each load the server refused (a 404) and each that failed.
+// Firefox's says nothing of the first and words the second as a cross-origin block; WebKit's says nothing of a
+// request a test or a fake failed. So that a case declares a failed load once, in the same words on every engine,
+// the harness says Chromium's line itself where the engine's console does not, from what Playwright saw of the network.
+const SILENT = { firefox: { refused: true, failed: true }, webkit: { failed: true } }[ENGINE] || {};
+// the engine's names for the failures a test or a fake makes, as Chromium names them
+const NET = {
+  NS_ERROR_FAILURE: "ERR_FAILED", NS_ERROR_OFFLINE: "ERR_INTERNET_DISCONNECTED",
+  "Blocked by Web Inspector": "ERR_FAILED", "WebKit encountered an internal error": "ERR_INTERNET_DISCONNECTED",
+};
 // a request the page itself dropped by leaving, which no engine's console reports
-const LEFT = /^NS_BINDING_ABORTED$/;
+const LEFT = /^NS_BINDING_ABORTED$|cancell?ed/i;
 // Whether a worker made the request, as far as its headers say: one to the site's own address names the worker's
 // script as where it came from. Chromium's console, as Playwright reads it, says nothing of a worker's failed load.
 const byWorker = (q) => /\.m?js$/.test(q.headers().referer?.replace(/[?#].*$/, "") || "");
-// Firefox's own wording of a failed cross-origin request, which the harness has said above as a failed load
-if (SILENT_LOADS) declared.add({ pattern: /^error: \[JavaScript Error: "Cross-Origin Request Blocked: .*\(Reason: CORS request did not succeed\)/, seen: 0 });
+// the engine's own wording of a failed request, which the harness has said above as a failed load
+if (ENGINE === "firefox") declared.add({ pattern: /^error: \[JavaScript Error: "Cross-Origin Request Blocked: .*\(Reason: CORS request did not succeed\)/, seen: 0 });
+if (ENGINE === "webkit") declared.add({ pattern: /^error: Failed to load resource: WebKit encountered an internal error/, seen: 0 });
+// the addresses a worker asked for: WebKit's console says a worker's refused load as it says the page's
+const workerAsked = new Set();
+const ofWorker = (m) => ENGINE === "webkit" && /^Failed to load resource/.test(m.text()) && workerAsked.has(m.location()?.url);
 
 // an address off this machine
 const offSite = (u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href);
@@ -157,10 +166,18 @@ function onSitePages(target) {
 // would a lost network, so the page's own handling of that failure runs and warns, in a document on its way out;
 // Chromium settles none of them. What such a page writes of a cut request is its leaving, not a failure of the page's,
 // and so is what Firefox itself writes of a module the page was still loading.
-const CUT = ENGINE === "firefox" ? /NetworkError when attempting to fetch resource|The operation was aborted|Loading failed for the module/ : null;
+// WebKit does the same, in its own words.
+const CUT = {
+  firefox: /NetworkError when attempting to fetch resource|The operation was aborted|Loading failed for the module/,
+  webkit: /Load failed|Context is stopped|due to access control checks|Blob loading failed|reading the Blob/,
+}[ENGINE] || null;
 // the pages on their way out: from the request that takes one elsewhere until its next document is read, or for good
 const leaving = new WeakSet();
+// the contexts closing, whose pages' and workers' requests the closing cuts
+const closing = new WeakSet();
 function leaves(ctx) {
+  const shut = ctx.close.bind(ctx);
+  ctx.close = (...a) => { closing.add(ctx); return shut(...a); };
   if (!CUT) return;
   const watch = (page) => {
     page.on("domcontentloaded", () => leaving.delete(page));
@@ -180,6 +197,10 @@ function leaves(ctx) {
   ctx.close = (...a) => { for (const page of ctx.pages()) leaving.add(page); return close(...a); };
 }
 
+// the contexts a test has taken offline: there, on an engine whose offline refuses the page its own blobs
+// (engine.mjs), what the page writes of a blob it could not read is the harness's doing, not the page's
+const offlineNow = new WeakSet();
+
 // the outside systems' fakes, after a catch-all that turns away every other request leaving this machine: a route
 // set later is asked first, so a test's own routes come before the fakes, and the fakes before the catch-all
 // world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
@@ -188,7 +209,7 @@ async function install(ctx, world) {
   // offline as its test sets it: a route answers whatever the browser's network says, so the fakes answer nothing then
   let offline = false;
   const setOffline = ctx.setOffline.bind(ctx);
-  ctx.setOffline = (on) => { offline = on; return setOffline(on); };
+  ctx.setOffline = (on) => { offline = on; if (on) offlineNow.add(ctx); else offlineNow.delete(ctx); return setOffline(on); };
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); return page; };
   await ctx.route(offSite, (r) => { said("request", "left this machine: " + r.request().url()); return r.abort(); });
@@ -197,22 +218,26 @@ async function install(ctx, world) {
   await ctx.addInitScript(COPY);
   ownRoutes(ctx);
   ctx.on("console", (m) => {
-    if (m.type() !== "warning" && m.type() !== "error") return note(`${m.type()}: ${m.text()}`);
+    if ((m.type() !== "warning" && m.type() !== "error") || ofWorker(m)) return note(`${m.type()}: ${m.text()}`);
     heard(m);
   });
   ctx.on("weberror", (e) => {
     const error = e.error(), message = String(error?.message ?? error);
-    said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url());
+    said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url(), declared,
+      CUT?.test(message) && e.page() && leaving.has(e.page()) ? "as its page was left" : "");
   });
+  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); });
   ctx.on("requestfailed", (q) => {
     const why = q.failure()?.errorText || "";
     note(`request failed: ${q.method()} ${q.url()}: ${why}`);
-    if (SILENT_LOADS && !LEFT.test(why) && !byWorker(q)) said("error", `Failed to load resource: net::${NET[why] || why}`, q.url());
+    // WebKit names every request a route turns away the same, the harness's own turning away while offline too
+    const name = offlineNow.has(ctx) && NET[why] ? "ERR_INTERNET_DISCONNECTED" : NET[why] || why;
+    if (SILENT.failed && !LEFT.test(why) && !byWorker(q) && !q.url().startsWith("blob:") && !closing.has(ctx)) said("error", `Failed to load resource: net::${name}`, q.url());
   });
   ctx.on("response", (r) => {
     if (r.status() < 400) return;
     note(`answered ${r.status()}: ${r.request().method()} ${r.url()}`);
-    if (SILENT_LOADS && !byWorker(r.request())) said("error", `Failed to load resource: the server responded with a status of ${r.status()}`, r.url());
+    if (SILENT.refused && !byWorker(r.request())) said("error", `Failed to load resource: the server responded with a status of ${r.status()}`, r.url());
   });
   return ctx;
 }
@@ -221,9 +246,12 @@ export async function launch(pw, options = {}) {
   const browser = await pw[ENGINE].launch({ ...LAUNCH, ...options }), world = {};
   worlds.set(browser, world);
   const newContext = browser.newContext.bind(browser);
-  browser.newContext = async (o) => install(await newContext(o), world);
-  // a page of its own context, which closes with it, as Playwright's own newPage
+  const opened = [];
+  browser.newContext = async (o) => { const ctx = await install(await newContext(o), world); opened.push(ctx); return ctx; };
   closesHeard(browser);
+  const shut = browser.close.bind(browser);
+  browser.close = (...a) => { for (const ctx of opened) { closing.add(ctx); for (const page of ctx.pages()) leaving.add(page); } return shut(...a); };
+  // a page of its own context, which closes with it, as Playwright's own newPage
   browser.newPage = async (o) => {
     const ctx = await browser.newContext(o), page = await ctx.newPage();
     page.once("close", () => ctx.close().catch(() => {}));
@@ -245,7 +273,7 @@ export const keptContext = async (pw, options) =>
 
 // What the browser and the page say of a request the network does not carry, offline: the browser's line for the
 // failed load, and the words each engine's fetch() rejects with, which the page's own warnings repeat.
-export const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch|NetworkError/;
+export const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch|NetworkError|Load failed/;
 
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
 // none matching it fails the case, unless maybe: for one that comes only when work in the background is under way as
