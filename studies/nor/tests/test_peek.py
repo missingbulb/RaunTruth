@@ -25,7 +25,7 @@ def paint(paths, chunk=65536, frames=False):
     for k, p in enumerate(paths):
         copies.append(os.path.join(d, f'{k}.tif')); shutil.copy(p, copies[-1])
     opt = ['--frames', str(EVERY)] if frames else []
-    r = subprocess.run([NODE, os.path.join(HERE, 'peek_driver.mjs'), str(chunk), *opt, *copies], capture_output=True, text=True, check=True)
+    r = subprocess.run([NODE, os.path.join(HERE, 'peek_driver.mjs'), str(chunk), *opt, *copies], capture_output=True, text=True, check=True, timeout=120)
     out = []
     for line, c in zip(r.stdout.splitlines(), copies):
         info = json.loads(line)

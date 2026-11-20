@@ -94,10 +94,10 @@ def test_previews_leave_photos_to_drive(tmp_path):
 def test_drive_previews(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))
-    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True)
+    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True, timeout=120)
     # made before d new.tif joined the folder, and before c changed.tif changed
     os.remove(images / 'd new.tif')
-    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True)
+    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True, timeout=120)
     tifffile.imwrite(images / 'd new.tif', np.zeros((1, 50, 50), np.uint16), imagej=True, metadata={'axes': 'CYX'})
     with open(images / 'c changed.tif', 'ab') as f:
         f.write(b'\0')

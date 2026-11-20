@@ -43,7 +43,7 @@ def test_the_run_leaves_out_only_what_chromium_alone_can_measure():
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
     out = subprocess.run([sys.executable, '-m', 'pytest', '--collect-only', '-q', '-p', 'no:cacheprovider', *other_engines.SELECTED,
                           'studies/nor/tests/test_memory.py', 'web-tests/test_offline_page.py', 'web-tests/test_grid_page.py'],
-                         cwd=root, capture_output=True, text=True).stdout
+                         cwd=root, capture_output=True, text=True, timeout=120).stdout
     collected = [line for line in out.splitlines() if '::' in line]
     assert len(collected) >= 2, out
     assert not any('test_page_holds_no_more_after_repeats' in line for line in collected), collected

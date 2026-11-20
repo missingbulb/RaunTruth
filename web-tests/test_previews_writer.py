@@ -43,7 +43,7 @@ def test_the_page_writes_what_the_tool_writes(tmp_path):
     y, x = np.mgrid[0:300, 0:420]
     wide = np.stack([((x * 7) % 900).astype(np.uint16), ((y * 11) % 700).astype(np.uint16)])
     tifffile.imwrite(images / 'f big flat.tif', wide, imagej=True, metadata={'axes': 'CYX'})
-    subprocess.run([sys.executable, TOOL, str(images)], check=True)
+    subprocess.run([sys.executable, TOOL, str(images)], check=True, timeout=120)
     tool_index, tool_pages = read(images / 'rauntruth-previews.tiff')
     os.rename(images / 'rauntruth-previews.tiff', tmp_path / 'tool.tiff')
     assert write(images, tmp_path / 'page.tiff')['made'] == [e['name'] for e in tool_index['images']]
