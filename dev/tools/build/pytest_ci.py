@@ -2,6 +2,7 @@
 Chromium would leave the run green while covering nothing, so a skip fails the run instead."""
 import os
 import subprocess
+from importlib import metadata
 import sys
 
 import pytest
@@ -25,6 +26,18 @@ def pytest_configure(config):
     config.addinivalue_line('markers', "chromium_only: needs what only Playwright's Chromium offers (its DevTools, or routing a "
                                        "service worker's requests), so the run on the other engines leaves it out "
                                        '(req/checks/other-engines)')
+    # A deliberate suppression (owner's call, #685): scikit-image before 0.27 sets an array's shape in
+    # grayreconstruct, which NumPy 2.5 deprecates; 0.27 reshapes instead, and the filter stops applying there.
+    if _version('scikit-image') < (0, 27):
+        config.addinivalue_line('filterwarnings', 'ignore:Setting the shape on a NumPy array has been deprecated'
+                                                  ':DeprecationWarning:skimage\\.morphology\\.grayreconstruct')
+
+
+def _version(dist):
+    try:
+        return tuple(int(''.join(c for c in p if c.isdigit()) or 0) for p in metadata.version(dist).split('.')[:2])
+    except metadata.PackageNotFoundError:
+        return (0,)
 
 
 def pytest_sessionstart(session):
