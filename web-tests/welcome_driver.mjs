@@ -220,6 +220,27 @@ try {
   await throughGuide(f.page);
   check(await orMissed(f.page.waitForFunction(() => !document.querySelector("#sign-out").hidden)) && !(await popup(f.page)), "trying again signs in and closes it");
 
+  // trying again in the moment the popup says so, before the browser has told the page that the guide closed: the
+  // guide opens again and its button still asks Google
+  const k = await device();
+  google.answer = "deny";
+  await expecting(/no token/, async () => {
+    await k.page.evaluate(() => {
+      const said = document.querySelector("#welcome-failed");
+      const seen = new MutationObserver(() => { if (said.hidden) return; seen.disconnect(); document.querySelector("#welcome-sign-in").click(); });
+      seen.observe(said, { attributes: true, attributeFilter: ["hidden"] });
+    });
+    await k.page.click("#welcome-sign-in");
+    await throughGuide(k.page);
+    // the guide of the second try, its button not pressed yet
+    await orMissed(k.page.waitForFunction(() => window.tokenClient?.asked.length === 1 && document.querySelector("#guide-dlg[open]:not(.waiting)")));
+  });
+  google.answer = "grant";
+  const again = await guide(k.page);
+  if (again) await k.page.click("#guide-go");
+  check(!!again && await orMissed(k.page.waitForFunction(() => !document.querySelector("#sign-out").hidden)) && !(await popup(k.page)),
+    "trying again as the first try fails signs in too" + (again ? "" : ": its guide did not open"));
+
   // the tip follows the avatar when the window is resized
   const g = await device({ seed: { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) } });
   await g.page.setViewportSize({ width: 700, height: 800 });
