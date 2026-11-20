@@ -88,17 +88,23 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
   }
   async function fileId() {
     if (me.fileId) return me.fileId;
-    const q = encodeURIComponent(`name = '${FILE_NAME}'`);
+    const who = me, q = encodeURIComponent(`name = '${FILE_NAME}'`);
     const found = (await (await google(`${FILES}?spaces=appDataFolder&q=${q}&fields=files(id)`)).json()).files;
-    return (me.fileId = found.length ? found[0].id : null);
+    const id = found.length ? found[0].id : null;
+    if (me === who) me.fileId = id;
+    return id;
   }
+  // what Drive answers for a user who has since signed out, or been replaced, is theirs no more: nothing of it is kept
   async function save() {
-    const sent = here(), body = JSON.stringify(sent), id = await fileId();
+    const who = me, sent = here(), body = JSON.stringify(sent), id = await fileId();
     if (id) await google(`${UPLOAD}/${id}?uploadType=media`, { method: "PATCH", headers: { "content-type": "application/json" }, body });
     else {
       const upload = await multipart({ name: FILE_NAME, parents: ["appDataFolder"] }, body, "application/json");
-      me.fileId = (await (await google(`${UPLOAD}?uploadType=multipart&fields=id`, { method: "POST", ...upload })).json()).id;
+      const made = (await (await google(`${UPLOAD}?uploadType=multipart&fields=id`, { method: "POST", ...upload })).json()).id;
+      if (me !== who) return;
+      me.fileId = made;
     }
+    if (me !== who) return;
     // a setting changed again while this was on its way is still this device's to save
     const now = here();
     me.changed = (me.changed || []).filter((k) => now[k] !== sent[k]); keep();
