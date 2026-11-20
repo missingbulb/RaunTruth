@@ -65,10 +65,10 @@ const visible = async (sel) => !!(await box(sel));
 const pixel = (x, y) => page.evaluate(([x, y]) => [...testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data].slice(0, 3), [x, y]);
 const opacity = () => page.evaluate(() => Number(getComputedStyle(document.querySelector("#minimap")).opacity));
 // until the page shows what the next check reads, or a few seconds pass and the check says what it shows instead
-const opacityNear = (want) => orMissed(page.waitForFunction((w) => Math.abs(Number(getComputedStyle(document.querySelector("#minimap")).opacity) - w) < 1e-6, want, { timeout: 3000 }));
-const pixelIs = (x, y, rgb) => orMissed(page.waitForFunction(([x, y, rgb]) => [...testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: 3000 }));
+const opacityNear = (want) => orMissed(page.waitForFunction((w) => Math.abs(Number(getComputedStyle(document.querySelector("#minimap")).opacity) - w) < 1e-6, want, { timeout: STEP }));
+const pixelIs = (x, y, rgb) => orMissed(page.waitForFunction(([x, y, rgb]) => [...testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data].slice(0, 3).join() === rgb, [x, y, rgb], { timeout: STEP }));
 // its red within 1 of a value, for a change made in more than one step, each of which the page may draw on its own
-const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.abs(testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: 3000 }));
+const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.abs(testCopy(document.querySelector("#base")).getImageData(x, y, 1, 1).data[0] - v) <= 1, [x, y, v], { timeout: STEP }));
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----

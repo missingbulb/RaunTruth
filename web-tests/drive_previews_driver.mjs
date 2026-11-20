@@ -107,14 +107,14 @@ try {
   // the turning canvas's picture, null when the row shows its still
   const frame = () => page.evaluate((sel) => document.querySelector(sel + " .pic canvas")?.toDataURL() ?? null, stackRow);
   await page.hover(stackRow);
-  await orMissed(page.waitForFunction((sel) => document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }));
+  await orMissed(page.waitForFunction((sel) => document.querySelector(sel + " .pic canvas"), stackRow, { timeout: STEP }));
   const f1 = await frame();
-  await orMissed(page.waitForFunction(([sel, f1]) => document.querySelector(sel + " .pic canvas")?.toDataURL() !== f1, [stackRow, f1], { timeout: 3000 }));
+  await orMissed(page.waitForFunction(([sel, f1]) => document.querySelector(sel + " .pic canvas")?.toDataURL() !== f1, [stackRow, f1], { timeout: STEP }));
   const f2 = await frame();
   check(!!f1 && !!f2 && f1 !== f2, "hovering a stack's row turns it");
   if (shots && f2) fs.writeFileSync(path.join(shots, "turning.png"), Buffer.from(f2.split(",")[1], "base64"));
   await page.mouse.move(5, 5);
-  await orMissed(page.waitForFunction((sel) => !document.querySelector(sel + " .pic canvas"), stackRow, { timeout: 3000 }));
+  await orMissed(page.waitForFunction((sel) => !document.querySelector(sel + " .pic canvas"), stackRow, { timeout: STEP }));
   check((await frame()) === null, "and leaving it shows its still again");
   check(!readsOf("b stack.tif"), "turning reads nothing");
 

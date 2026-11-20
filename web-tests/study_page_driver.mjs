@@ -132,7 +132,7 @@ try {
       return svg instanceof SVGSVGElement ? "generic" : "none";
     };
     const got = () => page.evaluate(look);
-    await orMissed(page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: 3000 }));
+    await orMissed(page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: STEP }));
     const seen = await got();
     if (seen !== want) problems.push(`the switcher's control shows ${seen}, not ${want}`);
   };

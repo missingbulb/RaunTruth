@@ -240,7 +240,7 @@ try {
   await ctx.setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.click("#image-pick");
-  await orMissed(until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: 3000 }));
+  await orMissed(until(page, () => document.querySelectorAll("#image-menu .recent:disabled").length > 0, null, { timeout: STEP }));
   r = await rows();
   check(r.find((x) => x.name === "kept.png").grey === false && r.filter((x) => x.name !== "kept.png").every((x) => x.grey), "offline, the selector greys the images not kept here", r);
   await page.keyboard.press("Escape");
@@ -276,7 +276,7 @@ try {
   await shot("new_in_dialog", "#remote-dlg");
   await page.click("#remote-dlg button[value=close]");
   await page.click("#load-remote");
-  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: 3000 }));
+  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: STEP }));
   d = await listed();
   check(d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
   await page.click("#remote-dlg button[value=close]");
