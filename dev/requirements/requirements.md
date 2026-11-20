@@ -1955,7 +1955,9 @@ nobody has decided: what the page does there is not a requirement yet.
   points of its row, which redraw the 3D view as they move. The study's `view` sets the render and the
   spacing it opens with. A study draws over the 3D view, over the stack or beside it
   in the same camera, picks and drags there, and can keep only the stack inside or outside a mask of
-  its own. Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
+  its own. The stack's own picture is drawn again only when what it is made from has changed (the camera, the
+  slices and channels shown, a mask): the ruler and a study's marks are drawn over it as it stands (owner,
+  2026-11-20). Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
   </details>
 
 - `req/shell/views/second` A study's item view shows what was found, behind the shell's Items switch; there is none while ground truth is made.

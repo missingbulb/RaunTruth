@@ -127,9 +127,17 @@ try {
     const c3 = await page.evaluate(() => { const b = $("#v3-gl").getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
     const rot0 = await rotNow();
     await page.click("#ruler-btn");
+    // how often the stack's own picture has been drawn, as the page's WebGL was asked to
+    await viewDrawn(page);
+    await page.evaluate(() => {
+      const gl = WebGL2RenderingContext.prototype, draw = gl.drawArrays;
+      window.stackDrawn = 0;
+      gl.drawArrays = function (...a) { window.stackDrawn++; return draw.apply(this, a); };
+    });
+    const stackDrawn = async () => { await viewDrawn(page); return page.evaluate(() => window.stackDrawn); };
     await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down();
     await page.mouse.move(c3[0] + 20, c3[1], { steps: 4 }); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 });
-    const live = await rulerNow();
+    const live = await rulerNow(), drawnInDrag = await stackDrawn();
     const topZ = await page.evaluate(() => { const v = window.shellForTests.viewer.three, S = v.S, Zs = v.meta.shape[0]; return v.half[2] * (1 - (2 * S.z0) / Zs); });
     check(live.orb && Math.abs(live.orb.r - 80) < 8 && /rgb\(255, 255, 255\)|url\(/.test(live.orb.fill) && live.line && /^\d+(\.\d+)? µm$/.test(live.text || ""),
       `dragging the 3D ruler shows an orb of the reach, its radius the drag, with the distance in µm: ${JSON.stringify(live)}`);
@@ -143,7 +151,8 @@ try {
     check(!down.orb && down.line && down.text === live.text && down.pressed === "true" && await rotNow() === rot0,
       `on release the ruler alone stays, and the drag did not turn the view: ${JSON.stringify(down)}`);
     await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0.5, -0.4); v.redraw(); });
-    const turnedR = await rulerNow();
+    const turnedR = await rulerNow(), drawnTurned = await stackDrawn();
+    check(drawnInDrag === 0 && drawnTurned === 1, `the ruler's drag draws over the stack's picture, which is drawn again only as the view turns: ${drawnInDrag} times in the drag, ${drawnTurned} by the turn`);
     check(turnedR.line && turnedR.text === down.text, `the ruler stays with its distance as the view turns: ${JSON.stringify(turnedR)}`);
     await page.click("#ruler-btn");
     const gone = await rulerNow();
