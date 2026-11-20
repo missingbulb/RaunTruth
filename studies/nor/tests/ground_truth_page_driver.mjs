@@ -409,7 +409,7 @@ async function mask(page) {
   await check(!/mask/i.test(said), `with no mask the mask item is crossed out: "${said}"`);
   await check(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
-  await check(send.off && /View only/.test(send.why), `with no per-file permission, Submit is off and says why: "${send.why}"`);
+  await check(send.off && /No permission/.test(send.why) && /sign out/i.test(send.why), `with no per-file permission, Submit is off and says to sign in again ticking its box: "${send.why}"`);
   await ctx.close();
 }
 await done(0);
