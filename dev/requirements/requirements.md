@@ -1812,8 +1812,9 @@ nobody has decided: what the page does there is not a requirement yet.
   parts, a folder Data Management had open, an edit, the remote files dialog's listing, or a ground-truth line.
   What the browser keeps carries over as a reload would keep it (who is signed in, the role, the theme, the
   user's choices, the images kept here), and so do the tab's own measures in the status bar. Test:
-  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where every path of the shell's
-  states ends by going to another study and back, each compared with a fresh load of its address.
+  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where the first path of each study and
+  role of the shell's states ends by going to another study and back, each compared with a fresh load of its address
+  (set by the owner on 2026-11-20, in place of every path: the other paths' last states add little the first does not).
   </details>
 
 - `req/shell/study/viewer-choice` The viewer is the study's choice.
@@ -2086,8 +2087,8 @@ nobody has decided: what the page does there is not a requirement yet.
   against a stand-in Google and a stand-in Python answering what the study's own Python answers on loading and on
   opening the image, or the z-stack a path loads, and the study's own Python answering its calls once it takes its
   first step, signed in as an account the study is shown to, and at every state, the study's calls answered, reads each element as shown,
-  disabled, held offline, folded or gone. After its last state, back online first, each path goes to another
-  study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
+  disabled, held offline, folded or gone. After its last state, back online first, the first path of each study and
+  role goes to another study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
   shows in the same browser: the whole page read element by element and the shell's own state, leaving out what
   changes between two readings of the same page (the status bar's measures of the tab, the browser's mark on what is
   scrolled out of view, an attribute left empty, the order of a class list); every difference is listed before it fails. Test: `web-tests/test_shell_states.py`,

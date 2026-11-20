@@ -1,8 +1,8 @@
 // Walks the shell's states (req/checks/shell-states) in a browser, against the stand-in Google of stand_in_drive.mjs
 // serving ROOT: each path of EXPECT (shell-states.GENERATED.json) opens its study as its root says, takes its
 // actions one after another, and at every state reads each element as shown, disabled, folded or gone, against what
-// the rules expect; after its last state, it goes to another study and back, each page then compared with a fresh
-// load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
+// the rules expect; after its last state, the first path of each study and role goes to another study and back, each
+// page then compared with a fresh load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
 // every state, arrows pointing at the elements that changed there, and an index.html of them all (req/checks/shell-states/renders).
 // SHARD, i/n, walks the paths whose place in EXPECT is i modulo n, so n runs side by side walk them all.
 // STACK is the z-stack a path loads with its stack action; ANSWERS' files[study] may name a study's own image and stack, and names the large image of the large action. Exits 1 on a difference, 2 when it cannot run.
@@ -20,6 +20,9 @@ const { FILES, open, role, check, done } = await standIn({ answers, studies, roo
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 const [part, parts] = shard.split("/").map(Number);
 const paths = [...every.entries()].filter(([k]) => k % parts === part);
+// the first path of each study and role goes away and back after its last state (req/shell/study/switch-in-place),
+// chosen from every path so a shard walks what the whole walk would
+const SWITCHERS = new Set([...new Map(every.map((p, k) => [`${p.study} ${p.role}`, k]).reverse()).values()]);
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
 const OTHER = "someone@example.com";
@@ -190,7 +193,7 @@ const arrows = (page, marks) => page.evaluate(([marks, ARROW, WRONG]) => {
 }, [marks, ARROW, WRONG]);
 const unarrow = (page) => page.evaluate(() => document.querySelector("#state-arrows")?.remove());
 
-// Away to another study and back, from the path's last state (req/shell/study/switch-in-place): each study then is
+// Away to another study and back, from a path's last state (req/shell/study/switch-in-place): each study then is
 // the page a fresh load of its address shows, in the same browser, its storage kept. Back online first: offline, the
 // switch waits for the network.
 const awayAndBack = async (page, p) => {
@@ -281,7 +284,7 @@ const walk = async (k, p) => {
     before = now;
   }
   index.push({ root: `${p.study} · ${p.root}`, shots });
-  await awayAndBack(page, p);
+  if (SWITCHERS.has(k)) await awayAndBack(page, p);
   await page.context().close();
 };
 for (const [k, p] of paths) await walk(k, p);
