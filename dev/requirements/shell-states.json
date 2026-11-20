@@ -104,11 +104,6 @@
                     }
                   ]
                 },
-                {"name": "Approve folders", "select": "#data-approve", "control": true, "req": "req/shell/data/drive-access",
-                  "rule": [
-                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"}
-                  ]
-                },
                 {"name": "Folder tree", "select": "#data-tree", "req": "req/shell/data/mode"},
                 {"name": "Not in the study", "select": "#data-unlisted", "req": "req/shell/data/folders", "unwalked": "shows only while the study's root holds a folder no listed folder is, and the walked study lists its root",
                   "rule": [
