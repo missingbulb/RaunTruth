@@ -1,13 +1,15 @@
 // Drives one case of the harness itself (req/checks/clean-console) on a page of its own, which writes what CASE
 // names: a warning nobody declared, one declared, a declaration nothing answers, an uncaught error, a request
 // leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline, the
-// deploy's variables, a study's edits, and a test's own route answering what a fake does. Prints what the page saw; the harness decides the exit.
+// deploy's variables, a study's edits, a test's own route answering what a fake does, and a wait in the page that
+// holds or never does. Prints what the page saw; the harness decides the exit.
 //   node web-tests/harness_driver.mjs CASE
 import http from "node:http";
 import path from "node:path";
 import { pw, launch, expecting, siteOf, check } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
+import { until } from "./page_until.mjs";
 
 const [which] = process.argv.slice(2);
 const server = http.createServer((q, r) => {
@@ -92,5 +94,12 @@ const CASES = {
     console.log(await page.evaluate(() => fetch("https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/package.json").then(() => "reached", () => "unreachable")));
   },
   cdn: async () => console.log(await page.evaluate(() => fetch("https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/package.json").then((r) => r.json()).then((j) => "served " + j.version))),
+  untilgives: async () => {
+    await page.evaluate(() => setTimeout(() => { window.answer = { n: 42 }; }, 200)); // waits on purpose (no event): the value comes after the wait starts
+    console.log("gave " + JSON.stringify(await until(page, () => window.answer)));
+  },
+  untilthrows: async () => {
+    try { await until(page, () => window.missing.field, null, { timeout: 300 }); } catch (e) { console.log(e.message); }
+  },
 };
 try { await CASES[which](); } finally { await browser.close(); server.close(); }

@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 
 # the page's libraries for the tests that run them under Node (python3 web-tests/page_libraries.py)
-/web-tests/node_modules/
+/web-tests/node_modules
 /web-tests/package*.json
 # the page's vendored wheels (python3 dev/tools/build/build.py)
 /web/vendor/

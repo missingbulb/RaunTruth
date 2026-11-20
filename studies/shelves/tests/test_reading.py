@@ -30,8 +30,10 @@ def engines(request):
         pytest.skip('no tesseract command')
     pytest.importorskip('onnxruntime')
     import services
-    # the engines' files, fetched once into pytest's cache rather than the study's downloaded data
-    study = types.SimpleNamespace(dir=STUDY, data=str(request.config.cache.mkdir('shelves-engines')),
+    # the engines' files, fetched once: in the test image, already there (req/checks/ci-sets/one-image); elsewhere into
+    # pytest's cache, rather than the study's downloaded data
+    data = os.path.join(os.environ['TEST_DOWNLOADS'], 'shelves') if 'TEST_DOWNLOADS' in os.environ else str(request.config.cache.mkdir('shelves-engines'))
+    study = types.SimpleNamespace(dir=STUDY, data=data,
                                   manifest=json.load(open(os.path.join(STUDY, 'study.json'))))
     return services.native(study)
 

@@ -2,9 +2,9 @@
 own study.json names, else on the link last pasted anywhere (drive_folder_driver.mjs, in headless Chromium)."""
 import os
 import shutil
-import subprocess
 
 import pytest
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -14,8 +14,4 @@ NODE = shutil.which('node')
 
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_drive_folder_per_study():
-    r = subprocess.run([NODE, os.path.join(HERE, 'drive_folder_driver.mjs')], capture_output=True, text=True, timeout=90)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'drive_folder_driver.mjs'), timeout=90)

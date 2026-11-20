@@ -1,7 +1,8 @@
 """req/checks/shell-states, req/checks/shell-states/renders: every state the paths reach, walked in a browser on the study
 each opens against a stand-in Google (shell_states_driver.mjs), each element what the rules say there. A stand-in
 worker answers for each study what its own Python answers on loading and on opening the image. The pictures of the
-states go to SHELL_STATES_RENDERS when it is set, else to the test's own temporary directory."""
+states go to SHELL_STATES_RENDERS when it is set, else to the test's own temporary directory. The paths are walked in
+shards side by side, one browser each; with SHELL_STATES_RENDERS set, in one, so its index.html shows every path."""
 import importlib
 import importlib.util
 import json
@@ -18,6 +19,7 @@ from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXPECT = os.path.join(HERE, 'shell-states.GENERATED.json')
+SHARDS = 1 if os.environ.get('SHELL_STATES_RENDERS') else 4
 
 
 def samples(i, d, out):
@@ -78,7 +80,8 @@ def own_answers(answers, png, tif, stack, out):
 
 
 @pytest.mark.skipif(not NODE, reason='node missing')
-def test_every_state_is_what_the_rules_say(answers, png, tmp_path):
+@pytest.mark.parametrize('shard', range(SHARDS))
+def test_every_state_is_what_the_rules_say(answers, png, tmp_path, shard):
     root = tmp_path / 'drive'
     (root / 'sub').mkdir(parents=True)
     y, x = np.mgrid[0:60, 0:80]
@@ -90,4 +93,4 @@ def test_every_state_is_what_the_rules_say(answers, png, tmp_path):
     stack = root / 'stack.tif'
     tifffile.imwrite(stack, np.stack([(x * 5 + z * 10).astype(np.uint8), (y * 6).astype(np.uint8)], axis=1), imagej=True, metadata={'axes': 'ZCYX'})
     renders = os.environ.get('SHELL_STATES_RENDERS') or str(tmp_path / 'renders')
-    run('shell_states_driver.mjs', own_answers(answers[0], png, str(root / 'one.tif'), str(stack), tmp_path / 'answers.json'), answers[1], str(root), png, str(stack), EXPECT, renders, timeout=600)
+    run('shell_states_driver.mjs', own_answers(answers[0], png, str(root / 'one.tif'), str(stack), tmp_path / 'answers.json'), answers[1], str(root), png, str(stack), EXPECT, f'{shard}/{SHARDS}', renders, timeout=600)

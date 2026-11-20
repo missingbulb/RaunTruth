@@ -25,7 +25,7 @@ Full specification, including the parts the overview leaves unstated:
 [`../lab/STATE.md`](../lab/STATE.md) holds the current state — the default finder, its
 scores, what to run — and is updated in every PR that changes it, so this file does not repeat it.
 
-Run the tests: `pip install -r requirements.txt && python3 -m pytest web-tests studies` from the repo root (the page tests also need `npm i --prefix web-tests pyodide@314.0.7` and Playwright's Chromium). CI runs the fast set (`-m "not full"`, no Node or browser) on every PR (`.github/workflows/tests.yml`) and every test nightly and on each push to main (`.github/workflows/tests-full.yml`), where a green run wakes the site release.
+Run the tests: `pip install -r requirements.txt && python3 -m pytest web-tests studies` from the repo root (the page tests also need `npm i --prefix web-tests pyodide@314.0.7` and Playwright's Chromium). CI runs every test on Chromium, in the test image with no network (`dev/tools/test-image/`), on every PR (`.github/workflows/tests.yml`) and on each push to main (`.github/workflows/tests-full.yml`), where a green run wakes the site release; nightly it adds Firefox and WebKit.
 Fetch the raw data and score every finder: `python3 lab/fetch.py nor && python3 lab/run.py nor`
 
 ## What blocks starting

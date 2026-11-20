@@ -16,7 +16,7 @@ def loaded_after(code):
     """The modules a fresh Python holds after code runs with the study's folders on its path."""
     paths = [os.path.join(STUDY, 'algorithm')]
     run = f'import sys; sys.path[:0] = {paths!r}\n{code}\nimport json; print(json.dumps(sorted(sys.modules)))'
-    return set(json.loads(subprocess.run([sys.executable, '-c', run], capture_output=True, text=True, check=True).stdout.splitlines()[-1]))
+    return set(json.loads(subprocess.run([sys.executable, '-c', run], capture_output=True, text=True, check=True, timeout=120).stdout.splitlines()[-1]))
 
 
 def test_python_loads_and_a_stack_opens_without_the_versions_or_scipy(tmp_path):

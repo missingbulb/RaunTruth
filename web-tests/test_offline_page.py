@@ -3,12 +3,12 @@ and their data the user chooses (offline_driver.mjs, in headless Chromium with t
 Pyodide from its CDN, which a stand-in could not prove kept: what is cached is what the worker really fetched)."""
 import os
 import shutil
-import subprocess
 import sys
 
 import numpy as np
 import pytest
 import tifffile
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -20,13 +20,15 @@ NODE = shutil.which('node')
 @pytest.mark.chromium_only
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_site_runs_offline(tmp_path):
-    subprocess.run([sys.executable, os.path.join(ROOT, 'dev', 'tools', 'build', 'build.py')], check=True, timeout=300,
-                   env={**os.environ, 'GOOGLE_API_KEY': 'stand-in'})
+    # the site as the release builds it, under this test's own folder: dev/build/site is the build's, which another
+    # test's build may rewrite while this one serves it
+    sys.path.insert(0, os.path.join(ROOT, 'dev', 'tools', 'build'))
+    import build
+    site = tmp_path / 'site'
+    build.assemble(ROOT, str(site), {'GOOGLE_API_KEY': 'stand-in'})
+    # the analytics loader the release's own tree holds, which the app's pages load from the site's top, and keep offline
+    shutil.copy(os.path.join(ROOT, 'dev', 'build', 'site', 'analytics.js'), site / 'analytics.js')
+    build.offline_list(str(site))
     stack = str(tmp_path / 'stack.tif')
     tifffile.imwrite(stack, np.random.default_rng(1).integers(0, 255, (4, 32, 32), dtype=np.uint8), photometric='minisblack')
-    r = subprocess.run([NODE, os.path.join(HERE, 'offline_driver.mjs'), os.path.join(ROOT, 'dev', 'build', 'site'), stack],
-                       capture_output=True, text=True, timeout=600)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'offline_driver.mjs'), str(site), stack, timeout=600)

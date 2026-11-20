@@ -43,14 +43,25 @@ def crop():
     return a
 
 
-@pytest.mark.parametrize('tid', sorted(T.TRICKS))
+HERE_NOW = sorted(t for t, missing in T.available().items() if not missing)
+NOT_HERE = sorted(t for t, missing in T.available().items() if missing)
+
+
+def test_most_tricks_run_here():
+    assert len(HERE_NOW) >= 25, f'only {len(HERE_NOW)} tricks have their packages; missing: {NOT_HERE}'
+
+
+@pytest.mark.parametrize('tid', HERE_NOW)
 def test_each_runnable_trick_runs_on_a_real_crop(tid, crop):
-    missing = T.available()[tid]
-    if missing:   # a trick whose package is not in requirements.txt: it must name that package, and that is all
-        assert isinstance(missing, str) and missing in T.NEEDS[tid]
-        return
     out = T.TRICKS[tid](crop, 4.0)
     assert out.shape == crop.shape and np.isfinite(out).all()
+
+
+@pytest.mark.parametrize('tid', NOT_HERE)
+def test_a_trick_whose_package_is_not_here_names_it(tid):
+    # a trick whose package is not in requirements.txt: it must name that package, and that is all
+    missing = T.available()[tid]
+    assert isinstance(missing, str) and missing in T.NEEDS[tid]
 
 
 def test_signal_counts_only_what_beats_chance():

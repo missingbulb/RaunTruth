@@ -407,7 +407,7 @@ try {
   const isSelected = () => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length && t.value.length > 0; };
   const selected = () => page.evaluate(isSelected);
   // a few frames' grace for the box to take focus, bounded so a miss fails at once rather than hanging
-  const settledSelected = () => orMissed(page.waitForFunction(isSelected, null, { timeout: 2000 }));
+  const settledSelected = () => orMissed(page.waitForFunction(isSelected, null, { timeout: STEP }));
   const titleState = () => page.evaluate(() => [document.activeElement?.tagName, $(".bs-item input")?.selectionStart, $(".bs-item input")?.selectionEnd]);
   check(await value() === "Title 260x40" && await page.$$eval(".bs-item canvas", (c) => c[0].width) === 260,
     "the walk starts at the leftmost book, not the finder's first, upright with what the reader read", await value());

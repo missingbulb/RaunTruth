@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
+import "../../../web-tests/cdn_from_node_modules.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const require = createRequire(path.join(repo, "web-tests", "driver.mjs"));
