@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
+import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
 import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
@@ -26,7 +27,7 @@ const site = await serve(studies, model);
 const browser = await launch(pw);
 atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
 await asTagger(ctx);
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);

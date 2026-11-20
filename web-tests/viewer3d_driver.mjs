@@ -12,7 +12,7 @@ import { writeTiff } from "../web/tiff_file.js";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { ENGINE } from "./engine.mjs";
+import { ENGINE, SOFTWARE_3D } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
 import { pw, launch, check, siteOf } from "./harness.mjs";
@@ -56,7 +56,7 @@ const browser = await launch(pw);
 // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
 siteOf(browser).studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();

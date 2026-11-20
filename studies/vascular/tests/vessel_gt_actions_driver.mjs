@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
+import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
@@ -26,7 +27,7 @@ const site = await serve(studies, model);
 const browser = await launch(pw);
 atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);

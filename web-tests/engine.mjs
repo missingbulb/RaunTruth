@@ -7,3 +7,8 @@ export const ENGINE = process.env.PW_ENGINE || "chromium";
 export const LAUNCH = ENGINE === "firefox"
   ? { firefoxUserPrefs: { "webgl.force-enabled": true, "webgl.out-of-process": false }, env: { ...process.env, MOZ_WEBGL_FORCE_EGL: "1" } }
   : {};
+
+// A context for a test of the 3D view: with no GPU the browser draws each of its frames in software, pixel by
+// pixel, and at half the pixels to a CSS pixel a frame is a quarter of that work, the page laid out as it was.
+//   const ctx = await browser.newContext({ viewport, ...SOFTWARE_3D });
+export const SOFTWARE_3D = { deviceScaleFactor: 0.5 };
