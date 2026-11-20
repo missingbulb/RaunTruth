@@ -22,6 +22,7 @@ import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
+import { held as holding } from "./held.mjs";
 import { pw, launch } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -34,6 +35,8 @@ try { pyodide = path.dirname(require.resolve("pyodide/pyodide.mjs", { paths: [pa
   console.error("no pyodide: npm i --prefix web-tests pyodide@314.0.7"); process.exit(2);
 }
 let stub = true;
+// the files slow to arrive, each held until the test lets it go: path → its hold
+const slow = {};
 // the switcher's titles, as the build lists the studies
 // what the switcher offers a visitor not signed in: the build's list but the studies shown to named accounts alone
 const offered = JSON.parse(fs.readFileSync(studies, "utf8")).filter((m) => !m.accounts), titles = offered.map((m) => m.title);
@@ -57,7 +60,9 @@ const server = http.createServer((q, r) => {
   if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
   const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+  const send = () => { r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r); };
+  if (slow[u]) return void slow[u].hold().then(send);
+  send();
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -250,6 +255,35 @@ try {
   await page.goto(origin + "/web/index.html");
   await page.waitForFunction(() => document.title === "Image Viewer");
   if (new URL(page.url()).pathname !== "/web/") problems.push("index.html was not rewritten to the bare address: " + page.url());
+
+  // a study chosen in the switcher while the one the address names is still coming in, its module slow to arrive,
+  // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
+  const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
+  slow[MODULE] = holding(); slow[CHOSEN] = holding();
+  const early = await ctx.newPage();
+  early.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error, a study chosen while another came in: " + e.message); });
+  early.setDefaultTimeout(STEP);
+  await early.goto(origin + "/web/fixture");
+  await slow[MODULE].asked;
+  await early.evaluate(() => {
+    window.statuses = [];
+    new MutationObserver(() => window.statuses.push(document.querySelector("#status").textContent)).observe(document.querySelector("#status"), { childList: true, characterData: true, subtree: true });
+  });
+  await early.click("#study-menu summary");
+  await early.click("#study-list a >> text=Image Viewer");
+  slow[MODULE].release();
+  // the first study is in, or its coming in has failed
+  await early.waitForFunction(() => /^(Ready|Error)/.test(document.querySelector("#status").textContent));
+  await slow[CHOSEN].asked;
+  slow[CHOSEN].release();
+  const swapped = await orMissed(early.waitForFunction(() => document.title === "Image Viewer" && document.querySelector("#busy").hidden && document.querySelector("#status").textContent === "Ready. Load an image."));
+  const chosen = await early.evaluate(() => ({ title: document.title, path: location.pathname, fixture: !!document.querySelector("#fx-box, #fx-result, #fx-count"),
+    errors: window.statuses.filter((t) => /^Error/.test(t)) }));
+  console.log("chosen while another came in: " + JSON.stringify(chosen));
+  if (!swapped || chosen.path !== "/web/" || chosen.fixture) problems.push("a study chosen while another was coming in is not the one on show, alone: " + JSON.stringify(chosen));
+  if (chosen.errors.length) problems.push("a study chosen while another was coming in made the page say: " + chosen.errors.join(" | "));
+  await early.close();
+  delete slow[MODULE]; delete slow[CHOSEN];
 
   // the real worker: the fixture's own Python in Pyodide, answering the page
   stub = false;

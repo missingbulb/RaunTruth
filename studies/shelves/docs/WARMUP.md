@@ -557,6 +557,8 @@ in Pyodide.
 | P17 | boxes' bounds kept beside them in `apart`, the region test and `find_run` | Pyodide 16.9 → 16.65 | = | reverted (-1.5%) |
 | P18 | `LineScan` made once per `side_lines`, its sums per mask, `argmax` over all columns, text mask once | 9.33 → 9.33; Pyodide 16.9 → 15.4 | = | kept (Pyodide) |
 | P19 | `end_edge` running sums into arrays that start with a zero line, `np.linalg.norm` as `row_norm` | 9.33 → 8.25; Pyodide 15.4 → 15.2 | 101 | kept |
+| P20 | `covers`: the pairs of lines and the quadrilaterals they make by array tests (`line_quads`), not a Python call per pair | the tests' drawn photos, CPU s, minimum of 2: titled shelf 15.50 → 11.73, one series 33.10 → 29.43, covers on a bench 12.79 → 11.72 | 561 → 545, 1263 → 1245, 328 → 324 | kept; not run on the photos with ground truth or in Pyodide (neither on the machine it was made on) |
+| P21 | `covers`: the contrast across each side and the edges running on past it read only of the quadrilaterals whose every side lies on edges | the same photos: 11.73 → 4.63, 29.43 → 10.56, 11.72 → 9.49 | 545 → 298, 1245 → 671, 324 → 180 | kept; as P20, not run on the photos with ground truth or in Pyodide |
 
 Final, first find per photo, container (minimum of 2) and the page's Pyodide, R9 → now; every box equal in both:
 

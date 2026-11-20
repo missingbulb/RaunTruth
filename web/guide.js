@@ -24,7 +24,8 @@ export function guide(dialog) {
 
   $("#guide-go").addEventListener("click", () => { dialog.classList.add("waiting"); settle("ok"); });
   $("#guide-cancel").addEventListener("click", () => dialog.close());
-  dialog.addEventListener("close", () => settle("fail"));
+  // the browser tells of a close a moment after it: by then the guide may be open again, for another asking
+  dialog.addEventListener("close", () => { if (!dialog.open) settle("fail"); });
 
   return {
     // in the user's click: the guide g; resolves in the click on its go button, so the window can be asked for
