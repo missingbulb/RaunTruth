@@ -23,9 +23,7 @@ const watch = (page) => {
     const u = r.url();
     if (!u.startsWith(GOOGLE)) return;
     const q = new URL(u).searchParams;
-    // the image's own folder is the Drive dialog's to list, which an engine may still be doing as the image opens
-    const parent = q.get("q") && decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1];
-    if (q.get("q")) { if (parent !== png.parent) seen.lists.push(parent); }
+    if (q.get("q")) seen.lists.push(decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1]);
     // the image's own download is not a ground-truth file's
     else if (q.get("alt") === "media" && !u.includes(png.id)) seen.reads.push(decodeURIComponent(new URL(u).pathname.split("/").at(-1)));
   });
@@ -156,7 +154,10 @@ await page.context().close();
 file.name = "gt_someone@else.org.json"; file.bytes = Buffer.from(JSON.stringify(original));
 page = await open(true);
 seen = await tagger(page);
-await check(!(await offer(page)).shown && seen.lists.length === 2 && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
+// the two folders listed, the submissions folder and the image's subfolder in it: a look-up still on its way as the
+// image opens may list the first a second time
+await check(!(await offer(page)).shown && JSON.stringify([...new Set(seen.lists)].sort()) === JSON.stringify([GT.submissions, subFolder.id].sort()) && seen.reads.length === 0,
+  "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
 await page.context().close();
 file.name = "gt_tester@example.com.json";
 page = await open(true);
