@@ -3,21 +3,14 @@
 // ends that registration, and /app/ registers its own.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/old_worker_driver.mjs SITE OLD_SW
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { until, orMissed } from "./page_until.mjs";
-import { keptContext } from "./harness.mjs";
+import { pw, keptContext, check } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [site, oldSw] = process.argv.slice(2);
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let before = true;
@@ -42,7 +35,6 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw);
 const page = ctx.pages()[0] || await ctx.newPage();
 const scopes = () => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => new URL(r.scope).pathname));

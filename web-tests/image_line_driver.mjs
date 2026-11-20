@@ -12,25 +12,17 @@
 // cannot run.
 //   node web-tests/image_line_driver.mjs ANSWERS STUDIES [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 import { ENGINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
-import { keptContext } from "./harness.mjs";
+import { pw, keptContext, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -60,27 +52,17 @@ postMessage({ type: "ready", info: A.ready.fixture });
 onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
-  if (u === "/web/worker.js") return send("text/javascript", STAND_IN);
-  if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
-  // the fixture's Drive root
-  if (u === "/studies/fixture/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    return send("application/json", JSON.stringify({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
-  }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": STAND_IN,
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// the fixture's Drive root
+studiesOf(ctx).edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
 // the deploy with a Google key
 siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder, and another folder elsewhere, empty; calls(): the page's lists and downloads since the
@@ -112,7 +94,6 @@ await ctx.addInitScript(([link, recent]) => {
   localStorage.setItem("nor-drive-recent", JSON.stringify(recent));
 }, [FOLDER, RECENT]);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);

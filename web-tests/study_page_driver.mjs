@@ -15,7 +15,6 @@
 import { EARLY } from "./early_messages.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
@@ -23,18 +22,14 @@ import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let pyodide;
+const require = createRequire(import.meta.url);
 try { pyodide = path.dirname(require.resolve("pyodide/pyodide.mjs", { paths: [path.dirname(fileURLToPath(import.meta.url))] })); } catch {
   console.error("no pyodide: npm i --prefix web-tests pyodide@314.0.7"); process.exit(2);
 }

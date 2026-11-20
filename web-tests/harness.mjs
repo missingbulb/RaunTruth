@@ -8,6 +8,8 @@
 //   const { settings, studies } = siteOf(browser);    the browser's deploy and studies, the same way
 //   await expecting(/could not be read/, async () => { ...the case that makes the page say so... });
 //   await expecting(/ERR_INTERNET_DISCONNECTED/, async () => { ... }, { maybe: true });   one that may come or not
+import { createRequire } from "node:module";
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -18,6 +20,14 @@ import { driveIn } from "./fakes/google_drive.mjs";
 import { signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studiesIn } from "./fakes/studies.mjs";
+
+// Playwright, installed beside the tests or globally: a run without it cannot start, and says so (exit 2)
+export const pw = (() => {
+  const require = createRequire(import.meta.url);
+  try { return require("playwright"); } catch {
+    try { return require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
+  }
+})();
 
 const unexpected = [];
 // the patterns declared by the cases running now, each with how many messages it matched
@@ -121,7 +131,17 @@ export async function expecting(pattern, during, { maybe = false } = {}) {
   return result;
 }
 
+// a test's check, said as it is made: "ok: what", or "FAILED: what" with what was seen instead, as JSON, when given; a
+// failed one fails the run as it exits, whatever exit code the test sets. True when it held
+let failedChecks = 0;
+export function check(ok, what, seen) {
+  if (ok) console.log("ok: " + what);
+  else { failedChecks++; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); }
+  return !!ok;
+}
+
 process.on("exit", (code) => {
+  if (failedChecks && code === 0) process.exitCode = 1;
   if (!unexpected.length) return;
   process.stderr.write(`\n${unexpected.length} warning(s) or error(s) no case expected:\n` + [...new Set(unexpected)].map((l) => "  " + l).join("\n") + "\n");
   if (code === 0) process.exitCode = 1;

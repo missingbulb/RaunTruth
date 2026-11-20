@@ -8,25 +8,16 @@
 // on a failure, 2 when it cannot run.
 //   node tests/truth_tasks_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
-import { launch } from "../../../web-tests/harness.mjs";
+import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -47,24 +38,14 @@ onmessage = async ({ data: m }) => {
 };`;
 
 let stage = null; // the study's stage as served; null: as committed
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  // the study as served, at its stage
-  if (u === "/studies/nor/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u)));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, stage: stage || m.stage }));
-  }
-  const f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/answers/": { dir: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the study as served, at its stage
+siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage: stage || m.stage }));
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const fail = async (what, seen) => { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); };
 const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ") + what); if (!ok) await fail(what, seen); };
@@ -82,7 +63,6 @@ async function open() {
   await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);

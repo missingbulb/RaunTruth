@@ -6,23 +6,15 @@
 // listed in Settings and cleared there; an error the page meets kept apart from the actions; and no image's name
 // reaching the log or the report. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/problem_report_driver.mjs
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { identify, verdict } = await import(pathToFileURL(path.join(repo, "web", "browsers.js")).href);
 const { supported } = JSON.parse(fs.readFileSync(path.join(repo, "web", "browsers.json")));
@@ -66,16 +58,7 @@ for (const [key, touch, name, version, ok] of table) {
 }
 
 // ---- the page ----
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };

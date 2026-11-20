@@ -5,26 +5,18 @@
 // thumbnails is off; opening the stack saves a 3D thumbnail at once, opening the flat image does not.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_shapes_driver.mjs [SHOTS]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { until, orMissed, untilHeard } from "./page_until.mjs";
-import { launch, siteOf } from "./harness.mjs";
+import { pw, launch, siteOf, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HEAD = 65536, AHEAD = 10;
@@ -62,23 +54,12 @@ const FILES = [
 const MORE = tiff(256, 256, 5, "ImageJ=1.54f\nimages=5\nslices=5\n", tube);
 for (const f of FILES) f.bytes = f.bytes || MORE;
 const ROOT = "shapefolder000000001";
-
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw);
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the Drive fake's folder of TIFFs; reads(): every read of a file's bytes since the test cleared them, its row and
 // the Range asked for ("" for the whole file)
@@ -94,7 +75,6 @@ await ctx.addInitScript((link) => {
   localStorage.setItem("nor-drive-link", JSON.stringify(link));
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started

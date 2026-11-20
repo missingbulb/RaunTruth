@@ -12,27 +12,20 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/storage_driver.mjs [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { cutShort } from "./page_errors.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext, expecting } from "./harness.mjs";
+import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -44,26 +37,13 @@ const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acme
 // a subfolder, listed after the images, holding an image named as the first one
 const SUB = { id: "acmefolder0000000002", name: "sub" }, TWIN = { id: "acmeimage00000000003", name: "acme one.png" };
 const OWN_PACKAGE = "acmepkg";
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/studies.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(LISTED); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  // NoR Finder with a package of its own, which no other study names
-  if (u === "/studies/nor/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/web/studies.json": () => LISTED,
+  "/web/vendor/wheels.json": "[]",
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // what a browser that has used the page keeps: the shell's keys and the NoR study's, as their code writes them
 const PIC = "data:image/jpeg;base64," + "A".repeat(4000);
@@ -90,6 +70,8 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// NoR Finder with a package of its own, which no other study names
+studiesOf(ctx).edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
 // the deploy with a Google key
 siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
 // the Drive fake's folder: the two images, and the subfolder holding the first one's twin

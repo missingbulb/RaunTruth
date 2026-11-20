@@ -6,28 +6,19 @@
 // and fetches what the rows in view still lack.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_thumbs_driver.mjs [SHOTS]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import zlib from "node:zlib";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { repoFile } from "./repo_file.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { launch, siteOf } from "./harness.mjs";
+import { pw, launch, siteOf, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -47,28 +38,17 @@ function png(w) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
 }
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
-  if (u === "/studies/fixture/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
-  }
-  if (u === "/studies/fixture/thumbs/index.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify(IMAGES.map((f) => f.id))); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/studies/fixture/thumbs/index.json": () => JSON.stringify(IMAGES.map((f) => f.id)),
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+// the fixture with ready-made thumbnails, opening the TIFFs its folder holds
+siteOf(browser).studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
 // held until the user has moved on
@@ -117,7 +97,6 @@ await ctx.addInitScript(() => {
   window.fetch = function (u, ...rest) { if (/\/thumbs\/[^/]+\.jpg$/.test(String(u?.url ?? u))) window.thumbsAsked++; return fetchNow.call(this, u, ...rest); };
 });
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 
 // the image rows in view, by row number, and the window the page should fetch for them

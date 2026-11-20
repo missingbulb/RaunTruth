@@ -10,24 +10,15 @@
 //   node web-tests/viewer3d_driver.mjs [SHOT.png]
 import { writeTiff } from "../web/tiff_file.js";
 import { EARLY } from "./early_messages.mjs";
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
-import { launch } from "./harness.mjs";
+import { pw, launch, check, siteOf } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shot] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -56,32 +47,19 @@ onmessage = ({ data: m }) => {
   if (m.type === "study") postMessage({ type: "ready", info: {} });
   else if (m.type === "open") postMessage({ type: "held" });
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
-  if (u === "/studies/vascular/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, view: { ...m.view, stretch: false } }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/vendor/wheels.json": "[]",
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
+siteOf(browser).studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit

@@ -4,50 +4,28 @@
 // elsewhere; the Image Viewer's opens on the link last pasted in it.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_folder_driver.mjs
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { launch, siteOf } from "./harness.mjs";
+import { pw, launch, siteOf, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const folder = (id) => `https://drive.google.com/drive/folders/${id}`;
 const FIXTURE_FOLDER = folder("fixturefolder0000001"), PASTED = folder("pastedfolder00000001");
 const NOR_FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/studies/fixture/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, root: FIXTURE_FOLDER }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw);
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+siteOf(browser).studies.edit("fixture", (m) => ({ ...m, root: FIXTURE_FOLDER }));
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,
 // the folders listed since the test cleared them
@@ -59,7 +37,6 @@ const listed = () => drive.calls.slice(listedFrom).filter((c) => c.kind === "lis
 const nextListing = () => drive.next((c) => c.kind === "list");
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 
 // what the Drive dialog opens on, in the study at this address: the link in its field where it takes one, else the

@@ -11,30 +11,22 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { helpTip, anyHelp } from "./help_tip.mjs";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting, siteOf } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
 // what the browser and the page say of a request the network does not carry
 const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch/;
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MB = 2 ** 20;
@@ -58,31 +50,23 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call") { work(${WORK}); const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo, ...mem() }, [b.buffer]); }
 };`;
 let stage = null; // the fixture's stage as served; null: as committed
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/studies/fixture/study.json" && stage) {
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage }));
-  }
-  if (u.startsWith("/some/")) { r.writeHead(200, { "content-type": "application/octet-stream", "cache-control": "no-store" }); return r.end(Buffer.alloc(Number(u.slice(6)) * 1024)); }
-  if (u === "/big") { r.writeHead(200, { "content-type": "application/octet-stream", "cache-control": "no-store" }); return r.end(Buffer.alloc(BIG)); }
-  // the build lists no fixture; served here with it, so its row in the switcher carries its stage
-  if (u === "/web/studies.json") {
-    const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify([...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }]));
-  }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const bytes = (n) => ({ type: "application/octet-stream", headers: { "cache-control": "no-store" }, body: Buffer.alloc(n) });
+const { origin, server } = await serveSite({
+  "/web/worker.js": EARLY + STAND_IN,
+  "/some/": (q, u) => bytes(Number(u.slice(6)) * 1024),
+  "/big": () => bytes(BIG),
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+// the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
+const site = siteOf(browser).studies;
+site.edit("fixture", (m) => (stage ? { ...m, stage } : m));
+site.editList(() => {
+  const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
+  return [...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }];
+});
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#statusbar").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -109,7 +93,6 @@ async function open(study, mode, clock) {
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   page.setDefaultTimeout(STEP);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
   // as computed), and flashed

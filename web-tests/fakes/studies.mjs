@@ -39,7 +39,7 @@ export async function fakeStudies(ctx, world) {
       return await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(m) });
     } catch (e) {
       // the test closed the page or its context while the study was on its way: nobody is waiting for it
-      if (!/disposed|closed/i.test(e.message)) throw e;
+      if (!/disposed|closed|failed to find browser context/i.test(e.message)) throw e;
     }
   });
 }

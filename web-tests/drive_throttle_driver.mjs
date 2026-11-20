@@ -8,44 +8,25 @@
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_throttle_driver.mjs [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { until } from "./page_until.mjs";
-import { repoFile } from "./repo_file.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { keptContext, expecting } from "./harness.mjs";
+import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const ROOT = "throttlefolder000001";
 const PNG = noisePng();
 const FILES = [{ id: "throttleimage0000001", name: "a.png" }, { id: "throttleimage0000002", name: "b.png" }, { id: "throttleimage0000003", name: "c.tif" }];
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
 // the deploy with a Google key
 siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
@@ -60,7 +41,6 @@ await ctx.addInitScript((link) => {
   localStorage.setItem("nor-drive-link", JSON.stringify(link));
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
 await page.clock.install();
 
