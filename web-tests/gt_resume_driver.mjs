@@ -23,7 +23,9 @@ const watch = (page) => {
     const u = r.url();
     if (!u.startsWith(GOOGLE)) return;
     const q = new URL(u).searchParams;
-    if (q.get("q")) seen.lists.push(decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1]);
+    // the image's own folder is the Drive dialog's to list, which an engine may still be doing as the image opens
+    const parent = q.get("q") && decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1];
+    if (q.get("q")) { if (parent !== png.parent) seen.lists.push(parent); }
     // the image's own download is not a ground-truth file's
     else if (q.get("alt") === "media" && !u.includes(png.id)) seen.reads.push(decodeURIComponent(new URL(u).pathname.split("/").at(-1)));
   });
