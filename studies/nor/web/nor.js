@@ -411,7 +411,8 @@ export function mount(shell) {
     }, here);
     document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) close(); }, here);
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }, here);
-    $("#scroller").addEventListener("scroll", close, here);
+    // the user's own wheel moves the image from under the menu; a glide of the page's own does not close it
+    $("#scroller").addEventListener("wheel", close, { ...here, passive: true });
   }
 
   // the result shown for candidate i: null = pass, else a failure reason
