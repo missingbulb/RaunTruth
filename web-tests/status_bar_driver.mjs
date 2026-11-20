@@ -19,13 +19,11 @@ import path from "node:path";
 import { asTagger } from "./tagger.mjs";
 import { localStudy } from "./local_study.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { pw, launch, expecting, siteOf } from "./harness.mjs";
+import { pw, launch, expecting, siteOf, NETWORK_GONE } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-// what the browser and the page say of a request the network does not carry
-const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch/;
 
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

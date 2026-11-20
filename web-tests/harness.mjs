@@ -42,14 +42,93 @@ const declared = new Set();
 // software and reads each frame of a WebGL canvas back, which its GL driver notes as a stall; a browser with a GPU
 // does not, and nothing the page or a test does changes it.
 declared.add({ pattern: /^warning: \[\.WebGL-\w+\]GL Driver Message \(OpenGL, Performance, [\w_]+, High\): GPU stall due to ReadPixels/, seen: 0 });
+if (ENGINE === "firefox") {
+  // Firefox's advice on any page whose scroll listener moves an element: the minimap's outline of the part in view
+  // follows the image's scrolling, which is what it is for: with that listener off, the advice is gone, and so is
+  // the outline's following.
+  declared.add({ pattern: /^warning: \[JavaScript Warning: "This site appears to use a scroll-linked positioning effect\./, seen: 0 });
+  // Firefox's note on Pyodide's own WebAssembly, compiled with the older exception instructions: nothing of the
+  // page's, and gone only when Pyodide's build changes.
+  declared.add({ pattern: /^warning: \[JavaScript Warning: "The WebAssembly exception handling 'try' instruction is deprecated/, seen: 0 });
+}
 
-function said(kind, text, where) {
+// what the page and the browser did lately, of every kind, kept to print beside a failure: a run that fails says
+// what led up to it without being run again
+const lately = [], LATELY = 60;
+function note(line) {
+  const text = line.length > 600 ? line.slice(0, 600) + " ..." : line, last = lately.at(-1);
+  // the same thing again and again is one line, counted
+  if (last?.text === text) return void last.times++;
+  lately.push({ text, times: 1 });
+  if (lately.length > LATELY) lately.shift();
+}
+
+// among the patterns in force (those declared when the message came, for one whose text took a moment to read);
+// excused: one no case need declare, kept only among what happened lately, with why
+function said(kind, text, where, among = declared, excused = "") {
   const line = `${kind}: ${text}${where ? ` (${where})` : ""}`;
-  for (const d of declared) if (d.pattern.test(line)) { d.seen++; return; }
+  note(excused ? `${line} [${excused}]` : line);
+  for (const d of among) if (d.pattern.test(line)) { d.seen++; return; }
+  if (excused) return;
   unexpected.push(line);
   // as it comes, among the test's own lines, so the case it came in is plain
   console.log("not expected: " + line);
 }
+
+// One value the page handed console.warn or console.error, as text, read in the page: an Error with its name, message
+// and stack, an object as JSON. Playwright's own text() gives these as "JSHandle@object" and "Error" in Firefox, which
+// says nothing and matches no declared pattern.
+const TEXT = (v) => {
+  if (v && typeof v === "object" && typeof v.message === "string" && typeof v.name === "string") {
+    const head = `${v.name}: ${v.message}`, stack = typeof v.stack === "string" ? v.stack : "";
+    return !stack ? head : stack.includes(v.message) ? stack : head + "\n" + stack;
+  }
+  if (v && typeof v === "object") {
+    try { const j = JSON.stringify(v); if (j && j !== "{}") return j; } catch { /* a cycle: its own string below */ }
+  }
+  return String(v);
+};
+// messages whose text is still being read from the page, each with what to say of it should the run end first
+const reading = new Set();
+const READ_MS = 3000;
+function heard(m) {
+  const where = m.location()?.url, among = [...declared], going = CUT && m.page() && leaving.has(m.page());
+  // read: whether the text is the values' own, read from the page
+  const say = (text, read) => said(m.type(), text, where && !text.includes(where) ? where : "", among,
+    going && (CUT.test(text) || !read) ? "as its page was left" : "");
+  const args = m.args();
+  // the browser's own messages carry no values
+  if (!args.length) return say(m.text(), true);
+  const entry = { late: () => say(m.text(), false) };
+  reading.add(entry);
+  let timer;
+  entry.done = Promise.race([
+    Promise.all(args.map((a) => a.evaluate(TEXT))).then((parts) => parts.join(" ")),
+    new Promise((ok) => { timer = setTimeout(() => ok(null), READ_MS); }),
+  ]).catch(() => null).then((text) => {
+    clearTimeout(timer);
+    // said at the run's end already, or the page went before its values could be read: Playwright's text of it
+    if (reading.delete(entry)) say(text ?? m.text(), text !== null);
+  });
+}
+// every message heard so far, said: a case's declaration waits for these before it ends
+const allHeard = () => Promise.all([...reading].map((e) => e.done));
+// a browser or context closes only once what its pages said has been read from them
+const closesHeard = (target) => { const close = target.close.bind(target); target.close = async (...a) => { await allHeard(); return close(...a); }; };
+
+// Firefox's console says nothing of a load the server refused (a 404), and words one that failed as a cross-origin
+// block, where Chromium's says "Failed to load resource" of each. So that a case declares a failed load once, in the
+// same words on every engine, the harness says Chromium's line itself there, from what Playwright saw of the network.
+const SILENT_LOADS = ENGINE === "firefox";
+// Firefox's names for the failures a test or a fake makes, as Chromium names them
+const NET = { NS_ERROR_FAILURE: "ERR_FAILED", NS_ERROR_OFFLINE: "ERR_INTERNET_DISCONNECTED" };
+// a request the page itself dropped by leaving, which no engine's console reports
+const LEFT = /^NS_BINDING_ABORTED$/;
+// Whether a worker made the request, as far as its headers say: one to the site's own address names the worker's
+// script as where it came from. Chromium's console, as Playwright reads it, says nothing of a worker's failed load.
+const byWorker = (q) => /\.m?js$/.test(q.headers().referer?.replace(/[?#].*$/, "") || "");
+// Firefox's own wording of a failed cross-origin request, which the harness has said above as a failed load
+if (SILENT_LOADS) declared.add({ pattern: /^error: \[JavaScript Error: "Cross-Origin Request Blocked: .*\(Reason: CORS request did not succeed\)/, seen: 0 });
 
 // an address off this machine
 const offSite = (u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href);
@@ -74,11 +153,38 @@ function onSitePages(target) {
     : add(`if (/^https?:$/.test(location.protocol)) (${script})(${arg === undefined ? "" : JSON.stringify(arg)});`);
 }
 
+// A page being left (reloaded, sent elsewhere, closed) cuts the requests it had under way. Firefox fails each as it
+// would a lost network, so the page's own handling of that failure runs and warns, in a document on its way out;
+// Chromium settles none of them. What such a page writes of a cut request is its leaving, not a failure of the page's,
+// and so is what Firefox itself writes of a module the page was still loading.
+const CUT = ENGINE === "firefox" ? /NetworkError when attempting to fetch resource|The operation was aborted|Loading failed for the module/ : null;
+// the pages on their way out: from the request that takes one elsewhere until its next document is read, or for good
+const leaving = new WeakSet();
+function leaves(ctx) {
+  if (!CUT) return;
+  const watch = (page) => {
+    page.on("domcontentloaded", () => leaving.delete(page));
+    for (const going of ["goto", "reload", "goBack", "goForward", "close"]) {
+      const go = page[going].bind(page);
+      page[going] = (...a) => { leaving.add(page); return go(...a); };
+    }
+  };
+  ctx.pages().forEach(watch);
+  ctx.on("page", watch);
+  ctx.on("request", (q) => {
+    let frame = null;
+    try { frame = q.frame(); } catch { /* a worker's request, which takes no page anywhere */ }
+    if (frame && q.isNavigationRequest() && !frame.parentFrame()) leaving.add(frame.page());
+  });
+  const close = ctx.close.bind(ctx);
+  ctx.close = (...a) => { for (const page of ctx.pages()) leaving.add(page); return close(...a); };
+}
+
 // the outside systems' fakes, after a catch-all that turns away every other request leaving this machine: a route
 // set later is asked first, so a test's own routes come before the fakes, and the fakes before the catch-all
 // world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
 async function install(ctx, world) {
-  onSitePages(ctx);
+  onSitePages(ctx); leaves(ctx); closesHeard(ctx);
   // offline as its test sets it: a route answers whatever the browser's network says, so the fakes answer nothing then
   let offline = false;
   const setOffline = ctx.setOffline.bind(ctx);
@@ -91,11 +197,23 @@ async function install(ctx, world) {
   await ctx.addInitScript(COPY);
   ownRoutes(ctx);
   ctx.on("console", (m) => {
-    if (m.type() !== "warning" && m.type() !== "error") return;
-    const where = m.location()?.url;
-    said(m.type(), m.text(), where && !m.text().includes(where) ? where : "");
+    if (m.type() !== "warning" && m.type() !== "error") return note(`${m.type()}: ${m.text()}`);
+    heard(m);
   });
-  ctx.on("weberror", (e) => said("uncaught", String(e.error()?.message ?? e.error()), e.page()?.url()));
+  ctx.on("weberror", (e) => {
+    const error = e.error(), message = String(error?.message ?? error);
+    said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url());
+  });
+  ctx.on("requestfailed", (q) => {
+    const why = q.failure()?.errorText || "";
+    note(`request failed: ${q.method()} ${q.url()}: ${why}`);
+    if (SILENT_LOADS && !LEFT.test(why) && !byWorker(q)) said("error", `Failed to load resource: net::${NET[why] || why}`, q.url());
+  });
+  ctx.on("response", (r) => {
+    if (r.status() < 400) return;
+    note(`answered ${r.status()}: ${r.request().method()} ${r.url()}`);
+    if (SILENT_LOADS && !byWorker(r.request())) said("error", `Failed to load resource: the server responded with a status of ${r.status()}`, r.url());
+  });
   return ctx;
 }
 
@@ -105,6 +223,7 @@ export async function launch(pw, options = {}) {
   const newContext = browser.newContext.bind(browser);
   browser.newContext = async (o) => install(await newContext(o), world);
   // a page of its own context, which closes with it, as Playwright's own newPage
+  closesHeard(browser);
   browser.newPage = async (o) => {
     const ctx = await browser.newContext(o), page = await ctx.newPage();
     page.once("close", () => ctx.close().catch(() => {}));
@@ -124,6 +243,10 @@ export const siteOf = (browser) => ({ settings: settingsIn(worlds.get(browser)),
 export const keptContext = async (pw, options) =>
   install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...LAUNCH, ...options }), {});
 
+// What the browser and the page say of a request the network does not carry, offline: the browser's line for the
+// failed load, and the words each engine's fetch() rejects with, which the page's own warnings repeat.
+export const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch|NetworkError/;
+
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
 // none matching it fails the case, unless maybe: for one that comes only when work in the background is under way as
 // the case acts (a download the network's going cuts short). A loose pattern, a word or two, so a rewording leaves the
@@ -132,7 +255,7 @@ export async function expecting(pattern, during, { maybe = false } = {}) {
   const d = { pattern, seen: 0 };
   declared.add(d);
   let result;
-  try { result = await during(); } finally { declared.delete(d); }
+  try { result = await during(); await allHeard(); } finally { declared.delete(d); }
   if (!d.seen && !maybe) throw new Error(`expected a warning or error matching ${pattern}, and none came`);
   return result;
 }
@@ -147,8 +270,13 @@ export function check(ok, what, seen) {
 }
 
 process.on("exit", (code) => {
+  for (const e of [...reading]) { reading.delete(e); e.late(); }
   if (failedChecks && code === 0) process.exitCode = 1;
-  if (!unexpected.length) return;
-  process.stderr.write(`\n${unexpected.length} warning(s) or error(s) no case expected:\n` + [...new Set(unexpected)].map((l) => "  " + l).join("\n") + "\n");
-  if (code === 0) process.exitCode = 1;
+  if (unexpected.length) {
+    process.stderr.write(`\n${unexpected.length} warning(s) or error(s) no case expected:\n` + [...new Set(unexpected)].map((l) => "  " + l).join("\n") + "\n");
+    if (code === 0) process.exitCode = 1;
+  }
+  if ((process.exitCode || code) && lately.length) {
+    process.stderr.write(`\nthe last ${lately.length} things the page and the browser did before the run ended (${ENGINE}):\n` + lately.map((l) => "  " + l.text.replace(/\n/g, "\n    ") + (l.times > 1 ? ` (${l.times} times)` : "")).join("\n") + "\n");
+  }
 });

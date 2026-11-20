@@ -1,5 +1,6 @@
 // Drives one case of the harness itself (req/checks/clean-console) on a page of its own, which writes what CASE
-// names: a warning nobody declared, one declared, a declaration nothing answers, an uncaught error, a request
+// names: a warning nobody declared, one declared, one of values that are not strings, a load refused or failed, what
+// led up to a failure, a declaration nothing answers, an uncaught error, a request
 // leaving the machine, a library from jsDelivr, a test's setup reading storage, Google's Drive and sign-in, the fakes while offline, the
 // deploy's variables, a study's edits, a test's own route answering what a fake does, and a wait in the page that
 // holds or never does. Prints what the page saw; the harness decides the exit.
@@ -14,6 +15,7 @@ import { until } from "./page_until.mjs";
 const [which] = process.argv.slice(2);
 const server = http.createServer((q, r) => {
   if (/study\.json$/.test(q.url)) { r.writeHead(200, { "content-type": "application/json" }); return r.end('{"id": "served"}'); }
+  if (/missing/.test(q.url)) { r.writeHead(404); return r.end(); }
   r.writeHead(200, { "content-type": "text/html" }); r.end("<!doctype html><title>harness</title>");
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
@@ -41,6 +43,16 @@ const CASES = {
   failedcheck: async () => { check(true, "a check that held"); check(false, "a check that did not", { seen: 1 }); process.exitCode = 0; },
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
+  // values that are not strings, said as what they hold
+  values: () => page.evaluate(() => console.warn("the thing went wrong:", new RangeError("too far"), { left: 3 })),
+  // a load the server refuses and one that fails, each declared in the same words on every engine
+  refused: async () => {
+    await expecting(/status of 404/, () => page.evaluate(() => fetch("/missing").then((r) => r.status)));
+    await page.route("**/cut", (r) => r.abort("failed"));
+    await expecting(/ERR_FAILED/, () => page.evaluate(() => fetch("/cut").catch(() => 0)));
+  },
+  // what came before a failure, of every kind, is printed with it
+  lately: async () => { await page.evaluate(() => { console.log("a step the page took"); return fetch("/missing"); }); },
   unanswered: () => expecting(/went wrong/, async () => {}),
   uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after
   offsite: async () => console.log(await page.evaluate(() => fetch("https://acme.example/x").then((r) => "reached " + r.status, () => "turned away"))),
