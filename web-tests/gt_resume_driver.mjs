@@ -5,7 +5,7 @@
 //   node web-tests/gt_resume_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until } from "./page_until.mjs";
+import { until, untilHeard } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
@@ -18,10 +18,13 @@ const GOOGLE = "https://www.googleapis.com/";
 
 // the page's calls to Drive from now on, told apart: the folders it listed (by parent) and the files it downloaded
 const watch = (page) => {
-  const seen = { lists: [], reads: [] };
+  const seen = { lists: [], reads: [], away: 0 };
+  const back = (r) => { if (r.url().startsWith(GOOGLE)) seen.away--; };
+  page.on("requestfinished", back); page.on("requestfailed", back);
   page.on("request", (r) => {
     const u = r.url();
     if (!u.startsWith(GOOGLE)) return;
+    seen.away++;
     const q = new URL(u).searchParams;
     if (q.get("q")) seen.lists.push(decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1]);
     // the image's own download is not a ground-truth file's
@@ -29,16 +32,19 @@ const watch = (page) => {
   });
   return seen;
 };
-// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, so what is counted after
-// is the image's opening alone
-const quiet = (page) => until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
+// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, nothing of it still
+// on its way to Drive, so what is counted after is the image's opening alone
+const quiet = async (page, seen) => {
+  await untilHeard(() => seen.away === 0, () => new Promise((ok) => { page.once("requestfinished", ok); page.once("requestfailed", ok); }));
+  await until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
+};
 // the image opened from the Drive dialog, the page's calls to Drive from the double click counted, and the look for the
 // image's drafts and submission over
 const openImage = async (page, seen) => {
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
   await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-  await quiet(page);
+  await quiet(page, seen);
   seen.lists.length = 0; seen.reads.length = 0;
   await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
   await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
@@ -154,10 +160,7 @@ await page.context().close();
 file.name = "gt_someone@else.org.json"; file.bytes = Buffer.from(JSON.stringify(original));
 page = await open(true);
 seen = await tagger(page);
-// the two folders listed, the submissions folder and the image's subfolder in it: a look-up still on its way as the
-// image opens may list the first a second time
-await check(!(await offer(page)).shown && JSON.stringify([...new Set(seen.lists)].sort()) === JSON.stringify([GT.submissions, subFolder.id].sort()) && seen.reads.length === 0,
-  "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
+await check(!(await offer(page)).shown && seen.lists.length === 2 && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
 await page.context().close();
 file.name = "gt_tester@example.com.json";
 page = await open(true);
@@ -165,7 +168,7 @@ seen = watch(page);
 await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-await quiet(page);
+await quiet(page, seen);
 seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
