@@ -34,15 +34,15 @@ _Last updated 2026-11-18._
   owner makes them). `lab/fetch.py` takes each image's newest curated file, the first time, into
   `data/raw/truth/`, never git, and stops when a folder lists 50 entries; `lab/run.py` scores every finder on
   every image with ground truth. None has arrived yet.
-- **Precision and recall per finder and filter preset** (R11, 2026-10-06):
+- **Precision and recall per finder and filter preset** (R11, 2026-10-06; the default every filter off since 2026-11-20, as the page runs it):
   `../web/algorithm_metrics.json`, written by `python3 lab/run.py nor --write`, naming
   the data it was measured on: each image's and ground-truth file's SHA-256 and the dataset SHA. Quote
   that dataset SHA with any precision or recall.
-  Presets: precise / balanced (the finder's own) / recalling, every filter 40% towards a fixed
+  Presets, the lab's settings and not on the page: precise / balanced (the finder's own) / recalling, every filter 40% towards a fixed
   strict or loose end. Fitting filter values to the labels does not survive held-out labels
   (ledger §5), so don't tune filters per finder on these labels.
 - **Filters are not finder-specific** (ledger §5): tl's filter values score as well as or better
-  than each finder's own on all five finders. Each finder still opens on its own values.
+  than each finder's own on all five finders.
 - **Only one image has been processed.**
 - **Browser page** (the shell in `web/` running this study, `studies/nor/requirements.md`): open an image, detect once, then tune every filter
   live. It runs `algorithm/` (the entry `nor_finder.py`) under Pyodide, the same code the lab runs. How it is published
@@ -90,14 +90,13 @@ The algorithm (`../algorithm/`, the only Python the page loads):
 
 | file | what |
 |---|---|
-| nor_finder.py | the entry: `read`, `VERSIONS` (one per finder), `STAGES` (`refilter`, `verify`), `score`, `SETTINGS` (the presets), `SCORING` |
-| controls.py | the finders' registry (`FINDERS`), each one's filters, detection parameters and presets; writes `../web/finders.GENERATED.json` |
+| nor_finder.py | the entry: `read`, `VERSIONS` (one per finder), `STAGES` (`verify`, the lab's), `score`, `SETTINGS` (the presets), `SCORING` |
+| controls.py | the finders' registry (`FINDERS`), each one's filters and presets |
 | truth.py | a ground-truth file read as its elements by their state, and the scorer (`../docs/scoring.md`) |
 | channels.py | `load`, `blue_mask`, `to8` and the image-wide helpers the finders share |
 | nor3.py | segment checks A-J, `finish`, `measure`, blob/walk/fill finders |
 | nor_tl.py | traffic-light finder (default) |
 | nor_rf.py | red-first finder; every tested change is a switch in `PR` |
-| finder_help.py | what the page says about each setting and rejection reason |
 
 The research records (here, `lab/`):
 

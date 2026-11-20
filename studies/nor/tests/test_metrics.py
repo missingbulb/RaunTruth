@@ -1,4 +1,5 @@
-"""R11: every finder's precision and recall on the ground truth, at its own filters and at each preset, are on record
+"""R11: every finder's precision and recall on the ground truth, as the page runs it (every filter off) and at each
+preset, are on record
 in the lab's metrics file (lab/run.py nor --write), and the presets move every filter the way their names say."""
 import json
 import os
@@ -37,9 +38,10 @@ def test_counts_cover_the_labels():
 
 
 def test_the_presets_are_the_lab_s_settings():
+    # the default is every filter off, as the page runs it; the presets are the filters on at their values
     for f in controls.FINDERS:
-        assert nor_finder.SETTINGS[f]['precise'] == dict(values=controls.preset_values(f, 'precise'))
-        assert nor_finder.SETTINGS[f]['recalling'] == dict(values=controls.preset_values(f, 'recalling'))
+        for p in controls.PRESETS:
+            assert nor_finder.SETTINGS[f][p] == dict(values=controls.preset_values(f, p), off=[]), (f, p)
         assert controls.preset_values(f, 'balanced') == controls.own_values(f)
 
 
@@ -54,14 +56,13 @@ def test_precise_is_stricter_and_recalling_looser_in_every_filter():
             assert (hi[k] > v > lo[k]) if up else (hi[k] < v < lo[k]), f'{f} {k}: {lo[k]} {v} {hi[k]}'
 
 
-def test_recall_falls_from_recalling_to_precise():
+def test_recall_falls_from_no_filter_to_precise():
     for f, v in doc()['versions'].items():
         s = v['settings']
-        assert s['recalling']['recall'] >= v['recall'] >= s['precise']['recall'], f
+        assert v['recall'] >= s['recalling']['recall'] >= s['balanced']['recall'] >= s['precise']['recall'], f
 
 
 def test_filters_only_remove():
     """A filter can only reject what the finder proposed, so no preset finds a real spot the finder did not."""
     for f, v in doc()['versions'].items():
-        top = v['settings']['unfiltered']['tp']
-        assert all(r['tp'] <= top for r in [v, v['settings']['precise'], v['settings']['recalling']]), f
+        assert all(r['tp'] <= v['tp'] for r in v['settings'].values()), f

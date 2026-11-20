@@ -276,17 +276,18 @@ Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11
   state (a NoR, not a NoR, undecided) and never its origin, so an added NoR and an approved candidate score alike.
   How an answer is scored against it is [`scoring.md`](scoring.md).
 
-## R11 — Every finder's precision and recall are on record, per filter preset
+## R11 — Every finder's precision and recall are on record, as the page runs it and per filter preset
 
 Set by the owner on 2026-10-06. [`studies/nor/web/algorithm_metrics.json`](../web/algorithm_metrics.json)
 holds, for every finder the page offers, the precision and recall summed over every ground-truth image
 (R10), run the way the page runs it, at two stages kept apart: the finder's own candidates before any
 filter, and what passes the filters after it at three filter presets (precise, balanced = the
-finder's own values, recalling). The counts are soft and one-to-one ([`scoring.md`](scoring.md), switched on 2026-11-18; no number
+finder's own values, recalling). Changed by the owner on 2026-11-20: the page runs each finder with its filters off
+(the page's requirement `req/nor/find/nors-only`), so a version's default is its own candidates, and the three presets
+are the lab's settings beside it. The counts are soft and one-to-one ([`scoring.md`](scoring.md), switched on 2026-11-18; no number
 before that day compares with one after): a NoR found off its place or mismeasured is partly right, and an answer
 on ground the truth does not judge counts for nothing. A preset moves every filter the same share of the way towards a fixed strict or loose end
-(`algorithm/controls.py`; the finder's own candidates are the setting `unfiltered`), the same for every
-finder. `python3 lab/run.py nor --write` rewrites the file, and `tests/test_metrics.py` fails when it
+(`algorithm/controls.py`), the same for every finder. `python3 lab/run.py nor --write` rewrites the file, and `tests/test_metrics.py` fails when it
 lacks a finder or a preset. The numbers are only as right as the labels
 behind them (R9).
 
@@ -296,9 +297,5 @@ SHA-256, and one dataset SHA: the SHA-256 of those pairs sorted and joined one p
 `<image sha> <ground-truth sha>`. Any precision or recall written anywhere (a pull request, a note, a
 reply) names the dataset SHA it was measured on, with the per-image list a lookup away.
 
-On the page (R8), the finder list shows each finder's precision and recall with its default filters (Balanced),
-its "How the <finder> algorithm works" note gives those numbers in bold on how many images, with its own
-candidates' numbers before any filter after them, and the
-filters, in the Processing box's Filters fold after its Settings, open with the three presets, each with its precision and recall after the filters; choosing one sets every filter to its values, and
-it stays lit while the filters hold them. The filters have no "restore defaults": there are no
-absolute defaults, and Balanced is the finder's own values.
+On the page (R8), the finder list shows each finder's precision and recall as the page runs it, and its "How the
+<finder> algorithm works" note gives those numbers in bold on how many images. The presets are not on the page.

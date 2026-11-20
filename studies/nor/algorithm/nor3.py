@@ -143,7 +143,6 @@ def segment(caspr, nav, bm, p=P):
 
 
 # the settings the page shows first for this finder; the rest sit under Advanced
-segment.MAIN = ('green_frac', 'red_frac', 'touch', 'reach_u')
 
 
 # Checks that need two greens; each returns True when the candidate FAILS it.
@@ -440,7 +439,6 @@ def segment_walk(caspr, nav, bm, p=P2):
     return cands, dict(unit=unit, n_red=len(sy))
 
 
-segment_walk.MAIN = ('green_frac', 'red_frac', 'seed_smooth', 'strip', 'bend', 'max_green_u')
 
 
 # ---------------------------------------------------------------- "walk, land, colour in" candidates
@@ -611,10 +609,8 @@ def segment_fill(caspr, nav, bm, p=P3):
     return cands, dict(unit=unit, n_red=len(sy))
 
 
-segment_fill.MAIN = ('green_frac', 'red_frac', 'smooth_u', 'half', 'bend', 'reach_u')
 
 
-PINK, BLUE = (255, 105, 200), (0, 140, 255)
 # rejection reason -> (letter, colour of the letter)
 REASONS = {
     'one green':      ('A', (255, 255, 0)),

@@ -138,4 +138,3 @@ def segment_tl(caspr, nav, bm, p=PT):
 
 
 # the settings the page shows first for this finder; the rest sit under Advanced
-segment_tl.MAIN = ('green_frac', 'red_frac', 'win_u', 'd_u', 'half', 'g_reach_u')

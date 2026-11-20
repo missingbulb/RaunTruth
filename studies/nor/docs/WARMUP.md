@@ -143,7 +143,7 @@ docs/
 
 **Ground truth.** The tagger's work (approve, reject = delete, lengths moved, NoRs added, areas checked) is GT actions in the shell's log
 (`shell.gt`, `gt_actions.js`); the page derives `st.forced`, `st.edits`, `st.added` and `st.areas` from the log's model (`sync` in `nor.js`), so
-the readers are the old ones. A refilter's answer that moves a candidate's pass or fail, or the filters, is a new `run`; the run's output holds
+the readers are the old ones. Each Find Candidates is a new `run`, its output the NoRs the finder passes; it holds
 no pixel masks, so a draft loaded with no Find Candidates draws each candidate from its box with no outline. The lab reads the file
 through `truth.labels_of` (`algorithm/truth.py`): `/2` as it always was, `/3` as its approved candidates and added NoRs, and a label 0 for each candidate of the
 history's last run that a `delete` in the history names and the file no longer lists (one absent with no delete is not known, and no label).

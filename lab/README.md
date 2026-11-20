@@ -27,7 +27,7 @@ module defines:
 | `STAGES` | `{name: stage}`, optional: a later step the page runs on an answer without running the version again, `stage(image, answer, **args)` |
 | `score(answer, truth)` | how one answer did against one ground-truth file: at least `tp`, `fp` and `fn`; a `score` that takes `damaged` is handed the image's damaged areas |
 | `SCORING` | how `score` counts, as a short Markdown outline: what the page shows beside the precision and recall |
-| `SETTINGS` | optional, `{version: {name: params}}`: settings the lab scores beside each version's default (NoR's filter presets) |
+| `SETTINGS` | optional, `{version: {name: params}}`: settings the lab scores beside each version's default (NoR's filter presets, its default every filter off) |
 | `NOTES` | optional, `{version: text}`: the note the page shows beside a version's numbers |
 
 `score` may also return `items` (each truth and answer unit's verdict), which `items.py` and `mutate.py` read, and

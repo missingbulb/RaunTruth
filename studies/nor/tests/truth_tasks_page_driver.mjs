@@ -25,15 +25,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -71,7 +72,7 @@ async function open() {
   // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
   await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Submit Ground Truth is off");
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await page.evaluate(() => { $("#notice").hidden = true; });
   return page;
 }
@@ -82,29 +83,28 @@ let page = await open();
 await check(await shown(page, "#tasks-box") && !(await shown(page, "#summary-box")), "Ground Truth Tasks is in the left bar, in Summary's place");
 await check(!(await shown(page, "#switch")), "no view switch over the image");
 const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
-await check(JSON.stringify(tasks) === JSON.stringify(["pass", "fail", "missed", "submit"]), "the tasks in order: the finalists, the rejected, the missed NoRs, Submit", tasks);
+await check(JSON.stringify(tasks) === JSON.stringify(["pass", "missed", "submit"]), "the tasks in order: the finalists, the missed NoRs, Submit", tasks);
 await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Submit Ground Truth is the last task");
 
-// req/nor/truth/order: one walk through the areas, the rows of areas back and forth; in each its finalists, its
-// rejected, the NoRs added there, each top to bottom, and last the area's check
+// req/nor/truth/order: one walk through the areas, the rows of areas back and forth; in each its finalists, the NoRs
+// added there, each top to bottom, and last the area's check
 const area = (c, W, H, n = 10) => { const r = Math.min(n - 1, Math.floor((c.cy / H) * n)), k = Math.min(n - 1, Math.floor((c.cx / W) * n)); return r * n + (r % 2 ? n - 1 - k : k); };
-const walk = () => page.evaluate(() => nor.walk().map((x) => ({ key: x.key, a: x.a, t: x.t, cy: x.c?.cy, cx: x.c?.cx, pass: x.c ? st.fails[x.c.i] === null : null })));
+const walk = () => page.evaluate(() => nor.walk().map((x) => ({ key: x.key, a: x.a, t: x.t, cy: x.c?.cy, cx: x.c?.cx })));
 let W = await walk();
 const [IW, IH] = await page.evaluate(() => [st.W, st.H]);
 {
-  const rank = { pass: 0, fail: 1, missed: 2 };
+  const rank = { pass: 0, missed: 1 };
   const bad = W.findIndex((x, k) => {
     if (x.cy != null && area(x, IW, IH) !== x.a) return true;
-    if (x.t !== "missed" && x.pass !== (x.t === "pass")) return true;
     const p = W[k - 1]; if (!p) return false;
     if (p.a !== x.a) return p.key !== "a:" + p.a || p.a > x.a; // an area ends with its check, and the next follows
     return p.key.startsWith("a:") || rank[p.t] > rank[x.t] || (p.t === x.t && p.cy > x.cy);
   });
   const areas = W.filter((x) => x.key.startsWith("a:")).length, cands = new Set(W.filter((x) => x.cy != null).map((x) => x.a)).size;
-  await check(bad < 0 && areas === 100 && cands > 1 && W.filter((x) => x.t === "pass").length > 2 && W.filter((x) => x.t === "fail").length > 2,
-    `one walk through the 100 areas, ${cands} of them holding candidates: finalists, rejected, added, then the area's check`, bad < 0 ? undefined : W.slice(Math.max(0, bad - 2), bad + 2));
+  await check(bad < 0 && areas === 100 && cands > 1 && W.filter((x) => x.t === "pass").length > 2,
+    `one walk through the 100 areas, ${cands} of them holding candidates: finalists, added, then the area's check`, bad < 0 ? undefined : W.slice(Math.max(0, bad - 2), bad + 2));
 }
-const P = W.filter((x) => x.t === "pass").length, F = W.filter((x) => x.t === "fail").length;
+const P = W.filter((x) => x.t === "pass").length;
 const isDone = (x) => page.evaluate((key) => nor.walk().find((y) => y.key === key)?.done, x.key);
 // the walk's next item not done after key
 const nextOpen = async (key) => {
@@ -143,10 +143,10 @@ await page.click("#gt-start");
 s = await now();
 await check(s.cur === W[0].key && s.open === W[0].t, "Start again opens the walk where it was", s);
 // one row per task, each counting once, never saying "review"
-await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith(`0/${F} Rejected`) && s.rows[2].startsWith("0/100 Areas") && /Submit Ground Truth/.test(s.rows[3])
-  && !s.rows.some((r) => /review/i.test(r)) && await page.$$eval("#tasks-box", (b) => !/\d+ of \d+/.test(b[0].textContent)), "one row per task: 0/N Finalists, 0/N Rejected, 0/100 Areas, Submit", s.rows);
+await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/100 Areas") && /Submit Ground Truth/.test(s.rows[2])
+  && !s.rows.some((r) => /review/i.test(r)) && await page.$$eval("#tasks-box", (b) => !/\d+ of \d+/.test(b[0].textContent)), "one row per task: 0/N Finalists, 0/100 Areas, Submit", s.rows);
 // the bar, a part per task as long as the task, filled as far as done
-await check(s.bar.length === 3 && s.bar[0].grow === P && s.bar[1].grow === F && s.bar[2].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
+await check(s.bar.length === 2 && s.bar[0].grow === P && s.bar[1].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
 // clicking a task goes to its next item along the walk, after the one open
 await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
@@ -209,7 +209,7 @@ await check(await page.evaluate(() => st.mask.length === 1 && !document.querySel
 await check(await shown(page, "#show-menu"), "the Show menu is above the image");
 await page.click("#show-menu summary");
 const rows = await page.$$eval("#show-menu .pop label", (l) => l.filter((x) => x.offsetParent).map((x) => x.textContent.trim()));
-await check(JSON.stringify(rows) === JSON.stringify(["Finalists", "Rejected", "Added NoRs", "Cut out what is done", "Frame the area"]), "its rows: Finalists, Rejected, Added NoRs, Cut out what is done, Frame the area", rows);
+await check(JSON.stringify(rows) === JSON.stringify(["Finalists", "Added NoRs", "Cut out what is done", "Frame the area"]), "its rows: Finalists, Added NoRs, Cut out what is done, Frame the area", rows);
 const toggle = (label) => page.locator("#show-menu .pop label:visible", { hasText: label }).locator("input").click();
 const hidden = (sel) => page.evaluate((s) => [...document.querySelectorAll(s)].every((e) => getComputedStyle(e).display === "none"), sel);
 await toggle("Frame the area");
@@ -256,17 +256,10 @@ await check(!(await isDone({ key: skipFrom })), "and leaves the skipped one with
 await page.click("#task-back");
 await check((await now()).cur === skipFrom, "Back returns to the skipped one");
 
-// a rejected candidate's card is a finalist's: turned level, with the bars and the adjusters; changed, it can be reset
-// the next rejected one not done after the current item, going round the walk
-const nextFail = await page.evaluate(() => {
-  const xs = nor.walk(), k = xs.findIndex((x) => x.key === st.cur);
-  return [...xs.slice(k + 1), ...xs.slice(0, Math.max(k, 0))].find((x) => x.t === "fail" && !x.done)?.key;
-});
-await page.click('#gt-tasks > li[data-task="fail"] .task-head .t');
-s = await now();
-await check(s.task === "fail" && s.open === "fail" && s.cur === nextFail, "clicking Rejected goes to the walk's next rejected candidate not yet done", { s, nextFail });
+// a task's card: turned level, with the bars and the adjusters; changed, it can be reset
+await page.evaluate((k) => nor.goTo(k), W.filter((x) => x.t === "pass").at(-1).key);
 const rcard = await page.evaluate(() => ({ bars: document.querySelectorAll("#task-card .marks .bar").length, handles: document.querySelectorAll("#task-card .handle").length, tag: !!document.querySelector("#task-card .tag"), reset: !!document.querySelector("#task-card .reset-lines") }));
-await check(rcard.bars === 3 && rcard.handles === 6 && !rcard.tag && !rcard.reset, "a rejected candidate's card has the measurement bars and the six adjusters", rcard);
+await check(rcard.bars === 3 && rcard.handles === 6 && !rcard.tag && !rcard.reset, "a task's card has the measurement bars and the six adjusters", rcard);
 {
   const h = page.locator('#task-card .handle[data-k="length"][data-j="1"]'); await h.scrollIntoViewIfNeeded();
   const b = await h.boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
@@ -289,8 +282,9 @@ s = await now();
 await check(s.task === "pass" && s.sel === target && s.card === String(target), "a candidate clicked on the image is the current task's", s);
 await check(!(await shown(page, "#selected-box")), "no card hovers over the image");
 
-// an area done: every candidate in it decided, then its check; the whole area is cut out, and the walk enters the next
-const A = W.find((x) => x.t === "pass").a, inA = W.filter((x) => x.a === A && x.key.startsWith("c:"));
+// an area done: every candidate in it decided, then its check; the whole area is cut out, and the walk enters the next.
+// The area is one with a finalist near the image's middle, clear of what floats over the view's corners (the minimap)
+const A = W.filter((x) => x.t === "pass").sort((p, q) => Math.hypot(p.cx - IW / 2, p.cy - IH / 2) - Math.hypot(q.cx - IW / 2, q.cy - IH / 2))[0].a, inA = W.filter((x) => x.a === A && x.key.startsWith("c:"));
 await page.evaluate((ks) => { for (const k of ks.slice(1)) if (!st.forced.get(+k.slice(2))) nor.decide(+k.slice(2), "reject"); }, inA.map((x) => x.key));
 await page.evaluate((k) => nor.goTo(k), inA[0].key);
 await page.click("#task-card .verdict .up");
@@ -322,7 +316,7 @@ await check(s.cur !== null && s.cur !== "c:u1" && s.task !== "submit", "Back pas
 await page.evaluate((k) => nor.goTo(k), "a:" + A);
 await page.click("#area-ok");
 s = await now();
-await check((await holes()).some((h) => same(h, rectOf(A))) && s.rows[2].startsWith("1/100 Areas") && s.cur === await nextOpen("a:" + A),
+await check((await holes()).some((h) => same(h, rectOf(A))) && s.rows[1].startsWith("1/100 Areas") && s.cur === await nextOpen("a:" + A),
   "No missed NoRs here cuts the whole area out and goes on to the walk's next item", s);
 
 // req/shell/ground-truth/areas: the shell's Areas menu, NoR starting at 10 × 10; another count walks again from its first
@@ -331,7 +325,7 @@ await check(await page.$eval("#gt-areas", (m) => m.value === "10" && m.options.l
 await page.selectOption("#gt-areas", "2");
 s = await now();
 const W2 = await walk();
-await check(s.rows[2].startsWith("0/4 Areas") && W2.filter((x) => x.key.startsWith("a:")).length === 4 && W2.every((x) => x.cy == null || area(x, IW, IH, 2) === x.a)
+await check(s.rows[1].startsWith("0/4 Areas") && W2.filter((x) => x.key.startsWith("a:")).length === 4 && W2.every((x) => x.cy == null || area(x, IW, IH, 2) === x.a)
   && s.cur === await page.evaluate(() => nor.walk().find((x) => !x.done)?.key), "2 × 2: four areas, the candidates in the quarter they lie in, one area checked of 100 too little of any", s);
 // the top right quarter, its candidates decided, checked under 2 × 2
 await page.evaluate(() => { for (const x of nor.walk()) if (x.a === 1 && x.c && !x.done) nor.decide(x.c.i, "reject"); nor.goTo("a:1"); });
@@ -340,15 +334,15 @@ await page.selectOption("#gt-areas", "10");
 s = await now();
 const inQuarter = (a) => { const r = Math.floor(a / 10), k = r % 2 ? 9 - (a % 10) : a % 10; return r < 5 && k >= 5; };
 const quarterWant = 25 + (inQuarter(A) ? 0 : 1);
-await check(s.rows[2].startsWith(`${quarterWant}/100 Areas`) && (await holes()).some((h) => same(h, rectOf(A))),
+await check(s.rows[1].startsWith(`${quarterWant}/100 Areas`) && (await holes()).some((h) => same(h, rectOf(A))),
   `back at 10 × 10, the quarter checked is its 25 areas, with the one checked before: ${quarterWant}`, s);
 
 // everything decided and every area checked: Submit
 await page.evaluate(() => { for (const x of nor.walk()) if (x.c && !x.done) nor.decide(x.c.i, "reject"); nor.goTo(nor.walk().find((x) => !x.done)?.key ?? null); });
 for (let k = 0; k < 120 && await page.evaluate(() => st.task === "missed"); k++) await page.click("#area-ok");
 s = await now();
-await check(s.task === "submit" && s.rows[2] === "100/100 Areas" && (await page.$eval("#gt-submit", (b) => b.dataset.state)) === "done", "every task done: Submit, its icon a check", s);
-await check(await page.$$eval('#gt-tasks > li[data-task="missed"], #gt-tasks > li[data-task="pass"], #gt-tasks > li[data-task="fail"]', (l) => l.every((x) => x.classList.contains("done"))), "every task is checked done");
+await check(s.task === "submit" && s.rows[1] === "100/100 Areas" && (await page.$eval("#gt-submit", (b) => b.dataset.state)) === "done", "every task done: Submit, its icon a check", s);
+await check(await page.$$eval('#gt-tasks > li[data-task="missed"], #gt-tasks > li[data-task="pass"]', (l) => l.every((x) => x.classList.contains("done"))), "every task is checked done");
 await page.close();
 
 // ---- req/nor/truth/keys: a key per button while tagging, read by its place on the keyboard ----
@@ -363,9 +357,9 @@ const key = async (code, o = {}) => {
 const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
 // the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
 const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
-const VIEWS = ["Finalists 1", "Rejected 2", "Added NoRs 3"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 4", "Frame the area 5"];
+const VIEWS = ["Finalists 1", "Added NoRs 2"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 3", "Frame the area 4"];
 const expectRows = async () => TAGGING_VIEWS.join(", ");
-const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5"].map((code) => ({ code }));
+const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4"].map((code) => ({ code }));
 const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
 let took = await key("KeyF");
 await check(!took && await page.evaluate(() => st.forced.size === 0), "before Start GT tagging, F does nothing");
@@ -384,11 +378,11 @@ s = await now();
 took = await key("KeyF");
 let s2 = await now();
 await check(took && await verdictNow(i0) === "in" && s2.cur === await nextOpen(first.key) && s2.rows[0].startsWith(`1/${P} Finalists`), "F is the thumbs up: the item is a NoR and the walk moves on", s2);
-// the next items: a finalist and a rejected candidate
-const second2 = W.filter((x) => x.t === "pass")[1], j2 = +second2.key.slice(2);
+// the next item: a finalist
+const second2 = W.filter((x) => x.t === "pass").find((x) => x.key !== first.key), j2 = +second2.key.slice(2);
 await page.evaluate((k) => nor.goTo(k), second2.key);
 took = await key("KeyJ", { as: "ח", repeat: true });
-await check(!took && await verdictNow(j2) === null && (await now()).cur === second2.key, "a key held down does not repeat its verdict");
+await check(!took && await verdictNow(j2) === null && (await now()).cur === second2.key, "a key held down does not repeat its verdict", { took, verdict: await verdictNow(j2), cur: (await now()).cur, want: second2.key });
 took = await key("KeyJ", { as: "ח" });
 s2 = await now();
 await check(took && await verdictNow(j2) === "out" && s2.cur !== second2.key, "J in a Hebrew layout is the thumbs down: not a NoR, and the walk moves on", s2);
@@ -410,8 +404,8 @@ await page.evaluate(() => document.activeElement?.blur());
 took = await key("KeyS");
 s2 = await now();
 await check(took && s2.cur === await nextOpen(second2.key) && await verdictNow(j2) === "out", "S is Skip: the walk's next item not done", s2);
-// R: a rejected candidate's measurements changed, put back
-await page.evaluate((k) => nor.goTo(k), W.find((x) => x.t === "fail").key);
+// R: a finalist's measurements changed, put back
+await page.evaluate((k) => nor.goTo(k), W.filter((x) => x.t === "pass").at(-1).key);
 took = await key("KeyR");
 await check(!took, "with nothing measured differently, R does nothing");
 {
@@ -457,5 +451,5 @@ await check(await shown(page, "#summary-box") && !(await shown(page, "#tasks-box
 await check(await page.evaluate(() => !!document.querySelector("#overlay .mask-marks .edge")), "the summary's mask is drawn with the summary");
 await page.click("#show-menu summary");
 const vrows = await page.$$eval("#show-menu .pop label", (l) => l.filter((x) => x.offsetParent).map((x) => x.textContent.trim()));
-await check(JSON.stringify(vrows) === JSON.stringify(["Finalists", "Rejected", "candidate numbers", "rejection reasons", "measuring lines"]), "its rows: Finalists and Rejected as the tasks name them, then the numbers, reasons and lines", vrows);
+await check(JSON.stringify(vrows) === JSON.stringify(["Finalists", "Rejected by you", "candidate numbers", "measuring lines"]), "its rows: Finalists and the ones rejected by you, then the numbers and lines", vrows);
 await done(0);

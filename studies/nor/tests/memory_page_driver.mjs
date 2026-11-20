@@ -1,6 +1,5 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
-// of real results written by tests/test_memory.py, and checks that opening IMAGE, finding and moving
-// filters over and over leaves the page holding no more JavaScript heap, array buffers, DOM nodes or
+// of real results written by tests/test_memory.py, and checks that opening IMAGE and finding over and over leaves the page holding no more JavaScript heap, array buffers, DOM nodes or
 // event listeners. Prints what it measured; exits 1 on growth, 2 when it cannot run.
 // THROTTLE=n slows its CPU n times over, as a slow test machine is.
 //   node tests/memory_page_driver.mjs ANSWERS IMAGE
@@ -24,15 +23,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][m.echo % 2], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -73,7 +73,7 @@ const next = (action) => page.evaluate((action) => new Promise((ok) => {
   };
   hook();
 }), action);
-const settled = () => page.waitForFunction(() => !st.inflight && !st.pending && $("#busy").hidden);
+const settled = () => page.waitForFunction(() => !st.running && $("#busy").hidden);
 
 let opened = 0;
 const slide = fs.readFileSync(image);
@@ -84,29 +84,11 @@ async function open() {
   await page.waitForFunction((n) => shellForTests.page.get("image")?.name === n, name);
   await settled();
 }
-// finding ends with the first filter pass on the new candidates
+// finding, with each finder by turns
 async function find() {
   for (const f of ["tl", "rf"]) {
-    const done = next("refilter");
+    const done = next("run");
     await page.evaluate((f) => { $("#algorithm").value = f; $("#algorithm").dispatchEvent(new Event("change")); $("#find").click(); }, f);
-    await done; await settled();
-  }
-}
-// each numeric filter moved away from its value and back, and a filter switched off and on
-async function tune() {
-  const n = await page.evaluate(() => document.querySelectorAll("#filters .param.number").length);
-  if (n < 6) await fail(`only ${n} filter dials to move`);
-  for (let k = 0; k < 2 * n; k++) {
-    const done = next("refilter");
-    await page.evaluate(([k, n]) => {
-      const p = document.querySelectorAll("#filters .param.number")[Math.floor(k / 2)], box = p.querySelector(".box");
-      box.value = k % 2 ? st.defaults[p.dataset.name] : st.defaults[p.dataset.name] * 1.3 + 0.1; box.dispatchEvent(new Event("input"));
-    }, [k, n]);
-    await done; await settled();
-  }
-  for (const on of [false, true]) {
-    const done = next("refilter");
-    await page.evaluate((on) => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = on; c.dispatchEvent(new Event("change")); }, on);
     await done; await settled();
   }
 }
@@ -171,9 +153,9 @@ const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
 
 await page.goto(origin + "/web/?study=nor");
 await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
-await open(); await find(); await tune();
+await open(); await find();
 const problems = [];
-for (const [name, act] of Object.entries({ open, find, tune })) {
+for (const [name, act] of Object.entries({ open, find })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
   // what holds the nodes outside the document, read before the base so its own reading is in it
