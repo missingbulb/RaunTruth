@@ -367,13 +367,10 @@ export function mount(shell) {
   // what the database matcher is sent: each book's text, where it is, and how sure the reading is
   const matcherDoc = () => ({ image: st.fileName, W: st.W, H: st.H,
     books: books.map((b, i) => ({ b, i })).filter(({ b }) => inMask(b)).map(({ b, i }) => ({ id: i + 1, view: b.view, text: b.text ?? "", fields: { ...(b.fields ?? (b.text ? { title: b.text } : {})) }, confidence: b.confidence ?? null, reader: b.reader ?? null, corners: b.corners })) });
-  // the book framed in the view: zoomed to fill most of it, unless already close to that, and in its middle
+  // the book framed in the view, filling most of it
   function focus(b) {
-    const xs = b.corners.map((p) => p[0]), ys = b.corners.map((p) => p[1]), sc = $("#scroller");
-    const w = Math.max(...xs) - Math.min(...xs) || 1, h = Math.max(...ys) - Math.min(...ys) || 1;
-    const fit = Math.min(8, 0.7 * Math.min(sc.clientWidth / w, sc.clientHeight / h));
-    if (st.zoom > fit * 1.5 || st.zoom < fit / 1.5) shell.viewer.setZoom(fit);
-    shell.viewer.focus((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2);
+    const xs = b.corners.map((p) => p[0]), ys = b.corners.map((p) => p[1]);
+    shell.viewer.frame([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], 0.7);
   }
   // any part of the book's box on the screen
   function inView(b) {
@@ -583,30 +580,15 @@ export function mount(shell) {
   }
 
   // ---------- the right-click menu: a book added anywhere, a book flipped or deleted ----------
-  const menu = $("#bs-menu");
-  let menuAt = null;
   // the book under a point: of several, the last drawn
   const bookAt = (p) => books.findLast((b) => inside(p, b.corners)) || null;
-  const hideMenu = () => { menu.hidden = true; menuAt = null; };
-  $("#scroller").addEventListener("contextmenu", (e) => {
-    if (!opened || !tagging() || drawing) return;
-    e.preventDefault();
-    const p = at(e), b = bookAt(p), r = $("#image-view").getBoundingClientRect();
-    menuAt = { p, b };
+  function menuAt(e) {
+    if (!opened || !tagging() || drawing) return [];
+    const p = at(e), b = bookAt(p);
     // a box drawn over two books hides one of them: a book may be added on a box too
-    for (const k of ["flip", "delete"]) menu.querySelector(`[data-do="${k}"]`).hidden = !b;
-    Object.assign(menu.style, { left: e.clientX - r.left + "px", top: e.clientY - r.top + "px" });
-    menu.hidden = false;
-  }, here);
-  menu.onclick = (e) => {
-    const k = e.target.closest("button")?.dataset.do, m = menuAt;
-    hideMenu();
-    if (!m || !k) return;
-    if (k === "add") addAt(m.p);
-    if (k === "delete") remove(m.b.id);
-    if (k === "flip") { show(m.b.id); flip(m.b.id); }
-  };
-  document.addEventListener("pointerdown", (e) => { if (!menu.hidden && !menu.contains(e.target)) hideMenu(); }, { ...here, capture: true });
+    return [{ label: "Add a book here", run: () => addAt(p) },
+      ...(b ? [{ label: "Flip upside down", run: () => { show(b.id); flip(b.id); } }, { label: "Delete this book", run: () => remove(b.id) }] : [])];
+  }
 
   // ---------- the pointer: dragging the current book's corners, drawing a missed one ----------
   const sc = $("#scroller"), at = (e) => shell.viewer.toImage(e);
@@ -635,7 +617,7 @@ export function mount(shell) {
     drag = null;
     if (act({ type: "move-corners", book: id, corners })) reread(id); else { drawBoxes(); repaint(); }
   }
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (drawing) endDrawing(); hideMenu(); } }, here);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && drawing) endDrawing(); }, here);
 
   // ---------- the keyboard (req/shelves/truth/keys, req/shell/image/keys) ----------
   // the shell presses the open book's buttons by the keys study.json gives them; Right's key, on a title still as
@@ -652,10 +634,11 @@ export function mount(shell) {
   });
 
   return {
+    menuAt,
     ready() { $("#bs-find").disabled = !opened; },
     opened() {
       openedFields.clear(); focusTo = null;
-      opened = true; found = false; books = []; raw = null; curId = null; drag = null; drawing = null; selectFor = null; asked = null; pending = null; reads.clear(); hideMenu();
+      opened = true; found = false; books = []; raw = null; curId = null; drag = null; drawing = null; selectFor = null; asked = null; pending = null; reads.clear();
       $("#bs-find").disabled = false; $("#bs-read").disabled = true; $("#bs-export").disabled = true;
       shell.viewer.layer("bs").replaceChildren(); draw();
     },

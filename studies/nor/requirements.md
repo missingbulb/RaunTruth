@@ -13,7 +13,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/candidates/add-missed` Right-clicking the image adds a NoR the finder missed.
   <details>
 
-  Right-clicking the image offers "Add a NoR Here": a NoR the finder proposed nothing for. It is not
+  Right-clicking the image offers "Add a NoR Here" (the shell's menu, `req/shell/image/menu`): a NoR the finder proposed nothing for. It is not
   drawn as a mask; it gets measuring lines (level, centred where clicked, as long and wide as the
   image's median finalist) that the user corrects on its card, which is selected at once. It lists
   among the finalists, marked by an icon rather than text; thumbing it down removes it, as its
@@ -361,7 +361,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   for reduced motion): the walk's next item not done, and once none is left Submit. Back, set by the
   owner on 2026-11-04, returns to the item the user was on before, as often as they like, to change
   a verdict, a skip or the measurements; it slides the other way. Entering an area frames it on the
-  image, zoomed in to fill much of the view when it is small there; inside an area the image pans to
+  image, filling 0.6 of the view (`req/shell/image/frame`); inside an area the image pans to
   the candidate when it is out of the middle of the view. An area's check says to right-click where
   the finder missed a NoR there; an added NoR's card waits for its verdict, and "No missed NoRs
   here" marks the area checked. The Areas task is done once every area is checked and every added

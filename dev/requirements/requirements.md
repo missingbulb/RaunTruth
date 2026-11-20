@@ -945,6 +945,17 @@ nobody has decided: what the page does there is not a requirement yet.
   details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
   </details>
 
+- `req/shell/image/frame` A study names a box of the image to bring into view; the shell zooms and glides there, the same way in every study.
+  <details>
+
+  Set by the owner on 2026-11-20: framing is the shell's, a study saying only the box, in the image's pixels, and how
+  much of the view it should fill (NoR's area 0.6, a Shelves book 0.7). The shell zooms to that fill, at most 800%,
+  only when the zoom now is more than half again too far in or too far out; a zoom inside that band is left as it
+  is, so a step to the next area or book at much the same size moves the view without touching the zoom. It then
+  glides the box's middle to the view's middle, as near as the image's edges let it. Test:
+  `web-tests/test_image_point_page.py`.
+  </details>
+
 - `req/shell/image/keys` A study declares its keyboard shortcuts as data; the shell wires them and lists those that act now at the image's bottom left.
   <details>
 
@@ -982,6 +993,18 @@ nobody has decided: what the page does there is not a requirement yet.
   press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
   browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
   study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
+  </details>
+
+- `req/shell/image/menu` Right-clicking the image opens the study's menu for that point; the shell opens, places and closes it.
+  <details>
+
+  Set by the owner on 2026-11-20: the menu is the shell's, the study saying only which items it offers at the point
+  clicked (NoR's Add a NoR Here, Shelves' Add a book here, Flip upside down and Delete this book), each with what it
+  does; a point the study offers nothing at leaves the browser's own menu. The menu opens at the pointer, inside the
+  window, its first item focused, and closes when an item is chosen, on Escape, on a press anywhere off it and on the
+  user's wheel over the image. A glide of the page's own (`req/shell/image/frame`) leaves it open: the item acts on
+  the point that was clicked. While it is open the study's keys do not act (`req/shell/image/keys`). Test:
+  `web-tests/test_image_point_page.py`.
   </details>
 
 - `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.
