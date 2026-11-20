@@ -189,12 +189,15 @@ await check(rung.shown && rung.stroke === "rgb(255, 212, 0)", "the current candi
 // the view come to rest where it was sent: the image's point x, y at its centre, or as near as the image's edge lets it
 // the framed area wholly in view, and the scroll unmoved since the last frame: a right click then opens a menu no
 // scroll will close
+// one that never comes says what it last saw: whether the view was still moving, and where the frame lay against it
 const framedAtRest = () => page.waitForFunction(() => {
   const sc = $("#scroller"), v = sc.getBoundingClientRect(), f = $("#overlay .area-frame")?.getBoundingClientRect();
   const at = [sc.scrollLeft, sc.scrollTop].join(), still = window.lastScroll === at;
   window.lastScroll = at;
+  const r = (b) => b && [b.left, b.top, b.right, b.bottom].map(Math.round);
+  window.lastFraming = { scroll: at, still, view: r(v), frame: r(f), scrollSize: [sc.scrollWidth, sc.scrollHeight] };
   return still && f && f.left >= v.left && f.right <= v.right && f.top >= v.top && f.bottom <= v.bottom;
-}, null, { polling: "raf" });
+}, null, { polling: "raf" }).catch(async (e) => { throw new Error(`${e.message.split("\n")[0]}; last seen: ${JSON.stringify(await page.evaluate(() => window.lastFraming))}`); });
 const viewAt = (x, y) => page.waitForFunction(([x, y]) => {
   const sc = $("#scroller"), v = sc.getBoundingClientRect(), p = new DOMPoint(x, y).matrixTransform($("#overlay").getScreenCTM());
   const there = (off, at, end) => Math.abs(off) <= 1.5 || (off < 0 && at <= 0) || (off > 0 && at >= end - 1);
