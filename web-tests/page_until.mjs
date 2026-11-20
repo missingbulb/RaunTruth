@@ -1,12 +1,16 @@
 import { frames } from "./page_frames.mjs";
-// Waits until fn, run in the page with arg, resolves to something truthy. page.waitForFunction cannot do this for an
+// Waits until fn, run in the page with arg, resolves to something truthy, and gives what it resolved to, for the check
+// after it to read the value the wait saw rather than read the page again. page.waitForFunction cannot do this for an
 // async fn: it takes the promise fn returns as the truthy value, and resolves at once, on every engine.
 export async function until(page, fn, arg, { timeout = 10000, every = 100 } = {}) {
   const end = Date.now() + timeout;
+  let threw;
   for (;;) {
-    // a navigation under way destroys the page's context: not yet, rather than a failure
-    if (await page.evaluate(fn, arg).catch(() => false)) return;
-    if (Date.now() > end) throw new Error(`timed out after ${timeout} ms waiting for ${fn}`);
+    // a navigation under way destroys the page's context, and what fn reads may not be there yet: not yet, rather
+    // than a failure; the last such error is what the timeout says, so a wrong fn says why it never held
+    const got = await page.evaluate(fn, arg).then((v) => { threw = null; return v; }, (e) => { threw = e; return false; });
+    if (got) return got;
+    if (Date.now() > end) throw new Error(`timed out after ${timeout} ms waiting for ${fn}` + (threw ? `; it last threw: ${String(threw.message ?? threw).split("\n")[0]}` : ""));
     await new Promise((ok) => setTimeout(ok, every)); // waits on purpose (no event): the poll's interval, an async fn having no event to wait on
   }
 }
