@@ -10,6 +10,7 @@ import { EARLY } from "./early_messages.mjs";
 import { localStudy } from "./local_study.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
+import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
@@ -74,7 +75,7 @@ check(!(await menu()).shown && !/Noted/.test(await noted()), "a press off it clo
 
 await page.mouse.click(sx, sy, { button: "right" });
 await page.mouse.wheel(0, 40);
-await page.waitForFunction(() => document.querySelector("#point-menu").hidden, null, { timeout: 2000 }).catch(() => {});
+await orMissed(page.waitForFunction(() => document.querySelector("#point-menu").hidden, null, { timeout: 2000 }));
 check(!(await menu()).shown, "the user's wheel over the image closes it");
 await rest();
 
