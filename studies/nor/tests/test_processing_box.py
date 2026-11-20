@@ -6,10 +6,10 @@ stand-in worker answering the study's real ready() (processing_box_driver.mjs)."
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
+from drivers import run_driver
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NODE = shutil.which('node')
@@ -23,8 +23,4 @@ def test_the_processing_box_explains_each_algorithm(tmp_path):
     import controls, json
     ready = tmp_path / 'ready.json'
     ready.write_text(json.dumps(controls.listing()))
-    r = subprocess.run([NODE, os.path.join(HERE, 'processing_box_driver.mjs'), str(ready)], capture_output=True, text=True, timeout=120)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'processing_box_driver.mjs'), str(ready), timeout=120)

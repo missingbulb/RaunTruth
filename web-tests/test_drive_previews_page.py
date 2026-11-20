@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import tifffile
 from PIL import Image
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -102,8 +103,4 @@ def test_drive_previews(tmp_path):
         f.write(b'\0')
     Image.fromarray(np.full((40, 60, 3), 90, np.uint8)).save(images / 'e photo.jpg')
     with_photo(images / 'rauntruth-previews.tiff', images / 'e photo.jpg')
-    r = subprocess.run([NODE, os.path.join(HERE, 'drive_previews_driver.mjs'), str(images)], capture_output=True, text=True, timeout=90)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'drive_previews_driver.mjs'), str(images), timeout=90)
