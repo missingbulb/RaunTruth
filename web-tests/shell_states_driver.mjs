@@ -12,7 +12,6 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
-import { expecting } from "./harness.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -285,12 +284,7 @@ const walk = async (k, p) => {
   await awayAndBack(page, p);
   await page.context().close();
 };
-for (const [k, p] of paths) {
-  // the Data Management states hold a folder the site was never approved for, its Approve folders shown: of that folder
-  // Drive knows nothing, which the tree asks each time it is drawn
-  if (p.role === "data") await expecting(/404 \(Not Found\) .*capabilities/, () => walk(k, p));
-  else await walk(k, p);
-}
+for (const [k, p] of paths) await walk(k, p);
 
 if (renders) {
   const esc = (t) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);

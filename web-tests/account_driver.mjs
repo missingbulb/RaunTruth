@@ -112,9 +112,9 @@ try {
   check(await a.page.isVisible("#sign-in") && await a.page.isVisible("#manage-storage"), "opening the menu offers Sign in with Google beside Manage storage");
   const asked = await a.page.evaluate(() => window.tokenClient);
   const drives = asked.scope.split(" ").filter((s) => /drive/.test(s)).sort();
-  check(asked.client === CLIENT && JSON.stringify(drives) === JSON.stringify(["https://www.googleapis.com/auth/drive.appdata", "https://www.googleapis.com/auth/drive.readonly"])
+  check(asked.client === CLIENT && JSON.stringify(drives) === JSON.stringify(["https://www.googleapis.com/auth/drive.appdata", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.readonly"])
     && ["email", "profile"].every((s) => asked.scope.split(" ").includes(s)),
-    "signing in asks for the user's name, email and picture, the app's own Drive folder and to read their Drive, no more of it", drives);
+    "signing in asks for the user's name, email and picture, the app's own Drive folder, to read their Drive and to add files to it, no more of it", drives);
   await shot(a.page, "account_signed_out");
   await a.page.click("#sign-in");
   await throughGuide(a.page);

@@ -4,6 +4,7 @@
 //   const google = signIn(ctx);
 //   google.answer = "grant" | "deny" | "blocked" | "closed";   what Google's window says next
 //   google.answerAfter = () => promise;                        Google's window answering once it settles, not at once
+//   google.withhold = [scope];                                 scopes Google leaves out of the token, their boxes unticked
 //   google.nextToken = "renewed-token";                        the token it grants next, a fresh one if unset
 //   google.hold = (write) => promise;                          a write to the app folder answered once it settles
 //   const record = google.signedIn({ email, name, scopes, token, until });   a token made live, and the page's own
@@ -17,7 +18,7 @@ const USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
 const APP = "appDataFolder";
 export const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type, range",
   "access-control-allow-methods": "GET, POST, PATCH, DELETE" };
-export const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
+export const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
 
 // when a token issued now runs out, as Google's do
 const anHourOn = () => Date.now() + 3599e3;
@@ -68,7 +69,7 @@ function makeSignIn() {
   let n = 0;
   const google = {
     account: { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: null },
-    answer: "grant", answerAfter: () => null, nextToken: null, hold: () => null,
+    answer: "grant", answerAfter: () => null, withhold: [], nextToken: null, hold: () => null,
     asked: [], scriptLoads: 0, calls: [],
     // the app folders' files, each user's own: {id, owner, name, parents, body}
     settings: [], waiting: [],
@@ -97,8 +98,9 @@ export async function fakeGoogleSignIn(ctx, world) {
     const errors = { deny: { error: "access_denied" }, blocked: { error_type: "popup_failed_to_open" }, closed: { error_type: "popup_closed" } };
     if (errors[google.answer]) return errors[google.answer];
     const token = google.nextToken || google.issue();
-    google.tokens.set(token, { email: google.account.email, scopes: ask.scope, until: anHourOn() });
-    return { access_token: token, expires_in: 3599, scope: ask.scope };
+    const scope = (ask.scope || "").split(" ").filter((s) => !google.withhold.includes(s)).join(" ");
+    google.tokens.set(token, { email: google.account.email, scopes: scope, until: anHourOn() });
+    return { access_token: token, expires_in: 3599, scope };
   });
   await ctx.route(GSI, (route) => { google.scriptLoads++; return route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
   await ctx.route(USER_INFO, (route) => {
