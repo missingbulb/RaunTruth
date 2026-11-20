@@ -29,7 +29,7 @@ to 26, see "Shell changes").
 | Supported browsers | `req/shell/browsers/supported`: desktop only; `web/browsers.js` `verdict()` fails anything `mobile` | Must be lifted for a phone route, by the owner |
 | Sign-in | Google Identity Services token client (`web/account.js`), **a popup**; token lasts about 1 h, kept in `localStorage`; a new one only inside the user's click | The popup in an installed iOS web app is the top technical risk; no silent upload is possible after an hour |
 | Scopes | `openid email profile drive.appdata drive.readonly`; `drive.readonly` is restricted, Google shows "unverified app" and caps new users at 100 (#803) | Every phone helper spends one of the 100 and sees the warning |
-| Submit | `req/shell/ground-truth/submit`: one `gt_<email>.json` per tagger in `<image>__<sha8>/` in the study's Drive submissions folder, written with Google's per-file permission (`drive.file`) after the tagger approves the folder in Google's picker | A helper needs a Google account with edit access to that folder, and the picker step once |
+| Submit | `req/shell/ground-truth/submit`: one `gt_<email>.json` per tagger in `<image>__<sha8>/` in the study's Drive submissions folder, written with Google's per-file permission (`drive.file`), asked at sign-in | A helper needs a Google account with edit access to that folder |
 | Drafts | `req/shell/ground-truth/draft`: `localStorage`, key `gt-draft|<study>|<image>|<sha>`, this device only | Evictable on iOS; no hand-over between devices |
 | Offline | `web/sw.js` keeps the site's files and Pyodide; images kept in Cache Storage (`IMAGES`); `navigator.storage.persist()` asked in Prepare for Offline | The pattern to extend for packs |
 | Install | `web/app.webmanifest`, `display: standalone`; the page names the manifest only after the user presses Install as an app (`req/shell/offline/per-study`) | iOS has no install prompt to call; instructions only |
@@ -218,9 +218,9 @@ Plan:
    user's token, the phone route could ask for `openid email` + `drive.file` only, skipping the restricted
    `drive.readonly` (no "unverified app" screen for it, no seat of the 100). A narrower request, but still a
    changed permission request: owner's call.
-5. The folder approval in Google's picker (`req/shell/ground-truth/tagger-access`) on a phone screen is
-   untested **[U]**. If awkward, a helper approves once on a desktop; whether the grant then holds on the phone
-   needs checking against Google's docs.
+5. The page no longer opens Google's picker (missingbulb/RaunTruth#1042): with `drive.file` and `drive.readonly`
+   together, real Drive let the site create files in a folder never picked. That was measured only with
+   `drive.readonly` in the token **[U]**: a phone route without it (row 7) may need a folder approval again.
 
 A native app would use the system sign-in sheet and a refresh token, which removes the hourly tap. That is the
 only real auth advantage, and it needs a backend or a native client id either way.
@@ -332,7 +332,7 @@ The privacy policy's "Services the page reaches" and "kept on this device" lists
 | 5 | **Retry on open / visible / online** | same call as 4, at new moments, never without a tap once the token has lapsed | none |
 | 6 | **Sign-in by full-page redirect** on the phone route | only if the popup fails in the iOS home-screen app | tab-only on iOS |
 | 7 | **Narrower scopes on the phone route** (`openid email drive.file`, no `drive.readonly`) | at the helper's first sign-in | keep today's scopes (unverified-app screen, 100-user cap) |
-| 8 | **Folder approval in Google's picker on a phone** | once per helper | approve on a desktop |
+| 8 | **Folder approval in Google's picker on a phone**, only if row 7 drops `drive.readonly` and Drive then refuses unpicked folders | once per helper | approve on a desktop |
 | 9 | **The lab reads answers between rounds and writes the next round's pack** (vascular) | lab side, per round; who runs it and where is the vascular design's open question 1 | - |
 | 10 | **Persistent storage** `navigator.storage.persist()` | after the first deck; no prompt on Chrome or Safari | already used in Prepare for Offline; new moment |
 | 11 | **Screen wake lock** | while a deck is open; no prompt | none; screen may dim |
@@ -353,7 +353,7 @@ iOS (and so "send per deck" is the rule); the phone exception to the ground-trut
    end, the submitted file is the resume point. That one decision absorbs iOS eviction, tab-vs-home-screen
    isolation, memory kills and the missing Background Sync.
 3. **Before any UI work, run two one-hour spikes on real phones**: (a) the shell's existing Google sign-in and
-   picker approval in an iPhone tab and home-screen app and on Android; (b) decode one real vascular deck and one
+   site approval in an iPhone tab and home-screen app and on Android; (b) decode one real vascular deck and one
    NoR sprite on a 4 GB Android and an older iPhone, watching memory. Both are where the web could actually
    fail, and neither can be shown by emulation.
 4. **Treat "installed PWA" as an optional comfort**, not the product: on iOS it splits storage from the
@@ -365,7 +365,7 @@ iOS (and so "send per deck" is the rule); the phone exception to the ground-trut
 
 ## Not verified here
 
-- Every **[U]** and **[S]** line above; most important: iOS home-screen sign-in, link capture, the picker on
+- Every **[U]** and **[S]** line above; most important: iOS home-screen sign-in, link capture, approval on
   phones, canvas and memory limits on current iOS, untagged-PNG colour handling, the Workers per-file limit.
 - All byte and second figures are budgets or the designs' own estimates; nothing was measured on a phone.
 - Version numbers come from compat data, which records arrival, not behaviour under load.

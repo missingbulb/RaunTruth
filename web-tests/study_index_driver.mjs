@@ -12,7 +12,7 @@ import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
-const { ROOT, FILES, hidden, approved, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
   uploaded: (f) => {
     if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
     if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
@@ -26,8 +26,6 @@ settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toStr
 FILES.push({ id: "dmelsewhere000000001", name: "Elsewhere", parent: "someone", folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" },
   { id: "dmelsewherefile00001", name: "delta.png", parent: "dmelsewhere000000001", folder: false, bytes: FILES.find((f) => f.name === "acme.png").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 hidden.add("dmelsewhere000000001");
-// the site approved for every folder here: what it may do in each is not this test's question
-for (const f of FILES) if (f.folder) approved.add(f.id);
 // a screenshot once nothing on the page is still moving
 const shoot = async (sel, name) => {
   if (!shots) return;

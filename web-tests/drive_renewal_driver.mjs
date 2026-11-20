@@ -17,7 +17,7 @@ import { STEP } from "./deadlines.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OLD = "old-token", NEW = "renewed-token", PRIVATE = "privatefolder0000001";
-const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
+const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw);
