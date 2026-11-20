@@ -350,7 +350,10 @@ async function mask(page) {
   await page.click("#gt-close");
   await page.evaluate(() => st.order.filter((c) => !st.forced.has(c.i)).forEach((c) => nor.decide(c.i, "approve")));
   await check(await gtColour(page) === "part", "with every candidate voted on but the areas not checked the button is orange");
-  await page.click('#gt-tasks > li[data-task="missed"] .task-head .t'); for (let k = 0; k < 100; k++) await page.click("#area-ok");
+  await page.click('#gt-tasks > li[data-task="missed"] .task-head .t');
+  // every area checked by its own button, clicked in the page one after another with no draw awaited between: the walk
+  // by hand, area by area, is the tasks test's
+  await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });
   await check(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
   await check(all_ === "Load image › Run algorithm › Review all items › Submit GT | ", `with every task done and the file exported, every step is done: ${all_}`);

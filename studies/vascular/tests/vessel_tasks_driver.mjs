@@ -382,7 +382,9 @@ try {
   }
 
   // every junction judged, Area is right does the area
-  for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
+  // the rest by the card's own button, clicked in the page one after another with no draw awaited between: the click
+  // by hand is the one above
+  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().key; k++) document.querySelector("#task-card .verdict .yes").click(); });
   // Area is right opens the area's widths step (req/vascular/truth/widths), whose button waits for the vessels drawn
   // there: given a width here
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
