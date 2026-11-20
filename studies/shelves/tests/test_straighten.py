@@ -1,5 +1,6 @@
 """req/shelves/truth/task: the page straightens a book for its reading as the finder does (books.straighten), within a
-level per channel, on a colour photo and a grey one, upright, tilted, perspective and past the photo's edge boxes."""
+level per channel, on a colour photo and a grey one, upright, tilted, perspective, past the photo's edge
+and a hair either side of it boxes."""
 import base64
 import json
 import os
@@ -24,6 +25,10 @@ BOXES = [
     [[-30, 50], [40, 50], [40, 200], [-30, 200]],
     [[250, 180], [330, 180], [330, 260], [250, 260]],
     [[400, 300], [450, 300], [450, 350], [400, 350]],
+    # crop pixel centres a hair inside the photo's first pixel edge and a hair past its last: on exactly the edge,
+    # each implementation's homography rounds it to either side
+    [[-0.5 + 1e-6, 10], [9.5 + 1e-6, 10], [9.5 + 1e-6, 30], [-0.5 + 1e-6, 30]],
+    [[310.5 + 1e-6, 10], [320.5 + 1e-6, 10], [320.5 + 1e-6, 30], [310.5 + 1e-6, 30]],
 ]
 
 
@@ -46,7 +51,9 @@ def test_the_page_straightens_as_the_finder_does(grey, tmp_path):
     rgb = rng.integers(0, 256, (240, 320, 3), dtype=np.uint8)
     if grey:
         rgb[..., 1] = rgb[..., 2] = rgb[..., 0]
-    for corners, got in zip(BOXES, page_crops(rgb, grey, tmp_path)):
+    crops = page_crops(rgb, grey, tmp_path)
+    assert len(crops) == len(BOXES) == 8
+    for corners, got in zip(BOXES, crops):
         want = books.straighten(rgb, corners)
         assert got.shape == want.shape, (corners, got.shape, want.shape)
         diff = np.abs(got.astype(int) - want.astype(int))
