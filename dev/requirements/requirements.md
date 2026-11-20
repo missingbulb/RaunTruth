@@ -1495,7 +1495,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-20 (#381). Unchecked at first, and kept on this device only, since how much memory a
   computer can spare is the computer's: Python, once started by a study's run, stays loaded, and every later run
   starts at once on the image it already holds. Checked, the page shuts Python down as soon as a run ends, with its
-  answer or an error, and the memory it held is freed (about 540 MB after a NoR Find, measured 2026-11-20 in
+  answer or an error, and at once when it is checked with Python idle; the memory it held is freed (about 540 MB after a NoR Find, measured 2026-11-20 in
   Chromium on Linux); the next run starts Python again from the files kept on this device and hands it the image's
   file again, about 9 s more on that measure. Nothing else the page does waits on Python, since only a study's run
   asks it anything (#1059): Shelves' reading of the titles, its tagging and its engines are the page's own and

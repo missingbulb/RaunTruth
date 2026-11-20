@@ -324,17 +324,18 @@ try {
   const hidden = await live.textContent("#fx-result");
   if (hidden !== said) problems.push("with its channel hidden the real worker answered " + hidden);
   if (await live.evaluate(() => [window.__workers, window.__held.length].join()) !== "1,1") problems.push("a second Count started Python or handed it the file again");
-  // Unload Python after each run (req/shell/resources-dialog/unload-python): Python shut down as each Count ends, and
-  // started again, handed the file again, by the next, which answers as before
+  // Unload Python after each run (req/shell/resources-dialog/unload-python): Python, idle, shut down as soon as it is
+  // checked; then started again by each Count, handed the file again, answering as before, and shut down as it ends
   if (await live.evaluate(() => window.__ended) !== 0) problems.push("Python was shut down with Unload Python after each run off");
   await live.evaluate(() => { const c = document.querySelector("#unload-python"); c.checked = true; c.dispatchEvent(new Event("change")); });
+  if (await live.evaluate(() => [window.__workers, window.__ended].join()) !== "1,1") problems.push("checked with Python idle, Unload Python after each run did not shut it down at once");
   for (let k = 1; k <= 2; k++) {
     await live.evaluate(() => { document.querySelector("#fx-result").textContent = ""; document.querySelector("#fx-count").click(); });
     await live.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
     const again = await live.textContent("#fx-result");
-    await live.waitForFunction((k) => window.__ended === k, k, { timeout: 5000 }).catch(() => {});
+    await orMissed(live.waitForFunction((n) => window.__ended === n, 1 + k, { timeout: 5000 }));
     const seen = await live.evaluate(() => [window.__workers, window.__ended, window.__held.length].join());
-    if (again !== said || seen !== `${k},${k},${k}`)
+    if (again !== said || seen !== `${1 + k},${1 + k},${1 + k}`)
       problems.push(`with Unload Python after each run, Count ${k} answered ${again}, workers started, shut down and handed the file: ${seen}`);
   }
 } catch (e) {

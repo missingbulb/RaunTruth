@@ -42,6 +42,11 @@ WebAssembly memory never shrinks. Whatever a step allocates at its peak stays wi
 closes, so the transient arrays of a detect cost as much as kept ones, and switching finders keeps
 the largest peak seen so far.
 
+Shutting the worker down gives it all back: with "Unload Python after each run" checked in the
+resources dialog's CPU tab (2026-11-20, #381), the page does that as each run ends. Measured then on
+the reference slide with traffic light: about 470 MB for the whole browser after each Find instead of
+about 945 MB, every Find about 13 s instead of 3.5 s after the first.
+
 ## Options that keep the output identical
 
 1. **Install lazily** (measured; the page does this since 2026-09-29). Unpack only the wheels the finders import (numpy, scipy,
