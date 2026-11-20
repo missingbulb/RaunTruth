@@ -44,7 +44,8 @@ async function session(left) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const who = google.signedIn({ email: "tester@example.com", name: "Tester", scopes: SCOPES, token: OLD, until: Date.now() + left });
   const calls = drive.calls.length, asks = google.asked.length;
-  const reads = () => drive.calls.slice(calls).filter((c) => c.kind === "list" && c.parent === PRIVATE).map((c) => c.token);
+  const listings = () => drive.calls.slice(calls).filter((c) => c.kind === "list" && c.parent === PRIVATE);
+  const reads = () => listings().map((c) => c.token);
   const asked = () => google.asked.slice(asks);
   await ctx.addInitScript(({ who, folder }) => {
     delete Navigator.prototype.serviceWorker;
@@ -63,7 +64,7 @@ async function session(left) {
   await page.goto(origin + "/web/viewer");
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   page.asked = asked;
-  return { ctx, page, reads };
+  return { ctx, page, reads, listings };
 }
 // what the test's control read once clicked, and what Google's window was asked meanwhile
 async function click(page) {
@@ -74,9 +75,11 @@ async function click(page) {
 }
 
 {
-  const { ctx, page, reads } = await session(-3600e3);
+  const { ctx, page, reads, listings } = await session(-3600e3);
   const { got, asked } = await click(page);
   check(got === "private.png", "with the token run out, one click on a control that reads Drive reads it", got);
+  // req/shell/drive/credentials, of the page's own sign-in
+  check(listings().length === 1 && listings()[0].key === null, "as the user alone, never with the site's API key", listings().map((c) => c.key));
   check(asked.length === 1 && asked[0].prompt === "" && asked[0].login_hint === "tester@example.com", "and asks Google once, silently, for the same user", asked);
   check(reads().length === 1 && reads()[0] === NEW, "and the read carries the renewed token", reads());
   await ctx.close();

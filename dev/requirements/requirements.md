@@ -415,7 +415,7 @@ nobody has decided: what the page does there is not a requirement yet.
   to the user's Drive (`drive.readonly`) along with the rest (`req/shell/account/sign-in`); a token from before
   that, lacking it, is renewed on the next click on a Drive control. `drive.readonly` is a restricted scope: until
   Google verifies the site, Google shows an "unverified app" screen on signing in and lets in at most 100 new users
-  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_credentials_page.py`.
+  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_reads.py`, and, of the page's own sign-in, `web-tests/test_drive_renewal_page.py`.
   </details>
 
 - `req/shell/drive/dialog` Google Drive: a study browses its own folders, the Image Viewer takes a pasted link; open on Open, double click or Enter.
@@ -547,7 +547,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Open, the list, its thumbnails and badges all wait. The wait is kept in the browser, so reloading
   the page does not end it. An image kept on this device (`req/shell/drive/kept-images`) still opens, from the device. When
   the countdown ends, the notice goes and the dialog lists its link again. Test:
-  `web-tests/test_drive_throttle_page.py`.
+  `web-tests/test_drive_throttle_page.py`, and, of telling throttling from another failure, `web-tests/test_drive_reads.py`.
   </details>
 
 - `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.

@@ -27,8 +27,10 @@ const fakes = new WeakMap();
 export const signIn = (ctx) => fakes.get(ctx);
 
 // whose a live token is, {email, scopes}, or null: for the Drive fake
-export const holder = (ctx, token) => {
-  const t = fakes.get(ctx)?.tokens.get(token);
+export const holder = (ctx, token) => holderIn(fakes.get(ctx), token);
+// the same, of a sign-in itself
+export const holderIn = (google, token) => {
+  const t = google?.tokens.get(token);
   return t && !t.revoked && t.until > Date.now() ? t : null;
 };
 
@@ -38,8 +40,10 @@ export const json = (route, status, body, headers = {}) =>
   route.fulfill({ status, headers: { ...CORS, ...headers }, contentType: "application/json", body: JSON.stringify(body) });
 
 // a multipart body's parts: the metadata and the file's bytes
-export function multipart(req) {
-  const body = req.postDataBuffer(), boundary = "--" + req.headers()["content-type"].match(/boundary=(.+)$/)[1];
+export const multipart = (req) => parts(req.postDataBuffer(), req.headers()["content-type"]);
+// the same, of a body's bytes and its content type
+export function parts(body, contentType) {
+  const boundary = "--" + contentType.match(/boundary=(.+)$/)[1];
   const parts = [];
   for (let at = body.indexOf(boundary); at >= 0; ) {
     const end = body.indexOf(boundary, at + boundary.length);
