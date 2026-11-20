@@ -16,7 +16,6 @@ from collections import deque
 
 import numpy as np
 from scipy import ndimage as ndi
-from scipy.stats import theilslopes
 
 import vessel_model as vm
 
@@ -122,6 +121,7 @@ def profile_radius(flat, xy, rad):
 def taper(flat, xy, rad, end_reach=(0.0, 0.0)):
     """Fit radius (px) = r_a + slope * arc length over the measured profile widths, leaving out the
     stretches inside each end's junction. Returns r_a, r_b, and whether the taper is known."""
+    from scipy.stats import theilslopes
     s = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(xy, axis=0), axis=1))])
     L = s[-1]
     meas = profile_radius(flat, xy, rad)
