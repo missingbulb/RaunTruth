@@ -24,13 +24,12 @@ nobody has decided: what the page does there is not a requirement yet.
   study's folders (`req/shell/data/drive-access`, the ground-truth setup, the Tagger's Approve…), first open the
   guide: numbered steps, each with a screenshot of Google's screen and what to click framed. Signing in: choose the
   account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (Drive
-  among them) and Continue. Approving folders: the same unverified-app steps and the per-file Drive box, unless
-  that permission was given already, then Google's picker: tick the study's folders and press Select. The guide's
+  among them) and Continue. Approving the site: the same unverified-app steps and the per-file Drive box. The guide's
   Open Google's window asks Google in that click; the guide stays, saying it waits for Google, until Google
-  answers, then closes; its Cancel asks Google nothing. Over the picker, which opens in the page, the guide steps
-  aside to the page's left edge, under the picker. A renewal Google answers by itself shows no guide. The
+  answers, then closes; its Cancel asks Google nothing. A renewal Google answers by itself shows no guide. The
   screenshots are of other apps' screens on Google, published on help pages (owner, 2026-11-17, the source under
-  each), and served from the site; the picker's step is drawn. Test: `web-tests/test_welcome_page.py`,
+  each), and served from the site. Changed by the owner on 2026-11-20: Google's picker is gone
+  (`req/shell/data/drive-access`), and its step with it. Test: `web-tests/test_welcome_page.py`,
   `web-tests/test_data_mode_page.py`.
   </details>
 
@@ -213,17 +212,18 @@ nobody has decided: what the page does there is not a requirement yet.
   Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
 
-- `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
+- `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site add files to Drive for them, and sees which folders it may write.
   <details>
 
-  Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), the tree's head
-  offers to approve the folders the site lacks access to, and its click asks for Google's
-  per-file permission (`drive.file`) and then Google's own picker showing just the study's folders and
-  their subfolders, to approve all or some. The page then knows, for each folder: not approved for this
-  site; approved but view-only in Drive; or writable; a folder added since, or one left out, is offered
-  again. Changed by the owner on 2026-11-03: the page asks nowhere else, and no bar over the image asks
-  for the folders. The page only creates files and changes or trashes the ones it created; it never changes
-  a file anyone else made. Test: `web-tests/test_data_mode_page.py`.
+  Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), while the sign-in
+  lacks Google's per-file permission (`drive.file`), the tree's head offers Approve this site…, and its click
+  asks Google for it. The page then knows, for each folder: not approved (the permission is missing, so every
+  folder is); view-only in Drive; or writable, as Drive's sharing lets the user add files there. Changed by the
+  owner on 2026-11-03: the page asks nowhere else, and no bar over the image asks for the folders. The page
+  only creates files and changes or trashes the ones it created; it never changes a file anyone else made.
+  Changed by the owner on 2026-11-20: no Google picker, and no folder approved one by one. Real Drive lets the
+  per-file permission create files in any folder the user may add to, picked or not, and a pick gave the site
+  nothing it used (missingbulb/RaunTruth#1042). Test: `web-tests/test_data_mode_page.py`.
   </details>
 
 - `req/shell/data/folder` A folder chosen shows its images as a grid or a list, and the left bar sums it up.
@@ -783,8 +783,7 @@ nobody has decided: what the page does there is not a requirement yet.
   ground truth. It asks whether submissions need review: yes makes `GT curated` and `GT submissions` in the
   root, no makes one `GT` for both. It shares the curated folder with anyone with the link to view, then
   writes `rauntruth-study.json` in the root naming the data folder and the ground-truth folders by id, who
-  set it up and when. It asks first for the page's per-file permission and Google's picker on the root, if
-  not granted. Run again, it makes only what is missing and rewrites the file; it never makes a second
+  set it up and when. It asks first for the page's per-file permission, if not granted. Run again, it makes only what is missing and rewrites the file; it never makes a second
   folder of a name. Google's own words show when it refuses. Changed by the owner on 2026-11-07: it sits
   at the top of Data Management's column, highlighted while the root has no ground-truth folders; choosing
   an answer closes the dialog once the folders are made; once the settings file names the folders it is no
@@ -838,8 +837,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-05. At the top of the Ground Truth Tasks box, a line says whether this tagger
   may write to the submissions folder when they may not: Not approved, with a button that asks Google for
-  the page's per-file permission and opens its picker on the submissions folder (as Data Management does,
-  `req/shell/data/drive-access`); or View only, telling them to ask the study's owner for edit access. It
+  the page's per-file permission (as Data Management does, `req/shell/data/drive-access`); or View only, telling them to ask the study's owner for edit access. It
   is checked before any work, not first found at submit. Changed by the owner on 2026-11-07: a tagger who may
   write is told nothing, the line taking no room. Test: `web-tests/test_gt_drive_page.py`.
   </details>
