@@ -81,10 +81,10 @@ await rest();
 // near the window's corner it opens wholly inside the window
 await page.evaluate(() => { shellForTests.viewer.setZoom(16); $("#scroller").scrollTo({ left: 0, top: 0, behavior: "instant" }); });
 await rest();
-const corner = await page.evaluate(() => { const v = $("#scroller").getBoundingClientRect(); return [v.right - 3, v.bottom - 3]; });
+const corner = await page.evaluate(() => { const sc = $("#scroller"), v = sc.getBoundingClientRect(); return [v.left + sc.clientWidth - 20, v.top + sc.clientHeight - 20]; });
 await page.mouse.click(...corner, { button: "right" });
 m = await menu();
-check(m?.shown && m.right <= 900 && m.bottom <= 640, "near the window's corner it opens inside the window", m);
+check(m?.shown && m.right <= 900 && m.bottom <= 640 && (m.left < corner[0] || m.top < corner[1]), "near the window's corner it opens inside the window", [m, corner]);
 await page.keyboard.press("Escape");
 
 // the page's own glide, under way when the right click lands, leaves the menu open, and its item acts on the point clicked
