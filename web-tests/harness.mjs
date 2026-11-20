@@ -21,12 +21,18 @@ import { signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studiesIn } from "./fakes/studies.mjs";
 
-// Playwright, installed beside the tests or globally: a run without it cannot start, and says so (exit 2)
+// Playwright, installed beside the tests or globally: a run without it cannot start, and says so (exit 2). The global
+// folder is looked for beside the Node running this before npm is asked for it: asking starts a process, in every test
 export const pw = (() => {
   const require = createRequire(import.meta.url);
-  try { return require("playwright"); } catch {
-    try { return require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-  }
+  const places = [
+    () => "playwright",
+    () => path.resolve(process.execPath, "../../lib/node_modules/playwright"),
+    () => path.join(execSync("npm root -g").toString().trim(), "playwright"),
+  ];
+  for (const place of places) try { return require(place()); } catch { /* not there: the next place */ }
+  console.error("no playwright: npm i -g playwright");
+  process.exit(2);
 })();
 
 const unexpected = [];
