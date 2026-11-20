@@ -154,6 +154,15 @@ async function markAndVote(page) {
   const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
   await page.click("#gt-start");
   await rest();
+  // the page's own glide, under way when the right click lands, leaves the menu open; the user's wheel closes it
+  await page.evaluate(() => { $("#scroller").scrollTo({ left: 0, top: 0, behavior: "instant" }); shellForTests.viewer.focus(st.W, st.H); });
+  const gliding = await middle(page);
+  await page.mouse.click(gliding.sx, gliding.sy, { button: "right" });
+  await rest();
+  await check(await page.isVisible("#ctx"), "a right click while the page glides the view keeps its menu open once the view rests");
+  await page.mouse.wheel(0, 40);
+  await page.waitForFunction(() => document.querySelector("#ctx").hidden);
+  await check(!(await page.isVisible("#ctx")), "the user's wheel over the image closes it");
   await page.evaluate((w) => { shellForTests.viewer.setZoom(w.zoom); $("#scroller").scrollTo({ left: w.x, top: w.y, behavior: "instant" }); }, was);
   await rest();
   const m = await middle(page);
