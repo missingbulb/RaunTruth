@@ -2,7 +2,7 @@
 // study.json names (web/python_files.js, as the worker picks them): Python opens a photo, and each version's one run
 // (Find books) answers with its books and their titles, every engine it asks for answered by the page's own services
 // (web/reading.js) on stand-in engines: a text finder that finds no text, a Tesseract that reads "Title"; then the
-// tagger's straightening and the labelling of its readers' text, stages on the photo.
+// labelling of the tagger's readers' text, a stage on the photo.
 // Exits 1 on a wrong answer, 2 when it cannot run (no pyodide, or Pyodide's packages cannot be downloaded).
 //   node studies/shelves/tests/find_bridge_driver.mjs PHOTO
 import { createRequire } from "node:module";
@@ -72,8 +72,6 @@ else {
       problems.push(`${args.algorithm}: the text finder once over the photo where it reads text, then once per book at each turn: ${JSON.stringify(asked)}`);
     else console.log(`${name}, ${JSON.stringify(args)}: ${got.length} books, asked ${JSON.stringify(asked)}`);
     if (got?.length && !args.reader) {
-      const s = (await ask({ type: "call", action: "straighten", args: { corners: got.map((b) => b.corners) }, echo: 2 })).find((m) => m.type === "result");
-      if (s?.meta?.crops?.length !== got.length || s.meta.crops.some((c) => c.shape[2] !== 4)) problems.push(`straighten: ${JSON.stringify(s?.meta)?.slice(0, 200)}`);
       // the tagger's readers' text read into fields by the same Python (req/shelves/read/fields)
       const l = (await ask({ type: "call", action: "label", args: { texts: ["פרנק הרברט / חולית", ""], library_seen: false }, echo: 3 })).find((m) => m.type === "result");
       const [one, none] = l?.meta?.books ?? [];

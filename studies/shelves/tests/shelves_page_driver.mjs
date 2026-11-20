@@ -1,6 +1,5 @@
 // Drives the Bookshelf Reader's page in headless Chromium against stand-ins: a worker whose one run finds three books
-// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and
-// straightens each into a crop as big as its box for the tagger's readers, and a Tesseract that reads each crop as
+// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and a Tesseract that reads each crop as
 // "Title <w>x<h>", surest when the crop is wider than tall. Checks req/shelves/books/find (the books drawn, their
 // titles read in the same run), req/shelves/read/readers (each read at the turn that reads across, the reader kept,
 // Read titles reading every book again), req/shelves/matcher/export (the matcher's file),
@@ -79,12 +78,6 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call" && m.action === "label") {
     const books = m.args.texts.map((t) => { const i = t.indexOf(" / "); return { fields: i < 0 ? (t ? { title: t } : {}) : { author: t.slice(0, i), title: t.slice(i + 3) }, regions: {} }; });
     postMessage({ type: "result", action: "label", meta: { books }, bytes: null, echo: m.echo });
-  }
-  else if (m.type === "call" && m.action === "straighten") {
-    const sizes = m.args.corners.map(size), bytes = new Uint8Array(sizes.reduce((a, [w, h]) => a + w * h * 4, 0)).fill(200);
-    let at = 0;
-    const crops = sizes.map(([w, h]) => { const c = array(w * h * 4, "uint8", [h, w, 4]); c.$bytes[0] = at; at += w * h * 4; return c; });
-    postMessage({ type: "result", action: "straighten", meta: { crops }, bytes, echo: m.echo }, [bytes.buffer]);
   }
 };`;
 const { origin, server } = await serveSite({
@@ -505,7 +498,8 @@ try {
   await page.mouse.up();
   const after = await scrolled();
   check(before[0] > 0 && after.join() === before.join(), "dragging a corner moves the corner alone, never the photo under it", { before, after });
-  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 300x180");
+  // the box as dropped, its top edge 300 and its right side 216 long: straightened to their means with the other two
+  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x198");
   check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
     "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");

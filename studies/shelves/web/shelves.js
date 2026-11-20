@@ -4,6 +4,7 @@
 import { engineSet, reader, services, rotate, READERS, MODELS, WORDS } from "./reading.js";
 import { clockwise, shape, inPlace, nextAdded, blank, FIELDS } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
+import { homography, straighten as cut } from "./straighten.js";
 
 const CDN = "https://cdn.jsdelivr.net/npm/";
 const TESSERACT = CDN + "tesseract.js@7.0.0/dist/", CORE = CDN + "tesseract.js-core@7.0.0", ORT = CDN + "onnxruntime-web@1.31.1/dist/";
@@ -43,21 +44,6 @@ function turned([x0, y0, x1, y1], k) {
   return [Math.min(pts[0][0], pts[1][0]), Math.min(pts[0][1], pts[1][1]), Math.max(pts[0][0], pts[1][0]), Math.max(pts[0][1], pts[1][1])];
 }
 
-// the homography taking four points onto four others, as a 3×3 matrix by rows
-function homography(from, to) {
-  const A = [];
-  from.forEach(([x, y], i) => {
-    const [u, v] = to[i];
-    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u], [0, 0, 0, x, y, 1, -v * x, -v * y, v]);
-  });
-  for (let c = 0; c < 8; c++) {
-    let r = c;
-    for (let k = c + 1; k < 8; k++) if (Math.abs(A[k][c]) > Math.abs(A[r][c])) r = k;
-    [A[c], A[r]] = [A[r], A[c]];
-    for (let k = 0; k < 8; k++) if (k !== c) { const f = A[k][c] / A[c][c]; for (let j = c; j < 9; j++) A[k][j] -= f * A[c][j]; }
-  }
-  return [...A.map((row, i) => row[8] / A[i][i]), 1];
-}
 // the photo as the viewer shows it (a canvas of the image's size), through a book's corners into an upright picture
 // as wide as its top and bottom edges and as tall as its sides, on average, at most PICTURE long; black off the photo
 export function picture(photo, corners) {
@@ -229,17 +215,13 @@ export function mount(shell) {
     python = run.catch(() => {});
     return run;
   }
-  // the crops the tagger's readers read, straightened by the study's Python from the photo's file, one request at a time
+  // the queue of the study's Python requests, one at a time
   let python = Promise.resolve();
-  function straighten(list) {
-    const run = python.then(async () => {
-      const done = shell.until("result:straighten");
-      shell.call("straighten", { corners: list.map((b) => b.corners) });
-      const { meta: { crops }, bytes } = await done;
-      return crops.map(({ $bytes: [at, n], shape: [height, width] }) => ({ width, height, data: new Uint8ClampedArray(bytes.buffer, bytes.byteOffset + at, n) }));
-    });
-    python = run.catch(() => {});
-    return run;
+  // the crops the tagger's readers read, straightened in the page from the photo's pixels as the shell decoded them
+  // (req/shell/python/file-bytes)
+  async function straighten(list) {
+    const im = shell.page.get("image");
+    return list.map((b) => cut(im, b.corners));
   }
   // the run's answer: its books shown, and recorded in the log as the run, the algorithm's whole output and not the
   // tagger's work
