@@ -54,9 +54,9 @@ const file = () => (settings() ? JSON.parse(settings().body) : null);
 const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
 let failed = false;
 // what Google holds changes only as a request reaches it: a wait on it looks again at each one
-const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
+const until = async (fn, ms = STEP) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
 // a page showing something, within ms
-const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
+const shows = (page, fn, arg, ms = STEP) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that
 // wants it: there once that action returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
