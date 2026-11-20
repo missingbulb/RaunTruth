@@ -5,6 +5,7 @@ import { engineSet, reader, services, rotate, READERS, MODELS, WORDS } from "./r
 import { clockwise, shape, inPlace, nextAdded, blank, FIELDS } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
 import { homography, straighten as cut } from "./straighten.js";
+import { label as fieldsOf } from "./fields.js";
 
 const CDN = "https://cdn.jsdelivr.net/npm/";
 const TESSERACT = CDN + "tesseract.js@7.0.0/dist/", CORE = CDN + "tesseract.js-core@7.0.0", ORT = CDN + "onnxruntime-web@1.31.1/dist/";
@@ -170,7 +171,7 @@ export function mount(shell) {
     shell.gt.legacy(oldDraft(shell.readJSON, { name: st.fileName, sha: st.sha, image: st.fileName, W: st.W, H: st.H, reader: choice.value }));
   }
 
-  // ---------- Python: the algorithm in one go, and straightening for the tagger's readers ----------
+  // ---------- Python: the algorithm in one go ----------
   // why the last Find ran without the text finder, or null when it ran with it; and how far the run has come, for the
   // busy line: "text" while the boxes are being found, "read" once the titles are being read
   let textless = null, phase = null, lines = 0;
@@ -193,30 +194,18 @@ export function mount(shell) {
     await shell.algorithm.ready;
     const algorithm = shell.algorithm.key;
     textless = null; phase = "text"; lines = 0;
-    const run = python.then(async () => {
-      const done = shell.until("result:run");
-      shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
-      await done;
-    });
-    python = run.catch(() => {});
-    try { await run; } finally { phase = null; }
+    const done = shell.until("result:run");
+    shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
+    try { await done; } finally { phase = null; }
   };
   $("#bs-read").onclick = () => readAgain();
   shell.slow($("#bs-find")); shell.slow($("#bs-read"));
 
-  // the texts the tagger's readers read, read into fields by the study's Python (req/shelves/read/fields), on their text
-  // alone; a library's mark on any book of the photo makes one likelier on the others
-  function label(texts) {
-    const run = python.then(async () => {
-      const done = shell.until("result:label");
-      shell.call("label", { texts, library_seen: books.some((b) => b.fields?.library) });
-      return (await done).meta.books;
-    });
-    python = run.catch(() => {});
-    return run;
+  // the texts the tagger's readers read, read into fields in the page as the algorithm reads a block on its text
+  // alone (req/shelves/read/fields)
+  async function label(texts) {
+    return texts.map(fieldsOf);
   }
-  // the queue of the study's Python requests, one at a time
-  let python = Promise.resolve();
   // the crops the tagger's readers read, straightened in the page from the photo's pixels as the shell decoded them
   // (req/shell/python/file-bytes)
   async function straighten(list) {

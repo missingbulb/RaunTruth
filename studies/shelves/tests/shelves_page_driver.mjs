@@ -73,12 +73,6 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call" && m.action === "run")
     run(m).then((meta) => postMessage({ type: "result", action: "run", meta, bytes: null, echo: m.echo }),
       (e) => postMessage({ type: "error", text: String(e.message || e) }));
-  // the texts the page's readers read, read into fields as the study's Python reads them, but for this stand-in at a
-  // slash alone: "author / title"
-  else if (m.type === "call" && m.action === "label") {
-    const books = m.args.texts.map((t) => { const i = t.indexOf(" / "); return { fields: i < 0 ? (t ? { title: t } : {}) : { author: t.slice(0, i), title: t.slice(i + 3) }, regions: {} }; });
-    postMessage({ type: "result", action: "label", meta: { books }, bytes: null, echo: m.echo });
-  }
 };`;
 const { origin, server } = await serveSite({
   "/web/worker.js": WORKER,
