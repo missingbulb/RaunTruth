@@ -126,6 +126,8 @@ const SILENT = { firefox: { refused: true, failed: true }, webkit: { failed: tru
 // the engine's names for the failures a test or a fake makes, as Chromium names them
 const NET = {
   NS_ERROR_FAILURE: "ERR_FAILED", NS_ERROR_OFFLINE: "ERR_INTERNET_DISCONNECTED",
+  // a request whose preflight failed, as Firefox names it
+  NS_ERROR_DOM_BAD_URI: "ERR_FAILED",
   "Blocked by Web Inspector": "ERR_FAILED", "WebKit encountered an internal error": "ERR_INTERNET_DISCONNECTED",
 };
 // a request the page itself dropped by leaving, which no engine's console reports
@@ -135,7 +137,7 @@ const LEFT = /^NS_BINDING_ABORTED$|cancell?ed/i;
 const byWorker = (q) => /\.m?js$/.test(q.headers().referer?.replace(/[?#].*$/, "") || "");
 // the engine's own wording of a failed request, which the harness has said above as a failed load
 if (ENGINE === "firefox") declared.add({ pattern: /^error: \[JavaScript Error: "Cross-Origin Request Blocked: .*\(Reason: CORS request did not succeed\)/, seen: 0 });
-if (ENGINE === "webkit") declared.add({ pattern: /^error: Failed to load resource: WebKit encountered an internal error/, seen: 0 });
+if (ENGINE === "webkit") declared.add({ pattern: /^error: Failed to load resource: (WebKit encountered an internal error|Connection terminated unexpectedly)/, seen: 0 });
 // the addresses a worker asked for: WebKit's console says a worker's refused load as it says the page's
 const workerAsked = new Set();
 const ofWorker = (m) => ENGINE === "webkit" && /^Failed to load resource/.test(m.text()) && workerAsked.has(m.location()?.url);
