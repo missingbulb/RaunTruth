@@ -1,5 +1,5 @@
 // Times each finder on the deployed page in headless Chromium, the way a user runs it: the page's
-// own worker.js (Pyodide) opens the reference slide, detects, and runs the first refilter.
+// own worker.js (Pyodide) opens the reference slide and finds its NoRs.
 //   node bench_live.mjs URL [FINDER ...]      (needs Playwright; the slide in data/raw)
 // Each finder gets a fresh browser, so the peak memory it reports is that finder's own: the largest
 // Chromium process's resident set, sampled from /proc (Linux) every 100 ms. The page's app.js is
@@ -79,12 +79,11 @@ for (const finder of finders) {
     const open = (performance.now() - t) / 1000;
     t = performance.now(); w.postMessage({ type: "call", action: "run", args: { algorithm: finder } }); const d = await next("run");
     const detect = (performance.now() - t) / 1000;
-    t = performance.now(); w.postMessage({ type: "call", action: "refilter", args: { spec: { values: {}, off: [] } }, echo: 1 }); const f = await next("refilter");
-    const refilter = (performance.now() - t) / 1000;
-    return { boot, open, detect, refilter, cands: (typeof d.meta === "string" ? JSON.parse(d.meta) : d.meta).cands.length, passes: f.fails.filter((x) => x === null).length };
+    const cands = (typeof d.meta === "string" ? JSON.parse(d.meta) : d.meta).cands;
+    return { boot, open, detect, cands: cands.length, passes: cands.filter((c) => c.fail === null).length };
   }, finder);
   clearInterval(poll);
   await browser.close();
-  console.log(`${finder.padEnd(6)} boot ${r.boot.toFixed(1)}s  open ${r.open.toFixed(1)}s  detect ${r.detect.toFixed(1)}s  refilter ${r.refilter.toFixed(2)}s`
+  console.log(`${finder.padEnd(6)} boot ${r.boot.toFixed(1)}s  open ${r.open.toFixed(1)}s  detect ${r.detect.toFixed(1)}s`
     + ` | peak RSS largest process ${peak.max.toFixed(0)} MB, all Chromium ${peak.sum.toFixed(0)} MB | ${r.passes}/${r.cands} pass`);
 }

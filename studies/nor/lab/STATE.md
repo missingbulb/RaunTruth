@@ -34,7 +34,7 @@ _Last updated 2026-11-18._
   owner makes them). `lab/fetch.py` takes each image's newest curated file, the first time, into
   `data/raw/truth/`, never git, and stops when a folder lists 50 entries; `lab/run.py` scores every finder on
   every image with ground truth. None has arrived yet.
-- **Precision and recall per finder and filter preset** (R11, 2026-10-06; the default every filter off since 2026-11-20, as the page runs it):
+- **Precision and recall per finder and filter preset** (R11, 2026-10-06; the default one filter on, not stick-like, since 2026-11-20, as the page runs it; ledger §7):
   `../web/algorithm_metrics.json`, written by `python3 lab/run.py nor --write`, naming
   the data it was measured on: each image's and ground-truth file's SHA-256 and the dataset SHA. Quote
   that dataset SHA with any precision or recall.

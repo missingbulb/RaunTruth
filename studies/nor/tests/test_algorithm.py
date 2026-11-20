@@ -1,4 +1,4 @@
-"""3 — the study's algorithm: detect, then filter on the stored measurements; the page runs it with every filter off."""
+"""3 — the study's algorithm: detect, then filter on the stored measurements; the page runs it with one filter on."""
 import json
 import os
 import sys
@@ -47,13 +47,17 @@ def found(tmp_path_factory):
     return image, nor_finder.VERSIONS['tl'](image)
 
 
-def test_the_answer_is_the_finder_s_own_candidates_with_every_filter_off(found):
-    # the page shows the NoRs the default answer passes, and it runs with recall first (req/nor/find/nors-only)
+def test_the_answer_keeps_only_the_stick_like_filter_on(found):
+    # the page shows the NoRs the default answer passes: recall first, with the one filter that costs it almost nothing
+    # (req/nor/find/nors-only)
     image, a = found
     keys = [f['key'] for f in controls.filters(a.P)]
-    assert [r['fail'] for r in a['cands']] == nor_finder.refilter(image, a, {'off': keys})
-    assert [r['fail'] for r in a['cands']] != nor_finder.refilter(image, a, {'values': controls.own_values('tl')})
+    assert [r['fail'] for r in a['cands']] == nor_finder.refilter(image, a, {'off': [k for k in keys if k != 'not stick-like']})
     assert a['segments'].nbytes == sum(r['h'] * r['w'] for r in a['cands'])
+    # every candidate made too short to be stick-like: the filter rejects each one the finder measured, and no other does
+    short = nor_finder.VERSIONS['tl'](image, min_aspect=1e9)
+    judged = [r['fail'] for r in short['cands'] if 'm' in r]
+    assert judged and set(judged) == {'not stick-like'}, judged
 
 
 def test_a_stricter_filter_only_removes(found):

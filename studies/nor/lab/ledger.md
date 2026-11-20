@@ -190,3 +190,30 @@ after one-pixel-per-NoR. Lab (`nor_lab.py cmp`): tl 47 / 7 → 47 / 4, P 0.87 �
 it also drops 22 unlabelled passes, several of them plausible faint NoRs. The page and the lab differ
 because the nucleus rule removes different passes before the floor takes its quantile. Revisit if:
 submitted ground truth on more images shows the floor's losses, or an image with no false passes.
+
+## 7. The page's default: one filter on (2026-11-20, Ariel: no filters on the page, recall first, "not at the cost of 0.4 precision")
+
+What was wrong: the page showed filters nobody used while tagging, and its default (Balanced, every filter on) cost
+recall the tagger then pays for by searching for the missed NoRs by hand. What changed: each version's default is
+its filters off but `controls.DEFAULT_ON`, which is "not stick-like" alone at the finder's own values; the presets
+and `unfiltered` are the lab's settings beside it. Chosen from on/off sets alone, at the finder's own values, so
+nothing is fitted to the one image beyond which filter to keep. Dataset `b3752a3f…` (1 image, marked in the lab,
+not by people), soft one-to-one counts:
+
+| finder | Balanced (old default) P / R | all off P / R | **not stick-like alone (new default)** P / R |
+|---|---|---|---|
+| tl | .87 / .64 | .72 / .86 | **.80 / .85** |
+| rf | .79 / .68 | .72 / .87 | **.74 / .87** |
+| fill | .87 / .61 | .74 / .86 | **.80 / .82** |
+| walk | .83 / .53 | .65 / .88 | **.65 / .88** |
+| blobs | .76 / .53 | .62 / .91 | **.63 / .88** |
+
+| id | attempt | result | verdict |
+|---|---|---|---|
+| D1 | Every filter off | tl P .72 R .86: a quarter of the NoRs shown false | **dropped** by Ariel: too much precision for the recall |
+| D2 | Each filter alone on (tl, rf, fill) | tl: not stick-like +.08 P for −.007 R; not in a line +.06 / −.05; faint for its image +.05 / −.04; shares a segment +.02 / −.11; the rest under +.04 P | not stick-like the clear one for tl and fill; rf gains most from not in a line (+.07 / +.00) |
+| D3 | not stick-like + not in a line | tl .81 / .81, rf .80 / .87, fill .82 / .81 | **not taken**: costs tl, the default finder, .04 recall for .01 precision |
+| D4 | + red impure, or + faint for its image, on top of D3 | tl .82 / .78 and .85 / .77 | **not taken**: recall falls under .8 |
+
+Revisit when ground truth on more images arrives: the D2 deltas rest on one image's 72 real NoRs and 10-24 false
+passes.

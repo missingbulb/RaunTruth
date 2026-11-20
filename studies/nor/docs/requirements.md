@@ -283,8 +283,8 @@ holds, for every finder the page offers, the precision and recall summed over ev
 (R10), run the way the page runs it, at two stages kept apart: the finder's own candidates before any
 filter, and what passes the filters after it at three filter presets (precise, balanced = the
 finder's own values, recalling). Changed by the owner on 2026-11-20: the page runs each finder with its filters off
-(the page's requirement `req/nor/find/nors-only`), so a version's default is its own candidates, and the three presets
-are the lab's settings beside it. The counts are soft and one-to-one ([`scoring.md`](scoring.md), switched on 2026-11-18; no number
+but "not stick-like" (the page's requirement `req/nor/find/nors-only`), and that is a version's default; the three
+presets and `unfiltered` (no filter at all) are the lab's settings beside it. The counts are soft and one-to-one ([`scoring.md`](scoring.md), switched on 2026-11-18; no number
 before that day compares with one after): a NoR found off its place or mismeasured is partly right, and an answer
 on ground the truth does not judge counts for nothing. A preset moves every filter the same share of the way towards a fixed strict or loose end
 (`algorithm/controls.py`), the same for every finder. `python3 lab/run.py nor --write` rewrites the file, and `tests/test_metrics.py` fails when it

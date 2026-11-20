@@ -1,5 +1,5 @@
 """The finders and each one's filters, read from nor3.CHECKS, with the filters' three presets: the lab's to tune (the
-page runs every finder with its filters off). A check added to nor3.CHECKS, with its parameters read through `p[...]`
+page runs every finder with them off but DEFAULT_ON). A check added to nor3.CHECKS, with its parameters read through `p[...]`
 or `p.get(...)`, becomes a filter by itself.
 """
 import ast
@@ -24,6 +24,9 @@ EXACT_REFILTER = {'tl', 'fill', 'walk', 'blobs'}
 # finders that take the blue mask themselves and apply it only after finding; every other finder sees no mask, so
 # nuclei are left to the 'in nucleus' filter
 OWN_BLUE = {'rf'}
+# the filters a version keeps on unless told otherwise, as the page runs it: recall first, with the one filter that
+# costs it almost none (lab/ledger.md §7)
+DEFAULT_ON = ('not stick-like',)
 # failures that come after the checks and have their own parameter (their defaults when a finder has none)
 NUCLEUS, SHARED, FAINT = 'in nucleus', 'shares a segment', nor3.FAINT
 POST = {NUCLEUS: ('nucleus_frac', 0.8), SHARED: ('max_shared', 0.3), FAINT: ('red_floor_q', 0.0)}

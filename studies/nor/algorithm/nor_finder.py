@@ -4,8 +4,8 @@
   VERSIONS[finder](image, values=None, off=None, damaged=(), **overrides)
                                      a finder proposes candidates and measures each one (with its parameters, plus
                                      overrides), and the filters judge them (at their own values, plus values, less
-                                     the filters named in off: every filter unless off is given, as the page runs
-                                     it); the pixels of the damaged areas (outlines in the image's pixels) are left
+                                     the filters named in off: all but controls.DEFAULT_ON unless off is given, as
+                                     the page runs it); the pixels of the damaged areas (outlines in the image's pixels) are left
                                      out of finding
 
 The page calls nothing but a version: its NoRs are the candidates an answer passes. The filters are the lab's to tune,
@@ -129,7 +129,7 @@ def version(finder):
     def run(image, values=None, off=None, damaged=(), **overrides):
         found = detect(image, finder, overrides, damaged)
         if off is None:
-            off = [f['key'] for f in controls.filters(found.P)]
+            off = [f['key'] for f in controls.filters(found.P) if f['key'] not in controls.DEFAULT_ON]
         for row, fail in zip(found['cands'], refilter(image, found, {'values': values or {}, 'off': off})):
             row['fail'] = fail
         return found
@@ -169,11 +169,13 @@ STAGES = {'verify': verify}
 # the image's planes a transform of the image may change, in the colours they are drawn: red, then green
 PLANES = ('nav', 'caspr')
 
-# each finder's default is every filter off, the candidates its own structural checks keep (two greens around a red);
-# it is scored beside its filters on at each preset
-SETTINGS = {f: {p: dict(values=controls.preset_values(f, p), off=[]) for p in controls.PRESETS} for f in FINDERS}
+# each finder's default is its filters off but controls.DEFAULT_ON; it is scored beside its filters on at each preset,
+# and with none on, the candidates its own structural checks keep (two greens around a red)
+SETTINGS = {f: dict({p: dict(values=controls.preset_values(f, p), off=[]) for p in controls.PRESETS},
+                    unfiltered=dict(off=[k['key'] for k in controls.filters(P)]))
+            for f, (_, P) in FINDERS.items()}
 
-NOTES = {f: 'with its filters off: every candidate of two greens around a red' for f in FINDERS}
+NOTES = {f: 'with one filter on, not stick-like' for f in FINDERS}
 
 SCORING = truth.SCORING
 

@@ -157,8 +157,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Set by the owner on 2026-11-20. The tagger goes over every NoR the algorithm proposes anyway and then marks the
   missed ones, so filters, finder settings and presets have no part in the workflow: the page shows none of them, and
   no rejected candidate or rejection reason. Python runs only to find the NoRs (Find Candidates). The finder runs with
-  its filters off, only its own structural checks kept (two greens around a red): while the study makes ground truth,
-  recall comes before precision, since a NoR missed costs the tagger a search and a false one a thumbs down. The
+  its filters off but one, "not stick-like": while the study makes ground truth, recall comes before precision, since
+  a NoR missed costs the tagger a search and a false one a thumbs down, but not at any price, and that filter buys
+  much of the precision back for almost no recall (changed by the owner on 2026-11-20, every filter off having cost
+  too much precision; [lab/ledger.md](lab/ledger.md) §7). The
   filters stay in the algorithm, the lab's to tune ([docs/requirements.md](docs/requirements.md) R11). Test:
   `studies/nor/tests/test_processing_box.py`, `studies/nor/tests/test_algorithm.py`.
   </details>
