@@ -681,6 +681,7 @@ async function keepPython() {
   // a study with no step to run never starts Python
   if (!manifest?.phases?.length || !("caches" in self)) return;
   const id = manifest.id, python = manifest.python;
+  delete st.unkept;
   try {
     const [lock, vendored] = await Promise.all([fetch(PYODIDE + "pyodide-lock.json", { priority: "low" }), fetch("vendor/wheels.json")].map(async (r) => (await r).json()));
     const urls = [...CORE, ...packagesOf(python, lock, vendored, new URL("vendor/", location.href).href).map((w) => w.url)];
@@ -691,10 +692,12 @@ async function keepPython() {
     if (st.notHere) { st.notHere = false; status("Ready. Load an image."); }
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
-    if (manifest?.id === id && !st.worker && offlineCopy.offline()) { st.notHere = true; status(NOT_HERE); }
+    if (manifest?.id === id && !st.worker) st.unkept = true;
+    if (st.unkept && offlineCopy.offline()) notHere();
     else console.warn("Python's files are not kept yet:", e);
   }
 }
+const notHere = () => { st.notHere = true; status(NOT_HERE); };
 // Python's thread, on the study the address names, in place of any before it
 function pythonWorker() {
   st.worker?.terminate();
@@ -2320,7 +2323,8 @@ addEventListener("popstate", () => swap());
 // the network back: a study whose Python could not load loads again, on a Python of its own, since a worker
 // keeps a module it failed to download failed; and the storage it then kept shows
 addEventListener(CONNECTION, (e) => {
-  if (!e.detail.online) return;
+  // the network gone: a file of Python's that failed before the page was told so failed for that, and the study says it
+  if (!e.detail.online) { if (st.unkept && !st.worker) notHere(); return; }
   offlineCopy.keepSite().then(diskBar, () => {});
   if (!st.worker) keepPython();
   if (!st.failed || st.ready || !st.worker || !manifest) return;
