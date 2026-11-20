@@ -54,7 +54,7 @@ async function session(left) {
     addEventListener("DOMContentLoaded", () => {
       const b = Object.assign(document.createElement("button"), { id: "test-read", textContent: "read" });
       b.style.cssText = "position:fixed;left:0;bottom:0;z-index:99999";
-      b.onclick = () => import("/web/drive.js").then(({ remote }) => remote.list(folder, ".png")).then((l) => (b.dataset.got = l.map((f) => f.name).join()), (e) => (b.dataset.got = "error: " + e.message));
+      b.onclick = () => import(location.origin + "/web/drive.js").then(({ remote }) => remote.list(folder, ".png")).then((l) => (b.dataset.got = l.map((f) => f.name).join()), (e) => (b.dataset.got = "error: " + e.message));
       document.body.append(b);
     });
   }, { who, folder: PRIVATE });
@@ -102,7 +102,7 @@ async function click(page) {
   const { ctx, page, reads } = await session(-3600e3);
   // a read once the user activation a test's evaluate itself carries (5 s) is over: no click behind it
   const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
-    .then(() => import("/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
+    .then(() => import(location.origin + "/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
   const asked = page.asked().length;
   check(/click again/.test(err) && asked === 0 && reads().length === 0, "a read with no click behind it opens nothing and says to click again", { err, asked, reads: reads() });
   google.answer = "closed";

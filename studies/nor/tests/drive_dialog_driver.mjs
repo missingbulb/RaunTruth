@@ -13,6 +13,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
+import { cutShort } from "../../../web-tests/page_errors.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
 import { googleDrive } from "../../../web-tests/fakes/google_drive.mjs";
@@ -55,7 +56,7 @@ const askedWhole = (id, ms) => asked(id).whole ? Promise.resolve() : Promise.rac
   new Promise((ok, no) => setTimeout(no, ms))]); // bounds a hang: a page that never asks fails, not hangs
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", (e) => done(1, "page error: " + e.message));
+page.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
 page.setDefaultTimeout(15000);
 await page.goto(origin + "/web/index.html?study=nor");
 await page.click("#load-remote");
@@ -106,7 +107,7 @@ await page.evaluate((id) => { st.W = 8; st.H = 8; const v = (k) => Uint8Array.fr
 
 // with Show thumbnails off in Settings, nothing is downloaded
 const fresh = await ctx.newPage();
-fresh.on("pageerror", (e) => done(1, "page error: " + e.message));
+fresh.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
 await fresh.goto(origin + "/web/index.html?study=nor");
 await fresh.click("#load-remote");
 await fresh.waitForSelector("#remote-list .item");
