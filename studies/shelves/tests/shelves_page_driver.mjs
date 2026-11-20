@@ -101,8 +101,12 @@ async function open(role, seed = {}, finder = {}) {
   }, [role, seed]);
   // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
   await ctx.addInitScript(() => {
-    const W = window.Worker; window.pyCalls = [];
-    window.Worker = class extends W { postMessage(m, t) { if (m?.type === "call") window.pyCalls.push(m.action); return super.postMessage(m, t); } };
+    const W = window.Worker; window.pyCalls = []; window.pyStarted = 0; window.pyEnded = 0;
+    window.Worker = class extends W {
+      constructor(u, o) { super(u, o); this.python = /worker\.js/.test(String(u)); if (this.python) window.pyStarted++; }
+      postMessage(m, t) { if (m?.type === "call") window.pyCalls.push(m.action); return super.postMessage(m, t); }
+      terminate() { if (this.python) window.pyEnded++; return super.terminate(); }
+    };
   });
   const page = await ctx.newPage();
   page.setDefaultTimeout(STEP);
@@ -213,6 +217,32 @@ try {
   });
   const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
+  await page.context().close();
+
+  // Unload Python after each run (req/shell/resources-dialog/unload-python): Python shut down once Find books has read
+  // the titles; Read titles, and a book flipped while tagging, then read on the page's own engines with no Python,
+  // and the next Find books starts it again
+  const python = (page) => page.evaluate(() => [pyStarted, pyEnded].join());
+  const findBooks = async (page, n) => { await page.click("#bs-find"); await page.waitForFunction((n) => $("#status").textContent.startsWith("Titles read") && pyEnded === n, n); };
+  page = await open("viewer", { ...KEPT, "nor-unload-python": "true" });
+  check(await page.evaluate(() => $("#unload-python").checked), "the setting kept shows checked in the CPU tab");
+  await findBooks(page, 1);
+  check(await python(page) === "1,1" && (await books(page)).length === 3, "Find books ends with Python shut down, its books drawn", await python(page));
+  const readBefore = await page.evaluate(() => tess.reads);
+  await page.evaluate(() => $("#bs-read").click());
+  await page.waitForFunction(() => $("#status").textContent === "Titles read again.");
+  check(await page.evaluate((n) => tess.reads - n, readBefore) === 6 && await python(page) === "1,1",
+    "with Python shut down, Read titles reads every book on the page's engines, starting no Python", await python(page));
+  await findBooks(page, 2);
+  check(await python(page) === "2,2" && (await books(page)).length === 3, "the next Find books starts Python again, and shuts it down once done", await python(page));
+  await page.context().close();
+  page = await open("tagger", { ...KEPT, "nor-unload-python": "true" });
+  await findBooks(page, 1);
+  await page.click("#gt-start");
+  const turned = await page.evaluate(() => tess.reads);
+  await page.click('.bs-item [data-do="flip"]');
+  await page.waitForFunction((n) => tess.reads > n && $("#status").textContent === "Book read again.", turned);
+  check(await python(page) === "1,1", "with Python shut down, a book flipped while tagging is read again, starting no Python", await python(page));
   await page.context().close();
 
   // the box's one tagging button: Start GT tagging, Stop tagging while tagging; Continue GT tagging is gone, a draft
