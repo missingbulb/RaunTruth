@@ -222,9 +222,12 @@ read for a title matcher; matching the titles is not part of it.
 
   Set by the owner on 2026-11-10:
   - The photo is never covered while a book is straightened and read again: the picture is drawn by the page
-    from the photo it shows, and follows a corner while it is dragged; the reading runs behind it, the study's
-    Python straightening the book from the photo's file (`req/shell/python/file-bytes`), and a later reading of
-    the same book replaces one still under way.
+    from the photo it shows, and follows a corner while it is dragged; the reading runs behind it, and a later
+    reading of the same book replaces one still under way. Set by the owner on 2026-11-20 (#1059): the book is
+    straightened for its reading in the page, from the photo's pixels as the shell decoded them, the same
+    straightening as the finder's (`books.straighten`, within a level per channel), asking Python for nothing
+    (`req/shell/python/file-bytes`). Test: `studies/shelves/tests/test_shelves_page.py`,
+    `studies/shelves/tests/test_straighten.py`.
   - A corner may be dragged past the photo's edge, for a book the camera cut off, so that every book keeps four
     corners; the picture is black where the box leaves the photo.
   - The picture is shown upright at the turn the reader read it at, and Flip (half a turn) and Turn 90° set it
