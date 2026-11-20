@@ -22,6 +22,7 @@ import { cutShort } from "./page_errors.mjs";
 import { pw, launch, googleOf, siteOf, check } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { frames } from "./page_frames.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -253,9 +254,22 @@ try {
   await b.page.keyboard.press("Escape");
   await b.page.mouse.click(700, 500);
 
+  // signing out while a save is on its way to Drive: its answer, coming after, keeps nothing of the user who left and
+  // says nothing (a change, and back, within the save's quiet: one save, of the setting as it stands)
+  let release, reached;
+  const held = new Promise((ok) => { release = ok; }), writing = new Promise((ok) => { reached = ok; });
+  google.hold = () => { reached(); return held; };
+  await b.page.click("#theme");
+  await b.page.click("#theme");
+  await Promise.race([writing, new Promise((ok) => setTimeout(ok, STEP))]); // bounds a hang: a save that never starts fails the checks below
+  const saved = b.page.waitForResponse((r) => /upload\/drive/.test(r.url()) && r.request().method() !== "GET", { timeout: STEP }).catch(() => null);
   await b.page.click("#user-menu summary");
   await b.page.click("#sign-out");
   await b.page.waitForFunction(() => document.querySelector("#sign-out").hidden);
+  release(); google.hold = () => null;
+  check(await saved, "a save on its way as the user signs out is answered after", null);
+  await frames(b.page);
+  check(await local(b.page, "nor-google-sign-in") === null, "and its answer keeps nothing of the user who left");
   check(await b.page.textContent("#who-where") === "On this device, not signed in" && await b.page.evaluate(() => document.querySelector("#user-menu summary .avatar").tagName === "svg"),
     "signing out shows the device's own avatar again");
   check(await local(b.page, "nor-theme") === "dark" && await local(b.page, "nor-google-sign-in") === null, "and keeps this device's settings, forgetting the user and the token");
