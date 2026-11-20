@@ -13,8 +13,7 @@ import * as fixture from "../studies/fixture/web/gt_actions.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { FILES, GT, approved, open, check, done } = drive;
-approved.add(GT.submissions);
+const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sha = createHash("sha256").update(png.bytes).digest("hex");
 const { tagger, reopen, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });

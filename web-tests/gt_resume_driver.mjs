@@ -10,8 +10,7 @@ import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { FILES, GT, approved, open, check, done } = drive;
-approved.add(GT.submissions);
+const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 const { asTagger, model, marks, counted, moved, ask, label } = kit({ drive, png });

@@ -47,9 +47,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT,
       bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
   }
-  // the folders the site was approved for, and those of them Drive lets the user only view
-  const approved = drive.approved, viewOnly = drive.viewOnly;
-  approved.add(ROOT);
+  // the folders Drive lets the user only view
+  const viewOnly = drive.viewOnly;
   // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
   const hidden = drive.hidden;
   // who Drive's sharing lets write to ROOT, which makes them its study manager (req/shell/data/roles)
@@ -158,5 +157,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, approved, viewOnly, sharedOut, thumbs, open, role, check, done, origin };
+  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, role, check, done, origin };
 }
