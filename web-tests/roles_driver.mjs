@@ -6,7 +6,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
-import { expecting } from "./harness.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { motion } from "./page_motions.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -108,11 +107,8 @@ page = await open(true);
 s = await seen(page);
 await page.click("#role-menu summary"); await shot(page, "menu"); await page.click("#role-menu summary");
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.data, "a study manager is offered Study Manager, and sees no Data Management until choosing it", s);
-// the tree asks Drive what the site may do in each folder: of one it was never approved for, Drive knows nothing
-await expecting(/status of 404.*googleapis/, async () => {
-  await choose(page, "Study Manager");
-  await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
-});
+await choose(page, "Study Manager");
+await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column, folded or open, once its motion has ended at the width asked for
 const widthReaches = (open) => orMissed(page.waitForFunction((open) => {

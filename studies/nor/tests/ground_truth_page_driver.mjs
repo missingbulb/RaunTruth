@@ -4,8 +4,8 @@
 // until the user decides; the measuring ends drag freely and keep the NoR on one axis; the
 // Ground truth button's colour follows the verdicts (red while an added NoR waits for one) and opens a popup that
 // names what is missing; the file holds only the candidates voted on, the added NoR once approved; for an image
-// from Google Drive (a stand-in Drive API), for a tagger who never approved the site for the submissions folder,
-// Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
+// from Google Drive (a stand-in Drive API), for a tagger whose sign-in lacks Drive's per-file permission, its box
+// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
 // study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
 // combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
 // with the settings chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
@@ -16,7 +16,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { asTagger, TAGGER } from "../../../web-tests/tagger.mjs";
+import { signIn, SCOPES } from "../../../web-tests/fakes/google_sign_in.mjs";
+const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
 import { localStudy } from "../../../web-tests/local_study.mjs";
 import { pw, launch, googleOf, siteOf } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -59,7 +61,11 @@ googleOf(browser).drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "imag
 
 async function open(drive) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-  await asTagger(ctx);
+  if (drive) {
+    // Google's window answers as the tagger, the per-file box left unticked
+    Object.assign(signIn(ctx), { withhold: [DRIVE_FILE], account: { ...signIn(ctx).account, email: TAGGER, name: "Acme Tagger" } });
+    await asTagger(ctx, { scopes: SCOPES.split(" ").filter((s) => s !== DRIVE_FILE).join(" ") });
+  } else await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) await localStudy(ctx, "nor");
@@ -403,7 +409,7 @@ async function mask(page) {
   await check(!/mask/i.test(said), `with no mask the mask item is crossed out: "${said}"`);
   await check(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
-  await check(send.off && /Not approved/.test(send.why), `with the site not approved for the submissions folder, Submit is off and says why: "${send.why}"`);
+  await check(send.off && /View only/.test(send.why), `with no per-file permission, Submit is off and says why: "${send.why}"`);
   await ctx.close();
 }
 await done(0);

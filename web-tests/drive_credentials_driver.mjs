@@ -63,7 +63,7 @@ async function listFolder(page, id) {
   return { names, text };
 }
 
-const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
+const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
 const user = { name: "Tester", email: "tester@example.com", picture: null };
 
 {
