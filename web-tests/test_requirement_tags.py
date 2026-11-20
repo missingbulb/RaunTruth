@@ -9,6 +9,10 @@ import os
 import re
 import subprocess
 
+import pytest
+
+pytestmark = pytest.mark.full
+
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SPEC = os.path.join(ROOT, 'dev', 'requirements', 'requirements.md')
 TAG = r'req(?:/[a-z0-9]+(?:-[a-z0-9]+)*)+'
