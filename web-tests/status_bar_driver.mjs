@@ -484,14 +484,22 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await isOpen(true, "the tab holding over 1 GB opens it", 2500);
   await page.evaluate(() => { window.st.heap = window.st.heapWas; });
   await foldsLater("memory back under 1 GB");
-  // downloading: kb KB every 250 ms for 8 s
-  const download = (kb) => page.evaluate(async (u) => { const end = Date.now() + 8000; while (Date.now() < end) { await fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()); await new Promise((r) => setTimeout(r, 250)); } }, origin + "/some/" + kb); // waits on purpose (a measured rate): the pause between downloads sets the rate the page measures
-  await download(25);
+  // downloading: kb KB each 250 ms of the page's clock, for ms of it, the clock moved on once the page can have counted each
+  const download = async (kb, ms) => {
+    for (let t = 0; t < ms; t += 250) {
+      await page.evaluate(async (u) => {
+        const counted = new Promise((ok) => { new PerformanceObserver((l, o) => { if (l.getEntries().some((e) => e.name === u)) { o.disconnect(); ok(); } }).observe({ type: "resource" }); });
+        await fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer());
+        await counted;
+      }, origin + "/some/" + kb);
+      await ctx.clock.runFor(250);
+    }
+  };
+  await download(25, 8000);
   await isOpen(false, "about 100 KB/s for 8 s does not open it: under 250 KB/s", 100);
-  const pull = download(200);
-  await page.waitForTimeout(2500); // waits on purpose (a measured rate): the page opens the block on a rate held for 5 s of real downloads
+  await download(200, 2500);
   await isOpen(false, "the network over 250 KB/s for 2 s does not open it yet", 100);
-  await pull;
+  await download(200, 5500);
   await isOpen(true, "over 250 KB/s for more than 5 s opens it", 2500);
   await foldsLater("the network quiet again");
   // offline, what the page still asks of the network fails as it would, when it asks anything then
