@@ -7,7 +7,7 @@ import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
   unset: "This study has not set up its ground-truth folders yet, so ground truth cannot be submitted.",
-  none: "Not approved: this site may not write to the study's submissions folder for you yet.",
+  none: "Not approved: this site may not add files for you yet.",
   view: "View only: the store lets you only view the study's submissions folder. Ask its owner for edit access.",
   unknown: "Your sign-in ran out. Sign in again to submit.",
 };
@@ -41,7 +41,7 @@ export function truthTagger({ account, remote, place, image, on }) {
       el.innerHTML = `<span class="gt-say"></span>${approve}`;
       el.querySelector(".gt-say").textContent = SAY[access];
       el.querySelector(".gt-approve")?.addEventListener("click", async () => {
-        if (await sd.approve([{ id: await where(), name: "Ground truth submissions" }])) draw();
+        if (await sd.approve()) draw();
       });
     }
   }

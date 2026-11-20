@@ -4,8 +4,8 @@
 // carries one credential (req/shell/drive/credentials): signed in, the user's own token alone, reaching whatever their
 // account can see; signed out, the site's API key (NOR_CONFIG.google.apiKey, written into config.js at deploy),
 // reaching what is shared as "Anyone with the link". Writes (req/shell/data/drive-access) go only to a study's own
-// folders the user approved in Google's picker, with Google's per-file permission: the page only creates files, each
-// marked as its own, and changes or trashes only the files so marked. Reading keeps nothing: a file goes to the study
+// folders, with Google's per-file permission: the page only creates files, each marked as its own, and changes or
+// trashes only the files so marked. Reading keeps nothing: a file goes to the study
 // like one loaded from the computer.
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
@@ -15,21 +15,14 @@ import { work } from "./pending.js";
 const GOOGLE = (window.NOR_CONFIG && window.NOR_CONFIG.google) || {};
 // what a study's image from Drive is, as its source records it on this device and in the documents it writes
 const KIND = "drive";
-// Google's per-file permission, which lets the page write in the folders approved for it
+// Google's per-file permission, which lets the page create files and change the ones it made
 const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
-const PICKER_SCRIPT = "https://apis.google.com/js/api.js";
 const FOLDER = "application/vnd.google-apps.folder";
 // the private property every file the page creates carries, which only this site's own reads see
 const MINE = { rauntruth: "made" };
 const THROTTLING = "Google is throttling this site's downloads";
-const PICKER_TITLE = "Choose the study's folders this site may work in";
-const FOLDERS_GUIDE = { title: "Letting this site into the study's folders", go: "Open Google's window", wait: "Waiting for Google: follow these steps in Google's window." };
-const PICKER_STEP = { text: "Google's window lists the study's folders: tick each one, then click <b>Select</b>.",
-  drawn: `<div class="guide-picker" aria-hidden="true"><div class="gp-title">${PICKER_TITLE}</div>
-<div class="gp-row"><span class="gp-box"></span><span class="gp-folder"></span>Study folder</div>
-<div class="gp-row"><span class="gp-box"></span><span class="gp-folder"></span>GT submissions</div>
-<div class="gp-foot"><span class="gp-select">Select</span><span class="gp-cancel">Cancel</span></div></div>` };
+const APPROVE_GUIDE = { title: "Letting this site add files to the study's folders", go: "Open Google's window", wait: "Waiting for Google: follow these steps in Google's window." };
 const RUN_OUT = "Your Google sign-in has run out: click again to renew it";
 
 // The bodies of Drive's uploads, written out as bytes, not a FormData or a Blob: Playwright's WebKit hands a page test
@@ -241,9 +234,7 @@ export const remote = (() => {
 
   // The writer for a study's own folders, for a signed-in user: account the sign-in (account.js)
   function writer(account) {
-    let script = null;
-    // the guide to Google's windows on approving folders (req/shell/account/consent-guide): the per-file permission's
-    // box, and Google's picker as the page opens it, drawn
+    // the guide to Google's window on approving the site (req/shell/account/consent-guide): the per-file permission's box
     const fileStep = () => ({ text: "Tick the box to <b>see, edit, create and delete only the specific Google Drive files you use with this app</b> (or <b>Select all</b>), then click <b>Continue</b>.",
       shot: account.shot("consent-file"), from: "another app's screen, from ifunplay's help centre" });
     // a live token, renewed in the user's click where it has run out, else an Error asking for another click
@@ -260,30 +251,9 @@ export const remote = (() => {
       try { why = (await r.json()).error?.message || ""; } catch { /* no words */ }
       throw Object.assign(new Error(`Google refused (${r.status})${why ? ": " + why : ""}`), { status: r.status });
     }
-    // Google's picker script, loaded once, a failed load tried again on the next call
-    const picker = () => (script ||= new Promise((ok, fail) => document.head.append(Object.assign(document.createElement("script"), { src: PICKER_SCRIPT, async: true, onload: ok, onerror: fail })))
-      .then(() => new Promise((ok) => window.gapi.load("picker", ok)))
-      .catch((e) => { script = null; throw e; }));
-    // in the guide's click: Google's per-file permission where still missing, then its picker on just these folders,
-    // the guide aside under it; true once the picker closes, false when the user gave no permission
-    async function pick(folders) {
-      if (!account.may(DRIVE_FILE) && !(await account.more(DRIVE_FILE))) return false;
-      await picker();
-      const p = window.google.picker, t = await token();
-      account.guide.aside(PICKER_STEP);
-      return new Promise((ok) => {
-        const view = new p.DocsView().setFileIds(folders.map((f) => f.id).join(",")).setIncludeFolders(true)
-          .setSelectFolderEnabled(true).setMimeTypes(FOLDER).setMode(p.DocsViewMode.LIST);
-        new p.PickerBuilder().addView(view).enableFeature(p.Feature.MULTISELECT_ENABLED)
-          .setTitle(PICKER_TITLE)
-          .setOAuthToken(t).setDeveloperKey(key).setAppId((GOOGLE.clientId || "").split("-")[0])
-          .setCallback((d) => { if (d.action === p.Action.PICKED || d.action === p.Action.CANCEL) ok(true); })
-          .build().setVisible(true);
-      });
-    }
     return work.counted({
-      // "write", "view" (approved, but Drive gives the user no more than a view), "none" (not approved for this
-      // site), or null when it cannot tell now (no live token)
+      // "write", "view" (Drive gives the user no more than a view), "none" (the site lacks the per-file permission,
+      // so may write nowhere), or null when it cannot tell now (no live token)
       async access(id) {
         if (!account.may(DRIVE_FILE)) return "none";
         if (!account.token()) return null;
@@ -291,17 +261,16 @@ export const remote = (() => {
           const f = await (await google(`${API}/${encodeURIComponent(id)}?fields=id,capabilities(canAddChildren)&supportsAllDrives=true`)).json();
           return f.capabilities?.canAddChildren ? "write" : "view";
         } catch (e) {
-          if (e.status === 404 || e.status === 403) return "none";
+          if (e.status === 404 || e.status === 403) return "view";
           throw e;
         }
       },
-      // In the user's click: the guide to Google's screens (req/shell/account/consent-guide), then, in its click,
-      // Google's per-file permission, then its picker on just these folders ([{id, name}]) to approve all or some.
-      // Resolves once the picker closes; false when the user gave no permission or closed the guide.
-      async approve(folders) {
-        const g = { ...FOLDERS_GUIDE, steps: account.may(DRIVE_FILE) ? [PICKER_STEP] : [...account.unverified, fileStep(), PICKER_STEP] };
-        try { await account.guide.open(g); } catch { return false; }
-        try { return await pick(folders); } finally { account.guide.done(); }
+      // In the user's click, while the per-file permission is missing: the guide to Google's screens
+      // (req/shell/account/consent-guide), then, in its click, Google asked for it. Whether the site now has it.
+      async approve() {
+        if (account.may(DRIVE_FILE)) return true;
+        try { await account.guide.open({ ...APPROVE_GUIDE, steps: [...account.unverified, fileStep()] }); } catch { return false; }
+        try { return await account.more(DRIVE_FILE); } finally { account.guide.done(); }
       },
       // a new file in folder parent: its id
       async create(parent, name, blob) {
