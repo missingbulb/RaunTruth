@@ -938,6 +938,8 @@ $("#unload").onclick = () => {
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
   swapping = swapping.then(async () => {
+    // no study came in before this turn: there is none to mount again
+    if (!manifest) return;
     const { ready, readyInfo } = st, id = manifest.id, image = again && st.img ? st.kept : null;
     dropImage();
     leaveStudy();
@@ -2532,4 +2534,7 @@ window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, ma
 if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
 remoteDialog(); slow($("#gt-export"));
-mountStudy(studyOf(location)).then(start).catch((e) => status("Error: " + (e.message || e), true));
+// the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
+const first = mountStudy(studyOf(location));
+swapping = first.catch(() => {});
+first.then(start).catch((e) => status("Error: " + (e.message || e), true));
