@@ -5,3 +5,10 @@
   not a pack-shaped rule.
 - **Actor:** claudinite-growth/growth-extract (issue #185).
 - **Model:** claude-sonnet-5.
+
+## 2026-11-20 · declined · an issues-triage skill from a re-requested triage
+- **Source:** the 2026-11-19 triage session had to recover the 10 Nov triage's instructions first,
+  and both triages drew explain-again follow-ups.
+- **Reason:** the buckets, exclusions and explanation style are the owner's own preferences, which
+  belong in their personal pack, not a repo pack.
+- **Actor:** @missingbulb (owner), asking for growth from the 2026-11-19 sessions.

@@ -100,7 +100,15 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   not after each one: every push starts a Tests run, so a burst of pushes runs the suite once per
   commit for a single result. (push-in-batches)
 
+- **A pushed pull request showing no check runs** - read its mergeable state before waiting or
+  dispatching a run: GitHub starts no `pull_request` workflow while the branch conflicts with its
+  base, so merge the base in. (conflict-blocks-ci)
+
 ## Merging
+
+- **Calling a branch's failing test pre-existing because it fails on `main` too** - compare where
+  each run first failed; a flake that stops both early hides what fails after it, so rerun until
+  `main` passes before clearing the branch. (pre-existing-same-failure)
 
 - **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
   fresh branch off `main`, running the tests after each, and merge the ones that hold; the one that does not stays
