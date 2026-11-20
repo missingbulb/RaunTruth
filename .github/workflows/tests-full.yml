@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '22 3 * * *'
   workflow_dispatch:
+# bash, so a piped step fails with the command that failed in it
+defaults:
+  run:
+    shell: bash
 jobs:
   image:
     uses: ./.github/workflows/test-image.yml

@@ -8,6 +8,10 @@ on:
 concurrency:
   group: tests-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# bash, so a piped step fails with the command that failed in it
+defaults:
+  run:
+    shell: bash
 jobs:
   # every pull request, and main once it lands
   check:

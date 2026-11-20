@@ -6,6 +6,10 @@ on:
     outputs:
       image:
         value: ${{ jobs.image.outputs.image }}
+# bash, so a piped step fails with the command that failed in it
+defaults:
+  run:
+    shell: bash
 jobs:
   image:
     runs-on: ubuntu-latest
