@@ -43,28 +43,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: .claudinite/bin/cn check work-and-world
-  tests:
+  image:
     if: github.event_name != 'push'
+    uses: ./.github/workflows/test-image.yml
+    permissions:
+      contents: read
+      packages: write
+  # every test, on Chromium, before the pull request can merge (req/checks/ci-sets), in the test image, with no way off the machine
+  tests:
+    needs: image
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        id: python
         with:
-          python-version: '3.11'
-      - name: Restore the Python packages
-        id: venv
-        uses: actions/cache@v5
-        with:
-          path: ~/venv
-          key: venv-${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-      - name: Install Python packages
-        if: steps.venv.outputs.cache-hit != 'true'
-        run: python3 -m venv ~/venv && ~/venv/bin/pip install -r requirements.txt
-      - run: echo ~/venv/bin >> "$GITHUB_PATH"
-      - name: Run the fast tests
-        run: python3 -m pytest web-tests studies lab dev/tools/trick_pool -q -n auto -m "not full" --durations=5
+          fetch-depth: 0
+          persist-credentials: false
+      - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin && docker pull -q "$IMAGE"
+        env:
+          TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.image.outputs.image }}
+      - name: Run every test
+        run: sh dev/test-image/run.sh "$IMAGE"
+        env:
+          IMAGE: ${{ needs.image.outputs.image }}
   version-history:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
