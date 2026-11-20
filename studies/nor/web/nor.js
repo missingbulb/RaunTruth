@@ -1019,8 +1019,8 @@ export function mount(shell) {
     for (const [k, v] of Object.entries({ x, y, width: w, height: h })) f.setAttribute(k, v);
     f.style.display = ""; svg.append(f);
     if (!go) return;
-    const sc = $("#scroller"), fit = 0.6 * Math.min(sc.clientWidth / w, sc.clientHeight / h);
-    if (st.zoom < fit * 0.6) shell.viewer.setZoom(Math.min(fit, 8));
+    const sc = $("#scroller"), fit = 0.6 * Math.min(sc.clientWidth / w, sc.clientHeight / h), z = Math.min(fit, 8);
+    if (st.zoom < fit * 0.6 && st.zoom < z) shell.viewer.setZoom(z);
     shell.viewer.focus(x + w / 2, y + h / 2);
   }
   // What is done, cut out of the image by the viewer: the rectangle around each decided candidate's pixels, two pixels
