@@ -145,7 +145,7 @@ async function markAndVote(page) {
   await check(none.finalists === 0 && none.button === "todo" && none.crumbs === "Load image › Run algorithm › Review all items*",
     `every finalist filtered out and none voted on: the button stays red and Review all items stays the step to do: ${JSON.stringify(none)}`);
   // the walk opens once tagging starts (req/shell/ground-truth/tagging), framing its first area; the view is put back
-  // as it was, the whole image, once it rests, since a scroll closes the menu a right click opens
+  // as it was, the whole image, once it rests, so a right click lands on the image point it aims at
   const rest = () => page.waitForFunction(() => {
     const sc = $("#scroller"), at = [sc.scrollLeft, sc.scrollTop, st.zoom].join();
     window.still = window.lastAt === at ? (window.still || 0) + 1 : 0; window.lastAt = at;

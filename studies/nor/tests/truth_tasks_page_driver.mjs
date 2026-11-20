@@ -187,8 +187,8 @@ await check(/\btodo\b/.test(m.cls) && m.opacity <= 0.4 && !m.cut && m.num === "n
 const rung = await ring();
 await check(rung.shown && rung.stroke === "rgb(255, 212, 0)", "the current candidate has a yellow ring", rung);
 // the view come to rest where it was sent: the image's point x, y at its centre, or as near as the image's edge lets it
-// the framed area wholly in view, and the scroll unmoved since the last frame: a right click then opens a menu no
-// scroll will close
+// the framed area wholly in view, and the scroll unmoved since the last frame: a right click then lands where the
+// frame is
 const framedAtRest = () => page.waitForFunction(() => {
   const sc = $("#scroller"), v = sc.getBoundingClientRect(), f = $("#overlay .area-frame")?.getBoundingClientRect();
   const at = [sc.scrollLeft, sc.scrollTop].join(), still = window.lastScroll === at;
@@ -298,7 +298,7 @@ s = await now();
 await check(s.cur === "a:" + A && s.task === "missed" && s.open === "missed" && same(await frame(), rectOf(A)) && !(await page.isDisabled("#area-ok")), "every candidate in the area decided, the walk comes to its check, the area framed", s);
 await check(!(await holes()).some((h) => same(h, rectOf(A))), "the area is not cut out before it is checked");
 // a NoR the finder missed, added in the area, waits for its verdict there; the view framing the area first comes to
-// rest, since a scroll closes the menu
+// rest
 await framedAtRest();
 const fr = await page.$eval("#overlay .area-frame", (f) => { const r = f.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
 await page.mouse.click(fr.x, fr.y, { button: "right" });
@@ -309,16 +309,12 @@ await page.click("#task-card .verdict .up");
 s = await now();
 await check(s.cur === "a:" + A, "its verdict given, the walk is back at the area's check", s);
 // removed again, Back passes over it, once the view the verdict moved is at rest
-// the NoR was added at the framed area's middle, wherever the view now has it; the view may still move, which closes
-// the menu (a scroll does), so the right click and Remove are given again once it rests, as a person would
-let offered = "", removed = false;
-for (let k = 0; k < 3 && !removed; k++) {
-  await framedAtRest();
-  const mid = await page.$eval("#overlay .area-frame", (f) => { const r = f.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-  await page.mouse.click(mid.x, mid.y, { button: "right" });
-  offered = await page.textContent("#ctx button");
-  removed = /Remove/.test(offered) && await page.click("#ctx button", { timeout: 2000 }).then(() => true, () => false);
-}
+// the NoR was added at the framed area's middle, wherever the view now has it
+await framedAtRest();
+const mid = await page.$eval("#overlay .area-frame", (f) => { const r = f.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+await page.mouse.click(mid.x, mid.y, { button: "right" });
+const offered = await page.textContent("#ctx button");
+const removed = /Remove/.test(offered) && await page.click("#ctx button").then(() => true, () => false);
 await check(/Remove/.test(offered) && removed, "a right click on the added NoR offers to remove it, and Remove removes it", offered);
 await page.click("#task-back");
 s = await now();
