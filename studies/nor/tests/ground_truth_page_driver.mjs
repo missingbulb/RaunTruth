@@ -155,8 +155,11 @@ async function markAndVote(page) {
   await page.click("#gt-start");
   await rest();
   // the page's own glide, under way when the right click lands, leaves the menu open; the user's wheel closes it
-  await page.evaluate(() => { $("#scroller").scrollTo({ left: 0, top: 0, behavior: "instant" }); shellForTests.viewer.focus(st.W, st.H); });
+  await page.evaluate(() => $("#scroller").scrollTo({ left: 0, top: 0, behavior: "instant" }));
+  await rest();
   const gliding = await middle(page);
+  await page.evaluate(() => shellForTests.viewer.focus(st.W, st.H));
+  await page.waitForFunction(() => $("#scroller").scrollTop > 0, null, { polling: "raf" });
   await page.mouse.click(gliding.sx, gliding.sy, { button: "right" });
   await rest();
   await check(await page.isVisible("#ctx"), "a right click while the page glides the view keeps its menu open once the view rests");
