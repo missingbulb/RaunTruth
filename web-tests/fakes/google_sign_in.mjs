@@ -89,7 +89,7 @@ function makeSignIn() {
 // a browser's sign-in, made on first need
 export const signInIn = (world) => (world.signIn ||= makeSignIn());
 
-export async function fakeGoogleSignIn(ctx, world) {
+export async function fakeGoogleSignIn(ctx, world, outside) {
   const google = signInIn(world);
   fakes.set(ctx, google);
   await ctx.exposeBinding("__fakeSignIn", async (_, ask) => {
@@ -102,15 +102,15 @@ export async function fakeGoogleSignIn(ctx, world) {
     google.tokens.set(token, { email: google.account.email, scopes: scope, until: anHourOn() });
     return { access_token: token, expires_in: 3599, scope };
   });
-  await ctx.route(GSI, (route) => { google.scriptLoads++; return route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
-  await ctx.route(USER_INFO, (route) => {
+  outside.route(GSI, (route) => { google.scriptLoads++; return route.fulfill({ status: 200, contentType: "text/javascript", body: SCRIPT }); });
+  outside.route(USER_INFO, (route) => {
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     google.heard(`GET ${route.request().url()}`);
     const who = holder(ctx, bearer(route.request()));
     return who ? json(route, 200, { ...google.account, email: who.email }) : json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
   });
   // the app folder, on the Drive API's own address: every other request there is the Drive fake's
-  await ctx.route((u) => /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/.test(u.href), async (route) => {
+  outside.route((u) => /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/.test(u.href), async (route) => {
     const req = route.request(), u = new URL(req.url()), method = req.method();
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)$/)?.[1] || "");
     const who = holder(ctx, bearer(req));

@@ -24,11 +24,11 @@ export const siteSettings = (ctx) => fakes.get(ctx);
 // a browser's deploy, made on first need
 export const settingsIn = (world) => (world.settings ||= { env: null });
 
-export async function fakeSiteSettings(ctx, world) {
+export async function fakeSiteSettings(ctx, world, outside) {
   // the context's own, reading the browser's until it sets its own
   const settings = Object.create(settingsIn(world));
   fakes.set(ctx, settings);
-  await ctx.route("**/web/config.js", (route) => {
+  outside.route("**/web/config.js", (route) => {
     const body = settings.env && configJs(settings.env);
     return body ? route.fulfill({ status: 200, contentType: "text/javascript", body }) : route.fallback();
   });

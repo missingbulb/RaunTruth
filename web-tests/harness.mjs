@@ -1,5 +1,5 @@
 // The browser every page test drives. Each context it opens answers the outside systems the page reaches with the
-// fakes in fakes/, turns away every other request that would leave this machine, and watches what the page and the
+// fakes in fakes/, from a server of its own on this machine, turns away every other request that would leave this machine, and watches what the page and the
 // browser write as warnings and errors: one the test did not declare with expecting() fails the run as it exits
 // (req/checks/clean-console).
 //   const browser = await launch(pw);                 in place of pw[ENGINE].launch(LAUNCH)
@@ -15,6 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { ENGINE, LAUNCH, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { FAKES } from "./fakes/index.mjs";
+import { outsideServer, offSite, FAKED } from "./fakes/outside_server.mjs";
 import { COPY } from "./page_pixels.mjs";
 import { driveIn } from "./fakes/google_drive.mjs";
 import { signInIn } from "./fakes/google_sign_in.mjs";
@@ -95,7 +96,7 @@ function heard(m) {
   const where = m.location()?.url, among = [...declared], going = CUT && m.page() && leaving.has(m.page());
   const dark = !BLOBS_READ_OFFLINE && m.page() && offlineNow.has(m.page().context());
   // read: whether the text is the values' own, read from the page
-  const say = (text, read) => said(m.type(), text, where && !text.includes(where) ? where : "", among,
+  const say = (text, read) => said(m.type(), where ? asCut(text, where) : text, where && !text.includes(where) ? where : "", among,
     going && (CUT.test(text) || !read) ? "as its page was left" : dark && /Blob/.test(text) ? "a blob Playwright's offline refused" : "");
   const args = m.args();
   // the browser's own messages carry no values
@@ -138,11 +139,6 @@ if (ENGINE === "webkit") declared.add({ pattern: /^error: Failed to load resourc
 // the addresses a worker asked for: WebKit's console says a worker's refused load as it says the page's
 const workerAsked = new Set();
 const ofWorker = (m) => ENGINE === "webkit" && /^Failed to load resource/.test(m.text()) && workerAsked.has(m.location()?.url);
-
-// an address off this machine
-const offSite = (u) => /^https?:/.test(u.href) && !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(u.href);
-// the site's own addresses a fake answers
-const FAKED = /^\/(web\/config\.js|web\/studies\.json|studies\/[\w-]+\/study\.json)$/;
 
 // a test's own routes, which may answer only what no fake does: one answering a fake's address is a second fake
 function ownRoutes(target) {
@@ -197,24 +193,34 @@ function leaves(ctx) {
   ctx.close = (...a) => { for (const page of ctx.pages()) leaving.add(page); return close(...a); };
 }
 
+// The requests the outside server cut, a fake failing one or its context offline, by address or by https host, each
+// with the failure it stands for. The browser names such a failure by how the connection ended; the harness says it
+// as what it stands for.
+const cuts = new Map();
+const cutName = (href) => cuts.get(href) || cuts.get(href.match(/^https:\/\/[^/]+/)?.[0]);
+const asCut = (text, href) => (cutName(href) ? text.replace(/net::ERR_\w+/, "net::" + cutName(href)) : text);
+
 // the contexts a test has taken offline: there, on an engine whose offline refuses the page its own blobs
 // (engine.mjs), what the page writes of a blob it could not read is the harness's doing, not the page's
 const offlineNow = new WeakSet();
 
-// the outside systems' fakes, after a catch-all that turns away every other request leaving this machine: a route
-// set later is asked first, so a test's own routes come before the fakes, and the fakes before the catch-all
+// the outside systems' fakes, answering from the context's outside server (fakes/outside_server.mjs), which turns
+// away every other request leaving this machine; a test's own route is asked before the request goes there
 // world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
-async function install(ctx, world) {
+async function install(ctx, world, outside) {
   onSitePages(ctx); leaves(ctx); closesHeard(ctx);
-  // offline as its test sets it: a route answers whatever the browser's network says, so the fakes answer nothing then
-  let offline = false;
+  // offline as its test sets it: the fakes answer nothing then, on an engine whose offline leaves a proxy reachable too
   const setOffline = ctx.setOffline.bind(ctx);
-  ctx.setOffline = (on) => { offline = on; if (on) offlineNow.add(ctx); else offlineNow.delete(ctx); return setOffline(on); };
+  // (a request the browser sent before its network went is answered: it was online when it asked)
+  ctx.setOffline = async (on) => {
+    if (on) offlineNow.add(ctx); else { offlineNow.delete(ctx); outside.offline = false; }
+    await setOffline(on);
+    outside.offline = on;
+  };
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); return page; };
-  await ctx.route(offSite, (r) => { said("request", "left this machine: " + r.request().url()); return r.abort(); });
-  for (const fake of FAKES) await fake(ctx, world);
-  await ctx.route(offSite, (r) => (offline ? r.abort("internetdisconnected") : r.fallback()));
+  for (const fake of FAKES) await fake(ctx, world, outside);
+  ctx.on("close", () => outside.close());
   await ctx.addInitScript(COPY);
   ownRoutes(ctx);
   ctx.on("console", (m) => {
@@ -231,7 +237,7 @@ async function install(ctx, world) {
     const why = q.failure()?.errorText || "";
     note(`request failed: ${q.method()} ${q.url()}: ${why}`);
     // WebKit names every request a route turns away the same, the harness's own turning away while offline too
-    const name = offlineNow.has(ctx) && NET[why] ? "ERR_INTERNET_DISCONNECTED" : NET[why] || why;
+    const name = cutName(q.url()) || (offlineNow.has(ctx) && NET[why] ? "ERR_INTERNET_DISCONNECTED" : NET[why] || why);
     if (SILENT.failed && !LEFT.test(why) && !byWorker(q) && !q.url().startsWith("blob:") && !closing.has(ctx)) said("error", `Failed to load resource: net::${name}`, q.url());
   });
   ctx.on("response", (r) => {
@@ -242,12 +248,20 @@ async function install(ctx, world) {
   return ctx;
 }
 
+// How the browser is launched. Chromium takes the outside server's certificate for a page when its context says so,
+// and for a service worker's own requests only when the whole browser does.
+const TRUSTING = ENGINE === "chromium" ? ["--ignore-certificate-errors"] : [];
+const launching = (options = {}) => ({ ...LAUNCH, ...options, args: [...(LAUNCH.args || []), ...(options.args || []), ...TRUSTING] });
+
+// a context's outside server, which turns away what no fake answers
+const opening = () => outsideServer({ left: (href) => said("request", "left this machine: " + href), cutAs: (href, name) => cuts.set(href, name) });
+
 export async function launch(pw, options = {}) {
-  const browser = await pw[ENGINE].launch({ ...LAUNCH, ...options }), world = {};
+  const browser = await pw[ENGINE].launch(launching(options)), world = {};
   worlds.set(browser, world);
   const newContext = browser.newContext.bind(browser);
   const opened = [];
-  browser.newContext = async (o) => { const ctx = await install(await newContext(o), world); opened.push(ctx); return ctx; };
+  browser.newContext = async (o) => { const outside = await opening(), ctx = await install(await newContext({ ...o, ...outside.contextOptions }), world, outside); opened.push(ctx); return ctx; };
   closesHeard(browser);
   const shut = browser.close.bind(browser);
   browser.close = (...a) => { for (const ctx of opened) { closing.add(ctx); for (const page of ctx.pages()) leaving.add(page); } return shut(...a); };
@@ -268,8 +282,10 @@ export const siteOf = (browser) => ({ settings: settingsIn(worlds.get(browser)),
 
 // Playwright's WebKit empties the cache storage of a throwaway context on every reload, where Safari keeps it, so a
 // test of what the page keeps on this device needs a profile of its own
-export const keptContext = async (pw, options) =>
-  install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...LAUNCH, ...options }), {});
+export const keptContext = async (pw, options) => {
+  const outside = await opening();
+  return install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...launching(options), ...outside.contextOptions }), {}, outside);
+};
 
 // What the browser and the page say of a request the network does not carry, offline: the browser's line for the
 // failed load, and the words each engine's fetch() rejects with, which the page's own warnings repeat.

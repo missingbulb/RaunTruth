@@ -76,7 +76,7 @@ function makeDrive() {
 // a browser's Drive, made on first need
 export const driveIn = (world) => (world.drive ||= makeDrive());
 
-export async function fakeGoogleDrive(ctx, world) {
+export async function fakeGoogleDrive(ctx, world, outside) {
   const drive = driveIn(world), tick = drive.tick, waiting = drive.waiting;
   fakes.set(ctx, drive);
 
@@ -162,7 +162,7 @@ export async function fakeGoogleDrive(ctx, world) {
     return route.fulfill({ status: range ? 206 : 200, headers: { ...CORS, "content-length": String(body.length) }, contentType: type(f), body });
   }
 
-  await ctx.route((u) => API.test(u.href), async (route) => {
+  outside.route((u) => API.test(u.href), async (route) => {
     const req = route.request(), u = new URL(req.url());
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)/)?.[1] || "");
@@ -184,7 +184,7 @@ export async function fakeGoogleDrive(ctx, world) {
       for (const w of [...waiting]) if (w.match(call)) { waiting.splice(waiting.indexOf(w), 1); w.ok(call); }
     }
   });
-  await ctx.route(THUMB + "*", (route) => {
+  outside.route(THUMB + "*", (route) => {
     drive.thumbs.push(drive.get(route.request().url().slice(THUMB.length))?.name);
     return route.fulfill({ status: 200, headers: CORS, contentType: "image/jpeg", path: path.join(REPO, "web", "poster.jpg") });
   });

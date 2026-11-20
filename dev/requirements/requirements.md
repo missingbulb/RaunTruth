@@ -2028,9 +2028,9 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-19. Every page test's browser comes from `web-tests/harness.mjs`, which fails the run as
   it exits on a warning or error the page or the browser wrote that no case declared with `expecting()`, by a loose
-  pattern; a case declaring one that never came fails too. Each context it opens answers the systems the page reaches with
-  the fakes in `web-tests/fakes/`, turns away every other request leaving the machine, and fails the run when a
-  test's own route answers what a fake does.
+  pattern; a case declaring one that never came fails too. Each context it opens reaches the network through a server
+  of its own on the test's machine, which answers the systems the page reaches with the fakes in `web-tests/fakes/` and
+  turns away every other request leaving the machine; the run fails when a test's own route answers what a fake does.
   Test: `web-tests/test_harness.py`.
   </details>
 
