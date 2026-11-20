@@ -187,7 +187,7 @@ await page.waitForFunction(() => !document.documentElement.classList.contains("o
 // a previews file whose pictures cannot be read, its index intact: each image shows no preview, and one chosen
 // opens itself, with nothing left uncaught; nor is it when what the site keeps cannot be counted as it is stored
 await expecting(/could not be (read|counted)/, async () => {
-  await page.evaluate(() => { window.keysAsIs = CacheStorage.prototype.keys; CacheStorage.prototype.keys = () => Promise.reject(new Error("keys refused for the test")); });
+  await page.evaluate(() => { CacheStorage.prototype.keys = () => Promise.reject(new Error("keys refused for the test")); });
   const damage = (bytes) => {
     const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), le = v.getUint16(0) === 0x4949;
     const values = (e) => {
@@ -213,8 +213,7 @@ await expecting(/could not be (read|counted)/, async () => {
   await page.click(cell("a flat.tif"));
   await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }));
   await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
-  // the site's store answering again before the case ends, and a count already refused said within it
-  await page.evaluate(() => { CacheStorage.prototype.keys = window.keysAsIs; });
-  await page.evaluate(() => caches.keys());
+  // the test's last case, which lasts until it closes: the page draws the previews again as the image opens, and
+  // says each it cannot read, and what it cannot count, until then
+  await done(0);
 });
-await done(0);
