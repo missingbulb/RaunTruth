@@ -10,7 +10,7 @@ import (
 )
 
 // What a pull request's Tests run starts with is read from the workflow itself: its fast pytest, whose path
-// arguments a session's own run must all name, and its cn check. A run naming a subset (-k, a test file, one
+// arguments a session's own run must all name, its cn check, and each Python script it runs as `<script> check`. A run naming a subset (-k, a test file, one
 // study's folder) is not that suite. Only an edit inside the repo counts, and a branch changing nothing but
 // Markdown is not judged.
 
@@ -30,6 +30,7 @@ func init() {
 var (
 	ciPytestLine = regexp.MustCompile(`(?m)^\s*run:\s*(.*\bpytest\b.*)$`)
 	ciCnLine     = regexp.MustCompile(`(?m)^\s*run:\s*\S*\bcn\s+check\s+(\S+)`)
+	ciScriptLine = regexp.MustCompile(`(?m)^\s*run:\s*python3?\s+(\S+\.py)\s+check\b`)
 	ciPush       = regexp.MustCompile(`\bgit\s+push\b`)
 	ciQuoted     = regexp.MustCompile(`'[^']*'|"[^"]*"`)
 	ciSelecting  = regexp.MustCompile(`(^|\s)-k(\s|$)|::`)
@@ -97,6 +98,10 @@ func ciRunBeforePush(repo checksdk.Repo) []checksdk.Finding {
 	if m := ciCnLine.FindStringSubmatch(workflow); m != nil {
 		cnSub = m[1]
 	}
+	var scripts []string
+	for _, m := range ciScriptLine.FindAllStringSubmatch(workflow, -1) {
+		scripts = append(scripts, m[1])
+	}
 	ciCn := regexp.MustCompile(`\bcn\s+check\s+` + regexp.QuoteMeta(cnSub) + `\b`)
 	root := path.Clean(repo.Root())
 
@@ -121,6 +126,7 @@ func ciRunBeforePush(repo checksdk.Repo) []checksdk.Finding {
 		return nil
 	}
 	ranSuite, ranCn := len(suite) == 0, cnSub == ""
+	ranScript := map[string]bool{}
 	for _, c := range calls[edited+1 : push] {
 		if c.Tool != "Bash" {
 			continue
@@ -135,6 +141,11 @@ func ciRunBeforePush(repo checksdk.Repo) []checksdk.Finding {
 		if ciCn.MatchString(in.Command) {
 			ranCn = true
 		}
+		for _, sc := range scripts {
+			if regexp.MustCompile(regexp.QuoteMeta(sc) + `\s+check\b`).MatchString(in.Command) {
+				ranScript[sc] = true
+			}
+		}
 	}
 	var missing []string
 	if !ranSuite {
@@ -143,12 +154,17 @@ func ciRunBeforePush(repo checksdk.Repo) []checksdk.Finding {
 	if !ranCn {
 		missing = append(missing, "cn check "+cnSub)
 	}
+	for _, sc := range scripts {
+		if !ranScript[sc] {
+			missing = append(missing, sc+" check")
+		}
+	}
 	if len(missing) == 0 {
 		return nil
 	}
 	return []checksdk.Finding{{
 		Path:     ciWorkflow,
 		Sentence: "edited, then pushed without the runs a pull request's Tests make since: " + strings.Join(missing, "; "),
-		Fix:      "run them as " + ciWorkflow + " does, after the last edit and before the push",
+		Fix:      "run them as " + ciWorkflow + " does, its flags included, after the last edit and before the push",
 	}}
 }

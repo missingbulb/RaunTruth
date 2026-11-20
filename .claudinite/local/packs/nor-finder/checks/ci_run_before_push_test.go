@@ -19,6 +19,10 @@ const ciTestsYML = `jobs:
       - run: echo ~/venv/bin >> "$GITHUB_PATH"
       - name: Run the fast tests
         run: python3 -m pytest web-tests studies lab -q -n auto -m "not full" --durations=5
+  version-history:
+    steps:
+      - name: Each pull request tells its change
+        run: python3 dev/tools/build/version_history.py check origin/${{ github.base_ref }}
 `
 
 func bash(command string) checksdk.ToolCall {
@@ -84,7 +88,7 @@ func TestOnlyTheMissingRunIsNamed(t *testing.T) {
 			bash("git push"),
 		}
 	})
-	want(t, got, `: cn check work-and-world$`)
+	want(t, got, `: cn check work-and-world; dev/tools/build/version_history\.py check$`)
 }
 
 func TestBothRunsBetweenTheEditAndThePushPass(t *testing.T) {
@@ -93,6 +97,7 @@ func TestBothRunsBetweenTheEditAndThePushPass(t *testing.T) {
 			edit(root, "studies/x/web/a.js"),
 			bash("cd /r && python3 -m pytest lab studies web-tests -q -n auto -m \"not full\""),
 			bash(".claudinite/bin/cn check work-and-world"),
+			bash("python3 dev/tools/build/version_history.py check origin/main"),
 			bash("git push -u origin b"),
 		}
 	})
@@ -121,4 +126,16 @@ func TestASubsetBySelectionIsNotTheSuite(t *testing.T) {
 		}
 	})
 	want(t, got, `pytest web-tests studies lab`)
+}
+
+func TestAScriptCheckCIRunsIsOneOfTheRuns(t *testing.T) {
+	got := ciFindings(t, code, func(root string) []checksdk.ToolCall {
+		return []checksdk.ToolCall{
+			edit(root, "studies/x/web/a.js"),
+			bash("python3 -m pytest web-tests studies lab -n auto -m 'not full'"),
+			bash(".claudinite/bin/cn check work-and-world"),
+			bash("git commit -qm x && git push"),
+		}
+	})
+	want(t, got, `: dev/tools/build/version_history\.py check$`)
 }
