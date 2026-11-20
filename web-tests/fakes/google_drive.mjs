@@ -1,6 +1,7 @@
 // Google Drive, as the page tests' fake of it: one Drive of folders and files for a browser's every context, as a
 // person's Drive is the same on each of their devices, answering the Drive API the way Drive does, and the small pictures it serves for files. Each study's own folder (study.json's root) is there from the start,
 // empty and shared with anyone with the link. The settings file in the user's app folder is the sign-in fake's.
+// A test under Node, with no browser, has the same Drive answer Node's fetch (google_drive_under_node.mjs).
 //   const drive = googleDrive(ctx);
 //   drive.folder({ id, name, parent, access: "public" | "private" });   access: who reads it, the site's key or
 //     the signed-in user's token alone; a file or folder takes its folder's unless it says
@@ -26,15 +27,17 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CORS, bearer, holder, json, multipart } from "./google_sign_in.mjs";
+import { CORS, holderIn, parts, signInIn } from "./google_sign_in.mjs";
 
 const REPO = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const API = /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/;
+export const API = /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files/;
 const THUMB = "https://lh3.googleusercontent.com/drive-thumb/";
 const FOLDER = "application/vnd.google-apps.folder";
 const TYPES = { ".tif": "image/tiff", ".tiff": "image/tiff", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
   ".webp": "image/webp", ".bmp": "image/bmp", ".json": "application/json", ".vsi": "application/octet-stream" };
-const notFound = (route) => json(route, 404, { error: { code: 404, message: "File not found" } });
+// an answer, as a request to Drive gets one: {status, headers, contentType, body}
+const json = (status, body) => ({ status, headers: CORS, contentType: "application/json", body: JSON.stringify(body) });
+const notFound = () => json(404, { error: { code: 404, message: "File not found" } });
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 
 // the studies' own folders, as their study.json files name them
@@ -76,9 +79,11 @@ function makeDrive() {
 // a browser's Drive, made on first need
 export const driveIn = (world) => (world.drive ||= makeDrive());
 
-export async function fakeGoogleDrive(ctx, world, outside) {
-  const drive = driveIn(world), tick = drive.tick, waiting = drive.waiting;
-  fakes.set(ctx, drive);
+// What a Drive answers a request of its API, whoever carries the request to it, a browser's route or Node's fetch:
+// respond({method, url, headers, body}), headers lower-case and body a Buffer or null, gives {status, headers,
+// contentType, body}, or null for a request that fails. google: the sign-in whose tokens it honours.
+export function driveAnswers(drive, google) {
+  const tick = drive.tick, waiting = drive.waiting;
 
   // who reads an item: the access it says, or its folder's, public at the top
   const access = (f) => {
@@ -102,87 +107,97 @@ export async function fakeGoogleDrive(ctx, world, outside) {
     ...(!f.folder && fields.includes("thumbnailLink") ? { thumbnailLink: THUMB + f.id } : {}),
   });
 
-  async function answer(route, call) {
-    const req = route.request(), u = new URL(req.url()), method = req.method(), fields = call.fields;
-    const token = call.token, who = token ? holder(ctx, token) : null;
-    if (token && !who) return json(route, 401, { error: { code: 401, message: "Invalid Credentials" } });
-    if (!token && !call.key) return json(route, 403, { error: { code: 403, message: "The request is missing a valid API key." } });
+  async function answer(req, call) {
+    const u = new URL(req.url), method = req.method, fields = call.fields;
+    const token = call.token, who = token ? holderIn(google, token) : null;
+    if (token && !who) return json(401, { error: { code: 401, message: "Invalid Credentials" } });
+    if (!token && !call.key) return json(403, { error: { code: 403, message: "The request is missing a valid API key." } });
     const f = drive.get(call.id);
     const sees = (g) => !!g && (who || access(g) === "public");
     if (call.kind === "list") {
-      if (!sees(drive.get(call.parent))) return notFound(route);
+      if (!sees(drive.get(call.parent))) return notFound();
       const offered = fields.includes("thumbnailLink") ? [...drive.offered].map((id) => drive.get(id)).filter(Boolean) : [];
-      return json(route, 200, { files: drive.files.filter((g) => g.parent === call.parent || g.also?.includes(call.parent)).concat(offered).map((g) => meta(g, fields)) });
+      return json(200, { files: drive.files.filter((g) => g.parent === call.parent || g.also?.includes(call.parent)).concat(offered).map((g) => meta(g, fields)) });
     }
     if (u.pathname.startsWith("/upload/")) {
-      if (!who) return json(route, 401, { error: { code: 401, message: "Login Required" } });
+      if (!who) return json(401, { error: { code: 401, message: "Login Required" } });
       if (method === "POST") {
-        const { metadata, bytes } = multipart(req);
-        if (!writable(metadata.parents?.[0], who)) return json(route, 403, { error: { code: 403, message: "The user has not granted the app write access to the folder" } });
+        const { metadata, bytes } = parts(req.body, req.headers["content-type"]);
+        if (!writable(metadata.parents?.[0], who)) return json(403, { error: { code: 403, message: "The user has not granted the app write access to the folder" } });
         const g = drive.file({ name: metadata.name, parent: metadata.parents[0], bytes, mimeType: metadata.mimeType, mine: metadata.appProperties?.rauntruth === "made" });
         drive.writes.push(["create", g.name]); drive.uploaded(g);
-        return json(route, 200, { id: g.id, sha256Checksum: sha(bytes) });
+        return json(200, { id: g.id, sha256Checksum: sha(bytes) });
       }
-      if (!f?.mine) return notFound(route);
-      f.bytes = req.postDataBuffer() || Buffer.alloc(0); f.modified = tick(); drive.writes.push(["replace", f.name]); drive.uploaded(f);
+      if (!f?.mine) return notFound();
+      f.bytes = req.body || Buffer.alloc(0); f.modified = tick(); drive.writes.push(["replace", f.name]); drive.uploaded(f);
       if (u.searchParams.get("keepRevisionForever") === "true") drive.keptForever.push(f.name);
-      return json(route, 200, { id: f.id });
+      return json(200, { id: f.id });
     }
     if (method === "POST" && u.pathname.endsWith("/permissions")) {
       const on = drive.get(decodeURIComponent(u.pathname.split("/").at(-2)));
-      if (!who || !on?.mine) return notFound(route);
-      drive.shared.push([on.name, JSON.parse(req.postData())]); drive.writes.push(["share", on.name]);
-      return json(route, 200, { id: "anyoneWithLink" });
+      if (!who || !on?.mine) return notFound();
+      drive.shared.push([on.name, JSON.parse(req.body.toString())]); drive.writes.push(["share", on.name]);
+      return json(200, { id: "anyoneWithLink" });
     }
     if (method === "POST") {
-      const m = JSON.parse(req.postData() || "{}");
-      if (!who || !writable(m.parents?.[0], who)) return json(route, 403, { error: { code: 403, message: "The user has not granted the app write access to the folder" } });
+      const m = JSON.parse(req.body?.toString() || "{}");
+      if (!who || !writable(m.parents?.[0], who)) return json(403, { error: { code: 403, message: "The user has not granted the app write access to the folder" } });
       const g = drive.folder({ name: m.name, parent: m.parents[0], mine: m.appProperties?.rauntruth === "made" });
       drive.writes.push(["folder", g.name]);
-      return json(route, 200, { id: g.id });
+      return json(200, { id: g.id });
     }
     if (method === "PATCH") {
-      if (!who || !f?.mine) return notFound(route);
-      const body = JSON.parse(req.postData() || "{}");
+      if (!who || !f?.mine) return notFound();
+      const body = JSON.parse(req.body?.toString() || "{}");
       if (body.properties) { Object.assign(f.props, body.properties); drive.writes.push(["mark", f.name]); }
       else if (body.trashed) { drive.files.splice(drive.files.indexOf(f), 1); drive.writes.push(["trash", f.name]); }
-      return json(route, 200, { id: f.id });
+      return json(200, { id: f.id });
     }
-    if (!sees(f)) return notFound(route);
+    if (!sees(f)) return notFound();
     if (fields.includes("capabilities")) {
       // what the user's Drive sharing lets them do in a folder, whichever permissions the site holds
-      if (!who) return notFound(route);
-      return json(route, 200, { id: f.id, capabilities: { canAddChildren: adds(f.id, who) } });
+      if (!who) return notFound();
+      return json(200, { id: f.id, capabilities: { canAddChildren: adds(f.id, who) } });
     }
-    if (fields.includes("appProperties")) return f.mine && who ? json(route, 200, { id: f.id, appProperties: { rauntruth: "made" } }) : notFound(route);
+    if (fields.includes("appProperties")) return f.mine && who ? json(200, { id: f.id, appProperties: { rauntruth: "made" } }) : notFound();
     // with no fields asked, Drive answers the few it always gives
-    if (call.kind !== "download") return json(route, 200, fields ? meta(f, fields) : { id: f.id, name: f.name, mimeType: type(f) });
+    if (call.kind !== "download") return json(200, fields ? meta(f, fields) : { id: f.id, name: f.name, mimeType: type(f) });
     const range = call.range?.match(/^bytes=(\d+)-(\d+)$/);
     const body = range ? f.bytes.subarray(+range[1], +range[2] + 1) : f.bytes;
-    return route.fulfill({ status: range ? 206 : 200, headers: { ...CORS, "content-length": String(body.length) }, contentType: type(f), body });
+    return { status: range ? 206 : 200, headers: { ...CORS, "content-length": String(body.length) }, contentType: type(f), body };
   }
 
-  outside.route((u) => API.test(u.href), async (route) => {
-    const req = route.request(), u = new URL(req.url());
-    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
+  return async function respond(req) {
+    const u = new URL(req.url);
+    if (req.method === "OPTIONS") return { status: 204, headers: CORS };
     const id = decodeURIComponent(u.pathname.match(/\/files\/([^/]+)/)?.[1] || "");
     const call = {
-      method: req.method(), url: req.url(), id: id || null, fields: u.searchParams.get("fields") || "", range: req.headers().range || null,
-      key: u.searchParams.get("key"), token: bearer(req),
+      method: req.method, url: req.url, id: id || null, fields: u.searchParams.get("fields") || "", range: req.headers.range || null,
+      key: u.searchParams.get("key"), token: (req.headers.authorization || "").match(/^Bearer (.+)$/)?.[1] ?? null,
       parent: (u.searchParams.get("q") || "").match(/'([^']+)' in parents/)?.[1] || null,
     };
-    call.kind = req.method() !== "GET" ? "write" : !id ? "list" : u.searchParams.get("alt") === "media" ? (call.range ? "piece" : "download") : "details";
+    call.kind = req.method !== "GET" ? "write" : !id ? "list" : u.searchParams.get("alt") === "media" ? (call.range ? "piece" : "download") : "details";
     if (call.kind === "piece") call.kind = "download", call.piece = true;
     drive.calls.push(call); drive.inflight++;
     await drive.hold(call);
     try {
       // Google's refusal of a throttled download lacks the header that lets the page read it: a failed request
-      if (drive.outage === "down" || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return await route.abort("failed");
-      return await answer(route, call);
+      if (drive.outage === "down" || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return null;
+      return await answer(req, call);
     } finally {
       drive.inflight--;
       for (const w of [...waiting]) if (w.match(call)) { waiting.splice(waiting.indexOf(w), 1); w.ok(call); }
     }
+  };
+}
+
+export async function fakeGoogleDrive(ctx, world, outside) {
+  const drive = driveIn(world), respond = driveAnswers(drive, signInIn(world));
+  fakes.set(ctx, drive);
+  outside.route((u) => API.test(u.href), async (route) => {
+    const req = route.request();
+    const answer = await respond({ method: req.method(), url: req.url(), headers: req.headers(), body: req.postDataBuffer() });
+    return answer ? route.fulfill(answer) : route.abort("failed");
   });
   outside.route(THUMB + "*", (route) => {
     drive.thumbs.push(drive.get(route.request().url().slice(THUMB.length))?.name);

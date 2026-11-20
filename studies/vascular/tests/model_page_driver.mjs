@@ -42,16 +42,25 @@ const brightnessNow = () => page.evaluate(() => {
   return s / (d.length / 4);
 });
 const facts = () => page.textContent("#model-facts");
-// the model's own canvas now: how many pixels are lit, and how many of those are coloured rather than grey
+// the model's own canvas now: how many pixels are lit, how many of those are coloured rather than grey, and how many
+// are thick, lit all round: the body of a tube, which a line a pixel or so wide has none of but where lines cross,
+// however the engine smooths the line's edge
 const drawn = async () => { await frames(page); return drawnNow(); };
 const drawnNow = () => page.evaluate(() => {
-  const d = testCopy(document.querySelector("#mcv")).getImageData(0, 0, document.querySelector("#mcv").width, document.querySelector("#mcv").height).data;
-  let lit = 0, coloured = 0;
+  const { width: W, height: H } = document.querySelector("#mcv"), d = testCopy(document.querySelector("#mcv")).getImageData(0, 0, W, H).data;
+  const on = new Uint8Array(W * H);
+  let lit = 0, coloured = 0, thick = 0;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 128 || d[i] + d[i + 1] + d[i + 2] < 60) continue;
+    on[i / 4] = 1;
     lit++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 60) coloured++;
   }
-  return { lit, coloured };
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    let around = 0;
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) around += on[(y + b) * W + x + a];
+    if (around === 9) thick++;
+  }
+  return { lit, coloured, thick };
 });
 
 try {
@@ -139,7 +148,7 @@ try {
   await page.setChecked("#depth-0", depth);
   await page.uncheck(await inMenu("#m-widths"));
   const thin = await drawn();
-  check(thin.lit < alone.lit * 0.7, `Vessel widths off draws the vessels as lines: ${alone.lit} → ${thin.lit} lit pixels`);
+  check(thin.thick < alone.thick * 0.2, `Vessel widths off draws the vessels as lines: ${alone.thick} → ${thin.thick} thick pixels`);
   await page.check(await inMenu("#m-widths"));
   await page.click(await inMenu('#model-mode [data-v="alone"]'));
   check((await shown()).pressed === "overlay", "Model clicked again shows the model over the stack");

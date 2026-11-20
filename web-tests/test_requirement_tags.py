@@ -7,6 +7,7 @@ import collections
 import glob
 import os
 import re
+import subprocess
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SPEC = os.path.join(ROOT, 'dev', 'requirements', 'requirements.md')
@@ -69,21 +70,21 @@ def test_each_section_is_sorted_by_tag():
 def test_every_cited_tag_exists():
     known = {t for s, ts in sections().items() for t in [s, *ts]}
     unknown, scanned, cited = [], 0, 0
-    for top, dirs, files in os.walk(ROOT):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-        for name in files:
-            if not name.endswith(TEXT):
-                continue
-            path = os.path.join(top, name)
-            try:
-                text = open(path, encoding='utf-8').read()
-            except UnicodeDecodeError:
-                continue
-            scanned += 1
-            for tag in re.findall(rf'(?<![\w/.-]){TAG}', text):
-                cited += 1
-                if tag not in known:
-                    unknown.append(f'{os.path.relpath(path, ROOT)}: {tag}')
+    # the repo's own files: what git tracks, so a local checkout's other trees (an agent's worktree, a venv) are not read
+    tracked = subprocess.run(['git', '-C', ROOT, 'ls-files', '-z'], capture_output=True, check=True, timeout=60).stdout.decode().split('\0')
+    for rel in tracked:
+        if not rel.endswith(TEXT) or SKIP_DIRS & set(rel.split('/')[:-1]):
+            continue
+        path = os.path.join(ROOT, rel)
+        try:
+            text = open(path, encoding='utf-8').read()
+        except (UnicodeDecodeError, OSError):
+            continue
+        scanned += 1
+        for tag in re.findall(rf'(?<![\w/.-]){TAG}', text):
+            cited += 1
+            if tag not in known:
+                unknown.append(f'{rel}: {tag}')
     assert scanned >= 200 and cited >= 200, f'swept {scanned} files and {cited} citations: the walk no longer reaches the repo'
     assert not unknown, 'cited tags the spec does not have:\n' + '\n'.join(unknown)
 

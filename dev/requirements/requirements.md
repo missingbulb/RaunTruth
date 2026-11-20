@@ -415,7 +415,7 @@ nobody has decided: what the page does there is not a requirement yet.
   to the user's Drive (`drive.readonly`) along with the rest (`req/shell/account/sign-in`); a token from before
   that, lacking it, is renewed on the next click on a Drive control. `drive.readonly` is a restricted scope: until
   Google verifies the site, Google shows an "unverified app" screen on signing in and lets in at most 100 new users
-  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_credentials_page.py`.
+  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_reads.py`, and, of the page's own sign-in, `web-tests/test_drive_renewal_page.py`.
   </details>
 
 - `req/shell/drive/dialog` Google Drive: a study browses its own folders, the Image Viewer takes a pasted link; open on Open, double click or Enter.
@@ -547,7 +547,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Open, the list, its thumbnails and badges all wait. The wait is kept in the browser, so reloading
   the page does not end it. An image kept on this device (`req/shell/drive/kept-images`) still opens, from the device. When
   the countdown ends, the notice goes and the dialog lists its link again. Test:
-  `web-tests/test_drive_throttle_page.py`.
+  `web-tests/test_drive_throttle_page.py`, and, of telling throttling from another failure, `web-tests/test_drive_reads.py`.
   </details>
 
 - `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
@@ -1812,8 +1812,9 @@ nobody has decided: what the page does there is not a requirement yet.
   parts, a folder Data Management had open, an edit, the remote files dialog's listing, or a ground-truth line.
   What the browser keeps carries over as a reload would keep it (who is signed in, the role, the theme, the
   user's choices, the images kept here), and so do the tab's own measures in the status bar. Test:
-  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where every path of the shell's
-  states ends by going to another study and back, each compared with a fresh load of its address.
+  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where the first path of each study and
+  role of the shell's states ends by going to another study and back, each compared with a fresh load of its address
+  (set by the owner on 2026-11-20, in place of every path: the other paths' last states add little the first does not).
   </details>
 
 - `req/shell/study/viewer-choice` The viewer is the study's choice.
@@ -1954,7 +1955,9 @@ nobody has decided: what the page does there is not a requirement yet.
   points of its row, which redraw the 3D view as they move. The study's `view` sets the render and the
   spacing it opens with. A study draws over the 3D view, over the stack or beside it
   in the same camera, picks and drags there, and can keep only the stack inside or outside a mask of
-  its own. Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
+  its own. The stack's own picture is drawn again only when what it is made from has changed (the camera, the
+  slices and channels shown, a mask): the ruler and a study's marks are drawn over it as it stands (owner,
+  2026-11-20). Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
   </details>
 
 - `req/shell/views/second` A study's item view shows what was found, behind the shell's Items switch; there is none while ground truth is made.
@@ -2086,8 +2089,8 @@ nobody has decided: what the page does there is not a requirement yet.
   against a stand-in Google and a stand-in Python answering what the study's own Python answers on loading and on
   opening the image, or the z-stack a path loads, and the study's own Python answering its calls once it takes its
   first step, signed in as an account the study is shown to, and at every state, the study's calls answered, reads each element as shown,
-  disabled, held offline, folded or gone. After its last state, back online first, each path goes to another
-  study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
+  disabled, held offline, folded or gone. After its last state, back online first, the first path of each study and
+  role goes to another study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
   shows in the same browser: the whole page read element by element and the shell's own state, leaving out what
   changes between two readings of the same page (the status bar's measures of the tab, the browser's mark on what is
   scrolled out of view, an attribute left empty, the order of a class list); every difference is listed before it fails. Test: `web-tests/test_shell_states.py`,

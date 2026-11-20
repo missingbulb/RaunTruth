@@ -8,6 +8,7 @@ A check added to nor3.CHECKS, with its parameters read through `p[...]` or `p.ge
 control by itself; its letter, title and text come from finder_help.REASONS and its colour from nor3.REASONS.
 """
 import ast
+import functools
 import inspect
 import json
 
@@ -53,6 +54,11 @@ OFF = dict(max_off_u=99, max_axis_dev=180, min_solid=0, red_floor_q=0.0)
 def check_params():
     """{check: {param: default}}, read from the source of nor3.CHECKS. A default is the one given to p.get(); None
     means the finder's parameter set must supply it."""
+    return {k: dict(ps) for k, ps in _check_params().items()}
+
+
+@functools.lru_cache(maxsize=None)
+def _check_params():
     tree = ast.parse(inspect.getsource(nor3))
     node = next(n for n in tree.body if isinstance(n, ast.Assign) and getattr(n.targets[0], 'id', '') == 'CHECKS')
     out = {}
