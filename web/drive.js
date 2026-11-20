@@ -15,14 +15,11 @@ import { work } from "./pending.js";
 const GOOGLE = (window.NOR_CONFIG && window.NOR_CONFIG.google) || {};
 // what a study's image from Drive is, as its source records it on this device and in the documents it writes
 const KIND = "drive";
-// Google's per-file permission, which lets the page create files and change the ones it made
-const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
 const FOLDER = "application/vnd.google-apps.folder";
 // the private property every file the page creates carries, which only this site's own reads see
 const MINE = { rauntruth: "made" };
 const THROTTLING = "Google is throttling this site's downloads";
-const APPROVE_GUIDE = { title: "Letting this site add files to the study's folders", go: "Open Google's window", wait: "Waiting for Google: follow these steps in Google's window." };
 const RUN_OUT = "Your Google sign-in has run out: click again to renew it";
 
 // The bodies of Drive's uploads, written out as bytes, not a FormData or a Blob: Playwright's WebKit hands a page test
@@ -234,9 +231,6 @@ export const remote = (() => {
 
   // The writer for a study's own folders, for a signed-in user: account the sign-in (account.js)
   function writer(account) {
-    // the guide to Google's window on approving the site (req/shell/account/consent-guide): the per-file permission's box
-    const fileStep = () => ({ text: "Tick the box to <b>see, edit, create and delete only the specific Google Drive files you use with this app</b> (or <b>Select all</b>), then click <b>Continue</b>.",
-      shot: account.shot("consent-file"), from: "another app's screen, from ifunplay's help centre" });
     // a live token, renewed in the user's click where it has run out, else an Error asking for another click
     const token = async () => {
       const t = await account.forRead();
@@ -252,10 +246,10 @@ export const remote = (() => {
       throw Object.assign(new Error(`Google refused (${r.status})${why ? ": " + why : ""}`), { status: r.status });
     }
     return work.counted({
-      // "write", "view" (Drive gives the user no more than a view), "none" (the site lacks the per-file permission,
-      // so may write nowhere), or null when it cannot tell now (no live token)
+      // "write", "view" (Drive gives the user no more than a view, or the sign-in holds no per-file permission), or
+      // null when it cannot tell now (no live token)
       async access(id) {
-        if (!account.may(DRIVE_FILE)) return "none";
+        if (!account.writes()) return "view";
         if (!account.token()) return null;
         try {
           const f = await (await google(`${API}/${encodeURIComponent(id)}?fields=id,capabilities(canAddChildren)&supportsAllDrives=true`)).json();
@@ -264,13 +258,6 @@ export const remote = (() => {
           if (e.status === 404 || e.status === 403) return "view";
           throw e;
         }
-      },
-      // In the user's click, while the per-file permission is missing: the guide to Google's screens
-      // (req/shell/account/consent-guide), then, in its click, Google asked for it. Whether the site now has it.
-      async approve() {
-        if (account.may(DRIVE_FILE)) return true;
-        try { await account.guide.open({ ...APPROVE_GUIDE, steps: [...account.unverified, fileStep()] }); } catch { return false; }
-        try { return await account.more(DRIVE_FILE); } finally { account.guide.done(); }
       },
       // a new file in folder parent: its id
       async create(parent, name, blob) {

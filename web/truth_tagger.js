@@ -7,7 +7,6 @@ import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
   unset: "This study has not set up its ground-truth folders yet, so ground truth cannot be submitted.",
-  none: "Not approved: this site may not add files for you yet.",
   view: "View only: the store lets you only view the study's submissions folder. Ask its owner for edit access.",
   unknown: "Your sign-in ran out. Sign in again to submit.",
 };
@@ -18,7 +17,7 @@ export function truthTagger({ account, remote, place, image, on }) {
   const sd = remote.writer(account);
   const reader = place.reader;
   const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark };
-  // the access last read: "write" | "view" | "none" | "unset" | "unknown"; epoch: the draw a late answer belongs to
+  // the access last read: "write" | "view" | "unset" | "unknown"; epoch: the draw a late answer belongs to
   let access = null, epoch = 0;
   // the access lines as the page loaded, put back when the study leaves
   const asStarted = asLoaded([...document.querySelectorAll("#left .gt-access")]);
@@ -37,12 +36,8 @@ export function truthTagger({ account, remote, place, image, on }) {
       // a tagger who may write, or whose access is still being read, is told nothing
       el.hidden = !on() || !SAY[access];
       if (el.hidden) { el.replaceChildren(); continue; }
-      const approve = access === "none" ? `<button type="button" class="gt-approve" data-needs-network>Approve…</button>` : "";
-      el.innerHTML = `<span class="gt-say"></span>${approve}`;
+      el.innerHTML = `<span class="gt-say"></span>`;
       el.querySelector(".gt-say").textContent = SAY[access];
-      el.querySelector(".gt-approve")?.addEventListener("click", async () => {
-        if (await sd.approve()) draw();
-      });
     }
   }
   // the line drawn again, its access read afresh
