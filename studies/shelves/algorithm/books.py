@@ -965,14 +965,19 @@ def covers(e, keep):
         return []
     at = lambda q: (np.clip(np.round(q[..., 1]).astype(int), 0, h - 1), np.clip(np.round(q[..., 0]).astype(int), 0, w - 1))
     pts = c[:, :, None, :] + np.linspace(0.08, 0.92, 40)[None, None, :, None] * side[:, :, None, :]
-    on = e.near[at(pts)].mean(axis=2)
+    # the contrast across each side and the edges running on past it cost the most, and are read only of those whose
+    # every side lies on edges
+    on = np.flatnonzero(np.all(e.near[at(pts)].mean(axis=2) >= COVER_ON, axis=1))
+    if not len(on):
+        return []
+    c, side, L, area, pts = c[on], side[on], L[on], area[on], pts[on]
     normal = np.stack([-side[..., 1], side[..., 0]], -1) / np.maximum(L[..., None], 1e-6)
     inward = np.sign(np.sum((c.mean(axis=1)[:, None, None, :] - pts) * normal[:, :, None, :], axis=-1, keepdims=True))
     k = max(3, int(0.01 * max(h, w)))
     across = np.median(np.linalg.norm(e.rgb[at(pts + inward * k * normal[:, :, None, :])] - e.rgb[at(pts - inward * k * normal[:, :, None, :])], axis=-1), axis=2) / e.spread
     beyond = np.linspace(0.02, 0.07, 8)[None, None, :, None] * side[:, :, None, :]
     runs = (e.near[at(c[:, :, None, :] - beyond)].mean(axis=2) >= COVER_SIDE) | (e.near[at(np.roll(c, -1, axis=1)[:, :, None, :] + beyond)].mean(axis=2) >= COVER_SIDE)
-    good = np.flatnonzero(np.all(on >= COVER_ON, axis=1) & np.all(across >= COVER_CONTRAST, axis=1) & (runs.sum(axis=1) <= 1))
+    good = np.flatnonzero(np.all(across >= COVER_CONTRAST, axis=1) & (runs.sum(axis=1) <= 1))
     kept = []
     for i in good[np.argsort(area[good])]:
         if any(points_in_poly(c[i].mean(0)[None], q)[0] or points_in_poly(q.mean(0)[None], c[i])[0] for q in kept):
