@@ -164,7 +164,7 @@ async function markAndVote(page) {
   await rest();
   await check(await page.isVisible("#ctx"), "a right click while the page glides the view keeps its menu open once the view rests");
   await page.mouse.wheel(0, 40);
-  await page.waitForFunction(() => document.querySelector("#ctx").hidden);
+  await page.waitForFunction(() => document.querySelector("#ctx").hidden, null, { timeout: 2000 }).catch(() => {});
   await check(!(await page.isVisible("#ctx")), "the user's wheel over the image closes it");
   await page.evaluate((w) => { shellForTests.viewer.setZoom(w.zoom); $("#scroller").scrollTo({ left: w.x, top: w.y, behavior: "instant" }); }, was);
   await rest();
