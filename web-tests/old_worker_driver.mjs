@@ -21,7 +21,7 @@ const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (before) {
     if (u === "/sw.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(fs.readFileSync(oldSw)); }
-    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
+    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<!doctype html><title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
     r.writeHead(404); return r.end();
   }
   let f = path.join(site, u);

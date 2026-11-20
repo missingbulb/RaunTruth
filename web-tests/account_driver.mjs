@@ -19,7 +19,7 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { pw, launch, googleOf, siteOf, expecting, check } from "./harness.mjs";
+import { pw, launch, googleOf, siteOf, check } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -216,10 +216,10 @@ try {
 
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
-    // off the page first: a sync still running on it would write the sign-in back, an hour long, and a request still
-    // on its way would meet the revoked token
+    // off the page first, to a file of the site's that runs none of its code: a sync still running on it would write
+    // the sign-in back, an hour long, and a request still on its way would meet the revoked token
     const at = b.page.url();
-    await expecting(/status of 404/, () => b.page.goto(origin + "/web/no-page-here"));
+    await b.page.goto(origin + "/web/logo.svg");
     google.revokeAll();
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));

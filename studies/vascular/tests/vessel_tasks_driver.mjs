@@ -163,6 +163,8 @@ try {
   const rot0 = (await view()).rot;
   // dragging a handle from straight above moves its point across the picture, never in depth
   let m = await doc();
+  // the points' places are those of the view's last draw: the one of the area just chosen
+  await viewDrawn(page);
   const pts = await page.evaluate(() => window.vascular.model().points);
   // inside the current area, the top-left quarter, at least margin µm from its edges
   const inArea = (n, margin = 0) => n.x > margin && n.x < W / 2 - margin && n.y > margin && n.y < H / 2 - margin;
@@ -261,7 +263,8 @@ try {
         const snap = await page.evaluate(() => window.vascular.model().drawing);
         check(snap?.onto?.node === +target && Math.hypot(snap.end[0] - qx, snap.end[1] - qy) < 0.5,
           `over a vessel's point, the line being drawn ends on it, not at the pointer: ${JSON.stringify(snap)} vs point ${target} at ${qx.toFixed(1)}, ${qy.toFixed(1)}`);
-        const mid = [(from2[0] + to2[0]) / 2, (from2[1] + to2[1]) / 2];
+        // on a whole pixel of the page: Firefox tells a page its pointer's place in whole pixels
+        const mid = [Math.round(cx + (from2[0] + to2[0]) / 2) - cx, Math.round(cy + (from2[1] + to2[1]) / 2) - cy];
         await page.mouse.move(cx + mid[0], cy + mid[1], { steps: 3 });
         const own = await page.evaluate(() => window.vascular.model().drawing);
         check(own && !own.onto && Math.hypot(own.end[0] - mid[0], own.end[1] - mid[1]) < 0.5,
