@@ -919,6 +919,22 @@ def straight_lines(e, keep):
     return np.array([o[0] for o in out]), np.array([o[1] for o in out])
 
 
+def line_quads(ang, dist, apart):
+    """The lines taken four at a time as two pairs of near-parallel lines at least `apart` from each other, the two
+    pairs crossing and sharing no line: [n, 4] indices, each pair's lines in rising order, the quadrilaterals in the
+    order of their first pair and then their second."""
+    turn = np.degrees(np.abs((ang[:, None] - ang[None, :] + np.pi / 2) % np.pi - np.pi / 2))
+    i, j = np.triu_indices(len(ang), 1)
+    pair = (turn[i, j] <= COVER_PARALLEL) & (np.abs(dist[i] - dist[j]) >= apart)
+    i, j = i[pair], j[pair]
+    both = (turn >= COVER_CROSS)[i[:, None], i[None, :]]
+    for a in (i, j):
+        for b in (i, j):
+            both &= a[:, None] != b[None, :]
+    first, second = np.nonzero(np.triu(both, 1))
+    return np.stack([i[first], j[first], i[second], j[second]], 1)
+
+
 def covers(e, keep):
     """[cover-shape] The covers lying in a photo, outside its shelves, each four corners: every quadrilateral two pairs of
     near-parallel straight lines make, kept when it is a cover's size and shape, each side lies on edges with a colour
@@ -929,12 +945,9 @@ def covers(e, keep):
     n = len(ang)
     if n < 4:
         return []
-    turn = lambda a, b: np.degrees(np.abs((a - b + np.pi / 2) % np.pi - np.pi / 2))
-    pairs = [(i, j) for i in range(n) for j in range(i + 1, n) if turn(ang[i], ang[j]) <= COVER_PARALLEL and abs(dist[i] - dist[j]) >= 0.05 * min(h, w)]
-    quads = [p + q for k, p in enumerate(pairs) for q in pairs[k + 1:] if turn(ang[p[0]], ang[q[0]]) >= COVER_CROSS and not set(p) & set(q)]
-    if not quads:
+    A, D = (v[line_quads(ang, dist, 0.05 * min(h, w))] for v in (ang, dist))
+    if not len(A):
         return []
-    A, D = ang[np.array(quads)], dist[np.array(quads)]
 
     def meet(i, j):
         det = np.cos(A[:, i]) * np.sin(A[:, j]) - np.sin(A[:, i]) * np.cos(A[:, j])
