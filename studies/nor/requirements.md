@@ -10,18 +10,6 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 [`studies/nor/algorithm/nor_finder.py`](algorithm/nor_finder.py), tested by
 [`studies/nor/tests/test_algorithm.py`](tests/test_algorithm.py).
 
-- `req/nor/find/nors-only` The algorithm gives the page a list of NoRs, and nothing else; the page has no filters, settings or presets.
-  <details>
-
-  Set by the owner on 2026-11-20. The tagger goes over every NoR the algorithm proposes anyway and then marks the
-  missed ones, so filters, finder settings and presets have no part in the workflow: the page shows none of them, and
-  no rejected candidate or rejection reason. Python runs only to find the NoRs (Find Candidates). The finder runs with
-  its filters off, only its own structural checks kept (two greens around a red): while the study makes ground truth,
-  recall comes before precision, since a NoR missed costs the tagger a search and a false one a thumbs down. The
-  filters stay in the algorithm, the lab's to tune ([docs/requirements.md](docs/requirements.md) R11). Test:
-  `studies/nor/tests/test_processing_box.py`, `studies/nor/tests/test_algorithm.py`.
-  </details>
-
 - `req/nor/candidates/add-missed` Right-clicking the image adds a NoR the finder missed.
   <details>
 
@@ -162,6 +150,18 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   </details>
 
 - `req/nor/find/finders` All finders are offered; Traffic light is the default.
+
+- `req/nor/find/nors-only` The algorithm gives the page a list of NoRs, and nothing else; the page has no filters, settings or presets.
+  <details>
+
+  Set by the owner on 2026-11-20. The tagger goes over every NoR the algorithm proposes anyway and then marks the
+  missed ones, so filters, finder settings and presets have no part in the workflow: the page shows none of them, and
+  no rejected candidate or rejection reason. Python runs only to find the NoRs (Find Candidates). The finder runs with
+  its filters off, only its own structural checks kept (two greens around a red): while the study makes ground truth,
+  recall comes before precision, since a NoR missed costs the tagger a search and a false one a thumbs down. The
+  filters stay in the algorithm, the lab's to tune ([docs/requirements.md](docs/requirements.md) R11). Test:
+  `studies/nor/tests/test_processing_box.py`, `studies/nor/tests/test_algorithm.py`.
+  </details>
 
 - `req/nor/find/one-slow-step` One image, one slow step: the finder runs only on Find Candidates.
   <details>
