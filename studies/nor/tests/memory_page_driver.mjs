@@ -168,21 +168,40 @@ const KB = 1024;
 // kilobytes an open, and the image alone is a quarter of a megabyte
 const ROUNDS = +(process.env.ROUNDS || 8);
 const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
+// The heap and the buffers are read every EVERY rounds, and judged by the median growth between readings, as over
+// ROUNDS: what the page keeps each round is in every interval, where a step it takes once, a cache filling or code
+// compiled on a busy machine, is in one, and moves the median nothing. Nodes and listeners, counted exactly, are
+// judged over all the rounds.
+const EVERY = 2, SLOPED = ["heap", "buffers"];
+const median = (xs) => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 
 await page.goto(origin + "/web/?study=nor");
 await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
 await open(); await find(); await tune();
+// a reading first, kept by none: the first one's own reads make what the page holds for them from then on (the DOM's
+// interfaces, the shapes of what they return), which would otherwise be in the first base
+await measure();
 const problems = [];
 for (const [name, act] of Object.entries({ open, find, tune })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
   // what holds the nodes outside the document, read before the base so its own reading is in it
-  const held = await detached(cdp), base = await measure();
-  for (let r = 0; r < ROUNDS; r++) await act();
-  // read after the same snapshot as the base, so work the last round left running has ended in both or neither
-  const after = await detached(cdp), m = await measure();
-  console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
-  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over ${ROUNDS} rounds`);
+  const held = await detached(cdp), readings = [await measure()];
+  let after;
+  for (let r = 1; r <= ROUNDS; r++) {
+    await act();
+    if (r % EVERY) continue;
+    // the last read after the same snapshot as the base, so work the last round left running has ended in both or neither
+    if (r === ROUNDS) after = await detached(cdp);
+    readings.push(await measure());
+  }
+  const base = readings[0], m = readings.at(-1);
+  console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${readings.map((x) => x[k]).join(" -> ")}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
+  for (const [k, lim] of Object.entries(LIMITS)) {
+    const steps = readings.slice(1).map((x, i) => x[k] - readings[i][k]);
+    const grew = SLOPED.includes(k) ? median(steps) * ROUNDS / EVERY : m[k] - base[k];
+    if (grew > lim) problems.push(`${name}: ${k} grew by ${grew} over ${ROUNDS} rounds` + (SLOPED.includes(k) ? `, as the median of its growth every ${EVERY} (${steps.join(", ")})` : ""));
+  }
   // where the nodes went, so a growth seen only on another machine says where to look
   if (m.nodes > base.nodes) {
     const a = base.where.by, b = m.where.by;
