@@ -8,6 +8,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
+import { BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -142,8 +143,10 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 // its previews drawn first: Playwright's WebKit, set offline, fails every read of a Blob's bytes, the previews' among them
 await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .cell .pic")].every((p) => p.querySelector("img") || p.classList.contains("none")));
 const before = writes.length;
-// offline, what the page still asks of Drive fails as the network would, when it asks anything then
-await expecting(NETWORK_GONE, async () => {
+// offline, what the page still asks of Drive fails as the network would, when it asks anything then; and where
+// offline refuses the page a Blob's bytes, so does each preview the page draws again as the network goes
+const gone = BLOBS_READ_OFFLINE ? NETWORK_GONE : new RegExp(NETWORK_GONE.source + "|preview could not be read");
+await expecting(gone, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   // the list as the page shows it offline, whatever it drew again as the network went
