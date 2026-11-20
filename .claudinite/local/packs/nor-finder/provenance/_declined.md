@@ -22,3 +22,10 @@
   rewritten in place" each need an owner decision first (a branch-protection setting; a module hash
   in the metrics).
 - **Actor:** @missingbulb (owner), asking for growth from the sessions since the last growth run.
+
+## 2026-11-20 · declined · the two candidates put to the owner
+- **Source:** the owner's answers on the second growth pass.
+- **Reason:** no up-to-date-before-merge setting or guard, by the owner's choice: one instance in 36
+  sessions; the version-rewritten-in-place guard is filed as #1055, since it needs a metrics-format
+  change of its own.
+- **Actor:** @missingbulb (owner).
