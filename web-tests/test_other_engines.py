@@ -35,6 +35,11 @@ def test_a_failure_is_reported_and_kept_green_where_the_browser_is_not_supported
     assert other_engines.verdict('firefox', 0, WITH_FIREFOX) == 0
 
 
+def test_a_run_that_could_not_collect_or_finish_its_tests_fails_whatever_the_engine():
+    for code in (2, 3, 4, 5):
+        assert other_engines.verdict('firefox', code, CHROMIUM_ONLY) == code
+
+
 def test_the_run_leaves_out_only_what_chromium_alone_can_measure():
     """A test marked chromium_only (it needs what only Playwright's Chromium offers) is left out; the rest of the
     memory test's module, and every other full test, is run."""

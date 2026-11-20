@@ -25,7 +25,8 @@ def counts(engine, supported):
 
 def verdict(engine, code, supported):
     """The run's exit code from the tests' own."""
-    if code == 0 or counts(engine, supported):
+    # only tests failing are forgiven: a run that could not collect them, or stopped, fails whatever the engine
+    if code != 1 or counts(engine, supported):
         return code
     # expected while the browser is not supported: the failures are reported, and the night stays green
     print(f'::warning title={BROWSER[engine]} not yet supported::the full set failed on {engine}; '
