@@ -159,7 +159,7 @@ try {
   check(await page.evaluate(() => tess.reads) === 12 && (await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent))).join() === "Title 240x35,Title 260x40,Title 180x180",
     "Read titles reads every book again with the reader chosen, on the page alone", await page.evaluate(() => tess.reads));
   const asked = await page.evaluate(() => pyCalls);
-  check(!asked.includes("straighten"), "Read titles straightens each book in the page, from the photo it shows, asking Python for none", asked);
+  check(asked.length && asked.every((x) => x === "run"), "Read titles straightens and labels each book in the page, asking Python for nothing but Find books' run", asked);
   const [m1, m2, m3] = m.doc.books;
   check(m.name === "shelf_books.json" && m.doc.books.length === 3 && m1.id === 1 && m1.text === "Title 240x35" && m1.confidence === 0.9 && m1.reader === "lines"
     && m3.view === "cover" && m2.corners.length === 4 && m.doc.W === W,
@@ -526,7 +526,7 @@ try {
   await page.click('#bs-menu [data-do="delete"]');
   check((await books(page)).length === 3 && (await rows())[0] === "3/3 Books", "Delete this book takes an added book away", await rows());
   const tagged = await page.evaluate(() => pyCalls);
-  check(!tagged.includes("straighten"), "a book flipped, dragged or added is straightened in the page, asking Python for none", tagged);
+  check(tagged.length && tagged.every((x) => x === "run"), "a book flipped, dragged or added is straightened and labelled in the page, asking Python for nothing but Find books' run", tagged);
   // a book can be added over a box already drawn: a box the finder drew over two books hides one of them
   await page.mouse.click(...(await toScreen(30, 150)), { button: "right" });
   check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add,flip,delete", "right-click on a book offers Add a book too, with Flip and Delete");

@@ -130,7 +130,11 @@ read for a title matcher; matching the titles is not part of it.
   a library's shelf stickers every book, once one spine on the photo carries a clear mark, a looser one at the
   head or foot of the others is taken too. Each block keeps where it was read on the straightened book (its
   `regions`), which the ground-truth task outlines. The answer keeps `title` as every field's text joined, for
-  the matcher. The routes and what they cost: `docs/fields/EXTRACTION.md`. Test: `studies/shelves/tests/test_reading.py`.
+  the matcher. The routes and what they cost: `docs/fields/EXTRACTION.md`. Set by the owner on 2026-11-20 (#1059):
+  the text the tagger's readers read (Read titles, a book read again while tagged) is read into fields in the page,
+  on its text alone, exactly as the algorithm reads a block whose place is unknown, asking Python for nothing. Test:
+  `studies/shelves/tests/test_reading.py`, `studies/shelves/tests/test_fields_page.py`,
+  `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shelves/read/readers` Find books reads each book's title in the same run; Read titles reads every book again with the reader chosen, in Hebrew and English.
