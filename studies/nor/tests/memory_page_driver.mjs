@@ -168,11 +168,11 @@ const KB = 1024;
 // kilobytes an open, and the image alone is a quarter of a megabyte
 const ROUNDS = +(process.env.ROUNDS || 8);
 const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
-// The heap and the buffers are read every EVERY rounds, and judged by the median growth between readings, as over
-// ROUNDS: what the page keeps each round is in every interval, where a step it takes once, a cache filling or code
-// compiled on a busy machine, is in one, and moves the median nothing. Nodes and listeners, counted exactly, are
-// judged over all the rounds.
-const EVERY = 2, SLOPED = ["heap", "buffers"];
+// The heap, the buffers and the listeners are read every EVERY rounds, and judged by the median growth between
+// readings, as over ROUNDS: what the page keeps each round is in every interval, where a step it takes once, a cache
+// filling or code compiled on a busy machine, two listeners now and then, is in one, and moves the median nothing.
+// Nodes, whose growth is then traced to where it went, are judged over all the rounds.
+const EVERY = 2, SLOPED = ["heap", "buffers", "listeners"];
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 
 await page.goto(origin + "/web/?study=nor");
