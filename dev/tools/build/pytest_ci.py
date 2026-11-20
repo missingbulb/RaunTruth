@@ -30,8 +30,9 @@ def pytest_configure(config):
 def pytest_sessionstart(session):
     """The site as the build makes it before any test reads it: the files it writes into web/ (the list of studies, the
     version history, the vendored wheels), which a page reads, written once by the run that hands the tests out, so a
-    test that builds the site itself midway changes nothing another one sees."""
-    if hasattr(session.config, 'workerinput') or _built:
+    test that builds the site itself midway changes nothing another one sees. A run that only collects the tests reads
+    none of them, and builds nothing."""
+    if hasattr(session.config, 'workerinput') or _built or session.config.option.collectonly:
         return
     _built.append(True)
     subprocess.run([sys.executable, BUILD], check=True, timeout=300, stdout=subprocess.DEVNULL)
