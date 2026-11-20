@@ -154,24 +154,12 @@ async function markAndVote(page) {
   const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
   await page.click("#gt-start");
   await rest();
-  // the page's own glide, under way when the right click lands, leaves the menu open; the user's wheel closes it
-  await page.evaluate(() => $("#scroller").scrollTo({ left: 0, top: 0, behavior: "instant" }));
-  await rest();
-  const gliding = await middle(page);
-  await page.evaluate(() => shellForTests.viewer.focus(st.W, st.H));
-  await page.waitForFunction(() => $("#scroller").scrollTop > 0, null, { polling: "raf" });
-  await page.mouse.click(gliding.sx, gliding.sy, { button: "right" });
-  await rest();
-  await check(await page.isVisible("#ctx"), "a right click while the page glides the view keeps its menu open once the view rests");
-  await page.mouse.wheel(0, 40);
-  await page.waitForFunction(() => document.querySelector("#ctx").hidden, null, { timeout: 2000 }).catch(() => {});
-  await check(!(await page.isVisible("#ctx")), "the user's wheel over the image closes it");
   await page.evaluate((w) => { shellForTests.viewer.setZoom(w.zoom); $("#scroller").scrollTo({ left: w.x, top: w.y, behavior: "instant" }); }, was);
   await rest();
   const m = await middle(page);
   await page.mouse.click(m.sx, m.sy, { button: "right" });
-  await check(await page.isVisible("#ctx") && (await page.textContent("#ctx button")) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
-  await page.click("#ctx button");
+  await check(await page.isVisible("#point-menu") && (await page.textContent('#point-menu [role="menuitem"]')) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
+  await page.click('#point-menu [role="menuitem"]');
   const added = await page.evaluate(() => ({ sel: st.sel, c: nor.candOf(st.sel) }));
   await check(added.sel === "u1" && Math.hypot(added.c.cx - m.x, added.c.cy - m.y) < 1, `the added NoR is centred where clicked and selected (${added.c.cx}, ${added.c.cy})`);
   await check(await page.$$eval("#overlay .added .glow", (c) => c.length) === 1, "it glows on the image");
@@ -392,7 +380,7 @@ async function mask(page) {
     `each histogram names its mean, draws it where it falls and has a count axis, and no table repeats them (${JSON.stringify(hists)})`);
   await check(csvAt.every(Boolean), `both CSV buttons sit at the bottom of the Summary box (${csvAt})`);
   await page.mouse.click(...(await (async () => { const m = await middle(page); return [m.sx, m.sy]; })()), { button: "right" });
-  await page.click("#ctx button");
+  await page.click('#point-menu [role="menuitem"]');
   await mask(page);
   const gt = await page.evaluate(() => nor.document());
   await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");

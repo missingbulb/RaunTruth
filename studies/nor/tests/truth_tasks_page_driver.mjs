@@ -302,7 +302,7 @@ await check(!(await holes()).some((h) => same(h, rectOf(A))), "the area is not c
 await framedAtRest();
 const fr = await page.$eval("#overlay .area-frame", (f) => { const r = f.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
 await page.mouse.click(fr.x, fr.y, { button: "right" });
-await page.click("#ctx button");
+await page.click('#point-menu [role="menuitem"]');
 s = await now();
 await check(s.cur === "c:u1" && s.card === "u1" && s.open === "missed" && await page.isDisabled("#area-ok"), "an added NoR is the current item, in the Areas task, and the area waits for it", s);
 await page.click("#task-card .verdict .up");
@@ -313,8 +313,8 @@ await check(s.cur === "a:" + A, "its verdict given, the walk is back at the area
 await framedAtRest();
 const mid = await page.$eval("#overlay .area-frame", (f) => { const r = f.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
 await page.mouse.click(mid.x, mid.y, { button: "right" });
-const offered = await page.textContent("#ctx button");
-const removed = /Remove/.test(offered) && await page.click("#ctx button").then(() => true, () => false);
+const offered = await page.textContent('#point-menu [role="menuitem"]');
+const removed = /Remove/.test(offered) && await page.click('#point-menu [role="menuitem"]').then(() => true, () => false);
 await check(/Remove/.test(offered) && removed, "a right click on the added NoR offers to remove it, and Remove removes it", offered);
 await page.click("#task-back");
 s = await now();
@@ -379,7 +379,7 @@ const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#ta
 await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
 await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
 const heard = await studyTakes(page, KEYS);
-await check(heard.listeners >= 1 && heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
+await check(heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
 s = await now();
 took = await key("KeyF");
 let s2 = await now();

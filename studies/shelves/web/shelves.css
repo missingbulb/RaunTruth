@@ -29,12 +29,6 @@
 #overlay { overflow: visible; }
 .bs-corner { fill: #ffd400; stroke: #000; stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: move; }
 #scroller.bs-drawing { cursor: crosshair; }
-.bs-menu { position: absolute; z-index: 6; display: flex; flex-direction: column; min-width: 160px; padding: 4px; border-radius: 6px;
-  background: var(--panel, #fff); color: var(--text, #000); box-shadow: 0 4px 16px #0006; }
-.bs-menu[hidden] { display: none; }
-.bs-menu button { text-align: left; border: 0; background: none; padding: 6px 10px; cursor: pointer; }
-.bs-menu button[hidden] { display: none; }
-.bs-menu button:hover { background: var(--hover, #0001); }
 #bs-found:empty { display: none; }
 /* each button's key, in small type (req/shelves/truth/keys) */
 .bs-item kbd.key-on { font-size: 10px; padding: 0 4px; margin-left: 4px; opacity: 0.75; vertical-align: 1px; }

@@ -392,27 +392,12 @@ export function mount(shell) {
     renderTasks();
   }
   // right-clicking the image offers to add a NoR there, or to remove the added one under the pointer
-  {
-    const menu = $("#ctx");
-    const close = () => { menu.hidden = true; };
-    $("#scroller").addEventListener("contextmenu", (e) => {
-      if (!st.img) return;
-      const [x, y] = shell.viewer.toImage(e);
-      if (x < 0 || y < 0 || x > st.W || y > st.H) return;
-      e.preventDefault();
-      const k = addedCands().findIndex((c) => Math.hypot(c.cx - x, c.cy - y) <= radiusOf(c));
-      const b = menu.querySelector("button");
-      b.textContent = k < 0 ? "Add a NoR Here" : `Remove Added NoR #${numOf(addedCand(k))}`;
-      b.onclick = () => { close(); k < 0 ? addAdded(x, y) : removeAdded(k); };
-      menu.hidden = false;
-      menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 4) + "px";
-      menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 4) + "px";
-      b.focus();
-    }, here);
-    document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) close(); }, here);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }, here);
-    // the user's own wheel moves the image from under the menu; a glide of the page's own does not close it
-    $("#scroller").addEventListener("wheel", close, { ...here, passive: true });
+  function menuAt(e) {
+    if (!st.img) return [];
+    const [x, y] = shell.viewer.toImage(e);
+    if (x < 0 || y < 0 || x > st.W || y > st.H) return [];
+    const k = addedCands().findIndex((c) => Math.hypot(c.cx - x, c.cy - y) <= radiusOf(c));
+    return [k < 0 ? { label: "Add a NoR Here", run: () => addAdded(x, y) } : { label: `Remove Added NoR #${numOf(addedCand(k))}`, run: () => removeAdded(k) }];
   }
 
   // the result shown for candidate i: null = pass, else a failure reason
@@ -1009,8 +994,7 @@ export function mount(shell) {
     const sc = $("#scroller"), x = c.cx * st.zoom - sc.clientWidth / 2 - sc.scrollLeft, y = c.cy * st.zoom - sc.clientHeight / 2 - sc.scrollTop;
     if (Math.abs(x) > sc.clientWidth * 0.35 || Math.abs(y) > sc.clientHeight * 0.35) focusOn(c);
   }
-  // the area the walk is in, framed on the image; brought into view, zoomed in to fill much of the view when it is
-  // small there
+  // the area the walk is in, framed on the image; brought into view, filling much of it
   function frameArea(go) {
     const svg = $("#overlay"); let f = svg.querySelector(".area-frame");
     const on = tagging() && st.area != null && !!st.W;
@@ -1020,9 +1004,7 @@ export function mount(shell) {
     for (const [k, v] of Object.entries({ x, y, width: w, height: h })) f.setAttribute(k, v);
     f.style.display = ""; svg.append(f);
     if (!go) return;
-    const sc = $("#scroller"), fit = 0.6 * Math.min(sc.clientWidth / w, sc.clientHeight / h), z = Math.min(fit, 8);
-    if (st.zoom < fit * 0.6 && st.zoom < z) shell.viewer.setZoom(z);
-    shell.viewer.focus(x + w / 2, y + h / 2);
+    shell.viewer.frame([x, y, x + w, y + h], 0.6);
   }
   // What is done, cut out of the image by the viewer: the rectangle around each decided candidate's pixels, two pixels
   // wider each way, and each area done.
@@ -1302,6 +1284,7 @@ export function mount(shell) {
     idle: updateFind,
     showImage: () => showView("image"),
     pickAt: candAt,
+    menuAt,
     pick: (c) => (TRUTH ? c && tagging() && takeUp(c) : select(c && st.sel !== c.i ? c.i : null)),
     open: (c) => (TRUTH ? tagging() && takeUp(c) : select(c.i)),
     step,
