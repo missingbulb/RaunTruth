@@ -8,6 +8,7 @@ import { asLoaded } from "./as_loaded.js";
 const SAY = {
   unset: "This study has not set up its ground-truth folders yet, so ground truth cannot be submitted.",
   view: "View only: the store lets you only view the study's submissions folder. Ask its owner for edit access.",
+  unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
   unknown: "Your sign-in ran out. Sign in again to submit.",
 };
 export const LOCAL_GT = (remote) => `Ground truth cannot be sent from local files, only from ${remote.label}.`;
@@ -17,7 +18,7 @@ export function truthTagger({ account, remote, place, image, on }) {
   const sd = remote.writer(account);
   const reader = place.reader;
   const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark };
-  // the access last read: "write" | "view" | "unset" | "unknown"; epoch: the draw a late answer belongs to
+  // the access last read: "write" | "view" | "unpermitted" | "unset" | "unknown"; epoch: the draw a late answer belongs to
   let access = null, epoch = 0;
   // the access lines as the page loaded, put back when the study leaves
   const asStarted = asLoaded([...document.querySelectorAll("#left .gt-access")]);

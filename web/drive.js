@@ -246,10 +246,10 @@ export const remote = (() => {
       throw Object.assign(new Error(`Google refused (${r.status})${why ? ": " + why : ""}`), { status: r.status });
     }
     return work.counted({
-      // "write", "view" (Drive gives the user no more than a view, or the sign-in holds no per-file permission), or
-      // null when it cannot tell now (no live token)
+      // "write", "view" (Drive gives the user no more than a view), "unpermitted" (the sign-in holds no per-file
+      // permission, its box unticked), or null when it cannot tell now (no live token)
       async access(id) {
-        if (!account.writes()) return "view";
+        if (!account.writes()) return "unpermitted";
         if (!account.token()) return null;
         try {
           const f = await (await google(`${API}/${encodeURIComponent(id)}?fields=id,capabilities(canAddChildren)&supportsAllDrives=true`)).json();

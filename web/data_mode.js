@@ -23,6 +23,7 @@ const MAX_FOLDERS = 200;
 const ACCESS = {
   write: ["Writable", "This site may add files here for you."],
   view: ["View only", "The store lets you only view this folder: ask its owner for edit access."],
+  unpermitted: ["No permission", "You did not let this site add files for you: sign out, then sign in again and tick that box."],
   unknown: ["Checking…", "Your sign-in is being renewed."],
 };
 
@@ -142,7 +143,7 @@ export function dataMode(ctx) {
     if (!top || of !== epoch) return;
     if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
     if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
-    if (nodes.get(top)?.access === "view") return say("Study index: not written, as this site may not add files to the study's root for you.", true);
+    if (["view", "unpermitted"].includes(nodes.get(top)?.access)) return say("Study index: not written, as this site may not add files to the study's root for you.", true);
     const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
     try {
       const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
@@ -540,7 +541,7 @@ export function dataMode(ctx) {
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const why = !gt.curated ? "Set up ground truth first: the mark is kept in its curated folder"
-        : gtNodes.find((g) => g.id === gt.curated)?.access === "view" ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
+        : ["view", "unpermitted"].includes(gtNodes.find((g) => g.id === gt.curated)?.access) ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
       mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the curated ground-truth folder";
       mark.onclick = () => markTruth(n, s, mark);
@@ -578,7 +579,7 @@ export function dataMode(ctx) {
     const image = { name: f.name, sha256: f.sha };
     $("#curate-title").textContent = f.name; list.replaceChildren(); say("Reading the submissions…");
     dlg.showModal();
-    const curatedOk = gtNodes.find((g) => g.id === gt.curated)?.access === "write";
+    const curated = gtNodes.find((g) => g.id === gt.curated)?.access, curatedOk = curated === "write";
     try {
       const subs = await tf.files(reader, gt.submissions, image);
       const rows = await Promise.all(subs.map(async (s) => {
@@ -594,7 +595,7 @@ export function dataMode(ctx) {
         li.querySelector(".who").textContent = doc?.tagger || s.name;
         li.querySelector(".hint").textContent = s.rejected ? `rejected: ${s.reason || "no reason given"}` : `${when}, ${doc?.labels?.length ?? "?"} marks`;
         const [ok, no] = li.querySelectorAll("button");
-        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : ACCESS.view[1];
+        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : (ACCESS[curated] || ACCESS.view)[1];
         no.disabled = s.rejected;
         ok.onclick = async () => {
           ok.disabled = no.disabled = true; say("Accepting…");
@@ -610,7 +611,7 @@ export function dataMode(ctx) {
         };
         return li;
       }));
-      say(rows.length ? (curatedOk ? "" : "The curated folder is view only for you: ask its owner for edit access to accept.") : "No submissions.");
+      say(rows.length ? (curatedOk ? "" : curated === "unpermitted" ? `To accept: ${ACCESS.unpermitted[1]}` : "The curated folder is view only for you: ask its owner for edit access to accept.") : "No submissions.");
     } catch (e) { say(e.message || String(e), true); }
   }
   $("#curate-close").onclick = () => $("#curate-dlg").close();

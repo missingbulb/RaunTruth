@@ -219,7 +219,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), the tree shows, for each
   folder: writable, as Drive's sharing lets the user add files there, or view only. The site writes with Google's
   per-file permission (`drive.file`), asked at sign-in (`req/shell/account/sign-in`); a sign-in without it, its box
-  unticked, reads every folder as view only. The page only creates files and changes or trashes the ones it
+  unticked, reads every folder as No permission, saying to sign out and in again ticking that box (owner,
+  2026-11-20). The page only creates files and changes or trashes the ones it
   created; it never changes a file anyone else made. Changed by the owner on 2026-11-20: no approval of folders, no
   Google picker and no button asking for the permission. Real Drive lets the per-file permission create files in
   any folder the user may add to, picked or not, and a pick gave the site nothing it used
@@ -837,7 +838,8 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-05. At the top of the Ground Truth Tasks box, a line says whether this tagger
   may write to the submissions folder when they may not: View only, telling them to ask the study's owner for
-  edit access (a sign-in without the per-file permission reads so too, `req/shell/data/drive-access`). It
+  edit access; or, for a sign-in without the per-file permission, No permission, telling them to sign out and in
+  again ticking its box (`req/shell/data/drive-access`). It
   is checked before any work, not first found at submit. Changed by the owner on 2026-11-07: a tagger who may
   write is told nothing, the line taking no room. Test: `web-tests/test_gt_drive_page.py`.
   </details>
