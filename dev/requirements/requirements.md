@@ -1396,7 +1396,10 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07. The study's Python opens the file's own bytes, exactly as they came from this
   computer, Google Drive or the device's copy, and every algorithm reads only what it reads from them. Nothing the
   viewer does (its contrast, the channels shown, the black and white points, the 3D view) reaches Python, so the
-  same file gives the same result however it is viewed. Test: `web-tests/test_study_runs.py`.
+  same file gives the same result however it is viewed. Narrowed by the owner on 2026-11-20 (#1059): this holds for
+  the algorithms, a study's run; a ground-truth tool may work in the page on the pixels the shell decoded from the
+  file (the image's planes, before any of the viewer's settings), so that tagging needs no Python. Test:
+  `web-tests/test_study_runs.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/python/on-run` Python starts only when the user runs an algorithm.

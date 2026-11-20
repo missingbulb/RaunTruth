@@ -1,6 +1,5 @@
 // Drives the Bookshelf Reader's page in headless Chromium against stand-ins: a worker whose one run finds three books
-// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and
-// straightens each into a crop as big as its box for the tagger's readers, and a Tesseract that reads each crop as
+// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and a Tesseract that reads each crop as
 // "Title <w>x<h>", surest when the crop is wider than tall. Checks req/shelves/books/find (the books drawn, their
 // titles read in the same run), req/shelves/read/readers (each read at the turn that reads across, the reader kept,
 // Read titles reading every book again), req/shelves/matcher/export (the matcher's file),
@@ -74,18 +73,6 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call" && m.action === "run")
     run(m).then((meta) => postMessage({ type: "result", action: "run", meta, bytes: null, echo: m.echo }),
       (e) => postMessage({ type: "error", text: String(e.message || e) }));
-  // the texts the page's readers read, read into fields as the study's Python reads them, but for this stand-in at a
-  // slash alone: "author / title"
-  else if (m.type === "call" && m.action === "label") {
-    const books = m.args.texts.map((t) => { const i = t.indexOf(" / "); return { fields: i < 0 ? (t ? { title: t } : {}) : { author: t.slice(0, i), title: t.slice(i + 3) }, regions: {} }; });
-    postMessage({ type: "result", action: "label", meta: { books }, bytes: null, echo: m.echo });
-  }
-  else if (m.type === "call" && m.action === "straighten") {
-    const sizes = m.args.corners.map(size), bytes = new Uint8Array(sizes.reduce((a, [w, h]) => a + w * h * 4, 0)).fill(200);
-    let at = 0;
-    const crops = sizes.map(([w, h]) => { const c = array(w * h * 4, "uint8", [h, w, 4]); c.$bytes[0] = at; at += w * h * 4; return c; });
-    postMessage({ type: "result", action: "straighten", meta: { crops }, bytes, echo: m.echo }, [bytes.buffer]);
-  }
 };`;
 const { origin, server } = await serveSite({
   "/web/worker.js": WORKER,
@@ -112,6 +99,11 @@ async function open(role, seed = {}, finder = {}) {
     delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
     for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
   }, [role, seed]);
+  // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
+  await ctx.addInitScript(() => {
+    const W = window.Worker; window.pyCalls = [];
+    window.Worker = class extends W { postMessage(m, t) { if (m?.type === "call") window.pyCalls.push(m.action); return super.postMessage(m, t); } };
+  });
   const page = await ctx.newPage();
   page.setDefaultTimeout(STEP);
   // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
@@ -160,6 +152,8 @@ try {
   await page.waitForFunction(() => $("#status").textContent === "Titles read again.");
   check(await page.evaluate(() => tess.reads) === 12 && (await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent))).join() === "Title 240x35,Title 260x40,Title 180x180",
     "Read titles reads every book again with the reader chosen, on the page alone", await page.evaluate(() => tess.reads));
+  const asked = await page.evaluate(() => pyCalls);
+  check(asked.length && asked.every((x) => x === "run"), "Read titles straightens and labels each book in the page, asking Python for nothing but Find books' run", asked);
   const [m1, m2, m3] = m.doc.books;
   check(m.name === "shelf_books.json" && m.doc.books.length === 3 && m1.id === 1 && m1.text === "Title 240x35" && m1.confidence === 0.9 && m1.reader === "lines"
     && m3.view === "cover" && m2.corners.length === 4 && m.doc.W === W,
@@ -498,7 +492,8 @@ try {
   await page.mouse.up();
   const after = await scrolled();
   check(before[0] > 0 && after.join() === before.join(), "dragging a corner moves the corner alone, never the photo under it", { before, after });
-  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 300x180");
+  // the box as dropped, its top edge 300 and its right side 216 long: straightened to their means with the other two
+  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x198");
   check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
     "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");
@@ -524,6 +519,8 @@ try {
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   await page.click('#point-menu .item:text-is("Delete this book")');
   check((await books(page)).length === 3 && (await rows())[0] === "3/3 Books", "Delete this book takes an added book away", await rows());
+  const tagged = await page.evaluate(() => pyCalls);
+  check(tagged.length && tagged.every((x) => x === "run"), "a book flipped, dragged or added is straightened and labelled in the page, asking Python for nothing but Find books' run", tagged);
   // a book can be added over a box already drawn: a box the finder drew over two books hides one of them
   await page.mouse.click(...(await toScreen(30, 150)), { button: "right" });
   check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here,Flip upside down,Delete this book", "right-click on a book offers Add a book too, with Flip and Delete");

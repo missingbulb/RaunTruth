@@ -4,6 +4,8 @@
 import { engineSet, reader, services, rotate, READERS, MODELS, WORDS } from "./reading.js";
 import { clockwise, shape, inPlace, nextAdded, blank, FIELDS } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
+import { homography, straighten as cut } from "./straighten.js";
+import { label as fieldsOf } from "./fields.js";
 
 const CDN = "https://cdn.jsdelivr.net/npm/";
 const TESSERACT = CDN + "tesseract.js@7.0.0/dist/", CORE = CDN + "tesseract.js-core@7.0.0", ORT = CDN + "onnxruntime-web@1.31.1/dist/";
@@ -43,21 +45,6 @@ function turned([x0, y0, x1, y1], k) {
   return [Math.min(pts[0][0], pts[1][0]), Math.min(pts[0][1], pts[1][1]), Math.max(pts[0][0], pts[1][0]), Math.max(pts[0][1], pts[1][1])];
 }
 
-// the homography taking four points onto four others, as a 3×3 matrix by rows
-function homography(from, to) {
-  const A = [];
-  from.forEach(([x, y], i) => {
-    const [u, v] = to[i];
-    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u], [0, 0, 0, x, y, 1, -v * x, -v * y, v]);
-  });
-  for (let c = 0; c < 8; c++) {
-    let r = c;
-    for (let k = c + 1; k < 8; k++) if (Math.abs(A[k][c]) > Math.abs(A[r][c])) r = k;
-    [A[c], A[r]] = [A[r], A[c]];
-    for (let k = 0; k < 8; k++) if (k !== c) { const f = A[k][c] / A[c][c]; for (let j = c; j < 9; j++) A[k][j] -= f * A[c][j]; }
-  }
-  return [...A.map((row, i) => row[8] / A[i][i]), 1];
-}
 // the photo as the viewer shows it (a canvas of the image's size), through a book's corners into an upright picture
 // as wide as its top and bottom edges and as tall as its sides, on average, at most PICTURE long; black off the photo
 export function picture(photo, corners) {
@@ -184,7 +171,7 @@ export function mount(shell) {
     shell.gt.legacy(oldDraft(shell.readJSON, { name: st.fileName, sha: st.sha, image: st.fileName, W: st.W, H: st.H, reader: choice.value }));
   }
 
-  // ---------- Python: the algorithm in one go, and straightening for the tagger's readers ----------
+  // ---------- Python: the algorithm in one go ----------
   // why the last Find ran without the text finder, or null when it ran with it; and how far the run has come, for the
   // busy line: "text" while the boxes are being found, "read" once the titles are being read
   let textless = null, phase = null, lines = 0;
@@ -207,39 +194,23 @@ export function mount(shell) {
     await shell.algorithm.ready;
     const algorithm = shell.algorithm.key;
     textless = null; phase = "text"; lines = 0;
-    const run = python.then(async () => {
-      const done = shell.until("result:run");
-      shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
-      await done;
-    });
-    python = run.catch(() => {});
-    try { await run; } finally { phase = null; }
+    const done = shell.until("result:run");
+    shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
+    try { await done; } finally { phase = null; }
   };
   $("#bs-read").onclick = () => readAgain();
   shell.slow($("#bs-find")); shell.slow($("#bs-read"));
 
-  // the texts the tagger's readers read, read into fields by the study's Python (req/shelves/read/fields), on their text
-  // alone; a library's mark on any book of the photo makes one likelier on the others
-  function label(texts) {
-    const run = python.then(async () => {
-      const done = shell.until("result:label");
-      shell.call("label", { texts, library_seen: books.some((b) => b.fields?.library) });
-      return (await done).meta.books;
-    });
-    python = run.catch(() => {});
-    return run;
+  // the texts the tagger's readers read, read into fields in the page as the algorithm reads a block on its text
+  // alone (req/shelves/read/fields)
+  async function label(texts) {
+    return texts.map(fieldsOf);
   }
-  // the crops the tagger's readers read, straightened by the study's Python from the photo's file, one request at a time
-  let python = Promise.resolve();
-  function straighten(list) {
-    const run = python.then(async () => {
-      const done = shell.until("result:straighten");
-      shell.call("straighten", { corners: list.map((b) => b.corners) });
-      const { meta: { crops }, bytes } = await done;
-      return crops.map(({ $bytes: [at, n], shape: [height, width] }) => ({ width, height, data: new Uint8ClampedArray(bytes.buffer, bytes.byteOffset + at, n) }));
-    });
-    python = run.catch(() => {});
-    return run;
+  // the crops the tagger's readers read, straightened in the page from the photo's pixels as the shell decoded them
+  // (req/shell/python/file-bytes)
+  async function straighten(list) {
+    const im = shell.page.get("image");
+    return list.map((b) => cut(im, b.corners));
   }
   // the run's answer: its books shown, and recorded in the log as the run, the algorithm's whole output and not the
   // tagger's work

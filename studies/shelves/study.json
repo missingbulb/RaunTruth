@@ -96,8 +96,7 @@
     "install": "Installing numpy, scipy, scikit-image, Pillow, pillow-heif…",
     "load": "Loading the book finder…",
     "open": "Reading the photo…",
-    "run": "Finding the books and reading their titles…",
-    "straighten": "Straightening each book…"
+    "run": "Finding the books and reading their titles…"
   },
   "groundTruth": {
     "actions": "web/gt_actions.js",
