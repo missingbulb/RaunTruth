@@ -126,14 +126,16 @@ as CI does, and `worksteal` hands a worker that is done another's waiting tests,
 run. Each test keeps its files under its own `tmp_path`; the one writing into the tree, the offline test's build,
 writes each file whole.
 
-Every test as CI runs it is one command in the test image, with no way off the machine (`dev/tools/test-image/`). Build the image with
-`python3 dev/tools/test-image/inputs.py --context /tmp/inputs && docker build -t rauntruth-tests -f
-/tmp/inputs/dev/tools/test-image/Dockerfile /tmp/inputs`, or pull CI's, `ghcr.io/missingbulb/rauntruth/tests:` and the tag
-`inputs.py --tag` prints; then:
+Every test as CI runs it is one command in its engine's test image, with no way off the machine
+(`dev/tools/test-image/`). Build Chromium's with `python3 dev/tools/test-image/inputs.py --context /tmp/inputs && docker
+build --build-arg ENGINE=chromium -t rauntruth-tests -f /tmp/inputs/dev/tools/test-image/Dockerfile /tmp/inputs`, or
+pull CI's, `ghcr.io/missingbulb/rauntruth/tests:<tag>-chromium` with the tag `inputs.py --tag` prints; then:
 
 ```
 sh dev/tools/test-image/run.sh rauntruth-tests
 ```
+
+`firefox` or `webkit` in place of `chromium`, and as run.sh's second argument, run the set on that engine.
 
 ## Map
 

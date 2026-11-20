@@ -2012,13 +2012,14 @@ nobody has decided: what the page does there is not a requirement yet.
   their own (set by the owner on 2026-11-16), so a PR breaking one is red before it merges.
   </details>
 
-- `req/checks/ci-sets/one-image` Every CI test run, on any engine, runs in one test image that already holds everything the tests use, with no way off the machine.
+- `req/checks/ci-sets/one-image` Every CI test run runs in its engine's test image, which already holds everything the tests use, with no way off the machine.
   <details>
 
-  Set by the owner on 2026-11-20. The image (`dev/tools/test-image/`) holds the Python packages, Node, Playwright's
-  Chromium, Firefox and WebKit, the page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and
-  the files the tests would otherwise fetch once. It is tagged by a hash of what goes into it and built only when that
-  changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
+  Set by the owner on 2026-11-20. Each engine's image (`dev/tools/test-image/`) holds the Python packages, Node, the
+  page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and the files the tests would
+  otherwise fetch once, all in layers the three images share, and last that engine's browser alone, so a Chromium run
+  pulls half what an image of all three weighed. They are tagged by a hash of what goes into them and the engine, and
+  built only when that changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
   the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
   </details>
 

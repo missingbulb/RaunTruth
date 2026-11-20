@@ -15,6 +15,8 @@ defaults:
 jobs:
   image:
     uses: ./.github/workflows/test-image.yml
+    with:
+      engines: ${{ github.event_name == 'push' && 'chromium' || 'chromium firefox webkit' }}
     permissions:
       contents: read
       packages: write
@@ -33,11 +35,11 @@ jobs:
       - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin && docker pull -q "$IMAGE"
         env:
           TOKEN: ${{ github.token }}
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-chromium
       - name: Run every test
         run: sh dev/tools/test-image/run.sh "$IMAGE"
         env:
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-chromium
 
   # Main is released only once the full set is green on it; the release task owns the deploy.
   # The full set on Firefox and WebKit, nightly or by hand only; it gates no release, and other_engines.py says
@@ -62,11 +64,11 @@ jobs:
       - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin && docker pull -q "$IMAGE"
         env:
           TOKEN: ${{ github.token }}
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-${{ matrix.engine }}
       - name: Run the full set on ${{ matrix.engine }}
         run: sh dev/tools/test-image/run.sh "$IMAGE" ${{ matrix.engine }}
         env:
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-${{ matrix.engine }}
 
   release:
     needs: tests
