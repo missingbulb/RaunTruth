@@ -234,7 +234,7 @@ read for a title matcher; matching the titles is not part of it.
     language.
   - The task asks no spine or cover: the box's shape and the finder's search already tell them apart, and
     nothing reads the label; the matcher's file keeps the finder's own (`req/shelves/matcher/export`).
-  - Right-clicking the photo opens a menu: off every book, Add a book here, which boxes an upright book centred
+  - Right-clicking the photo opens the shell's menu (`req/shell/image/menu`): off every book, Add a book here, which boxes an upright book centred
     at the click, as wide and as tall as the median book kept so far, its corners then dragged into place; on a
     book, Flip upside down and Delete this book, which takes an added book away and marks a found one not a
     book (Back undoes it).
@@ -252,7 +252,8 @@ read for a title matcher; matching the titles is not part of it.
     marked Not a book stays faint on the photo while tagging, so it can be picked. Add a book here is offered on a
     book too, since a box drawn over two books hides one of them.
     Set by the owner on 2026-11-10, a book clicked on the photo leaves the view where it is, its zoom and place
-    kept, while any part of the book is in view; only one out of view is framed.
+    kept, while any part of the book is in view; only one out of view is framed, filling 0.7 of the view
+    (`req/shell/image/frame`).
   - A book not yet approved opens with its title's text box focused and all its text selected, to retype.
   - Flip alone turns the picture: no Turn 90°, and no language choice, the title's language being plain from what is
     typed; a book read again is read in Hebrew and English.

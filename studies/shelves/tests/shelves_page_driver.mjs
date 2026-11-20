@@ -246,7 +246,7 @@ try {
   check(await valueOf(page) === "Title 180x180", "Back no longer finds the book marked not a book", await valueOf(page));
   const toScreenOf = (page, x, y) => page.evaluate(([x, y]) => { const r = $("#base").getBoundingClientRect(); return [r.left + x * st.zoom, r.top + y * st.zoom]; }, [x, y]);
   await page.mouse.click(...(await toScreenOf(page, 77, 200)), { button: "right" });
-  await page.click('#bs-menu [data-do="delete"]');
+  await page.click('#point-menu .item:text-is("Delete this book")');
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books" && !(await page.$$eval("#overlay g.bs-book.wrong", (g) => g.length)),
     "Delete this book takes a found book off the photo too, nothing left faint", [await books(page), await rowsOf(page)]);
   check((await history(page)).slice(0, 2).join() === "Deleted 2 books,Algorithm ran: 3 books" && await unsaved(page) === 2,
@@ -516,17 +516,17 @@ try {
   // Edit History floats over the photo's right side, where the next clicks are: it is switched off
   await page.uncheck("#gt-history-on");
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
-  check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add", "right-click off every book offers only Add a book");
-  await page.click('#bs-menu [data-do="add"]');
+  check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here", "right-click off every book offers only Add a book");
+  await page.click('#point-menu .item:text-is("Add a book here")');
   await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x40");
   check((await books(page)).length === 4 && (await rows())[0] === "3/4 Books", "Add a book here boxes a book at the click, sized as the books found, and reads it as one more book", await rows());
   check(await settledSelected(), "a book added here opens with its title focused and all its text selected, to retype", await titleState());
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
-  await page.click('#bs-menu [data-do="delete"]');
+  await page.click('#point-menu .item:text-is("Delete this book")');
   check((await books(page)).length === 3 && (await rows())[0] === "3/3 Books", "Delete this book takes an added book away", await rows());
   // a book can be added over a box already drawn: a box the finder drew over two books hides one of them
   await page.mouse.click(...(await toScreen(30, 150)), { button: "right" });
-  check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add,flip,delete", "right-click on a book offers Add a book too, with Flip and Delete");
+  check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here,Flip upside down,Delete this book", "right-click on a book offers Add a book too, with Flip and Delete");
   await page.keyboard.press("Escape");
   await page.click('[data-do="draw"]');
   for (const [x, y] of [[330, 60], [380, 60], [380, 280], [330, 280]]) await page.mouse.click(...(await toScreen(x, y)));
@@ -592,7 +592,7 @@ try {
   await page.click("#gt-start");
   await page.evaluate(() => document.activeViewTransition?.finished);
   await page.mouse.click(...(await toScreenOf(page, 350, 150)), { button: "right" });
-  await page.click('#bs-menu [data-do="add"]');
+  await page.click('#point-menu .item:text-is("Add a book here")');
   await page.waitForFunction(() => $(".bs-item input")?.value && $("#status").textContent === "Book read again.");
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books", "a book is added on a photo where no book was found yet", [await books(page), await rowsOf(page)]);
   check((await history(page)).join() === "Read a title again,Added a missed book,Ground truth from the photo alone, before Find books, no history,Image opened" && await unsaved(page) === 2,

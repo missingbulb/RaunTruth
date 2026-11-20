@@ -3969,7 +3969,7 @@
    },
    {
     "name": "Book menu",
-    "select": "#bs-menu",
+    "select": "#point-menu",
     "control": false,
     "box": false,
     "parent": "Image view"

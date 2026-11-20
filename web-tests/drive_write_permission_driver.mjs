@@ -2,7 +2,7 @@
 // as stand_in_drive.mjs sets them up, serving ROOT, for a study manager whose token is from before sign-in asked for
 // Drive's per-file permission: the first click on a Drive control renews it, Google asked for the permission too, and
 // the folders Drive's sharing lets the user add to are writable, none picked or approved; a sign-in whose permission
-// Google does not give reads every folder as view only. Checks req/shell/data/drive-access and
+// Google does not give reads every folder as No permission, saying how to give it. Checks req/shell/data/drive-access and
 // req/shell/account/sign-in. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_write_permission_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
@@ -36,8 +36,10 @@ google.withhold = [DRIVE_FILE];
 writes.length = 0;
 page = await open(true, { scopes: BEFORE });
 await role(page, "Study Manager");
-const viewOnly = await access(page, "View only");
-await check(!!viewOnly, "a sign-in without the per-file permission reads every folder as view only", viewOnly);
+const viewOnly = await access(page, "No permission");
+await check(!!viewOnly, "a sign-in without the per-file permission reads every folder as No permission", viewOnly);
+const why = await page.getAttribute("#data-tree .tree-folder .access", "title");
+await check(/sign out/i.test(why || "") && /tick/i.test(why || "") && !/owner/.test(why || ""), "saying to sign in again ticking the box, not to ask the folder's owner", why);
 await check(await orMissed(page.waitForFunction(() => /not written/.test($("#data-index").textContent), null, { timeout: 5000 })) && !writes.length,
   "and writes nothing, saying the study index was not written", writes);
 const after = google.asked.length;

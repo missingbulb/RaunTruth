@@ -6,12 +6,15 @@
 //
 // The study's hooks it calls: pickAt(event) -> what was clicked, or null; pick(it) when a click, not a
 // drag, landed on it, pick(null) when it landed on nothing; open(it) when a double click did; step(dir) on a sideways swipe; capturesPointer() while the study's own tool (a
-// lasso, say) takes the pointer; zoomed() after every zoom. A study's press listener that calls preventDefault()
+// lasso, say) takes the pointer; zoomed() after every zoom; menuAt(event) -> the items of the right-click menu at that point,
+// each {label, run()}, none for no menu (req/shell/image/menu). A study's press listener that calls preventDefault()
 // takes that press, which then never pans the view nor picks.
 //
 // ring(box | null, {pan}) rings a box of the image, [x0, y0, x1, y1] in its pixels, in a layer of its own that no zoom
 // thins below two screen pixels (the Edit History window's hover, req/shell/ground-truth/history); pan scrolls to it when
 // its middle is out of view (inView(box) says so); null takes the ring away. The 3D viewer's ring sits at the stack's middle depth and never pans.
+// frame(box, fill) brings a box into view, the zoom changed only to fill that much of the view when more than half again away
+// from it (req/shell/image/frame).
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
@@ -321,6 +324,11 @@ export function viewer(shell) {
     setZoom(Math.min(1, sc.clientWidth / st.W, sc.clientHeight / st.H));
     sc.scrollTo(0, 0);
   }
+  function frameBox([x0, y0, x1, y1], fill) {
+    const sc = $("#scroller"), fit = Math.min(8, fill * Math.min(sc.clientWidth / (x1 - x0 || 1), sc.clientHeight / (y1 - y0 || 1)));
+    if (st.zoom > fit * 1.5 || st.zoom < fit / 1.5) setZoom(fit);
+    focus((x0 + x1) / 2, (y0 + y1) / 2);
+  }
   function focus(x, y) {
     const sc = $("#scroller");
     sc.scrollTo({ left: x * st.zoom - sc.clientWidth / 2, top: y * st.zoom - sc.clientHeight / 2, behavior: "smooth" });
@@ -398,6 +406,31 @@ export function viewer(shell) {
         if (Math.abs(acc) >= 60) { hooks.step?.(Math.sign(acc)); acc = 0; quietUntil = performance.now() + 250; }
       } else setZoom(st.zoom * Math.exp(-e.deltaY * k * 0.0015), e);
     }, { passive: false });
+  }
+
+  // the study's menu at the point right-clicked (req/shell/image/menu); a glide of the page's own leaves it open, the user's
+  // own wheel closes it
+  const menu = $("#point-menu"), closeMenu = () => { menu.hidden = true; menu.replaceChildren(); };
+  {
+    const sc = $("#scroller");
+    sc.addEventListener("contextmenu", (e) => {
+      closeMenu();
+      const items = st.img ? hooks.menuAt?.(e) || [] : [];
+      if (!items.length) return;
+      e.preventDefault();
+      menu.replaceChildren(...items.map(({ label, run }) => {
+        const b = html("button", { type: "button", className: "item", textContent: label, onclick: () => { closeMenu(); run(); } });
+        b.setAttribute("role", "menuitem");
+        return b;
+      }));
+      menu.hidden = false;
+      menu.style.left = Math.max(4, Math.min(e.clientX, innerWidth - menu.offsetWidth - 4)) + "px";
+      menu.style.top = Math.max(4, Math.min(e.clientY, innerHeight - menu.offsetHeight - 4)) + "px";
+      menu.firstChild.focus();
+    });
+    document.addEventListener("pointerdown", (e) => { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); }, true);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) closeMenu(); });
+    sc.addEventListener("wheel", () => { if (!menu.hidden) closeMenu(); }, { passive: true });
   }
   // the ruler: its button arms it, a drag from a point shows the reach around it, and on release the ruler
   // stays between the two points with their distance, in µm when the file gives the pixel's width and height
@@ -482,7 +515,7 @@ export function viewer(shell) {
       fit(); tools();
     }));
   }
-  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; }
+  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; closeMenu(); }
 
   // ---------- what the tagger has done, cut out of the image ----------
   // The study gives the shapes its tagger has decided ([[x, y], ...] in image pixels); the viewer cuts them out of the
@@ -507,7 +540,7 @@ export function viewer(shell) {
   page.watch("image", (im) => (im ? show(im) : blank()));
 
   return {
-    use(h) { hooks = h || {}; tools(); }, channels: setChannels,
+    use(h) { hooks = h || {}; closeMenu(); tools(); }, channels: setChannels,
     // the study leaving, its image gone first: what it drew on the page goes too
     leave: blank,
     // the rows as they stand, [{on, colour, black, white}] in plane order, and a listener for every redraw of them
@@ -519,7 +552,7 @@ export function viewer(shell) {
     rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
     doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
-    draw, setZoom, fit, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
+    draw, setZoom, fit, frame: frameBox, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
     get overlay() { return $("#overlay"); }, get scroller() { return $("#scroller"); },
   };
 }

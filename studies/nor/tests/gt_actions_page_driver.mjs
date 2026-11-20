@@ -157,7 +157,7 @@ try {
 
   // an added NoR has an id of its own kind, and the next is never the id of one removed
   const mid = await page.evaluate(() => { const v = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect(); return [(Math.max(v.left, b.left) + Math.min(v.right, b.right)) / 2, (Math.max(v.top, b.top) + Math.min(v.bottom, b.bottom)) / 2]; });
-  const addAt = async () => { await page.mouse.click(...mid, { button: "right" }); await page.click("#ctx button"); await settle(page); };
+  const addAt = async () => { await page.mouse.click(...mid, { button: "right" }); await page.click('#point-menu [role="menuitem"]'); await settle(page); };
   await addAt();
   await check(await page.evaluate(() => st.added.map((a) => a.id).join()) === "u1" && /^Added a NoR at \d+, \d+$/.test((await rows(page))[0]), `a NoR is added as u1: "${(await rows(page))[0]}"`, await rows(page));
   await check(await unsaved(page) === before + 6, "in one GT action", await unsaved(page));

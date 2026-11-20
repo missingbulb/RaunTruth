@@ -147,10 +147,7 @@
 .card .num.added svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .card .verdict .remove { font-size: 18px; line-height: 1; color: var(--dim); }
 .card .verdict .remove:hover { color: var(--no); background: color-mix(in srgb, var(--no) 14%, transparent); }
-#ctx { position: fixed; z-index: 30; display: flex; flex-direction: column; padding: 4px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }
-#ctx .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
-#ctx .item:hover, #ctx .item:focus-visible { color: var(--accent); }
-#ctx[hidden], #card-menu[hidden] { display: none; }
+#card-menu[hidden] { display: none; }
 #settings-box .reset-row { display: flex; justify-content: flex-end; margin-top: 4px; }
 
 

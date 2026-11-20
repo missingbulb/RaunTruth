@@ -108,6 +108,12 @@ export function mount(shell) {
   window.fixture = { model, truth: () => lastTruthDoc };
   return {
     pickAt: (e) => markAt(e)?.id ?? null,
+    // on the image, one item: the point clicked, said in the status line
+    menuAt(e) {
+      const [x, y] = shell.viewer.toImage(e), { W, H } = shell.state;
+      if (x < 0 || y < 0 || x > W || y > H) return [];
+      return [{ label: "Note this point", run: () => shell.status(`Noted ${Math.round(x)}, ${Math.round(y)}`) }];
+    },
     pick: (id) => select(id),
     // the curated ground truth's final result: the count, and no task
     showTruth(doc) {
