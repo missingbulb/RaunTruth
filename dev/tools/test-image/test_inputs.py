@@ -15,7 +15,7 @@ def repo(tmp_path, files):
     return str(tmp_path)
 
 
-FILES = {'requirements.txt': 'numpy\n', 'dev/test-image/Dockerfile': 'FROM acme\n', 'web/acme.js': '// a page module\n',
+FILES = {'requirements.txt': 'numpy\n', 'dev/tools/test-image/Dockerfile': 'FROM acme\n', 'web/acme.js': '// a page module\n',
          'studies/acme/study.json': '{}', 'studies/acme/algorithm/acme.py': '# a finder\n', 'README.md': 'acme\n'}
 
 
@@ -29,7 +29,7 @@ def test_the_tag_moves_with_each_input_and_with_nothing_else(tmp_path):
         (tmp_path / f).write_text(before + 'changed\n')
         moved.append(inputs.tag(root) != base)
         (tmp_path / f).write_text(before)
-    assert dict(zip(FILES, moved)) == {'requirements.txt': True, 'dev/test-image/Dockerfile': True, 'web/acme.js': True,
+    assert dict(zip(FILES, moved)) == {'requirements.txt': True, 'dev/tools/test-image/Dockerfile': True, 'web/acme.js': True,
                                        'studies/acme/study.json': True, 'studies/acme/algorithm/acme.py': False,
                                        'README.md': False}
 

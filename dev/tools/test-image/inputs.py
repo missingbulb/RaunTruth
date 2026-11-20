@@ -1,7 +1,7 @@
 """The repo's files the test image is built from (req/checks/ci-sets/one-image): what the image fetches is read from
 these alone, so a hash of them names the image, and a change to any of them builds a new one.
-  python3 dev/test-image/inputs.py --tag            print the image's tag
-  python3 dev/test-image/inputs.py --context DIR    copy them into DIR, laid out as the repo is, to build the image from"""
+  python3 dev/tools/test-image/inputs.py --tag            print the image's tag
+  python3 dev/tools/test-image/inputs.py --context DIR    copy them into DIR, laid out as the repo is, to build the image from"""
 import fnmatch
 import hashlib
 import os
@@ -9,9 +9,9 @@ import shutil
 import subprocess
 import sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 INPUTS = (
-    'dev/test-image/*',
+    'dev/tools/test-image/*',
     'requirements.txt',
     # the page's libraries and the Pyodide packages the studies name (web-tests/page_libraries.py)
     'web-tests/page_libraries.py', 'web/*.js', 'studies/*/web/*', 'studies/*/study.json',

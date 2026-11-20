@@ -126,13 +126,13 @@ as CI does, and `worksteal` hands a worker that is done another's waiting tests,
 run. Each test keeps its files under its own `tmp_path`; the one writing into the tree, the offline test's build,
 writes each file whole.
 
-Every test as CI runs it is one command in the test image, with no way off the machine (`dev/test-image/`). Build the image with
-`python3 dev/test-image/inputs.py --context /tmp/inputs && docker build -t rauntruth-tests -f
-/tmp/inputs/dev/test-image/Dockerfile /tmp/inputs`, or pull CI's, `ghcr.io/missingbulb/rauntruth/tests:` and the tag
+Every test as CI runs it is one command in the test image, with no way off the machine (`dev/tools/test-image/`). Build the image with
+`python3 dev/tools/test-image/inputs.py --context /tmp/inputs && docker build -t rauntruth-tests -f
+/tmp/inputs/dev/tools/test-image/Dockerfile /tmp/inputs`, or pull CI's, `ghcr.io/missingbulb/rauntruth/tests:` and the tag
 `inputs.py --tag` prints; then:
 
 ```
-sh dev/test-image/run.sh rauntruth-tests
+sh dev/tools/test-image/run.sh rauntruth-tests
 ```
 
 ## Map

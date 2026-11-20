@@ -24,7 +24,7 @@ RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r /tm
 ENV PATH=/opt/venv/bin:$PATH
 
 COPY . /tmp/inputs
-RUN sh /tmp/inputs/dev/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/inputs
+RUN sh /tmp/inputs/dev/tools/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/inputs
 
 # what the run then reaches for, from here alone: the studies' wheels for the build, the files the tests would fetch once
 ENV PIP_NO_INDEX=1 PIP_FIND_LINKS=/opt/wheels TEST_DOWNLOADS=/opt/test-downloads

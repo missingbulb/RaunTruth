@@ -4,6 +4,6 @@
 set -e
 [ -e web-tests/node_modules ] || ln -s /opt/page-libraries/node_modules web-tests/node_modules
 case "${1:-chromium}" in
-  chromium) exec python3 -m pytest web-tests studies lab dev/tools/trick_pool dev/test-image -q -n auto --dist worksteal --durations=10 ;;
+  chromium) exec python3 -m pytest web-tests studies lab dev/tools/trick_pool dev/tools/test-image -q -n auto --dist worksteal --durations=10 ;;
   *) exec python3 dev/tools/build/other_engines.py "$1" ;;
 esac

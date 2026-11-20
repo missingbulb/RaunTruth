@@ -31,7 +31,7 @@ jobs:
           TOKEN: ${{ github.token }}
           IMAGE: ${{ needs.image.outputs.image }}
       - name: Run every test
-        run: sh dev/test-image/run.sh "$IMAGE"
+        run: sh dev/tools/test-image/run.sh "$IMAGE"
         env:
           IMAGE: ${{ needs.image.outputs.image }}
 
@@ -60,7 +60,7 @@ jobs:
           TOKEN: ${{ github.token }}
           IMAGE: ${{ needs.image.outputs.image }}
       - name: Run the full set on ${{ matrix.engine }}
-        run: sh dev/test-image/run.sh "$IMAGE" ${{ matrix.engine }}
+        run: sh dev/tools/test-image/run.sh "$IMAGE" ${{ matrix.engine }}
         env:
           IMAGE: ${{ needs.image.outputs.image }}
 
