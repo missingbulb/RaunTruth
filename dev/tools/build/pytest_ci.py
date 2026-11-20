@@ -22,7 +22,7 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_configure(config):
     config.addinivalue_line('markers', 'full: drives Node, Pyodide or Chromium, or measures speed or memory; '
-                                       'left out of the fast set every PR runs (-m "not full")')
+                                       'left out of the quick local loop (-m "not full")')
     config.addinivalue_line('markers', "chromium_only: needs what only Playwright's Chromium offers (its DevTools, or routing a "
                                        "service worker's requests), so the run on the other engines leaves it out "
                                        '(req/checks/other-engines)')
@@ -43,8 +43,9 @@ def _version(dist):
 def pytest_sessionstart(session):
     """The site as the build makes it before any test reads it: the files it writes into web/ (the list of studies, the
     version history, the vendored wheels), which a page reads, written once by the run that hands the tests out, so a
-    test that builds the site itself midway changes nothing another one sees."""
-    if hasattr(session.config, 'workerinput') or _built:
+    test that builds the site itself midway changes nothing another one sees. A run that only collects the tests reads
+    none of them, and builds nothing."""
+    if hasattr(session.config, 'workerinput') or _built or session.config.option.collectonly:
         return
     _built.append(True)
     subprocess.run([sys.executable, BUILD], check=True, timeout=300, stdout=subprocess.DEVNULL)

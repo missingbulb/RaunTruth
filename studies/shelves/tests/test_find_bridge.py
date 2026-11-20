@@ -4,12 +4,12 @@ saved as a phone saves a HEIC, in tiles: each version's one run asks the page's 
 stand-in engines) for what it reads with, and answers with its books and their titles."""
 import os
 import shutil
-import subprocess
 
 import pytest
 from PIL import Image
 
 from test_books import photo
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -28,8 +28,4 @@ def test_the_page_finds_and_reads_books_on_a_tiled_heic(tmp_path):
     finally:
         pillow_heif.options.GRID_TILE_SIZE = tile
     assert pillow_heif.open_heif(path).info.get('tiling'), 'the photo is not saved in tiles'
-    r = subprocess.run([NODE, os.path.join(HERE, 'find_bridge_driver.mjs'), str(path)], capture_output=True, text=True, timeout=300)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'find_bridge_driver.mjs'), str(path), timeout=300)

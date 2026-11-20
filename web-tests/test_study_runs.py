@@ -4,11 +4,11 @@ in headless Chromium with a stand-in worker (study_page_driver.mjs). req/shell/h
 the default study, in the same page."""
 import os
 import shutil
-import subprocess
 
 import numpy as np
 import pytest
 from PIL import Image
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -17,11 +17,7 @@ NODE = shutil.which('node')
 
 
 def run(driver, *args, timeout=120):
-    r = subprocess.run([NODE, os.path.join(HERE, driver), *args], capture_output=True, text=True, timeout=timeout)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    return run_driver(os.path.join(HERE, driver), *args, timeout=timeout)
 
 
 @pytest.fixture(scope='module')

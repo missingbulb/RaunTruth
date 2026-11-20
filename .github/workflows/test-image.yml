@@ -1,0 +1,38 @@
+name: Test image
+# The one image every test run runs in (req/checks/ci-sets/one-image), tagged by a hash of the repo's files it is built
+# from (dev/tools/test-image/inputs.py): built and pushed only when no image of that tag is there yet.
+on:
+  workflow_call:
+    outputs:
+      image:
+        value: ${{ jobs.image.outputs.image }}
+# bash, so a piped step fails with the command that failed in it
+defaults:
+  run:
+    shell: bash
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.tag.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - id: tag
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/tests:$(python3 dev/tools/test-image/inputs.py --tag)" >> "$GITHUB_OUTPUT"
+      - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+        env:
+          TOKEN: ${{ github.token }}
+      - name: Build and push the image, unless it is already there
+        env:
+          IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then echo "$IMAGE is already there"; exit 0; fi
+          python3 dev/tools/test-image/inputs.py --context "$RUNNER_TEMP/inputs"
+          docker build -t "$IMAGE" -f "$RUNNER_TEMP/inputs/dev/tools/test-image/Dockerfile" "$RUNNER_TEMP/inputs"
+          docker push "$IMAGE"

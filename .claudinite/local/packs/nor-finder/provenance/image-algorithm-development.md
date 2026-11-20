@@ -81,3 +81,10 @@
 - **Reason:** NoR's invariance harness only ever tested the retired v1 detector, and went with it
   (#1011).
 - **Actor:** Claude.
+
+## 2026-11-20 · reworded · a public set's own labels go to the owner before any conversion
+- **Source:** #971 / #970: a public set's polygons were described in words, converted and scored
+  over 26 minutes, then rejected on sight as not the study's convention.
+- **Reason:** whether a foreign label convention fits is the owner's call, and a picture settles it
+  before any work.
+- **Actor:** @missingbulb (owner), asking for growth from the sessions since the last growth run.

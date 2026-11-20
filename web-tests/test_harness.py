@@ -57,6 +57,18 @@ def test_a_request_leaving_the_machine_from_a_worker_is_seen_too():
     assert 'turned away' in r.stdout and r.returncode == 1 and 'left this machine' in r.stdout, r.stdout + r.stderr
 
 
+def test_a_wait_in_the_page_gives_what_it_waited_for():
+    r = run('untilgives')
+    assert r.returncode == 0 and 'gave {"n":42}' in r.stdout, r.stdout + r.stderr
+
+
+def test_a_wait_that_never_holds_says_what_its_function_threw():
+    r = run('untilthrows')
+    # past the function's own source, the engine's error: each says what was undefined
+    said = r.stdout.partition('window.missing.field')[2]
+    assert 'timed out after 300 ms' in r.stdout and 'undefined' in said, r.stdout + r.stderr
+
+
 def test_the_deploys_variables_write_config_js_as_the_release_does():
     r = run('settings')
     assert r.returncode == 0 and 'unset: <!doctype html>' in r.stdout and '"apiKey": "the-key", "clientId": "the-client"' in r.stdout, r.stdout + r.stderr

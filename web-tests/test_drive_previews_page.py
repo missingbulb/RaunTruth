@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import tifffile
 from PIL import Image
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -93,17 +94,13 @@ def test_previews_leave_photos_to_drive(tmp_path):
 def test_drive_previews(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))
-    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True)
+    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True, timeout=120)
     # made before d new.tif joined the folder, and before c changed.tif changed
     os.remove(images / 'd new.tif')
-    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True)
+    subprocess.run([sys.executable, os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py'), str(images)], check=True, timeout=120)
     tifffile.imwrite(images / 'd new.tif', np.zeros((1, 50, 50), np.uint16), imagej=True, metadata={'axes': 'CYX'})
     with open(images / 'c changed.tif', 'ab') as f:
         f.write(b'\0')
     Image.fromarray(np.full((40, 60, 3), 90, np.uint8)).save(images / 'e photo.jpg')
     with_photo(images / 'rauntruth-previews.tiff', images / 'e photo.jpg')
-    r = subprocess.run([NODE, os.path.join(HERE, 'drive_previews_driver.mjs'), str(images)], capture_output=True, text=True, timeout=90)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'drive_previews_driver.mjs'), str(images), timeout=90)

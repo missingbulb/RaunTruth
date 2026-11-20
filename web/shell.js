@@ -681,6 +681,7 @@ async function keepPython() {
   // a study with no step to run never starts Python
   if (!manifest?.phases?.length || !("caches" in self)) return;
   const id = manifest.id, python = manifest.python;
+  delete st.unkept;
   try {
     const [lock, vendored] = await Promise.all([fetch(PYODIDE + "pyodide-lock.json", { priority: "low" }), fetch("vendor/wheels.json")].map(async (r) => (await r).json()));
     const urls = [...CORE, ...packagesOf(python, lock, vendored, new URL("vendor/", location.href).href).map((w) => w.url)];
@@ -691,10 +692,12 @@ async function keepPython() {
     if (st.notHere) { st.notHere = false; status("Ready. Load an image."); }
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
-    if (manifest?.id === id && !st.worker && offlineCopy.offline()) { st.notHere = true; status(NOT_HERE); }
+    if (manifest?.id === id && !st.worker) st.unkept = true;
+    if (st.unkept && offlineCopy.offline()) notHere();
     else console.warn("Python's files are not kept yet:", e);
   }
 }
+const notHere = () => { st.notHere = true; status(NOT_HERE); };
 // Python's thread, on the study the address names, in place of any before it
 function pythonWorker() {
   st.worker?.terminate();
@@ -938,6 +941,8 @@ $("#unload").onclick = () => {
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
   swapping = swapping.then(async () => {
+    // no study came in before this turn: there is none to mount again
+    if (!manifest) return;
     const { ready, readyInfo } = st, id = manifest.id, image = again && st.img ? st.kept : null;
     dropImage();
     leaveStudy();
@@ -2318,7 +2323,8 @@ addEventListener("popstate", () => swap());
 // the network back: a study whose Python could not load loads again, on a Python of its own, since a worker
 // keeps a module it failed to download failed; and the storage it then kept shows
 addEventListener(CONNECTION, (e) => {
-  if (!e.detail.online) return;
+  // the network gone: a file of Python's that failed before the page was told so failed for that, and the study says it
+  if (!e.detail.online) { if (st.unkept && !st.worker) notHere(); return; }
   offlineCopy.keepSite().then(diskBar, () => {});
   if (!st.worker) keepPython();
   if (!st.failed || st.ready || !st.worker || !manifest) return;
@@ -2532,4 +2538,7 @@ window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, ma
 if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
 remoteDialog(); slow($("#gt-export"));
-mountStudy(studyOf(location)).then(start).catch((e) => status("Error: " + (e.message || e), true));
+// the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
+const first = mountStudy(studyOf(location));
+swapping = first.catch(() => {});
+first.then(start).catch((e) => status("Error: " + (e.message || e), true));

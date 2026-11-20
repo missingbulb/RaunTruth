@@ -14,7 +14,6 @@ import gc
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
@@ -27,6 +26,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 import controls
 import nor_finder
 from synthetic_nor import nor_image
+from drivers import run_driver
 
 # a drawn 200-pixel image that holds candidates, passing and failing, for every finder
 SIDE = 200
@@ -56,15 +56,7 @@ def held():
 
 
 def run(driver, *args):
-    try:
-        r = subprocess.run([NODE, os.path.join(HERE, driver), *args], capture_output=True, text=True, timeout=120)
-    except subprocess.TimeoutExpired as e:
-        out = lambda b: (b.decode() if isinstance(b, bytes) else b) or ''
-        pytest.fail(f'{driver} still running after {e.timeout:g} s; it had got this far:\n{out(e.stdout)}{out(e.stderr)}')
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    return run_driver(os.path.join(HERE, driver), *args, timeout=240)
 
 
 @pytest.mark.skipif(not sys.platform.startswith('linux'), reason='reads glibc malloc statistics')

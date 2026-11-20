@@ -4,10 +4,10 @@ in headless Chromium with a stand-in worker that answers Execute with a model fi
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -22,8 +22,4 @@ def test_vessel_tasks_page(tmp_path):
     import build
     studies = tmp_path / 'studies.json'
     studies.write_text(json.dumps(build.studies(os.path.join(HERE, '..', '..', '..'))))
-    r = subprocess.run([NODE, os.path.join(HERE, 'vessel_tasks_driver.mjs'), str(studies)], capture_output=True, text=True, timeout=180)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'vessel_tasks_driver.mjs'), str(studies), timeout=180)

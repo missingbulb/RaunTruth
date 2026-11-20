@@ -231,5 +231,35 @@
         "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)/"
       }
     ]
+  },
+  {
+    "id": "page-file-untracked",
+    "on_fail": "block",
+    "since": "2026-11-20",
+    "scope": "work",
+    "failureMessage": "the site build ships what git ls-files lists, so a page file left untracked is missing from the build every page test runs against",
+    "flagUntrackedFilesMatching": [
+      {
+        "match": "/^(web|studies\\/[^/]+\\/web)\\//",
+        "what": "{path} is untracked, so the build the page tests run omits it",
+        "fix": "git add {path}, then re-run the page tests"
+      }
+    ]
+  },
+  {
+    "id": "merge-sha-full",
+    "on_fail": "block",
+    "since": "2026-11-20",
+    "scope": "action",
+    "failureMessage": "merge_pull_request refuses an expectedHeadSha that is not the full 40-character SHA",
+    "guardToolCalls": [
+      {
+        "tool": "mcp__github__merge_pull_request",
+        "inputField": "expectedHeadSha",
+        "match": "/^([0-9a-fA-F]{1,39}|[0-9a-fA-F]{41,}|.*[^0-9a-fA-F].*)$/",
+        "what": "an expectedHeadSha of \"{match}\"",
+        "fix": "pass the full SHA from git rev-parse HEAD"
+      }
+    ]
   }
 ]

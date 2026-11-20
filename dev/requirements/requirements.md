@@ -2000,17 +2000,26 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/checks` The repo's checks
 
-- `req/checks/ci-sets` CI runs in two sets, and a test that would skip there fails instead.
+- `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, and a test that would skip there fails instead.
   <details>
 
-  The fast set runs on each PR (`.github/workflows/tests.yml`, `-m "not full"`) and needs neither
-  Node nor a browser; every test that drives Node, Pyodide or Chromium, or measures speed or memory,
-  is marked `full` and runs only in the full set, nightly (the workflow's own schedule)
-  and on every push to main, so it has run on anything a release can ship: a green full run on main
-  wakes the site release (`.github/workflows/tests-full.yml`, `web-tests/test_ci_split.py`). The nightly run also
-  runs the full set on Firefox and WebKit (`req/checks/other-engines`). The repo's Claudinite checks run on every PR and
-  every push to main, in a job of their own beside the fast set (set by the owner on 2026-11-16), so a PR breaking one
-  is red before it merges.
+  Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs
+  the whole set on Chromium (`.github/workflows/tests.yml`), and every push to main runs it again, so it has run on
+  anything a release can ship: a green run on main wakes the site release (`.github/workflows/tests-full.yml`). The
+  nightly run also runs it on Firefox and WebKit (`req/checks/other-engines`). The `full` mark still names the tests that
+  drive Node, Pyodide or a browser, or measure speed or memory, so `-m "not full"` stays a quick local loop
+  (`web-tests/test_ci_split.py`). The repo's Claudinite checks run on every PR and every push to main, in a job of
+  their own (set by the owner on 2026-11-16), so a PR breaking one is red before it merges.
+  </details>
+
+- `req/checks/ci-sets/one-image` Every CI test run, on any engine, runs in one test image that already holds everything the tests use, with no way off the machine.
+  <details>
+
+  Set by the owner on 2026-11-20. The image (`dev/tools/test-image/`) holds the Python packages, Node, Playwright's
+  Chromium, Firefox and WebKit, the page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and
+  the files the tests would otherwise fetch once. It is tagged by a hash of what goes into it and built only when that
+  changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
+  the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
   </details>
 
 - `req/checks/clean-console` A page test fails on any warning or error its case did not declare, and the outside systems the page reaches are faked once, in every test.
@@ -2067,7 +2076,7 @@ nobody has decided: what the page does there is not a requirement yet.
   reaches; a case decided only where a parent hides or folds the element, which the browser reads as gone whatever
   the case says, unless the element or the case is marked unwalked with why no path shows it (what an unwalked
   element holds goes with it); an element every state shows the same, unless marked steady with why; such a mark a
-  state contradicts; an action no path takes; and a value of a var no state has. In the fast set the
+  state contradicts; an action no path takes; and a value of a var no state has. Without a browser the
   generated files must be up to date, every element in each study's tree must be on the shell's page or that
   study's panels (one the page makes as it runs, such as the 3D view's controls, by the nearest element holding it
   that the page does not make), every element of the shell's page and of each study's panels, but what a dialog,
