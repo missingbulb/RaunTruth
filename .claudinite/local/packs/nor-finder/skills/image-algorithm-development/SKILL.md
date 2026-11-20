@@ -156,6 +156,8 @@ improvement is an opinion. Take the first branch that applies:
 
 1. **The owner has annotations** - parse and register them (research-project §2 owns parsing,
    regeneration and self-checks).
+   A **public set's own labels** are not the owner's: draw a few as shipped beside the study's
+   convention, inline in the question, and convert or score nothing until the owner accepts them.
 2. **No annotations** - draft them with a capable model: give it the inputs and the owner's
    stated requirements, run it on the crops the pipeline sees where the whole image is too small
    for it, and **show the draft to the owner before using it**, in the State 2 render and as a

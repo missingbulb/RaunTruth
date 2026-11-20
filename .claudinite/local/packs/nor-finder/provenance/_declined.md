@@ -12,3 +12,13 @@
 - **Reason:** the buckets, exclusions and explanation style are the owner's own preferences, which
   belong in their personal pack, not a repo pack.
 - **Actor:** @missingbulb (owner), asking for growth from the 2026-11-19 sessions.
+
+## 2026-11-20 · declined · four candidates from the sessions of 2026-11-10 to 2026-11-20
+- **Source:** the second growth pass over 30 web sessions.
+- **Reason:** a fixed GT context menu with inapplicable items greyed is a product requirement, now
+  in the vascular spec; a size nudge on a data file under web/ rests on one instance and
+  network-calls-approved already puts the fetch to the owner; requiring pytest's -n flag is a speed
+  matter, now named in ci-run-before-push's fix; "merge when the base moved" and "a version
+  rewritten in place" each need an owner decision first (a branch-protection setting; a module hash
+  in the metrics).
+- **Actor:** @missingbulb (owner), asking for growth from the sessions since the last growth run.
