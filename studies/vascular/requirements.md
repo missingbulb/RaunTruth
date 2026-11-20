@@ -143,7 +143,7 @@ owner's decisions on the stacks and the vessel model, are
   is the shell's, `req/shell/left-bar/shells`); its edits are undone and redone in the Ground Truth Tasks box
   (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
-  (`req/nor/find/settings`). Each algorithm in the list carries its own icon and its name, and its
+  (`req/shell/processing/algorithms`). Each algorithm in the list carries its own icon and its name, and its
   precision and recall against the provisional labels (`lab/truth/`, a model's
   verdicts, not the owner's); How the <name> algorithm works gives its steps as a nested list
   (written as a Markdown outline), then "<Name> algorithm shows precision of X and recall of Y on

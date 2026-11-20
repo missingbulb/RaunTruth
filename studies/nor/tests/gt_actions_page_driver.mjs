@@ -23,15 +23,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 const { origin, server } = await serveSite({
@@ -67,7 +68,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 async function find(page) {
   await unfold(page, "#processing-box");
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden && !document.querySelector("button.working"));
+  await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working"));
 }
 // the log as Edit History words it, newest first, the actions not yet saved, and what the page reads of the model
 const rows = (page) => page.$$eval("#eh-list .what", (h) => h.map((x) => x.textContent.trim()));
@@ -215,12 +216,12 @@ try {
   await check(JSON.stringify(back) === JSON.stringify({ ...kept, count: 0 }) || JSON.stringify([back.forced, back.edits, back.added, back.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]),
     "Load draft brings back the votes, the lengths, the added NoRs and the checked areas", { back, kept });
   const drawn = await page.evaluate(() => ({ groups: document.querySelectorAll("#overlay > g[data-i] .hit").length, outlines: [...document.querySelectorAll("#overlay > g[data-i] path")].filter((p) => p.getAttribute("d")).length, find: $("#find").disabled,
-    filtersInert: $("#filters").inert, rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
-  await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find && drawn.filtersInert, "each candidate is drawn from its box, with no outline, Find Candidates is on and the filters wait for it", drawn);
+    rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
+  await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find, "each candidate is drawn from its box, with no outline, and Find Candidates is on", drawn);
   await page.click("#gt-start");
   await settle(page);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
   const again = await read(page);
   await check(JSON.stringify([again.forced, again.edits, again.added, again.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]) && await page.evaluate(() => [...document.querySelectorAll("#overlay > g[data-i] path")].some((p) => p.getAttribute("d"))),
     "Find Candidates again keeps every id by place, so the votes and lengths stay, and the outlines are drawn", { again, kept });
@@ -283,12 +284,10 @@ try {
     && await page.evaluate(() => st.order.length === nor.model().cands.length + nor.model().deleted.length),
     "each as a GT action of the log, the old thumbs down a delete of its candidate, and no candidate out of the model", { lrows, deleted: lm.deleted.map((c) => c.id) });
   await check((await keys(page)).length === 4, "the old keys are kept until a draft holds them", await keys(page));
-  // a filter moved is a run again: what was loaded stays, by id
-  const ran = await page.evaluate(() => nor.model().meta.filters.off.length);
-  await page.evaluate(() => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = !c.checked; c.dispatchEvent(new Event("change")); });
-  await page.waitForFunction((n) => nor.model().meta.filters.off.length !== n, ran);
+  // Find Candidates again: what was loaded stays, by id
+  await find(page);
   const after = await read(page);
-  await check(JSON.stringify(after) === JSON.stringify(got) && await page.evaluate(() => nor.model().deleted.length) === 1, "a filter switched after it runs again and keeps every earlier vote, length, added NoR and area", { after, got });
+  await check(JSON.stringify(after) === JSON.stringify(got) && await page.evaluate(() => nor.model().deleted.length) === 1, "Find Candidates after it runs again and keeps every earlier vote, length, added NoR and area", { after, got });
   await page.click("#gt-undo");
   await page.click("#gt-undo");
   await check(JSON.stringify((await read(page)).areas) === "[3]", "and Undo takes back the last of them alone", await read(page));

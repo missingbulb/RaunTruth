@@ -4,7 +4,7 @@ What a person using the NoR Finder page sees and can do beyond the shell, which
 [the shell's requirements](../../dev/requirements/requirements.md) state with the conventions this spec
 follows too: tags, their order, **Tentative** and **Undecided**. Its research requirements, which no user sees, are [docs/requirements.md](docs/requirements.md).
 
-## `req/nor` The NoR Finder page: detect once, filter live, in the browser
+## `req/nor` The NoR Finder page: the algorithm proposes NoRs, the tagger corrects them, in the browser
 
 Set by the owner on 2026-09-28: the shell running the NoR study with no backend. Its engine is
 [`studies/nor/algorithm/nor_finder.py`](algorithm/nor_finder.py), tested by
@@ -33,7 +33,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   hover over the bottom of its crop. Decisions are
   made on cards, not by clicking the image, with a thumbs up (a real NoR, with the lengths shown)
   and a thumbs down (not one) at the card's top, each saying what it does in its tooltip; pressing
-  the chosen one again undoes it and lets the filters decide. Pressing either also selects that
+  the chosen one again undoes it. Pressing either also selects that
   candidate. Cards the user voted up or down have their own border colours. Changed by the owner on
   2026-11-19: the item views are gone (missingbulb/RaunTruth#740), so double clicking a candidate on
   the image selects it, as a click does. Changed by the owner on 2026-11-03: while the study makes ground truth no card hovers over the image; the
@@ -45,7 +45,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/candidates/numbering` Each candidate keeps one number for as long as a detection lasts.
   <details>
 
-  Numbered top to bottom, finalists and rejected alike. Filters never renumber candidates. Added
+  Numbered top to bottom. Added
   NoRs are numbered after the finder's candidates, in the order added (set by the owner on
   2026-10-07). The image, the cards, the Candidates CSV and the ground-truth file all name a
   candidate by that number (`studies/nor/tests/test_ground_truth_page.py`).
@@ -59,7 +59,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   back, a length, red length or width end dropped (one action at the drop, none while it is dragged or when Escape
   cancels it) or Reset measurements, adding a NoR, and "No missed NoRs here". They live in the page until Save Draft
   (`req/shell/ground-truth/save-draft`), not in the browser per file name. A candidate keeps its id from the run
-  (c87), and a run again, whether from Find Candidates or a filter or preset change, gives each candidate at the
+  (c87), and a run again from Find Candidates gives each candidate at the
   same place the same id and carries the tagger's actions over, skipping any whose candidate has gone; an added NoR's
   id (u3) is never reused. What the five older browser keys hold for a file (decisions, lengths, added NoRs, a
   pre-v1 list of missing marks and checked areas) is offered once, after Find Candidates, as Load earlier edits
@@ -74,7 +74,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
   A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
   `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
-  candidate's id and then by its rounded place: an approval, a rejection (the candidate stays among the rejected), the
+  candidate's id and then by its rounded place: an approval, a rejection, the
   tagger's lines, the NoRs added and the areas checked. An approval or a rejection of a candidate the run does not have
   is left out and counted on the status line. A `/2` file read again gives a candidate marked wrong back as a rejected
   one, and its lines as the tagger's; a `/3` file keeps `next`, the ids it will give next, so one given up is not given again.
@@ -93,22 +93,18 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the summary and the downloads.
   </details>
 
-- `req/nor/cards/options` A candidate's card shows it cropped, with the finalists' options or the rejected's.
+- `req/nor/cards/options` A candidate's card shows it cropped, with the cards' options.
   <details>
 
   Each candidate cropped on a card: its number, state and decision buttons on top, the crop below
   (on the selected candidate's card, with a faint go-to button in its corner that shows it on the
   image), then "Lengths adjusted" with a reset (on a task's card, only a Reset measurements button:
-  the task says the rest; set by the owner on 2026-11-04), and the rest. A rejected card names every
-  filter that rejects it by itself, or says the user rejected it. The options set the crop's context
-  padding, turn each crop so the NoR lies level (finalists only; the rejected are never turned),
+  the task says the rest; set by the owner on 2026-11-04), and the rest. A card the user rejected
+  says so. The options set the crop's context padding, turn each crop so the NoR lies level,
   and show or hide the NoR borders, the measurement bars, the lengths on the crop, the lengths on
-  the card and the measurement adjusters. The finalists' open with a 4 px padding and everything on
-  but the lengths on the card; the rejected's with a 10 px padding and only the NoR borders on. The
-  selected card over the image uses the finalists' or the rejected's, as the candidate is one or the
-  other. Changed by the owner on 2026-11-04: a task's card, finalist and rejected alike, uses one set
-  of options, the finalists' (the crop turned level, the measurement bars and the adjusters), so a
-  rejected candidate can have its lengths corrected before it is approved; its cogwheel holds them.
+  the card and the measurement adjusters. They open with a 4 px padding and everything on but the
+  lengths on the card. Changed by the owner on 2026-11-20: one set of options for every card, the
+  rejected's gone with the filters (`req/nor/find/nors-only`). A task's cogwheel holds them.
   Changed by the owner on 2026-11-19: the item views that listed the cards, each with its own sort
   and Options menu, are removed (missingbulb/RaunTruth#740); the cogwheel is the only place the
   options are set.
@@ -118,14 +114,14 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   <details>
 
   Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
-  CSV (every candidate, its status, its reasons, the user's decision and its measurements), and under it the shell's
+  CSV (every candidate, the user's decision and its measurements), and under it the shell's
   Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
-  finalists, their density and the area counted, each measurement's statistics, and the rejected by reason. Submit Ground
+  NoRs, their density and the area counted, and each measurement's statistics. Submit Ground
   Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
-  from: its Google Drive id and link, or "local") and the finder and filters it was run with, with
+  from: its Google Drive id and link, or "local") and the finder it was run with, with
   `candidates`, the finder's candidates that remain, each with its id, number, place, `approved` once the tagger
   approved it, and its lengths and length lines (`edited` holding those the tagger moved); `added`, the NoRs the tagger
   added, each with its id, its lines and `approved`; and `checked`, the parts of the image checked for missed NoRs,
@@ -139,23 +135,6 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   `studies/nor/tests/test_truth.py`). A candidate nobody voted on is undecided: in `candidates` without
   `approved`, and neither a miss nor an invention.
   </details>
-
-- `req/nor/filters/live` Filters are live dials: each can be switched off, and every marking follows it at once.
-  <details>
-
-  Every check in `nor3.CHECKS`, the nucleus rule (N) and one-pixel-per-NoR (O) is a control that
-  can be switched off. Each shows a letter, a one- or two-word title and a line saying what it
-  means (the page's own names, from `algorithm/finder_help.py`; the lab's review sheets keep
-  theirs), and two counts: how many candidates it rejects, whatever the other filters do, and how
-  many only it rejects among the filters switched on (what switching it off would let through), as
-  plain text reading "X (Y)" after the cards' thumbs-down icon, whose tooltip explains that X is the
-  second and Y the first. Each of its parameters is a dial, and every marking on the image follows
-  it at once. A dial moved off our value is marked, with our value as a tick on its slider that puts
-  it back. Finder and filter settings use this one control, so tweaking looks and works the same in
-  both. A check added to `CHECKS` becomes a control with no page change.
-  </details>
-
-- `req/nor/filters/persist` Filter settings persist across images, visits and days; the Balanced preset returns to the finder's own values.
 
 - `req/nor/find/blue-mask` The blue mask is only a filter: no finder blanks nuclei before finding.
 
@@ -172,37 +151,34 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
 - `req/nor/find/finders` All finders are offered; Traffic light is the default.
 
+- `req/nor/find/nors-only` The algorithm gives the page a list of NoRs, and nothing else; the page has no filters, settings or presets.
+  <details>
+
+  Set by the owner on 2026-11-20. The tagger goes over every NoR the algorithm proposes anyway and then marks the
+  missed ones, so filters, finder settings and presets have no part in the workflow: the page shows none of them, and
+  no rejected candidate or rejection reason. Python runs only to find the NoRs (Find Candidates). The finder runs with
+  its filters off but one, "not stick-like": while the study makes ground truth, recall comes before precision, since
+  a NoR missed costs the tagger a search and a false one a thumbs down, but not at any price, and that filter buys
+  much of the precision back for almost no recall (changed by the owner on 2026-11-20, every filter off having cost
+  too much precision; [lab/ledger.md](lab/ledger.md) §7). The
+  filters stay in the algorithm, the lab's to tune ([docs/requirements.md](docs/requirements.md) R11). Test:
+  `studies/nor/tests/test_processing_box.py`, `studies/nor/tests/test_algorithm.py`.
+  </details>
+
 - `req/nor/find/one-slow-step` One image, one slow step: the finder runs only on Find Candidates.
   <details>
 
   Loading an image only reads it. The finder runs when the user presses Find Candidates, and that
-  button shines while the finder or its settings differ from the last run. Everything else
-  (filters, forced markings, the list, the summary) redraws from the stored candidates without
+  button shines while the finder differs from the last run's. Everything else
+  (forced markings, the list, the summary) redraws from the stored candidates without
   finding again.
   </details>
 
-- `req/nor/find/settings` Detection settings are dials too, and the page says re-finding takes time.
-  <details>
-
-  They re-run the finder. Each finder names its main settings (its function's `MAIN`), shown first;
-  every setting is under a collapsed Advanced box. Each finder shows how it works under "How the
-  <finder> algorithm works", its steps as a nested list (written as a Markdown outline), and every
-  setting and filter value has a ? that says what it does (`algorithm/finder_help.py`; the test fails
-  when one is missing). Changed by the owner on 2026-11-03: the note ends with "<Finder> algorithm shows
-  precision of X and recall of Y with its default filters, on N images", in bold, the numbers the finder
-  list shows, then "(without filters: …)", the finder's own, not bold (the list and the note are the shell's
-  since 2026-11-13, `req/shell/processing/algorithms`, from the study's data: `web/algorithms.json`, each finder's
-  name, icon and steps, and `web/algorithm_metrics.json`, its numbers);
-  each finder in the list carries its own icon, the study's choice; the settings start folded.
-  Test: `studies/nor/tests/test_processing_box.py`.
-  </details>
-
-- `req/nor/lab-parity` The page runs the lab's code, and at our settings passes what the lab passes.
+- `req/nor/lab-parity` The page runs the lab's code, and shows the NoRs its default answer gives.
   <details>
 
   The Python it runs is the study's `algorithm/` as it is, the code the lab runs, so the finder stays
-  malleable. At our settings, the page passes what the lab passes with the blue mask applied after
-  finding.
+  malleable. The page shows the NoRs the lab scores as the finder's default (`req/nor/find/nors-only`).
   </details>
 
 - `req/nor/layout` The left bar holds Load Image, Processing and Summary, or Ground Truth Tasks while the study makes ground truth.
@@ -210,12 +186,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Changed by the owner on 2026-10-30, 2026-10-31 and 2026-11-02. Below the Image box
   (`req/shell/left-bar/folding`) the left bar holds Processing, the candidates finder (its "how the
-  algorithm works" and its settings fold away, and start folded; its "restore defaults" sits with the settings, not in the title row), open
-  from the image's opening until Find Candidates and, folded once Find Candidates has run with the finder and
-  settings now chosen, titled "<finder> executed"; and Summary, which opens once the candidates are
-  found, keeping its name whatever is done. Changed by the owner on 2026-11-04: finding the candidates
-  and filtering them are the algorithm's two parts, so the filters and their presets sit in
-  Processing, with no box of their own: a Filters fold after Settings, which, like it, starts folded. Test:
+  algorithm works" folds away, and starts folded), open
+  from the image's opening until Find Candidates and, folded once Find Candidates has run with the finder
+  now chosen, titled "<finder> executed"; and Summary, which opens once the candidates are
+  found, keeping its name whatever is done. Changed by the owner on 2026-11-20: Processing holds no settings and no filters
+  (`req/nor/find/nors-only`). Test:
   `studies/nor/tests/test_processing_box.py`. The main area has a toolbar over two views: the image and the
   items, a card for each candidate, with the shell's switch between them at its left (`req/shell/views/second`).
   Changed by the owner on 2026-11-03: while the study makes ground truth, Ground Truth Tasks
@@ -228,10 +203,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   removed by the owner on 2026-11-19 (missingbulb/RaunTruth#740).
   </details>
 
-- `req/nor/metrics` On the released site each finder and each filter preset shows its precision and recall.
+- `req/nor/metrics` On the released site each finder shows its precision and recall.
   <details>
 
-  The finder list, the finder's note and the filter presets read the study's measured
+  The finder list and the finder's note read the study's measured
   quality (`studies/nor/docs/requirements.md` R11), so that file ships with the page part
   (`studies/nor/web/`), like everything else the page fetches. Test:
   `web-tests/test_published_site.py`, which checks that every file a study's page module fetches is
@@ -242,9 +217,9 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   <details>
 
   Changed by the owner on 2026-11-04: a menu above the image in every role, its rows named as the
-  ground-truth tasks name them. Outside ground truth: Finalists and Rejected, each with its own line
-  width and colour, the candidate numbers, the rejection reasons and the measuring lines. While the
-  study makes ground truth, the tasks' own markings (`req/nor/truth/marks`): Finalists and Rejected
+  ground-truth tasks name them. Outside ground truth: Finalists and those the user rejected, each with
+  its own line width and colour, the candidate numbers and the measuring lines. While the
+  study makes ground truth, the tasks' own markings (`req/nor/truth/marks`): Finalists
   (each waiting one's faint outline), Added NoRs, Cut out what is done, and Frame the area, all on
   at first. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
@@ -254,13 +229,13 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Submit Ground
   Truth button's text says how finished the work is: a green check when every task before it is
-  done (every finalist and every rejected candidate has the user's verdict, and every area is
+  done (every finalist has the user's verdict, and every area is
   checked for missed NoRs), an orange warning when some candidates have a verdict but a task is not done, and a red
   error when no candidate has one yet or a candidate the user added still waits for a verdict; the
   warning and the error pulse gently. Any animation scrolled out of view is paused, since Chrome
   would keep drawing it. The button itself stays plain. Its popup (`req/shell/ground-truth/submit`) carries a checklist of
   short instructions (approve or reject the NoRs you added, vote on at least one candidate, vote on
-  every finalist, vote on every rejected candidate, check every area for missed NoRs, only
+  every finalist, check every area for missed NoRs, only
   images from Google Drive can be exported), each done one crossed out with a
   green check; the added-NoRs line shows only when the user added some. The issue names the image (name,
   SHA-256, Drive link, finder, what was marked). With nothing marked the popup says how to mark and
@@ -308,16 +283,16 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   in a small chip beside its label. Changed by the owner on 2026-11-16: the keys are the shell's
   (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
   bottom left while they act, the study listening to no key itself; and the Show menu's ground-truth rows are
-  on number keys, 1 Finalists, 2 Rejected, 3 Added NoRs, and while tagging 4 Cut out what is done and 5 Frame
-  the area, each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  on number keys, 1 Finalists, 2 Added NoRs, and while tagging 3 Cut out what is done and 4 Frame
+  the area (changed by the owner on 2026-11-20, the Rejected row gone with the filters), each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image.
   <details>
 
   Set by the owner on 2026-11-03. The markings that look at what was found (pink and blue, numbers,
-  rejection letters, measuring lines) give way to the tasks' own. A candidate waiting for the
-  user's verdict is only a faint thin white outline, finalist and rejected alike, and the current
+  measuring lines) give way to the tasks' own. A candidate waiting for the
+  user's verdict is only a faint thin white outline, and the current
   one has a yellow ring. Once the user decides a candidate, up or down, its area (the rectangle
   around its pixels, two pixels wider each way) is removed from the image. The area being worked on
   (`req/nor/truth/order`) is framed in yellow. Changed by the owner on 2026-11-04: once an area is
@@ -337,7 +312,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   an area is checked once all of its pixels are, by checks made under any count. Changed by the
   owner on 2026-11-04: the tasks are one walk through the areas, so after a number of verdicts a
   whole region of the image is done rather than candidates scattered over it. In each area its
-  finalists, then its rejected, then the NoRs the user added there, each top to bottom, and last
+  finalists, then the NoRs the user added there, each top to bottom, and last
   the area's check for missed NoRs; then the next area. The grid is not drawn; the area being worked
   on is framed (`req/nor/truth/marks`). Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
@@ -349,7 +324,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   once the candidates are found; the walk opens only once Start GT tagging is pressed, and Stop tagging
   closes it, the image left as it is viewed (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
   long and filled as far as it is done, heads one row per task, each counting only once and never
-  repeating that it is a review: "13/47 Finalists", "0/68 Rejected", "0/100 Areas" (the areas
+  repeating that it is a review: "13/47 Finalists", "0/100 Areas" (the areas
   checked for NoRs the finder missed), and Submit Ground Truth (`req/nor/downloads`); a done task
   is marked done with a check (no marks on the others). The rows count; the work is one walk
   (`req/nor/truth/order`), and the row of the current item's task is the open one. Clicking a task

@@ -52,5 +52,5 @@ def image(request, tmp_path_factory):
 def test_a_finder_finds_nothing_where_there_is_nothing(image, finder):
     found = nor_finder.VERSIONS[finder](image)
     assert found['cands'] == [] and found.cands == [] and found['segments'].size == 0
-    stage = nor_finder.STAGES['refilter'](image, found, {'values': {}, 'off': []})
-    assert stage['fails'] == [] and stage['alone']['fails'] == []
+    # every filter on, as the lab's presets run them
+    assert nor_finder.refilter(image, found, {'values': {}, 'off': []}) == []

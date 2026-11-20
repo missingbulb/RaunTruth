@@ -1796,7 +1796,7 @@ nobody has decided: what the page does there is not a requirement yet.
   yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
   shows what it finds, so it makes no ground truth (no Submit GT, as in PreGT) and
   drops the steps that serve making it: the study's
-  postprocessing (NoR's Filters fold in its Processing box, `req/nor/filters/live`) is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
+  postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
   NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
   </details>
 
