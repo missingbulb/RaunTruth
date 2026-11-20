@@ -4,8 +4,9 @@
 // the rules expect; after its last state, it goes to another study and back, each page then compared with a fresh
 // load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
 // every state, arrows pointing at the elements that changed there, and an index.html of them all (req/checks/shell-states/renders).
+// SHARD, i/n, walks the paths whose place in EXPECT is i modulo n, so n runs side by side walk them all.
 // STACK is the z-stack a path loads with its stack action; ANSWERS' files[study] may name a study's own image and stack, and names the large image of the large action. Exits 1 on a difference, 2 when it cannot run.
-//   node web-tests/shell_states_driver.mjs ANSWERS STUDIES ROOT IMAGE STACK EXPECT [RENDERS]
+//   node web-tests/shell_states_driver.mjs ANSWERS STUDIES ROOT IMAGE STACK EXPECT SHARD [RENDERS]
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
@@ -15,9 +16,11 @@ import { expecting } from "./harness.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
-const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
+const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
-const { elements: trees, paths } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
+const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
+const [part, parts] = shard.split("/").map(Number);
+const paths = [...every.entries()].filter(([k]) => k % parts === part);
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
 const OTHER = "someone@example.com";
@@ -225,67 +228,69 @@ const awayAndBack = async (page, p) => {
 const differences = [];
 const index = [];
 if (renders) fs.mkdirSync(renders, { recursive: true });
-// the Data Management states hold a folder the site was never approved for, its Approve folders shown: of that folder
-// Drive knows nothing, which the tree asks each time it is drawn
-await expecting(/404 \(Not Found\) .*capabilities/, async () => {
-  for (const [k, p] of paths.entries()) {
-    const elements = trees[p.study];
-    // each path finds the folder as it started: no previews made by an earlier one
-    const made = new Set(FILES.filter((f) => f.folder && f.name === "Previews").map((f) => f.id));
-    for (let i = FILES.length - 1; i >= 0; i--) if (made.has(FILES[i].id) || made.has(FILES[i].parent)) FILES.splice(i, 1);
-    // a study shown only to the accounts it names is opened by the first of them
-    const { visibility, phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
-    // Data Management lists the kinds a study opens: the fixture, opening PNGs alone, is given the folder's TIFFs too
-    const opens = p.study === "fixture" ? { files: { ...files, accept: files.accept + ",.tif,.tiff" } } : {};
-    // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
-    const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
-    const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
-    const page = await open(p.signedIn, {
-      id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: visibility.accounts?.[0] ?? OTHER }),
-      seed: { ...stood.seed, "nor-role": ROLE[p.role] }, prepare: stood.prepare,
+const walk = async (k, p) => {
+  const elements = trees[p.study];
+  // each path finds the folder as it started: no previews made by an earlier one
+  const made = new Set(FILES.filter((f) => f.folder && f.name === "Previews").map((f) => f.id));
+  for (let i = FILES.length - 1; i >= 0; i--) if (made.has(FILES[i].id) || made.has(FILES[i].parent)) FILES.splice(i, 1);
+  // a study shown only to the accounts it names is opened by the first of them
+  const { visibility, phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
+  // Data Management lists the kinds a study opens: the fixture, opening PNGs alone, is given the folder's TIFFs too
+  const opens = p.study === "fixture" ? { files: { ...files, accept: files.accept + ",.tif,.tiff" } } : {};
+  // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
+  const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
+  const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
+  const page = await open(p.signedIn, {
+    id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: visibility.accounts?.[0] ?? OTHER }),
+    seed: { ...stood.seed, "nor-role": ROLE[p.role] }, prepare: stood.prepare,
+  });
+  await page.waitForFunction((s) => (document.documentElement.dataset.stage ?? null) === s, p.stage);
+  await ready(page);
+  let before = null;
+  const shots = [];
+  for (const [i, s] of p.states.entries()) {
+    if (i > 0) await ACTIONS[p.actions[i - 1]](page, phases[0], FILES_OF[p.study] ?? {}).catch(async (e) => {
+      for (const d of differences) console.error("DIFFERENT: " + d);
+      console.error(`${p.study} · ${p.root}: ${p.actions[i - 1]} did not finish: ${e.message.split("\n")[0]}; status: ${await page.textContent("#status")}; at ${page.url()}`);
+      await done(1);
     });
-    await page.waitForFunction((s) => (document.documentElement.dataset.stage ?? null) === s, p.stage);
-    await ready(page);
-    let before = null;
-    const shots = [];
-    for (const [i, s] of p.states.entries()) {
-      if (i > 0) await ACTIONS[p.actions[i - 1]](page, phases[0], FILES_OF[p.study] ?? {}).catch(async (e) => {
-        for (const d of differences) console.error("DIFFERENT: " + d);
-        console.error(`${p.study} · ${p.root}: ${p.actions[i - 1]} did not finish: ${e.message.split("\n")[0]}; status: ${await page.textContent("#status")}; at ${page.url()}`);
-        await done(1);
-      });
-      await settled(page);
-      const now = await read(page, elements);
-      const wrong = new Set();
-      for (const e of elements) {
-        const want = s.expect[e.name];
-        if (want !== null && now[e.name].seen !== want) { wrong.add(e.name); differences.push(`${p.study} · ${p.root} → ${s.label}: ${e.name} is ${now[e.name].seen}, the rules say ${want}`); }
-      }
-      if (renders) {
-        // what changed here; on the first state, with nothing before it, what shows folded or disabled
-        const marks = [];
-        for (const e of elements) {
-          const changed = before ? before[e.name].seen !== now[e.name].seen : ["off", "folded"].includes(now[e.name].seen);
-          if (!changed && !wrong.has(e.name)) continue;
-          // only the outermost of what changed together: a box going takes what is in it with it
-          const up = e.parent && elements.find((x) => x.name === e.parent);
-          if (up && !wrong.has(e.name) && before && before[up.name].seen !== now[up.name].seen) continue;
-          if (now[e.name].box) marks.push({ box: now[e.name].box, wrong: wrong.has(e.name) });
-          else if (before?.[e.name].box) marks.push({ box: before[e.name].box, wrong: wrong.has(e.name), was: true });
-        }
-        await arrows(page, marks);
-        const file = `${String(k + 1).padStart(2, "0")}-${i}-${s.label.replace(/[^A-Za-z]+/g, "-").toLowerCase().replace(/^-|-$/g, "")}.png`;
-        await page.screenshot({ path: path.join(renders, file) });
-        await unarrow(page);
-        shots.push({ file, label: s.label, wrong: [...wrong] });
-      }
-      before = now;
+    await settled(page);
+    const now = await read(page, elements);
+    const wrong = new Set();
+    for (const e of elements) {
+      const want = s.expect[e.name];
+      if (want !== null && now[e.name].seen !== want) { wrong.add(e.name); differences.push(`${p.study} · ${p.root} → ${s.label}: ${e.name} is ${now[e.name].seen}, the rules say ${want}`); }
     }
-    index.push({ root: `${p.study} · ${p.root}`, shots });
-    await awayAndBack(page, p);
-    await page.context().close();
+    if (renders) {
+      // what changed here; on the first state, with nothing before it, what shows folded or disabled
+      const marks = [];
+      for (const e of elements) {
+        const changed = before ? before[e.name].seen !== now[e.name].seen : ["off", "folded"].includes(now[e.name].seen);
+        if (!changed && !wrong.has(e.name)) continue;
+        // only the outermost of what changed together: a box going takes what is in it with it
+        const up = e.parent && elements.find((x) => x.name === e.parent);
+        if (up && !wrong.has(e.name) && before && before[up.name].seen !== now[up.name].seen) continue;
+        if (now[e.name].box) marks.push({ box: now[e.name].box, wrong: wrong.has(e.name) });
+        else if (before?.[e.name].box) marks.push({ box: before[e.name].box, wrong: wrong.has(e.name), was: true });
+      }
+      await arrows(page, marks);
+      const file = `${String(k + 1).padStart(2, "0")}-${i}-${s.label.replace(/[^A-Za-z]+/g, "-").toLowerCase().replace(/^-|-$/g, "")}.png`;
+      await page.screenshot({ path: path.join(renders, file) });
+      await unarrow(page);
+      shots.push({ file, label: s.label, wrong: [...wrong] });
+    }
+    before = now;
   }
-});
+  index.push({ root: `${p.study} · ${p.root}`, shots });
+  await awayAndBack(page, p);
+  await page.context().close();
+};
+for (const [k, p] of paths) {
+  // the Data Management states hold a folder the site was never approved for, its Approve folders shown: of that folder
+  // Drive knows nothing, which the tree asks each time it is drawn
+  if (p.role === "data") await expecting(/404 \(Not Found\) .*capabilities/, () => walk(k, p));
+  else await walk(k, p);
+}
 
 if (renders) {
   const esc = (t) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -296,5 +301,5 @@ figure{margin:0;flex:0 0 auto}img{width:560px;border:1px solid #ccc}figcaption{m
 ${index.map((r) => `<h2>${esc(r.root)}</h2><div class="row">${r.shots.map((s) => `<figure><a href="${s.file}"><img src="${s.file}" alt="${esc(r.root + ", " + s.label)}"></a><figcaption>${esc(s.label)}${s.wrong.length ? ` <span class="wrong">${esc(s.wrong.join(", "))}</span>` : ""}</figcaption></figure>`).join("")}</div>`).join("\n")}`);
 }
 for (const d of differences) console.error("DIFFERENT: " + d);
-await check(!differences.length, `every element in every state is what the rules say (${paths.reduce((n, p) => n + p.states.length, 0)} states on ${paths.length} paths)`, differences.length);
+await check(!differences.length, `every element in every state is what the rules say (${paths.reduce((n, [, p]) => n + p.states.length, 0)} states on ${paths.length} paths, shard ${shard})`, differences.length);
 await done(0);
