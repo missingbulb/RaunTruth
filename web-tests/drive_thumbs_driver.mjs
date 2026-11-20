@@ -216,6 +216,11 @@ try {
   // the slow listing in, after the user moved on, and the page done with it
   slowListing.release();
   await Promise.race([slowListed, atMost(5000)]);
+  // the root folder drawn again from what it kept, or the stale listing drawn in its place, whichever the page does
+  await orMissed(page.waitForFunction((n) => {
+    const r = [...document.querySelectorAll("#remote-list .item .name")].map((e) => e.textContent);
+    return r.length === n + 1 || r.includes("stale.tif");
+  }, N, { timeout: STEP }));
   await framesOf(page);
   const rows = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item .name")].map((e) => e.textContent));
   check(rows.length === N + 1 && !rows.includes("stale.tif"), `a listing that arrives after the user moved on is dropped: ${rows.length} rows${rows.includes("stale.tif") ? ", stale.tif among them" : ""}`);
