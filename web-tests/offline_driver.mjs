@@ -52,6 +52,9 @@ let down = false, pyDown = false; // pyDown: the network gone for the study's Py
 // release: a release landed while the page was offline, one of its files slow to arrive
 let release = false;
 const slowFile = held();
+// the site's list of its files asked for while the network is gone, kept unanswered until let go: the page not yet
+// told that the site does not answer
+let unanswered = null;
 // as Cloudflare serves the site: /<name> is <name>.html, a folder its index.html, a folder's address with no slash
 // redirected to it with one and a file's with one to it without, the headers _headers names added; and an unlisted
 // study's address in the app the app's page too, as the tests' repo server serves it, so the fixture study runs
@@ -59,6 +62,7 @@ const HEADERS = siteHeaders(site);
 const server = http.createServer((q, r) => {
   const url = new URL(q.url, "http://x");
   let u = decodeURIComponent(url.pathname);
+  if (down && unanswered && u === "/app/offline.json") return void unanswered.hold().then(() => q.socket.destroy());
   if (down || (pyDown && u.endsWith(".py"))) return q.socket.destroy();
   const at = path.join(site, u), folder = fs.existsSync(at) && fs.statSync(at).isDirectory();
   if (folder !== u.endsWith("/") && (folder || fs.existsSync(at.replace(/\/$/, "") + ".html") || /^\/app\/[\w-]+\/$/.test(u))) {
@@ -337,6 +341,33 @@ try {
   g = await greyed();
   check(Object.keys(g).length === 2 && !Object.values(g).some(Boolean), "and the Drive dialog's folder can be opened from again: " + JSON.stringify(g));
   await page.keyboard.press("Escape");
+
+  // the network dies as a study opens, the browser saying online all along, one of its Python's files not on this
+  // device: that file fails before the page learns the site does not answer, and the page says so once it learns
+  const wheels = await page.evaluate(async () => {
+    let n = 0;
+    for (const name of await caches.keys()) {
+      const c = await caches.open(name);
+      for (const q of await c.keys()) if (/\/vendor\/[^/]+\.whl$/.test(new URL(q.url).pathname)) { await c.delete(q); n++; }
+    }
+    return n;
+  });
+  unanswered = held(); down = true;
+  await expecting(NETWORK_GONE, async () => {
+    const failing = orMissed(page.waitForEvent("console", { predicate: (m) => /not kept yet/.test(m.text()), timeout: 60000 }));
+    await page.goto(origin + "/app/nor");
+    const told = await failing;
+    check(wheels > 0 && !!told && !(await page.isVisible("#sb-online .off")), `a file of the study's Python (${wheels} taken off this device) fails while the page still takes the network as there`);
+    unanswered.release();
+    await orMissed(page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 20000 }));
+    check(/not on this device/i.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
+      "once the page learns the site does not answer, it says the study's Python is not here, not as an error: " + (await statusText()));
+    unanswered = null; down = false;
+    await pastOfflineRetry();
+    await orMissed(page.waitForFunction(() => /^Ready/.test(document.querySelector("#status").textContent), null, { timeout: 60000 }));
+    check(/^Ready/.test(await statusText()), "and the site answering again, it keeps that file and says Ready: " + (await statusText()));
+    await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
+  });
 
   // a release lands while the page is offline: back online, the icon says so at once, not once the new copy is in
   down = true;

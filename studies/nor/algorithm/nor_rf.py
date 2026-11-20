@@ -96,6 +96,8 @@ def segment_rf(caspr, nav, bm, p=PR, gone=None):
     glab, _ = ndi.label(green, EIGHT); gsz = np.bincount(glab.ravel())
     lens = [max(sl[0].stop - sl[0].start, sl[1].stop - sl[1].start) / 2
             for i, sl in enumerate(ndi.find_objects(glab)) if sl is not None and gsz[i + 1] >= p['min_green']]
+    if not lens:
+        return nor3.nothing_found()
     unit = float(np.median(lens)); H, W = cn.shape
     cs_ = ndi.gaussian_filter(cn, p['smooth_u'] * unit); rs_ = ndi.gaussian_filter(rn, p['smooth_u'] * unit)
     # 1. red only: peaks and the hills around them
