@@ -9,8 +9,7 @@ import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { GT, approved, FILES, open, check, done } = drive;
-approved.add(GT.submissions);
+const { GT, FILES, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const { tagger, reopen, marks, label, records, ask } = kit({ drive, png });
 

@@ -56,8 +56,8 @@ def test_data_management(answers, tmp_path):
 
 
 @pytest.mark.skipif(not NODE, reason='node missing')
-def test_choose_folders_asks_google(answers, tmp_path):
-    """Choose folders… for a user whose token lasts but lacks Drive's per-file permission asks for it, then shows the picker."""
+def test_write_permission_from_sign_in(answers, tmp_path):
+    """A token from before sign-in asked for Drive's per-file permission is renewed asking for it; none, every folder is view only."""
     root = tmp_path / 'drive'
     folder(root)
-    run('drive_approve_driver.mjs', answers[0], answers[1], str(root))
+    run('drive_write_permission_driver.mjs', answers[0], answers[1], str(root))

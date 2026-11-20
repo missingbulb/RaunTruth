@@ -4,8 +4,8 @@
 // keeps under it}, for the keys whose settings follow the user. The services it reaches: Google's sign-in script
 // and window, Google's account details (name, email, picture), and the Drive API for that one file. The token also
 // reads the user's Drive (DRIVE_READ), the only credential the page's Drive reads carry while they are signed in
-// (req/shell/drive/credentials). A study may
-// ask for more (more(scope), req/shell/data/drive-access): Google's per-file Drive permission, added to the same token.
+// (req/shell/drive/credentials), and holds Google's per-file Drive permission (DRIVE_FILE), with which the page adds
+// files to a study's folders (req/shell/data/drive-access).
 "use strict";
 import { CONNECTION } from "./offline.js";
 import { multipart } from "./drive.js";
@@ -13,7 +13,8 @@ import { settle as afterQuiet } from "./pacing.js";
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client";
 export const DRIVE_READ = "https://www.googleapis.com/auth/drive.readonly";
-const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata " + DRIVE_READ;
+const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+const SCOPES = `openid email profile https://www.googleapis.com/auth/drive.appdata ${DRIVE_READ} ${DRIVE_FILE}`;
 const USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
 const FILES = "https://www.googleapis.com/drive/v3/files";
 const UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
@@ -36,8 +37,10 @@ const SIGN_IN_GUIDE = {
   steps: [
     { text: "Choose your Google account." },
     ...UNVERIFIED,
-    { text: "Tick every box, the Google Drive one too, then click <b>Continue</b>. Without the Drive box, your Drive files do not open as you.",
+    { text: "Tick every box, both Google Drive ones too, then click <b>Continue</b>. Without them, your Drive files do not open as you, and the site adds no files for you.",
       shot: shot("consent-read"), from: "Google's example screen, from developers.google.com, CC BY 4.0" },
+    { text: "One of them lets the site <b>see, edit, create and delete only the specific Google Drive files you use with this app</b>.",
+      shot: shot("consent-file"), from: IFUNPLAY },
   ],
 };
 // who is signed in on this device: {user: {name, email, picture}, token, until (ms), scopes (what the token may do,
@@ -140,7 +143,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
         callback: async (t) => {
           if (t.error) { console.warn("Google gave no token:", t.error); settle(null); return answered("fail", t.error); }
           const first = !me || !me.user;
-          me = { ...(me || {}), token: t.access_token, until: Date.now() + t.expires_in * 1000, scopes: t.scope || SCOPES };
+          me = { ...(me || {}), token: t.access_token, until: Date.now() + t.expires_in * 1000, scopes: t.scope || SCOPES, asked: SCOPES };
           if (first) {
             try {
               const u = await (await google(USER_INFO)).json();
@@ -154,12 +157,14 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
       });
     })
     .catch((e) => { script = null; console.warn("Google sign-in did not load:", e); }));
-  const reads = () => (me?.scopes || "").split(" ").includes(DRIVE_READ);
+  const holds = (scope) => (me?.scopes || "").split(" ").includes(scope);
   // a token can be asked for only in the user's own click or key press: Google's window opens, and closes by itself
   // while Google still remembers their consent; the new token syncs at once. A token from before the page read
-  // Drive is renewed too, Google then asking for that, and so is one in its last minutes. Google is asked once until
+  // Drive is renewed too, Google then asking for that, and so is one from before it asked to add files there (a user
+  // who then leaves that box unticked is not asked again), and one in its last minutes. Google is asked once until
   // it answers
-  const fresh = () => !!(me && me.token && Date.now() < me.until - EARLY_MS) && reads();
+  const fresh = () => !!(me && me.token && Date.now() < me.until - EARLY_MS) && holds(DRIVE_READ)
+    && (holds(DRIVE_FILE) || (me.asked || "").split(" ").includes(DRIVE_FILE));
   const renew = () => {
     if (renewal) return true;
     if (!me || fresh() || !client || !navigator.userActivation?.isActive) return false;
@@ -241,8 +246,6 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     // the user is reaching for Sign in: Google's script, so their click can ask at once
     preload() { if (clientId) ready(); },
     signIn, signOut,
-    // the guide to Google's windows, for a click that asks Google more, and the steps through its unverified-app screen
-    guide, unverified: UNVERIFIED, shot,
     email: () => (me && me.user && me.user.email) || null,
     // the token while it lasts, else null; renewing it needs the user's click (renew)
     token: () => (live() ? me.token : null),
@@ -260,19 +263,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     // what the page last learned from Google for this user under name, kept until they sign out; null for nothing
     learned: (name) => me?.learned?.[name] ?? null,
     learn(name, value) { if (me) { me.learned = { ...me.learned, [name]: value }; keep(); } },
-    // whether the token Google gave may do scope, as far as the last one said
-    may: (scope) => !!(me && (me.scopes || "").split(" ").includes(scope)),
-    // asks Google, in the user's click, to add scope to the token: true once it has
-    async more(scope) {
-      if (!me) return false;
-      // a live token at load leaves Google's script unloaded
-      if (!client) await ready();
-      if (!client || !navigator.userActivation?.isActive) return false;
-      answered("fail", "asked again");
-      return new Promise((ok) => {
-        waiting = { ok: () => ok(true), fail: () => ok(false) };
-        client.requestAccessToken({ scope: SCOPES + " " + scope, include_granted_scopes: true, login_hint: me.user.email });
-      }).then((got) => got && this.may(scope));
-    },
+    // whether the token Google gave lets the page add files to Drive, as far as the last one said
+    writes: () => holds(DRIVE_FILE),
   };
 }

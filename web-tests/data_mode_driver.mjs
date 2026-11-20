@@ -14,7 +14,7 @@ import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
-const { ROOT, FILES, GT, approved, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
+const { ROOT, FILES, GT, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
 // the data folder's previews file (req/shell/drive/previews): in the root's Previews folder, which the page made, under the
 // data folder's id, a file someone else put there; the copy the tool left beside the images is never read
 const OURS = `${ROOT}.tiff`;
@@ -22,8 +22,6 @@ FILES.push({ id: PREVIEWS_DIR, name: "Previews", parent: ROOT, folder: true, byt
   { id: "dmpreviewsfile000001", name: OURS, parent: PREVIEWS_DIR, folder: false, bytes: FILES.find((f) => f.name === "rauntruth-previews.tiff").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 // an image's Needs GT marker, in the curated folder, named as its ground-truth subfolder
 const neededOf = (name) => { const f = FILES.find((g) => g.name === name); return `${name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(f.bytes).digest("hex").slice(0, 8)}.needs_gt`; };
-// the curated folder approved for the site, as the study manager does from the tree's head, so the page may write its markers
-approved.add(GT.curated);
 // someone else marked the stack as needing ground truth
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
@@ -43,11 +41,8 @@ const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
 await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
-// the tree asks Drive what the site may do in each folder: of one it was never approved for, Drive knows nothing
-await expecting(/status of 404.*googleapis/, async () => {
-  await role(page, "Study Manager");
-  await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
-});
+await role(page, "Study Manager");
+await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 // Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
 await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
 await slid(true);
@@ -59,9 +54,9 @@ await shot("1-strip");
 await page.click("#data-open");
 await slid(true);
 await check((await width()) > 200, "the chevron opens the column again", await width());
-await check(await page.textContent("#data-approve") === "Approve 1 folder…" && await page.isVisible("#data-approve"), "the tree's head offers the one folder not approved yet", await page.textContent("#data-approve"));
+await check(!(await page.isVisible("#data-approve")), "with the per-file permission given, the tree's head asks for nothing");
 const access = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => [f.querySelector(":scope > .row .name").textContent, f.querySelector(":scope > .row .access").textContent]));
-await check(JSON.stringify(access) === JSON.stringify([["Study folder one", "Writable"], ["sub", "Not approved"]]), "the tree shows every folder with its access", access);
+await check(JSON.stringify(access) === JSON.stringify([["Study folder one", "Writable"], ["sub", "Writable"]]), "the tree shows every folder with its access, as Drive's sharing gives it: a subfolder never picked is writable too", access);
 await check(await page.evaluate(() => [...document.querySelectorAll(".tree-images")].every((b) => b.hidden)), "the images stay folded under their folders");
 
 const summary = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-summary dd")].map((d) => [d.dataset.k, +d.textContent])));

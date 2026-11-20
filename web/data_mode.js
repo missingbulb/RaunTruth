@@ -23,7 +23,6 @@ const MAX_FOLDERS = 200;
 const ACCESS = {
   write: ["Writable", "This site may add files here for you."],
   view: ["View only", "The store lets you only view this folder: ask its owner for edit access."],
-  none: ["Not approved", "Not yet open to this site: approve it to add files here."],
   unknown: ["Checking…", "Your sign-in is being renewed."],
 };
 
@@ -116,18 +115,6 @@ export function dataMode(ctx) {
     }));
     drawTree();
   }
-  const lacking = () => [...nodes.values(), ...gtNodes].filter((n) => n.access === "none");
-
-  async function approve() {
-    const want = lacking();
-    if (!want.length) return;
-    try {
-      if (!(await sd.approve(want.map((n) => ({ id: n.id, name: n.name }))))) return msg($("#data-msg"), "No permission was given: nothing changed.", true);
-      for (const n of want) n.access = null;
-      drawTree(); await checkAccess();
-    } catch (e) { msg($("#data-msg"), e.message || String(e), true); }
-  }
-  $("#data-approve").onclick = approve;
 
   // ---------- the study's listed folders and its index (req/shell/data/folders, req/shell/data/index) ----------
   // every image of the listed folders, in their order, each folder's images then its subfolders', with its path
@@ -155,6 +142,7 @@ export function dataMode(ctx) {
     if (!top || of !== epoch) return;
     if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
     if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
+    if (nodes.get(top)?.access === "view") return say("Study index: not written, as this site may not add files to the study's root for you.", true);
     const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
     try {
       const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
@@ -354,10 +342,7 @@ export function dataMode(ctx) {
     const top = place.root();
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = true;
     try {
-      if ((await sd.access(top)) !== "write") {
-        say("Approve the study's root for this site…");
-        if (!(await sd.approve([{ id: top, name: "Study root" }])) || (await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
-      }
+      if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
       say("Making the ground-truth folders…");
       await setUp({ reader, writer, root: top, review, by: account.email() });
       $("#setup-dlg").close();
@@ -460,8 +445,6 @@ export function dataMode(ctx) {
       d.querySelector(".add").onclick = () => setListed([...roots, f.id]);
       return d;
     }));
-    const allowed = lacking().length;
-    $("#data-approve").hidden = !allowed; $("#data-approve").textContent = `Approve ${allowed === 1 ? "1 folder" : allowed + " folders"}…`;
   }
   // a folder's images, each with a small preview, folded under it until its count is clicked
   async function toggleImages(n) {
@@ -557,7 +540,7 @@ export function dataMode(ctx) {
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const why = !gt.curated ? "Set up ground truth first: the mark is kept in its curated folder"
-        : ["view", "none"].includes(gtNodes.find((g) => g.id === gt.curated)?.access) ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
+        : gtNodes.find((g) => g.id === gt.curated)?.access === "view" ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
       mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the curated ground-truth folder";
       mark.onclick = () => markTruth(n, s, mark);
@@ -611,7 +594,7 @@ export function dataMode(ctx) {
         li.querySelector(".who").textContent = doc?.tagger || s.name;
         li.querySelector(".hint").textContent = s.rejected ? `rejected: ${s.reason || "no reason given"}` : `${when}, ${doc?.labels?.length ?? "?"} marks`;
         const [ok, no] = li.querySelectorAll("button");
-        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : ACCESS.none[1];
+        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : ACCESS.view[1];
         no.disabled = s.rejected;
         ok.onclick = async () => {
           ok.disabled = no.disabled = true; say("Accepting…");
@@ -627,7 +610,7 @@ export function dataMode(ctx) {
         };
         return li;
       }));
-      say(rows.length ? (curatedOk ? "" : "Approve the curated folder in the tree's head to accept.") : "No submissions.");
+      say(rows.length ? (curatedOk ? "" : "The curated folder is view only for you: ask its owner for edit access to accept.") : "No submissions.");
     } catch (e) { say(e.message || String(e), true); }
   }
   $("#curate-close").onclick = () => $("#curate-dlg").close();
