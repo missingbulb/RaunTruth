@@ -1478,8 +1478,8 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/resources-dialog/animations` An Animations checkbox in the resources dialog's CPU tab turns every animation on the page off.
   <details>
 
-  Set by the owner on 2026-10-31. It is the checkbox alone, with no text explaining it (set by the owner on
-  2026-11-07). Checked at first, it is kept as the user's setting: the next visit
+  Set by the owner on 2026-10-31. Set by the owner on 2026-11-20, a line under it explains it: "Stop animations if
+  the website is slow" (on 2026-11-07 it had been the checkbox alone). Checked at first, it is kept as the user's setting: the next visit
   opens with it as it was left, and signed in it follows the user (`req/shell/account/sign-in`). Unchecked, nothing on the
   page moves to draw the eye: the minimap and the drawers change at once, the photocopier's light
   does not sweep the image, no button shines or glows (one that would looks plain, with no light or
@@ -1492,7 +1492,8 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/resources-dialog/unload-python` An "Unload Python after each run" checkbox beside Animations in the resources dialog's CPU tab trades speed for memory.
   <details>
 
-  Set by the owner on 2026-11-20 (#381). Unchecked at first, and kept on this device only, since how much memory a
+  Set by the owner on 2026-11-20 (#381). A line under it explains it: "Unloading python saves memory between
+  algorithm runs, but the following run will take as long as the first run". Unchecked at first, and kept on this device only, since how much memory a
   computer can spare is the computer's: Python, once started by a study's run, stays loaded, and every later run
   starts at once on the image it already holds. Checked, the page shuts Python down as soon as a run ends, with its
   answer or an error, and at once when it is checked with Python idle; the memory it held is freed (about 540 MB after a NoR Find, measured 2026-11-20 in
