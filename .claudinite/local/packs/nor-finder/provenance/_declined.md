@@ -29,3 +29,12 @@
   sessions; the version-rewritten-in-place guard is filed as #1055, since it needs a metrics-format
   change of its own.
 - **Actor:** @missingbulb (owner).
+
+## 2026-11-20 · declined · the one-off candidates from the sessions of 2026-10-11 to 2026-11-10
+- **Source:** the third growth pass over 121 web sessions.
+- **Reason:** each rests on one instance: retrying a merge call after a 502 (#743), stashing during
+  a merge (#796), an internal tag in a popup (#760), an unseeded randomized routine (#864), a render
+  on a test's small image (#739). A page import its study does not install (#864, #881) is already
+  page-python-imports. Version-history conflicts, requirement-number conflicts and a test's own
+  route losing to the harness's were removed by #750, #652 and #1033.
+- **Actor:** @missingbulb (owner), asking for growth from every session since the last growth run.
