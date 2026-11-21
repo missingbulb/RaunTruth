@@ -262,7 +262,7 @@ try {
   await b.page.click("#theme");
   await b.page.click("#theme");
   await Promise.race([writing, new Promise((ok) => setTimeout(ok, STEP))]); // bounds a hang: a save that never starts fails the checks below
-  const saved = b.page.waitForResponse((r) => /upload\/drive/.test(r.url()) && r.request().method() !== "GET", { timeout: STEP }).catch(() => null);
+  const saved = orMissed(b.page.waitForResponse((r) => /upload\/drive/.test(r.url()) && r.request().method() !== "GET", { timeout: STEP }));
   await b.page.click("#user-menu summary");
   await b.page.click("#sign-out");
   await b.page.waitForFunction(() => document.querySelector("#sign-out").hidden);

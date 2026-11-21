@@ -104,10 +104,12 @@ function heard(m) {
   const entry = { late: () => say(m.text(), false) };
   reading.add(entry);
   let timer;
+  // the page gone before its values could be read: null, and Playwright's text of the message said instead
+  const values = Promise.all(args.map((a) => a.evaluate(TEXT))).then((parts) => parts.join(" "), () => null);
   entry.done = Promise.race([
-    Promise.all(args.map((a) => a.evaluate(TEXT))).then((parts) => parts.join(" ")),
-    new Promise((ok) => { timer = setTimeout(() => ok(null), READ_MS); }),
-  ]).catch(() => null).then((text) => {
+    values,
+    new Promise((ok) => { timer = setTimeout(() => ok(null), READ_MS); }), // bounds a hang: a value the page never hands back
+  ]).then((text) => {
     clearTimeout(timer);
     // said at the run's end already, or the page went before its values could be read: Playwright's text of it
     if (reading.delete(entry)) say(text ?? m.text(), text !== null);

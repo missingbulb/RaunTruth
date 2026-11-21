@@ -7,7 +7,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
-from drivers import NODE, run_driver  # noqa: E402
+from drivers import NODE, run_driver  # noqa: E402  importable only once the path above is set
 
 pytestmark = pytest.mark.full
 
