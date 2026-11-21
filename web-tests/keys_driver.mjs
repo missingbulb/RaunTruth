@@ -109,8 +109,12 @@ try {
   check(!(await press("KeyR", { ctrlKey: true })) && (await ruler()), "Ctrl+R is not R");
   check(!(await press("KeyR", { on: "#fx-threshold" })) && (await ruler()), "R in a field does nothing");
   await page.evaluate(() => { const m = document.querySelector("details.menu"); m.hidden = false; m.open = true; });
+  // the menu open takes the keyboard to its search field; Escape there closes it, as a person closes it, and takes the
+  // keyboard back out: a menu closed under a field still holding the keyboard leaves it there in WebKit
+  await page.waitForFunction(() => document.activeElement?.id === "study-search");
   check(!(await press("KeyR")) && (await ruler()), "R with a menu open does nothing");
-  await page.evaluate(() => { document.querySelector("details.menu").open = false; });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector("details.menu").open);
   check(await press("KeyR") && !(await ruler()) && !(await legend())[0].lit, "R again lets Ruler go, its row grey again");
 
   check(!(await press("KeyG")) && !(await grid()), "G alone is not Alt+G");

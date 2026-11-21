@@ -37,6 +37,23 @@ def test_a_declared_warning_passes():
     assert r.returncode == 0, r.stdout + r.stderr
 
 
+def test_a_warning_says_the_values_the_page_gave_it():
+    """An Error and an object the page hands the console read as their name, message and fields on every engine."""
+    r = run('values')
+    assert r.returncode == 1 and 'RangeError: too far' in r.stderr and '{"left":3}' in r.stderr, r.stdout + r.stderr
+
+
+def test_a_refused_and_a_failed_load_are_declared_in_the_same_words_on_every_engine():
+    r = run('refused')
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_failed_run_says_what_the_page_did_before_it():
+    r = run('lately')
+    said = r.stderr.partition('before the run ended')[2]
+    assert r.returncode == 1 and 'a step the page took' in said and 'answered 404' in said, r.stdout + r.stderr
+
+
 def test_a_declaration_nothing_answers_fails():
     r = run('unanswered')
     assert r.returncode != 0 and 'none came' in r.stderr, r.stdout + r.stderr

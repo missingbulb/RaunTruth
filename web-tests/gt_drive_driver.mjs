@@ -12,6 +12,7 @@
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir, gt: false });
@@ -146,25 +147,29 @@ await check(await page.evaluate(() => new Promise((ok) => { const q = indexedDB.
   "and forgets the image's draft on this device");
 
 // req/shell/ground-truth/pending: the Drive dialog marks the image as pending for the tagger
-const dialogTag = async () => {
+// the row's tag once it reads want, or what it read instead once the step's time is up: a row drawn from what the
+// device kept shows its old tag until the folder's listing comes, and draws it again then
+const tagAs = (row, want) => page.waitForFunction(([r, w]) => document.querySelector(r)?.textContent === w, [row, want], { timeout: STEP })
+  .then(() => want, () => page.evaluate((r) => document.querySelector(r)?.textContent ?? "", row));
+const dialogTag = async (want) => {
   await page.evaluate(() => document.querySelector("#load-remote").click());
   await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
   const row = `#remote-list .item[data-id="${png.id}"] .gt-tag`;
-  const tag = await page.waitForFunction((r) => document.querySelector(r)?.textContent || null, row, { timeout: 5000 }).then((h) => h.jsonValue(), () => "");
+  const tag = await tagAs(row, want);
   await page.keyboard.press("Escape");
   return tag;
 };
-let tag = await dialogTag();
+let tag = await dialogTag("GT pending");
 await check(tag === "GT pending", "to the tagger, the Drive dialog marks the submitted image GT pending", tag);
 // and so does the image selector's list of recent images
-const recentTag = async () => {
+const recentTag = async (want) => {
   await page.evaluate(() => { $("#image-menu").open = true; });
   const row = `#recent .recent[data-id="${png.id}"] .gt-tag`;
-  const tag = await page.waitForFunction((r) => document.querySelector(r)?.textContent || null, row, { timeout: 5000 }).then((h) => h.jsonValue(), () => "");
+  const tag = await tagAs(row, want);
   await page.evaluate(() => { $("#image-menu").open = false; });
   return tag;
 };
-tag = await recentTag();
+tag = await recentTag("GT pending");
 await check(tag === "GT pending", "to the tagger, the image selector marks the submitted image GT pending", tag);
 
 // req/shell/ground-truth/curate: the study manager sees it pending, reviews it and accepts it into the curated folder
@@ -197,7 +202,7 @@ await check(s.truth === 1 && s.pending === 0 && !(await page.$(cell + " .review-
 await check(await page.isDisabled(cell + " .mark-gt"), "an image with ground truth needs no marker");
 await orMissed(page.waitForFunction(() => /1 image has ground truth/.test($("#gt-box").textContent), null, { timeout: 5000 }));
 await check(/1 image has ground truth/.test(await page.textContent("#gt-box")), "accepted, the Ground Truth box counts it", await page.textContent("#gt-box"));
-tag = await recentTag();
+tag = await recentTag("GT");
 await check(tag === "GT", "accepted, the image selector marks the image GT", tag);
 
 // req/shell/ground-truth/switch: nothing pending, the study switches to unreviewed, nothing moved or deleted

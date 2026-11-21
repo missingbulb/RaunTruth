@@ -44,7 +44,8 @@ async function session(left) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const who = google.signedIn({ email: "tester@example.com", name: "Tester", scopes: SCOPES, token: OLD, until: Date.now() + left });
   const calls = drive.calls.length, asks = google.asked.length;
-  const reads = () => drive.calls.slice(calls).filter((c) => c.kind === "list" && c.parent === PRIVATE).map((c) => c.token);
+  const listings = () => drive.calls.slice(calls).filter((c) => c.kind === "list" && c.parent === PRIVATE);
+  const reads = () => listings().map((c) => c.token);
   const asked = () => google.asked.slice(asks);
   await ctx.addInitScript(({ who, folder }) => {
     delete Navigator.prototype.serviceWorker;
@@ -54,7 +55,7 @@ async function session(left) {
     addEventListener("DOMContentLoaded", () => {
       const b = Object.assign(document.createElement("button"), { id: "test-read", textContent: "read" });
       b.style.cssText = "position:fixed;left:0;bottom:0;z-index:99999";
-      b.onclick = () => import("/web/drive.js").then(({ remote }) => remote.list(folder, ".png")).then((l) => (b.dataset.got = l.map((f) => f.name).join()), (e) => (b.dataset.got = "error: " + e.message));
+      b.onclick = () => import(location.origin + "/web/drive.js").then(({ remote }) => remote.list(folder, ".png")).then((l) => (b.dataset.got = l.map((f) => f.name).join()), (e) => (b.dataset.got = "error: " + e.message));
       document.body.append(b);
     });
   }, { who, folder: PRIVATE });
@@ -63,7 +64,7 @@ async function session(left) {
   await page.goto(origin + "/web/viewer");
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   page.asked = asked;
-  return { ctx, page, reads };
+  return { ctx, page, reads, listings };
 }
 // what the test's control read once clicked, and what Google's window was asked meanwhile
 async function click(page) {
@@ -74,9 +75,11 @@ async function click(page) {
 }
 
 {
-  const { ctx, page, reads } = await session(-3600e3);
+  const { ctx, page, reads, listings } = await session(-3600e3);
   const { got, asked } = await click(page);
   check(got === "private.png", "with the token run out, one click on a control that reads Drive reads it", got);
+  // req/shell/drive/credentials, of the page's own sign-in
+  check(listings().length === 1 && listings()[0].key === null, "as the user alone, never with the site's API key", listings().map((c) => c.key));
   check(asked.length === 1 && asked[0].prompt === "" && asked[0].login_hint === "tester@example.com", "and asks Google once, silently, for the same user", asked);
   check(reads().length === 1 && reads()[0] === NEW, "and the read carries the renewed token", reads());
   await ctx.close();
@@ -102,7 +105,7 @@ async function click(page) {
   const { ctx, page, reads } = await session(-3600e3);
   // a read once the user activation a test's evaluate itself carries (5 s) is over: no click behind it
   const err = await page.evaluate((id) => new Promise((ok) => setTimeout(ok, 5500)) // waits on purpose (user activation): the browser's 5 s user activation lapses, which no clock moves
-    .then(() => import("/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
+    .then(() => import(location.origin + "/web/drive.js")).then(({ remote }) => remote.list(id, ".png")).then(() => "listed", (e) => e.message), PRIVATE);
   const asked = page.asked().length;
   check(/click again/.test(err) && asked === 0 && reads().length === 0, "a read with no click behind it opens nothing and says to click again", { err, asked, reads: reads() });
   google.answer = "closed";

@@ -27,8 +27,8 @@ export function local(href) {
 const extra = new WeakMap();
 export const cdnFile = (ctx, href, body, contentType) => { (extra.get(ctx) || extra.set(ctx, new Map()).get(ctx)).set(href, { body, contentType }); };
 
-export async function fakeCdn(ctx) {
-  await ctx.route(CDN + "**", (route) => {
+export async function fakeCdn(ctx, world, outside) {
+  outside.route(CDN + "**", (route) => {
     const href = route.request().url(), made = extra.get(ctx)?.get(href);
     if (made) return route.fulfill({ status: 200, headers: cors, contentType: made.contentType, body: made.body });
     const f = local(href);

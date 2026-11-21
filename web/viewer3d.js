@@ -172,6 +172,8 @@ export function viewer3d(shell, flat) {
   // held: a drag neither turns nor pans the view, which only zooms
   const S = { mode: 0, iso: 0.35, z0: 0, z1: 0, zs: 1, rot: facing(0, 0), dist: FIT_DIST, pivot: [0, 0, 0], dragging: false, clip: null, spot: null, held: false };
   let mask = null, keepSide = 0;
+  // loaded: counts the volumes and masks handed to the GPU; drawnFrom: what the picture on the canvas was drawn from
+  let loaded = 0, drawnFrom = null;
   const drawers = [], spacingHeard = [], resetHeard = [];
   let half = [1, 1, 0.1], perWorld = 1; // perWorld: µm (or the image's pixels) in a world unit across x and y
 
@@ -268,7 +270,7 @@ export function viewer3d(shell, flat) {
   }
   function texture(unit, data) {
     if (tex[unit]) gl.deleteTexture(tex[unit]);
-    const t = (tex[unit] = gl.createTexture());
+    const t = (tex[unit] = gl.createTexture()); loaded++;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_3D, t); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     if (data) gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, vol.X, vol.Y, vol.Z, 0, gl.RED, gl.UNSIGNED_BYTE, data);
     else gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(1));
@@ -306,16 +308,8 @@ export function viewer3d(shell, flat) {
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (S.dragging ? 0.6 : 1);
     const w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
     if (!w || !h) return;
-    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-    gl.viewport(0, 0, w, h);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; drawnFrom = null; }
     const vp = camera(w / h), rows = flat.levels();
-    gl.uniformMatrix4fv(U.uInvVP, false, new Float32Array(M.inv(vp)));
-    gl.uniform3f(U.uHalf, ...half);
-    gl.uniform2f(U.uZc, S.z0 / vol.Z, (S.z1 + 1) / vol.Z);
-    gl.uniform4f(U.uClip, ...(S.clip || [-half[0], -half[1], half[0], half[1]])); gl.uniform1i(U.uKeep, keepSide);
-    gl.uniform3f(U.uTexel, 1 / vol.X, 1 / vol.Y, 1 / vol.Z);
-    gl.uniform1i(U.uMode, S.mode); gl.uniform1f(U.uIso, S.iso);
-    gl.uniform1f(U.uStep, ((2 * half[0]) / vol.X) * (S.dragging ? 1.6 : 0.7));
     const on = [], col = [], lo = [], hi = [], dep = [], pal = [];
     for (let k = 0; k < CHANNELS; k++) {
       const c = k < vol.vols.length ? rows[k] : null, p = c && PALETTES[c.depth];
@@ -323,9 +317,25 @@ export function viewer3d(shell, flat) {
       lo.push(c ? c.black / 255 : 0); hi.push(c ? c.white / 255 : 1);
       dep.push(p ? 1 : 0); for (let i = 0; i < 8; i++) pal.push(...(p ? p.stops[i] : [0, 0, 0]));
     }
-    gl.uniform1fv(U.uDep, dep); gl.uniform3fv(U.uPal, pal);
-    gl.uniform1fv(U.uOn, on); gl.uniform3fv(U.uCol, col); gl.uniform1fv(U.uLo, lo); gl.uniform1fv(U.uHi, hi);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    const inv = M.inv(vp), slab = [S.z0 / vol.Z, (S.z1 + 1) / vol.Z], clip = S.clip || [-half[0], -half[1], half[0], half[1]];
+    const step = ((2 * half[0]) / vol.X) * (S.dragging ? 1.6 : 0.7);
+    // the stack is drawn when what its picture is made from has changed: the picture stands through a redraw for
+    // what lies over it alone (the ruler, a study's marks)
+    const from = [loaded, ...inv, ...half, ...slab, ...clip, keepSide, S.mode, S.iso, step, ...on, ...col, ...lo, ...hi, ...dep, ...pal].join();
+    if (from !== drawnFrom) {
+      drawnFrom = from;
+      gl.viewport(0, 0, w, h);
+      gl.uniformMatrix4fv(U.uInvVP, false, new Float32Array(inv));
+      gl.uniform3f(U.uHalf, ...half);
+      gl.uniform2f(U.uZc, ...slab);
+      gl.uniform4f(U.uClip, ...clip); gl.uniform1i(U.uKeep, keepSide);
+      gl.uniform3f(U.uTexel, 1 / vol.X, 1 / vol.Y, 1 / vol.Z);
+      gl.uniform1i(U.uMode, S.mode); gl.uniform1f(U.uIso, S.iso);
+      gl.uniform1f(U.uStep, step);
+      gl.uniform1fv(U.uDep, dep); gl.uniform3fv(U.uPal, pal);
+      gl.uniform1fv(U.uOn, on); gl.uniform3fv(U.uCol, col); gl.uniform1fv(U.uLo, lo); gl.uniform1fv(U.uHi, hi);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
     zoomText();
     hud(vp);
     rulerDraw(vp);

@@ -7,7 +7,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { until, orMissed } from "./page_until.mjs";
-import { pw, keptContext, check } from "./harness.mjs";
+import { pw, keptContext, check, expecting } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
 
@@ -21,7 +21,7 @@ const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (before) {
     if (u === "/sw.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(fs.readFileSync(oldSw)); }
-    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
+    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<!doctype html><title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
     r.writeHead(404); return r.end();
   }
   let f = path.join(site, u);
@@ -50,11 +50,17 @@ try {
   await orMissed(until(page, async () => !(await navigator.serviceWorker.getRegistrations()).length));
   const left = await scopes();
   check(!left.length, "after: the old registration is gone: " + JSON.stringify(left));
-  await page.goto(origin + "/app/");
-  await orMissed(until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }));
-  // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
-  const now = await scopes();
-  check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));
+  // Playwright answers a service worker's requests with a test's routes in Chromium alone: elsewhere, once the app's
+  // worker is in control, what the page asks of the CDN through it reaches no fake, fails, and the page says so
+  const throughWorker = (run) => (ENGINE === "chromium" ? run() : expecting(/pyodide|Load failed|NetworkError/, run, { maybe: true }));
+  await throughWorker(async () => {
+    await page.goto(origin + "/app/");
+    await orMissed(until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }));
+    // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
+    const now = await scopes();
+    check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));
+    await page.close();
+  });
 } catch (e) {
   failed = true; console.error("FAILED:", e.message);
 } finally {

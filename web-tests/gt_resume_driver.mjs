@@ -5,7 +5,7 @@
 //   node web-tests/gt_resume_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until } from "./page_until.mjs";
+import { until, untilHeard } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
@@ -18,10 +18,13 @@ const GOOGLE = "https://www.googleapis.com/";
 
 // the page's calls to Drive from now on, told apart: the folders it listed (by parent) and the files it downloaded
 const watch = (page) => {
-  const seen = { lists: [], reads: [] };
+  const seen = { lists: [], reads: [], away: 0 };
+  const back = (r) => { if (r.url().startsWith(GOOGLE)) seen.away--; };
+  page.on("requestfinished", back); page.on("requestfailed", back);
   page.on("request", (r) => {
     const u = r.url();
     if (!u.startsWith(GOOGLE)) return;
+    seen.away++;
     const q = new URL(u).searchParams;
     if (q.get("q")) seen.lists.push(decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1]);
     // the image's own download is not a ground-truth file's
@@ -29,16 +32,22 @@ const watch = (page) => {
   });
   return seen;
 };
-// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, so what is counted after
-// is the image's opening alone
-const quiet = (page) => until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
+// the folders the page listed, each once, in the order it first listed them: on WebKit the page may list the
+// submissions folder a second time as the Drive dialog closes over the opening image, which reads nothing more
+const listed = (seen) => [...new Set(seen.lists)];
+// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, nothing of it still
+// on its way to Drive, so what is counted after is the image's opening alone
+const quiet = async (page, seen) => {
+  await untilHeard(() => seen.away === 0, () => new Promise((ok) => { page.once("requestfinished", ok); page.once("requestfailed", ok); }));
+  await until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
+};
 // the image opened from the Drive dialog, the page's calls to Drive from the double click counted, and the look for the
 // image's drafts and submission over
 const openImage = async (page, seen) => {
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
   await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-  await quiet(page);
+  await quiet(page, seen);
   seen.lists.length = 0; seen.reads.length = 0;
   await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
   await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
@@ -61,7 +70,7 @@ const undoAll = async (page) => { while (!(await page.isDisabled("#gt-undo"))) a
 // device A submits two moves; nothing was there to offer
 let page = await open(true);
 let seen = await tagger(page);
-await check(!(await offer(page)).shown && JSON.stringify(seen.lists) === JSON.stringify([GT.submissions]), "with nothing submitted yet there is no offer, and the image's opening listed the submissions folder alone: it has no subfolder of the image's", { lists: seen.lists });
+await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions]), "with nothing submitted yet there is no offer, and the image's opening listed the submissions folder alone: it has no subfolder of the image's", { lists: seen.lists });
 await counted(page);
 await moved(page, "m1", 20, 14); await moved(page, "m2", -16, 10);
 const edited = await marks(page);
@@ -79,7 +88,7 @@ const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === G
 let o = await offer(page);
 await check(o.shown && !o.draft && o.above === "gt-list" && /^Load your submission · submitted \d{1,2} [A-Z][a-z]{2}, \d\d:\d\d$/.test(o.text),
   "another device is offered the tagger's own submission above Start GT tagging, with when it was submitted, and no draft of its own", o);
-await check(JSON.stringify(seen.lists) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0,
+await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0,
   "the image's opening made two listings, the submissions folder then the image's subfolder, and downloaded no file", seen);
 await check((await model(page)) === null && !(await page.evaluate(() => $("#tasks-box").classList.contains("folded"))), "nothing is loaded unasked, and the box is open with the image");
 seen.lists.length = 0; seen.reads.length = 0;
@@ -99,7 +108,7 @@ await page.evaluate(() => $("#unload").click());
 await page.waitForFunction(() => !st.img);
 seen.lists.length = 0; seen.reads.length = 0;
 await openImage(page, seen);
-await check(seen.lists.length === 2 && seen.reads.length === 0 && (await offer(page)).shown, "opened again, the image is listed twice again: nothing is cached", seen);
+await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0 && (await offer(page)).shown, "opened again, the image is listed twice again: nothing is cached", seen);
 // loading over actions not yet made saved asks first
 await counted(page);
 await moved(page, "m1", 12, 12);
@@ -154,7 +163,7 @@ await page.context().close();
 file.name = "gt_someone@else.org.json"; file.bytes = Buffer.from(JSON.stringify(original));
 page = await open(true);
 seen = await tagger(page);
-await check(!(await offer(page)).shown && seen.lists.length === 2 && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
+await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
 await page.context().close();
 file.name = "gt_tester@example.com.json";
 page = await open(true);
@@ -162,7 +171,7 @@ seen = watch(page);
 await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-await quiet(page);
+await quiet(page, seen);
 seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);

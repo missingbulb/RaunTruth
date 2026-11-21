@@ -7,7 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { expecting } from "./harness.mjs";
+import { expecting, NETWORK_GONE } from "./harness.mjs";
+import { BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -142,8 +143,10 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 // its previews drawn first: Playwright's WebKit, set offline, fails every read of a Blob's bytes, the previews' among them
 await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .cell .pic")].every((p) => p.querySelector("img") || p.classList.contains("none")));
 const before = writes.length;
-// offline, what the page still asks of Drive fails as the network would, when it asks anything then
-await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
+// offline, what the page still asks of Drive fails as the network would, when it asks anything then; and where
+// offline refuses the page a Blob's bytes, so does each preview the page draws again as the network goes
+const gone = BLOBS_READ_OFFLINE ? NETWORK_GONE : new RegExp(NETWORK_GONE.source + "|preview could not be read");
+await expecting(gone, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   // the list as the page shows it offline, whatever it drew again as the network went
@@ -165,23 +168,26 @@ const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("
 await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
   "another role leaves the mode: the column gone, Load back");
-// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode)
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.click("#role-menu summary");
-const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
-  return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
-await page.click('#role-list .item:text-is("Study Manager")', { force: true });
-// the item's own click closes the menu at once, so a menu still open is a click that reached nothing
-const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
-await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
-await page.evaluate(() => { $("#role-menu").open = false; });
-await page.context().setOffline(false);
-await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode);
+// the role just chosen is a setting the page may still be saving to Drive as the network goes
+await expecting(NETWORK_GONE, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await page.click("#role-menu summary");
+  const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
+    return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
+  await page.click('#role-list .item:text-is("Study Manager")', { force: true });
+  // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
+  const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
+  await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await page.evaluate(() => { $("#role-menu").open = false; });
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+}, { maybe: true });
 
 // a previews file whose pictures cannot be read, its index intact: each image shows no preview, and one chosen
 // opens itself, with nothing left uncaught; nor is it when what the site keeps cannot be counted as it is stored
-await expecting(/could not be (read|counted)/, async () => {
+await expecting(/could not be (read|counted)|is corrupted/, async () => {
   await page.evaluate(() => { CacheStorage.prototype.keys = () => Promise.reject(new Error("keys refused for the test")); });
   const damage = (bytes) => {
     const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), le = v.getUint16(0) === 0x4949;

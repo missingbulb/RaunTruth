@@ -9,7 +9,6 @@ import sys
 
 import numpy as np
 from scipy import ndimage as ndi
-from skimage.morphology import h_maxima
 import pytest
 
 pytestmark = pytest.mark.full
@@ -19,6 +18,7 @@ import nor3
 
 
 def test_hmax_above_matches_h_maxima():
+    from skimage.morphology import h_maxima
     rng = np.random.default_rng(1)
     paths = set()
     for trial in range(60):

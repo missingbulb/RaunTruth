@@ -13,8 +13,6 @@ blue mask no longer changes the thresholds or the picture the finder sees.
 All sizes are in units (median half-length of a green blob)."""
 import math, numpy as np
 from scipy import ndimage as ndi
-from skimage.segmentation import watershed
-from skimage.measure import perimeter
 import nor3
 from nor3 import classify, finish, EIGHT
 
@@ -50,6 +48,7 @@ def box_shape(m):
     ellipse 1.04, triangle 0.85, L or amoeba shape 0.7 or less.
     perim: outline length / outline of a rectangle with the same area and length:width
     (rectangle about 0.9-1.0, triangle 1.1+, ragged or branching shapes 1.2+)."""
+    from skimage.measure import perimeter
     ys, xs = np.nonzero(m); a = len(ys)
     if a < 3:
         return 1.0, 1.0
@@ -88,6 +87,7 @@ def quality(c):
 
 def segment_rf(caspr, nav, bm, p=PR, gone=None):
     """gone: the pixels left out of finding, whatever the blue mask does."""
+    from skimage.segmentation import watershed
     none = bm if p['blue'] == 'pre' else np.zeros_like(bm)   # the finder sees the whole image; blue comes last
     if gone is not None:
         none = none | gone

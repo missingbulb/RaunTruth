@@ -203,7 +203,16 @@ export function viewer(shell) {
     if (s.hidden) { s.width = s.height = 0; return; }
     const k = Math.min(1, st.zoom * devicePixelRatio);
     s.width = Math.max(1, Math.round(st.W * k)); s.height = Math.max(1, Math.round(st.H * k));
-    const g = s.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(base, 0, 0, s.width, s.height);
+    // halved step by step until within twice the size wanted: a halving averages the four pixels under each one in
+    // every browser, where one that scales in a single step whatever quality is asked reads only the nearest few
+    let from = base, w = st.W, h = st.H;
+    while (w >= 2 * s.width && h >= 2 * s.height) {
+      w = Math.ceil(w / 2); h = Math.ceil(h / 2);
+      const half = new OffscreenCanvas(w, h);
+      half.getContext("2d").drawImage(from, 0, 0, w, h);
+      from = half;
+    }
+    const g = s.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(from, 0, 0, s.width, s.height);
     Object.assign(s.style, { width: base.style.width, height: base.style.height });
   }
   const shrinkLater = () => { shrinking ||= requestAnimationFrame(shrink); };

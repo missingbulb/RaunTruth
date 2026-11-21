@@ -211,7 +211,7 @@ try {
 
   // the text finder out of reach: the books are found without it, and Find says so
   page = await open("viewer", KEPT, { textFinder: false });
-  await expecting(/text finder|status of 404/, async () => {
+  await expecting(/text finder|status of 404|onnxruntime/, async () => {
     await page.click("#bs-find");
     await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   });
@@ -496,34 +496,40 @@ try {
   await page.mouse.click(...(await toScreen(77, 200)));
   check(await value() === "Title 240x35", "a book already approved opens from the photo too", await value());
   await page.mouse.click(...(await toScreen(210, 190)));
-  // the cover's top-right corner dragged 120 px to the right, past the photo's edge, the photo zoomed in so it could
+  // the cover's top-left corner dragged 140 px to the left, past the photo's edge, the photo zoomed in so it could
   // pan: the picture follows while dragging, the book is straightened and read again with the photo never covered,
-  // and the photo stays where it was (req/shell/image/minimap)
+  // and the photo stays where it was (req/shell/image/minimap). The pointer stays inside the window, over the left
+  // bar, on whole pixels: only Chromium's Playwright carries one past the window's edge, or between two pixels.
   for (let i = 0; i < 3; i++) await page.click("#zoom-in");
-  await page.evaluate(() => { const sc = $("#scroller"); sc.scrollLeft = 300 * st.zoom - sc.clientWidth / 2; sc.scrollTop = 100 * st.zoom - sc.clientHeight / 2; });
+  await page.evaluate(() => { const sc = $("#scroller"); sc.scrollLeft = 50 * st.zoom; sc.scrollTop = 100 * st.zoom - sc.clientHeight / 2; });
   const scrolled = () => page.evaluate(() => [$("#scroller").scrollLeft, $("#scroller").scrollTop]);
   const before = await scrolled();
-  const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+  const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[0].getBoundingClientRect(); return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]; });
   const zoom = await page.evaluate(() => st.zoom);
   // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
   {
     const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
     const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value), logged = await history(page);
-    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
+    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(Math.round(knob[0] - 60 * zoom), knob[1], { steps: 6 });
     const mid = await corners();
-    await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
+    await page.keyboard.press("Escape"); await page.mouse.move(Math.round(knob[0] - 80 * zoom), knob[1], { steps: 2 }); await page.mouse.up();
     check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read && (await history(page)).join() === logged.join(),
       "Escape mid-drag puts a corner back where it was, the book unchanged and no GT action made", { kept, mid, after: await corners() });
   }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
-  await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
+  await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(Math.round(knob[0] - 140 * zoom), knob[1], { steps: 6 });
+  // the picture is painted in the frame after the corner moves
+  await framesOf(page);
   const live = await page.$eval(".bs-item canvas", (c) => c.width);
-  check(live === 240, "the book's picture follows the corner while it is dragged", live);
+  check(live === 250, "the book's picture follows the corner while it is dragged", live);
+  // where a pointer on a whole pixel put the corner, within that pixel of 140 px left of where it was
+  const dragged = await page.$$eval("#overlay .bs-corner", (cs) => cs.map((c) => [+c.getAttribute("cx"), +c.getAttribute("cy")]));
+  check(Math.abs(dragged[0][0] + 20) < 0.3 && Math.abs(dragged[0][1] - 100) < 0.3 && dragged.slice(1).join() === "300,100,300,280,120,280", "the corner is where the pointer is, past the photo's left edge, the other three where they were", dragged);
   await page.mouse.up();
   const after = await scrolled();
   check(before[0] > 0 && after.join() === before.join(), "dragging a corner moves the corner alone, never the photo under it", { before, after });
-  // the box as dropped, its top edge 300 and its right side 216 long: straightened to their means with the other two
-  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x198");
+  // the box as dropped, straightened to the means of its opposite sides
+  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 250x204");
   check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
     "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");
@@ -531,7 +537,7 @@ try {
   await page.hover("#eh-list li.go");
   await page.waitForFunction(() => !!document.querySelector('#overlay g[data-layer="ring"]')?.dataset.box);
   const ringed = await page.evaluate(() => { const g = document.querySelector('#overlay g[data-layer="ring"]'); return { box: g.dataset.box, colour: getComputedStyle(g.querySelector("ellipse")).stroke }; });
-  check(ringed.box === "120,100,420,280" && ringed.colour === "rgb(255, 0, 255)", "a row's hover rings the book it is about, in the study's own colour, round the corners as dragged", ringed);
+  check(ringed.box === [dragged[0][0], Math.min(dragged[0][1], 100), 300, 280].join() && ringed.colour === "rgb(255, 0, 255)", "a row's hover rings the book it is about, in the study's own colour, round the corners as dragged", ringed);
   await page.mouse.move(5, 5);
   for (let i = 0; i < 3; i++) await page.click("#zoom-out");
   await page.click('.bs-verdicts [data-do="right"]');
@@ -570,7 +576,7 @@ try {
   const gt = await saved(page, "#gt-export");
   const [b1, b2, b3, b4] = gt.doc.books;
   check(gt.name === "shelf_books_gt.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
-    && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[1][0] === 420 && b3.proposed.corners[1][0] === 300 && b4.source === "missed" && b4.corners[0].join() === "330,60" && !b4.proposed,
+    && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[0][0] === dragged[0][0] && b3.proposed.corners[0][0] === 120 && b4.source === "missed" && Math.abs(b4.corners[0][0] - 330) < 1 && Math.abs(b4.corners[0][1] - 60) < 1 && !b4.proposed,
   "Submit's file carries each book in the order they stand: its verdict, corners (past the photo's edge where dragged there), turn and text, and what the finder and the reader proposed", gt.doc);
   check(gt.doc.books.map((b) => b.id).join() === "b2,b1,b3,u2" && gt.doc.none_missed === true && gt.doc.books.every((b) => b.verdict === "right"),
     "each book carries its id, the finder's b1, b2, b3 and the tagger's own kind, u1 taken by the book added and deleted again; none missed is in the file", gt.doc.books.map((b) => b.id));

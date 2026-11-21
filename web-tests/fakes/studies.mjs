@@ -23,10 +23,10 @@ export const studiesIn = (world) => (world.studies ||= making(null));
 
 const STUDY = /\/studies\/([\w-]+)\/study\.json$/, LIST = /\/web\/studies\.json$/;
 
-export async function fakeStudies(ctx, world) {
+export async function fakeStudies(ctx, world, outside) {
   const mine = making(studiesIn(world));
   fakes.set(ctx, mine);
-  await ctx.route((u) => STUDY.test(u.pathname) || LIST.test(u.pathname), async (route) => {
+  outside.route((u) => STUDY.test(u.pathname) || LIST.test(u.pathname), async (route) => {
     const p = new URL(route.request().url()).pathname, id = p.match(STUDY)?.[1];
     const edits = id ? mine.editsOf(id) : mine.listEdits();
     if (!edits.length) return route.fallback();

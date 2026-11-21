@@ -114,11 +114,20 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   // before any Run, Python has not started (req/shell/python/on-run): the memory is the page's own
   await check(/^\d+ MB$/.test(mem) && parseInt(mem) > 0, `the status bar shows the memory in use: "${mem}"`);
   await shot(page, "status_memory", "#statusbar");
+  // read in the page as the selector is taken and as it is let go, however long the test takes to ask
+  const hold = page.evaluate(() => new Promise((ok) => {
+    const b = $("#image-pick"), now = () => ({ held: b.disabled && b.classList.contains("working"), open: !!st.img });
+    let taken;
+    new MutationObserver((_, o) => {
+      if (!taken) { if (b.classList.contains("working")) taken = now(); return; }
+      if (!b.classList.contains("working")) { o.disconnect(); ok({ taken, let: now() }); }
+    }).observe(b, { attributes: true, attributeFilter: ["class"] });
+  }));
   await openFromDrive(page, image);
-  await page.waitForFunction(() => $("#image-pick").classList.contains("working"));
-  await check(await held(page, "#image-pick") && !(await page.evaluate(() => !!st.img)), "the image selector is held while the image opens");
+  const selector = await hold;
+  await check(selector.taken.held && !selector.taken.open, "the image selector is held while the image opens");
+  await check(!selector.let.held && selector.let.open, "the selector is free again once the image is open");
   await free(page, "#image-pick");
-  await check(await page.evaluate(() => !!st.img), "the selector is free again once the image is open");
   const detected = answered(page, "run");
   await page.click("#find");
   await check(await held(page, "#find"), "Find Candidates is held at once, with its spinner");

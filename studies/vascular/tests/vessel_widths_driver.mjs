@@ -15,7 +15,7 @@ import { writeTiff } from "../../../web/tiff_file.js";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, atStage, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
+import { frames as framesOf, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { orMissed } from "../../../web-tests/page_until.mjs";
 
@@ -187,6 +187,7 @@ try {
   check(e.width?.how === "nudge" && Math.abs(e.width.um - 3.25) < 1e-9 && !edgeAt(await doc(), 90).width && e.r_a === 1.5,
     `+ makes the selected vessel 0.25 µm wider than its estimate, not the one under the pointer, the estimate untouched: ${JSON.stringify(e.width)}`);
   w = await look();
+  await viewDrawn(page);
   check(vesselAt(w, 40).kind === "set" && near(await pixel(...vesselAt(w, 40).rims[0]), AMBER) && /3\.3 µm|3\.25 µm/.test((await card()).text), `... drawn amber, the box saying so: ${(await card()).text}`);
   await page.click("#w-narrower"); await page.click("#w-narrower");
   e = edgeAt(await doc(), 40);

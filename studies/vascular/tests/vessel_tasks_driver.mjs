@@ -12,7 +12,7 @@
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { ENGINE } from "../../../web-tests/engine.mjs";
+import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { serve, atStage, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
@@ -28,7 +28,7 @@ const site = await serve(studies, model);
 const browser = await launch(pw);
 atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
@@ -163,6 +163,8 @@ try {
   const rot0 = (await view()).rot;
   // dragging a handle from straight above moves its point across the picture, never in depth
   let m = await doc();
+  // the points' places are those of the view's last draw: the one of the area just chosen
+  await viewDrawn(page);
   const pts = await page.evaluate(() => window.vascular.model().points);
   // inside the current area, the top-left quarter, at least margin µm from its edges
   const inArea = (n, margin = 0) => n.x > margin && n.x < W / 2 - margin && n.y > margin && n.y < H / 2 - margin;
@@ -261,7 +263,8 @@ try {
         const snap = await page.evaluate(() => window.vascular.model().drawing);
         check(snap?.onto?.node === +target && Math.hypot(snap.end[0] - qx, snap.end[1] - qy) < 0.5,
           `over a vessel's point, the line being drawn ends on it, not at the pointer: ${JSON.stringify(snap)} vs point ${target} at ${qx.toFixed(1)}, ${qy.toFixed(1)}`);
-        const mid = [(from2[0] + to2[0]) / 2, (from2[1] + to2[1]) / 2];
+        // on a whole pixel of the page: Firefox tells a page its pointer's place in whole pixels
+        const mid = [Math.round(cx + (from2[0] + to2[0]) / 2) - cx, Math.round(cy + (from2[1] + to2[1]) / 2) - cy];
         await page.mouse.move(cx + mid[0], cy + mid[1], { steps: 3 });
         const own = await page.evaluate(() => window.vascular.model().drawing);
         check(own && !own.onto && Math.hypot(own.end[0] - mid[0], own.end[1] - mid[1]) < 0.5,
@@ -382,7 +385,9 @@ try {
   }
 
   // every junction judged, Area is right does the area
-  for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
+  // the rest by the card's own button, clicked in the page one after another with no draw awaited between: the click
+  // by hand is the one above
+  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().key; k++) document.querySelector("#task-card .verdict .yes").click(); });
   // Area is right opens the area's widths step (req/vascular/truth/widths), whose button waits for the vessels drawn
   // there: given a width here
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");

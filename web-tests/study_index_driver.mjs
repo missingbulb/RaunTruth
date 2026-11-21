@@ -5,7 +5,7 @@
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { standIn } from "./stand_in_drive.mjs";
-import { expecting } from "./harness.mjs";
+import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import path from "node:path";
@@ -98,7 +98,7 @@ await check(await page.evaluate(() => st.fileName === "beta.png") && writes.leng
 
 // offline, the index kept on this device lists the same groups; only an image kept here opens
 // what the page still asks of the network fails as it would, when it asks anything then
-await expecting(/ERR_INTERNET_DISCONNECTED|Failed to fetch/, async () => {
+await expecting(NETWORK_GONE, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.evaluate(() => document.querySelector("#load-remote").click());

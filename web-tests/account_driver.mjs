@@ -19,9 +19,10 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { pw, launch, googleOf, siteOf, expecting, check } from "./harness.mjs";
+import { pw, launch, googleOf, siteOf, check } from "./harness.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { frames } from "./page_frames.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,9 +54,9 @@ const file = () => (settings() ? JSON.parse(settings().body) : null);
 const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
 let failed = false;
 // what Google holds changes only as a request reaches it: a wait on it looks again at each one
-const until = async (fn, ms = 5000) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
+const until = async (fn, ms = STEP) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
 // a page showing something, within ms
-const shows = (page, fn, arg, ms = 5000) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
+const shows = (page, fn, arg, ms = STEP) => orMissed(page.waitForFunction(fn, arg, { timeout: ms }));
 // whether the page asked for Google's script, which it does by appending the script's element in the handler that
 // wants it: there once that action returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
@@ -216,10 +217,10 @@ try {
 
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
   const expire = async () => {
-    // off the page first: a sync still running on it would write the sign-in back, an hour long, and a request still
-    // on its way would meet the revoked token
+    // off the page first, to a file of the site's that runs none of its code: a sync still running on it would write
+    // the sign-in back, an hour long, and a request still on its way would meet the revoked token
     const at = b.page.url();
-    await expecting(/status of 404/, () => b.page.goto(origin + "/web/no-page-here"));
+    await b.page.goto(origin + "/web/logo.svg");
     google.revokeAll();
     await b.page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
@@ -253,9 +254,22 @@ try {
   await b.page.keyboard.press("Escape");
   await b.page.mouse.click(700, 500);
 
+  // signing out while a save is on its way to Drive: its answer, coming after, keeps nothing of the user who left and
+  // says nothing (a change, and back, within the save's quiet: one save, of the setting as it stands)
+  let release, reached;
+  const held = new Promise((ok) => { release = ok; }), writing = new Promise((ok) => { reached = ok; });
+  google.hold = () => { reached(); return held; };
+  await b.page.click("#theme");
+  await b.page.click("#theme");
+  await Promise.race([writing, new Promise((ok) => setTimeout(ok, STEP))]); // bounds a hang: a save that never starts fails the checks below
+  const saved = orMissed(b.page.waitForResponse((r) => /upload\/drive/.test(r.url()) && r.request().method() !== "GET", { timeout: STEP }));
   await b.page.click("#user-menu summary");
   await b.page.click("#sign-out");
   await b.page.waitForFunction(() => document.querySelector("#sign-out").hidden);
+  release(); google.hold = () => null;
+  check(await saved, "a save on its way as the user signs out is answered after", null);
+  await frames(b.page);
+  check(await local(b.page, "nor-google-sign-in") === null, "and its answer keeps nothing of the user who left");
   check(await b.page.textContent("#who-where") === "On this device, not signed in" && await b.page.evaluate(() => document.querySelector("#user-menu summary .avatar").tagName === "svg"),
     "signing out shows the device's own avatar again");
   check(await local(b.page, "nor-theme") === "dark" && await local(b.page, "nor-google-sign-in") === null, "and keeps this device's settings, forgetting the user and the token");

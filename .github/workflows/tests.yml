@@ -50,6 +50,8 @@ jobs:
   image:
     if: github.event_name != 'push'
     uses: ./.github/workflows/test-image.yml
+    with:
+      engines: chromium
     permissions:
       contents: read
       packages: write
@@ -69,11 +71,11 @@ jobs:
       - run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin && docker pull -q "$IMAGE"
         env:
           TOKEN: ${{ github.token }}
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-chromium
       - name: Run every test
         run: sh dev/tools/test-image/run.sh "$IMAGE"
         env:
-          IMAGE: ${{ needs.image.outputs.image }}
+          IMAGE: ${{ needs.image.outputs.image }}-chromium
   version-history:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
