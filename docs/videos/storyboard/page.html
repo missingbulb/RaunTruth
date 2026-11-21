@@ -48,7 +48,7 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 .clock { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto }
 .timeline { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center }
 .lane-name { font: 500 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
-.lanes { display: flex; gap: 2px; grid-row: span 2 }
+.lanes { display: flex; gap: 2px }
 .seg { flex: var(--w) 1 0; min-width: 3px; border: 0; padding: 0; cursor: pointer; background: none; display: grid; gap: 4px }
 .seg.scene-start { margin-left: 4px }
 .seg .pic, .seg .voc { height: 12px; border-radius: 1px; position: relative; overflow: hidden; margin: 0 }
@@ -59,6 +59,23 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 .seg.on .pic { background: var(--accent-soft) } .seg.on .voc i { opacity: 1; background: var(--accent) }
 .seg .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent) }
 .note { font-size: 13px; color: var(--muted) }
+.tone { font-size: 14px; color: var(--muted); max-width: 80ch; margin: 0 }
+.stage .cam { width: 100%; height: 100%; transform-origin: var(--ox, 50%) var(--oy, 50%) }
+.stage .cam.push { animation: cam-push var(--d) ease-in-out both } .stage .cam.pull { animation: cam-pull var(--d) ease-out both }
+.stage .cam.punch { animation: cam-punch var(--d) cubic-bezier(.2,.9,.2,1) both } .stage .cam.drift { animation: cam-drift var(--d) linear both }
+.stage .cam.whip { animation: cam-whip .45s ease-out both } .stage .cam.shake { animation: cam-shake .5s linear both }
+@keyframes cam-push { from { transform: scale(1) } to { transform: scale(1.22) } }
+@keyframes cam-pull { from { transform: scale(1.25) } to { transform: scale(1) } }
+@keyframes cam-punch { 0% { transform: scale(1) } 18% { transform: scale(1.35) } 100% { transform: scale(1.4) } }
+@keyframes cam-drift { from { transform: scale(1.06) translateX(1.5%) } to { transform: scale(1.06) translateX(-1.5%) } }
+@keyframes cam-whip { from { transform: translateX(40%) skewX(-8deg); filter: blur(6px) } to { transform: none; filter: none } }
+@keyframes cam-shake { 0%, 100% { transform: none } 20% { transform: translate(-1.5%, 1%) scale(1.03) } 40% { transform: translate(1.2%, -1%) } 60% { transform: translate(-.8%, .6%) } 80% { transform: translate(.4%, -.3%) } }
+@media (prefers-reduced-motion: reduce) { .stage .cam { animation: none !important } }
+.seg .snd { height: 8px; border-radius: 1px; background: var(--bedc, transparent); position: relative }
+.seg .snd b { position: absolute; top: -2px; width: 3px; height: 12px; background: var(--ink); left: var(--x) }
+.lanes { grid-row: span 3 }
+.cue { font: 12px var(--mono); color: var(--muted); margin: 0 }
+.cue b { color: var(--accent); font-weight: 500 }
 
 .board { margin-top: 34px; display: grid; gap: 34px }
 .chap h2 { font-size: 1.25rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
@@ -107,10 +124,12 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 
 <div class="wrap">
   <h1>RaunTruth Storyboards</h1>
-  <p class="lede">Two videos, scene by scene. Each scene names what it must convey and the moments that carry it, by
-    picture, by voice, or both in sync; a moment lasts as long as the longer of the two. Press Play, or click any moment
-    to start there. The voice is a synthetic draft, and bars marked illustrative are not measured.</p>
+  <p class="lede">The pitch in three cuts and the walkthrough, scene by scene. Each scene names what it must convey and
+    the moments that carry it, by picture, voice or both, with the camera and the sound under them. Press Play for the
+    mixed soundtrack, or click any moment to start there. Voice, music and effects are synthesized drafts standing in
+    for a cast voice and a score; bars marked illustrative are not measured.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
+  <p class="tone" id="tone"></p>
   <section class="player" aria-label="Animatic player">
     <div class="stage" id="stage"></div>
     <div class="caption" id="caption" aria-live="polite"></div>
@@ -433,105 +452,116 @@ function chapterCard(c) {
 const svg = (inner, live) => `<svg viewBox="0 0 ${W} ${H}" class="${live ? "live" : ""}" role="img" aria-hidden="true">${inner}</svg>`;
 
 // ---- sequence and player ----
-let cur = null, seq = [], idx = 0, playing = false, timer = null, startAt = 0;
+let cur = null, idx = -1, playing = false, clock0 = 0, pos = 0;
 const audio = new Audio();
 const $ = id => document.getElementById(id);
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-const said = m => m.voice ? (m.spoken ?? m.voice.split(/\s+/).length / 2.4) : 0;
-const lasts = m => m.by === "picture" ? m.hold : m.by === "voice" ? said(m) + 0.3 : Math.max(said(m), m.hold) + 0.3;
-
-function build(v) {
-  const out = [];
-  for (const c of v.chapters) {
-    if (c.title) out.push({ kind: "chapter", chapter: c, dur: 2.5, voice: 0, draw: () => chapterCard(c) });
-    c.scenes.forEach(sc => sc.moments.forEach((m, k) => out.push({ kind: "moment", m, scene: sc, chapter: c, first: k === 0, dur: lasts(m), voice: said(m), draw: () => scene(m.frame, v.id, c.stage) })));
-  }
-  let t = 0; out.forEach(s => { s.at = t; t += s.dur; });
-  return [out, t];
-}
+const BEDC = { "doc-tense": "#7d8b99", "doc-warm": "#d9a273", "doc-lift": "#e7c25d", "doc-light": "#cdb89a", "launch-pulse": "#8a6fd1", "launch-drive": "#d14f8a", "launch-riser": "#e07b39", "play-wonky": "#8fb3a1", "play-bounce": "#5fbf8f" };
+const mo = s => s.kind === "moment" ? cur.chapters[s.ref[0]].scenes[s.ref[1]].moments[s.ref[2]] : null;
+const sc = s => s.kind === "moment" ? cur.chapters[s.ref[0]].scenes[s.ref[1]] : null;
+const ch = s => cur.chapters[s.kind === "moment" ? s.ref[0] : s.c];
+const bedAt = t => { let b = null; for (const x of cur.beds) if (x.at <= t + 1e-6) b = x.name; return b === "none" ? null : b; };
 
 function select(id) {
   stop();
   cur = VIDEOS.find(v => v.id === id) || VIDEOS[0];
-  let total; [seq, total] = build(cur);
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.id === cur.id));
-  $("timeline").innerHTML = `<span class="lane-name">picture</span><div class="lanes">` + seq.map((s, i) =>
-    `<button class="seg ${s.kind === "chapter" ? "chapter" : ""} ${s.first ? "scene-start" : ""}" style="--w:${s.dur}" data-i="${i}" aria-label="${s.kind === "chapter" ? "Chapter " + s.chapter.n : s.scene.n + " " + esc(s.m.moment)}"><span class="pic"><span class="fill"></span></span><span class="voc"><i style="--v:${Math.min(100, s.voice / s.dur * 100)}%"></i></span></button>`).join("") +
-    `</div><span class="lane-name">voice</span>`;
-  const voiced = seq.some(s => s.m && s.m.audio);
-  const words = seq.reduce((a, s) => a + (s.m && s.m.voice ? s.m.voice.split(/\s+/).length : 0), 0);
-  $("note").textContent = `${fmt(total)} in all, ${seq.filter(s => s.m).length} moments, ${words} words spoken` + (voiced ? "." : "; no audio was rendered, so voice lengths are estimated at 145 words a minute.");
+  $("tone").textContent = cur.tone;
+  audio.src = cur.soundtrack || "";
+  $("timeline").innerHTML = `<span class="lane-name">picture</span><div class="lanes" style="grid-row: span 3">` + cur.seq.map((s, i) => {
+    const m = mo(s), first = s.kind === "moment" && s.ref[2] === 0;
+    const v = m ? Math.min(100, m.spoken / s.dur * 100) : 0, bed = bedAt(s.at);
+    const marks = cur.fx.filter(f => f.at >= s.at && f.at < s.at + s.dur).map(f => `<b style="--x:${(f.at - s.at) / s.dur * 100}%" title="${esc(f.name)}"></b>`).join("");
+    return `<button class="seg ${s.kind === "chapter" ? "chapter" : ""} ${first ? "scene-start" : ""}" style="--w:${s.dur}" data-i="${i}" aria-label="${m ? esc(sc(s).n + " " + m.moment) : "Chapter " + ch(s).n}">` +
+      `<span class="pic"><span class="fill"></span></span><span class="voc"><i style="--v:${v}%"></i></span><span class="snd" style="--bedc:${bed ? BEDC[bed] || "var(--muted)" : "transparent"}">${marks}</span></button>`;
+  }).join("") + `</div><span class="lane-name">voice</span><span class="lane-name">sound</span>`;
+  const words = cur.seq.reduce((a, s) => a + (mo(s) && mo(s).voice ? mo(s).voice.split(/\s+/).length : 0), 0);
+  $("note").textContent = `${fmt(cur.total)} in all, ${cur.seq.filter(s => s.kind === "moment").length} moments, ${words} words spoken${cur.voice ? `, draft voice ${cur.voice}` : ""}.` + (cur.soundtrack ? "" : " No soundtrack was rendered; voice lengths are estimated.");
   board();
-  show(0);
+  idx = -1; seek(0);
 }
 
 function board() {
   let html = "";
-  for (const c of cur.chapters) {
+  cur.chapters.forEach((c, ci) => {
     html += `<section class="chap">${c.title ? `<h2><span class="num">${c.n}</span>${esc(c.title)}<span class="st">${c.stage ? "stage: " + esc(c.stage) : ""}</span></h2>` : ""}`;
-    for (const sc of c.scenes) {
-      const dur = sc.moments.reduce((a, m) => a + lasts(m), 0);
-      html += `<article class="scene"><h3><span class="num">${esc(sc.n)}</span>${esc(sc.title)}<span class="dur">${dur.toFixed(1)} s</span></h3>` +
-        `<p class="conveys"><b>Conveys</b>${esc(sc.conveys)}</p><div class="panels">`;
-      for (const m of sc.moments) {
-        const i = seq.findIndex(s => s.m === m);
+    c.scenes.forEach((scn, si) => {
+      const steps = cur.seq.filter(s => s.kind === "moment" && s.ref[0] === ci && s.ref[1] === si);
+      html += `<article class="scene"><h3><span class="num">${esc(scn.n)}</span>${esc(scn.title)}<span class="dur">${steps.reduce((a, s) => a + s.dur, 0).toFixed(1)} s</span></h3>` +
+        `<p class="conveys"><b>Conveys</b>${esc(scn.conveys)}</p><div class="panels">`;
+      scn.moments.forEach((m, mi) => {
+        const i = cur.seq.findIndex(s => s.kind === "moment" && s.ref[0] === ci && s.ref[1] === si && s.ref[2] === mi), s = cur.seq[i];
         html += `<div class="panel" id="p${i}"><button class="thumb" data-i="${i}" aria-label="Play from ${esc(m.moment)}">${svg(scene(m.frame, cur.id, c.stage))}</button>` +
           `<p class="name">${esc(m.moment)}</p>` +
           `<div class="meta"><span class="by ${m.by}">${m.by}</span>${m.tags.map(t => `<span class="chip ${t}">${t}</span>`).join("")}` +
-          `<span>${m.by !== "voice" ? `hold ${m.hold}s` : ""}${m.voice ? ` · voice ${said(m).toFixed(1)}s` : ""} → <b>${lasts(m).toFixed(1)}s</b></span></div>` +
-          `<p class="pic">${esc(m.picture)}</p>${m.voice ? `<p class="vo">${esc(m.voice)}</p>` : ""}</div>`;
-      }
+          `<span>${m.by !== "voice" ? `hold ${m.hold}s` : ""}${m.voice ? ` · voice ${m.spoken.toFixed(1)}s` : ""} → <b>${s.dur.toFixed(1)}s</b></span></div>` +
+          `<p class="pic">${esc(m.picture)}</p>${m.voice ? `<p class="vo">${esc(m.voice)}</p>` : ""}` +
+          (m.camera ? `<p class="cue"><b>camera</b> ${esc(m.camera)}</p>` : "") + (m.sound ? `<p class="cue"><b>sound</b> ${esc(m.sound)}</p>` : "") + `</div>`;
+      });
       html += `</div></article>`;
-    }
+    });
     html += `</section>`;
-  }
+  });
   $("board").innerHTML = html;
 }
 
-function show(i, autoplay) {
-  clearTimeout(timer); audio.pause();
-  idx = Math.max(0, Math.min(seq.length - 1, i));
-  const s = seq[idx];
-  $("stage").innerHTML = svg(s.draw(), true);
-  $("caption").innerHTML = s.kind === "chapter" ? `<span class="who">Chapter ${s.chapter.n}</span>${esc(s.chapter.title)}` :
-    `<span class="who">${esc(s.scene.n)} ${esc(s.scene.title)} · ${esc(s.m.moment)} · ${s.m.by}</span>${s.m.voice ? esc(s.m.voice) : `<span class="note">(${esc(s.m.picture)})</span>`}`;
-  document.querySelectorAll(".seg").forEach((g, k) => { g.classList.toggle("on", k === idx); g.querySelector(".fill").style.width = k < idx ? "100%" : "0"; });
+function draw(i) {
+  if (i === idx) return;
+  idx = i;
+  const s = cur.seq[i], m = mo(s);
+  const inner = s.kind === "chapter" ? chapterCard(ch(s)) : scene(m.frame, cur.id, ch(s).stage);
+  const cam = m && m.cam ? m.cam : { kind: "still", x: 50, y: 50 };
+  $("stage").innerHTML = `<div class="cam ${cam.kind}" style="--ox:${cam.x}%;--oy:${cam.y}%;--d:${s.dur}s">${svg(inner, true)}</div>`;
+  if (!playing) $("stage").querySelector(".cam").style.animationPlayState = "paused";
+  $("caption").innerHTML = s.kind === "chapter" ? `<span class="who">Chapter ${ch(s).n}</span>${esc(ch(s).title)}` :
+    `<span class="who">${esc(sc(s).n)} ${esc(sc(s).title)} · ${esc(m.moment)} · ${m.by}</span>${m.voice ? esc(m.voice) : `<span class="note">(${esc(m.picture)})</span>`}`;
+  document.querySelectorAll(".seg").forEach((g, k) => { g.classList.toggle("on", k === i); g.querySelector(".fill").style.width = k < i ? "100%" : "0"; });
   document.querySelectorAll(".panel.now").forEach(p => p.classList.remove("now"));
-  const p = $("p" + idx); if (p) p.classList.add("now");
-  tick();
-  if (autoplay ?? playing) run();
+  const p = $("p" + i); if (p) p.classList.add("now");
 }
 
-function run() {
-  playing = true; $("play").textContent = "Pause";
-  const s = seq[idx]; startAt = performance.now();
-  const advance = () => { if (idx < seq.length - 1) show(idx + 1, true); else stop(); };
-  timer = setTimeout(advance, s.dur * 1000);
-  if (s.m && s.m.audio) { audio.src = s.m.audio; audio.play().catch(() => {}); }
-  requestAnimationFrame(frameTick);
+const indexAt = t => { let i = 0; cur.seq.forEach((s, k) => { if (s.at <= t + 1e-6) i = k; }); return i; };
+const now = () => cur.soundtrack ? audio.currentTime : pos + (playing ? (performance.now() - clock0) / 1000 : 0);
+
+function seek(t) {
+  t = Math.max(0, Math.min(cur.total - 0.01, t));
+  if (cur.soundtrack) { try { audio.currentTime = t; } catch (e) {} } else { pos = t; clock0 = performance.now(); }
+  idx = -1; draw(indexAt(t)); tick(t);
 }
 
-function frameTick() {
+function loop() {
   if (!playing) return;
-  const s = seq[idx], el = (performance.now() - startAt) / 1000;
-  const seg = document.querySelectorAll(".seg")[idx];
-  if (seg) seg.querySelector(".fill").style.width = Math.min(100, el / s.dur * 100) + "%";
-  tick(Math.min(el, s.dur));
-  requestAnimationFrame(frameTick);
+  const t = now();
+  if (t >= cur.total - 0.02 || (cur.soundtrack && audio.ended)) { stop(); seek(0); return; }
+  const i = indexAt(t); draw(i);
+  const s = cur.seq[i], seg = document.querySelectorAll(".seg")[i];
+  if (seg) seg.querySelector(".fill").style.width = Math.min(100, (t - s.at) / s.dur * 100) + "%";
+  tick(t);
+  requestAnimationFrame(loop);
 }
 
-function tick(el = 0) { const total = seq.reduce((a, s) => a + s.dur, 0); $("clock").textContent = `${fmt(seq[idx].at + el)} / ${fmt(total)}`; }
-function stop() { playing = false; clearTimeout(timer); audio.pause(); $("play").textContent = "Play"; }
+function play() {
+  playing = true; $("play").textContent = "Pause";
+  const c = $("stage").querySelector(".cam"); if (c) c.style.animationPlayState = "running";
+  if (cur.soundtrack) audio.play().catch(() => {}); else clock0 = performance.now();
+  requestAnimationFrame(loop);
+}
+function stop() {
+  if (cur && !cur.soundtrack && playing) pos = now();
+  playing = false; audio.pause(); $("play").textContent = "Play";
+  const c = $("stage").querySelector(".cam"); if (c) c.style.animationPlayState = "paused";
+}
+function tick(t) { $("clock").textContent = `${fmt(t)} / ${fmt(cur.total)}`; }
 
-$("tabs").innerHTML = VIDEOS.map(v => `<button class="tab" role="tab" data-id="${v.id}">${esc(v.title)}<small>${fmt(build(v)[1])}</small></button>`).join("");
+$("tabs").innerHTML = VIDEOS.map(v => `<button class="tab" role="tab" data-id="${v.id}">${esc(v.title)}<small>${fmt(v.total)}</small></button>`).join("");
 $("tabs").addEventListener("click", e => { const t = e.target.closest(".tab"); if (t) location.hash = t.dataset.id; });
-$("timeline").addEventListener("click", e => { const g = e.target.closest(".seg"); if (g) show(+g.dataset.i); });
-$("board").addEventListener("click", e => { const t = e.target.closest(".thumb"); if (t) { show(+t.dataset.i, true); $("stage").scrollIntoView({ behavior: "smooth", block: "center" }); } });
-$("play").addEventListener("click", () => playing ? stop() : (idx >= seq.length - 1 && show(0), run()));
-$("prev").addEventListener("click", () => show(idx - 1));
-$("next").addEventListener("click", () => show(idx + 1));
-document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") show(idx + 1); if (e.key === "ArrowLeft") show(idx - 1); });
-const route = () => select(location.hash.slice(1) || "pitch");
+$("timeline").addEventListener("click", e => { const g = e.target.closest(".seg"); if (g) { seek(cur.seq[+g.dataset.i].at); if (playing) play(); } });
+$("board").addEventListener("click", e => { const t = e.target.closest(".thumb"); if (t) { seek(cur.seq[+t.dataset.i].at); play(); $("stage").scrollIntoView({ behavior: "smooth", block: "center" }); } });
+$("play").addEventListener("click", () => playing ? stop() : play());
+$("prev").addEventListener("click", () => { const w = playing; seek(cur.seq[Math.max(0, idx - 1)].at); if (w) play(); });
+$("next").addEventListener("click", () => { const w = playing; seek(cur.seq[Math.min(cur.seq.length - 1, idx + 1)].at); if (w) play(); });
+document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") $("next").click(); if (e.key === "ArrowLeft") $("prev").click(); });
+const route = () => select(location.hash.slice(1) || VIDEOS[0].id);
 window.addEventListener("hashchange", route);
 route();
 </script>

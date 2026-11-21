@@ -5,18 +5,21 @@ Two videos for biology researchers, PIs and lab managers, storyboarded on the st
 
 | Video | For | Job | Length |
 |---|---|---|---|
-| [Teach it one image at a time](2-the-loop.md) | PIs and lab managers meeting RaunTruth | the pitch: today's pain against the annotate-and-improve loop | from its moments, plus a 60 s cut |
-| [A study, start to publication](1-full-workflow.md) | the researcher who will run a study | every action, Setup to Public | from its moments, one clip per chapter |
+| [Teach it one image at a time](2-the-loop.md), in three cuts: [documentary](2a-documentary.md), [launch](2b-launch.md), [playful](2c-playful.md) | PIs and lab managers meeting RaunTruth | the pitch: today's pain against the annotate-and-improve loop | from its moments, plus a 60 s cut |
+| [A study, start to publication](1-full-workflow.md), documentary | the researcher who will run a study | every action, Setup to Public | from its moments, one clip per chapter |
 
-Both play as an animatic, every frame drawn and each beat's voice-over rendered, from the storyboard page:
+Every cut plays as an animatic from the storyboard page: each moment drawn, the camera moving on it, and one mixed
+soundtrack of voice, music beds and sound effects:
 
 ```
-python3 docs/videos/storyboard/build.py OUT_DIR --voice en_US-lessac-medium.onnx
+python3 docs/videos/storyboard/build.py OUT_DIR --voices VOICES_DIR
 ```
 
-The page reads the scenes from these two files and each moment's sketch from `storyboard/frames.json`; the
-voice is a [Piper](https://github.com/rhasspy/piper) model (`pip install piper-tts`, installed ad hoc, the model
-downloaded from its voices list) and ffmpeg.
+The page reads the scenes from these files and each moment's sketch from `storyboard/frames.json`. `VOICES_DIR`
+holds the [Piper](https://github.com/rhasspy/piper) models the cuts name (`pip install piper-tts`, installed ad
+hoc, the models downloaded from Piper's voices list); `storyboard/sound.py` synthesizes the beds and effects and
+mixes them under the voice with ffmpeg. All three are drafts standing in for a cast voice, a score and a sound
+designer.
 
 ## How a scene is built
 
@@ -29,6 +32,14 @@ A storyboard is written scene by scene, and a scene starts from what it must con
    the picture already up). Neither channel is filler for the other.
 4. **Hold** — the seconds the picture moment needs to be taken in: about 3 for a new screen, 1.5–2.5 for a change
    on the same screen, more for text to read.
+
+5. **Camera** — how the frame moves while the moment plays (`push`, `pull`, `punch`, `whip`, `drift`, `shake`,
+   `still`, with `@x,y` for where a push lands), motivated by where the eye should go.
+6. **Sound** — what the ear gets: a music bed starting (`bed:<name>`, `bed:none`) and effects (`sfx:<name>`,
+   `@seconds` for an offset), designed per moment like the picture, not laid under at the end.
+
+The pitch's scenes, *Conveys* and pictures live in its brief, and each cut gives the same moments its own narration,
+holds, camera and sound, so the cuts compare like for like.
 
 A moment lasts as long as the longer of its voice and its hold, so the running time comes out of the scenes. When
 it runs long, cut or merge moments that do not serve their scene's *Conveys*; never speed the voice or shorten a
