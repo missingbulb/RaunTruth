@@ -47,6 +47,15 @@ finds test-first, fixes small gaps, and brings the owner only the calls that are
   (fake behaviour, owner's call); the CDN fake lacks the Bookshelf's offline libraries.
 - `studies/nor/tests/test_ground_truth_page.py` flaked once under a parallel full run.
 
+### Left by WP3, to triage at the end
+
+- In a GT-stage study, someone who only wants to look can no longer run an algorithm without choosing Start
+  annotating from scratch (follows "only from scratch shows the runner"; owner's call whether viewing keeps a runner).
+- The map says annotation mode stays across reloads; the spec and the build ask again per image and on reload.
+- Code comments in `web/` still say "Study Manager" where the requirements now say "study owner".
+- After a token expiry the page logs `ground truth status not read: 401`; the explorer's `phone` and `first-visit`
+  worlds lost their role seeds and were not run.
+
 ## Approvals on record
 
 | What | Who calls it | Status |
@@ -191,7 +200,7 @@ Depends on WP2.
     first only on the image with a draft; the Processing box (algorithm runner) is absent until "from scratch";
     "Load annotation from Drive" shows the list, choosing one draws its model with no annotation tool, "Edit this
     annotation" enters `html[data-annotating]`; loading the second image clears the mode and asks again.
-  - **Build:** delete `web/roles.js` and its uses in `web/shell.js` (506-538); a new `web/annotate_choice.js` draws
+  - **Build:** delete the role menu module and its uses in `web/shell.js`; a new `web/annotate_choice.js` draws
     the choice in the left bar; `makesTruth()` becomes `stageAnnotates() && annotating`; CSS `[data-role=…]` rules
     become `[data-annotating]`; `truth_tasks.js` `#gt-start`/Stop goes. The Processing box's visibility follows the
     "from scratch" route.
