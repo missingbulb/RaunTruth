@@ -2040,7 +2040,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-20. Each engine's image (`dev/tools/test-image/`) holds the Python packages, Node, the
   page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and the files the tests would
   otherwise fetch once, and that engine's browser alone, so a Chromium run pulls half what an image of all three
-  weighed. They are tagged by a hash of what they take in and the engine: their own files, the Python packages, the
+  weighed. The site's code is never in them: each run mounts the checkout. They are tagged by a hash of what they take in
+  and the engine: the files they are built by, the Python packages, the
   libraries the page pins and what each study names for its Python and its services, never the page's code or a
   study's other settings (set by the owner on 2026-11-21). One is built only when that changes
   (`.github/workflows/test-image.yml`), its layers in the order each changes, least often first, from the layers of the

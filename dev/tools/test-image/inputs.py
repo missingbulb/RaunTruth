@@ -17,7 +17,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 sys.path.insert(0, os.path.join(ROOT, 'web-tests'))
 import page_libraries  # noqa: E402 - found beside the page tests, once their folder is on the path
 INPUTS = (
-    'dev/tools/test-image/*',
+    # the build's own files; the rest of this folder is what a run does with the image
+    'dev/tools/test-image/Dockerfile', 'dev/tools/test-image/prepare.sh',
     'requirements.txt',
     # the page's libraries and the Pyodide packages the studies name (web-tests/page_libraries.py)
     'web-tests/page_libraries.py', 'web/*.js', 'studies/*/web/*', 'studies/*/study.json',
@@ -32,7 +33,7 @@ def files(root=ROOT):
 
 
 # the files whose whole text the image takes in; of the rest, only what takes_in() reads from them
-WHOLE = ('dev/tools/test-image/*', 'requirements.txt', 'web-tests/page_libraries.py', 'lab/services.py')
+WHOLE = ('dev/tools/test-image/Dockerfile', 'dev/tools/test-image/prepare.sh', 'requirements.txt', 'web-tests/page_libraries.py', 'lab/services.py')
 
 
 def takes_in(root=ROOT):

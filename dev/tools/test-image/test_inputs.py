@@ -17,6 +17,7 @@ def repo(tmp_path, files):
 
 STUDY = '{"title": "Acme", "python": {"wheels": ["acme-1.0-py3-none-any.whl"], "packages": ["numpy"]}, "services": {"det": "https://acme.example/det.onnx"}}'
 FILES = {'requirements.txt': 'numpy\n', 'dev/tools/test-image/Dockerfile': 'FROM acme\n',
+         'dev/tools/test-image/prepare.sh': 'echo fetch\n', 'dev/tools/test-image/run.sh': 'docker run\n',
          'web/acme.js': 'import "https://cdn.jsdelivr.net/npm/acme@1.0.0/acme.js"; // a page module\n',
          'studies/acme/study.json': STUDY, 'studies/acme/algorithm/acme.py': '# a finder\n', 'README.md': 'acme\n'}
 
@@ -35,6 +36,7 @@ def test_the_tag_moves_with_what_the_image_takes_in_and_with_nothing_else(tmp_pa
     # what the image's build fetches or runs
     assert moves(tmp_path, root, 'requirements.txt', lambda t: t + 'scipy\n')
     assert moves(tmp_path, root, 'dev/tools/test-image/Dockerfile', lambda t: t + 'RUN true\n')
+    assert moves(tmp_path, root, 'dev/tools/test-image/prepare.sh', lambda t: t + 'echo more\n')
     assert moves(tmp_path, root, 'web/acme.js', lambda t: t.replace('acme@1.0.0', 'acme@1.0.1'))
     assert moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('acme-1.0', 'acme-1.1'))
     assert moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('"numpy"', '"numpy", "scipy"'))
@@ -44,10 +46,12 @@ def test_the_tag_moves_with_what_the_image_takes_in_and_with_nothing_else(tmp_pa
     assert not moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('"Acme"', '"Acme 2"'))
     assert not moves(tmp_path, root, 'studies/acme/algorithm/acme.py', lambda t: t + 'x = 1\n')
     assert not moves(tmp_path, root, 'README.md', lambda t: t + 'more\n')
+    # what a run does with the image, never in it
+    assert not moves(tmp_path, root, 'dev/tools/test-image/run.sh', lambda t: t + '# more\n')
 
 
 def test_the_context_holds_what_the_tag_hashes(tmp_path):
     root = repo(tmp_path / 'repo', FILES)
     inputs.context(str(tmp_path / 'ctx'), root)
     held = sorted(os.path.relpath(os.path.join(d, f), tmp_path / 'ctx') for d, _, fs in os.walk(tmp_path / 'ctx') for f in fs)
-    assert held == inputs.files(root) == sorted(f for f in FILES if f not in ('studies/acme/algorithm/acme.py', 'README.md'))
+    assert held == inputs.files(root) == sorted(f for f in FILES if f not in ('studies/acme/algorithm/acme.py', 'README.md', 'dev/tools/test-image/run.sh'))
