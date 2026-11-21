@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NODE = shutil.which('node')
 
 
+@pytest.mark.flaky(issue=1081, engines=['webkit'])
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_account():
     run_driver(os.path.join(HERE, 'account_driver.mjs'), timeout=90)
