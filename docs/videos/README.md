@@ -16,7 +16,8 @@ loop shown in full.
 - **Length.** Completion falls with length (Vidyard, 1.78 M business videos: 66 % finish under 1 min, 56 % at
   1–2 min, 50 % at 2–10 min), and how-to viewers care more about skimming than about length (Guo et al. 2014, edX).
   So: a pitch under two minutes, and a walkthrough cut into one-task clips that also play as one chaptered video.
-  These figures are vendor and platform studies — directional, not settled.
+  These figures are vendor and platform studies — directional, not settled — and were read from search
+  summaries, not the sources' own pages: re-check each against its source before quoting it anywhere public.
 - **Hook in the first five seconds**, with the pain in the viewer's terms (a count, a deadline), never a logo.
 - **Muted first.** Most autoplayed video is watched without sound, so every beat carries on-screen text, and both
   videos ship a WebVTT caption file; the pitch's autoplay cut has the captions burned in.
