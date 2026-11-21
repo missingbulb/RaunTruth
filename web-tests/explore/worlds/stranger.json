@@ -6,7 +6,6 @@
   "email": "stranger@acme.example",
   "name": "Acme Stranger"
  },
- "role": "viewer",
  "drive": {
   "access": "private",
   "members": [

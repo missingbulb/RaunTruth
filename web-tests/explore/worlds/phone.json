@@ -6,7 +6,6 @@
   "email": "owner@acme.example",
   "name": "Acme Owner"
  },
- "role": "data",
  "viewport": {
   "width": 390,
   "height": 844

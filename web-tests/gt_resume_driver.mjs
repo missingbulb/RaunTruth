@@ -1,4 +1,4 @@
-// Drives a Ground Truth Tagger's own submission in the stand-in Drive offered back on another device
+// Drives an annotator's own submission in the stand-in Drive offered back on another device
 // (req/shell/ground-truth/draft-offer): Load your submission, found from two listings as the image opens, its file read only on
 // the click and checked as a draft is, one from before the log loaded as a base. Counts the calls the page makes to Drive.
 // Exits 1 on a failed check, 2 when it cannot run.
@@ -7,13 +7,14 @@ import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until, untilHeard } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
+import { fromScratch } from "./annotating.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
 const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
-const { asTagger, model, marks, counted, moved, ask, label } = kit({ drive, png });
+const { model, marks, counted, moved, ask, label } = kit({ drive, png });
 const GOOGLE = "https://www.googleapis.com/";
 
 // the page's calls to Drive from now on, told apart: the folders it listed (by parent) and the files it downloaded
@@ -53,7 +54,14 @@ const openImage = async (page, seen) => {
   await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
   await until(page, () => document.documentElement.dataset.gtLookup === "done");
 };
-const tagger = async (page) => { const seen = watch(page); await asTagger(page); await openImage(page, seen); return seen; };
+// the image opened, then annotation from scratch chosen for it, which opens it again with the submission looked up
+const tagger = async (page) => {
+  const seen = watch(page);
+  await openImage(page, seen);
+  await fromScratch(page, "#fx-count");
+  await until(page, () => document.documentElement.dataset.gtLookup === "done");
+  return seen;
+};
 const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
@@ -108,6 +116,8 @@ await page.evaluate(() => $("#unload").click());
 await page.waitForFunction(() => !st.img);
 seen.lists.length = 0; seen.reads.length = 0;
 await openImage(page, seen);
+await fromScratch(page, "#fx-count");
+await until(page, () => document.documentElement.dataset.gtLookup === "done");
 await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0 && (await offer(page)).shown, "opened again, the image is listed twice again: nothing is cached", seen);
 // loading over actions not yet made saved asks first
 await counted(page);
@@ -159,7 +169,7 @@ await check(JSON.stringify((await model(page)).marks) === JSON.stringify(altered
 await check(list.some((r) => /Earlier history, not replayable/.test(r.text)), "its earlier history is set aside in the window", list);
 await page.context().close();
 
-// another tagger's file is not offered, and nobody but a tagger is looked up for
+// another tagger's file is not offered, and nobody but one annotating is looked up for
 file.name = "gt_someone@else.org.json"; file.bytes = Buffer.from(JSON.stringify(original));
 page = await open(true);
 seen = await tagger(page);
@@ -176,6 +186,6 @@ seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await check(!seen.lists.includes(GT.submissions) && !seen.lists.includes(subFolder.id) && !(await offer(page)).shown, "outside the tagger role the submissions folder is not listed at all", seen.lists);
+await check(!seen.lists.includes(GT.submissions) && !seen.lists.includes(subFolder.id) && !(await offer(page)).shown, "outside annotation mode the submissions folder is not listed at all", seen.lists);
 await page.context().close();
 await done(0);

@@ -12,7 +12,7 @@ Working on a study? Read its own warm-up next: [NoR Finder](../studies/nor/docs/
 
 | Layer | Where | Swapped by |
 |---|---|---|
-| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google), the Python runtime, status and memory, notices, theme, side bars, version history, downloads, ground-truth submission, Data Management for a study's study managers (`web/data_mode.js`: the tree of the study's listed folders, the Tags box and Study images, the study index it writes and Load study images reads, kept in the study's one study file in its root, with the tags, by `web/study_root.js`, the tag rules in `web/tags.js`, previews made in the browser by `web/previews_writer.js`), the TIFF reader and writer (`web/tiff_file.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
+| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google), the Python runtime, status and memory, notices, theme, side bars, version history, downloads, ground-truth submission, Data Management for a study's owners (`web/data_mode.js`: the tree of the study's listed folders, the Tags box and Study images, the study index it writes and Load study images reads, kept in the study's one study file in its root, with the tags, by `web/study_root.js`, the tag rules in `web/tags.js`, previews made in the browser by `web/previews_writer.js`), the TIFF reader and writer (`web/tiff_file.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
 | Viewer: shows the opened image and what a study draws over it, zoom, pan, the minimap, each channel's row and its black and white points (`web/channels.js`) | `web/viewer2d.js`; `web/viewer3d.js` adds a 3D view of a z-stack | a study's `viewer` |
 | Study: its panels, its flow, its Python | `studies/<id>/` | `/app/<id>` (rauntruth.com/app/nor) |
 | The site's own pages around the app: the landing page, privacy, terms, license, icons, poster, the retired root service worker | `site/` | — |
@@ -55,8 +55,8 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
 - `root` — optional, the link of the study's Google Drive root folder, the only folder the repo names. Who may read it is Drive's sharing, members only until the study is shared by link (`web/members.js`). The one study file
   in it, `rauntruth-study.json`, names its data and ground-truth folders by id, else they are found by name (`Data`,
   `GT curated`, `GT submissions`, `GT`; `web/study_root.js`). The Drive dialog browses the data folder alone, with no
-  link to paste. Who holds a role is Drive's sharing: writing to the root makes a Study Manager, to submissions a Ground
-  Truth Tagger. A study's panels step aside while Data Management is open.
+  link to paste. What a person may do is Drive's sharing: writing to the root lets them open Data Management, to submissions
+  save ground truth (`req/shell/annotate/no-save`). A study's panels step aside while Data Management is open.
 - `channels` — what the study says of the image's channels, by place, as starting points the user changes: `name`, `colour` (`#rrggbb`),
   `shown` at first, and optionally `depth` (in 3D, coloured by depth from the start: `true`, or a palette's name), `about` (the (?)'s description, at most 100 words) and `black` and
   `white` (its first points, 0–255). A channel it leaves out takes what the file says, then its place

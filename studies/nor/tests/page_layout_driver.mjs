@@ -4,6 +4,7 @@
 // selected card; and where the selected card and Submit Ground Truth sit, with no right bar. Prints what it
 // measured; exits 1 on a skewed image or a misplaced part, 2 when it cannot run.
 //   node tests/page_layout_driver.mjs ANSWERS IMAGE
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -64,6 +65,7 @@ for (const width of [1000, 1600]) {
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await annotateIfAsked(page, "#find");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
     // ---- the selected card over the image's top right corner, only while one is selected; Submit Ground
@@ -114,6 +116,7 @@ for (const width of [1000, 1600]) {
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await annotateIfAsked(page, "#find");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   // the walk may open on an area's check; the finalists' row goes to a candidate

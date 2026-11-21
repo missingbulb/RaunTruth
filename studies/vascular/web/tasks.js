@@ -1,5 +1,5 @@
 // The Ground Truth Tasks, in the left bar while the study makes ground truth: the stack's areas, a row each, then
-// Submit. An area is open only while the owner tags, from Start GT tagging to Stop tagging; then the main view shows
+// Submit. An area is open only while the owner annotates (req/shell/annotate/choice); then the main view shows
 // it alone (model_view.js), its lines, points and junctions corrected there in one pass, each of its junctions judged
 // in the box; Area is right then opens its widths step, and These widths look right does it. Back to image shows the whole stack and Back to task the area again; the
 // areas float as a map over the view meanwhile. Every verdict is an edit of the model, so it is undone, saved and
@@ -315,7 +315,15 @@ export function init(view, tasks, changed, submit, actions) {
   T.list([], { pick, submit, tagging: tagged });
   T.list(null); st = fresh(); items = null; heard = changed || (() => {});
   T.areas.on(setGrid);
-  MV.onChange((m) => { if (!m) { st = fresh(); items = null; } show(false); });
+  // annotating from scratch starts before there is a model: the walk opens at its first area once the first one arrives
+  let had = false;
+  MV.onChange((m) => {
+    if (!m) { st = fresh(); items = null; }
+    const first = !!m && !had;
+    had = !!m;
+    if (first && T.tagging()) return tagged(true);
+    show(false);
+  });
   // a junction of the area clicked on the view becomes the one to judge
   MV.onPick((h) => {
     const m = MV.current();

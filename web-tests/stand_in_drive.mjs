@@ -157,12 +157,14 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   }
 
 
-  // the role menu's choice (req/shell/account/role), the page then showing it
-  async function role(page, name) {
-    await page.click("#role-menu summary");
-    await page.click(`#role-list .item:text-is("${name}")`);
-    await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
+  // Data Management opened (on) or left from the avatar's menu, the page then showing it (req/shell/data/mode)
+  async function dataManagement(page, on = true) {
+    await page.click("#user-menu summary");
+    await page.waitForSelector("#open-data:not([hidden])");
+    const now = await page.evaluate(() => document.documentElement.dataset.mode === "data");
+    await page.click(now === on ? "#user-menu summary" : "#open-data");
+    await page.waitForFunction((on) => (document.documentElement.dataset.mode === "data") === on, on);
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, role, check, done, close, origin, EMAIL };
+  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

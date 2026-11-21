@@ -12,6 +12,7 @@
 // bytes, and a channel hidden changing nothing it counts (req/shell/python/on-run, req/shell/python/file-bytes). Prints what it saw; exits 1 on a failure, 2 when it
 // cannot run.
 //   node web-tests/study_page_driver.mjs ANSWERS IMAGE.png STUDIES
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
@@ -158,6 +159,7 @@ try {
   }
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(page, "#fx-count");
   const base = await page.evaluate(() => [document.querySelector("#base").width, document.querySelector("#base").height]);
   if (base.join() !== "80,60") problems.push(`the viewer drew ${base} for an 80 x 60 image`);
   const opened = await page.evaluate(() => [...document.querySelectorAll("#channels label")].map((l) => l.textContent).join());
@@ -319,6 +321,7 @@ try {
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);
   await live.setInputFiles("#file", image);
   await live.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(live, "#fx-count");
   if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before Count");
   await live.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
   await live.click("#fx-count");

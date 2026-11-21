@@ -71,7 +71,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
-  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside annotation mode nothing is kept across visits.
   A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
   `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
   candidate's id and then by its rounded place: an approval, a rejection, the
@@ -141,7 +141,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/find/damaged` The finders analyse no pixel of a damaged area, and the scorer counts no NoR in one.
   <details>
 
-  Set by the owner on 2026-11-19. The Study Manager's damaged areas (`req/shell/data/damaged`) join the pixels each
+  Set by the owner on 2026-11-19. The study owner's damaged areas (`req/shell/data/damaged`) join the pixels each
   finder leaves out of its colour thresholds and its green and red segments, as a finder that blanks the blue mask
   does, so no candidate is made of their pixels. A NoR that crosses the line keeps only its outside part, and is
   found only if that part is still a red between two greens. The blue mask stays a filter (`req/nor/find/blue-mask`):
@@ -199,7 +199,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the Show menu's task-named rows (`req/nor/show-menu`).
   Changed by the owner on 2026-10-31: there is no right bar (`req/shell/left-bar/width`).
   Changed by the owner on 2026-11-04: the item view is shelved (`req/shell/views/second`), so in
-  every role the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
+  every mode the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
   removed by the owner on 2026-11-19 (missingbulb/RaunTruth#740).
   </details>
 
@@ -266,8 +266,9 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Set by the owner on 2026-10-06; the mask itself is the shell's since 2026-11-16 (`req/shell/summary/mask`). The
   summary counts only the candidates whose centre is inside the mask, and the Candidates and Summary CSVs hold only
   those; the ground truth ignores the mask (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on
-  2026-11-04: the mask shows only while the summary does, so while the study makes ground truth it is neither drawn
-  nor listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  2026-11-04: the mask shows only while the summary does, so before a model it is neither drawn nor listed in the submit
+  popup, and comes back with the summary; changed on 2026-11-21: the summary shows beside the tasks while the user
+  annotates (`req/shell/left-bar/shells`), so the mask is drawn then too (`studies/nor/tests/test_truth_tasks_page.py`).
   </details>
 
 - `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.
@@ -320,9 +321,9 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/truth/tasks` Ground Truth Tasks lists the tasks, one row each; the open one shows one item at a time.
   <details>
 
-  Set by the owner on 2026-11-03. In Summary's place while the study makes ground truth, counting
-  once the candidates are found; the walk opens only once Start GT tagging is pressed, and Stop tagging
-  closes it, the image left as it is viewed (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
+  Set by the owner on 2026-11-03. In the left bar while the user annotates (`req/shell/annotate/choice`), counting
+  once the candidates are found; the walk opens with annotation mode, as soon as the candidates are found
+  (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
   long and filled as far as it is done, heads one row per task, each counting only once and never
   repeating that it is a review: "13/47 Finalists", "0/100 Areas" (the areas
   checked for NoRs the finder missed), and Submit Ground Truth (`req/nor/downloads`); a done task

@@ -57,7 +57,8 @@ export const look = (page) => page.evaluate(() => {
   // the app itself, not a page the browser shows in its place (one of its own errors, a page of the site's)
   const app = !!window.shellForTests;
   vars.stage = html.dataset.stage ?? null;
-  if (html.dataset.role) vars.role = html.dataset.role;
+  vars.annotating = html.hasAttribute("data-annotating");
+  vars.managing = html.dataset.mode === "data";
   try { vars.signedIn = !!JSON.parse(localStorage.getItem("nor-google-sign-in") || "null")?.user; } catch { /* unreadable record: the var unread */ }
   vars.online = !html.classList.contains("offline");
   const view = document.querySelector("#view");
