@@ -2037,9 +2037,12 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-20. Each engine's image (`dev/tools/test-image/`) holds the Python packages, Node, the
   page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and the files the tests would
-  otherwise fetch once, all in layers the three images share, and last that engine's browser alone, so a Chromium run
-  pulls half what an image of all three weighed. They are tagged by a hash of what goes into them and the engine, and
-  built only when that changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
+  otherwise fetch once, and that engine's browser alone, so a Chromium run pulls half what an image of all three
+  weighed. They are tagged by a hash of what they take in and the engine: their own files, the Python packages, the
+  libraries the page pins and what each study names for its Python and its services, never the page's code or a
+  study's other settings (set by the owner on 2026-11-21). One is built only when that changes
+  (`.github/workflows/test-image.yml`), its layers in the order each changes, least often first, from the layers of the
+  engine's image built last wherever they still match; each run pulls it and runs the tests in it on a network with no way off
   the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
   </details>
 

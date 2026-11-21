@@ -1,15 +1,21 @@
-"""The repo's files the test image is built from (req/checks/ci-sets/one-image): what the image fetches is read from
-these alone, so a hash of them names the image, and a change to any of them builds a new one.
+"""The repo's files the test image is built from (req/checks/ci-sets/one-image), and what it takes in from them: the
+image's own files, the Python packages, the libraries the page pins, and what each study names for its Python and its
+services. A hash of what it takes in names the image, so a change to any of it builds a new one, and a change to the
+page's code or a study's other settings builds none.
   python3 dev/tools/test-image/inputs.py --tag            print the image's tag
   python3 dev/tools/test-image/inputs.py --context DIR    copy them into DIR, laid out as the repo is, to build the image from"""
 import fnmatch
+import glob
 import hashlib
+import json
 import os
 import shutil
 import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+sys.path.insert(0, os.path.join(ROOT, 'web-tests'))
+import page_libraries  # noqa: E402 - found beside the page tests, once their folder is on the path
 INPUTS = (
     'dev/tools/test-image/*',
     'requirements.txt',
@@ -25,10 +31,26 @@ def files(root=ROOT):
     return sorted(f for f in tracked if f and any(fnmatch.fnmatch(f, p) for p in INPUTS) and os.path.isfile(os.path.join(root, f)))
 
 
+# the files whose whole text the image takes in; of the rest, only what takes_in() reads from them
+WHOLE = ('dev/tools/test-image/*', 'requirements.txt', 'web-tests/page_libraries.py', 'lab/services.py')
+
+
+def takes_in(root=ROOT):
+    """What the image's build takes from the page and the studies: the libraries the page pins, and each study's
+    Python and services."""
+    studies = {}
+    for path in sorted(glob.glob(os.path.join(root, 'studies', '*', 'study.json'))):
+        m = json.load(open(path))
+        studies[os.path.relpath(path, root)] = {'python': m.get('python'), 'services': m.get('services')}
+    return {'libraries': page_libraries.libraries(root), 'studies': studies}
+
+
 def tag(root=ROOT):
     h = hashlib.sha256()
     for f in files(root):
-        h.update(f.encode() + b'\0' + open(os.path.join(root, f), 'rb').read() + b'\0')
+        if any(fnmatch.fnmatch(f, p) for p in WHOLE):
+            h.update(f.encode() + b'\0' + open(os.path.join(root, f), 'rb').read() + b'\0')
+    h.update(json.dumps(takes_in(root), sort_keys=True).encode())
     return h.hexdigest()[:16]
 
 

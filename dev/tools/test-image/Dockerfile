@@ -1,6 +1,7 @@
 # The image every CI test run runs in (req/checks/ci-sets/one-image): what the tests use, fetched once here, so a
-# run needs no network. Built from the context inputs.py assembles, and tagged by its hash and its ENGINE: what every
-# engine's run uses comes first, shared by the three images, and the engine's own browser last.
+# run needs no network. Built from the context inputs.py assembles, and tagged by its hash and its ENGINE. In the order
+# each changes, least often first, so a new image rebuilds only from what changed: the system and Python packages the
+# three images share, the engine's browser, and last what the page and the studies pin.
 FROM node:22-bookworm-slim AS node
 
 FROM python:3.11-slim-bookworm
@@ -17,9 +18,6 @@ RUN apt-get update \
 COPY requirements.txt /tmp/requirements.txt
 RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 ENV PATH=/opt/venv/bin:$PATH
-
-COPY . /tmp/inputs
-RUN sh /tmp/inputs/dev/tools/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/inputs
 
 # the Playwright the page tests drive the browsers with; its Chromium must have what the page uses, interest invokers
 # among them. Chromium's headless shell is what a headless launch runs; Firefox runs on Mesa's software EGL for its
@@ -39,6 +37,9 @@ RUN test -n "$ENGINE" \
         && apt-get install -y --no-install-recommends -t bookworm-backports libgl1-mesa-dri libegl-mesa0 libglx-mesa0 libgbm1 mesa-libgallium ;; \
     esac \
  && rm -rf /var/lib/apt/lists/* /root/.npm
+
+COPY . /tmp/inputs
+RUN sh /tmp/inputs/dev/tools/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/inputs
 
 # what the run then reaches for, from here alone: the studies' wheels for the build, the files the tests would fetch once
 ENV PIP_NO_INDEX=1 PIP_FIND_LINKS=/opt/wheels TEST_DOWNLOADS=/opt/test-downloads
