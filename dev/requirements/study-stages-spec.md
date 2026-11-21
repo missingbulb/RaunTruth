@@ -4,8 +4,7 @@ The build plan for the design in [`study-stages-map.md`](study-stages-map) (#101
 and why; this file holds the requirements to land in `requirements.md`, how each is tested, and where the code
 goes, cut into work packages a worker session can take one at a time.
 
-**Status:** draft for the owner's review. Items marked **(proposed)** are defaults chosen here, from the second
-round of persona reviews, and are not yet the owner's decisions.
+**Status:** every decision here is the owner's; the one question left is the cross-image results view (WP8).
 
 ## How a worker takes a package
 
@@ -28,22 +27,26 @@ owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
 
 | What | Who calls it | Status |
 |---|---|---|
-| One Drive batch request per load: can this user read each study's settings file | main app, signed in | approved |
+| One Drive batch request per load: can this user read each study's root | main app, signed in | approved |
 | Read a study's sharing (People) | Study Setup | approved |
 | Pin the marked revision of an extraction (`keepForever`) | Study Setup | approved, then not needed: marks follow the latest |
 | Batch runs write extractions to the store | Study Setup | approved |
 | Save writes the person's extraction, replacing their own (old revision kept) | main app | approved |
 | Change any file's sharing | - | **not approved**: the owner shares by hand, guided |
 | Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing | tests | approved |
-| Lab reads the study index by link | lab | covered: the lab reads link-shared files today, no sign-in |
+| Lab reads the study file by link | lab | covered: the lab reads link-shared files today, no sign-in |
 
-## Settled after the second persona reviews
+## Decided after the second persona reviews
 
-Corrected by the owner: a Drive file can carry sharing its folder does not, so **the root is members-only** and
-the folders the lab and visitors need (images, previews, extractions, and the folder holding the study index) are
-each shared "anyone with the link" on top. The settings file, in the root, is members-only.
+Corrected by the owner: a Drive file or folder can carry sharing its parent does not. So **the root is
+members-only**, and **membership is "can read the root"**. The folders visitors and the lab need (images,
+previews, extractions) are each shared "anyone with the link" on top. **One study file** in the root
+(`rauntruth-study.json`) holds what the settings, index and tags files hold today, plus the marks and the stage;
+it too is link-readable on top, its id kept only in the cloud environment (`RAUNTRUTH_STUDY_<STUDY>`). The repo
+names the root's id, harmless since only members open it. Entering Review or Public, the owner shares the root by
+link, guided by Study Setup.
 
-**(proposed)** defaults, each answering a review finding:
+Each answering a review finding, accepted by the owner:
 
 - **Save.** Every action is kept on the device as today's draft. Save writes the person's one extraction for the
   image to the store, replacing their own (Drive keeps the old revision). A count beside Save says how many images
@@ -64,7 +67,7 @@ each shared "anyone with the link" on top. The settings file, in the root, is me
 - **Owner** means anyone Drive lets write the root.
 - **Entering Review is three steps**: the owner freezes in Study Setup (marking and data close); a Claude session
   runs the freeze command (commits model-only GT, publishes the official scores); Study Setup then shows the owner,
-  with pictures, how to share the settings file by link, and checks that it was done.
+  with pictures, how to share the root by link, and checks that it was done.
 - **In Review and Public batch runs are exploratory**: they never count, since marking is closed.
 - **A score from Review on carries a stamp**: algorithm version, dataset SHA, freeze date, link to the GT commit.
 - **Own-image runs** are open to anyone with the address in Review too; the result can be downloaded, nothing is
@@ -72,10 +75,12 @@ each shared "anyone with the link" on top. The settings file, in the root, is me
 - **The welcome popup** on a Review or Public study says signing in adds nothing there.
 - **Batch runs** skip images that already have an extraction at that version and parameters, so a stopped batch
   resumes; a token running out holds the batch until the next click.
-- **People** shows per person which of the three shares they hold (settings file: sees; extractions folder:
-  annotates; root: manages) and links to that item's Drive sharing dialog.
-- **The lab's single interface is the study index**: it names images (id, hash), the marks, damaged areas and the
-  stage. `RAUNTRUTH_INDEX_<STUDY>` names the index file; the lab reads it by link and downloads by id.
+- **People** shows per person what they hold (read the root: sees; write the extractions folder: annotates;
+  write the root: manages) and links to that item's Drive sharing dialog.
+- **The lab's single interface is the study file**: it names images (id, hash), the marks, damaged areas and the
+  stage. The lab reads it by link from `RAUNTRUTH_STUDY_<STUDY>` and downloads by id, never listing folders.
+- **The stage lives on Drive only**, in the study file; repo sessions learn it from the lab, which prints it.
+  Nothing in the repo records it.
 - **The dataset SHA is computed over the model-only form** of each GT file, so Drive and the committed copy agree.
 
 Still the owner's (asked when the package reaches it): the cross-image results view (WP8).
@@ -93,7 +98,7 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
   Set of emails) beside `drive.writers`; `sees(g)` becomes: public, or the signed-in email in the nearest readers
   set, or a writer. An item with no readers set inherits its parent's. Own unit test
   `web-tests/test_fake_drive.py` asserts: a members-only root with a link-shared `Data` child; signed out reads
-  `Data`, is refused the root and the settings file; a member reads both; a non-member signed in is refused.
+  `Data`, is refused the root; a member reads the root and the study file in it; a non-member signed in is refused.
 - **Fake: batch endpoint.** `POST /batch/drive/v3` with `multipart/mixed` parts, each answered as its single call
   would be. Asserted by the same test: three `GET files/<id>` parts, one refused, come back as three parts with
   200, 200, 404.
@@ -109,17 +114,19 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
 
 Depends on WP1.
 
-- `req/shell/study/settings` Every study names its Drive settings file by id; no Drive folder link is in the repo.
-  - `study.json`'s `root` gives way to `settings` (a file id). `test_study_contract.py` asserts every study with a
-    stage names `settings` as 25-60 id characters and no `drive.google.com` link appears in any `studies/*/study.json`
-    or `studies/*/data/sources.json` (a grep over the tree, comments included).
-  - **Build:** `web/drive.js` `remote.study(manifest)` reads `settings`; `web/study_root.js` `read()` starts from the
-    settings file and takes the root, data, previews, extractions and index folder ids from it. Migration of the
-    three real studies' files is a hand step (see Hand steps).
-- `req/shell/study/members` Signed in, the study list holds the studies whose settings file the user can read,
-  asked of Drive in one batch request per load; signed out, the released ones.
+- `req/shell/study/one-file` A study keeps one study file in its Drive root, holding its folders, images index,
+  tags, hide and grouping rules, marks and stage; the separate index and tags files go.
+  - **Test:** `test_study_root.py` (`study_root_driver.mjs`, under Node): reading a root that holds only
+    `rauntruth-study.json` (format `rauntruth-study/2`) gives folders, index, tags and stage; a root still holding
+    the three old files is read once and written back as one file the next time a manager saves (migration), the old
+    two trashed only if the page made them (`writer.ours`); `test_data_mode_page.py` asserts one write per tag edit.
+  - **Build:** `web/study_root.js`: `SETTINGS`, `INDEX`, `TAGS` collapse into one document with sections; `read()`,
+    `readTags`/`writeTags`, `readIndex`/`writeIndex` become views on it (a single cached read per root). Writes
+    re-read and merge before replacing, as concurrent managers may edit it.
+- `req/shell/study/members` Signed in, the study list holds the studies whose root the user can read, asked of
+  Drive in one batch request per load; signed out, the released ones.
   - **Test:** `web-tests/test_study_members_page.py` with a new `members_driver.mjs`, stand-in Drive seeded with
-    three studies: A members {x}, B members {y}, C link-shared (released). Signed in as x: switcher lists A and C;
+    three studies whose roots are: A members {x}, B members {y}, C link-shared at stage Public. Signed in as x: switcher lists A and C;
     the fake's request log shows exactly one `/batch` call and no per-study metadata call. Signed in as y: B and C.
     Signed out: C only, and no `/batch` call. Token expired (`google.expire()`): the last list, and the line
     "as Drive last said" under it. Sign out then in as y: x's list is gone.
@@ -132,9 +139,9 @@ Depends on WP1.
     out: the signed-out wording; neither loads the study's module (no request for `studies/A/web/*.js`).
   - **Build:** `mountNow(id)` in `web/shell.js` checks membership before `import`.
 - `req/shell/study/review-link` A study in Review opens at its address for anyone, signed out, but is not listed.
-  - **Test:** stand-in study D, settings link-shared, stage Review: signed out, `app/D` opens; the switcher does
-    not list D; a member's switcher lists D.
-  - **Build:** the stage read from the settings file (WP6) decides listing: `Public` listed, `Review` not.
+  - **Test:** stand-in study D, root link-shared, stage Review: signed out, `app/D` opens; the switcher does not
+    list D; a member's switcher lists D.
+  - **Build:** the stage read from the study file (WP6) decides listing: `Public` listed, `Review` not.
 - `req/shell/site/landing` (rewritten) The landing page lists no studies; it describes the site and links into the
   app, whose switcher lists them.
   - **Test:** `test_published_site.py`: the built `index.html` has no `#studies` list and no study id in its text;
@@ -238,7 +245,7 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
   access, ground-truth setup (now: the extractions folder), previews, tags and descriptions, hide rules, the
   grouping tag, areas of interest, damaged areas, Needs GT.
   - **Test:** `test_data_mode_page.py` and `test_study_index_page.py` re-pointed at `app/setup`; same assertions.
-- `req/setup/marks` The owner marks an extraction GT or official; the study index records the extraction's file id,
+- `req/setup/marks` The owner marks an extraction GT or official; the study file records the extraction's file id,
   and the mark follows that file's latest content; one GT mark and one official mark per image; "mark all of this
   batch official".
   - **Test:** `test_setup_page.py`: mark y's extraction GT: the index JSON (read from the fake) holds
@@ -253,11 +260,11 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
   - **Build:** reuses the main app's runner module; Study Setup imports the study's algorithm code for the batch only.
 - `req/setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each
   item's Drive sharing dialog.
-  - **Test:** fake permissions seeded on settings file, extractions folder and root; rows asserted; links point at
+  - **Test:** fake permissions seeded on the extractions folder and the root; rows asserted; links point at
     `https://drive.google.com/drive/folders/<id>?usp=sharing` forms.
 - `req/setup/share-guide` Where a stage needs a sharing change (entering Review, Public, moving back), Study Setup
   shows the owner what to share, with pictures, and checks it afterwards.
-  - **Test:** promote D to Review: the guide shows; the fake's settings file not yet link-shared: "not done yet";
+  - **Test:** promote D to Review: the guide shows; the fake's root not yet link-shared: "not done yet";
     seed the share; "done". No sharing write in the fake's log at any point.
 
 ### WP6 - the five stages
@@ -265,7 +272,7 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
 Depends on WP5.
 
 - `req/shell/study/stage` (rewritten) A study's stage, Setup, Develop, Analyze, Review or Public, is kept in its
-  settings file and set by the owner in Study Setup; it opens and closes actions as the table in the map.
+  study file and set by the owner in Study Setup; it opens and closes actions as the table in the map.
   - **Test:** `test_status_bar_page.py` and a new `test_stage_table_page.py` driven from one data file,
     `web-tests/stage_table.json`, transcribing the map's table (stage × action → open/closed); the test loads the
     stand-in study in each stage and asserts each action's control is present or absent, so the table and the page
@@ -280,27 +287,28 @@ Depends on WP5.
   than their GT; promoting to Review freezes marking and data.
   - **Test:** `test_setup_page.py`: the list; after Freeze, mark buttons gone; the main app's Save still works but
     labels "after the freeze, not counted".
-- Existing studies: NoR, vascular, shelves and fixture start in Develop (their settings files written in the hand
-  step).
+- Existing studies: NoR, vascular, shelves and fixture start in Develop (their study files written by WP2's
+  migration and the hand step).
 - Shell states: `stage` takes the five values; each new case to the owner.
 
-### WP7 - the lab reads the index
+### WP7 - the lab reads the study file
 
 Depends on WP4 (marks format), can run beside WP5-6.
 
-- `req/lab/index` The lab reads a study's index by link, from the id in `RAUNTRUTH_INDEX_<STUDY>`, and nothing else
-  from Drive's listings; without the variable it stops with a message naming it.
+- `req/lab/study-file` The lab reads a study's study file by link, from the id in `RAUNTRUTH_STUDY_<STUDY>`, and
+  lists no Drive folder; without the variable it stops with a message naming it.
   - **Test:** `lab/tests/test_lab.py` with a local HTTP stub standing in for Drive (as the tests do now): with the
-    variable, `fetch.py` downloads exactly the ids the index names; without it, exit 2 and the message; no Drive id
+    variable, `fetch.py` downloads exactly the ids the study file names; without it, exit 2 and the message; no Drive id
     is printed in either output.
-  - **Build:** `lab/fetch.py` `Root` replaced by `Index`; `images()` downloads by the index's ids; `sources.json`
+  - **Build:** `lab/fetch.py` `Root` replaced by `StudyFile`; `images()` downloads by its ids; `sources.json`
     keeps names and hashes only (a check asserts no `drive_id` key).
 - `req/lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
-  - **Test:** stub index with two GT marks and one official; the scoring corpus has exactly the two GT pairs.
+  - **Test:** stub study file with two GT marks and one official; the scoring corpus has exactly the two GT pairs.
 - `req/lab/dataset-sha` The dataset SHA is computed over the model-only form of each GT file.
   - **Test:** two GT files differing only in `history` and `tagger` give the same dataset SHA.
-- `req/lab/stage` The lab prints the study's stage from the index, and unattended tasks stop on Review or Public.
-  - **Test:** stub index at Review: `run.py --write` exits with "frozen"; `mutation-sweep`'s task worker exits clean
+- `req/lab/stage` The lab prints the study's stage from the study file, and unattended tasks stop on Review or
+  Public.
+  - **Test:** stub study file at Review: `run.py --write` exits with "frozen"; `mutation-sweep`'s task worker exits clean
     with the same message (rule `writing-exit-path`).
 
 ### WP8 - the Review freeze and the published score
@@ -309,7 +317,7 @@ Depends on WP6 and WP7.
 
 - `req/lab/freeze` One lab command commits the study's GT, model-only, to `studies/<id>/gt/<freeze date>/` and
   writes the official scores with their stamp.
-  - **Test:** `lab/tests/test_lab.py`: stub index with marks; `python3 lab/freeze.py <study>` writes one file per GT
+  - **Test:** `lab/tests/test_lab.py`: stub study file with marks; `python3 lab/freeze.py <study>` writes one file per GT
     mark with no `history`, `tagger`, `created` or email anywhere in the bytes; the metrics carry `{version,
     dataset_sha256, frozen, commit}`.
 - `req/shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze
@@ -323,18 +331,18 @@ Depends on WP6. No code.
 
 - Rewrite the `designing-ground-truth-tasks` rule and skill, each study's `requirements.md` stage lines
   (`studies/nor/requirements.md`, `studies/shelves/requirements.md`, `studies/vascular/requirements.md`),
-  `lab/README.md`, the `improve-on-ground-truth` and `refitting-on-new-ground-truth` skills' "curated folder",
-  and give every study a `STATE.md` at one path (`studies/<id>/STATE.md`) carrying `Stage: <name> (<date>, <who>)`.
-- **Test:** a declared check: every `studies/*/study.json` with a stage has `studies/<id>/STATE.md` with a `Stage:`
-  line; a grep check that `PreGT|PostGT|Ground Truth Tagger|Study Manager` appear nowhere outside history files.
+  `lab/README.md`, and the `improve-on-ground-truth` and `refitting-on-new-ground-truth` skills' "curated folder"
+  and "Drive root"; they learn the stage from `lab/fetch.py`'s output.
+- **Test:** none beyond each package's own; the owner reviews the wording.
 
 ## Hand steps (the owner's)
 
 To file as one handover issue when WP2 starts (skill `writing-handover-issues`):
 
-- For each of NoR, vascular, shelves: make the root members-only, keep `Data`, `Previews`, the extractions folder
-  and the index's folder "anyone with the link", share the settings file with the members.
-- Set `RAUNTRUTH_INDEX_<STUDY>` in the Claude cloud environment for each study.
+- For each of NoR, vascular, shelves: share the root with the members only; keep `Data`, `Previews`, the
+  extractions folder and the study file "anyone with the link".
+- Set `RAUNTRUTH_STUDY_<STUDY>` in the Claude cloud environment for each study, once WP2's migration has written
+  the one study file.
 - Already-committed Drive ids stay in git history; images that must stay private before Public need re-uploading.
 
 ## Order

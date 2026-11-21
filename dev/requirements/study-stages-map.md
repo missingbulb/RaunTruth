@@ -119,6 +119,13 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
   environment (for example `RAUNTRUTH_ROOT_VASCULAR`), never the repo; a session without it stops with a clear
   message. `sources.json` keeps image names and hashes and drops Drive IDs. CI and the website need no root.
 
+- **Superseded by the spec review** ([`study-stages-spec.md`](study-stages-spec)): membership is "can read the
+  root" (members-only), not the settings file; one study file in the root holds settings, index, tags, marks and
+  stage, link-readable, its id only in the cloud environment; the stage lives on Drive only, never in `STATE.md`;
+  after loading an image the page asks how to get annotations on it (continue local work, load from Drive, start
+  from scratch, which alone shows the algorithm runner), replacing the Start Annotating button; a GT or official
+  mark follows its file's latest content; the Summary box shows whenever the image carries a model.
+
 ## Decisions so far
 
 - [Destination](#destination): rewritten requirements, no code.
