@@ -9,6 +9,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,8 @@ INPUTS = (
     'web-tests/page_libraries.py', 'web/*.js', 'studies/*/web/*', 'studies/*/study.json',
     # the studies' pinned wheels (build.wheels) and the files their native services fetch (lab/services.py)
     'dev/tools/build/*.py', 'lab/services.py',
+    # the Claudinite engine it pins, and the workflow naming its installer
+    '.claudinite/settings.yaml', '.github/workflows/tests.yml',
 )
 
 
@@ -37,13 +40,17 @@ WHOLE = ('dev/tools/test-image/Dockerfile', 'dev/tools/test-image/prepare.sh', '
 
 
 def takes_in(root=ROOT):
-    """What the image's build takes from the page and the studies: the libraries the page pins, and each study's
-    Python and services."""
+    """What the image's build takes from the page, the studies and Claudinite: the libraries the page pins, each study's
+    Python and services, and the engine and its installer."""
     studies = {}
     for path in sorted(glob.glob(os.path.join(root, 'studies', '*', 'study.json'))):
         m = json.load(open(path))
         studies[os.path.relpath(path, root)] = {'python': m.get('python'), 'services': m.get('services')}
-    return {'libraries': page_libraries.libraries(root), 'studies': studies}
+    tests = open(os.path.join(root, '.github', 'workflows', 'tests.yml')).read()
+    settings = open(os.path.join(root, '.claudinite', 'settings.yaml')).read()
+    claudinite = {'installer': re.findall(r'@claudinite/setup@[0-9.]+', tests)[:1],
+                  'engine': re.search(r'^engine:\n(?:  .*\n)*', settings, re.M).group(0)}
+    return {'libraries': page_libraries.libraries(root), 'studies': studies, 'claudinite': claudinite}
 
 
 def tag(root=ROOT):

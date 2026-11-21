@@ -298,17 +298,19 @@ try {
     await orMissed(page.waitForFunction(() => /once you are online/.test(document.querySelector("#offline-files").textContent), null, { timeout: 10000 }));
     check(/once you are online/.test(await page.textContent("#offline-files")) && (await page.$eval("#offline-go", (b) => b.disabled)),
       "offline, Make Available Offline says the study's folder waits for the network, Download held");
-
-    await ctx.setOffline(false); down = false;
   });
-  // what Download would then fetch depends on whether the study's Python, loading again meanwhile, is all here yet
-  await orMissed(page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }));
-  check(/Drive folder holds/.test(await page.textContent("#offline-files")) && !!(await page.textContent("#offline-python")),
-    "back online, the open Prepare for Offline popup reads the study's folder and counts again: " + (await page.textContent("#offline-files")) + " " + (await page.textContent("#offline-python")));
-  await page.click("#offline-close");
-  await page.keyboard.press("Escape");
-  await orMissed(page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }));
-  check(/^Ready/.test(await statusText()), "back online, the study whose Python was not here keeps it, with no reload: " + (await statusText()));
+  // the network back: a download the study's Python began as it came back may still meet it gone
+  await expecting(NETWORK_GONE, async () => {
+    await ctx.setOffline(false); down = false;
+    // what Download would then fetch depends on whether the study's Python, loading again meanwhile, is all here yet
+    await orMissed(page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }));
+    check(/Drive folder holds/.test(await page.textContent("#offline-files")) && !!(await page.textContent("#offline-python")),
+      "back online, the open Prepare for Offline popup reads the study's folder and counts again: " + (await page.textContent("#offline-files")) + " " + (await page.textContent("#offline-python")));
+    await page.click("#offline-close");
+    await page.keyboard.press("Escape");
+    await orMissed(page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }));
+    check(/^Ready/.test(await statusText()), "back online, the study whose Python was not here keeps it, with no reload: " + (await statusText()));
+  }, { maybe: true });
   // the browser here still says it is online, as on a plane's Wi-Fi: the page notices the site answering again
   await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
   check(!(await page.isVisible("#sb-online .off")), "back online, the online icon shows online again");

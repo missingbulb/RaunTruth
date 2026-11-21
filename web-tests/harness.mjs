@@ -17,6 +17,7 @@ import { ENGINE, LAUNCH, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { FAKES } from "./fakes/index.mjs";
 import { outsideServer, offSite, FAKED } from "./fakes/outside_server.mjs";
 import { COPY } from "./page_pixels.mjs";
+import { STEP } from "./deadlines.mjs";
 import { driveIn } from "./fakes/google_drive.mjs";
 import { signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
@@ -115,8 +116,15 @@ function heard(m) {
     if (reading.delete(entry)) say(text ?? m.text(), text !== null);
   });
 }
+// the requests a page sent while its context was offline, until each is answered or fails: the browser may report
+// such a failure only once the network is back, and the case that took it away still answers for it
+const sentOffline = new WeakSet(), awayAnswered = new Map();
+const sentAway = (q) => { sentOffline.add(q); let ok; awayAnswered.set(q, { done: new Promise((r) => { ok = r; }), ok }); };
+const awayEnded = (q) => { awayAnswered.get(q)?.ok(); awayAnswered.delete(q); };
+const awayHeard = () => Promise.all([...awayAnswered.values()].map((a) => Promise.race([a.done,
+  new Promise((ok) => setTimeout(ok, STEP).unref())]))); // bounds a hang: a request the browser never ends
 // every message heard so far, said: a case's declaration waits for these before it ends
-const allHeard = () => Promise.all([...reading].map((e) => e.done));
+const allHeard = () => awayHeard().then(() => Promise.all([...reading].map((e) => e.done)));
 // a browser or context closes only once what its pages said has been read from them
 const closesHeard = (target) => { const close = target.close.bind(target); target.close = async (...a) => { await allHeard(); return close(...a); }; };
 
@@ -216,9 +224,11 @@ async function install(ctx, world, outside) {
   // offline as its test sets it: the fakes answer nothing then, on an engine whose offline leaves a proxy reachable too
   const setOffline = ctx.setOffline.bind(ctx);
   // (a request the browser sent before its network went is answered: it was online when it asked)
+  // (and the context is offline until the browser has its network back: what it sends meanwhile fails as offline)
   ctx.setOffline = async (on) => {
-    if (on) offlineNow.add(ctx); else { offlineNow.delete(ctx); outside.offline = false; }
+    if (on) offlineNow.add(ctx); else outside.offline = false;
     await setOffline(on);
+    if (!on) offlineNow.delete(ctx);
     outside.offline = on;
   };
   const newPage = ctx.newPage.bind(ctx);
@@ -236,12 +246,14 @@ async function install(ctx, world, outside) {
     said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url(), declared,
       CUT?.test(message) && e.page() && leaving.has(e.page()) ? "as its page was left" : "");
   });
-  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); });
+  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); if (offlineNow.has(ctx)) sentAway(q); });
+  ctx.on("requestfinished", awayEnded);
   ctx.on("requestfailed", (q) => {
+    awayEnded(q);
     const why = q.failure()?.errorText || "";
     note(`request failed: ${q.method()} ${q.url()}: ${why}`);
     // WebKit names every request a route turns away the same, the harness's own turning away while offline too
-    const name = cutName(q.url()) || (offlineNow.has(ctx) && NET[why] ? "ERR_INTERNET_DISCONNECTED" : NET[why] || why);
+    const name = cutName(q.url()) || ((offlineNow.has(ctx) || sentOffline.has(q)) && NET[why] ? "ERR_INTERNET_DISCONNECTED" : NET[why] || why);
     if (SILENT.failed && !LEFT.test(why) && !byWorker(q) && !q.url().startsWith("blob:") && !closing.has(ctx)) said("error", `Failed to load resource: net::${name}`, q.url());
   });
   ctx.on("response", (r) => {

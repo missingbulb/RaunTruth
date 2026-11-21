@@ -5,6 +5,6 @@ set -e
 [ -e web-tests/node_modules ] || ln -s /opt/page-libraries/node_modules web-tests/node_modules
 case "${1:-chromium}" in
   # one part of them where SHARD=k/n names it (shard.py)
-  chromium) PYTHONPATH=dev/tools/test-image exec python3 -m pytest -p shard web-tests studies lab dev/tools/trick_pool dev/tools/test-image -q -n auto --dist worksteal --durations=10 ;;
+  chromium) PYTHONPATH=dev/tools/test-image exec python3 -m pytest -p shard web-tests studies lab dev/tools/trick_pool dev/tools/test-image .claudinite/local/packs/nor-finder/tests -q -n auto --dist worksteal --durations=10 ;;
   *) exec python3 dev/tools/build/other_engines.py "$1" ;;
 esac

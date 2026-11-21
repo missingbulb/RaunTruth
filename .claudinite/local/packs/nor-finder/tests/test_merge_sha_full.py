@@ -3,13 +3,11 @@
     python3 -m pytest .claudinite/local/packs/nor-finder/tests
 """
 import json
-import os
 import subprocess
 
 import pytest
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-CN = os.path.join(ROOT, '.claudinite', 'bin', 'cn')
+from test_async_wait_predicate import CN, ROOT
 FULL = '9866144a1b2c3d4e5f60718293a4b5c6d7e8f901'
 
 

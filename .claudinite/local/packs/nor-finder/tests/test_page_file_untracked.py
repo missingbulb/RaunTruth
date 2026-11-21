@@ -6,13 +6,12 @@ import os
 import shutil
 import subprocess
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-CN = os.path.join(ROOT, '.claudinite', 'bin', 'cn')
+from test_async_wait_predicate import CN, ROOT
 
 
 def untracked_findings(tmp_path, tracked, untracked):
     """The check's findings, as paths, on a repo committing `tracked` and leaving `untracked` unadded."""
-    shutil.copytree(os.path.join(ROOT, '.claudinite'), tmp_path / '.claudinite', ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(os.path.join(ROOT, '.claudinite'), tmp_path / '.claudinite', ignore=shutil.ignore_patterns('__pycache__', 'bin'))
     for name, text in tracked.items():
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text(text)

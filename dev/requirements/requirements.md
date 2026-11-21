@@ -2020,7 +2020,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/checks` The repo's checks
 
-- `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, and a test that would skip there fails instead.
+- `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, the tests of the repo's own Claudinite checks among them, and a test that would skip there fails instead.
   <details>
 
   Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs

@@ -45,3 +45,11 @@ tasks:
     "engine/update": "weekly"
 growth:
   sessionHistory: "localEncrypted"
+checks:
+  accept:
+    - rule: "claudinite-isolation"
+      path: "dev/tools/test-image/inputs.py"
+      reason: "the test image holds the engine this file pins, which the tests of the repo's own checks run offline; the image is tagged by that pin and built with the file"
+    - rule: "claudinite-isolation"
+      path: "dev/tools/test-image/test_inputs.py"
+      reason: "proves the test image's tag moves with the engine pin in that file, and with nothing else in it"
