@@ -1,0 +1,74 @@
+{
+ "about": "Someone signed out on the fixture study in its GT stage, the study's folder shared with anyone with the link.",
+ "study": "fixture",
+ "stage": "GT",
+ "user": null,
+ "drive": {
+  "access": "public",
+  "writers": [
+   "owner@acme.example"
+  ],
+  "gt": true,
+  "tree": [
+   {
+    "name": "Cohort A",
+    "children": [
+     {
+      "name": "Day 1",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse01_slice03.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse02 slice1 (copy).png",
+        "sample": "png"
+       }
+      ]
+     },
+     {
+      "name": "Day 7",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "bench notes.jpg",
+        "sample": "photo"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Empty folder",
+    "children": []
+   },
+   {
+    "name": "2026-03-14 two channels.tif",
+    "sample": "tif"
+   },
+   {
+    "name": "z-stack 40x.tif",
+    "sample": "stack"
+   },
+   {
+    "name": "upload cut short.png",
+    "sample": "broken"
+   },
+   {
+    "name": "Überblick ölfärbung.png",
+    "sample": "png"
+   },
+   {
+    "name": "wide scan.png",
+    "sample": "large"
+   }
+  ]
+ }
+}
