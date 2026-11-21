@@ -55,9 +55,15 @@ jobs:
     permissions:
       contents: read
       packages: write
-  # every test, on Chromium, before the pull request can merge (req/checks/ci-sets), in the test image, with no way off the machine
-  tests:
+  # every test, on Chromium, before the pull request can merge (req/checks/ci-sets), in the test image, with no way off the
+  # machine: a third of them on each of three runners side by side
+  shard:
     needs: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: tests (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -72,10 +78,21 @@ jobs:
         env:
           TOKEN: ${{ github.token }}
           IMAGE: ${{ needs.image.outputs.image }}-chromium
-      - name: Run every test
+      - name: Run a third of the tests
         run: sh dev/tools/test-image/run.sh "$IMAGE"
         env:
           IMAGE: ${{ needs.image.outputs.image }}-chromium
+          SHARD: ${{ matrix.shard }}/3
+  # the one check every test passed, the three runners' together
+  tests:
+    if: always() && github.event_name != 'push'
+    needs: shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.shard.result }}
   version-history:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

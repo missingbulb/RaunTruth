@@ -2024,7 +2024,9 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs
-  the whole set on Chromium (`.github/workflows/tests.yml`), and every push to main runs it again, so it has run on
+  the whole set on Chromium (`.github/workflows/tests.yml`), split across three runners side by side, each running a
+  third of the tests (set by the owner on 2026-11-21; `dev/tools/test-image/shard.py`, test
+  `dev/tools/test-image/test_shard.py`), and every push to main runs it again, so it has run on
   anything a release can ship: a green run on main wakes the site release (`.github/workflows/tests-full.yml`). The
   nightly run also runs it on Firefox and WebKit (`req/checks/other-engines`). The `full` mark still names the tests that
   drive Node, Pyodide or a browser, or measure speed or memory, so `-m "not full"` stays a quick local loop
