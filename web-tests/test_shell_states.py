@@ -18,13 +18,13 @@ spec.loader.exec_module(shell_states)
 # an invented page: a box holding a button, beside a panel
 PAGE = {
     'study': 'acme',
-    'vars': {'stage': ['GT'], 'signedIn': [True], 'role': ['viewer', 'tagger'], 'image': ['none', 'local'],
+    'vars': {'stage': ['GT'], 'signedIn': [True], 'annotating': [False, True], 'image': ['none', 'local'],
              'counted': [False, True], 'view': ['image'], 'selected': ['nothing']},
-    'roots': {'acme': {'stage': 'GT', 'signedIn': True, 'role': 'viewer'}},
-    'paths': [{'root': 'acme', 'actions': ['load', 'count', 'tagger']}],
+    'roots': {'acme': {'stage': 'GT', 'signedIn': True}},
+    'paths': [{'root': 'acme', 'actions': ['load', 'count', 'scratch']}],
     'tree': [
         {'name': 'Box', 'select': '#box', 'box': True, 'req': 'req/checks/shell-states',
-         'rule': [{'when': {'image': ['none']}, 'is': 'folded'}, {'when': {'role': ['tagger']}, 'is': 'hidden'}],
+         'rule': [{'when': {'image': ['none']}, 'is': 'folded'}, {'when': {'annotating': [True]}, 'is': 'hidden'}],
          'children': [{'name': 'Button', 'select': '#button', 'control': True, 'req': 'req/checks/shell-states',
                        'rule': [{'when': {'counted': [False]}, 'is': 'disabled'}]}]},
         {'name': 'Panel', 'select': '#panel', 'req': 'req/checks/shell-states',
@@ -51,11 +51,11 @@ def test_each_state_is_one_more_action_and_each_element_shows_as_its_rules_and_i
     # loaded: the box open, the button off until counted, then on
     assert (states[1]['Box'], states[1]['Button']) == ('on', 'off')
     assert (states[2]['Box'], states[2]['Button']) == ('on', 'on')
-    # the tagger: the box hidden, and the button under it gone though its own case says on
+    # annotating: the box hidden, and the button under it gone though its own case says on
     assert (states[3]['Box'], states[3]['Button']) == ('gone', 'gone')
     # an undecided case is not checked; a tentative one is, and the matrix marks it
     assert states[2]['Panel'] is None and states[3]['Panel'] == 'on'
-    assert '| Panel | ● | ● | ? | ●* |' in matrix and '- Acme · acme: Load · Count · → Tagger, Count: Panel' in matrix
+    assert '| Panel | ● | ● | ? | ●* |' in matrix and '- Acme · acme: Load · Count · Start annotating from scratch, Count: Panel' in matrix
 
 
 def test_a_case_no_state_reaches_is_reported():
@@ -119,7 +119,7 @@ def test_a_study_restates_a_shell_element_where_it_differs():
 @pytest.mark.parametrize('break_it, says', [
     (lambda r: r['tree'][1].update(rule=[{'is': 'gone'}]), 'is not a state'),
     (lambda r: r['tree'][1].update(rule=[{'when': {'colour': ['red']}, 'is': 'hidden'}]), "no var 'colour'"),
-    (lambda r: r['tree'][1].update(rule=[{'when': {'role': ['data']}, 'is': 'hidden'}]), 'is never'),
+    (lambda r: r['tree'][1].update(rule=[{'when': {'annotating': ['maybe']}, 'is': 'hidden'}]), 'is never'),
     (lambda r: r['tree'][1].update(rule=[{'is': 'hidden', 'approval': 'maybe'}]), 'Panel'),
     (lambda r: r['tree'][1].pop('req'), 'names no requirement'),
     (lambda r: r['tree'][1].update(name='Box'), 'two elements named'),
@@ -308,13 +308,13 @@ def test_each_study_walks_the_shells_tree_with_its_own_grafts():
     study it names."""
     studies = {'acme': ACME, 'other': {**ACME, 'study': {**ACME['study'], 'title': 'Other'},
                'grafts': [{'under': 'Box', 'tree': [{'name': 'Own', 'select': '#own', 'req': 'req/checks/shell-states'}]}],
-               'roots': {'own root': {'stage': 'GT', 'signedIn': True, 'role': 'tagger'}},
-               'paths': [{'root': 'own root', 'actions': ['load']}]}}
+               'roots': {'own root': {'stage': 'GT', 'signedIn': True}},
+               'paths': [{'root': 'own root', 'actions': ['load', 'scratch']}]}}
     expect, matrix, _ = shell_states.build(copy.deepcopy(PAGE), studies)
     assert [(p['study'], p['root']) for p in expect['paths']] == [('acme', 'acme'), ('other', 'own root')]
     assert 'Own' in [e['name'] for e in expect['elements']['other']] and 'Own' not in [e['name'] for e in expect['elements']['acme']]
-    # the tagger's box hidden there, and what it holds of the study's with it
-    assert expect['paths'][1]['states'][1]['expect']['Own'] == 'gone' and '## Other · own root: Load' in matrix
+    # annotating: the box hidden there, and what it holds of the study's with it
+    assert expect['paths'][1]['states'][2]['expect']['Own'] == 'gone' and '## Other · own root: Load' in matrix
 
 
 def test_a_study_grafts_its_elements_where_it_names():

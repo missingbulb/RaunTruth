@@ -27,7 +27,11 @@
         "children": [
           {"name": "Books counted", "select": "#bs-count", "req": "req/shelves/summary"},
           {"name": "Titles' list", "select": "#bs-list", "req": "req/shelves/read/readers"},
-          {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export"}
+          {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export",
+            "rule": [
+              {"when": {"makesTruth": [true]}, "is": "disabled", "approval": "tentative", "about": "the matcher's file is the finder's, not the ground truth's"}
+            ]
+          }
         ]
       }
     ]},
@@ -69,11 +73,11 @@
     }
   },
   "roots": {
-    "GT, Viewer": {"stage": "GT", "signedIn": true, "role": "viewer"},
-    "GT, Tagger": {"stage": "GT", "signedIn": true, "role": "tagger"}
+    "Published, signed in": {"stage": "Published", "signedIn": true, "maySave": true},
+    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, Viewer", "actions": ["load", "count"]},
-    {"root": "GT, Tagger", "actions": ["load", "count"]}
+    {"root": "Published, signed in", "actions": ["load", "count"]},
+    {"root": "GT, Annotator", "actions": ["load", "scratch", "count"]}
   ]
 }
