@@ -22,7 +22,9 @@ integration pull request once. A worker:
    listed).
 5. Updates the shell-states harness where the package says so, listing each new tentative case for the owner
    (rule `shell-states-unreviewed`).
-6. Ends each commit message with a `Version-history:` line per the `writing-version-history` skill.
+6. Ends each commit message with a `Version-history:` line per the `writing-version-history` skill. Only the last
+   line across the integration pull request counts, so the orchestrating session's merge commit of each package
+   carries one line telling everything a user sees so far.
 
 A package starts only once the ones it depends on are merged into the integration branch. Network calls and fakes
 listed under "Approvals" are approved as listed; anything a worker finds it needs beyond them stops the package and
