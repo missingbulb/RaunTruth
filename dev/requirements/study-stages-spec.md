@@ -358,13 +358,12 @@ wrong (step 4 above).
 
 ## Hand steps (the owner's)
 
-To file as one handover issue when WP2 starts (skill `writing-handover-issues`):
-
-- For each of NoR, vascular, shelves: share the root with the members only; keep `Data`, `Previews`, the
-  extractions folder and the study file "anyone with the link".
-- Set `RAUNTRUTH_STUDY_<STUDY>` in the Claude cloud environment for each study, once WP2's migration has written
-  the one study file.
-- Already-committed Drive ids stay in git history; images that must stay private before Public need re-uploading.
+None filed. Until Study Setup ships, link-shared roots keep every study visible as today. Once it does, its sharing
+check lists each correction for the three real studies (the root to members only; `Data`, `Previews`, the
+extractions folder and the study file by link) with a Fix button the owner presses. The orchestrating session
+proposes `RAUNTRUTH_STUDY_<STUDY>` for the cloud environment through the environment tool, which the owner
+approves, once WP2's migration has written each study file. Drive ids already in git history stay there; images
+that must stay private before Public need re-uploading.
 
 ## Order
 
