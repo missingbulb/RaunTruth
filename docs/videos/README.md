@@ -35,8 +35,7 @@ then. The suggested route, chosen so a UI change means re-rendering, not re-shoo
 1. **Capture the UI with Playwright**, scripted per beat, against the test fakes (`web-tests/fakes/`: Drive,
    sign-in) seeded with a real study's images — deterministic, no real accounts or private data on screen, no
    loading spinners. Record at 1920 × 1080 with a large cursor; zoom and pan in the edit, not in the browser.
-2. **Voice from the script**: a synthetic voice (re-voiced in minutes after an edit), or the owner's own voice,
-   which reads as more credible to scientists. The owner's call.
+2. **Voice from the script**: a synthetic voice, re-voiced in minutes after an edit (the owner's choice, 2026-11-21).
 3. **Assemble with ffmpeg** (cuts, speed ramps, zooms, captions from the script's timings); add a small
    Remotion or Motion Canvas project only for the motion graphics if they outgrow stills.
 4. **The Claude beats** are real sessions, screen-captured and trimmed, never mocked replies.
@@ -46,11 +45,12 @@ cut but re-shot on every UI change.
 
 ## Serving them
 
-- **On rauntruth.com**: Cloudflare Stream ($5 per 1,000 minutes stored, $1 per 1,000 delivered; adaptive
-  streaming, captions, chapters), or plain MP4 and VTT on R2 behind a `<video>` tag. Not the site's static
-  assets: a file there is capped at 25 MiB.
-- **For reach**: the same files on YouTube, with chapters in the description, linked from the site rather than
-  embedded.
-- **Before either ships**: an embedded player is a new outbound connection, an approval question of its own, and
-  the site's privacy text ("no cookies", nothing sent elsewhere) must be reconciled with it — a YouTube embed would
-  falsify it, Stream or R2 keep it true.
+On YouTube, embedded on rauntruth.com (the owner's choice, 2026-11-21): chapters in the description, the script's
+WebVTT as captions.
+
+- **The embed changes the site's privacy promise.** A YouTube player sets third-party cookies and sends the
+  visitor's address to Google, so the commit that adds it rewrites the privacy page and the README's "no cookies"
+  and "sends nothing elsewhere" claims, leading with what the embed now does.
+- **Alternatives weighed**: Cloudflare Stream ($5 per 1,000 minutes stored, $1 per 1,000 delivered) or MP4 and VTT
+  on R2 would have kept that promise unchanged; the site's static assets are out, as a file there is capped at
+  25 MiB.
