@@ -2024,7 +2024,9 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs
-  the whole set on Chromium (`.github/workflows/tests.yml`), and every push to main runs it again, so it has run on
+  the whole set on Chromium (`.github/workflows/tests.yml`), split across three runners side by side, each running a
+  third of the tests (set by the owner on 2026-11-21; `dev/tools/test-image/shard.py`, test
+  `dev/tools/test-image/test_shard.py`), and every push to main runs it again, so it has run on
   anything a release can ship: a green run on main wakes the site release (`.github/workflows/tests-full.yml`). The
   nightly run also runs it on Firefox and WebKit (`req/checks/other-engines`). The `full` mark still names the tests that
   drive Node, Pyodide or a browser, or measure speed or memory, so `-m "not full"` stays a quick local loop
@@ -2037,9 +2039,15 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-20. Each engine's image (`dev/tools/test-image/`) holds the Python packages, Node, the
   page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and the files the tests would
-  otherwise fetch once, all in layers the three images share, and last that engine's browser alone, so a Chromium run
-  pulls half what an image of all three weighed. They are tagged by a hash of what goes into them and the engine, and
-  built only when that changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
+  otherwise fetch once, and that engine's browser alone, so a Chromium run pulls half what an image of all three
+  weighed. The site's code is never in them: each run mounts the checkout. They are tagged by a hash of what they take in
+  and the engine: the files they are built by, the Python packages, the
+  libraries the page pins and what each study names for its Python and its services, never the page's code or a
+  study's other settings (set by the owner on 2026-11-21). One is built only when that changes
+  (`.github/workflows/test-image.yml`), its layers in the order each changes, least often first, from the layers of the
+  engine's image built last wherever they still match; each night on main the images no run needs any more, older
+  than 14 days and neither main's nor a cache tag, are deleted (set by the owner on 2026-11-21;
+  `dev/tools/test-image/prune.py`, test `dev/tools/test-image/test_prune.py`); each run pulls it and runs the tests in it on a network with no way off
   the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
   </details>
 

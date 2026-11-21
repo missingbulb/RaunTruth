@@ -1,7 +1,8 @@
 name: Test image
 # The image each engine's test runs run in (req/checks/ci-sets/one-image), tagged by a hash of the repo's files it is
 # built from (dev/tools/test-image/inputs.py) and the engine: each of ENGINES built and pushed only when no image of
-# its tag is there yet. The output is the tag without the engine; a run on an engine appends -<engine>.
+# its tag is there yet, from the layers of the engine's image built last (its cache tag) wherever they still match. The
+# output is the tag without the engine; a run on an engine appends -<engine>.
 on:
   workflow_call:
     inputs:
@@ -41,6 +42,11 @@ jobs:
           python3 dev/tools/test-image/inputs.py --context "$RUNNER_TEMP/inputs"
           for engine in $ENGINES; do
             if docker manifest inspect "$IMAGE-$engine" > /dev/null 2>&1; then echo "$IMAGE-$engine is already there"; continue; fi
-            docker build --build-arg ENGINE="$engine" -t "$IMAGE-$engine" -f "$RUNNER_TEMP/inputs/dev/tools/test-image/Dockerfile" "$RUNNER_TEMP/inputs"
+            cache="${IMAGE%:*}:cache-$engine"
+            docker build --progress plain --build-arg ENGINE="$engine" --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from "$cache" \
+              -t "$IMAGE-$engine" -t "$cache" -f "$RUNNER_TEMP/inputs/dev/tools/test-image/Dockerfile" "$RUNNER_TEMP/inputs" 2>&1 \
+              | tee "$RUNNER_TEMP/build-$engine.log"
+            echo "$engine: $(grep -c ' CACHED$' "$RUNNER_TEMP/build-$engine.log" || true) steps taken from $cache"
             docker push "$IMAGE-$engine"
+            docker push "$cache"
           done

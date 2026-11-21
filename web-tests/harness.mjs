@@ -222,7 +222,7 @@ async function install(ctx, world, outside) {
     outside.offline = on;
   };
   const newPage = ctx.newPage.bind(ctx);
-  ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); return page; };
+  ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); crashesHeard(page); return page; };
   for (const fake of FAKES) await fake(ctx, world, outside);
   ctx.on("close", () => outside.close());
   await ctx.addInitScript(COPY);
@@ -251,6 +251,9 @@ async function install(ctx, world, outside) {
   });
   return ctx;
 }
+
+// a page whose process died: said as it happens, where a later step only finds the page gone
+const crashesHeard = (page) => page.on("crash", () => said("crash", "the page's process died", page.url()));
 
 // How the browser is launched. Chromium takes the outside server's certificate for a page when its context says so,
 // and for a service worker's own requests only when the whole browser does.

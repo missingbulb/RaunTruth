@@ -18,9 +18,9 @@ PREFIX = os.path.join(ROOT, 'web-tests')
 CDN = re.compile(r'cdn\.jsdelivr\.net/(?:npm/((?:@[\w.-]+/)?[\w.-]+)@([\w.-]+)|(pyodide)/v([\w.-]+)/)')
 
 
-def libraries():
+def libraries(root=ROOT):
     found = set()
-    for path in glob.glob(os.path.join(ROOT, 'web', '*.js')) + glob.glob(os.path.join(ROOT, 'studies', '*', 'web', '**', '*.js'), recursive=True):
+    for path in glob.glob(os.path.join(root, 'web', '*.js')) + glob.glob(os.path.join(root, 'studies', '*', 'web', '**', '*.js'), recursive=True):
         for m in CDN.finditer(open(path, encoding='utf-8').read()):
             found.add((m[1] or m[3], m[2] or m[4]))
     names = [name for name, _ in found]
