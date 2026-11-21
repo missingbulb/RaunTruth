@@ -70,6 +70,24 @@ jobs:
         env:
           IMAGE: ${{ needs.image.outputs.image }}-${{ matrix.engine }}
 
+  # the test images no run needs any more deleted, nightly on main (dev/tools/test-image/prune.py)
+  prune:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin && python3 dev/tools/test-image/prune.py "$IMAGE" 14
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.image.outputs.image }}
+
   release:
     needs: tests
     if: github.event_name == 'push'

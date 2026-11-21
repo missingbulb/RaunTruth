@@ -2044,7 +2044,9 @@ nobody has decided: what the page does there is not a requirement yet.
   libraries the page pins and what each study names for its Python and its services, never the page's code or a
   study's other settings (set by the owner on 2026-11-21). One is built only when that changes
   (`.github/workflows/test-image.yml`), its layers in the order each changes, least often first, from the layers of the
-  engine's image built last wherever they still match; each run pulls it and runs the tests in it on a network with no way off
+  engine's image built last wherever they still match; each night on main the images no run needs any more, older
+  than 14 days and neither main's nor a cache tag, are deleted (set by the owner on 2026-11-21;
+  `dev/tools/test-image/prune.py`, test `dev/tools/test-image/test_prune.py`); each run pulls it and runs the tests in it on a network with no way off
   the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
   </details>
 
