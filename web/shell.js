@@ -27,6 +27,7 @@ import { PREVIEWS, readPreviews } from "./previews.js";
 import { isTiff } from "./accepts.js";
 import { account, SIGNED_IN, SIGNED_IN_LABEL } from "./account.js";
 import { remote } from "./drive.js";
+import { members, offers, released } from "./members.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
@@ -133,7 +134,7 @@ const signIn = account({
   // after the page's own start, which this may run during
   changed: () => queueMicrotask(async () => {
     data.signedIn(); if (manifest) storeRoles = await readRoles();
-    showRole(); drawStudies(); remoteHint();
+    showRole(); readMembers().then(drawStudies); remoteHint();
   }),
 });
 // signed in, the remote store is read as the user (req/shell/drive/credentials)
@@ -2025,11 +2026,13 @@ $("#sb-report").onclick = reportProblem;
 $("#report-problem").onclick = reportProblem;
 
 // ---------- notices: a short message, at the top of the view ----------
-function notice(text) {
+function notice(text, { signOut = false } = {}) {
   $("#notice-text").textContent = text; $("#notice").hidden = false;
+  $("#notice-sign-out").hidden = !signOut;
   $("#notice-ok").focus();
 }
 $("#notice-ok").onclick = () => { $("#notice").hidden = true; };
+$("#notice-sign-out").onclick = () => { $("#notice").hidden = true; $("#sign-out").click(); };
 
 // ---------- boxes that fold with the steps ----------
 // A box's data-opens names the step after which it opens ("user": only its title opens it), and data-folds
@@ -2255,17 +2258,46 @@ function studyOf(loc) {
 }
 const addressOf = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComponent(id));
 
-// who may see a study (req/shell/study/visibility): everyone, unless it names the accounts it is shown to
-const maySee = (accounts) => !accounts || accounts.includes(signIn.email());
+// Who sees a study (shell/study/members): whoever Drive lets read its root. The studies the build lists, each with its
+// root's id (null for none), and the ids of those the signed-in user can read, asked of Drive in one batch request per load; while the
+// token has run out or Drive does not answer, the ids it last gave this user, marked stale; null while none is known.
+let listed = [], memberIds = null, memberStale = false, asking = null;
+async function readMembers() {
+  if (!signIn.signedIn()) { asking = null; memberIds = null; memberStale = false; return; }
+  const last = signIn.learned("members");
+  if (!signIn.token()) { memberIds = last; memberStale = true; return; }
+  if (!listed.some((s) => s.root)) return;
+  const key = [signIn.email(), signIn.token(), ...listed.map((s) => s.root)].join();
+  if (asking?.key !== key) {
+    asking = { key, done: members(remote, listed).then((ids) => { signIn.learn("members", ids); memberIds = ids; memberStale = false; },
+      (e) => { console.warn("who may open which study was not read:", e); memberIds = last; memberStale = true; }) };
+  }
+  await asking.done;
+}
 // The header's switcher, after GitHub's repository switcher: every study the build lists that the user may see, each a
 // link to its address, found by typing; the arrow keys mark one, Enter opens it. A plain click swaps it in place.
-let listed = [];
-async function studyMenu() {
-  try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("no list of studies:", e); }
-  drawStudies();
+let listFetched = Promise.resolve(), listedReady = Promise.resolve();
+function studyMenu() {
+  listFetched = (async () => {
+    try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("no list of studies:", e); }
+  })();
+  listedReady = (async () => { await listFetched; await readMembers(); drawStudies(); })().catch((e) => console.warn("the study list was not drawn:", e));
+}
+// why a study may not be opened here, or null: signed in, its root is not one the account can read; signed out, its root is members-only
+async function refusal(m) {
+  await listFetched;
+  const root = listed.find((x) => x.id === m.id)?.root;
+  if (!root || released(m.stage)) return null;
+  if (signIn.signedIn()) {
+    await listedReady;
+    if (!memberIds) return null;
+    return memberIds.includes(m.id) ? null : `${signIn.email()} cannot open this study: Drive does not let that account read it. Sign out to see what is open to everyone, or sign in with an account that can.`;
+  }
+  try { return (await remote.publicly(root)) === false ? "That study is not open right now." : null; } catch (e) { console.warn("whether the study is open was not asked:", e); return null; }
 }
 function drawStudies() {
-  $("#study-list").replaceChildren(...listed.filter((s) => maySee(s.accounts)).map((s) => {
+  $("#study-stale").hidden = !(signIn.signedIn() && memberStale && memberIds);
+  $("#study-list").replaceChildren(...listed.filter((s) => offers(s, { signedIn: signIn.signedIn(), ids: memberIds })).map((s) => {
     const a = document.createElement("a");
     a.href = addressOf(s.id); a.dataset.id = s.id;
     a.innerHTML = `<span class="name"></span><span class="stage-tag"></span>`;
@@ -2376,11 +2408,12 @@ async function mountNow(id) {
   const r = await fetch(base + "study.json");
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
-  if (!maySee(manifest.visibility.accounts)) {
+  const no = await refusal(manifest);
+  if (no) {
     manifest = null;
     history.replaceState(null, "", addressOf(DEFAULT_STUDY));
     await mountNow(DEFAULT_STUDY);
-    return notice("That study is shown only to the accounts it names. Signed in with one of them, the switcher offers it.");
+    return notice(no, { signOut: signIn.signedIn() });
   }
   data.mount(manifest);
   storeRoles = await readRoles();

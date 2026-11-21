@@ -1372,6 +1372,13 @@
     "control": true,
     "box": false,
     "parent": "Notice"
+   },
+   {
+    "name": "Sign out",
+    "select": "#notice-sign-out",
+    "control": true,
+    "box": false,
+    "parent": "Notice"
    }
   ],
   "nor": [
@@ -2830,6 +2837,13 @@
     "control": true,
     "box": false,
     "parent": "Notice"
+   },
+   {
+    "name": "Sign out",
+    "select": "#notice-sign-out",
+    "control": true,
+    "box": false,
+    "parent": "Notice"
    }
   ],
   "shelves": [
@@ -4194,6 +4208,13 @@
    {
     "name": "OK",
     "select": "#notice-ok",
+    "control": true,
+    "box": false,
+    "parent": "Notice"
+   },
+   {
+    "name": "Sign out",
+    "select": "#notice-sign-out",
     "control": true,
     "box": false,
     "parent": "Notice"
@@ -5704,6 +5725,13 @@
     "control": true,
     "box": false,
     "parent": "Notice"
+   },
+   {
+    "name": "Sign out",
+    "select": "#notice-sign-out",
+    "control": true,
+    "box": false,
+    "parent": "Notice"
    }
   ],
   "viewer": [
@@ -6987,6 +7015,13 @@
     "control": true,
     "box": false,
     "parent": "Notice"
+   },
+   {
+    "name": "Sign out",
+    "select": "#notice-sign-out",
+    "control": true,
+    "box": false,
+    "parent": "Notice"
    }
   ]
  },
@@ -7201,7 +7236,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -7402,7 +7438,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -7603,7 +7640,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -7804,7 +7842,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -8018,7 +8057,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -8219,7 +8259,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -8420,7 +8461,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -8634,7 +8676,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -8835,7 +8878,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -9036,7 +9080,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -9250,7 +9295,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -9451,7 +9497,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -9652,7 +9699,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -9866,7 +9914,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -10067,7 +10116,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -10268,7 +10318,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -10483,7 +10534,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -10684,7 +10736,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -10885,7 +10938,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -11086,7 +11140,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -11301,7 +11356,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -11502,7 +11558,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -11703,7 +11760,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -11904,7 +11962,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -12119,7 +12178,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -12320,7 +12380,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -12521,7 +12582,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -12722,7 +12784,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -12938,7 +13001,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -13139,7 +13203,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -13340,7 +13405,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -13541,7 +13607,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -13742,7 +13809,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -13957,7 +14025,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -14158,7 +14227,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -14359,7 +14429,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -14560,7 +14631,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -14775,7 +14847,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -14976,7 +15049,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -15177,7 +15251,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -15378,7 +15453,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -15591,7 +15667,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -15792,7 +15869,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -16008,7 +16086,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -16209,7 +16288,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -16410,7 +16490,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -16611,7 +16692,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -16812,7 +16894,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -17027,7 +17110,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -17228,7 +17312,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -17429,7 +17514,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -17630,7 +17716,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -17845,7 +17932,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -18046,7 +18134,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -18247,7 +18336,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -18448,7 +18538,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -18662,7 +18753,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -18863,7 +18955,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -19064,7 +19157,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -19279,7 +19373,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -19480,7 +19575,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -19681,7 +19777,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -19882,7 +19979,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -20096,7 +20194,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -20297,7 +20396,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -20498,7 +20598,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -20711,7 +20812,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -20912,7 +21014,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -21138,7 +21241,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -21351,7 +21455,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -21564,7 +21669,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -21790,7 +21896,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -22003,7 +22110,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -22216,7 +22324,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -22429,7 +22538,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -22629,7 +22739,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -22829,7 +22940,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -23042,7 +23154,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -23242,7 +23355,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -23442,7 +23556,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -23678,7 +23793,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -23898,7 +24014,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -24118,7 +24235,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -24338,7 +24456,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -24558,7 +24677,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -24778,7 +24898,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -25011,7 +25132,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -25231,7 +25353,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     },
     {
@@ -25451,7 +25574,8 @@
       "Icons": "gone",
       "Notice": "on",
       "Notice's text": "on",
-      "OK": "on"
+      "OK": "on",
+      "Sign out": "gone"
      }
     }
    ]
@@ -25651,7 +25775,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -25839,7 +25964,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]
@@ -26041,7 +26167,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -26229,7 +26356,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -26417,7 +26545,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     },
     {
@@ -26605,7 +26734,8 @@
       "Icons": "gone",
       "Notice": "gone",
       "Notice's text": "gone",
-      "OK": "gone"
+      "OK": "gone",
+      "Sign out": "gone"
      }
     }
    ]

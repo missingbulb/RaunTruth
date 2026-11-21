@@ -718,7 +718,11 @@
       ],
       "children": [
         {"name": "Notice's text", "select": "#notice-text", "req": "req/shell/ground-truth/submit"},
-        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/ground-truth/submit"}
+        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/ground-truth/submit"},
+        {"name": "Sign out", "select": "#notice-sign-out", "control": true, "req": "req/shell/study/visibility", "steady": "shows only on a study the signed-in account cannot open",
+          "rule": [
+            {"is": "hidden", "approval": "tentative"}
+          ]}
       ]
     }
   ]

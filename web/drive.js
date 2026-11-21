@@ -21,6 +21,8 @@ const FOLDER = "application/vnd.google-apps.folder";
 const MINE = { rauntruth: "made" };
 const THROTTLING = "Google is throttling this site's downloads";
 const RUN_OUT = "Your Google sign-in has run out: click again to renew it";
+// Drive's batch endpoint, and the calls it takes in one request
+const BATCH = "https://www.googleapis.com/batch/drive/v3", BATCH_CALLS = 100;
 
 // The bodies of Drive's uploads, written out as bytes, not a FormData or a Blob: Playwright's WebKit hands a page test
 // a FormData or Blob body with its parts empty, where bytes arrive whole.
@@ -220,6 +222,24 @@ export const remote = (() => {
     return r.ok ? true : null;
   }
 
+  // Several reads in one request, to Drive's batch endpoint: calls are paths under /drive/v3/, such as "files/<id>?fields=id",
+  // each answered as it would be alone; the HTTP status of each, in order (null for one the answer lacks). A batch holds
+  // 100 calls at most, so a longer list goes in more than one request.
+  async function batch(calls) {
+    need();
+    const out = [];
+    for (let at = 0; at < calls.length; at += BATCH_CALLS) {
+      const cut = "rauntruth-" + Math.random().toString(36).slice(2), part = calls.slice(at, at + BATCH_CALLS);
+      const body = part.map((c, k) => `--${cut}\r\nContent-Type: application/http\r\nContent-ID: <item${k}>\r\n\r\nGET /drive/v3/${c}${c.includes("?") ? "&" : "?"}supportsAllDrives=true HTTP/1.1\r\n\r\n`).join("") + `--${cut}--`;
+      const r = await get(BATCH, { method: "POST", headers: { "content-type": `multipart/mixed; boundary=${cut}` }, body: encode(body) });
+      if (!r.ok) throw refused(r, "batch request");
+      const answered = (await r.text()).split(/^--[^\r\n]*/m).filter((p) => /HTTP\/1\.1 \d+/.test(p));
+      const status = new Map(answered.map((p, k) => [p.match(/Content-ID:\s*<?response-item(\d+)>?/i)?.[1] ?? String(k), +p.match(/HTTP\/1\.1 (\d+)/)[1]]));
+      for (let k = 0; k < part.length; k++) out.push(status.get(String(k)) ?? null);
+    }
+    return out;
+  }
+
   // a file's or a folder's name
   async function name(id) {
     need();
@@ -319,7 +339,7 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, publicly, canWrite, writer, study,
+    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, batch, name, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),
@@ -327,5 +347,5 @@ export const remote = (() => {
     // what a document records of where an image from the store is: the id field it carries, and its full location
     cite: (src) => ({ drive_id: src.id }),
     locate: (src) => ({ source: KIND, drive_id: src.id, url: `https://drive.google.com/file/d/${src.id}/view` }),
-  }, ["file", "head", "checksum", "list", "all", "name", "publicly", "canWrite"], "store read");
+  }, ["file", "head", "checksum", "list", "all", "batch", "name", "publicly", "canWrite"], "store read");
 })();
