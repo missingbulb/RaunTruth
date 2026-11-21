@@ -224,9 +224,11 @@ async function install(ctx, world, outside) {
   // offline as its test sets it: the fakes answer nothing then, on an engine whose offline leaves a proxy reachable too
   const setOffline = ctx.setOffline.bind(ctx);
   // (a request the browser sent before its network went is answered: it was online when it asked)
+  // (and the context is offline until the browser has its network back: what it sends meanwhile fails as offline)
   ctx.setOffline = async (on) => {
-    if (on) offlineNow.add(ctx); else { offlineNow.delete(ctx); outside.offline = false; }
+    if (on) offlineNow.add(ctx); else outside.offline = false;
     await setOffline(on);
+    if (!on) offlineNow.delete(ctx);
     outside.offline = on;
   };
   const newPage = ctx.newPage.bind(ctx);
