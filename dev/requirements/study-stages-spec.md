@@ -262,10 +262,19 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
   item's Drive sharing dialog.
   - **Test:** fake permissions seeded on the extractions folder and the root; rows asserted; links point at
     `https://drive.google.com/drive/folders/<id>?usp=sharing` forms.
-- `req/setup/share-guide` Where a stage needs a sharing change (entering Review, Public, moving back), Study Setup
-  shows the owner what to share, with pictures, and checks it afterwards.
-  - **Test:** promote D to Review: the guide shows; the fake's root not yet link-shared: "not done yet";
-    seed the share; "done". No sharing write in the fake's log at any point.
+- `req/setup/sharing-check` Study Setup validates the study's Drive sharing against what its stage needs and lists
+  every correction, each with what to change, where (a link to that item's sharing dialog) and pictures; it checks
+  again on opening, on each promotion or move back, and on a Check again button. What the stage needs: before
+  Review the root is shared with named people only, never by link; from Review on the root is shared by link; in
+  every stage `Data`, `Previews`, the extractions folder and the study file are readable by link; at least one
+  person may write the extractions folder once the stage allows annotating. The site never changes sharing itself.
+  - **Test:** `test_setup_page.py`, the fake's permissions seeded per case, one assertion per rule: a Develop root
+    shared by link: one correction naming the root, "Make it shared with named people only"; `Previews` not
+    link-readable: one correction naming it; everything right: "Sharing is as this stage needs" and no correction;
+    promote to Review with the root still members-only: the correction "Share the root by link" appears; seed the
+    share and press Check again: it clears. The fake's log shows only permission reads, never a write.
+  - **Build:** a rules table in `web/setup_sharing.js` (stage, item, expected), checked against the permissions read
+    of `req/setup/people`; the corrections list renders above People.
 
 ### WP6 - the five stages
 
