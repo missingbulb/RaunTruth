@@ -4,6 +4,8 @@ A [Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/
 kept as this one file instead of tracker issues (the owner's choice). The design below is decided; what is left is
 the hand-off and the items Not yet specified.
 
+Requirements, tests and build plan: [`study-stages-spec.md`](study-stages-spec).
+
 ## Destination
 
 `req/shell/study/stage`, `req/shell/account/role` and the requirements that hang off them are rewritten in
@@ -45,6 +47,9 @@ the hand-off and the items Not yet specified.
 
 ### Who sees a study
 
+- **The root is members-only** (owner's correction: a Drive file or folder can carry sharing its parent does
+  not): the settings file in it is members-only, and the folders visitors and the lab need are each shared
+  "anyone with the link" on top. The site makes no sharing change; Study Setup guides the owner to share by hand.
 - The repo names each study's **settings file** by its Drive ID, and no folder links: the three real root links
   now in `study.json` come out of the repo. The settings file is shared with named members only and names the
   study's folders, which stay "anyone with the link"; an unnamed folder cannot be guessed.
