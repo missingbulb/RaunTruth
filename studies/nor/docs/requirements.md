@@ -254,7 +254,7 @@ cover it, the reference slide is scored on Claude's labels, not the owner's (`la
 Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11-05.
 
 - **Curated on Drive, read when scored.** The page's taggers submit to the study's submissions folder and a
-  Study Manager curates into its curated folder, both under the study's root (the shell's
+  study owner curates into its curated folder, both under the study's root (the shell's
   `req/shell/ground-truth/folders`). Set by the owner on 2026-11-07: there is no fetch step. Scoring
   (the shared lab's `lab/fetch.py`, which `lab/run.py` runs) lists the root with no key, takes the curated folder from
   its study file (`rauntruth-study.json`), else the one named `GT curated` or `GT`, and downloads an

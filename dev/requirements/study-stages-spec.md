@@ -166,7 +166,7 @@ Depends on WP1.
 
 Depends on WP2.
 
-- `req/shell/account/role` (removed) and `shell/annotate/choice` The header has no role menu. After an image
+- `shell/account/role` (removed) and `shell/annotate/choice` The header has no role menu. After an image
   loads, the left bar asks how to get annotations on it, per image: **Continue local annotation work** (only when
   this device holds a draft for the image; enters annotation mode), **Load annotation from Drive** (the image's
   extraction list, shell/extractions/list; the chosen one shows read-only, with **Edit this annotation**
