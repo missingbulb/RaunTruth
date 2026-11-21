@@ -40,13 +40,13 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   add(rootDir, ROOT);
   if (members) { drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set(members)); }
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
-  // gt: the study set up with review, its settings file in ROOT naming two ground-truth folders kept outside ROOT,
+  // gt: the study set up with review, its study file in ROOT, the page's own as its set-up wrote it, naming two ground-truth folders kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
   const GT = { curated: "dmgtcurated000000000001", submissions: "dmgtsubmissions0000001" };
   const anyone = { has: () => true };
   if (gt) {
     for (const [id, name] of [[GT.curated, "GT curated"], [GT.submissions, "GT submissions"]]) { drive.folder({ id, name, parent: "elsewhere" }); drive.writers.set(id, anyone); }
-    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT,
+    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT, mine: true,
       bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
   }
   // the folders Drive lets the user only view

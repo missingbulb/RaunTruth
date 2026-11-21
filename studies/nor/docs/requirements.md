@@ -257,7 +257,7 @@ Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11
   Study Manager curates into its curated folder, both under the study's root (the shell's
   `req/shell/ground-truth/folders`). Set by the owner on 2026-11-07: there is no fetch step. Scoring
   (the shared lab's `lab/fetch.py`, which `lab/run.py` runs) lists the root with no key, takes the curated folder from
-  its settings file (`rauntruth-study.json`), else the one named `GT curated` or `GT`, and downloads an
+  its study file (`rauntruth-study.json`), else the one named `GT curated` or `GT`, and downloads an
   image's newest curated file, by its own `created`, the first time it scores that image, then keeps it under
   `data/raw/truth/`, never git. It checks each (an image SHA-256 and a `created` time) and says why it skips
   one it cannot use. **A listing that returns 50 entries stops it with an error**: the keyless listing may stop at 50, and

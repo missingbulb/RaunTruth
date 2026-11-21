@@ -86,7 +86,8 @@ header > .as { color: var(--dim); font-size: 14px; }
 .stage-tag[data-light=all] { --stage: var(--yes); background: color-mix(in srgb, var(--yes) 18%, transparent); }
 #study-list a.active { background: color-mix(in srgb, var(--text) 8%, var(--panel)); }
 #study-list a.active .name { border-bottom-color: transparent; }
-#study-none { margin: 8px 16px 0; font-size: 13px; }
+#study-none, #study-stale { margin: 8px 16px 0; font-size: 13px; }
+#study-stale[hidden] { display: none; }
 #study-request { display: flex; align-items: center; gap: 8px; height: 32px; margin: 8px 8px 0; padding: 0 8px; border-radius: var(--r-chip); color: var(--accent); text-decoration: none; }
 #study-request svg { fill: currentColor; flex: none; }
 #study-request:hover, #study-request:focus-visible { background: color-mix(in srgb, var(--text) 8%, var(--panel)); outline: none; }

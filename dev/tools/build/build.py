@@ -11,8 +11,8 @@ It also fetches the third-party wheels the studies install into Pyodide (package
 ship, each study's python.wheels) into web/vendor/, so the page never depends on PyPI at run time;
 writes the version history the page shows (version_history.py) and the studies its header offers
 (studies.json); publishes the page again as app/<id>.html for each of them, which Cloudflare serves at
-/app/<id>, carrying the study's own icon and poster (req/shell/site/icons); lists the studies on the landing
-page (req/shell/site/landing); writes sitemap.xml and robots.txt (req/shell/site/crawlers) and the headers Cloudflare adds (_headers); and writes the deployment's
+/app/<id>, carrying the study's own icon and poster (req/shell/site/icons); lists the supported browsers on the landing
+page (req/shell/site/landing, which lists no study); writes sitemap.xml and robots.txt (req/shell/site/crawlers) and the headers Cloudflare adds (_headers); and writes the deployment's
 settings into the published web/config.js from the repository variables: GOOGLE_API_KEY turns on
 loading from Google Drive, GOOGLE_CLIENT_ID signing in with Google. The folder its dialog opens on is each study's own (the first of files.folders in its study.json).
 """
@@ -48,12 +48,13 @@ def wheels():
 
 
 def studies(root):
-    """The studies the header's switcher may offer (req/shell/study/visibility), [{id, title, stage, icon?, accounts?}] by
-    title: the listed ones, and those shown to named accounts alone with those accounts, for the page to offer only while
-    one is signed in; each with its stage and the icon it names, if any, relative to the study's folder."""
+    """The studies the header's switcher may offer (req/shell/study/visibility), [{id, title, stage, icon?, root?}] by title:
+    every one but those marked unlisted; each with its stage, the icon it names, if any, relative to the study's folder, and
+    its Drive root's id, which the page asks Drive about. Which of them a visitor is offered the page decides at run time
+    (shell/study/members)."""
     found = [json.load(open(p)) for p in glob.glob(os.path.join(root, 'studies', '*', 'study.json'))]
-    entry = lambda m: {**{k: m[k] for k in ('id', 'title', 'stage', 'icon') if k in m},
-                       **({'accounts': m['visibility']['accounts']} if isinstance(m['visibility'], dict) else {})}
+    folder = lambda m: re.search(r'/folders/([\w-]+)', m.get('root') or '')
+    entry = lambda m: {**{k: m[k] for k in ('id', 'title', 'stage', 'icon') if k in m}, **({'root': folder(m).group(1)} if folder(m) else {})}
     return sorted((entry(m) for m in found if m['visibility'] != 'unlisted'), key=lambda m: m['title'])
 
 
@@ -150,7 +151,7 @@ def assemble(root, out, env):
         with open(os.path.join(app, page), 'w') as f:
             f.write(study_head(index, json.load(open(os.path.join(root, 'studies', sid, 'study.json')))))
     landing = os.path.join(out, 'index.html')
-    text = list_browsers(list_studies(open(landing).read(), [s for s in studies(root) if 'accounts' not in s]), json.load(open(os.path.join(root, 'web', 'browsers.json')))['supported'])
+    text = list_browsers(open(landing).read(), json.load(open(os.path.join(root, 'web', 'browsers.json')))['supported'])
     with open(landing, 'w') as f:
         f.write(text)
     for d, _, fs in os.walk(out):
@@ -210,16 +211,6 @@ def share_links(html, page):
         if m:
             html = attr(html, f'<meta property="{prop}"', urllib.parse.urljoin(here, m.group(1)))
     return html
-
-
-def list_studies(landing, listed):
-    """The landing page with every listed study a link to its address in the app (req/shell/site/landing)."""
-    items = ''.join(f'\n<li><a href="{APP}/{s["id"]}">{escape(s["title"])}</a></li>' for s in listed)
-    got = re.subn(r'(<ul [^>]*id="studies"[^>]*>)(</ul>)', lambda m: m.group(1) + items + '\n' + m.group(2), landing, count=1)
-    if not got[1]:
-        raise ValueError('the landing page has no empty <ul id="studies">')
-    return got[0]
-
 
 
 def list_browsers(landing, supported):

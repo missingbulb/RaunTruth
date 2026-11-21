@@ -204,6 +204,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Viewer: Load · → Tagger
 
@@ -405,6 +406,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ○* |
 
 ## Fixture · GT, Tagger: Load · Count
 
@@ -606,6 +608,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* |
 
 ## Fixture · PostGT, Tagger: Load · Count
 
@@ -807,6 +810,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* |
 
 ## Fixture · PreGT, signed out: Load · Count
 
@@ -1008,6 +1012,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · PreGT, Tagger: Load · Count · Items
 
@@ -1209,6 +1214,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · Published, Viewer: Load · Count · Items
 
@@ -1410,6 +1416,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Tagger: Load · Offline · Online
 
@@ -1611,6 +1618,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* | ○* |
 
 ## Fixture · GT, Study Manager: Folder · Preview · Load Original · Offline
 
@@ -1812,6 +1820,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Study Manager: Folder · Offline · Online
 
@@ -2013,6 +2022,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Study Manager: Folder · Preview a z-stack · Load Original
 
@@ -2214,6 +2224,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · PreGT, Study Manager: Folder
 
@@ -2415,6 +2426,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ |
 
 ## Fixture · GT, Tagger: Load · OK · Count · Unload
 
@@ -2616,6 +2628,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Tagger: Load · Count · → Viewer
 
@@ -2817,6 +2830,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* | ⊘ |
 
 ## Fixture · GT, Tagger: Load · Count · Away and back
 
@@ -3018,6 +3032,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* | ⊘ |
 
 ## Fixture · GT, Tagger: Load from Drive · Count
 
@@ -3219,6 +3234,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Study Manager: → Viewer · Load · → Study Manager
 
@@ -3420,6 +3436,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Viewer: Load · Zoom in
 
@@ -3621,6 +3638,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ |
 
 ## Fixture · GT, Viewer: Load a large image
 
@@ -3822,6 +3840,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ |
 
 ## NoR Finder · GT, signed out: Load · Count
 
@@ -4035,6 +4054,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ |
 
 ## NoR Finder · GT, Tagger: Load · Count
 
@@ -4248,6 +4268,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* |
 
 ## Bookshelf Reader · GT, Viewer: Load · Count
 
@@ -4448,6 +4469,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ |
 
 ## Bookshelf Reader · GT, Tagger: Load · Count
 
@@ -4648,6 +4670,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* |
 
 ## Vascular Measurements · GT, signed out: Load · Load a stack · Count · Items · Image
 
@@ -4868,6 +4891,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Vascular Measurements · GT, Tagger: Load a stack · Count
 
@@ -5088,6 +5112,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ● | ● |
 | &nbsp;&nbsp;Notice's text | ⊘ | ● | ● |
 | &nbsp;&nbsp;OK | ⊘ | ● | ● |
+| &nbsp;&nbsp;Sign out | ⊘ | ○* | ○* |
 
 ## Image Viewer · signed out: Load
 
@@ -5276,6 +5301,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ |
 
 ## Image Viewer · signed in: Load · Load a stack · Load
 
@@ -5464,6 +5490,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | Notice | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Notice's text | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
 ## Undecided
 

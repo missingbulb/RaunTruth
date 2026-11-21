@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
@@ -235,16 +236,17 @@ const walk = async (k, p) => {
   // each path finds the folder as it started: no previews made by an earlier one
   const made = new Set(FILES.filter((f) => f.folder && f.name === "Previews").map((f) => f.id));
   for (let i = FILES.length - 1; i >= 0; i--) if (made.has(FILES[i].id) || made.has(FILES[i].parent)) FILES.splice(i, 1);
-  // a study shown only to the accounts it names is opened by the first of them
-  const { visibility, phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
+  const { phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
   // Data Management lists the kinds a study opens: the fixture, opening PNGs alone, is given the folder's TIFFs too
   const opens = p.study === "fixture" ? { files: { ...files, accept: files.accept + ",.tif,.tiff" } } : {};
   // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
   const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
   const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
   const page = await open(p.signedIn, {
-    id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: visibility.accounts?.[0] ?? OTHER }),
-    seed: { ...stood.seed, "nor-role": ROLE[p.role] }, prepare: stood.prepare,
+    id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: OTHER }),
+    // signed out, the switcher offers the released studies and those with no root alone (shell/study/members): NoR Finder is listed as one with none, for the switch away and back
+    seed: { ...stood.seed, "nor-role": ROLE[p.role] },
+    prepare: async (ctx) => { await stood.prepare?.(ctx); if (!p.signedIn) studiesOf(ctx).editList((list) => list.map((s) => (s.id === "nor" ? { ...s, root: null } : s))); },
   });
   await page.waitForFunction((s) => (document.documentElement.dataset.stage ?? null) === s, p.stage);
   await ready(page);

@@ -13,7 +13,7 @@ function memory() {
   const files = [], calls = [];
   const add = (f) => { const g = { id: "id" + n++, ...f }; files.push(g); return g; };
   const reader = {
-    all: async (parent) => { calls.push(["all", parent]); return files.filter((f) => f.parent === parent).map((f) => ({ id: f.id, name: f.name, folder: !!f.folder })); },
+    all: async (parent) => { calls.push(["all", parent]); return files.filter((f) => f.parent === parent && !f.trashed).map((f) => ({ id: f.id, name: f.name, folder: !!f.folder })); },
     text: async (id) => { calls.push(["text", id]); return files.find((f) => f.id === id).body; },
   };
   const writer = {
@@ -21,6 +21,7 @@ function memory() {
     create: async (parent, name, blob) => { calls.push(["create", name]); return { id: add({ parent, name, body: await blob.text(), ours: true }).id }; },
     replace: async (id, blob) => { calls.push(["replace", files.find((f) => f.id === id).name]); files.find((f) => f.id === id).body = await blob.text(); return { id }; },
     share: async (id) => { calls.push(["share", files.find((f) => f.id === id).name]); },
+    trash: async (id) => { calls.push(["trash", files.find((f) => f.id === id).name]); files.find((f) => f.id === id).trashed = true; },
     ours: async (id) => !!files.find((f) => f.id === id)?.ours,
   };
   return { files, calls, add, reader, writer };
@@ -147,34 +148,39 @@ const out = {};
     made: { format: made.format, folders: made.folders.length }, refused, handWrites: hand.calls.filter(([k]) => k !== "all" && k !== "text").length };
 }
 
-// the study index (req/shell/data/index): written when it differs from the one there, not when it is the same, and an
-// index made by hand left alone
+// the study index (req/shell/data/index) in the one study file: written when it differs from the one there, not when it is
+// the same, and a study file made by hand left alone
 {
   const m = memory();
   const index = { folders: [{ id: "F", name: "Data" }], images: [{ id: "I1", name: "a.png", folder: "F", path: ["Data"], size: 3, sha: "ab", modified: "2026-11-01T00:00:00Z" }] };
   const first = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index, by: "dm@acme.example", at: AT });
-  const doc = JSON.parse(m.files.find((f) => f.name === sr.INDEX).body);
+  const doc = JSON.parse(m.files.find((f) => f.name === sr.SETTINGS).body);
   const same = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index, by: "other@acme.example", at: new Date("2026-11-08T10:00:00Z") });
   const more = { ...index, images: [...index.images, { id: "I2", name: "b.png", folder: "F", path: ["Data"], size: 4, sha: "cd", modified: null }] };
   const changed = await sr.writeIndex({ reader: m.reader, writer: m.writer, root: "ROOT", index: more, by: "dm@acme.example", at: AT });
   const read = await sr.readIndex(m.reader, "ROOT");
-  const hand = memory(); hand.add({ parent: "R5", name: sr.INDEX, body: "{}" });
+  const hand = memory(); hand.add({ parent: "R5", name: sr.SETTINGS, body: "{}" });
   const handOut = await sr.writeIndex({ reader: hand.reader, writer: hand.writer, root: "R5", index, by: "dm@acme.example", at: AT });
   const none = await sr.readIndex(memory().reader, "R6");
-  out.index = { first, same, changed, format: doc.format, by: doc.built_by, at: doc.built_at, images: read.images.length,
+  out.index = { first, same, changed, format: doc.format, by: doc.index.built_by, at: doc.index.built_at, images: read.images.length,
+    files: m.files.map((f) => f.name),
     writes: m.calls.filter(([k]) => k === "create" || k === "replace"), hand: handOut, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length, none };
 }
 
-// the tags file (req/shell/data/tags): read as empty while there is none, written as a new file and then replaced, one
-// made by hand left alone; the study file's grouping and hiding set beside its other keys (req/shell/data/hidden)
+// the tags in the study file (req/shell/data/tags): read as empty while there are none, written with the index in one write, a
+// study file made by hand left alone; the study file's grouping and hiding set beside its other keys (req/shell/data/hidden)
 {
   const m = memory();
   const none = await sr.readTags(m.reader, "ROOT");
   const doc = { images: { I1: { tags: ["group:sick"], description: "First" } }, folders: { F: { tags: ["dim"] } } };
+  const index = { folders: [{ id: "F", name: "Data" }], images: [{ id: "I1", name: "a.png", folder: "F", path: ["Data"], size: 3, sha: "ab", modified: null }] };
   await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc });
-  await sr.writeTags({ reader: m.reader, writer: m.writer, root: "ROOT", doc: { ...doc, images: {} } });
+  m.calls.length = 0;
+  const both = await sr.writeStudyData({ reader: m.reader, writer: m.writer, root: "ROOT", tags: { ...doc, images: {} }, index, by: "dm@acme.example", at: AT });
+  const oneWrite = m.calls.filter(([k]) => k === "create" || k === "replace");
   const back = await sr.readTags(m.reader, "ROOT");
-  const hand = memory(); hand.add({ parent: "R7", name: sr.TAGS, body: "{}" });
+  const readIndex = await sr.readIndex(m.reader, "ROOT");
+  const hand = memory(); hand.add({ parent: "R7", name: sr.SETTINGS, body: "{}" });
   let refused = null;
   try { await sr.writeTags({ reader: hand.reader, writer: hand.writer, root: "R7", doc }); } catch (e) { refused = /not made by this page/.test(e.message); }
   const st = memory(); const d = st.add({ parent: "R8", name: "Data", folder: true });
@@ -182,9 +188,47 @@ const out = {};
   const after = await sr.setStudy({ reader: st.reader, writer: st.writer, root: "R8", changes: { group: "group", hide: ["damaged-slide"] } });
   const file = JSON.parse(st.files.find((f) => f.name === sr.SETTINGS).body);
   out.tags = { none: { images: Object.keys(none.images).length, folders: Object.keys(none.folders).length },
-    writes: m.calls.filter(([k]) => k === "create" || k === "replace"), back: { images: Object.keys(back.images).length, folder: back.folders.F.tags, format: back.format },
+    both, oneWrite, back: { images: Object.keys(back.images).length, folder: back.folders.F.tags }, indexImages: readIndex.images.length,
+    files: m.files.map((f) => f.name),
     refused, handWrites: hand.calls.filter(([k]) => k === "create" || k === "replace").length,
     study: { group: file.group, hide: file.hide, folders: file.folders.length, readGroup: after.group, readHide: after.hide } };
+}
+
+// one study file (shell/study/one-file): a root holding only it gives the folders, index, tags, marks and stage
+{
+  const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true });
+  m.add({ parent: "ROOT", name: sr.SETTINGS, ours: true, body: JSON.stringify({ format: sr.FORMAT, data: data.id, folders: [data.id], stage: "Review", group: "group", hide: ["x"],
+    index: { built_by: "dm@acme.example", built_at: AT.toISOString(), folders: [{ id: data.id, name: "Data" }], images: [{ id: "I1", name: "a.png", folder: data.id, path: ["Data"] }] },
+    tags: { images: { I1: { tags: ["group:sick"] } }, folders: {} }, marks: { I1: { gt: { file: "E1" } } } }) });
+  const s = await sr.read(m.reader, "ROOT", { fresh: true });
+  const ix = await sr.readIndex(m.reader, "ROOT"), tg = await sr.readTags(m.reader, "ROOT");
+  out.oneFile = { stage: s.stage, folders: s.folders.length, index: ix.images.length, group: ix.group, hide: ix.hide, tags: tg.images.I1.tags, marks: s.marks.I1.gt.file, calls: m.calls.filter(([k]) => k === "text").length };
+}
+
+// a root still holding the three files of before is read once and written back as one file by the next manager save, the
+// old two trashed only where the page made them
+{
+  const make = (oursOld) => {
+    const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true });
+    m.add({ parent: "ROOT", name: sr.SETTINGS, ours: true, body: JSON.stringify({ format: "rauntruth-study/1", data: data.id, curated: "C", submissions: "C", review: false, group: "group" }) });
+    m.add({ parent: "ROOT", name: "rauntruth-index.json", ours: oursOld, body: JSON.stringify({ format: "rauntruth-index/1", built_by: "dm@acme.example", built_at: AT.toISOString(),
+      folders: [{ id: data.id, name: "Data" }], images: [{ id: "I1", name: "a.png", folder: data.id, path: ["Data"] }] }) });
+    m.add({ parent: "ROOT", name: "rauntruth-tags.json", ours: oursOld, body: JSON.stringify({ format: "rauntruth-tags/1", images: { I1: { tags: ["group:sick"] } }, folders: {} }) });
+    return m;
+  };
+  const m = make(true);
+  const s = await sr.read(m.reader, "ROOT", { fresh: true });
+  const before = { index: (await sr.readIndex(m.reader, "ROOT")).images.length, tags: Object.keys((await sr.readTags(m.reader, "ROOT")).images), old: !!s.old.index && !!s.old.tags };
+  m.calls.length = 0;
+  await sr.setStudy({ reader: m.reader, writer: m.writer, root: "ROOT", changes: { stage: "Develop" } });
+  const doc = JSON.parse(m.files.find((f) => f.name === sr.SETTINGS).body);
+  const after = await sr.read(m.reader, "ROOT", { fresh: true });
+  const hand = make(false);
+  await sr.setStudy({ reader: hand.reader, writer: hand.writer, root: "ROOT", changes: { stage: "Develop" } });
+  out.migration = { before, writes: m.calls.filter(([k]) => ["create", "replace", "trash"].includes(k)),
+    one: { format: doc.format, index: doc.index.images.length, tags: Object.keys(doc.tags.images), stage: doc.stage, group: doc.group },
+    after: { old: after.old, index: after.index.images.length, tags: Object.keys(after.tags.images) },
+    hand: { trashes: hand.calls.filter(([k]) => k === "trash").length, files: hand.files.filter((f) => !f.trashed).map((f) => f.name).sort() } };
 }
 
 console.log(JSON.stringify(out));

@@ -138,7 +138,7 @@ def listed_studies(tmp_path, *studies):
 
 def test_each_listed_study_is_published_under_its_own_path(tmp_path):
     """req/shell/study/folder-and-address: rauntruth.com/app/<id> is the page, published again as app/<id>.html, which Cloudflare serves at /app/<id>."""
-    root = listed_studies(tmp_path, ('alpha', 'listed'), ('hidden', 'unlisted'), ('mine', {'accounts': ['me@example.com']}))
+    root = listed_studies(tmp_path, ('alpha', 'listed'), ('hidden', 'unlisted'), ('mine', 'listed'))
     assert build.study_pages(root, {'index.html', 'shell.js'}) == ['alpha.html', 'mine.html']
 
 
@@ -184,17 +184,16 @@ def test_the_license_page_carries_the_repos_mit_license_word_for_word(tmp_path):
     assert ' '.join(license.split()) in words((tmp_path / 'license.html').read_text())
 
 
-def test_the_landing_page_opens_the_app_and_lists_every_listed_study(tmp_path):
+def test_the_landing_page_opens_the_app_and_lists_no_study(tmp_path):
+    """req/shell/site/landing: studies are offered by the app's switcher, to those Drive's sharing lets see them."""
     build.assemble(ROOT, str(tmp_path), {})
     landing = (tmp_path / 'index.html').read_text()
     assert re.search(r'<a [^>]*href="app/"', landing), 'the landing page does not open the app'
     assert len(build.studies(ROOT)) >= 3
-    for s in (s for s in build.studies(ROOT) if 'accounts' not in s):
-        assert re.search(rf'<a [^>]*href="app/{s["id"]}"[^>]*>[^<]*{re.escape(s["title"])}', landing), s
-    assert not re.search(r'href="app/fixture"', landing), 'an unlisted study is offered on the landing page'
-    for s in build.studies(ROOT):
-        if 'accounts' in s:
-            assert not re.search(rf'href="app/{s["id"]}"', landing), f'{s["id"]}, shown to named accounts alone, is offered on the landing page'
+    assert not re.search(r'id="studies"', landing), 'the landing page has a list of studies'
+    for s in build.studies(ROOT) + [dict(id='fixture', title='Fixture')]:
+        assert not re.search(rf'href="app/{re.escape(s["id"])}"', landing), f'{s["id"]} is linked from the landing page'
+        assert s['title'] not in landing, f'{s["title"]} is named on the landing page'
     assert 'src="analytics.js"' in landing
 
 
