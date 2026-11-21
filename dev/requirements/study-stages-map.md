@@ -39,7 +39,7 @@ Requirements, tests and build plan: [`study-stages-spec.md`](study-stages-spec.m
   code, study files and sign-in. The aim is simpler code, tests and requirements, not only a simpler screen. All
   of Data Management moves there: folders, Drive access, ground-truth setup, previews, tags and descriptions, hide
   rules, the grouping tag, areas of interest, damaged areas, Needs GT. It shows images in the shell's plain view
-  (no study algorithm, steps or item view), is online-only, and has its own requirement prefix (`req/setup/*`)
+  (no study algorithm, steps or item view), is online-only, and has its own requirement prefix (`setup/*`)
   and test folder; what both apps share stays under `req/shell`.
 - Marking an image's inputs is its own step before annotating: short, purely human work, where annotating is the
   long work the algorithms exist to shorten.
@@ -195,7 +195,7 @@ the studies' `STATE.md`.
 ## Not yet specified
 
 - Study Setup in detail: how the profile menu opens it, how it returns to the main app, which shared pieces move
-  from `req/shell/data/*` to `req/setup/*`.
+  from `shell/data/*` to `setup/*`.
 - The study results view (cross-image numbers over official extractions), and how extraction files are named
   when one person or one batch makes several for an image.
 - The landing page, which lists studies from `study.json` at build time, now that membership is read at run time.

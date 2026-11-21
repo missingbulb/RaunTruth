@@ -13,7 +13,7 @@ its own branch off the integration branch (`claude/gifted-fermat-g7q3rj`, pull r
 session reviews its diff, runs its tests and merges it into the integration branch, and the owner reviews the
 integration pull request once. A worker:
 
-1. Copies the package's requirements into `dev/requirements/requirements.md` (or `req/setup/*` into the new Study
+1. Copies the package's requirements into `dev/requirements/requirements.md` (or `setup/*` into the new Study
    Setup section, see WP5), replacing the ones it names, each with "Set by the owner on <date>" and its `Test:` line.
 2. Writes the tests listed, runs them and watches them fail.
 3. Implements until they pass, running the package's tests with `python3 -m pytest <files>` and every test file it
@@ -92,7 +92,8 @@ Still the owner's (asked when the package reaches it): the cross-image results v
 
 ## Requirements
 
-Each entry: the requirement line as it lands, then **Test** (file, driver, fake knobs, what is asserted) and
+Each entry: the requirement line as it lands (a tag not yet in `requirements.md` is written here without its `req/`
+prefix, which it gains when it lands), then **Test** (file, driver, fake knobs, what is asserted) and
 **Build** (where the code goes). Existing names are kept where the meaning survives.
 
 ### WP1 - the fake Drive grows sharing (tests only)
@@ -107,8 +108,9 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
 - **Fake: batch endpoint.** `POST /batch/drive/v3` with `multipart/mixed` parts, each answered as its single call
   would be. Asserted by the same test: three `GET files/<id>` parts, one refused, come back as three parts with
   200, 200, 404.
-- **Fake: revisions.** Each replace keeps a revision (`id`, bytes), listed by `GET files/<id>/revisions`, as the
-  page's Save relies on Drive keeping the old one. Asserted: replace twice, two revisions, read the first's
+- **Fake: revisions.** Each replace keeps a revision (`id`, bytes), listed by `GET files/<id>/revisions` as Drive
+  lists them, the current one included, as the page's Save relies on Drive keeping the old one. Asserted: create,
+  then replace twice, three revisions, read the first's
   bytes back.
 - **Fake: permissions listing and changing.** `GET files/<id>/permissions` lists readers and writers as Drive does
   (`type`, `role`, `emailAddress`); `POST` (exists) and `DELETE files/<id>/permissions/<pid>` change them and are
@@ -120,7 +122,7 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
 
 Depends on WP1.
 
-- `req/shell/study/one-file` A study keeps one study file in its Drive root, holding its folders, images index,
+- `shell/study/one-file` A study keeps one study file in its Drive root, holding its folders, images index,
   tags, hide and grouping rules, marks and stage; the separate index and tags files go.
   - **Test:** `test_study_root.py` (`study_root_driver.mjs`, under Node): reading a root that holds only
     `rauntruth-study.json` (format `rauntruth-study/2`) gives folders, index, tags and stage; a root still holding
@@ -129,7 +131,7 @@ Depends on WP1.
   - **Build:** `web/study_root.js`: `SETTINGS`, `INDEX`, `TAGS` collapse into one document with sections; `read()`,
     `readTags`/`writeTags`, `readIndex`/`writeIndex` become views on it (a single cached read per root). Writes
     re-read and merge before replacing, as concurrent managers may edit it.
-- `req/shell/study/members` Signed in, the study list holds the studies whose root the user can read, asked of
+- `shell/study/members` Signed in, the study list holds the studies whose root the user can read, asked of
   Drive in one batch request per load; signed out, the released ones.
   - **Test:** `web-tests/test_study_members_page.py` with a new `members_driver.mjs`, stand-in Drive seeded with
     three studies whose roots are: A members {x}, B members {y}, C link-shared at stage Public. Signed in as x: switcher lists A and C;
@@ -144,7 +146,7 @@ Depends on WP1.
   - **Test:** in `test_study_members_page.py`: open `app/A` as y: the message names y and offers Sign out; signed
     out: the signed-out wording; neither loads the study's module (no request for `studies/A/web/*.js`).
   - **Build:** `mountNow(id)` in `web/shell.js` checks membership before `import`.
-- `req/shell/study/review-link` A study in Review opens at its address for anyone, signed out, but is not listed.
+- `shell/study/review-link` A study in Review opens at its address for anyone, signed out, but is not listed.
   - **Test:** stand-in study D, root link-shared, stage Review: signed out, `app/D` opens; the switcher does not
     list D; a member's switcher lists D.
   - **Build:** the stage read from the study file (WP6) decides listing: `Public` listed, `Review` not.
@@ -158,10 +160,10 @@ Depends on WP1.
 
 Depends on WP2.
 
-- `req/shell/account/role` (removed) and `req/shell/annotate/choice` The header has no role menu. After an image
+- `req/shell/account/role` (removed) and `shell/annotate/choice` The header has no role menu. After an image
   loads, the left bar asks how to get annotations on it, per image: **Continue local annotation work** (only when
   this device holds a draft for the image; enters annotation mode), **Load annotation from Drive** (the image's
-  extraction list, req/shell/extractions/list; the chosen one shows read-only, with **Edit this annotation**
+  extraction list, shell/extractions/list; the chosen one shows read-only, with **Edit this annotation**
   entering annotation mode from it), or **Start annotating from scratch** (annotation mode, and the only route that
   shows the algorithm runner). Every annotation tool shows only in annotation mode. Loading another image asks again.
   - **Test:** `web-tests/test_annotate_mode_page.py` (rename of `test_roles_page.py`; driver `annotate_driver.mjs`
@@ -174,16 +176,16 @@ Depends on WP2.
     the choice in the left bar; `makesTruth()` becomes `stageAnnotates() && annotating`; CSS `[data-role=…]` rules
     become `[data-annotating]`; `truth_tasks.js` `#gt-start`/Stop goes. The Processing box's visibility follows the
     "from scratch" route.
-- `req/shell/annotate/clear` **Clear all annotations from image** resets the page to just after loading and, after a
+- `shell/annotate/clear` **Clear all annotations from image** resets the page to just after loading and, after a
   confirmation naming the unsaved actions lost, discards this device's draft for the image; Drive is untouched.
   - **Test:** same file: 4 actions, Clear, confirm: model empty, the three choices back, `gt-drafts` has no record
     for the image, the fake's writes log is unchanged; Cancel changes nothing.
-- `req/shell/annotate/no-save` Someone who may not save gets the same choices and tools, with no Save: their work
+- `shell/annotate/no-save` Someone who may not save gets the same choices and tools, with no Save: their work
   can be downloaded, and a line says to ask the study owner for access (signed out: to sign in).
   - **Test:** same file as v (member, no write) and signed out: choices present, `#save` absent, Download present,
     the line's text per case.
   - **Build:** today's `tagger-access` line moves here.
-- `req/shell/annotate/survives` Annotation mode and unsaved work survive the token running out and going
+- `shell/annotate/survives` Annotation mode and unsaved work survive the token running out and going
   offline; Save waits for the next click online, and a count says how many images have work waiting to upload.
   - **Test:** same file: annotate 3 actions, `google.expire()`, mode still on, Undo count 3; offline
     (`context.setOffline(true)`), annotate a second image, Save on both: "2 waiting"; back online and a click: the
@@ -204,28 +206,28 @@ Depends on WP2.
 
 Depends on WP3.
 
-- `req/shell/extractions/file` An extraction is one file about one image (by SHA): the model, the runs (algorithm
+- `shell/extractions/file` An extraction is one file about one image (by SHA): the model, the runs (algorithm
   key, parameters, code version) and the manual actions, who made it and when.
   - **Test:** `web-tests/test_truth_actions.py` (unit, under Node): a `run` action records `version` (the site
     version string and the study's algorithm code hash); a file without it still loads (old files) and shows
     version unknown, never a guessed one.
   - **Build:** `web/truth_actions.js` `run` entries; the studies' `run` calls (`nor.js`, `vascular.js`,
     `shelves`) pass the version the shell hands them.
-- `req/shell/extractions/save` Save writes the person's one extraction for the image to the study's extractions
+- `shell/extractions/save` Save writes the person's one extraction for the image to the study's extractions
   folder, replacing their own and keeping Drive's old revision; a count says how many images wait to upload.
   - **Test:** `web-tests/test_extractions_page.py` with `extractions_driver.mjs`: Save twice on one image: one
     file `<stem>__<sha8>/x_<email>.json`, two revisions; two images saved offline: "2 waiting"; online and a click:
     0. `test_truth_folders.py` (Node) covers naming and replace.
   - **Build:** `web/truth_folders.js` loses `accept`/`reject`/`status`'s curated branch; `submit` becomes `save`
     into one `extractions` folder; the `submitTruth` dialog in `web/shell.js` (around 1943) becomes Save.
-- `req/shell/extractions/list` Loading an image lists every extraction of it, labelled: mine, then marked (GT,
+- `shell/extractions/list` Loading an image lists every extraction of it, labelled: mine, then marked (GT,
   official), then others folded; another's opens read-only with "Edit this annotation".
   - **Test:** same file: seed three extractions (mine, y's marked GT, a batch run); assert the order and labels;
     "Edit this annotation" on y's then Save writes mine with `base: <y's file id>`; y's file unchanged (fake writes log).
-- `req/shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no
+- `shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no
   person's name.
   - **Test:** same seed, signed out on a Review study: two rows, neither containing an `@`.
-- `req/shell/extractions/marks-shown` Load study images shows, per image, whether my extraction is saved, GT or
+- `shell/extractions/marks-shown` Load study images shows, per image, whether my extraction is saved, GT or
   official, and whether another's was marked.
   - **Test:** `test_study_index_page.py`: index seeded with marks; row texts asserted.
 - Removed: `req/shell/ground-truth/curate`, `pending`, `submit`, `tagger-access` (folded into WP3), and the curated
@@ -236,7 +238,7 @@ Depends on WP3.
 
 Depends on WP4. The largest package; may be split into 5a (the page and what moves) and 5b (marks, batch, People).
 
-- `req/setup/page` Study Setup is the site page `app/setup`, opened from the profile menu's "Study Setup..." by
+- `setup/page` Study Setup is the site page `app/setup`, opened from the profile menu's "Study Setup..." by
   those Drive lets write the root, online only, showing images in the shell's plain view.
   - **Test:** `web-tests/test_setup_page.py` with `setup_driver.mjs`: as owner the profile menu has the item and it
     opens `/app/setup?study=A`; as t it is absent; offline the page says it needs the internet and makes no Drive
@@ -247,11 +249,11 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
     `place`, the viewer, left bar) are moved into modules both pages import; this is the package's main cost.
     `build.py` needs no change (any `web/*.html` ships under `app/`), but `study_pages` must refuse a study named
     `setup`.
-- `req/setup/data` Everything Data Management does today, unchanged in behaviour, in Study Setup: folders, Drive
+- `setup/data` Everything Data Management does today, unchanged in behaviour, in Study Setup: folders, Drive
   access, ground-truth setup (now: the extractions folder), previews, tags and descriptions, hide rules, the
   grouping tag, areas of interest, damaged areas, Needs GT.
   - **Test:** `test_data_mode_page.py` and `test_study_index_page.py` re-pointed at `app/setup`; same assertions.
-- `req/setup/marks` The owner marks an extraction GT or official; the study file records the extraction's file id,
+- `setup/marks` The owner marks an extraction GT or official; the study file records the extraction's file id,
   and the mark follows that file's latest content; one GT mark and one official mark per image; "mark all of this
   batch official".
   - **Test:** `test_setup_page.py`: mark y's extraction GT: the index JSON (read from the fake) holds
@@ -259,16 +261,16 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
     model as GT; marking another GT for the image replaces the first; "mark all of this batch" marks each image the
     batch reached.
   - **Build:** `web/study_root.js` `writeIndex` gains `marks`.
-- `req/setup/batch` The owner runs a chosen algorithm over chosen images; each image gets an extraction at that
+- `setup/batch` The owner runs a chosen algorithm over chosen images; each image gets an extraction at that
   version and parameters; images already done are skipped; a token running out holds it until the next click.
   - **Test:** stand-in Python worker answering from `answers.json`; batch over 3 images writes 3 files; rerun
     writes none; expire after 1, click, the other 2 follow.
   - **Build:** reuses the main app's runner module; Study Setup imports the study's algorithm code for the batch only.
-- `req/setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each
+- `setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each
   item's Drive sharing dialog.
   - **Test:** fake permissions seeded on the extractions folder and the root; rows asserted; links point at
     `https://drive.google.com/drive/folders/<id>?usp=sharing` forms.
-- `req/setup/sharing-check` Study Setup validates the study's Drive sharing against what its stage needs and lists
+- `setup/sharing-check` Study Setup validates the study's Drive sharing against what its stage needs and lists
   every correction, each with what to change, where (a link to that item's sharing dialog) and pictures; it checks
   again on opening, on each promotion or move back, and on a Check again button. What the stage needs: before
   Review the root is shared with named people only, never by link; from Review on the root is shared by link; in
@@ -284,7 +286,7 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
     Then press Fix on "Share the root by link" and confirm: the log holds exactly one permission write, on the
     root, and the correction clears; Fix then Cancel writes nothing.
   - **Build:** a rules table in `web/setup_sharing.js` (stage, item, expected), checked against the permissions read
-    of `req/setup/people`; the corrections list renders above People. Fix calls `web/drive.js` `share(id)` (exists)
+    of `setup/people`; the corrections list renders above People. Fix calls `web/drive.js` `share(id)` (exists)
     or a new `unshare(id, permissionId)`. Verify first, with a real run, that the owner's sign-in scope may change
     sharing on a folder the page did not make; where it may not, the correction keeps its pictures and link and
     shows no Fix button.
@@ -301,11 +303,11 @@ Depends on WP5.
     cannot drift. A drift guard (`sharedConstants` or a test) ties `stage_table.json` to the map's table rows.
   - **Build:** `web/shell.js` `STAGES` and `stageTruth()`/`takesTaggers()` (454-504) are replaced by one
     `stageAllows(action)` reading a table module `web/stages.js`; `data_mode` reads the same.
-- `req/shell/study/stage-popup` The stage label's popup lists the five stages, this one's gate conditions as the
+- `shell/study/stage-popup` The stage label's popup lists the five stages, this one's gate conditions as the
   page measures them, and one line per action open to this user.
   - **Test:** `study_page_driver.mjs`: Develop with 12 images lacking a GT mark: the line "Annotate: 12 images
     still need it" for an annotator, absent for a viewer.
-- `req/setup/promote` Study Setup promotes and moves back; before Review it lists images with extractions newer
+- `setup/promote` Study Setup promotes and moves back; before Review it lists images with extractions newer
   than their GT; promoting to Review freezes marking and data.
   - **Test:** `test_setup_page.py`: the list; after Freeze, mark buttons gone; the main app's Save still works but
     labels "after the freeze, not counted".
@@ -317,18 +319,18 @@ Depends on WP5.
 
 Depends on WP4 (marks format), can run beside WP5-6.
 
-- `req/lab/study-file` The lab reads a study's study file by link, from the id in `RAUNTRUTH_STUDY_<STUDY>`, and
+- `lab/study-file` The lab reads a study's study file by link, from the id in `RAUNTRUTH_STUDY_<STUDY>`, and
   lists no Drive folder; without the variable it stops with a message naming it.
   - **Test:** `lab/tests/test_lab.py` with a local HTTP stub standing in for Drive (as the tests do now): with the
     variable, `fetch.py` downloads exactly the ids the study file names; without it, exit 2 and the message; no Drive id
     is printed in either output.
   - **Build:** `lab/fetch.py` `Root` replaced by `StudyFile`; `images()` downloads by its ids; `sources.json`
     keeps names and hashes only (a check asserts no `drive_id` key).
-- `req/lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
+- `lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
   - **Test:** stub study file with two GT marks and one official; the scoring corpus has exactly the two GT pairs.
-- `req/lab/dataset-sha` The dataset SHA is computed over the model-only form of each GT file.
+- `lab/dataset-sha` The dataset SHA is computed over the model-only form of each GT file.
   - **Test:** two GT files differing only in `history` and `tagger` give the same dataset SHA.
-- `req/lab/stage` The lab prints the study's stage from the study file, and unattended tasks stop on Review or
+- `lab/stage` The lab prints the study's stage from the study file, and unattended tasks stop on Review or
   Public.
   - **Test:** stub study file at Review: `run.py --write` exits with "frozen"; `mutation-sweep`'s task worker exits clean
     with the same message (rule `writing-exit-path`).
@@ -337,12 +339,12 @@ Depends on WP4 (marks format), can run beside WP5-6.
 
 Depends on WP6 and WP7.
 
-- `req/lab/freeze` One lab command commits the study's GT, model-only, to `studies/<id>/gt/<freeze date>/` and
+- `lab/freeze` One lab command commits the study's GT, model-only, to `studies/<id>/gt/<freeze date>/` and
   writes the official scores with their stamp.
   - **Test:** `lab/tests/test_lab.py`: stub study file with marks; `python3 lab/freeze.py <study>` writes one file per GT
     mark with no `history`, `tagger`, `created` or email anywhere in the bytes; the metrics carry `{version,
     dataset_sha256, frozen, commit}`.
-- `req/shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze
+- `shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze
   date and a link to the GT commit.
   - **Test:** `algorithm_choice_driver.mjs`: metrics with a stamp render it; without one (Develop) nothing.
 - The cross-image results view: **owner's question first**.
