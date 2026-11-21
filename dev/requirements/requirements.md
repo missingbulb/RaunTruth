@@ -1396,7 +1396,10 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07. The study's Python opens the file's own bytes, exactly as they came from this
   computer, Google Drive or the device's copy, and every algorithm reads only what it reads from them. Nothing the
   viewer does (its contrast, the channels shown, the black and white points, the 3D view) reaches Python, so the
-  same file gives the same result however it is viewed. Test: `web-tests/test_study_runs.py`.
+  same file gives the same result however it is viewed. Narrowed by the owner on 2026-11-20 (#1059): this holds for
+  the algorithms, a study's run; a ground-truth tool may work in the page on the pixels the shell decoded from the
+  file (the image's planes, before any of the viewer's settings), so that tagging needs no Python. Test:
+  `web-tests/test_study_runs.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/python/on-run` Python starts only when the user runs an algorithm.
@@ -1475,8 +1478,8 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/resources-dialog/animations` An Animations checkbox in the resources dialog's CPU tab turns every animation on the page off.
   <details>
 
-  Set by the owner on 2026-10-31. It is the checkbox alone, with no text explaining it (set by the owner on
-  2026-11-07). Checked at first, it is kept as the user's setting: the next visit
+  Set by the owner on 2026-10-31. Set by the owner on 2026-11-20, a line under it explains it: "Stop animations if
+  the website is slow" (on 2026-11-07 it had been the checkbox alone). Checked at first, it is kept as the user's setting: the next visit
   opens with it as it was left, and signed in it follows the user (`req/shell/account/sign-in`). Unchecked, nothing on the
   page moves to draw the eye: the minimap and the drawers change at once, the photocopier's light
   does not sweep the image, no button shines or glows (one that would looks plain, with no light or
@@ -1484,6 +1487,20 @@ nobody has decided: what the page does there is not a requirement yet.
   bar's digits change without rolling and a sharp rise does not flash. A spinner still turns, since
   it is what says the page is working rather than stuck. Test: `web-tests/test_status_bar_page.py`,
   `web-tests/test_account_page.py`.
+  </details>
+
+- `req/shell/resources-dialog/unload-python` An "Unload Python after each run" checkbox beside Animations in the resources dialog's CPU tab trades speed for memory.
+  <details>
+
+  Set by the owner on 2026-11-20 (#381). A line under it explains it: "Unloading python saves memory between
+  algorithm runs, but the following run will take as long as the first run". Unchecked at first, and kept on this device only, since how much memory a
+  computer can spare is the computer's: Python, once started by a study's run, stays loaded, and every later run
+  starts at once on the image it already holds. Checked, the page shuts Python down as soon as a run ends, with its
+  answer or an error, and at once when it is checked with Python idle; the memory it held is freed (about 540 MB after a NoR Find, measured 2026-11-20 in
+  Chromium on Linux); the next run starts Python again from the files kept on this device and hands it the image's
+  file again, about 9 s more on that measure. Nothing else the page does waits on Python, since only a study's run
+  asks it anything (#1059): Shelves' reading of the titles, its tagging and its engines are the page's own and
+  carry on after Python is gone. Test: `web-tests/test_study_runs.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/site/app-address` The app is at rauntruth.com/app/; the site's root says what the site is.
@@ -1793,7 +1810,7 @@ nobody has decided: what the page does there is not a requirement yet.
   yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
   shows what it finds, so it makes no ground truth (no Submit GT, as in PreGT) and
   drops the steps that serve making it: the study's
-  postprocessing (NoR's Filters fold in its Processing box, `req/nor/filters/live`) is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
+  postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
   NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
   </details>
 

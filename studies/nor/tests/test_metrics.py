@@ -1,4 +1,5 @@
-"""R11: every finder's precision and recall on the ground truth, at its own filters and at each preset, are on record
+"""R11: every finder's precision and recall on the ground truth, as the page runs it (one filter on) and at each
+preset, are on record
 in the lab's metrics file (lab/run.py nor --write), and the presets move every filter the way their names say."""
 import json
 import os
@@ -37,9 +38,11 @@ def test_counts_cover_the_labels():
 
 
 def test_the_presets_are_the_lab_s_settings():
+    # the presets are every filter on at their values; unfiltered, none on
     for f in controls.FINDERS:
-        assert nor_finder.SETTINGS[f]['precise'] == dict(values=controls.preset_values(f, 'precise'))
-        assert nor_finder.SETTINGS[f]['recalling'] == dict(values=controls.preset_values(f, 'recalling'))
+        for p in controls.PRESETS:
+            assert nor_finder.SETTINGS[f][p] == dict(values=controls.preset_values(f, p), off=[]), (f, p)
+        assert sorted(nor_finder.SETTINGS[f]['unfiltered']['off']) == sorted(k['key'] for k in controls.filters(controls.FINDERS[f][1]))
         assert controls.preset_values(f, 'balanced') == controls.own_values(f)
 
 
@@ -54,14 +57,19 @@ def test_precise_is_stricter_and_recalling_looser_in_every_filter():
             assert (hi[k] > v > lo[k]) if up else (hi[k] < v < lo[k]), f'{f} {k}: {lo[k]} {v} {hi[k]}'
 
 
-def test_recall_falls_from_recalling_to_precise():
+def test_recall_falls_from_no_filter_to_precise():
     for f, v in doc()['versions'].items():
         s = v['settings']
-        assert s['recalling']['recall'] >= v['recall'] >= s['precise']['recall'], f
+        # rf picks between alternative greens using the checks, so a filter on can find a better one than none does
+        assert f not in controls.EXACT_REFILTER or s['unfiltered']['recall'] >= v['recall'], f
+        assert v['recall'] >= s['recalling']['recall'] >= s['balanced']['recall'] >= s['precise']['recall'], f
 
 
 def test_filters_only_remove():
     """A filter can only reject what the finder proposed, so no preset finds a real spot the finder did not."""
     for f, v in doc()['versions'].items():
+        if f not in controls.EXACT_REFILTER:
+            continue  # rf picks between alternative greens using the checks, so its filters do more than remove
         top = v['settings']['unfiltered']['tp']
-        assert all(r['tp'] <= top for r in [v, v['settings']['precise'], v['settings']['recalling']]), f
+        # the soft pairing takes the closest pairs first, so a candidate removed can let a truth NoR pair a hair better
+        assert all(r['tp'] <= top + 0.01 for r in [v, *v['settings'].values()]), f

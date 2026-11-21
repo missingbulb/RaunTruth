@@ -108,6 +108,7 @@ const THUMB_PATH = "drive-thumb/";
 const THUMBS_CACHE = "nor-thumbs-v1";
 const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
+const UNLOAD_PYTHON = "nor-unload-python"; // true: Python is shut down as each of a study's runs ends
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
 const SEEN_VERSION = "nor-seen-version"; // the site version the user last saw, to tell them what changed since
 const MEMORY_TIP = "nor-memory-tip-off"; // true: the user asked never to see the low-memory popup again
@@ -352,6 +353,11 @@ const showMotion = () => {
 showMotion();
 motion.onchange = () => { writeJSON(MOTION, motion.checked); showMotion(); };
 function still() { return !motion.checked || matchMedia("(prefers-reduced-motion: reduce)").matches; }
+// ---------- Python after a run: kept loaded for the next, unless the user trades the speed for the memory ----------
+const unloading = $("#unload-python");
+const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false) === true; };
+showUnloading();
+unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
 
 $("#sb-net").onclick = () => usage("network");
@@ -755,10 +761,19 @@ function onWorker(m) {
   if (m.busy) cpu.py = m.busy;
   if (m.net != null) net.worker = m.net;
   // a late answer for a study that has left, or a word from one still coming in
-  if (m.study && m.study !== manifest?.id) return statusBar();
+  if (m.study && m.study !== manifest?.id) { statusBar(); return ended(m); }
   // the page opens images itself (req/shell/image/open): Python only holds the file
   if (m.type === "opened") return statusBar();
-  handle(m); settle(m); statusBar();
+  handle(m); settle(m); statusBar(); ended(m);
+}
+const ended = (m) => (m.type === "result" || m.type === "error") && unloadIfDone();
+// Python shut down once nothing is asked of it, when the user chose to (req/shell/resources-dialog/unload-python): its
+// memory freed, and the next call starts it again and hands it the image again
+function unloadIfDone() {
+  if (!unloading.checked || !st.worker || pyCalls.length) return;
+  st.worker.terminate();
+  Object.assign(st, { worker: null, held: null, ready: false, heap: null, files: 0 });
+  statusBar();
 }
 function handle(m) {
   if (m.type === "progress") status(m.text);
@@ -1647,7 +1662,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1849,6 +1864,7 @@ const settings = settingsDialog({
     { key: TIPS, label: "Tips you closed (clear one to see it again)", kind: "set" },
     { key: RECENT, label: `Recent images from ${remote.label} (clear one to drop it)`, kind: "list", name: (r) => (r.study ? `${r.study}: ` : "") + (r.path?.length ? `${r.path.join("/")}/` : "") + r.name },
     { key: MOTION, label: "Animations", kind: "toggle", on: true, off: false, fallback: true },
+    { key: UNLOAD_PYTHON, label: "Unload Python after each run", kind: "toggle", on: true, off: false, fallback: false },
     { key: RESOURCES, label: "Autohide the status bar's disk, memory, network and CPU", kind: "toggle", on: "auto", off: "open", fallback: "auto" },
     { key: SEEN_VERSION, label: "Version you saw last", kind: "text" },
     { key: AUTO_SAVE, label: `Auto-save images from ${remote.label}, on this device`, kind: "toggle", on: "on", off: "off", fallback: "on" },
@@ -1867,7 +1883,7 @@ function reapply() {
   let t = null;
   try { t = localStorage.getItem(THEME); } catch { /* no storage */ }
   if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  showMotion(); showResources(); showRecent(); showRole();
+  showMotion(); showUnloading(); showResources(); showRecent(); showRole();
 }
 $("#open-settings").onclick = () => { $("#user-menu").open = false; settings.open(); };
 $("#storage-reload").onclick = () => location.reload();

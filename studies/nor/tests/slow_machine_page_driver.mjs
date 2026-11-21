@@ -29,7 +29,7 @@ const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 const late = () => new Promise((ok) => setTimeout(ok, ${LATE})); // waits on purpose (a slow computer): it stands in for a slow computer's Python
 let finder, runs = 0;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0, heap: 300 * 2 ** 20, files: 80 * 2 ** 20 });
+postMessage({ type: "ready", info: {}, secs: 0, heap: 300 * 2 ** 20, files: 80 * 2 ** 20 });
 onmessage = async ({ data: m }) => {
   await late();
   if (m.type === "open") {
@@ -38,8 +38,9 @@ onmessage = async ({ data: m }) => {
     if (++runs === 3) return postMessage({ type: "error", text: "MemoryError" });
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -132,20 +133,8 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(await held(page, "#find"), "Find Candidates is held at once, with its spinner");
   await shot(page, "find_working", ".row:has(#find)");
   await detected;
-  await check(await held(page, "#find"), "and stays held while the finder runs and the first filtering follows");
   await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 });
-  await check(await page.evaluate(() => st.meta && !st.inflight), "it lets go once the candidates are drawn");
-  const preset = "#presets button[data-preset=precise]";
-  await page.evaluate(() => { for (const d of $("#filters").children) d.kept = true; });
-  await unfold(page, "#processing-box"); await page.evaluate(() => { $("#filters-fold").open = true; });
-  await page.click(preset);
-  await check(await held(page, preset), "a filter preset is held while the filters run again");
-  await free(page, preset);
-  await check(await page.evaluate(() => [...$("#filters").children].every((d) => d.kept)), "a preset sets the filters in place, rebuilding none");
-  await check(await page.evaluate(() => [...document.querySelectorAll("#filters .param")].every((p) => {
-    const v = st.values[p.dataset.name], box = p.querySelector(".box");
-    return !box || box.type !== "number" || +box.value === v;
-  }) && $(`#presets [data-preset=precise]`).classList.contains("on")), "and every filter shows the preset's values");
+  await check(await page.evaluate(() => st.meta && !!st.passes), "it lets go once the candidates are drawn");
   const playing = () => page.evaluate(() => $("#far").getAnimations({ subtree: true })[0].playState);
   await page.evaluate(() => $("#left").insertAdjacentHTML("beforeend", '<div style="height:3000px"></div><div id="far" class="shine">x</div>'));
   await page.waitForFunction(() => $("#far").classList.contains("offscreen"));

@@ -771,7 +771,9 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 #usage-dlg [role=tab][aria-selected=true] { color: var(--text); border-bottom-color: var(--accent); }
 #usage-dlg .total { margin: 0 0 6px; }
 #usage-dlg .motion { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-#usage-dlg .motion label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+#usage-dlg .motion label, #usage-dlg .unload label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+#usage-dlg .unload { margin-top: 6px; }
+#usage-dlg :is(.motion, .unload) .hint { margin: 2px 0 0 22px; }
 #usage-dlg:not([data-tab=storage]) [data-for=storage], #usage-dlg:not([data-tab=memory]) [data-for=memory] { display: none; }
 .rows { max-height: min(62vh, 560px); overflow-y: auto; padding-right: 6px; }
 #storage-list .group { border-top: 1px solid var(--line); padding: 6px 0; }

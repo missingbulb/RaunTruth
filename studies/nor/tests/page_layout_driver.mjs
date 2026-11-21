@@ -21,15 +21,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -64,7 +65,7 @@ for (const width of [1000, 1600]) {
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
     // ---- the selected card over the image's top right corner, only while one is selected; Submit Ground
   // Truth not in the image view; no right bar (req/nor/layout, req/nor/candidates/decide, req/nor/downloads) ----
   const fail = async (what, seen) => { console.error("FAILED: " + what + ": " + JSON.stringify(seen)); await done(1); };
@@ -114,7 +115,7 @@ for (const width of [1000, 1600]) {
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   // the walk may open on an area's check; the finalists' row goes to a candidate
   await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   await page.waitForFunction(() => document.querySelector("#task-card canvas"));

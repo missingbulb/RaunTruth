@@ -1,9 +1,8 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers only the study's ready() (READY,
-// written by tests/test_processing_box.py), and checks the Processing box before any image: its settings and its
-// algorithm note start folded; the filters and their presets have a fold of their own after the settings, which starts
-// folded and is kept from a Viewer, and no box of their own follows it; each finder in the list carries its icon; the note's title names the chosen
-// algorithm, its explanation is drawn as a nested list of steps, and it gives in bold its precision and recall with its
-// default filters, as the list shows them, with those before any filter after them, not bold. Prints what it saw; exits 1 on a failure, 2
+// written by tests/test_processing_box.py), and checks the Processing box before any image: its algorithm note starts
+// folded, and it holds no setting, filter or preset; each finder in the list carries its icon; the note's title names the chosen
+// algorithm, its explanation is drawn as a nested list of steps, and it gives in bold its precision and recall as the
+// page runs it, as the list shows them, with the metrics' note after them, not bold. Prints what it saw; exits 1 on a failure, 2
 // when it cannot run.
 //   node tests/processing_box_driver.mjs READY
 import { EARLY } from "../../../web-tests/early_messages.mjs";
@@ -38,32 +37,14 @@ try {
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   // the list's numbers arrive with the study's measured quality
   await page.waitForFunction(() => /\(P\s/.test(document.querySelector("#algorithm").options[0].textContent));
-  // the finder's controls arrive with its own list of them, apart from the shell's list of finders
-  await page.waitForFunction(() => document.querySelector("#filters").children.length > 0);
-  const folds = await page.evaluate(() => ({ settings: document.querySelector("#settings-box").open, about: document.querySelector("#algorithm-about").open }));
+  const folds = await page.evaluate(() => ({ about: document.querySelector("#algorithm-about").open }));
   console.log("folds", JSON.stringify(folds));
-  if (folds.settings) problems.push("Settings starts open");
   if (folds.about) problems.push("the algorithm's note starts open");
-  // the box is folded until an image opens, so it is unfolded here to see what a Viewer would see in it
-  const filters = await page.evaluate(() => {
-    const box = document.querySelector("#processing-box"), folded = box.classList.contains("folded"); box.classList.remove("folded"); set = document.querySelector("#settings-box"), fold = document.querySelector("#filters-fold");
-    const f = document.querySelector("#filters"), p = document.querySelector("#presets");
-    const got = { fold: !!fold && fold.matches("details.fold") && box.contains(fold) && fold.contains(f) && fold.contains(p),
-      title: fold && fold.querySelector(":scope > summary").textContent.trim(), open: !!fold && fold.open, count: f ? f.children.length : 0,
-      afterSettings: !!fold && !set.contains(fold) && !!(set.compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING),
-      kept: !!fold && getComputedStyle(fold).display === "none" && getComputedStyle(set).display !== "none",
-      boxes: [...document.querySelectorAll("#left > .box .sec-head h2")].map((h) => h.textContent.trim()) };
-    box.classList.toggle("folded", folded);
-    return got;
-  });
-  console.log("filters", JSON.stringify(filters));
-  if (!filters.fold) problems.push("the filters and their presets are not a fold of their own in the Processing box");
-  if (filters.title !== "Filters") problems.push(`the filters' fold is titled "${filters.title}", not "Filters"`);
-  if (filters.open) problems.push("Filters starts open");
-  if (!filters.afterSettings) problems.push("the filters' fold does not follow Settings");
-  if (!filters.count) problems.push("no filter is listed");
-  if (!filters.kept) problems.push("a Viewer sees the filters, or does not see Settings");
-  if (filters.boxes.some((b) => b.endsWith("Postprocessing"))) problems.push("the left bar still has a Postprocessing box");
+  // the algorithm gives a list of NoRs and nothing else: no setting, filter or preset anywhere on the page
+  const controls = await page.evaluate(() => ["#settings-box", "#filters-fold", "#filters", "#presets", "#main-params", "#detect-params", "#reset-detect"]
+    .filter((id) => document.querySelector(id)));
+  console.log("controls", JSON.stringify(controls));
+  if (controls.length) problems.push(`the page still has the algorithm's controls: ${controls.join(", ")}`);
 
   const options = await page.evaluate(() => [...document.querySelector("#algorithm").options].map((o) => [o.value, o.textContent]));
   console.log("options", JSON.stringify(options));
@@ -86,10 +67,10 @@ try {
     if (note.nested) nested++;
     if (note.title !== `How the ${LISTED[k].title} algorithm works`) problems.push(`${k}: the note's title does not name the algorithm: ${note.title}`);
     if (note.raw) problems.push(`${k}: the note shows its list's markup instead of a list`);
-    // the bold line gives the finder with its default filters, as the list does, and what it was measured on; its note follows, not bold
+    // the bold line gives the finder as the page runs it, as the list does, and what it was measured on; its note follows, not bold
     const def = QUALITY.versions[k];
     const [, lp, lr] = note.option.match(/\(P\s(\.\d+)\s·\sR\s(\.\d+)\)/) || [];
-    if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default filters' ${def.precision}, ${def.recall}`);
+    if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default's ${def.precision}, ${def.recall}`);
     const name = LISTED[k].title[0].toUpperCase() + LISTED[k].title.slice(1);
     const bold = `${name} algorithm shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} ${QUALITY.measured}`;
     const plain = `(${def.note})`;

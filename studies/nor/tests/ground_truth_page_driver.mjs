@@ -8,7 +8,7 @@
 // left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
 // study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
 // combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
-// with the settings chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
+// chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
@@ -32,15 +32,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -132,24 +133,10 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 async function markAndVote(page) {
   await unfold(page, "#processing-box");
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
   await check(ran === "Load image › Run algorithm › Review all items* | #sb-review", `once it has run, Review all items is: ${ran}`);
   await check(await gtColour(page) === "todo", "with no verdict the Ground truth button is red");
-  // the filters rejecting every finalist, with nothing voted on: the crumb waits on what the button waits on;
-  // their answer lands, is read and is taken back in one turn of the page, so no real answer interleaves
-  const none = await page.evaluate(() => {
-    const land = (fails) => st.worker.onmessage({ data: { type: "result", action: "refilter", meta: { fails, alone: st.alone }, echo: st.seq } });
-    const kept = st.fails, why = Object.values(kept).find((f) => f !== null), all = JSON.parse(JSON.stringify(kept));
-    for (const k of Object.keys(all)) all[k] = why;
-    land(all);
-    const seen = { finalists: st.passes.filter((c) => !c.added).length, button: $("#gt-submit").dataset.state,
-      crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › ") };
-    land(kept);
-    return seen;
-  });
-  await check(none.finalists === 0 && none.button === "todo" && none.crumbs === "Load image › Run algorithm › Review all items*",
-    `every finalist filtered out and none voted on: the button stays red and Review all items stays the step to do: ${JSON.stringify(none)}`);
   // the walk opens once tagging starts (req/shell/ground-truth/tagging), framing its first area; the view is put back
   // as it was, the whole image, once it rests, so a right click lands on the image point it aims at
   const rest = () => page.waitForFunction(() => {
@@ -199,6 +186,8 @@ async function markAndVote(page) {
   await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   await page.click("#task-card .verdict .up");
   await page.click("#task-skip");
+  // the area's check may come next, so the finalists' task is asked for its next one again
+  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   // a found candidate's red end dragged off the axis only slides along it: the green ends stay put
   L = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
   if (L) {
@@ -221,7 +210,7 @@ async function popup(page) {
   // a checklist of every issue, the resolved ones crossed out: what is still open
   const items = await page.$$eval("#gt-problems li", (li) => li.map((l) => ({ ok: l.classList.contains("ok"), struck: getComputedStyle(l.querySelector("span")).textDecorationLine, text: l.textContent })));
   const has = await page.evaluate(() => ({ added: st.added.length > 0 }));
-  await check(items.length === 5 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
+  await check(items.length === 4 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
     `the popup lists every issue that applies, crossing out the resolved ones (${items.filter((t) => t.ok).length} of ${items.length})`);
   const line = (re) => items.find((t) => re.test(t.text));
   await check(!!line(/you added/) === has.added && !line(/mask/),
@@ -308,7 +297,7 @@ async function mask(page) {
   const before = await crumbs(page);
   await check(before === "Load image › Run algorithm* | #find,#sb-find", `with an image open, Run algorithm is the step to do: ${before}`);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const none = await popup(page);
   await check(/Vote on at least one/.test(none) && /thumbs/.test(await page.textContent("#gt-msg")) && await page.isDisabled("#gt-export"), `with nothing marked the popup says how to mark and exports nothing: "${none}"`);
   await page.click("#gt-close");
@@ -369,7 +358,7 @@ async function mask(page) {
   const { ctx, page } = await open(false);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();

@@ -262,4 +262,3 @@ def segment_rf(caspr, nav, bm, p=PR, gone=None):
 
 
 # the settings the page shows first for this finder; the rest sit under Advanced
-segment_rf.MAIN = ('green_frac', 'red_frac', 'red_steps', 'touch_u', 'g_reach_u', 'far_u')

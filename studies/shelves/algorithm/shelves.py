@@ -110,15 +110,3 @@ VERSIONS = {
 NOTES = {'r9': 'tuned on 5 of these photos', 'r8': 'tuned on 3 of these photos', 'r5': 'tuned by eye, before any ground truth'}
 
 
-def straighten(rgb, answer, corners):
-    """Each book's crop, RGBA, in the order asked: what the page's own readers read while ground truth is made."""
-    return dict(crops=[books.straighten(rgb, c) for c in corners])
-
-
-def label(rgb, answer, texts, library_seen=False):
-    """The text the page's own readers read for each book, read into fields: its place on the book unknown, on its
-    text alone."""
-    return dict(books=[dict(zip(('fields', 'regions'), fields.label([dict(text=t)], library_seen=library_seen))) for t in texts])
-
-
-STAGES = {'straighten': straighten, 'label': label}

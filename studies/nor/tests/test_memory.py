@@ -1,7 +1,7 @@
 """req/shell/memory/no-growth: using the page does not grow its memory. Each layer is checked on its own, so the whole runs
 in seconds rather than driving the full page through Pyodide:
 
-  the Python            the study's read, versions and refilter stage, natively: opening, every finder and filtering, over and over
+  the Python            the study's read and versions, natively: opening and every finder, over and over
   the bridge            web/bridge.js in Pyodide under Node, with a stand-in session (memory_bridge_driver.mjs)
   the page              web/ in headless Chromium, with a stand-in worker answering from real results
                         computed here (memory_page_driver.mjs)
@@ -61,15 +61,14 @@ def run(driver, *args):
 
 @pytest.mark.skipif(not sys.platform.startswith('linux'), reason='reads glibc malloc statistics')
 def test_session_holds_no_more_after_repeats(crop):
-    offs = {f: [k['key'] for k in controls.describe(f)['filters']] for f in controls.FINDERS}
-    assert len(offs) == 5, offs
+    assert len(nor_finder.VERSIONS) == 5, list(nor_finder.VERSIONS)
 
     def use():
         image = nor_finder.read(crop)
         for f in nor_finder.VERSIONS:
-            found = nor_finder.VERSIONS[f](image)
-            for spec in ({'values': {}, 'off': []}, {'values': {}, 'off': offs[f]}):
-                nor_finder.STAGES['refilter'](image, found, spec)
+            # as the page runs it, and with the filters on as the lab scores it
+            nor_finder.VERSIONS[f](image)
+            nor_finder.VERSIONS[f](image, off=[])
 
     use()
     base = held()
@@ -96,18 +95,16 @@ def page_meta(answer):
 
 @pytest.fixture(scope='module')
 def page_answers(crop, tmp_path_factory):
-    """What the worker would answer about the corner: the finders, the image, and for two finders
-    their candidates and the filtering with every filter on and with every filter off."""
+    """What the worker would answer about the corner: the finders, the image, and for two finders their answer as the
+    page runs it."""
     d = tmp_path_factory.mktemp('answers')
     image = nor_finder.read(crop)
     H, W = image['caspr'].shape
-    out = dict(controls.listing(), H=H, W=W, um=image['um'], detected={}, filtered={})
+    out = dict(finders=list(controls.FINDERS), H=H, W=W, um=image['um'], detected={})
     for f in ('tl', 'rf'):
         found = nor_finder.VERSIONS[f](image)
         (d / f'seg_{f}.bin').write_bytes(found['segments'].tobytes())
         out['detected'][f] = page_meta(found)
-        out['filtered'][f] = [nor_finder.STAGES['refilter'](image, found, sp) for sp in
-                              ({'values': {}, 'off': []}, {'values': {}, 'off': [k['key'] for k in out['about'][f]['filters']]})]
     (d / 'answers.json').write_text(json.dumps(out))
     return str(d)
 

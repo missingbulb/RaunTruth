@@ -1,18 +1,11 @@
-"""The finders and each one's controls: its filters, read from nor3.CHECKS, its detection parameters, the few it names
-first, and the filters' three presets. The page reads them before any Python starts, from web/finders.GENERATED.json,
-which this writes:
-
-    python3 studies/nor/algorithm/controls.py > studies/nor/web/finders.GENERATED.json
-
-A check added to nor3.CHECKS, with its parameters read through `p[...]` or `p.get(...)`, shows up on the page as a
-control by itself; its letter, title and text come from finder_help.REASONS and its colour from nor3.REASONS.
+"""The finders and each one's filters, read from nor3.CHECKS, with the filters' three presets: the lab's to tune (the
+page runs every finder with them off but DEFAULT_ON). A check added to nor3.CHECKS, with its parameters read through `p[...]`
+or `p.get(...)`, becomes a filter by itself.
 """
 import ast
 import functools
 import inspect
-import json
 
-import finder_help
 import nor3
 import nor_rf
 import nor_tl
@@ -32,6 +25,9 @@ EXACT_REFILTER = {'tl', 'fill', 'walk', 'blobs'}
 # finders that take the blue mask themselves and apply it only after finding; every other finder sees no mask, so
 # nuclei are left to the 'in nucleus' filter
 OWN_BLUE = {'rf'}
+# the filters a version keeps on unless told otherwise, as the page runs it: recall first, with the one filter that
+# costs it almost none (lab/ledger.md §7)
+DEFAULT_ON = ('not stick-like',)
 # failures that come after the checks and have their own parameter (their defaults when a finder has none)
 NUCLEUS, SHARED, FAINT = 'in nucleus', 'shares a segment', nor3.FAINT
 POST = {NUCLEUS: ('nucleus_frac', 0.8), SHARED: ('max_shared', 0.3), FAINT: ('red_floor_q', 0.0)}
@@ -75,22 +71,14 @@ def _check_params():
 
 
 def filters(P):
-    """The controls for a finder's parameters P: one per check in judging order, then the nucleus rule and
-    one-pixel-per-NoR."""
+    """A finder's filters at its parameters P: one per check in judging order, then the nucleus rule and
+    one-pixel-per-NoR, each with its key and its parameters' values."""
     cp = check_params(); out = []
     for k in ORDER + [c for c in CHECKS if c not in ORDER] + list(POST):
         ps = cp[k] if k in CHECKS else {POST[k][0]: POST[k][1]}
         vals = {n: P.get(n, d) for n, d in ps.items()}
-        r = reason(k)
-        out.append(dict(key=k, letter=r['letter'], title=r['title'], text=r['text'],
-                        params={n: v for n, v in vals.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}))
+        out.append(dict(key=k, params={n: v for n, v in vals.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}))
     return out
-
-
-def detection_params(P):
-    """Every other scalar parameter of the finder: changing one means detecting again."""
-    used = {n for f in filters(P) for n in f['params']}
-    return {k: v for k, v in P.items() if k not in used and isinstance(v, (int, float, str, bool, tuple, list))}
 
 
 def own_values(finder):
@@ -102,31 +90,3 @@ def preset_values(finder, preset):
     for k, v in own_values(finder).items():
         out[k] = v if k in OFF and v == OFF[k] else round(v + abs(s) * (end[k] - v), 4)
     return out
-
-
-def reason(k):
-    letter, title, text = finder_help.REASONS.get(k, (REASONS.get(k, ('?',))[0], k, REASON_TEXT.get(k, k)))
-    return dict(letter=letter, title=title, text=text, color=REASONS.get(k, (0, (200, 200, 200)))[1])
-
-
-def reasons():
-    return {k: reason(k) for k in REASONS}
-
-
-def describe(finder):
-    """What the page shows for a finder before it runs: its filters, its detection parameters, the few of those it
-    names as the ones worth turning first (the finder function's MAIN), and the filter values of each preset."""
-    fn, P = FINDERS[finder]
-    dp = detection_params(P)
-    return dict(filters=filters(P), detection_params=dp, main_params=[k for k in getattr(fn, 'MAIN', ()) if k in dp],
-                exact_refilter=finder in EXACT_REFILTER, reasons=reasons(), help=finder_help.HELP,
-                presets={p: preset_values(finder, p) for p in PRESETS})
-
-
-def listing():
-    """What the page needs before any image: the finders it can run and each one's controls."""
-    return dict(finders=list(FINDERS), about={f: describe(f) for f in FINDERS})
-
-
-if __name__ == '__main__':
-    print(json.dumps(listing(), indent=1))

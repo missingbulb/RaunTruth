@@ -90,9 +90,8 @@
     {"id": "skip", "label": "Skip", "keys": ["KeyS"], "kind": "press", "legend": false, "control": "#task-skip", "when": ["tagging", "step"]},
     {"id": "reset", "label": "Reset measurements", "keys": ["KeyR"], "kind": "press", "legend": false, "control": "#task-card .reset-lines", "when": ["tagging", "step"]},
     {"id": "show-pass", "label": "Finalists", "title": "The finalists waiting for your verdict, each a faint outline", "keys": ["Digit1", "Numpad1"], "kind": "toggle", "legend": true, "on": "gtPass", "when": ["views"]},
-    {"id": "show-fails", "label": "Rejected", "title": "The rejected waiting for your verdict, each a faint outline", "keys": ["Digit2", "Numpad2"], "kind": "toggle", "legend": true, "on": "gtFails", "when": ["views"]},
-    {"id": "show-added", "label": "Added NoRs", "title": "The NoRs you added where the finder missed one", "keys": ["Digit3", "Numpad3"], "kind": "toggle", "legend": true, "on": "gtAdded", "when": ["views"]},
-    {"id": "show-cut", "label": "Cut out what is done", "title": "What you decided, and each area done, cut out of the image", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "legend": true, "on": "gtCut", "when": ["views", "tagging"]},
-    {"id": "show-frame", "label": "Frame the area", "title": "The area you are working on, framed", "keys": ["Digit5", "Numpad5"], "kind": "toggle", "legend": true, "on": "gtFrame", "when": ["views", "tagging"]}
+    {"id": "show-added", "label": "Added NoRs", "title": "The NoRs you added where the finder missed one", "keys": ["Digit2", "Numpad2"], "kind": "toggle", "legend": true, "on": "gtAdded", "when": ["views"]},
+    {"id": "show-cut", "label": "Cut out what is done", "title": "What you decided, and each area done, cut out of the image", "keys": ["Digit3", "Numpad3"], "kind": "toggle", "legend": true, "on": "gtCut", "when": ["views", "tagging"]},
+    {"id": "show-frame", "label": "Frame the area", "title": "The area you are working on, framed", "keys": ["Digit4", "Numpad4"], "kind": "toggle", "legend": true, "on": "gtFrame", "when": ["views", "tagging"]}
   ]
 }
