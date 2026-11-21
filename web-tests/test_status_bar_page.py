@@ -6,6 +6,7 @@ import pytest
 pytestmark = pytest.mark.full
 
 
+@pytest.mark.flaky(issue=1079, engines=['chromium'])
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_status_bar_follows_the_steps(png, answers):
     run('status_bar_driver.mjs', answers[0], png, answers[1])
