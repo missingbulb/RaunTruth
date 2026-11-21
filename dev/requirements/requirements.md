@@ -186,7 +186,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-17. In Data Management's Tags box (`req/shell/data/tags`) a Study Manager lassoes an
   image's area of interest, drawn and combined as the summary's mask is (`req/shell/summary/mask`), on the image itself
   once Load Original has opened it, never on its preview, whose pixels are not the image's; Clear takes it off. The
-  page keeps it in the tags file and the study index (`req/shell/data/index`). Opened by anyone, the image shows the
+  page keeps it in the study file and its study index (`req/shell/data/index`). Opened by anyone, the image shows the
   area outlined, whether or not the summary shows, and its summary's mask starts as the area. A viewer may draw their
   own mask in its place; while the summary counts a mask of the viewer's own, a warning line at the bottom of the view
   says so, and Clear mask, named "Use the study's area" then, puts the study's area back. Tentative: an image with no
@@ -199,7 +199,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes
   the damaged areas of an image in Data Management's Tags box, on the image itself once Load Original has opened it;
-  Clear takes them off. The image is never changed: the outlines are kept in the tags file and the study index
+  Clear takes them off. The image is never changed: the outlines are kept in the study file and its study index
   (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. The image, opened by
   anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
   (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
@@ -208,7 +208,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the NoR Finder and the Bookshelf Reader analyse no pixel of a damaged area (`req/nor/find/damaged`,
   `req/shelves/books/damaged`), Vascular Measurements leaves them out of its model's measurements
   (`req/vascular/model/damaged`), and each study's scorer leaves what lies in one out of both the answer and the
-  ground truth. The lab reads the damaged areas from the study root's tags file, without signing in, and hands them
+  ground truth. The lab reads the damaged areas from the tags in the study root's study file, without signing in, and hands them
   to the versions and the scorers as the page hands them to its Python, an answer kept for the areas it was run with.
   Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
@@ -247,7 +247,7 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a Study Manager's explicit act, adding an image is not.
   <details>
 
-  Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
+  Set by the owner on 2026-11-17. The study file in its Drive root (`req/shell/ground-truth/setup`, `req/shell/study/one-file`) lists
   the folders the study's images come from, by id, under `folders`; a study file naming none has the data folder its
   root names, else the root itself, as its one listed folder. A Study Manager adds a folder there, or takes one out, as
   an act of its own: Data Management's tree shows each listed folder with Remove from study, and under it the folders
@@ -274,21 +274,21 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
   <details>
 
-  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root,
-  `rauntruth-index.json`, the study index: the listed folders (`req/shell/data/folders`), each by id and name, and
-  every image in them with its Drive id, name, the folder it is in, its path of folder names from the listed folder
-  down, size, SHA-256 and when Drive last changed it; its tags, description, damaged areas (`req/shell/data/damaged`)
-  and area of interest (`req/shell/data/area-of-interest`) join it as those are built; it carries the study file's
-  grouping tag and hiding rules too, so the index alone draws Load study images offline. Only a Study Manager's page
-  writes it: each time Data Management has listed the study's folders, and after a folder is added or taken out, a
-  tag or a description changed, or the grouping or hiding set, it
-  writes the index when what it holds differs from the one there, saying when it was built and by whom; an index the
-  same as the one there is not written again. An index the page did not make is left alone, and the page says to
-  delete it in Drive. A Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from
-  them; an image added in Drive since the index was built is not listed until a Study Manager's page rebuilds it. The
-  tags, descriptions and areas are kept here, in files the page made, never on the images
-  (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits beside it.
-  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
+  Set by the owner on 2026-11-17; moved into the one study file on 2026-11-21 (`req/shell/study/one-file`). The study
+  file keeps, under `index`, a generated copy of the study's images, the study index: the listed folders
+  (`req/shell/data/folders`), each by id and name, and every image in them with its Drive id, name, the folder it is in,
+  its path of folder names from the listed folder down, size, SHA-256 and when Drive last changed it; its tags,
+  description, damaged areas (`req/shell/data/damaged`) and area of interest (`req/shell/data/area-of-interest`) join it
+  as those are built; the study file's grouping tag and hiding rules, kept beside it, come with it, so the study file
+  alone draws Load study images offline. Only a Study Manager's page writes it: each time Data Management has listed the
+  study's folders, and after a folder is added or taken out, a tag or a description changed, or the grouping or hiding
+  set, it writes the index when what it holds differs from the one there, saying when it was built and by whom; an index
+  the same as the one there is not written again, and a tag edit and the index it changes are one write. A study file
+  the page did not make is left alone, and the page says to delete it in Drive. A Viewer or Ground Truth Tagger reads the
+  study file, one read, and lists from it; an image added in Drive since the index was built is not listed until a Study
+  Manager's page rebuilds it. The tags, descriptions and areas are kept here, in the file the page made, never on the
+  images (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits
+  beside it. Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
   </details>
 
 - `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
@@ -330,12 +330,14 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-02; moved to the study's root on 2026-11-07. A study's `root` is a link to its
-  Google Drive root folder, shared as "Anyone with the link" to view: the only folder the repo names. The
-  folders under it are named by the root's settings file (`req/shell/ground-truth/setup`), and until it has
+  Google Drive root folder, the only folder the repo names; who may read it is Drive's sharing of it, members only
+  until the owner shares it by link (`req/shell/study/members`). The
+  folders under it are named by the root's study file (`req/shell/ground-truth/setup`), and until it has
   one, by name: `Data`, its images, and `GT curated`, `GT submissions` or a single `GT`. Signed in, opening a
   GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Study Manager) and
   to the submissions folder (Ground Truth Tagger); a role is offered only where Drive says so. Nobody is
-  listed in the repo, and what anyone can change is still what Drive lets them. Tests:
+  listed in the repo, and what anyone can change is still what Drive lets them. Changed by the owner on 2026-11-21: who
+  may read the root decides who sees the study at all (`req/shell/study/members`). Tests:
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
@@ -352,9 +354,9 @@ nobody has decided: what the page does there is not a requirement yet.
   show on its images, dimmed, naming the folder they come from. Tentative: a tag is written in lower case, words of
   letters and digits joined by hyphens, and a multi-value tag's name and value alike; `folder` is the page's own name
   and no tag may use it. Tentative: an image's own value of a multi-value tag wins over one a folder gives it, and a
-  folder's over one the folder holding it gives. The tags and descriptions are written by the page into a file of
-  their own in the study's root, `rauntruth-tags.json`, never on the images, and from there into the study index
-  (`req/shell/data/index`), each image with the tags it carries; a tags file the page did not make is left alone.
+  folder's over one the folder holding it gives. The tags and descriptions are written by the page into the study file in the study's root, under `tags`
+  (`req/shell/study/one-file`), never on the images, and from there into the study index (`req/shell/data/index`), each
+  image with the tags it carries, in one write; a study file the page did not make is left alone.
   Test: `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`, `web-tests/test_study_root.py`.
   </details>
 
@@ -777,17 +779,17 @@ nobody has decided: what the page does there is not a requirement yet.
   role shown. The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's settings file.
+- `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's study file.
   <details>
 
   Set by the owner on 2026-11-07. For a Study Manager of a GT or PostGT study, Data Management offers Set up
   ground truth. It asks whether submissions need review: yes makes `GT curated` and `GT submissions` in the
   root, no makes one `GT` for both. It shares the curated folder with anyone with the link to view, then
-  writes `rauntruth-study.json` in the root naming the data folder and the ground-truth folders by id, who
-  set it up and when. Without the page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites the file; it never makes a second
+  writes `rauntruth-study.json` in the root, the one study file (`req/shell/study/one-file`), naming the data folder
+  and the ground-truth folders by id, who set it up and when. Without the page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites the file; it never makes a second
   folder of a name. Google's own words show when it refuses. Changed by the owner on 2026-11-07: it sits
   at the top of Data Management's column, highlighted while the root has no ground-truth folders; choosing
-  an answer closes the dialog once the folders are made; once the settings file names the folders it is no
+  an answer closes the dialog once the folders are made; once the study file names the folders it is no
   longer offered; switching between reviewed and unreviewed is the Ground Truth box's
   (`req/shell/ground-truth/switch`). Tests: `web-tests/test_study_root.py`,
   `web-tests/test_gt_drive_page.py`.
@@ -828,7 +830,7 @@ nobody has decided: what the page does there is not a requirement yet.
   confirmation says taggers need edit access to GT curated, which only Drive's sharing gives. Unreviewed
   to reviewed makes the one GT folder the curated one, so everything submitted so far counts as accepted,
   and makes GT submissions (or finds it by name: never a second folder of a name); the confirmation says
-  to give taggers edit access to it and take theirs off GT curated. The settings file keeps who set it up
+  to give taggers edit access to it and take theirs off GT curated. The study file keeps who set it up
   and records the mode before, who switched and when. Tests: `web-tests/test_study_root.py`,
   `web-tests/test_gt_drive_page.py`.
   </details>
@@ -1548,15 +1550,16 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_runs.py`.
   </details>
 
-- `req/shell/site/landing` The site's root is a short page saying what the site is, opening the app and each listed study.
+- `req/shell/site/landing` The site's root is a short page saying what the site is and opening the app, which lists the studies.
   <details>
 
   Set by the owner on 2026-11-02, so a visitor who gets a link learns what this is before landing in
   the tool. `rauntruth.com/` says what the site does and for whom, that images are analysed in the
-  browser and never uploaded, and that it is free and open source; it opens the app (`req/shell/site/app-address`), lists
-  every study the switcher offers (`req/shell/header`), each a link to its address, filled in by the build from
-  the studies' `study.json`, lists the supported browsers (`req/shell/browsers/supported`), and links the privacy policy, the terms and the license. Test:
-  `web-tests/test_published_site.py`.
+  browser and never uploaded, and that it is free and open source; it opens the app (`req/shell/site/app-address`),
+  lists the supported browsers (`req/shell/browsers/supported`), and links the privacy policy, the terms and the
+  license. Changed by the owner on 2026-11-21: it lists no study, since who may see a study is read at run time from
+  Drive's sharing (`req/shell/study/members`); the app's switcher (`req/shell/header`) lists them, and the page says so.
+  Test: `web-tests/test_published_site.py`.
   </details>
 
 - `req/shell/site/license` The code is MIT-licensed: the repo's `LICENSE`, and rauntruth.com/license.
@@ -1785,6 +1788,33 @@ nobody has decided: what the page does there is not a requirement yet.
   and the shell's page tests run on the fixture study, which shares none of them.
   </details>
 
+- `req/shell/study/members` Signed in, the switcher lists the studies whose root the user can read; signed out, the released ones.
+  <details>
+
+  Set by the owner on 2026-11-21. A study's root is members-only on Drive (a Drive file or folder can carry sharing its
+  parent does not, so the folders visitors and the lab need are each shared by link on top); whoever can read the root is
+  a member, and membership, not the stage, decides who sees a study. Signed in, the page asks Drive which of the listed
+  studies' roots the account can read, all of them in one batch request per load, and the switcher lists those and the
+  released ones (stage `Published` in `study.json`, or `Public` in the study file); a study with no root is listed to all.
+  Signed out, it lists the released ones and asks Drive nothing. While the token has run out or Drive does not answer, the
+  list Drive last gave this user stays, with the line "as Drive last said" under it, until they sign out. The root's
+  readers are Drive's: the repo lists no one. Test: `web-tests/test_study_members_page.py`.
+  </details>
+
+- `req/shell/study/one-file` A study keeps one study file in its Drive root, holding its folders, images index, tags, hide and grouping rules, marks and stage.
+  <details>
+
+  Set by the owner on 2026-11-21. `rauntruth-study.json` (format `rauntruth-study/2`) holds what the settings, index and
+  tags files held (`req/shell/ground-truth/setup`, `req/shell/data/folders`, `req/shell/data/index`,
+  `req/shell/data/tags`, `req/shell/data/hidden`), and the marks and the stage as they arrive; the separate index and
+  tags files go. A root still holding the three files of before is read as it was and written back as one file the next
+  time a Study Manager's page saves, the two old files trashed only where `writer.ours` says the page made them. A study
+  file is read once per root a minute; each write reads it afresh and merges into what it finds, as two managers may edit
+  at once. A study file the page did not make is left alone. The file is also readable by link on top of the root's
+  sharing, its id kept only in the cloud environment (`RAUNTRUTH_STUDY_<STUDY>`). Test: `web-tests/test_study_root.py`,
+  `web-tests/test_study_index_page.py`.
+  </details>
+
 - `req/shell/study/request-form` The switcher ends with Submit New Study Request, a GitHub issue form for proposing a study.
   <details>
 
@@ -1794,6 +1824,15 @@ nobody has decided: what the page does there is not a requirement yet.
   ground truth if any, the literature, and the submitter's name and email, which the form warns
   are public. Test: `web-tests/test_study_runs.py` (the link opens the form the repo carries),
   `web-tests/test_study_request.py` (the form asks for each of these).
+  </details>
+
+- `req/shell/study/review-link` A study in Review opens at its address for anyone, signed out, but is not listed.
+  <details>
+
+  Set by the owner on 2026-11-21. The owner shares the root by link when the study enters Review, so reviewers need no
+  Google account: the study opens at its address, whose root the site's key can then read, and the switcher does not
+  list it to anyone signed out. Until the stages arrive, `Review` in the study file marks it. Test:
+  `web-tests/test_study_members_page.py`.
   </details>
 
 - `req/shell/study/stage` A study declares its stage: PreGT, GT, PostGT or Published.
@@ -1843,20 +1882,16 @@ nobody has decided: what the page does there is not a requirement yet.
   a stack in 3D in the 2D view's place, with no change to the studies that keep the 2D viewer.
   </details>
 
-- `req/shell/study/visibility` A study declares who sees it: everyone, no one but by its address, or the Google accounts it names.
+- `req/shell/study/visibility` A study's address opened by someone who may not see it says so, naming the account signed in.
   <details>
 
-  Set by the owner on 2026-11-04. Every `study.json` names its `visibility`: `"listed"` (the
-  header's switcher offers it to everyone, and the landing page lists it), `"unlisted"` (offered
-  nowhere, opened only by its address; the fixture) or `{"accounts": [email, …]}` (the switcher
-  offers it only while one of those accounts is signed in, and the landing page never lists it).
-  Opened at its address by anyone else, signed out or signed in with another account, the page
-  says the study is shown only to the accounts it names and opens the Image Viewer instead; signing
-  in with one of them offers it in the switcher at once. This hides a study from the page, not
-  from the network: its files are published like any other study's, so it holds nothing secret.
-  The Bookshelf Reader is shown to its owner's account alone. Test:
-  `web-tests/test_study_contract.py`, `web-tests/test_published_site.py`,
-  `web-tests/test_study_visibility_page.py`.
+  Set by the owner on 2026-11-04; rewritten on 2026-11-21. Every `study.json` names its `visibility`: `"listed"` (the
+  header's switcher may offer it, to those `req/shell/study/members` says) or `"unlisted"` (offered nowhere, opened only
+  by its address; the fixture). A study's address opened by someone who may not see it, signed in with an account
+  Drive does not let read its root, says that account cannot open it, naming the account, and offers Sign out; signed
+  out, it says the study is "not open right now". Either way the study's own code is not fetched, and the Image Viewer
+  opens instead. Where Drive cannot be asked (offline, the token run out with nothing learned), the study opens.
+  Test: `web-tests/test_study_members_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
 - `req/shell/summary/download` Download Summary, at the Summary box's foot, saves the study's summary as one standard CSV.
