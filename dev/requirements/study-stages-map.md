@@ -68,12 +68,15 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
 | **Run the algorithm on your own images**, in the browser only, nothing leaving the device | - | - | - | - | everyone |
 | **Start Annotating** (submissions write) | open for trial, nothing counted | open: annotations score the algorithm | open: annotations replace the algorithm's answer in the study's numbers | closed | closed |
 | **Accept or reject submissions** (curated write), in annotation mode | closed | open | open | closed | closed |
-| **Batch run** over the study's images | closed | closed | open, on the locked version | closed | closed |
+| **Batch run** over the study's images | closed | closed | open; each result names its algorithm version | closed | closed |
 | **Numbers shown** | none | each version's precision and recall | the study's results | the frozen results | the published results |
-| **Developer** (repo) | first algorithm and annotation tools | improve algorithms, record each version's quality | only output-preserving changes | same | same |
-| **Owner promotes when** | inputs marked, an annotation tool works | the owner judges the analysis valid, locking the version | the owner calls the results final | the article is accepted | none |
+| **Developer** (repo) | first algorithm and annotation tools | improve algorithms, record each version's quality | improve algorithms; users correct outputs | only output-preserving changes | same |
+| **Owner promotes when** | inputs marked, an annotation tool works | the owner judges the analysis valid | the owner calls the results final | the article is accepted | none |
 
-- Develop and Analyze differ by whether the algorithm may change: Analyze's numbers come from one locked version.
+- Develop and Analyze differ by what the work serves: in Develop annotations score the algorithm, in Analyze
+  batch runs and corrections make the study's numbers. Algorithms may keep changing through Analyze (they are not
+  meant to be perfect, users correct them); every extraction names the version that made it. The freeze is at
+  Review, where a frozen performance score is published with the frozen ground truth that produced it.
 - Review adds no permission: reviewers open the study by its address, and Review is a freeze.
 - Study Setup's data actions close in Review and Public; the stage, the article link and who is shared stay open
   in every stage, so the owner can still promote, move back and name the article.
@@ -96,6 +99,17 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
   model alone: no action history, no algorithm invocation, no annotator name. Precision and recall are published
   "officially" then, measured on that committed set; the commit is what makes the numbers reproducible. Before
   Review, annotations live on Drive only. (Committed means public at once, while the study is only unlisted.)
+
+- **Batch runs** run in the main app over the study's images and write one extraction per image to the study's
+  Drive folders, each naming the image hash and the algorithm version; the results view reads them and downloads
+  a table.
+- **Ground truth is an approved extraction.** Every extraction (a tagger's, a researcher's run, a batch run) is
+  the same kind of file: the algorithm runs at a version and parameters, the manual actions added, kept in the same
+  place. An extraction approved as GT (by its tagger or the owner) is ground truth; committing GT at Review is an
+  addendum to that flow.
+- **Claude sessions reach a study's Drive root** through an environment variable per study in the owner's cloud
+  environment (for example `RAUNTRUTH_ROOT_VASCULAR`), never the repo; a session without it stops with a clear
+  message. `sources.json` keeps image names and hashes and drops Drive IDs. CI and the website need no root.
 
 ## Decisions so far
 
