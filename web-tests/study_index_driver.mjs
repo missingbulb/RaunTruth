@@ -13,9 +13,13 @@ import path from "node:path";
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
 const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+  // the study file's index section (with the grouping and hiding it carries) and its tags section, each kept when it changes
   uploaded: (f) => {
-    if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
-    if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
+    if (f.name !== "rauntruth-study.json") return;
+    const doc = JSON.parse(f.bytes.toString());
+    const ix = doc.index && { ...doc.index, group: doc.group ?? null, hide: doc.hide ?? [] };
+    if (ix && JSON.stringify(ix) !== JSON.stringify(indexes.at(-1))) indexes.push(ix);
+    if (doc.tags && JSON.stringify(doc.tags) !== JSON.stringify(tagFiles.at(-1))) tagFiles.push(doc.tags);
   } });
 const idOf = (name) => FILES.find((f) => f.name === name).id;
 // the study file names the Data folder, and is the page's own, as one its Set up wrote
@@ -120,7 +124,10 @@ const indexed = (n) => orMissed(page.waitForFunction((n) => /^Study index/.test(
 const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
+const studyWrites = () => writes.filter(([, name]) => name === "rauntruth-study.json").length;
+const writesBefore = studyWrites();
 await tagIt("Group:Wild Type");
+await check(studyWrites() - writesBefore === 1, "one tag edit is one write of the study file, the tags and the index in it together", studyWrites() - writesBefore);
 await check(JSON.stringify(tagFiles.at(-1)?.folders?.[idOf("Data")]) === JSON.stringify({ tags: ["group:wild-type"] }), "a folder's tag, written as the page keeps it, goes into the tags file", tagFiles.at(-1));
 await check(JSON.stringify(imageOf(indexes.at(-1), "beta.png")?.tags) === JSON.stringify(["group:wild-type"]), "and onto every image under the folder in the index", imageOf(indexes.at(-1), "beta.png"));
 const chooseImage = async (folder, name) => {

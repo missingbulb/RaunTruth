@@ -1,4 +1,4 @@
-"""req/shell/data/roles, req/shell/data/folders, req/shell/data/index, req/shell/data/tags, req/shell/data/hidden, req/shell/ground-truth/folders, req/shell/ground-truth/setup, req/shell/ground-truth/switch: a study's root and its settings
+"""shell/study/one-file, req/shell/data/roles, req/shell/data/folders, req/shell/data/index, req/shell/data/tags, req/shell/data/hidden, req/shell/ground-truth/folders, req/shell/ground-truth/setup, req/shell/ground-truth/switch: a study's root and its settings
 file (web/study_root.js, under Node by study_root_driver.mjs against an in-memory store). The store stands in for
 Google's, so these cases cannot catch Drive refusing a write; the page test against the stand-in Drive does."""
 import json
@@ -30,7 +30,7 @@ def test_a_root_with_only_its_data_is_not_set_up(out):
 def test_set_up_with_review_makes_two_folders_shares_curated_and_writes_the_file(out):
     r = out['review']
     assert r['writes'] == [['folder', 'GT curated'], ['folder', 'GT submissions'], ['share', 'GT curated'], ['create', 'rauntruth-study.json']]
-    assert r['doc'] == {'format': 'rauntruth-study/1', 'data': True, 'curated': True, 'submissions': True, 'review': True,
+    assert r['doc'] == {'format': 'rauntruth-study/2', 'data': True, 'curated': True, 'submissions': True, 'review': True,
                         'set_by': 'dm@acme.example', 'set_at': '2026-11-07T10:00:00.000Z'}
     assert r['same'] is False and r['readBack'] is True
 
@@ -85,20 +85,32 @@ def test_the_previews_folder_is_found_by_name_and_made_once(out):
 
 def test_the_listed_folders_default_to_the_data_folder_and_are_written_keeping_every_other_key(out):
     assert out['folders'] == {'implicit': True, 'rootOnly': True, 'writes': [['replace', 'rauntruth-study.json']], 'listed': True,
-                              'keysKept': True, 'afterSwitchAndSetup': True, 'made': {'format': 'rauntruth-study/1', 'folders': 1},
+                              'keysKept': True, 'afterSwitchAndSetup': True, 'made': {'format': 'rauntruth-study/2', 'folders': 1},
                               'refused': True, 'handWrites': 0}
 
 
-def test_the_index_is_written_only_when_it_differs_and_never_over_one_made_by_hand(out):
-    assert out['index'] == {'first': 'written', 'same': 'same', 'changed': 'written', 'format': 'rauntruth-index/1',
-                            'by': 'dm@acme.example', 'at': '2026-11-07T10:00:00.000Z', 'images': 2,
-                            'writes': [['create', 'rauntruth-index.json'], ['replace', 'rauntruth-index.json']],
+def test_the_index_is_written_into_the_study_file_only_when_it_differs_and_never_over_one_made_by_hand(out):
+    assert out['index'] == {'first': 'written', 'same': 'same', 'changed': 'written', 'format': 'rauntruth-study/2',
+                            'by': 'dm@acme.example', 'at': '2026-11-07T10:00:00.000Z', 'images': 2, 'files': ['rauntruth-study.json'],
+                            'writes': [['create', 'rauntruth-study.json'], ['replace', 'rauntruth-study.json']],
                             'hand': 'not ours', 'handWrites': 0, 'none': None}
 
 
-def test_the_tags_file_is_the_pages_own_and_the_study_file_keeps_grouping_and_hiding(out):
-    assert out['tags'] == {'none': {'images': 0, 'folders': 0},
-                           'writes': [['create', 'rauntruth-tags.json'], ['replace', 'rauntruth-tags.json']],
-                           'back': {'images': 0, 'folder': ['dim'], 'format': 'rauntruth-tags/1'},
+def test_the_tags_and_the_index_go_into_the_study_file_in_one_write_and_the_study_file_keeps_grouping_and_hiding(out):
+    assert out['tags'] == {'none': {'images': 0, 'folders': 0}, 'both': 'written', 'oneWrite': [['replace', 'rauntruth-study.json']],
+                           'back': {'images': 0, 'folder': ['dim']}, 'indexImages': 1, 'files': ['rauntruth-study.json'],
                            'refused': True, 'handWrites': 0,
                            'study': {'group': 'group', 'hide': ['damaged-slide'], 'folders': 1, 'readGroup': 'group', 'readHide': ['damaged-slide']}}
+
+
+def test_a_root_holding_only_the_study_file_gives_its_folders_index_tags_marks_and_stage_from_one_download(out):
+    assert out['oneFile'] == {'stage': 'Review', 'folders': 1, 'index': 1, 'group': 'group', 'hide': ['x'], 'tags': ['group:sick'], 'marks': 'E1', 'calls': 1}
+
+
+def test_a_root_still_holding_the_three_files_of_before_is_read_and_written_back_as_one_file_trashing_the_old_two_only_where_the_page_made_them(out):
+    m = out['migration']
+    assert m['before'] == {'index': 1, 'tags': ['I1'], 'old': True}
+    assert m['writes'] == [['replace', 'rauntruth-study.json'], ['trash', 'rauntruth-index.json'], ['trash', 'rauntruth-tags.json']]
+    assert m['one'] == {'format': 'rauntruth-study/2', 'index': 1, 'tags': ['I1'], 'stage': 'Develop', 'group': 'group'}
+    assert m['after'] == {'old': {'index': None, 'tags': None}, 'index': 1, 'tags': ['I1']}
+    assert m['hand'] == {'trashes': 0, 'files': ['Data', 'rauntruth-index.json', 'rauntruth-study.json', 'rauntruth-tags.json']}

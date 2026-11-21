@@ -8,7 +8,8 @@ The images are the files of the root's data folder (its rauntruth-study.json `da
 ground truth is the newest file per image of the root's curated folder (its `curated`, else a top folder named
 GT curated or GT), in the shell's layout: one subfolder per image, `<image>__<its sha256's first 8>`, one
 `gt_<tagger>.json` per tagger in it. Each file names its image by SHA-256, which is how the lab pairs the two. Each
-image's damaged areas are those the root's tags file gives it, by Drive id (req/shell/data/damaged).
+image's damaged areas are those the study file's tags give it, by Drive id (req/shell/data/damaged), else those of the
+tags file of before the one study file (req/shell/study/one-file).
 Reading needs the folders shared as "Anyone with the link"; nothing here signs in.
 """
 import argparse
@@ -168,8 +169,9 @@ def study_root(sid, transport=None):
 
 
 def damaged(root):
-    """{Drive id: the image's damaged areas, [[[x, y], ...], ...] in its pixels} as the root's tags file has them."""
-    tags = (root.own(TAGS) if root else None) or {}
+    """{Drive id: the image's damaged areas, [[[x, y], ...], ...] in its pixels} as the study file's tags have them, else
+    as the root's tags file of before has them."""
+    tags = (root.settings.get('tags') or root.own(TAGS) if root else None) or {}
     images = tags.get('images') if isinstance(tags.get('images'), dict) else {}
     return {fid: own['damaged'] for fid, own in images.items() if isinstance(own, dict) and own.get('damaged')}
 
