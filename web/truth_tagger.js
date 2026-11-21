@@ -1,11 +1,13 @@
-// The Ground Truth Tagger's side of the study's ground-truth folders (truth_folders.js): the line in the study's
-// ground-truth box (every `.gt-access` its panels hold) saying when the tagger may not write to the submissions folder
-// and how to get there (req/shell/ground-truth/tagger-access), and Submit (req/shell/ground-truth/submit).
+// The annotator's side of the study's ground-truth folders (truth_folders.js): the line in the study's ground-truth box
+// (every `.gt-access` its panels hold) saying when the user may not save to the submissions folder and how to get there
+// (req/shell/annotate/no-save), and Submit (req/shell/ground-truth/submit).
 "use strict";
 import { folders, submit, status, current, subfolderName, own } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
+  signedout: "You are not signed in, so nothing here can be saved to the study. Sign in to save; you can download your work meanwhile.",
+  nosave: "You may not save to this study. Ask the study owner for access; you can download your work meanwhile.",
   unset: "This study has not set up its ground-truth folders yet, so ground truth cannot be submitted.",
   view: "View only: the store lets you only view the study's submissions folder. Ask its owner for edit access.",
   unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
@@ -14,11 +16,13 @@ const SAY = {
 export const LOCAL_GT = (remote) => `Ground truth cannot be sent from local files, only from ${remote.label}.`;
 
 // account: the sign-in; remote: the remote store; place: the study's place in it (study_root.js studyPlace); image() the image open, {name, sha256, source} or null; on() whether the user makes ground truth now;
-export function truthTagger({ account, remote, place, image, on }) {
+// may() whether the store lets this user save to the study's submissions folder, as far as last read
+export function truthTagger({ account, remote, place, image, on, may }) {
   const sd = remote.writer(account);
   const reader = place.reader;
   const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark };
-  // the access last read: "write" | "view" | "unpermitted" | "unset" | "unknown"; epoch: the draw a late answer belongs to
+  // the access last read: "write" | "view" | "unpermitted" | "unset" | "unknown", or "signedout" | "nosave" for who may not
+  // save at all; epoch: the draw a late answer belongs to
   let access = null, epoch = 0;
   // the access lines as the page loaded, put back when the study leaves
   const asStarted = asLoaded([...document.querySelectorAll("#left .gt-access")]);
@@ -46,6 +50,7 @@ export function truthTagger({ account, remote, place, image, on }) {
     const mine = ++epoch;
     access = null; paint();
     if (!on()) return;
+    if (!may()) { access = account.signedIn() ? "nosave" : "signedout"; return paint(); }
     const got = await read();
     if (mine === epoch) { access = got; paint(); }
   }
@@ -75,16 +80,18 @@ export function truthTagger({ account, remote, place, image, on }) {
     async readMine(id) { return JSON.parse(await reader.text(id)); },
     // the image's curated ground truth, {name, doc}, or null, its files read now (req/shell/ground-truth/view)
     async curated(img) { const f = await gt(); return f.curated ? current(reader, f.curated, img) : null; },
-    // why Submit is off for the image open, "" when it is on
+    // why Submit is off for the image open, "" when it is on. A sign-in that ran out, or a store that did not answer, is no
+    // reason: the save is tried and, failing, waits for the next click (req/shell/annotate/survives)
     blocked() {
       const im = image();
       if (!im || !remote.owns(im.source)) return LOCAL_GT(remote);
-      if (access !== "write") return SAY[access || "unknown"];
+      if (access && access !== "write" && access !== "unknown") return SAY[access];
       return "";
     },
-    // the study's document written to the submissions folder as this tagger's ground truth for the image open
-    async submit(doc) {
-      const im = image(), email = account.email();
+    // the study's document written to the submissions folder as this user's ground truth for the image open, or for im, an image
+    // {name, sha256, source} a save waiting on this device is for
+    async submit(doc, im = image()) {
+      const email = account.email();
       const full = { ...doc, created: new Date().toISOString(), tagger: email,
         image: { ...(doc.image && typeof doc.image === "object" ? doc.image : {}), name: im.name, sha256: im.sha256, ...remote.cite(im.source) } };
       await submit({ reader, writer, folder: await where(), image: { name: im.name, sha256: im.sha256 }, email, doc: full });

@@ -1,5 +1,5 @@
 """req/shell/ground-truth/draft-offer (the tagger's own submission, Approved by the owner on 2026-11-16), req/shell/ground-truth/history-replay
-(a submission checked as a draft is): a Ground Truth Tagger on another device is offered their own submission in the study's Drive
+(a submission checked as a draft is): an annotator on another device is offered their own submission in the study's Drive
 folder, found from two listings as the image opens and read only on the click, in headless Chromium against a stand-in Google
 (gt_resume_driver.mjs)."""
 import pytest

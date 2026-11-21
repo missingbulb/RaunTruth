@@ -1,6 +1,6 @@
 // Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
-// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the Study Manager role's
-// view, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
+// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the view the avatar's
+// Data Management item opens, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
 // left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
 // it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
 // chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
@@ -15,7 +15,7 @@ import { asLoaded } from "./as_loaded.js";
 import { work } from "./pending.js";
 import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
-import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
+import { SETTINGS as SETTINGS_NAME, setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeStudyData, readTags, writeTags } from "./study_root.js";
 import { parseTag, addTag, effective, isHidden, multiNames, FOLDER } from "./tags.js";
 
 const MAX_FOLDERS = 200;
@@ -137,20 +137,30 @@ export function dataMode(ctx) {
     for (const id of roots) walk(id, [], []);
     return { folders: roots.map((id) => ({ id, name: nodes.get(id)?.name || "Folder" })), images, group: look.group, hide: look.hide };
   }
-  // the index written when it differs from the one there; never from a listing cut short or one a folder failed in
+  // why the index cannot be written now, or null; never from a listing cut short or one a folder failed in
+  const indexBlocked = (cut) => {
+    if (cut || [...nodes.values()].some((n) => n.error)) return "Study index: not written, as not every folder could be listed.";
+    if (tagsDoc.unread) return "Study index: not written, as the tags could not be read.";
+    if (["view", "unpermitted"].includes(nodes.get(place.root())?.access)) return "Study index: not written, as this site may not add files to the study's root for you.";
+    return null;
+  };
+  // what writing the index came to, as the Study index line says it
+  function indexSaid(done, ix) {
+    place.forgetIndex(); drawStudySet(ix);
+    const n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    msg($("#data-index"), done === "not ours" ? `Study index: ${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
+      : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+  }
+  // the index written when it differs from the one there
   async function index(of, cut) {
     const top = place.root(), say = (t, err) => msg($("#data-index"), t, err);
     if (!top || of !== epoch) return;
-    if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
-    if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
-    if (["view", "unpermitted"].includes(nodes.get(top)?.access)) return say("Study index: not written, as this site may not add files to the study's root for you.", true);
-    const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    const why = indexBlocked(cut);
+    if (why) return say(why, true);
+    const ix = indexOf();
     try {
-      const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
-      if (of !== epoch) return;
-      place.forgetIndex(); drawStudySet(ix);
-      say(done === "not ours" ? `Study index: ${INDEX_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
-        : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+      const done = await writeStudyData({ reader, writer, root: top, index: ix, by: account.email() });
+      if (of === epoch) indexSaid(done, ix);
     } catch (e) { if (of === epoch) say("Study index: not written: " + (e.message || e), true); }
   }
   // ---------- tags, descriptions, grouping and hiding (req/shell/data/tags, req/shell/data/hidden) ----------
@@ -164,15 +174,22 @@ export function dataMode(ctx) {
     }
     return out;
   };
-  // the tags file and the index written after an edit; what the edit said, or why it was not saved
+  // the tags and the index written after an edit; what the edit said, or why it was not saved
   const saveTags = work.counting("tags saved", async (next, said) => {
     const top = place.root(), was = tagsDoc;
     if (!top || offline()) return;
     tagsDoc = next; drawTags();
-    try { await writeTags({ reader, writer, root: top, doc: next }); }
-    catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
+    // the tags and the index are one write of the study file
+    const of = epoch, why = indexBlocked(false), ix = why ? null : indexOf();
+    let done;
+    try {
+      if (why) await writeTags({ reader, writer, root: top, doc: next });
+      else done = await writeStudyData({ reader, writer, root: top, tags: next, index: ix, by: account.email() });
+      if (done === "not ours") throw new Error(`${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`);
+    } catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
     msg($("#tags-msg"), said || "");
-    await index(epoch);
+    if (of !== epoch) return;
+    if (why) msg($("#data-index"), why, true); else indexSaid(done, ix);
   });
   // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
   function drawTags() {
@@ -711,8 +728,8 @@ export function dataMode(ctx) {
     },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },
-    // the Study Manager role chosen, or left (req/shell/account/role)
-    role(open) { $("#data-col").hidden = !open; enter(open); },
+    // Data Management opened or left, from the avatar's menu (until Study Setup replaces it)
+    open(on) { $("#data-col").hidden = !on; enter(on); },
     get on() { return on(); },
   };
 }

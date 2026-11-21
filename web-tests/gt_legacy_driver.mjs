@@ -1,5 +1,5 @@
 // Drives shell.gt.legacy (req/shell/ground-truth/legacy) in headless Chromium on the fixture study, against the stand-in Google of
-// stand_in_drive.mjs, as a Ground Truth Tagger: an old store of the study's own is offered once its run is in the log, is never
+// stand_in_drive.mjs, annotating: an old store of the study's own is offered once its run is in the log, is never
 // loaded unasked, loads as a base counted as unsaved, is forgotten only when a draft has kept it, and is offered again at the
 // next visit until then. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_legacy_driver.mjs ANSWERS STUDIES ROOT
@@ -31,7 +31,6 @@ await until(page, () => !$("#gt-offers").hidden);
 let o = await offers(page);
 await check(o.box && o.legacy && !o.draft && /^Load earlier edits/.test(o.text) && /marks kept in this browser/.test(o.title), "the old store is offered beside Load draft once the run lands, saying where it came from", o);
 await check(JSON.parse(fromRun).length === 2 && (await kept(page)), "nothing is loaded unasked, and the old store is still there");
-await page.click("#gt-start");
 
 // loaded as a base, counted as unsaved, and not yet forgotten
 await page.click("#gt-load-legacy");
@@ -58,7 +57,6 @@ await until(page, () => !!window.fixture.model());
 await until(page, () => !$("#gt-offers").hidden);
 o = await offers(page);
 await check(o.legacy && await kept(page), "the page closed before a draft held the base: the old store is still there and offered again", o);
-await page.click("#gt-start");
 
 // loaded and saved: forgotten, and the draft holds the base
 await page.click("#gt-load-legacy");
@@ -94,7 +92,6 @@ await page.context().close();
   await until(page, () => !$("#gt-offers").hidden);
   let o = await offers(page);
   await check(o.legacy && /3 actions/.test(o.title) && !(await page.evaluate(() => window.fixture.model().checked)), "actions of an old store are offered, and none is done unasked", o);
-  await page.click("#gt-start");
   await page.click("#gt-load-legacy");
   await until(page, () => window.fixture.model().checked);
   const m = await page.evaluate(() => window.fixture.model());

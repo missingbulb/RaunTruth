@@ -17,8 +17,10 @@ import { pw, launch, googleOf, siteOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
-// uploaded(file): each file the page creates or replaces, {name, bytes}
-export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
+// uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
+// (and what it holds, until a folder has readers of its own), which then no longer shares it with anyone with the link
+// pageError(e): what a page's uncaught error does, in place of ending the run
+export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, pageError }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
 
@@ -37,14 +39,15 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
   };
   add(rootDir, ROOT);
+  if (members) { drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set(members)); }
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
-  // gt: the study set up with review, its settings file in ROOT naming two ground-truth folders kept outside ROOT,
+  // gt: the study set up with review, its study file in ROOT, the page's own as its set-up wrote it, naming two ground-truth folders kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
   const GT = { curated: "dmgtcurated000000000001", submissions: "dmgtsubmissions0000001" };
   const anyone = { has: () => true };
   if (gt) {
     for (const [id, name] of [[GT.curated, "GT curated"], [GT.submissions, "GT submissions"]]) { drive.folder({ id, name, parent: "elsewhere" }); drive.writers.set(id, anyone); }
-    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT,
+    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT, mine: true,
       bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
   }
   // the folders Drive lets the user only view
@@ -116,7 +119,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
   const origin = `http://127.0.0.1:${server.address().port}`;
 
-  const done = async (code) => { await browser.close(); server.close(); py?.kill(); process.exit(code); };
+  const close = async () => { await browser.close(); server.close(); py?.kill(); };
+  const done = async (code) => { await close(); process.exit(code); };
   const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
   // a page or a check gone wrong ends the run
 
@@ -124,25 +128,28 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // scopes: what the signed-in user's token may do, in place of SCOPES; email: who is signed in, in place of the
   // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
   // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
-  // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false } = {}) {
+  // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept;
+  // viewport: the window's size; name: the signed-in user's; until: when their token runs out, in place of an hour
+  // on; welcome: the welcome popup not yet answered, as on a first visit
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
+    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) google.settings.length = 0;
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
+    const ctx = await browser.newContext({ viewport, deviceScaleFactor: scale });
     if (study) studiesOf(ctx).edit(id, (m) => ({ ...m, ...study }));
     if (prepare) await prepare(ctx);
     // the welcome popup answered before, and remembered (req/shell/account/welcome); seeded once a tab, so a reload
     // keeps what the page itself wrote since
-    await ctx.addInitScript(([who, seed]) => {
+    await ctx.addInitScript(([who, seed, welcome]) => {
       delete Navigator.prototype.serviceWorker;
       if (sessionStorage.getItem("primed")) return;
       sessionStorage.setItem("primed", "1");
       if (who) localStorage.setItem("nor-google-sign-in", JSON.stringify(who));
-      localStorage.setItem("nor-welcome", JSON.stringify({ choice: who ? "google" : "anonymous", remember: true }));
+      if (!welcome) localStorage.setItem("nor-welcome", JSON.stringify({ choice: who ? "google" : "anonymous", remember: true }));
       for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-    }, [signedIn ? google.signedIn({ email: email || EMAIL, name: "Tester", scopes: scopes || SCOPES }) : null, seed]);
+    }, [signedIn ? google.signedIn({ email: email || EMAIL, name, scopes: scopes || SCOPES, ...(until ? { until } : {}) }) : null, seed, welcome]);
     const page = await ctx.newPage();
-    page.on("pageerror", async (e) => { if (cutShort(e)) return; console.error("page error: " + e.message); await done(1); });
+    page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
     page.setDefaultTimeout(STEP);
     await page.goto(origin + "/web/" + id);
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
@@ -150,12 +157,14 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   }
 
 
-  // the role menu's choice (req/shell/account/role), the page then showing it
-  async function role(page, name) {
-    await page.click("#role-menu summary");
-    await page.click(`#role-list .item:text-is("${name}")`);
-    await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
+  // Data Management opened (on) or left from the avatar's menu, the page then showing it (req/shell/data/mode)
+  async function dataManagement(page, on = true) {
+    await page.click("#user-menu summary");
+    await page.waitForSelector("#open-data:not([hidden])");
+    const now = await page.evaluate(() => document.documentElement.dataset.mode === "data");
+    await page.click(now === on ? "#user-menu summary" : "#open-data");
+    await page.waitForFunction((on) => (document.documentElement.dataset.mode === "data") === on, on);
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, role, check, done, origin };
+  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

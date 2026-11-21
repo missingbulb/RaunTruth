@@ -12,6 +12,7 @@
 // bytes, and a channel hidden changing nothing it counts (req/shell/python/on-run, req/shell/python/file-bytes). Prints what it saw; exits 1 on a failure, 2 when it
 // cannot run.
 //   node web-tests/study_page_driver.mjs ANSWERS IMAGE.png STUDIES
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
@@ -23,7 +24,7 @@ import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
 import { held as holding } from "./held.mjs";
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, googleOf } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -38,8 +39,8 @@ let stub = true;
 // the files slow to arrive, each held until the test lets it go: path → its hold
 const slow = {};
 // the switcher's titles, as the build lists the studies
-// what the switcher offers a visitor not signed in: the build's list but the studies shown to named accounts alone
-const offered = JSON.parse(fs.readFileSync(studies, "utf8")).filter((m) => !m.accounts), titles = offered.map((m) => m.title);
+// what the switcher offers a visitor signed in, whose Google can read every study's root (shell/study/members): the build's list
+const offered = JSON.parse(fs.readFileSync(studies, "utf8")), titles = offered.map((m) => m.title);
 
 // answers every request the way web/worker.js does with the fixture's Python, from answers.json
 const STAND_IN = `
@@ -57,6 +58,8 @@ const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js" && stub) { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
   // the build's list of vendored wheels, which the fixture needs none of
+  // the deploy's Google key and client, which signing in and reading Drive need
+  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(`window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "123456-stand.apps.googleusercontent.com" } };`); }
   if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
   const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
@@ -68,11 +71,18 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw);
+const { signIn: google } = googleOf(browser);
 const problems = [];
 const done = async () => { await browser.close(); server.close(); for (const p of problems) console.error(p); process.exitCode = problems.length ? 1 : 0; };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await localStudy(ctx, "fixture");
+// a visitor signed in with Google, the welcome popup answered
+const signedIn = (c) => c.addInitScript((who) => {
+  localStorage.setItem("nor-google-sign-in", JSON.stringify(who));
+  localStorage.setItem("nor-welcome", JSON.stringify({ choice: "google", remember: true }));
+}, google.signedIn({ email: "tester@example.com", name: "Tester" }));
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+await signedIn(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error: " + e.message); });
 page.setDefaultTimeout(STEP);
@@ -149,6 +159,7 @@ try {
   }
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(page, "#fx-count");
   const base = await page.evaluate(() => [document.querySelector("#base").width, document.querySelector("#base").height]);
   if (base.join() !== "80,60") problems.push(`the viewer drew ${base} for an 80 x 60 image`);
   const opened = await page.evaluate(() => [...document.querySelectorAll("#channels label")].map((l) => l.textContent).join());
@@ -290,6 +301,7 @@ try {
   const real = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(real, "fixture");
   await real.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await signedIn(real);
   // each worker the page starts, and the bytes each open hands it, copied before they are transferred
   await real.addInitScript(() => {
     window.__workers = 0; window.__ended = 0; window.__held = [];
@@ -309,6 +321,7 @@ try {
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);
   await live.setInputFiles("#file", image);
   await live.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(live, "#fx-count");
   if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before Count");
   await live.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
   await live.click("#fx-count");

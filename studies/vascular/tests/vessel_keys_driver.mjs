@@ -7,6 +7,7 @@
 // alone as Ctrl did, Ctrl no longer does, 2 held hides the lines over the stack, 3 held shows side by side, each kept on
 // by clicking its row, no key for Vessel widths or Missed, and a digit typed in a field does nothing. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_keys_driver.mjs STUDIES
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -25,14 +26,27 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 const site = await serve(studies, model);
 
 const browser = await launch(pw);
-atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+// the page at a stage, the stack opened and the algorithm run; where the study asks how to get annotations (its GT stage),
+// from scratch chosen: the view toggles are tried in a published study, which is only viewed, and the keys of the walk in a GT one
+let ctx, page;
+async function begin(stage) {
+  atStage(browser, stage);
+  ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
+  await asTagger(ctx);
+  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await standInDrive(ctx);
+  page = await ctx.newPage();
+  page.setDefaultTimeout(STEP);
+  await page.goto(site.origin + "/web/vascular");
+  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
+  await page.waitForFunction(() => !$("#vm-run").disabled);
+  await annotateIfAsked(page, "#vm-run");
+  await page.evaluate(() => { $("#notice").hidden = true; });
+  await page.click("#vm-run");
+  await page.waitForFunction(() => !$("#vm-review").hidden);
+}
 
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -61,22 +75,8 @@ const ring = (id) => page.evaluate((id) => { const b = $(`#key-${id}`), cs = get
 const row = async (key) => (await legend(page)).find((r) => r.key === key);
 
 try {
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
-  await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
-  await page.waitForFunction(() => !$("#vm-run").disabled);
-  await page.evaluate(() => { $("#notice").hidden = true; });
-  await page.click("#vm-run");
-  await page.waitForFunction(() => !$("#vm-review").hidden);
-
-  // out of tagging no key acts
-  let s0 = await state();
-  const outF = await press("KeyF");
-  check(!outF && same(await state(), s0), "out of GT tagging F does nothing and is left to the page");
-
-  // the legend out of tagging: the views that act on the whole stack, and Panning
-  let keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift", `out of tagging the keys legend lists the views that act and Panning: ${keys}`);
+  await begin("Published");
+  let s0, keys;
   // 2 held hides the lines over the stack, its row filled; let go, they are back; clicking its row keeps them hidden
   const m0 = await mode();
   await page.keyboard.down("2");
@@ -159,9 +159,10 @@ try {
   await page.click("#key-swap span:first-child");
   check(half2 === "widths" && half2again === "widths" && (await mode()) === "overlay", `each half of the legend's 3D | 2D shows its own view: ${half2} ${half2again} → ${await mode()}`);
 
-  await page.click("#gt-start");
+  await ctx.close();
+  await begin("GT");
   await page.waitForFunction(() => window.vascular.tasks().key);
-  // tagging, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
+  // annotating, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
   keys = await legendKeys(page);
   check(keys === "1 2 3 4 shift", `tagging a junction, the keys legend lists only the views and Panning, F, J, S and W on their buttons or none: ${keys}`);
   const labels = Object.fromEntries((await legend(page)).map((r) => [r.key, r.label]));
@@ -242,12 +243,6 @@ try {
   s1 = await state();
   check(skipKept && s1.area !== s0.area && s1.regions === s0.regions, `S skips the area: ${s0.area} → ${s1.area}`);
 
-  // stopped, no key acts
-  await page.click("#gt-start");
-  s0 = await state();
-  check(!(await press("KeyS")) && same(await state(), s0), "after Stop tagging S does nothing");
-  keys = await legendKeys(page);
-  check(keys === "1 2 3 4 shift", `after Stop tagging the legend lists the views and Panning again: ${keys}`);
 } catch (e) {
   failed = true; console.error(e);
 }

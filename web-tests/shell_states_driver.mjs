@@ -1,7 +1,7 @@
 // Walks the shell's states (req/checks/shell-states) in a browser, against the stand-in Google of stand_in_drive.mjs
 // serving ROOT: each path of EXPECT (shell-states.GENERATED.json) opens its study as its root says, takes its
 // actions one after another, and at every state reads each element as shown, disabled, folded or gone, against what
-// the rules expect; after its last state, the first path of each study and role goes to another study and back, each
+// the rules expect; after its last state, the first path of each study and root goes to another study and back, each
 // page then compared with a fresh load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
 // every state, arrows pointing at the elements that changed there, and an index.html of them all (req/checks/shell-states/renders).
 // SHARD, i/n, walks the paths whose place in EXPECT is i modulo n, so n runs side by side walk them all.
@@ -10,23 +10,26 @@
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { read } from "./page_elements.mjs";
+import { fromScratch } from "./annotating.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
-const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
+const { FILES, GT, drive, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 const [part, parts] = shard.split("/").map(Number);
 const paths = [...every.entries()].filter(([k]) => k % parts === part);
-// the first path of each study and role goes away and back after its last state (req/shell/study/switch-in-place),
+// the first path of each study and root goes away and back after its last state (req/shell/study/switch-in-place),
 // chosen from every path so a shard walks what the whole walk would
-const SWITCHERS = new Set([...new Map(every.map((p, k) => [`${p.study} ${p.role}`, k]).reverse()).values()]);
+const SWITCHERS = new Set([...new Map(every.map((p, k) => [`${p.study} ${p.root}`, k]).reverse()).values()]);
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
+// who is signed in, but for the study's owner, whom Drive lets write its root: someone who may save to its submissions alone
 const OTHER = "someone@example.com";
-const ROLE = { viewer: "viewer", tagger: "tagger", data: "data" };
 
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
 // done: the page settled, its drawers and fades over (a spinner going round never ends, so it is left out)
@@ -44,17 +47,6 @@ const settled = async (page) => {
 // an image open, nothing working on it, and the button of the study's first step ready for it
 const opened = (button) => !!shellForTests.page.get("image") && document.querySelector("#busy").hidden
   && (!button || document.querySelector(button)?.disabled !== true);
-// the role chosen; to or from Ground Truth Tagger, the study opening afresh in it, its panels replaced, on the image
-// open if there is one
-const again = async (page, name, first) => {
-  const afresh = await page.evaluate((tagger) => {
-    window.panelsBefore = document.querySelector("[data-study-panel]");
-    return (document.documentElement.dataset.role === "tagger") !== tagger;
-  }, name === "Ground Truth Tagger");
-  await role(page, name);
-  if (afresh) await page.waitForFunction(() => document.querySelector("[data-study-panel]") !== window.panelsBefore);
-  await page.waitForFunction((b) => document.querySelector("#busy").hidden && (!shellForTests.page.get("image") || !b || document.querySelector(b)?.disabled !== true), first?.button);
-};
 // the folder's z-stack previewed (z), or its first image that is not
 const previewOf = async (page, z) => {
   // the stand-in Drive is shared by every path: an earlier one may have made the previews already
@@ -96,7 +88,36 @@ const ACTIONS = {
     await page.click("#switch");
     await page.waitForFunction(() => document.querySelector("#view").dataset.view === "image");
   },
-  async tagger(page, first) { await again(page, "Ground Truth Tagger", first); },
+  // annotation mode (req/shell/annotate/choice): the study opens afresh on the same image in it
+  async scratch(page, first) { await fromScratch(page, first?.button); },
+  async local(page, first) {
+    await page.click("#annotate-local");
+    await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
+    await page.waitForFunction(() => document.querySelector("#busy").hidden);
+  },
+  // the image's curated annotation on Drive, read-only
+  async viewdrive(page) {
+    const { name, sha } = await page.evaluate(() => ({ name: st.fileName, sha: st.sha }));
+    const sub = `${name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
+    if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.curated)) {
+      const f = drive.folder({ name: sub, parent: GT.curated });
+      drive.file({ name: "gt_owner@acme.example.json", parent: f.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
+        labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
+    }
+    await page.click("#annotate-drive");
+    await page.click('#annotate-list button[data-key="curated"]');
+    await page.waitForFunction(() => /^Showing/.test(document.querySelector("#annotate-say").textContent.trim()));
+  },
+  async edit(page) {
+    await page.click("#annotate-edit");
+    await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 2 && document.querySelector("#busy").hidden);
+  },
+  // a mark added and the draft kept on this device
+  async draft(page) {
+    await page.click("#fx-add");
+    await page.click("#gt-save-draft");
+    await page.waitForFunction(() => document.querySelector("#gt-unsaved").hidden);
+  },
   async folder(page) {
     await page.click("#data-tree .tree-folder .name");
     await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length > 0);
@@ -127,11 +148,11 @@ const ACTIONS = {
     await page.waitForFunction(() => !document.querySelector("#remote-dlg").open);
     await page.waitForFunction(opened, first?.button);
   },
-  async viewer(page, first) { await again(page, "Viewer", first); },
-  async data(page, first) {
-    await again(page, "Study Manager", first);
+  async data(page) {
+    await dataManagement(page, true);
     await page.waitForFunction(() => document.querySelector("#data-col").checkVisibility());
   },
+  async leave(page) { await dataManagement(page, false); },
   // to the Image Viewer and Back, the study opening afresh
   async restudy(page, first) {
     await page.evaluate(() => { window.panelsBefore = document.querySelector("[data-study-panel]"); window.pathBefore = location.pathname; });
@@ -158,18 +179,6 @@ const ACTIONS = {
   },
 };
 
-// each element as the page shows it, and where it is
-const read = (page, elements) => page.evaluate((els) => Object.fromEntries(els.map((e) => {
-  const el = document.querySelector(e.select);
-  if (!el) return [e.name, { seen: "gone", box: null }];
-  const shown = el.getClientRects().length > 0 && el.checkVisibility({ visibilityProperty: true });
-  // held: what the page marks as needing the internet while offline (req/shell/offline/default)
-  const held = el.getAttribute("aria-disabled") === "true" && el.dataset.onlineTitle !== undefined;
-  const off = el.matches(":disabled") || (!held && el.getAttribute("aria-disabled") === "true");
-  const seen = !shown ? "gone" : e.box && el.classList.contains("folded") ? "folded" : held ? "held" : e.control && off ? "off" : "on";
-  const r = el.getBoundingClientRect();
-  return [e.name, { seen, box: shown ? { x: r.x, y: r.y, w: r.width, h: r.height } : null }];
-})), elements);
 
 // arrows over the page, each from a little above and left of its element to its edge; a dashed one where an element
 // was before it went; red where the page is not what the rules say
@@ -235,16 +244,23 @@ const walk = async (k, p) => {
   // each path finds the folder as it started: no previews made by an earlier one
   const made = new Set(FILES.filter((f) => f.folder && f.name === "Previews").map((f) => f.id));
   for (let i = FILES.length - 1; i >= 0; i--) if (made.has(FILES[i].id) || made.has(FILES[i].parent)) FILES.splice(i, 1);
-  // a study shown only to the accounts it names is opened by the first of them
-  const { visibility, phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
+  const { phases, files } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "study.json"), "utf8"));
   // Data Management lists the kinds a study opens: the fixture, opening PNGs alone, is given the folder's TIFFs too
   const opens = p.study === "fixture" ? { files: { ...files, accept: files.accept + ",.tif,.tiff" } } : {};
   // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
   const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
   const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
+  // signed in, but the store lets them only view the submissions folder
+  if (p.signedIn && !p.maySave) viewOnly.add(GT.submissions); else viewOnly.delete(GT.submissions);
   const page = await open(p.signedIn, {
-    id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: visibility.accounts?.[0] ?? OTHER }),
-    seed: { ...stood.seed, "nor-role": ROLE[p.role] }, prepare: stood.prepare,
+    id: p.study, study: { stage: p.stage, ...opens }, ...(/owner/.test(p.root) ? {} : { email: OTHER }),
+    // signed out, the switcher offers the released studies and those with no root alone (shell/study/members): NoR Finder is listed as one with none, for the switch away and back
+    seed: { ...stood.seed },
+    // the list names the stage the path sets, as the study's own file does
+    prepare: async (ctx) => {
+      await stood.prepare?.(ctx);
+      studiesOf(ctx).editList((list) => list.map((s) => (s.id === p.study ? { ...s, stage: p.stage } : !p.signedIn && s.id === "nor" ? { ...s, root: null } : s)));
+    },
   });
   await page.waitForFunction((s) => (document.documentElement.dataset.stage ?? null) === s, p.stage);
   await ready(page);

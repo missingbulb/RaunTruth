@@ -6,6 +6,7 @@
 // titles (a done drawer folded sums up what was done, open names itself, a waiting one says its task); and
 // another image, or Unload, starting over. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/left_bar_driver.mjs ANSWERS IMAGE.png STUDIES
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -67,7 +68,10 @@ const title = async (k) => { await page.locator("#left > .box.foldable:visible >
 const loadImage = async () => {
   await page.evaluate(() => { document.querySelector("#status").textContent = ""; });
   await page.setInputFiles("#file", image);
-  await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && !document.querySelector("#fx-count").disabled);
+  await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && document.querySelector("#fx-count")?.disabled === false);
+  // how to get annotations on it chosen: from scratch, which shows Processing
+  await fromScratch(page, "#fx-count");
+  await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
 };
 const name = path.basename(image);
 
@@ -77,8 +81,8 @@ const gaps = await page.evaluate(() => { const r = [...document.querySelectorAll
 await check(gaps.every((g) => g <= 0), "the drawers stack with no gap between them", gaps);
 const bars = () => page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => getComputedStyle(b).boxShadow !== "none"));
 
-await boxes(["1 Load Image open", "2 Processing folded", "3 Ground Truth Tasks folded"], "before an image only Load Image is open, each drawer numbered");
-await check((await bars()).join() === "true,false,false", "the open drawer, and only it, carries the accent bar", await bars());
+await boxes(["1 Load Image open", "2 Processing folded"], "before an image only Load Image is open, each drawer numbered, with no Ground Truth Tasks and no Summary");
+await check((await bars()).join() === "true,false", "the open drawer, and only it, carries the accent bar", await bars());
 await loadImage();
 await boxes(["✓ [img] " + name + " folded", "2 Processing open", "3 Ground Truth Tasks folded"],
   "an image open: Load Image folds to its preview and name, checked, and Processing opens");
@@ -105,16 +109,17 @@ await title(2);
 await page.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
 await page.click("#fx-count");
 await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
-await boxes(["✓ [img] " + name + " folded", "✓ Counted at 100 folded", "3 Ground Truth Tasks open"],
-  "Count done: Processing folds to the study's summary of it, and Ground Truth Tasks opens");
+// req/shell/left-bar/shells: with a model on the image, Summary shows beside Ground Truth Tasks
+await boxes(["✓ [img] " + name + " folded", "✓ Counted at 100 folded", "3 Ground Truth Tasks open", "4 Summary open"],
+  "Count done: Processing folds to the study's summary of it, Ground Truth Tasks opens and Summary shows beside it");
 await title(1);
-await boxes(["✓ [img] " + name + " folded", "✓ Processing open", "3 Ground Truth Tasks open"], "a done drawer open names itself");
+await boxes(["✓ [img] " + name + " folded", "✓ Processing open", "3 Ground Truth Tasks open", "4 Summary open"], "a done drawer open names itself");
 await title(1);
 await loadImage();
 await boxes(["✓ [img] " + name + " folded", "2 Processing open", "3 Ground Truth Tasks folded"], "another image starts over: the study's drawers wait again");
 await title(0); await page.click("#unload");
-await page.waitForFunction(() => document.querySelector("#unload").hidden && [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).length === 3);
-await boxes(["1 Load Image open", "2 Processing folded", "3 Ground Truth Tasks folded"], "Unload: every drawer waits again, as at first");
+await page.waitForFunction(() => document.querySelector("#unload").hidden && [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).length === 2);
+await boxes(["1 Load Image open", "2 Processing folded"], "Unload: every drawer waits again, as at first");
 
 // req/shell/left-bar/static: the bar stays open, with no chevron, no Steps label or strip, and the gutter only resizes it
 const left = () => page.evaluate(() => Math.round(document.querySelector("#left").getBoundingClientRect().width));

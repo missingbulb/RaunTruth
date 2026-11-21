@@ -38,7 +38,7 @@ with Google is optional: Google signs you in, in its own window, and gives the p
 hour, kept in your browser for that hour. The page uses it to keep your settings (the theme, the tips
 you closed, your last Drive links and the images you opened from Drive lately) in
 one small file in your own Google Drive, in a hidden folder only this site can see, so they follow you
-to other devices. Signed in, you can also work as a Ground Truth Tagger, from the role menu beside your avatar. A study's data managers can also let it into that study's Drive folders, the ones
+to other devices. Once an image has loaded in a study that takes annotations, you choose how to annotate it: from scratch, from work kept on this device or from an annotation on Drive; signed in with the right to save, you can save it to the study. A study's owners can also let it into that study's Drive folders, the ones
 they choose in Google's own picker, where it adds files (previews in the root's Previews folder, ground-truth markers in the curated ground-truth folder, edited images beside the image) and changes only
 those it made. It cannot see anything else in your Drive, and the site keeps nothing about you
 anywhere. Signing in sends none of your images or results anywhere, but the previews and edited images a data manager asks

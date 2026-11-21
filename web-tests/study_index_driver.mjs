@@ -4,6 +4,7 @@
 // stand_in_drive.mjs serving ROOT: a Data folder the study file names, a subfolder in it, and an Other folder.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
+import { fromScratch } from "./annotating.mjs";
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
@@ -12,10 +13,14 @@ import path from "node:path";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
-const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+const { ROOT, FILES, hidden, writes, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir,
+  // the study file's index section (with the grouping and hiding it carries) and its tags section, each kept when it changes
   uploaded: (f) => {
-    if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
-    if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
+    if (f.name !== "rauntruth-study.json") return;
+    const doc = JSON.parse(f.bytes.toString());
+    const ix = doc.index && { ...doc.index, group: doc.group ?? null, hide: doc.hide ?? [] };
+    if (ix && JSON.stringify(ix) !== JSON.stringify(indexes.at(-1))) indexes.push(ix);
+    if (doc.tags && JSON.stringify(doc.tags) !== JSON.stringify(tagFiles.at(-1))) tagFiles.push(doc.tags);
   } });
 const idOf = (name) => FILES.find((f) => f.name === name).id;
 // the study file names the Data folder, and is the page's own, as one its Set up wrote
@@ -38,7 +43,7 @@ const names = (ix) => ix.images.map((i) => [i.name, i.path.join(" / ")]);
 const settled = (page) => orMissed(page.waitForFunction(() => !document.querySelector("#data-tree.busy") && /^Study index/.test(document.querySelector("#data-index").textContent), null, { timeout: 10000 }));
 
 let page = await open(true);
-await role(page, "Study Manager");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 await settled(page);
 await check(indexes.length === 1 && JSON.stringify(names(indexes[0])) === JSON.stringify([["acme.png", "Data"], ["beta.png", "Data / sub"]])
@@ -76,8 +81,8 @@ await check(!names(last).some(([n]) => n === "gamma.png") && names(last).some(([
 
 // nothing changed: going back into Data Management writes no index
 const before = indexes.length;
-await role(page, "Viewer");
-await role(page, "Study Manager");
+await dataManagement(page, false);
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await frames(page);
@@ -112,7 +117,7 @@ await expecting(NETWORK_GONE, async () => {
 // tags (req/shell/data/tags): a folder's, an image's own value winning over it, a description, a tag refused; grouping
 // and hiding set in Study images (req/shell/data/hidden)
 page = await open(true);
-await role(page, "Study Manager");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 const imageOf = (ix, name) => ix.images.find((i) => i.name === name);
@@ -120,7 +125,10 @@ const indexed = (n) => orMissed(page.waitForFunction((n) => /^Study index/.test(
 const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
+const studyWrites = () => writes.filter(([, name]) => name === "rauntruth-study.json").length;
+const writesBefore = studyWrites();
 await tagIt("Group:Wild Type");
+await check(studyWrites() - writesBefore === 1, "one tag edit is one write of the study file, the tags and the index in it together", studyWrites() - writesBefore);
 await check(JSON.stringify(tagFiles.at(-1)?.folders?.[idOf("Data")]) === JSON.stringify({ tags: ["group:wild-type"] }), "a folder's tag, written as the page keeps it, goes into the tags file", tagFiles.at(-1));
 await check(JSON.stringify(imageOf(indexes.at(-1), "beta.png")?.tags) === JSON.stringify(["group:wild-type"]), "and onto every image under the folder in the index", imageOf(indexes.at(-1), "beta.png"));
 const chooseImage = async (folder, name) => {
@@ -194,7 +202,7 @@ const lasso = async (x0, y0, x1, y1) => {
   await page.mouse.up();
 };
 page = await open(true, { study: masked });
-await role(page, "Study Manager");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await chooseImage("Data", "acme.png");
@@ -223,6 +231,7 @@ await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
 await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }));
 const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));
 await check(marks.damaged === 1 && marks.interest === 1, "a viewer sees the damaged area marked and the area of interest outlined", marks);
+await fromScratch(page, "#fx-count");
 await page.click("#fx-count");
 await orMissed(page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }));
 const sent = await page.evaluate(() => window.posted.filter((m) => m.type === "call").at(-1)?.damaged);

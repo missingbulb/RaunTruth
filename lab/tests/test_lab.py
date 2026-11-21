@@ -202,6 +202,16 @@ def test_the_damaged_areas_of_the_root_s_tags_file_reach_the_versions(acme):
     assert {k: results['above'][None][k] for k in ('tp', 'fp', 'fn')} == dict(tp=23, fp=2, fn=5)
 
 
+def test_the_damaged_areas_of_the_study_file_s_tags_reach_the_versions(acme):
+    # shell/study/one-file: the tags live in the study file, the tags file of before being gone
+    s, drive = acme
+    settings = json.dumps(dict(format='rauntruth-study/2', curated='curatedfold',
+                               tags=dict(images=dict(img10=dict(damaged=[[[0, 0], [5, 0], [5, 1], [0, 1]]])), folders={}))).encode()
+    drive.files['settings'] = settings
+    results, _ = run.measure(s, ['above'], transport=drive)
+    assert {k: results['above'][None][k] for k in ('tp', 'fp', 'fn')} == dict(tp=23, fp=2, fn=5)
+
+
 def test_an_answer_is_run_again_when_its_image_s_damaged_areas_change(acme):
     s, drive = acme
     run.measure(s, ['above'], transport=drive)

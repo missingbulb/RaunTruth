@@ -35,9 +35,7 @@ def test_a_study_names_files_that_exist(path):
     assert 'listed' not in m, 'a study says who sees it in visibility (req/shell/study/visibility)'
     assert 'generated' not in m, 'the build runs none of a study\'s code: it contributes data (req/shell/site/published-files)'
     v = m['visibility']
-    assert v in ('listed', 'unlisted') or (isinstance(v, dict) and set(v) == {'accounts'} and v['accounts']
-            and all(re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', e) for e in v['accounts'])), \
-        f'visibility is "listed", "unlisted" or {{"accounts": [email, …]}}: {v!r}'
+    assert v in ('listed', 'unlisted'), f'visibility is "listed" or "unlisted", who sees a listed study being Drive\'s sharing of its root (shell/study/members): {v!r}'
     assert os.path.exists(os.path.join(WEB, {'image2d': 'viewer2d.js', 'image3d': 'viewer3d.js'}[m['viewer']]))
     assert 'module' in m['web']
     for key in ('module', 'panels', 'style'):
@@ -223,17 +221,18 @@ def test_the_shell_names_no_study():
 
 
 def test_the_header_offers_the_studies_each_visitor_may_see_by_title(tmp_path):
-    """req/shell/study/visibility: the build's list holds the listed studies and those shown to named accounts, with
-    their accounts for the page to check; an unlisted one is left out."""
+    """req/shell/study/visibility: the build's list holds every study not marked unlisted, which of them a visitor is
+    offered being the page's to decide from Drive's sharing (shell/study/members)."""
     import sys
     sys.path.insert(0, os.path.join(ROOT, 'dev', 'tools', 'build'))
     import build
     for sid, title, visibility in (('zeta', 'Zeta Counter', 'listed'), ('alpha', 'Alpha Viewer', 'listed'), ('test-only', 'A Fixture', 'unlisted'),
-                                   ('mine', 'My Own', {'accounts': ['me@example.com']})):
+                                   ('mine', 'My Own', 'listed')):
         os.makedirs(tmp_path / 'studies' / sid)
         icon = dict(icon='web/icon.svg') if sid == 'zeta' else {}
-        (tmp_path / 'studies' / sid / 'study.json').write_text(json.dumps(dict(id=sid, title=title, visibility=visibility, **icon)))
-    assert build.studies(str(tmp_path)) == [{'id': 'alpha', 'title': 'Alpha Viewer'}, {'id': 'mine', 'title': 'My Own', 'accounts': ['me@example.com']},
+        root = dict(root='https://drive.google.com/drive/folders/1AbC-dEf_ghi?usp=sharing') if sid == 'alpha' else {}
+        (tmp_path / 'studies' / sid / 'study.json').write_text(json.dumps(dict(id=sid, title=title, visibility=visibility, **icon, **root)))
+    assert build.studies(str(tmp_path)) == [{'id': 'alpha', 'title': 'Alpha Viewer', 'root': '1AbC-dEf_ghi'}, {'id': 'mine', 'title': 'My Own'},
                                             {'id': 'zeta', 'title': 'Zeta Counter', 'icon': 'web/icon.svg'}]
 
 

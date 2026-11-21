@@ -4,7 +4,6 @@
   "vars": {
     "stage": [null, "PreGT", "GT", "PostGT", "Published"],
     "signedIn": [false, true],
-    "role": ["viewer", "tagger", "data"],
     "image": ["none", "local", "preview", "original"],
     "counted": [false, true],
     "view": ["image", "items"],
@@ -19,39 +18,46 @@
     "imageLarge": [false, true],
     "shows3d": [false, true],
     "masks": [false, true],
-    "walksAreas": [false, true]
+    "walksAreas": [false, true],
+    "managing": [false, true],
+    "annotating": [false, true],
+    "route": ["none", "scratch", "local", "drive"],
+    "hasDraft": [false, true],
+    "maySave": [false, true],
+    "keepsLog": [false, true],
+    "edited": [false, true]
   },
   "roots": {
-    "GT, signed out": {"stage": "GT", "signedIn": false, "role": "viewer"},
-    "GT, Viewer": {"stage": "GT", "signedIn": true, "role": "viewer"},
-    "GT, Tagger": {"stage": "GT", "signedIn": true, "role": "tagger"},
-    "PostGT, Tagger": {"stage": "PostGT", "signedIn": true, "role": "tagger"},
-    "PreGT, signed out": {"stage": "PreGT", "signedIn": false, "role": "viewer"},
-    "PreGT, Tagger": {"stage": "PreGT", "signedIn": true, "role": "tagger"},
-    "Published, Viewer": {"stage": "Published", "signedIn": true, "role": "viewer"},
-    "GT, Study Manager": {"stage": "GT", "signedIn": true, "role": "data"},
-    "PreGT, Study Manager": {"stage": "PreGT", "signedIn": true, "role": "data"}
+    "GT, signed out": {"stage": "GT", "signedIn": false},
+    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true},
+    "GT, may not save": {"stage": "GT", "signedIn": true},
+    "PostGT, Annotator": {"stage": "PostGT", "signedIn": true, "maySave": true},
+    "PreGT, signed out": {"stage": "PreGT", "signedIn": false},
+    "PreGT, Annotator": {"stage": "PreGT", "signedIn": true, "maySave": true},
+    "Published, signed in": {"stage": "Published", "signedIn": true, "maySave": true},
+    "GT, Study owner": {"stage": "GT", "signedIn": true, "maySave": true},
+    "PreGT, Study owner": {"stage": "PreGT", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, signed out", "actions": ["load", "count", "items"]},
-    {"root": "GT, Viewer", "actions": ["load", "tagger"]},
-    {"root": "GT, Tagger", "actions": ["load", "count"]},
-    {"root": "PostGT, Tagger", "actions": ["load", "count"]},
+    {"root": "GT, signed out", "actions": ["load", "scratch", "count"]},
+    {"root": "GT, may not save", "actions": ["load", "scratch", "count"]},
+    {"root": "GT, Annotator", "actions": ["load", "scratch", "count", "draft", "unload", "load", "local"]},
+    {"root": "GT, Annotator", "actions": ["drive", "viewdrive", "edit"]},
+    {"root": "PostGT, Annotator", "actions": ["load", "scratch", "count"]},
     {"root": "PreGT, signed out", "actions": ["load", "count"]},
-    {"root": "PreGT, Tagger", "actions": ["load", "count", "items"]},
-    {"root": "Published, Viewer", "actions": ["load", "count", "items"]},
-    {"root": "GT, Tagger", "actions": ["load", "offline", "online"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "preview", "original", "offline"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "offline", "online"]},
-    {"root": "GT, Study Manager", "actions": ["folder", "zpreview", "original"]},
-    {"root": "PreGT, Study Manager", "actions": ["folder"]},
-    {"root": "GT, Tagger", "actions": ["load", "ok", "count", "unload"]},
-    {"root": "GT, Tagger", "actions": ["load", "count", "viewer"]},
-    {"root": "GT, Tagger", "actions": ["load", "count", "restudy"]},
-    {"root": "GT, Tagger", "actions": ["drive", "count"]},
-    {"root": "GT, Study Manager", "actions": ["viewer", "load", "data"]},
-    {"root": "GT, Viewer", "actions": ["load", "zoom"]},
-    {"root": "GT, Viewer", "actions": ["large"]}
+    {"root": "PreGT, Annotator", "actions": ["load", "count", "items"]},
+    {"root": "Published, signed in", "actions": ["load", "count", "items"]},
+    {"root": "GT, Annotator", "actions": ["load", "offline", "online"]},
+    {"root": "GT, Study owner", "actions": ["data", "folder", "preview", "original", "offline"]},
+    {"root": "GT, Study owner", "actions": ["data", "folder", "offline", "online"]},
+    {"root": "GT, Study owner", "actions": ["data", "folder", "zpreview", "original"]},
+    {"root": "PreGT, Study owner", "actions": ["data", "folder"]},
+    {"root": "GT, Annotator", "actions": ["load", "scratch", "ok", "count", "unload"]},
+    {"root": "GT, Annotator", "actions": ["load", "scratch", "count", "restudy"]},
+    {"root": "GT, Annotator", "actions": ["drive", "scratch", "count"]},
+    {"root": "GT, Study owner", "actions": ["data", "leave", "load", "data"]},
+    {"root": "GT, Annotator", "actions": ["load", "zoom"]},
+    {"root": "GT, Annotator", "actions": ["large"]}
   ],
   "tree": [
     {"name": "Header", "select": "header", "req": "req/shell/header", "steady": "always shown",
@@ -64,11 +70,6 @@
           ]
         },
         {"name": "Dark/light switch", "select": "#theme", "control": true, "req": "req/shell/header", "steady": "always shown"},
-        {"name": "Role menu", "select": "#role-menu", "req": "req/shell/account/role", "steady": "always shown, its choices what the user may take",
-          "children": [
-            {"name": "Role's name", "select": "#role-name", "req": "req/shell/account/role", "steady": "always shown"}
-          ]
-        },
         {"name": "You (the user menu)", "select": "#user-menu", "req": "req/shell/account/sign-in", "steady": "always shown, signed in or not"}
       ]
     },
@@ -76,15 +77,14 @@
       "children": [
         {"name": "Data Management column", "select": "#data-col", "req": "req/shell/data/mode",
           "rule": [
-            {"when": {"role": ["viewer", "tagger"]}, "is": "hidden"},
+            {"when": {"managing": [false]}, "is": "hidden"},
             {"when": {"online": [false]}, "is": "held"}
           ],
           "children": [
             {"name": "Fold the folders", "select": "#data-open", "control": true, "req": "req/shell/data/mode"},
             {"name": "Folders", "select": "#data-body", "req": "req/shell/data/mode",
               "children": [
-                {"name": "Set up ground truth", "select": "#gt-setup", "control": true, "req": "req/shell/ground-truth/setup",
-                  "steady": "shows only while the study's root names no ground-truth folders, never in the fixture, which is set up",
+                {"name": "Set up ground truth", "select": "#gt-setup", "control": true, "req": "req/shell/ground-truth/setup", "steady": "shows only while the study's root names no ground-truth folders, never in the fixture, which is set up",
                   "rule": [
                     {"is": "hidden", "approval": "tentative"}
                   ]
@@ -134,20 +134,20 @@
                   "children": [
                     {"name": "Study images' title", "select": "#study-set-title", "req": "req/shell/data/hidden"},
                     {"name": "Group Load by", "select": "#study-group", "control": true, "req": "req/shell/load/study-images",
-                  "rule": [
-                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                  ]
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
                     },
                     {"name": "Hidden tags", "select": "#study-hide-list", "req": "req/shell/data/hidden"},
                     {"name": "Tag to hide", "select": "#study-hide-add", "control": true, "req": "req/shell/data/hidden",
-                  "rule": [
-                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                  ]
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
                     },
                     {"name": "Hide", "select": "#study-hide-go", "control": true, "req": "req/shell/data/hidden",
-                  "rule": [
-                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                  ]
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
                     },
                     {"name": "How many are hidden", "select": "#study-hide-count", "req": "req/shell/data/hidden"},
                     {"name": "Study images' message", "select": "#study-msg", "req": "req/shell/data/hidden"}
@@ -215,7 +215,7 @@
                 },
                 {"name": "Load", "select": "#load", "req": "req/shell/load/selector",
                   "rule": [
-                    {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"}
+                    {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
                   ],
                   "children": [
                     {"name": "Image selector", "select": "#image-menu", "req": "req/shell/load/selector",
@@ -251,16 +251,6 @@
                 }
               ]
             },
-            {"name": "Ground truth box", "select": "#truth-box", "box": true, "req": "req/shell/ground-truth/view", "unwalked": "shows only for a study whose ground truth is made, and the stand-in Drive holds none",
-              "rule": [
-                {"is": "hidden", "approval": "tentative"}
-              ],
-              "children": [
-                {"name": "Ground truth offer", "select": "#gt-offer", "req": "req/shell/ground-truth/view"},
-                {"name": "Load GT tagging", "select": "#load-gt", "control": true, "req": "req/shell/ground-truth/view"},
-                {"name": "Ground truth summary", "select": "#gt-summary", "req": "req/shell/ground-truth/view"}
-              ]
-            },
             {"name": "Selected Folder", "select": "#folder-box", "box": true, "req": "req/shell/data/folder",
               "rule": [
                 {"when": {"selected": ["nothing", "image"]}, "is": "hidden"},
@@ -279,7 +269,7 @@
             },
             {"name": "Tags", "select": "#tags-box", "box": true, "req": "req/shell/data/tags",
               "rule": [
-                {"when": {"role": ["viewer", "tagger"]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"managing": [false]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"selected": ["nothing"]}, "is": "hidden", "approval": "tentative", "about": "the box edits the folder or image chosen"},
                 {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
               ],
@@ -302,9 +292,9 @@
                   ],
                   "children": [
                     {"name": "Description's text", "select": "#tags-desc", "control": true, "req": "req/shell/data/tags",
-                  "rule": [
-                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                  ]
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
                     }
                   ]
                 },
@@ -347,10 +337,68 @@
                 {"name": "Tags' message", "select": "#tags-msg", "req": "req/shell/data/tags"}
               ]
             },
+            {"name": "Annotations", "select": "#annotate-box", "box": true, "req": "req/shell/annotate/choice",
+              "rule": [
+                {"when": {"stage": [null, "PreGT", "Published"]}, "is": "hidden"},
+                {"when": {"image": ["none"]}, "is": "hidden"},
+                {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
+              ],
+              "children": [
+                {"name": "Annotations' question", "select": "#annotate-ask", "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"annotating": [true]}, "is": "hidden"}
+                  ]
+                },
+                {"name": "The ways to get annotations", "select": "#annotate-choices", "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"annotating": [true]}, "is": "hidden"}
+                  ],
+                  "children": [
+                    {"name": "Continue local annotation work", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
+                      "rule": [
+                        {"when": {"hasDraft": [false]}, "is": "hidden"}
+                      ]
+                    },
+                    {"name": "Load annotation from Drive", "select": "#annotate-drive", "control": true, "req": "req/shell/annotate/choice",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"}
+                      ]
+                    },
+                    {"name": "Start annotating from scratch", "select": "#annotate-scratch", "control": true, "req": "req/shell/annotate/choice"}
+                  ]
+                },
+                {"name": "The annotations on Drive", "select": "#annotate-list", "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"route": ["drive"], "annotating": [false]}, "is": "shown"},
+                    {"is": "hidden"}
+                  ]
+                },
+                {"name": "Where the annotation comes from", "select": "#annotate-say", "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"annotating": [true]}, "is": "shown"},
+                    {"when": {"route": ["drive"]}, "is": "shown"},
+                    {"is": "hidden"}
+                  ]
+                },
+                {"name": "Edit this annotation", "select": "#annotate-edit", "control": true, "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"route": ["drive"], "annotating": [false]}, "is": "shown"},
+                    {"is": "hidden"}
+                  ]
+                },
+                {"name": "Clear all annotations from image", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
+                  "rule": [
+                    {"when": {"annotating": [true]}, "is": "shown"},
+                    {"is": "hidden"}
+                  ]
+                }
+              ]
+            },
             {"name": "Processing", "select": "#processing-box", "box": true, "req": "req/shell/left-bar/shells",
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
-                {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"stage": ["GT", "PostGT"], "image": ["local", "preview", "original"], "route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
                 {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"},
                 {"when": {"counted": [true]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
@@ -359,9 +407,11 @@
                   "children": [
                     {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
                     {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
-                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring",
-                      "steady": "opens only on a click of the (?), which no path makes",
-                      "rule": [{"is": "hidden", "approval": "tentative"}]},
+                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring", "steady": "opens only on a click of the (?), which no path makes",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ]
+                    },
                     {"name": "About the algorithm", "select": "#algorithm-about", "req": "req/shell/processing/algorithms"}
                   ]
                 }
@@ -371,21 +421,17 @@
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
                 {"when": {"makesTruth": [false]}, "is": "hidden"},
-                {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+                {"when": {"hasModel": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
-                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer",
-                  "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
+                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer", "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
                   "rule": [
                     {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
                   ],
                   "children": [
-                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer",
-                      "unwalked": "its parent is hidden in every path, no draft being on this device"},
-                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative",
-                      "unwalked": "its parent is hidden in every path, no study's old store being offered"},
-                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative",
-                      "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
+                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer", "unwalked": "its parent is hidden in every path, no draft being on this device"},
+                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative", "unwalked": "its parent is hidden in every path, no study's old store being offered"},
+                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative", "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
                   ]
                 },
                 {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
@@ -398,18 +444,17 @@
                         {"name": "How many areas", "select": "#gt-areas", "control": true, "req": "req/shell/ground-truth/areas"}
                       ]
                     },
-                    {"name": "Start GT tagging", "select": "#gt-start", "control": true, "req": "req/shell/ground-truth/tagging"},
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                       "children": [
                         {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
                           "rule": [
-                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                            {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
                           ],
                           "children": [
                             {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
                               "rule": [
-                                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                                {"when": {"edited": [false]}, "is": "disabled", "approval": "tentative", "about": "nothing is made to undo until a mark is added, or a draft of one loaded"}
                               ]
                             },
                             {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
@@ -417,8 +462,7 @@
                                 {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
                               ]
                             },
-                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft",
-                              "steady": "hidden while no GT action is unsaved, which no path makes",
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "hidden while no GT action is unsaved, which no path makes",
                               "rule": [
                                 {"is": "hidden", "approval": "tentative", "about": "no path makes a GT action"}
                               ]
@@ -427,7 +471,7 @@
                         },
                         {"name": "Show Edit History row", "select": "#gt-history-row", "req": "req/shell/ground-truth/history",
                           "rule": [
-                            {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
+                            {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
                           ],
                           "children": [
                             {"name": "Show Edit History", "select": "#gt-history-on", "control": true, "req": "req/shell/ground-truth/history"}
@@ -438,9 +482,21 @@
                             {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
                           ]
                         },
+                        {"name": "Download", "select": "#gt-download", "control": true, "req": "req/shell/annotate/no-save",
+                          "rule": [
+                            {"when": {"maySave": [true]}, "is": "hidden"},
+                            {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
+                          ]
+                        },
+                        {"name": "Saves waiting to upload", "select": "#gt-waiting", "req": "req/shell/annotate/survives", "steady": "no path leaves a save waiting",
+                          "rule": [
+                            {"is": "hidden", "approval": "tentative", "about": "no path saves while the store does not answer"}
+                          ]
+                        },
                         {"name": "Submit Ground Truth", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                           "rule": [
-                            {"when": {"counted": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
+                            {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
+                            {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
                           ]
                         }
                       ]
@@ -452,9 +508,9 @@
             {"name": "Summary", "select": "#summary-box", "box": true, "req": "req/shell/left-bar/shells",
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
-                {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"makesTruth": [true]}, "is": "hidden"},
-                {"when": {"counted": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+                {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "req": "req/shell/left-bar/shells"},
+                {"when": {"route": ["local", "drive"]}, "is": "folded", "approval": "tentative", "about": "work loaded rather than made by the study's first step opens no box but Ground Truth Tasks"}
               ],
               "children": [
                 {"name": "Mask buttons", "select": "#mask-row", "req": "req/shell/summary/mask",
@@ -486,7 +542,8 @@
               "rule": [
                 {"when": {"itemView": [false]}, "is": "hidden"},
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
-                {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"route": ["drive"], "annotating": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"},
                 {"when": {"counted": [false]}, "is": "disabled"}
               ]
             },
@@ -582,7 +639,10 @@
                       "children": [
                         {"name": "Image's canvas", "select": "#base", "req": "req/shell/image/minimap"},
                         {"name": "Image zoomed out", "select": "#shrunk", "req": "req/shell/image/scaling",
-                          "rule": [{"when": {"imageLarge": [false]}, "is": "hidden"}]}
+                          "rule": [
+                            {"when": {"imageLarge": [false]}, "is": "hidden"}
+                          ]
+                        }
                       ]
                     }
                   ]
@@ -611,8 +671,8 @@
                 },
                 {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
                   "rule": [
-                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only a tagger has a log to show"},
-                    {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only someone annotating has a log to show"},
+                    {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
                   ],
                   "children": [
                     {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
@@ -627,7 +687,8 @@
                       "rule": [
                         {"when": {"shows3d": [false]}, "is": "hidden", "req": "req/shell/image/keys"},
                         {"when": {"stack": [false]}, "is": "hidden"}
-                      ]}
+                      ]
+                    }
                   ]
                 }
               ]
@@ -650,13 +711,13 @@
       "children": [
         {"name": "Breadcrumbs", "select": "#sb-steps", "req": "req/shell/status-bar/breadcrumbs",
           "rule": [
-            {"when": {"role": ["data"]}, "is": "hidden", "req": "req/shell/data/mode"}
+            {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
           ],
           "children": [
             {"name": "Submit GT crumb", "select": "#sb-submit", "made": "one crumb per step, by the shell", "req": "req/shell/status-bar/breadcrumbs",
               "rule": [
                 {"when": {"makesTruth": [false]}, "is": "hidden"},
-                {"when": {"counted": [false]}, "is": "hidden"}
+                {"when": {"hasModel": [false]}, "is": "hidden"}
               ]
             }
           ]
@@ -718,7 +779,12 @@
       ],
       "children": [
         {"name": "Notice's text", "select": "#notice-text", "req": "req/shell/ground-truth/submit"},
-        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/ground-truth/submit"}
+        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/ground-truth/submit"},
+        {"name": "Sign out", "select": "#notice-sign-out", "control": true, "req": "req/shell/study/visibility", "steady": "shows only on a study the signed-in account cannot open",
+          "rule": [
+            {"is": "hidden", "approval": "tentative"}
+          ]
+        }
       ]
     }
   ]

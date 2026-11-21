@@ -34,7 +34,7 @@ module defines:
 a study may give a `verify` stage the mutation sweep runs on a mutant's map.
 
 An image's damaged areas (`req/shell/data/damaged`) are `[[[x, y], ...], ...]` in its pixels, `[]` for none: the lab
-reads them from the study root's tags file, `rauntruth-tags.json`, by the image's Drive id, and keeps an answer for the
+reads them from the tags in the study file in the study root (`rauntruth-study.json`; else the `rauntruth-tags.json` of before it), by the image's Drive id, and keeps an answer for the
 areas it was run with.
 
 An answer is a dict the page can read as JSON; a numpy array in it travels to the page as bytes, a numpy number as a

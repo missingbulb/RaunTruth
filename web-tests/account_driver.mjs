@@ -295,11 +295,11 @@ try {
   check(await shows(c.page, () => localStorage.getItem("nor-drive-thumbs") === JSON.stringify("off")), "and Save keeps them there");
 
   const services = new Set(outside);
-  // the study's root, its listing and the user's write access on it, for the roles (req/shell/data/roles)
+  // the study's root, its listing and the user's write access on it, for the roles (req/shell/data/roles), and the listed studies' roots asked of Drive in one batch (shell/study/members)
   const ROOT = "fixturefolder00000001";
   // and Python's own files, kept on this device ahead of the first Run (req/shell/python/on-run)
   const known = (u) => u === GSI || u === "https://openidconnect.googleapis.com/v1/userinfo" || u.startsWith("https://cdn.jsdelivr.net/pyodide/")
-    || /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\/files(\/appdatafile\d+|\/fixturefolder00000001)?$/.test(u);
+    || /^https:\/\/www\.googleapis\.com\/((upload\/)?drive\/v3\/files(\/appdatafile\d+|\/fixturefolder00000001)?|batch\/drive\/v3)$/.test(u);
   check(services.size >= 4 && [...services].every(known), `the page reached only Google's sign-in script, account details, the Drive API and Python's files (${[...services].join(", ")})`);
   check(seen().filter((s) => /drive\/v3\/files(\?|$)/.test(s) && s.startsWith("GET")).every((s) => /spaces=appDataFolder/.test(s) || new RegExp(`'${ROOT}'[+ ]in[+ ]parents`).test(decodeURIComponent(s))),
     "every Drive listing it made looked only in the app's own folder, or the study's root for the roles");

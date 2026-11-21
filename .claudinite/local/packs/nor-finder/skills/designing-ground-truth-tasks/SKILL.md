@@ -18,14 +18,17 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## What the page is while ground truth is made
 
-- **Tagging starts and stops by hand.** Opening an image or running the algorithm leaves the image
-  as it is viewed: no task open, no ring, frame or cut-out, the view not moved. The shell's Start
-  GT tagging opens the walk and Stop tagging closes it (`req/shell/ground-truth/tagging`); the
-  study hears both through its tasks' `tagging` hook and asks `tasks.tagging()`, and the Show
-  menu's rows for what tagging alone draws are off out of it.
-- **Statistics are for viewing, not for making ground truth.** Hide the study's summary,
-  histograms and CSVs in a GT stage; they stay in PreGT and Published. A ground-truth tasks box
-  takes the summary's place in the left bar.
+- **Annotating is the walk.** Choosing how to get annotations on an image (from scratch, from the work
+  kept on the device, from an annotation of the store; `req/shell/annotate/choice`) enters annotation
+  mode, the walk of the tasks, and there is no Start or Stop: the study is mounted afresh in the mode, so
+  `shell.makesTruth` is fixed for a mount, hears the mode through its tasks' `tagging` hook and asks
+  `tasks.tagging()`, and may be told it before it has a model, the first one (a run, a draft, an
+  annotation loaded) being the walk's start. The ring, the frame and the cut-out, and the Show menu's
+  rows for them, are the mode's alone.
+- **Statistics are for viewing, and sit beside the tasks.** The Summary box shows whenever the image
+  carries a model, annotation mode included (`req/shell/left-bar/shells`), beside the tasks box; draw
+  nothing of the statistics on the image that is noise to the walk, a summary mask aside, which follows
+  the summary.
 - **The main area is the image, always.** No item view and no switch to one: mark the study's
   `#items-view` with `data-viewing` and the shell drops it and its switch in a GT stage
   (`req/shell/views/second`). No card hovers over the image; picking an item on the image makes
