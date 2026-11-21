@@ -1,5 +1,5 @@
 // Drives shell.gt.legacy (req/shell/ground-truth/legacy) in headless Chromium on the fixture study, against the stand-in Google of
-// stand_in_drive.mjs, as a Ground Truth Tagger: an old store of the study's own is offered once its run is in the log, is never
+// stand_in_drive.mjs, annotating: an old store of the study's own is offered once its run is in the log, is never
 // loaded unasked, loads as a base counted as unsaved, is forgotten only when a draft has kept it, and is offered again at the
 // next visit until then. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_legacy_driver.mjs ANSWERS STUDIES ROOT

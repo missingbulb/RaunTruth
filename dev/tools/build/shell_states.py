@@ -20,7 +20,7 @@ MATRIX = os.path.join(ROOT, 'dev', 'requirements', 'shell-states.GENERATED.md')
 EXPECT = os.path.join(ROOT, 'web-tests', 'shell-states.GENERATED.json')
 
 # what each action leaves changed; the browser test does the same action on the page
-# an image coming in ends annotation mode: the choice of how to get annotations on it is asked again (shell/annotate/choice)
+# an image coming in ends annotation mode: the choice of how to get annotations on it is asked again (req/shell/annotate/choice)
 ASK = {'annotating': False, 'route': 'none', 'edited': False}
 ACTIONS = {
     'load': ('Load', {'image': 'local', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
@@ -30,7 +30,7 @@ ACTIONS = {
     'count': ('Count', {'counted': True}),
     'items': ('Items', {'view': 'items'}),
     'image': ('Image', {'view': 'image'}),
-    # how to get annotations on the image open (shell/annotate/choice): the study opens afresh on the same image in
+    # how to get annotations on the image open (req/shell/annotate/choice): the study opens afresh on the same image in
     # annotation mode, from scratch, from the work this device kept, or from an annotation of the store; the store's
     # alone is first shown read-only
     'scratch': ('Start annotating from scratch', {'annotating': True, 'route': 'scratch', 'counted': False, 'view': 'image', 'edited': False}),
@@ -71,7 +71,7 @@ MARK = {'shown': '●', 'disabled': '◐', 'held': '⊖', 'folded': '▸', 'hidd
 
 def derived(s):
     """What the rules may name besides the vars: the study makes ground truth for this user, and the image carries a model:
-    the algorithm's run, or an annotation loaded; always for a study that keeps no GT actions (shell/annotate/choice)."""
+    the algorithm's run, or an annotation loaded; always for a study that keeps no GT actions (req/shell/annotate/choice)."""
     return {**s, 'makesTruth': s['annotating'] and s['stage'] in ('GT', 'PostGT'),
             'hasModel': not s['keepsLog'] or s['counted'] or s['route'] in ('local', 'drive')}
 

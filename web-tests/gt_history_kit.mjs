@@ -12,7 +12,7 @@ export function kit({ drive, png }) {
     await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
     await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
   };
-  // the image open, then annotation from scratch chosen for it (shell/annotate/choice)
+  // the image open, then annotation from scratch chosen for it (req/shell/annotate/choice)
   const tagger = async (page) => { await openImage(page); await fromScratch(page, "#fx-count"); };
   const reopen = async (page) => { await page.reload(); await ready(page); await tagger(page); };
   const model = (page) => page.evaluate(() => window.fixture.model());

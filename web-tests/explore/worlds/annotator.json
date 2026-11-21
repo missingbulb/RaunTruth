@@ -1,12 +1,11 @@
 {
- "about": "An annotator, signed in as a Ground Truth Tagger: Drive lets them add to the GT submissions folder alone.",
+ "about": "An annotator, signed in: Drive lets them add to the GT submissions folder alone, so they may save, and not open Data Management.",
  "study": "fixture",
  "stage": "GT",
  "user": {
   "email": "annotator@acme.example",
   "name": "Acme Annotator"
  },
- "role": "tagger",
  "drive": {
   "access": "public",
   "writers": [

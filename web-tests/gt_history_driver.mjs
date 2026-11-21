@@ -1,5 +1,5 @@
 // Drives the fixture study's GT actions in headless Chromium, against the stand-in Google of stand_in_drive.mjs, as a
-// Ground Truth Tagger. Checks req/shell/ground-truth/save-draft (nothing is kept until Save Draft; unsaved actions counted
+// annotating. Checks req/shell/ground-truth/save-draft (nothing is kept until Save Draft; unsaved actions counted
 // and guarded; a failed write said; replacing an unloaded draft asks), req/shell/ground-truth/draft-offer (Load draft is
 // offered, never loaded unasked, and asks before it replaces unsaved actions), req/shell/ground-truth/history (Undo and
 // Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Submit's file carries the log in
@@ -63,7 +63,7 @@ const savedAt = recs[0].saved;
 await reopen(page);
 await until(page, () => !$("#gt-offers").hidden);
 const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-offers").nextElementSibling.id }));
-await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above Start GT tagging, with when it was saved and how many actions", offer);
+await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above the tasks, with when it was saved and how many actions", offer);
 await check((await model(page)) === null && (await page.textContent("#fx-result")).startsWith("Nothing counted"), "nothing is loaded unasked");
 await page.evaluate(() => { window.posted = []; const p = Worker.prototype.postMessage; Worker.prototype.postMessage = function (m, ...r) { posted.push(m.type + ":" + (m.action || "")); return p.call(this, m, ...r); }; });
 await page.click("#gt-load-draft");

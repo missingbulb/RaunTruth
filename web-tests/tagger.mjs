@@ -1,4 +1,4 @@
-// A page test working as someone who may save ground truth to the study (shell/annotate/no-save), which only someone signed in
+// A page test working as someone who may save ground truth to the study (req/shell/annotate/no-save), which only someone signed in
 // may: the site deployed with a stand-in Google key and client, a user signed in to the sign-in fake with a token for the hour,
 // the welcome popup answered, with no settings saved to Drive yet. Each study's folder on the Drive fake holds a submissions
 // folder the user may add to alone, which is what lets them save (req/shell/data/roles). scopes: what the token may do, in

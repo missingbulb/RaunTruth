@@ -1,12 +1,11 @@
 {
- "about": "The study's owner, whom Drive lets write the study's folder, signed in as its Study Manager.",
+ "about": "The study's owner, whom Drive lets write the study's folder, signed in, who may open Data Management from the avatar's menu.",
  "study": "fixture",
  "stage": "GT",
  "user": {
   "email": "owner@acme.example",
   "name": "Acme Owner"
  },
- "role": "data",
  "drive": {
   "access": "public",
   "writers": [

@@ -1,7 +1,7 @@
 // Drives the fixture study's ground truth in headless Chromium, against the stand-in Google of stand_in_drive.mjs
 // serving ROOT, the study's root, set up from Data Management. Checks req/shell/ground-truth/setup (Set up ground
-// truth makes the folders, shares the curated one and writes the settings file), req/shell/data/roles (Ground Truth
-// Tagger offered only where the store lets the user write to submissions), req/shell/ground-truth/tagger-access,
+// truth makes the folders, shares the curated one and writes the settings file), req/shell/data/roles (who may save
+// where the store lets the user write to submissions), req/shell/annotate/no-save,
 // req/shell/ground-truth/submit and req/shell/ground-truth/layout (Submit writes the tagger's file into the image's
 // subfolder, and submitting again replaces it keeping the old version), req/shell/ground-truth/clear (the Edit History window's),
 // req/shell/ground-truth/pending, req/shell/ground-truth/curate, req/shell/ground-truth/summary (the Ground Truth box),
@@ -229,7 +229,7 @@ on = await pressed(page);
 await check(on[beta.id] === "true" && FILES.some((f) => f.name === neededOf(png)), "the image with ground truth keeps its marker, no longer shown", on);
 await page.context().close();
 
-// shell/annotate/choice: someone not signed in loads the image and, from Drive, its curated ground truth, with no algorithm run
+// req/shell/annotate/choice: someone not signed in loads the image and, from Drive, its curated ground truth, with no algorithm run
 page = await open(false);
 // what the page downloads from the store, to tell the listing from reading the ground truth
 const downloads = [];

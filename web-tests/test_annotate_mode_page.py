@@ -1,4 +1,4 @@
-"""shell/annotate/choice, shell/annotate/clear, shell/annotate/no-save, shell/annotate/survives, req/shell/left-bar/shells: the main
+"""req/shell/annotate/choice, req/shell/annotate/clear, req/shell/annotate/no-save, req/shell/annotate/survives, req/shell/left-bar/shells: the main
 app's one page for everyone, with no role menu, on the fixture study in headless Chromium against a stand-in Google
 (annotate_driver.mjs): how an image's annotations are got once it loads, annotation mode and its tools, who may save, and
 what keeps the work through a token run out and a store that does not answer."""

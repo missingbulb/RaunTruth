@@ -325,7 +325,7 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 #view[data-view=image] .for-items, #view[data-view=items] .for-image { display: none; }
 /* a published study shows what it finds: the steps that serve making ground truth go */
 [data-stage=Published] .unpublished { display: none !important; }
-/* nothing that makes ground truth but while the user annotates (shell/annotate/choice) */
+/* nothing that makes ground truth but while the user annotates (req/shell/annotate/choice) */
 :root:not([data-annotating]) .unpublished { display: none !important; }
 #switch .count { opacity: .7; font-weight: 400; }
 #switch .count:empty { display: none; }
@@ -1022,7 +1022,7 @@ html:not(.offline) #welcome-offline { display: none; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 
-/* the line in a study's ground-truth box saying whether the user may save to the study (shell/annotate/no-save) */
+/* the line in a study's ground-truth box saying whether the user may save to the study (req/shell/annotate/no-save) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
 .gt-access[hidden] { display: none; }
 .gt-access[data-access="signedout"], .gt-access[data-access="nosave"], .gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
@@ -1131,7 +1131,7 @@ html:not(.offline) #welcome-offline { display: none; }
 .study-areas .interest { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .study-areas .interest.under { stroke: #000; stroke-width: 3; stroke-opacity: .5; }
 
-/* the Annotations box: how to get annotations on the image open (shell/annotate/choice) */
+/* the Annotations box: how to get annotations on the image open (req/shell/annotate/choice) */
 #annotate-box[hidden], #annotate-choices[hidden], #annotate-list[hidden], #annotate-ask[hidden] { display: none; }
 #annotate-choices { display: flex; flex-direction: column; gap: 6px; }
 #annotate-choices > button, #annotate-edit, #annotate-clear { width: 100%; }

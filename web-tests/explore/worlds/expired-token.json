@@ -6,7 +6,6 @@
   "email": "owner@acme.example",
   "name": "Acme Owner"
  },
- "role": "data",
  "token": {
   "expired": true
  },

@@ -43,7 +43,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
   const account = world.user || world.signIn?.account;
   if (account) google.account = { sub: "2001", name: account.name, email: account.email, picture: null };
   google.answer = world.signIn?.answer || "grant";
-  const seed = { ...(world.role ? { "nor-role": world.role } : {}), ...(world.seed || {}) };
+  const seed = { ...(world.seed || {}) };
   const page = await s.open(!!world.user, {
     id: world.study, email: world.user?.email, name: world.user?.name, seed, scale, welcome: !!world.welcome,
     study: { ...(world.stage ? { stage: world.stage } : {}), ...(world.studyJson || {}) },

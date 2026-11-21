@@ -1,4 +1,4 @@
-// Annotation mode entered the way a person does (shell/annotate/choice): once an image has loaded, the left bar's Start
+// Annotation mode entered the way a person does (req/shell/annotate/choice): once an image has loaded, the left bar's Start
 // annotating from scratch, the study opening afresh on the same image in annotation mode, its algorithm runner shown.
 //   await fromScratch(page);         returns once the study has the image again and the page is not busy
 //   await leaveAnnotating(page);      Clear all annotations from image, confirmed

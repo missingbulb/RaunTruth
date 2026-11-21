@@ -1,7 +1,7 @@
 // The study's ground-truth tasks in the shell's Ground Truth Tasks box (req/shell/ground-truth/tasks): a bar of one
 // part per task, a row per task, and Submit Ground Truth last. The study says what its tasks are and how far each has
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
-// only while the user annotates, from the choice that enters annotation mode to its end (shell/annotate/choice).
+// only while the user annotates, from the choice that enters annotation mode to its end (req/shell/annotate/choice).
 "use strict";
 import * as Areas from "./gt_areas.js";
 

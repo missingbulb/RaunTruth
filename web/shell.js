@@ -82,6 +82,8 @@ const LEGACY_THUMBS = "nor-drive-thumbs-saved";
 const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 // a tagger's ground-truth draft of an image, by study, image name and SHA-256 (req/shell/ground-truth/draft)
 const GT_DRAFT = "gt-draft|";
+// the saves the store did not take, waiting on this device for the next click online (req/shell/annotate/survives)
+const OUTBOX = "nor-gt-outbox";
 // {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
 const HOLDS = "nor-drive-holds";
 const TIPS = "nor-tips-closed"; // [tip id]: the tips the user closed, never shown again
@@ -501,7 +503,7 @@ stagePop.addEventListener("mouseleave", stageClose.leave);
 // the study's stage lets its users annotate: GT and PostGT, as the study stages (study-stages-spec.md) are not yet in
 const stageAnnotates = () => manifest.stage === "GT" || manifest.stage === "PostGT";
 
-// ---------- annotating (shell/annotate/choice) ----------
+// ---------- annotating (req/shell/annotate/choice) ----------
 // After an image loads the user chooses how to get annotations on it. Annotation mode is on from the choice that enters it
 // until the image goes: the study is mounted afresh in it, on the same image, as it was for a role of its own once, and
 // route says how it began: "scratch" | "local" | "drive". resume holds a choice made until the study has the image again:
@@ -509,7 +511,7 @@ const stageAnnotates = () => manifest.stage === "GT" || manifest.stage === "Post
 let annotating = false, route = null, resume = null;
 // the annotation of the store shown read-only, {label, doc, counts}, or null, and what the store's list of them held when last asked
 let viewing = null, driveList = null;
-const makesTruth = () => stageAnnotates() && annotating;
+const makesTruth = () => !!manifest && stageAnnotates() && annotating;
 // whether the store lets this user save ground truth to the study, as far as last read
 const maySave = () => signIn.signedIn() && storeRoles.tagger;
 const mayManage = () => signIn.signedIn() && storeRoles.manager && remote.ready;
@@ -813,6 +815,8 @@ function imageOpened(m) {
     // annotating from work already made opens Ground Truth Tasks with it
     if ((offered || (resumed && route !== "scratch")) && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
     drawAnnotate();
+    // the choice just made took the focus with it: it goes to what is left of the box
+    if (resumed && document.activeElement === document.body) $("#annotate-clear").focus({ preventScroll: true });
   });
   truth.paint(); drawAnnotate(); drawWaiting();
   if (st.source && st.source.kind === "local" && makesTruth()) notice(LOCAL_GT(remote));
@@ -1665,7 +1669,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Ground truth waiting to be saved to ${remote.label}`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1902,7 +1906,7 @@ const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hid
 // the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
 const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.phases[0]?.key; return !first || !!steps.find((p) => p.key === first)?.done; },
   heardBy: (on) => view?.tagged?.(on) });
-// An annotation of the store shown read-only (shell/annotate/choice), through the study's showTruth(doc), which draws only
+// An annotation of the store shown read-only (req/shell/annotate/choice), through the study's showTruth(doc), which draws only
 // its final results and returns a line of its counts. truthShown: the open image shows one, which takes the place of the
 // Items view
 let truthShown = false;
@@ -1911,7 +1915,7 @@ function showingTruth(on) {
   if (on) views.show("image");
   $("#switch").hidden = !itemsView();
 }
-// The annotations of the image open that the store holds (shell/annotate/choice): the study's curated ground truth and the
+// The annotations of the image open that the store holds (req/shell/annotate/choice): the study's curated ground truth and the
 // user's own submission, the two the page can load as it stands; the extraction store (shell/extractions/list) replaces this
 // listing. Each row: {key, label, detail, read() -> {doc, label}}.
 async function storeAnnotations() {
@@ -1996,8 +2000,7 @@ async function clearAnnotations() {
 }
 
 // Saves that could not reach the store, kept on this device until a click finds it back: [{study, sha256, name, source, doc}]
-// (shell/annotate/survives)
-const OUTBOX = "nor-gt-outbox";
+// (req/shell/annotate/survives)
 const outbox = () => { const l = readJSON(OUTBOX, []); return Array.isArray(l) ? l : []; };
 const unsentCount = () => outbox().length;
 function drawWaiting() {
@@ -2038,7 +2041,7 @@ function submitTruth(gt) {
   }));
   $("#gt-msg").textContent = n ? why() : gt.empty;
   $("#gt-export").disabled = !n;
-  // someone the store lets save nothing downloads their work instead (shell/annotate/no-save)
+  // someone the store lets save nothing downloads their work instead (req/shell/annotate/no-save)
   send.hidden = !maySave();
   send.disabled = !n || !!why() || !maySave(); send.title = why();
   // the blue button is the next step: Submit when it can, else the export; Close once either is done
@@ -2556,7 +2559,7 @@ async function mountNow(id) {
 }
 // The left bar's boxes the study fills (req/shell/left-bar/shells): one it leaves empty is not shown. Ground Truth Tasks
 // shows while the user annotates; Summary whenever the image carries a model, however far along, beside it (set by the
-// owner, shell/annotate/choice); Processing, in a study that annotates, once an image is open, only on the route that starts
+// owner, req/shell/annotate/choice); Processing, in a study that annotates, once an image is open, only on the route that starts
 // from scratch. Processing opens with the image and folds after the study's first step, which opens the others
 // (req/shell/left-bar/folding).
 const STUDY_BOXES = { processing: "#processing-box", tasks: "#tasks-box", summary: "#summary-box" };

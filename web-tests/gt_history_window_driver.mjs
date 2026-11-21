@@ -1,5 +1,5 @@
 // Drives the Edit History window (req/shell/ground-truth/history, req/shell/ground-truth/clear) in headless Chromium on the
-// fixture study, against the stand-in Google of stand_in_drive.mjs, as a Ground Truth Tagger: where it floats and how big it
+// fixture study, against the stand-in Google of stand_in_drive.mjs, annotating: where it floats and how big it
 // is, its rows (newest on top, the current one dotted, undone ones above it), a click on a row, folded runs, a day rule, a
 // long list drawn by what is in view, a hover's ring and a click's pan, its switch, Clear all history and a draft whose
 // history did not replay. Exits 1 on a failed check, 2 when it cannot run.

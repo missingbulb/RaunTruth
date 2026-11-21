@@ -88,7 +88,7 @@ const ACTIONS = {
     await page.click("#switch");
     await page.waitForFunction(() => document.querySelector("#view").dataset.view === "image");
   },
-  // annotation mode (shell/annotate/choice): the study opens afresh on the same image in it
+  // annotation mode (req/shell/annotate/choice): the study opens afresh on the same image in it
   async scratch(page, first) { await fromScratch(page, first?.button); },
   async local(page, first) {
     await page.click("#annotate-local");

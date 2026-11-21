@@ -1,5 +1,5 @@
-// Drives the main app's one page for everyone, with no role menu (shell/annotate/choice, shell/annotate/clear,
-// shell/annotate/no-save, shell/annotate/survives, req/shell/left-bar/shells) in headless Chromium on the fixture study (in its GT
+// Drives the main app's one page for everyone, with no role menu (req/shell/annotate/choice, req/shell/annotate/clear,
+// req/shell/annotate/no-save, req/shell/annotate/survives, req/shell/left-bar/shells) in headless Chromium on the fixture study (in its GT
 // stage), against the stand-in Google of stand_in_drive.mjs serving ROOT: how an image's annotations are got once it
 // loads, annotation mode and its tools, who may save, and what keeps the work through a token run out and a store that
 // does not answer. Exits 1 on a failed check, 2 when it cannot run.
@@ -90,6 +90,7 @@ await page.context().close();
 page = await open(true, { email: OTHER, prepare: standInDrive });
 await opened(page);
 await scratch(page);
+await page.waitForFunction(() => document.activeElement?.id === "annotate-clear");
 await check(await annotating(page) && await shown(page, "#fx-count") && !(await shown(page, "#summary-box")) && await shown(page, "#tasks-box"),
   "Start annotating from scratch enters annotation mode and shows the algorithm runner, Ground Truth Tasks and no Summary yet", { runner: await shown(page, "#fx-count") });
 await counted(page);
@@ -211,5 +212,24 @@ await expecting(/settings not (synced|saved)/, async () => {
   await until(page, () => $("#gt-waiting").hidden, undefined, { timeout: 8000 });
   await check(wrote() - w0 === 2, "back online, the next click sends both, and the count goes", { wrote: wrote() - w0 });
 }, { maybe: true });
+await page.context().close();
+
+// the page asked whether to be left while the study it showed has gone and the next is not yet in (a reload, a tab closed, in
+// the swap): nothing is unsaved then, and nothing throws
+page = await open(true, { email: OTHER, prepare: standInDrive });
+await opened(page);
+await scratch(page);
+await page.evaluate(() => {
+  const fetchNow = window.fetch;
+  window.fetch = function (u, ...rest) {
+    if (/studies\/viewer\/study\.json/.test(String(u?.url ?? u))) window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
+    return fetchNow.call(this, u, ...rest);
+  };
+});
+page.once("dialog", (d) => d.accept());
+await page.click("#study-menu summary");
+await page.click('#study-list a[data-id="viewer"]');
+await page.waitForFunction(() => document.title === "Image Viewer");
+await check(true, "the page asked whether to be left between two studies of a swap throws nothing");
 await page.context().close();
 await done(0);

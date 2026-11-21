@@ -1,4 +1,4 @@
-// The Annotations box in the left bar (shell/annotate/choice): after an image loads it asks how to get annotations on it,
+// The Annotations box in the left bar (req/shell/annotate/choice): after an image loads it asks how to get annotations on it,
 // and once the user annotates it says so and offers Clear. It draws what the shell hands it and tells the shell what was
 // chosen; the shell owns the mode.
 "use strict";

@@ -58,7 +58,7 @@ const MASKED = [[[0, 0], [60, 0], [60, 60], [0, 60]]];
 const pictures = [];
 async function open() {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 700 } });
-  await asTagger(ctx); // ground truth is made by a Ground Truth Tagger (req/shell/account/role)
+  await asTagger(ctx); // someone the store lets save ground truth (req/shell/annotate/no-save)
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   await keepStudyKeyListeners(ctx);
   await ctx.addInitScript(([k, m]) => localStorage.setItem(k, JSON.stringify(m)), ["nor-mask-v1:" + path.basename(image), MASKED]);

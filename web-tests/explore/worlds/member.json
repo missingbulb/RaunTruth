@@ -6,7 +6,6 @@
   "email": "member@acme.example",
   "name": "Acme Member"
  },
- "role": "viewer",
  "drive": {
   "access": "private",
   "members": [

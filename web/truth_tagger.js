@@ -1,6 +1,6 @@
 // The annotator's side of the study's ground-truth folders (truth_folders.js): the line in the study's ground-truth box
 // (every `.gt-access` its panels hold) saying when the user may not save to the submissions folder and how to get there
-// (shell/annotate/no-save), and Submit (req/shell/ground-truth/submit).
+// (req/shell/annotate/no-save), and Submit (req/shell/ground-truth/submit).
 "use strict";
 import { folders, submit, status, current, subfolderName, own } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
@@ -81,7 +81,7 @@ export function truthTagger({ account, remote, place, image, on, may }) {
     // the image's curated ground truth, {name, doc}, or null, its files read now (req/shell/ground-truth/view)
     async curated(img) { const f = await gt(); return f.curated ? current(reader, f.curated, img) : null; },
     // why Submit is off for the image open, "" when it is on. A sign-in that ran out, or a store that did not answer, is no
-    // reason: the save is tried and, failing, waits for the next click (shell/annotate/survives)
+    // reason: the save is tried and, failing, waits for the next click (req/shell/annotate/survives)
     blocked() {
       const im = image();
       if (!im || !remote.owns(im.source)) return LOCAL_GT(remote);

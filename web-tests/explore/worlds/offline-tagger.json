@@ -6,7 +6,6 @@
   "email": "annotator@acme.example",
   "name": "Acme Annotator"
  },
- "role": "tagger",
  "events": {
   "offline": 3,
   "online": 3

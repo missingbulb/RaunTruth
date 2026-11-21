@@ -1,5 +1,5 @@
 // Drives the vascular study's GT actions in a GT stage (req/vascular/model/correct, req/vascular/model/ground-truth) in headless
-// Chromium against a stand-in worker (stand_in.mjs), as a Ground Truth Tagger: a point dragged is one action at its drop and none
+// Chromium against a stand-in worker (stand_in.mjs), annotating: a point dragged is one action at its drop and none
 // while it moves or when Escape cancels it; Undo and Redo are the shell's; the file keeps the ids and has no clock; Save Draft, a
 // reload and Load draft bring the model back without Execute; and the edits kept in this browser before Edit History are offered
 // once as a base. Exits 1 on a failed check, 2 when it cannot run.
