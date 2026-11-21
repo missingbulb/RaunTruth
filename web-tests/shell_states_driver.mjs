@@ -14,6 +14,7 @@ import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { read } from "./page_elements.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -158,18 +159,6 @@ const ACTIONS = {
   },
 };
 
-// each element as the page shows it, and where it is
-const read = (page, elements) => page.evaluate((els) => Object.fromEntries(els.map((e) => {
-  const el = document.querySelector(e.select);
-  if (!el) return [e.name, { seen: "gone", box: null }];
-  const shown = el.getClientRects().length > 0 && el.checkVisibility({ visibilityProperty: true });
-  // held: what the page marks as needing the internet while offline (req/shell/offline/default)
-  const held = el.getAttribute("aria-disabled") === "true" && el.dataset.onlineTitle !== undefined;
-  const off = el.matches(":disabled") || (!held && el.getAttribute("aria-disabled") === "true");
-  const seen = !shown ? "gone" : e.box && el.classList.contains("folded") ? "folded" : held ? "held" : e.control && off ? "off" : "on";
-  const r = el.getBoundingClientRect();
-  return [e.name, { seen, box: shown ? { x: r.x, y: r.y, w: r.width, h: r.height } : null }];
-})), elements);
 
 // arrows over the page, each from a little above and left of its element to its edge; a dashed one where an element
 // was before it went; red where the page is not what the rules say
