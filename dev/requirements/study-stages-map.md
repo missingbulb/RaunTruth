@@ -1,8 +1,8 @@
 # Study stages: the map
 
 A [Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md) map for #1015,
-kept as this one file instead of tracker issues (the owner's choice). The design below is decided; the open
-questions the persona reviews raised come before the hand-off.
+kept as this one file instead of tracker issues (the owner's choice). The design below is decided; what is left is
+the hand-off and the items Not yet specified.
 
 ## Destination
 
@@ -65,10 +65,10 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
 |---|---|---|---|---|---|
 | **Study Setup** (root write): folders, tags, descriptions, areas of interest, damaged areas, Needs GT, hide rules, GT setup, previews | open | open | open: new images may still be added and marked | data closed | data closed |
 | **Main app, view and run the algorithm** on the study's images | members | members | members | anyone with the address (unlisted), frozen | everyone, listed |
-| **Run the algorithm on your own images**, in the browser only, nothing leaving the device | - | - | - | - | everyone |
+| **Run the algorithm on your own images**, in the browser only, nothing leaving the device | members | members | members | members | everyone |
 | **Start Annotating**, saving extractions (extractions folder write) | open for trial, nothing counted | open: annotations score the algorithm | open: annotations replace the algorithm's answer in the study's numbers | closed | closed |
 | **Mark an extraction GT or official** (Study Setup, study owner) | closed | open | open | closed | closed |
-| **Batch run** over the study's images | closed | closed | open; each result names its algorithm version | closed | closed |
+| **Batch run** (Study Setup) over chosen images | open once there is an algorithm | open | open | open, counts once marked | open, counts once marked |
 | **Numbers shown** | none | each version's precision and recall | the study's results | the frozen results | the published results |
 | **Developer** (repo) | first algorithm and annotation tools | improve algorithms, record each version's quality | improve algorithms; users correct outputs | only output-preserving changes | same |
 | **Owner promotes when** | inputs marked, an annotation tool works | the owner judges the analysis valid | the owner calls the results final | the article is accepted | none |
@@ -128,35 +128,33 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
   everything; at Review the model-only annotations are committed and the official scores published on them.
 - After the persona reviews: Review opens by unlisted link; Setup opens annotating for trial; Study Setup's
   stage, article and sharing stay open in every stage.
+- **Official is just a tag on one extraction of an image**, which counts whole in the study's numbers; no
+  combining by area.
+- **Annotators**: someone signed in who may not save sees Start Annotating with a line to ask the owner for
+  access; annotation mode and unsaved work survive the Google token expiring or going offline, saving waiting for
+  the next click online; Start Annotating replaces today's per-image Start GT tagging and stays across images and
+  reloads.
+- **Entering Review**: before promoting, Study Setup shows the owner the images with unmarked extractions newer
+  than their GT. After the freeze the numbers use marked extractions only, so anything saved later does not count.
+  Moving back from Review keeps the committed GT and published scores as a dated record; the next Review commits
+  anew.
+- **Outsiders**: a study's address opened by someone who may not see it says so and names the account they are
+  signed in with. Running the algorithm on one's own image, loaded from the device, is open to members in every
+  stage and to everyone at Public.
 
-## Open questions (from the persona reviews)
+- **Batch runs are a Study Setup action**, open in any stage with algorithms and data: the owner chooses the
+  algorithm and the files, and the extractions are stored with the rest. Study Setup therefore runs the study's
+  algorithm for a batch, though its viewer stays the shell's plain view. After the Review freeze, batch
+  extractions count only once marked, like any other.
+- **Study Setup lists People**, read-only: each member and what Drive lets them do (sees, annotates, manages),
+  read from the sharing of the settings file and folders (a Drive call approved by the owner here).
+- Published numbers show no exclusion counts; the article explains them.
+- Each study records its stage, with the date and who gave it, in its `STATE.md`; unattended tasks and unasked
+  merges leave a study's algorithm alone from Review on.
 
-Four reviewers (study owner, annotator, outsiders, developer) walked the design; these are what they found still
-open, worst first.
+## Persona review questions
 
-1. **The lab's route to data before Review.** `lab/fetch.py` finds images and curated annotations through
-   `study.json`'s `root`; without it the lab silently scores only the committed model-made labels, and
-   `sources.json` still publishes each image's Drive ID. How does a Develop session reach the study's folders
-   without naming them in the public repo? (A credential would be a new network call, its own approval.)
-2. **What a batch run writes, and the results view.** Analyze, Review and Public rest on them, and no
-   requirement exists; include how a partly annotated image counts in the numbers.
-3. **Work in flight when a stage closes.** Drafts and unmarked extractions at a promotion to Review; a stale or
-   offline page can still write to the extractions folder after the freeze.
-4. **Which algorithm the numbers came from in Analyze.** The page serves whatever `main` holds, so a change
-   merged mid-Analyze mixes two algorithms; unattended tasks (the mutation sweep) and unasked merges have no stop.
-5. **The stage in `STATE.md` goes stale**, and most studies have no `STATE.md`; on a promotion nothing tells the
-   repo.
-6. **Annotators' entry points.** Someone who may not yet annotate sees no button and no reason; whether
-   annotation mode survives a token running out or offline; whether Start Annotating replaces today's per-image
-   Start GT tagging; a hidden image holding someone's extraction.
-7. **Moving back a stage**: what is kept (results, the official scores, the committed annotations) and who is
-   told.
-8. **Outsiders**: what a study's address shows someone who may not open it; the landing page listing studies from
-   `study.json` at build time; running one's own image contradicting `req/shell/load/from` (Drive only today);
-   showing the exclusions (hide rules, damaged areas) and precision and recall beside published results.
-9. **Owner's smaller asks**: run on one's own images for members in every stage; a People line in Study Setup
-   (who sees, annotates, accepts); provisional batch runs in Develop; the main app's hidden images for root
-   writers.
+All nine were resolved in the decisions above, except where they fell under Not yet specified below.
 
 ## Hand-off: the requirements to rewrite
 
@@ -186,7 +184,9 @@ the studies' `STATE.md`.
 
 - Study Setup in detail: how the profile menu opens it, how it returns to the main app, which shared pieces move
   from `req/shell/data/*` to `req/setup/*`.
-- What a batch run writes, where, and the study results view: no requirement for either exists yet.
+- The study results view (cross-image numbers over official extractions), and how extraction files are named
+  when one person or one batch makes several for an image.
+- The landing page, which lists studies from `study.json` at build time, now that membership is read at run time.
 - The gate conditions the page can measure for each stage, worded for the popup.
 
 ## Out of scope
