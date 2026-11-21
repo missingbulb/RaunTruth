@@ -31,7 +31,7 @@ questions the persona reviews raised come before the hand-off.
 
 - The main app has no role menu. Drive permissions only add actions. Before annotating, the page differs between
   someone who may annotate and someone who may not by one button, **Start Annotating** (name tentative), which
-  moves the page into annotation mode; every annotation tool, accepting or rejecting submissions included, shows
+  moves the page into annotation mode; every annotation tool shows
   only in that mode.
 - **Study Setup** is a page of the same site, opened from the profile menu's "Study Setup...", sharing the shell's
   code, study files and sign-in. The aim is simpler code, tests and requirements, not only a simpler screen. All
@@ -66,8 +66,8 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
 | **Study Setup** (root write): folders, tags, descriptions, areas of interest, damaged areas, Needs GT, hide rules, GT setup, previews | open | open | open: new images may still be added and marked | data closed | data closed |
 | **Main app, view and run the algorithm** on the study's images | members | members | members | anyone with the address (unlisted), frozen | everyone, listed |
 | **Run the algorithm on your own images**, in the browser only, nothing leaving the device | - | - | - | - | everyone |
-| **Start Annotating** (submissions write) | open for trial, nothing counted | open: annotations score the algorithm | open: annotations replace the algorithm's answer in the study's numbers | closed | closed |
-| **Accept or reject submissions** (curated write), in annotation mode | closed | open | open | closed | closed |
+| **Start Annotating**, saving extractions (extractions folder write) | open for trial, nothing counted | open: annotations score the algorithm | open: annotations replace the algorithm's answer in the study's numbers | closed | closed |
+| **Mark an extraction GT or official** (Study Setup, study owner) | closed | open | open | closed | closed |
 | **Batch run** over the study's images | closed | closed | open; each result names its algorithm version | closed | closed |
 | **Numbers shown** | none | each version's precision and recall | the study's results | the frozen results | the published results |
 | **Developer** (repo) | first algorithm and annotation tools | improve algorithms, record each version's quality | improve algorithms; users correct outputs | only output-preserving changes | same |
@@ -95,7 +95,7 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
 - An annotation applies only to the image file whose hash it names; it is never carried to another image.
 - Re-annotating an image changes the dataset SHA (it covers the annotation bytes), and the next recorded scoring
   re-measures every version on the new dataset; old numbers stay with the old SHA, never patched.
-- **At promotion to Review the curated annotations are copied into the repo**, beside the algorithms, holding the
+- **At promotion to Review the GT extractions are copied into the repo**, beside the algorithms, holding the
   model alone: no action history, no algorithm invocation, no annotator name. Precision and recall are published
   "officially" then, measured on that committed set; the commit is what makes the numbers reproducible. Before
   Review, annotations live on Drive only. (Committed means public at once, while the study is only unlisted.)
@@ -103,10 +103,13 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
 - **Batch runs** run in the main app over the study's images and write one extraction per image to the study's
   Drive folders, each naming the image hash and the algorithm version; the results view reads them and downloads
   a table.
-- **Ground truth is an approved extraction.** Every extraction (a tagger's, a researcher's run, a batch run) is
-  the same kind of file: the algorithm runs at a version and parameters, the manual actions added, kept in the same
-  place. An extraction approved as GT (by its tagger or the owner) is ground truth; committing GT at Review is an
-  addendum to that flow.
+- **Ground truth is a marked extraction.** Every extraction (a tagger's, a researcher's run, a batch run) is the
+  same kind of file, kept in one store: the algorithm runs at a version and parameters, then the manual actions
+  added. There is no submit, no curated copy and no accept or reject in the main app. Marking an extraction **GT**,
+  or **official** for the study's numbers, is a management action the study owner takes in Study Setup, recorded
+  in the study index (owner-writable), with the file's content hash so a later edit of a marked file shows. The
+  main app only shows the marks. Loading an image lists every extraction of it, labelled (who made it, by algorithm
+  or by hand, GT, official). Committing GT at Review is an addendum to this flow.
 - **Claude sessions reach a study's Drive root** through an environment variable per study in the owner's cloud
   environment (for example `RAUNTRUTH_ROOT_VASCULAR`), never the repo; a session without it stops with a clear
   message. `sources.json` keeps image names and hashes and drops Drive IDs. CI and the website need no root.
@@ -137,15 +140,15 @@ open, worst first.
    without naming them in the public repo? (A credential would be a new network call, its own approval.)
 2. **What a batch run writes, and the results view.** Analyze, Review and Public rest on them, and no
    requirement exists; include how a partly annotated image counts in the numbers.
-3. **Work in flight when a stage closes.** Drafts and pending submissions at a promotion to Review; a stale or
-   offline page can still write to the submissions folder after the freeze.
+3. **Work in flight when a stage closes.** Drafts and unmarked extractions at a promotion to Review; a stale or
+   offline page can still write to the extractions folder after the freeze.
 4. **Which algorithm the numbers came from in Analyze.** The page serves whatever `main` holds, so a change
    merged mid-Analyze mixes two algorithms; unattended tasks (the mutation sweep) and unasked merges have no stop.
 5. **The stage in `STATE.md` goes stale**, and most studies have no `STATE.md`; on a promotion nothing tells the
    repo.
 6. **Annotators' entry points.** Someone who may not yet annotate sees no button and no reason; whether
    annotation mode survives a token running out or offline; whether Start Annotating replaces today's per-image
-   Start GT tagging; a curator with curated write only; a hidden image holding a pending submission.
+   Start GT tagging; a hidden image holding someone's extraction.
 7. **Moving back a stage**: what is kept (results, the official scores, the committed annotations) and who is
    told.
 8. **Outsiders**: what a study's address shows someone who may not open it; the landing page listing studies from
