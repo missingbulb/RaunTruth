@@ -66,6 +66,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   version (its precision, recall and dataset SHA), never in a test that re-scores it on every pull
   request; here this replaces research-project's guard-wins-regression. (quality-per-version)
 
+- **Finishing feature work on the page, before handing it to the owner** - play with it through the explorer,
+  `web-tests/explore/`, as the `exploring-the-ui` skill says: the change's worlds and focus, several seeds, each bug
+  fixed test-first, each owner's call asked with its screenshots. (exploring-the-ui)
+
 ## What the page reaches
 
 - **Planning a change that adds or alters a network call or a permission request** (the page's,
