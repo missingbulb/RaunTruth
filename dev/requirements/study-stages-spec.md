@@ -8,20 +8,25 @@ goes, cut into work packages a worker session can take one at a time.
 
 ## How a worker takes a package
 
-Each package is one pull request off the newest `main`, worked as the basics pack's feature path:
+Packages are the units worker sessions take; the owner is not asked to approve each one. Every package is built on
+its own branch off the integration branch (`claude/gifted-fermat-g7q3rj`, pull request #1036); the orchestrating
+session reviews its diff, runs its tests and merges it into the integration branch, and the owner reviews the
+integration pull request once. A worker:
 
-1. Copy the package's requirements into `dev/requirements/requirements.md` (or `req/setup/*` into the new Study
-   Setup file, see WP5), replacing the ones it names, each with "Set by the owner on <date>" and its `Test:` line.
-2. Write the tests listed, run them and watch them fail.
-3. Implement until they pass; run the package's tests locally with `python3 -m pytest <files>`, and let the
-   pull request's Tests run (CI's test image, `dev/tools/test-image/run.sh`) carry the whole suite.
-4. Update the shell-states harness where the package says so, and bring each new tentative case to the owner
+1. Copies the package's requirements into `dev/requirements/requirements.md` (or `req/setup/*` into the new Study
+   Setup section, see WP5), replacing the ones it names, each with "Set by the owner on <date>" and its `Test:` line.
+2. Writes the tests listed, runs them and watches them fail.
+3. Implements until they pass, running the package's tests with `python3 -m pytest <files>` and every test file it
+   touched; the integration pull request's Tests run carries the whole suite.
+4. Rewrites, in the same package, every rule, skill, study requirement and lab doc its change makes wrong (what WP9
+   listed).
+5. Updates the shell-states harness where the package says so, listing each new tentative case for the owner
    (rule `shell-states-unreviewed`).
-5. A `Version-history:` line per the `writing-version-history` skill.
+6. Ends each commit message with a `Version-history:` line per the `writing-version-history` skill.
 
-A package does not start before the ones it depends on have merged. Network calls and fakes listed under
-"Approvals" are approved as listed; anything a worker finds it needs beyond them stops the package and goes to the
-owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
+A package starts only once the ones it depends on are merged into the integration branch. Network calls and fakes
+listed under "Approvals" are approved as listed; anything a worker finds it needs beyond them stops the package and
+goes to the owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
 
 ## Approvals on record
 
@@ -342,15 +347,12 @@ Depends on WP6 and WP7.
   - **Test:** `algorithm_choice_driver.mjs`: metrics with a stamp render it; without one (Develop) nothing.
 - The cross-image results view: **owner's question first**.
 
-### WP9 - instructions that name the old model
+### WP9 - folded into each package
 
-Depends on WP6. No code.
-
-- Rewrite the `designing-ground-truth-tasks` rule and skill, each study's `requirements.md` stage lines
-  (`studies/nor/requirements.md`, `studies/shelves/requirements.md`, `studies/vascular/requirements.md`),
-  `lab/README.md`, and the `improve-on-ground-truth` and `refitting-on-new-ground-truth` skills' "curated folder"
-  and "Drive root"; they learn the stage from `lab/fetch.py`'s output.
-- **Test:** none beyond each package's own; the owner reviews the wording.
+The rewording of rules, skills, study requirements and lab docs that name the old model (the
+`designing-ground-truth-tasks` rule and skill, each study's `requirements.md` stage lines, `lab/README.md`, the
+`improve-on-ground-truth` and `refitting-on-new-ground-truth` skills) is done by whichever package makes each one
+wrong (step 4 above).
 
 ## Hand steps (the owner's)
 
@@ -364,5 +366,5 @@ To file as one handover issue when WP2 starts (skill `writing-handover-issues`):
 
 ## Order
 
-WP1 → WP2 → WP3 → WP4 → WP5 → WP6 → WP8, with WP7 beside WP5-6 and WP9 last. WP2-4 change what users see and
-each ships alone; WP5 is the one to split if a worker's diff grows past one review.
+WP1 → WP2 → WP3 → WP4 → WP5 → WP6 → WP8, with WP7 beside WP5-6. WP5 is the one to split if a worker's diff grows
+past one session.
