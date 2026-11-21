@@ -17,8 +17,9 @@ import { pw, launch, googleOf, siteOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
-// uploaded(file): each file the page creates or replaces, {name, bytes}
-export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
+// uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
+// (and what it holds, until a folder has readers of its own), which then no longer shares it with anyone with the link
+export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
 
@@ -37,6 +38,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
   };
   add(rootDir, ROOT);
+  if (members) { drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set(members)); }
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
   // gt: the study set up with review, its settings file in ROOT naming two ground-truth folders kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
