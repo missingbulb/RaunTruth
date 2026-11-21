@@ -29,7 +29,7 @@ real-world footage or illustration, **[C]** the Claude chat.
 |---|---|---|---|---|
 | by hand: slow and inconsistent | both | 3 | **[MG]** Card 1, *By hand*: calendar pages flip; two counts of one image, 287 and 312. | "Count by hand, and it takes weeks, and two people never quite agree." |
 | off the shelf: no accuracy | both | 3 | Card 2, *Off the shelf*: a box returns a number; a reviewer's comment lands on it: *"How accurate is this?"* | "Use a tool off the shelf, and you can't say how accurate it is." |
-| custom: months | both | 3 | Card 3, *Custom code*: an email, *"the core can fit you in… in March"*. | "Or wait months for someone to write code for your stain." |
+| train a model: a mountain of tagging | both | 3.5 | Card 3, *Train a model*: images pile into thousands; a tagging counter crawls, *tagged 2,140 / 10,000*; a training bar after it. | "Or collect thousands of images, tag every one of them, and train a model, before it counts a single node for you." |
 | the proof nowhere | both | 3 | The cards slide aside: a laptop, a spreadsheet `GT_final_v3.xlsx`. | "And the ground truth that would prove any of it is a spreadsheet on one student's laptop." |
 
 ### 3. One loop
@@ -52,7 +52,7 @@ real-world footage or illustration, **[C]** the Claude chat.
 | approve | both | 2 | Ground Truth Tasks shows one item, ringed on the image; **Approve**. | "You correct it: approve," |
 | reject | both | 1.5 | The next item slides in; **Reject**. | "reject," |
 | add what it missed | both | 2 | A click on an unmarked node adds it. | "add what it missed." |
-| progress you can see | picture | 3 | Sped up: decided items cut to black, area by area, until the image is dark. | |
+| progress you can see | picture | 3 | Sped up: decided items hidden, area by area, until the whole image is done. | |
 
 ### 5. The second turn: measured
 

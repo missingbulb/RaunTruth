@@ -161,9 +161,9 @@ ribbon (the five stages, the current one lit) sits in a corner throughout, and e
 | the task list | both | 3 | **[UI]** Ground Truth Tasks: *13/47 Finalists · 0/22 Rejected · Missed*. | "The tasks list what the algorithm found, what it rejected, and what it may have missed." |
 | one item | both | 3 | The current item full width under its task, ringed on the image; **Approve**. | "You review one item at a time. Approve," |
 | or reject | both | 1.5 | The next item slides in; **Reject**. | "or reject." |
-| area by area | both | 3 | The walk frames one area; decided items cut to black. | "You go area by area, and what's done is cut out of the image." |
-| what it missed | both | 3 | A click on an unmarked node adds it; **No missed nodes here**; the area goes black. | "Add what it missed, then close the area." |
-| the rest | picture | 3 | Sped up, 4×: areas going black across the image. | |
+| area by area | both | 3 | The walk frames one area; decided items are hidden. | "You go area by area, and what's done is hidden, so you only see what's left." |
+| what it missed | both | 3 | A click on an unmarked node adds it; **No missed nodes here**; the area is hidden. | "Add what it missed, then close the area." |
+| the rest | picture | 3 | Sped up, 4×: done areas hidden one after another across the image. | |
 
 ### 5.3 Save, and mark ground truth
 

@@ -5,7 +5,7 @@
     {"base": {"scene": "cards3", "cards": [
         {"t": "By hand", "s": "weeks of clicking", "x": "287 vs 312", "icon": "tally"},
         {"t": "Off the shelf", "s": "a number, no accuracy", "x": "“How accurate is this?”", "icon": "box"},
-        {"t": "Custom code", "s": "someone else's queue", "x": "“…in March”", "icon": "code"}]},
+        {"t": "Train a model", "s": "thousands of images, all tagged", "x": "tagged 2,140 / 10,000", "icon": "stack"}]},
       "steps": [{"focus": 0}, {"focus": 1}, {"focus": 2}, {"scene": "footage", "icon": "sheet", "caption": "GT_final_v3.xlsx · one student's laptop"}]},
     {"base": {"scene": "loop"}, "steps": [{}, {"title": "RaunTruth"}]},
     {"base": {"scene": "ui", "app": "main", "stage": "Develop", "left": [
