@@ -83,10 +83,11 @@ check(JSON.stringify(await statuses([OWN], stranger)) === "[200]" && JSON.string
   check((await replace("second")).status === 200 && (await replace("third")).status === 200, "a file the page made is replaced twice");
   const list = await ask("GET", `/drive/v3/files/${doc}/revisions?fields=${encodeURIComponent("revisions(id,modifiedTime,size)")}`, { who: member });
   const ids = list.json?.revisions?.map((v) => v.id);
-  check(list.status === 200 && ids?.length === 2 && new Set(ids).size === 2, "each replace kept a revision, two listed", list.text);
+  check(list.status === 200 && ids?.length === 3 && new Set(ids).size === 3, "created, then replaced twice, three revisions are listed, the current one included", list.text);
   const first = await ask("GET", `/drive/v3/files/${doc}/revisions/${ids?.[0]}?alt=media`, { who: member });
   const second = await ask("GET", `/drive/v3/files/${doc}/revisions/${ids?.[1]}?alt=media`, { who: member });
-  check(first.text === "first" && second.text === "second", "the first revision's bytes read back as the file was before the first replace, and the second's after", [first.text, second.text]);
+  const head = await ask("GET", `/drive/v3/files/${doc}/revisions/${ids?.[2]}?alt=media`, { who: member });
+  check(first.text === "first" && second.text === "second" && head.text === "third", "each revision's bytes read back: the first as created, the second after one replace, the last as the file is now", [first.text, second.text, head.text]);
   check((await get(doc, member)).status === 200 && (await ask("GET", `/drive/v3/files/${doc}?alt=media`, { who: member })).text === "third", "the file itself reads as the last replace left it");
   check((await ask("GET", `/drive/v3/files/${doc}/revisions/nosuchrevision?alt=media`, { who: member })).status === 404, "a revision there is not is refused");
   check((await ask("GET", `/drive/v3/files/${doc}/revisions`, { who: stranger })).status === 200, "a revision of a link-shared file is listed to a non-member");

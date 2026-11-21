@@ -24,7 +24,7 @@
 //   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.unshared, drive.keptForever   what the page asked
 //     (a call of a batch request is logged on its own, batched: true, and the request itself as kind "batch")
 //   a file the page replaces keeps the version it had, as Drive does: file.revisions, each {id, bytes, modifiedTime,
-//     keepForever}, listed by files/<id>/revisions and read back at files/<id>/revisions/<id>?alt=media. Permissions
+//     keepForever}; files/<id>/revisions lists those and the current one last and read back at files/<id>/revisions/<id>?alt=media. Permissions
 //     are listed from drive.readers, drive.writers and the link's access, added and deleted at files/<id>/permissions
 //   drive.next(predicate)                              the next call matching it, once it is answered
 //   drive.inflight                                     how many calls are being answered now
@@ -216,8 +216,9 @@ export function driveAnswers(drive, google) {
     if (rev) {
       if (!who) return notFound();
       const one = (v) => ({ kind: "drive#revision", id: v.id, mimeType: type(f), modifiedTime: v.modifiedTime, size: String(v.bytes.length), keepForever: v.keepForever });
-      if (!rev[1]) return json(200, { kind: "drive#revisionList", revisions: f.revisions.map(one) });
-      const v = f.revisions.find((r) => r.id === decodeURIComponent(rev[1]));
+      const all = [...f.revisions, { id: String(f.revisions.length + 1), bytes: f.bytes, modifiedTime: f.modified, keepForever: !!f.keepsHead }];
+      if (!rev[1]) return json(200, { kind: "drive#revisionList", revisions: all.map(one) });
+      const v = all.find((r) => r.id === decodeURIComponent(rev[1]));
       if (!v) return notFound();
       return u.searchParams.get("alt") === "media" ? { status: 200, headers: { ...CORS, "content-length": String(v.bytes.length) }, contentType: type(f), body: v.bytes } : json(200, one(v));
     }
