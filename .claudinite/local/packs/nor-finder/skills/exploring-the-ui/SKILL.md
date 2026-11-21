@@ -18,7 +18,7 @@ runs.
 
 Take every world whose person the change reaches, and one it should not: a change for annotators runs `annotator`
 and `offline-tagger`, and `visitor` too, to see what the change shows someone it is not for. A layout change runs
-`phone`. A change to signing in or to what Drive lets someone do runs `first-visit`, `expired-token`, `member` and
+`phone`, whose findings are calls, the page supporting no phone. A change to signing in or to what Drive lets someone do runs `first-visit`, `expired-token`, `member` and
 `stranger`. A situation no world sets up gets a world of its own: a new file in `worlds/`, data alone, the same
 fields as its neighbours; a world needing a fake to do what it cannot yet is a knob on that fake, and a system no
 fake answers is the owner's call (fakes-for-outside-systems).
