@@ -33,3 +33,8 @@ for path in sorted(glob.glob('studies/*/study.json')):
     native['det'](np.zeros((1, 3, 32, 32), np.float32))
     print('fetched the services of', manifest['id'])
 PY
+# the Claudinite engine settings.yaml pins, which the tests of the repo's own checks run, by the installer the
+# workflows name (the engine's update keeps their steps current), at /opt/claudinite/cn
+setup=$(grep -o '@claudinite/setup@[0-9.]*' .github/workflows/tests.yml | head -1)
+HOME=/tmp/claudinite-home npx --yes "$setup"
+mkdir -p /opt/claudinite && cp -L .claudinite/bin/cn /opt/claudinite/cn && rm -rf /tmp/claudinite-home /root/.npm

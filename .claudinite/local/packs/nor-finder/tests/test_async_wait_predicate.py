@@ -7,12 +7,13 @@ import shutil
 import subprocess
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
-CN = os.path.join(ROOT, '.claudinite', 'bin', 'cn')
+# the engine: the test image's where it names one, else the checkout's
+CN = os.environ.get('CLAUDINITE_CN') or os.path.join(ROOT, '.claudinite', 'bin', 'cn')
 
 
 def findings(tmp_path, files, check='async-wait-predicate'):
     """The check's findings, as path:line, on a repo holding this one's .claudinite and the given files."""
-    shutil.copytree(os.path.join(ROOT, '.claudinite'), tmp_path / '.claudinite', ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(os.path.join(ROOT, '.claudinite'), tmp_path / '.claudinite', ignore=shutil.ignore_patterns('__pycache__', 'bin'))
     for name, text in files.items():
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text(text)
