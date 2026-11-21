@@ -11,6 +11,7 @@
 // chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -81,6 +82,7 @@ async function open(drive) {
     await page.setInputFiles("#file", image);
   }
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await annotateIfAsked(page, "#find");
   return { ctx, page };
 }
 
@@ -132,6 +134,7 @@ const offAxis = (L) => {
 const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b); if (e.classList.contains("folded")) e.querySelector(".sec-head h2").click(); }, box); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 async function markAndVote(page) {
   await unfold(page, "#processing-box");
+  const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
@@ -144,8 +147,6 @@ async function markAndVote(page) {
     window.still = window.lastAt === at ? (window.still || 0) + 1 : 0; window.lastAt = at;
     return window.still >= 5;
   }, null, { polling: "raf" });
-  const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
-  await page.click("#gt-start");
   await rest();
   await page.evaluate((w) => { shellForTests.viewer.setZoom(w.zoom); $("#scroller").scrollTo({ left: w.x, top: w.y, behavior: "instant" }); }, was);
   await rest();

@@ -4,6 +4,7 @@
 // reload and Load draft bring the model back without Execute; and the edits kept in this browser before Edit History are offered
 // once as a base. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_gt_actions_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -41,14 +42,13 @@ const nodeOf = async (id) => (await doc()).nodes.find((n) => n.id === id) ?? (aw
 const stack = { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) };
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
 const execute = async () => { await page.click("#vm-run"); await page.waitForFunction(() => !$("#vm-review").hidden); };
-const opened = async () => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); await page.evaluate(() => { $("#notice").hidden = true; }); };
+const opened = async () => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); await fromScratch(page, "#vm-run"); await page.evaluate(() => { $("#notice").hidden = true; }); };
 
 try {
   await page.goto(site.origin + "/web/vascular");
   await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
   await opened();
   await execute();
-  await page.click("#gt-start");
   await page.selectOption("#gt-areas", "2");
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);

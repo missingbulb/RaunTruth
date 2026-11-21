@@ -1,5 +1,5 @@
-// The tagger's session of GT actions on the image open (req/shell/ground-truth/history): the log and its model live in
-// the page while the tagger works, the GT box's Undo, Redo and Save Draft controls drive it, and a draft on this device
+// The annotator's session of GT actions on the image open (req/shell/ground-truth/history): the log and its model live in
+// the page while the user annotates, the GT box's Undo, Redo and Save Draft controls drive it, and a draft on this device
 // is offered back by Load draft. The study reaches it as shell.gt. The log itself, and what replays it, are
 // truth_actions.js; the drafts' storage is truth_drafts.js; the Edit History window is edit_history.js.
 "use strict";
@@ -14,14 +14,14 @@ const sig = (a) => `${a.type}@${a.at}`;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const stamp = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${clock(iso)}`; };
 
-// image(): {name, sha256, width, height} of the image open, null while none; studyId(): the study on show;
+// drawn(): told each time the controls are drawn again; image(): {name, sha256, width, height} of the image open, null while none; studyId(): the study on show;
 // makesTruth(): whether the tagger tags now; dragging(): whether a drag is under way; keys: the viewer's actions
 // (add(spec)); drafts: truth_drafts.js's store; status and notice: the page's say; confirmBox: its question to the user;
 // viewer(): the viewer, which rings an item; remoteLabel(): the remote store's name; readJSON and writeJSON: the shell's storage;
 // submission(): the tagger's own submission of the image open in the remote store, {id, modified} or null, looked up as the
 // image opens; readSubmission(id): its file, parsed
 export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth, viewer, remoteLabel, readJSON, writeJSON,
-  submission = async () => null, readSubmission = async () => { throw new Error("no store"); } }) {
+  submission = async () => null, readSubmission = async () => { throw new Error("no store"); }, drawn = () => {} }) {
   let module = null, log = null, replayState = "verified";
   // what the device's draft of the image open held when last seen, the saved time of the one this visit loaded or saved,
   // and the actions in force then
@@ -67,10 +67,10 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     $("#gt-load-submission").hidden = !sent;
     if (sent) $("#gt-load-submission").textContent = `Load your submission${filed.modified ? ` · submitted ${stamp(filed.modified)}` : ""}`;
     offer.hidden = !offered;
-    if (offered) offer.textContent = `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}`;
+    offer.textContent = offered ? `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}` : "";
     $("#gt-load-legacy").hidden = !earlier;
     if (earlier) $("#gt-load-legacy").title = `${old.said ? `${nameOfCount(old.said)}, ` : ""}${old.from}`;
-    editWindow?.paint();
+    editWindow?.paint(); drawn();
   }
 
   const editWindow = editHistory({ $, log: () => log, study: () => module, viewer, shown: () => rooted() && makesTruth(),
@@ -195,6 +195,23 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     leaving(what) {
       const n = makesTruth() ? unsaved() : 0;
       return !n || confirmBox(`Your ${n} unsaved action${n === 1 ? "" : "s"} on ${image()?.name || "this image"} will be lost${what ? ` if you ${what}` : ""}. Go on?`);
+    },
+    // the draft this device holds of the image open, {saved, count} (its time and how many actions it holds), or null; known
+    // once the look for it has ended (the page's `data-gt-lookup`)
+    draft: () => (stored ? { saved: stored.saved, count: userCount(stored.log) } : null),
+    // the draft taken as the image's, as Continue local annotation work does
+    async loadDraft() { return stored ? load(stored) : false; },
+    // a ground-truth document of the store taken as the image's, its history replayed where it holds one: what: how the status line names it
+    async loadDocument(doc, what) {
+      if (!module || !log || !mayReplace(`the ${what.toLowerCase()}`)) return false;
+      const h = doc?.history;
+      return take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: doc?.created || new Date().toISOString() }, what);
+    },
+    // the device's draft of the image open let go, as Clear all annotations does
+    async discard() {
+      const img = image();
+      if (img?.sha256) await drafts.delete(studyId(), img.sha256);
+      stored = null; markSaved(null);
     },
     undo() { if (log?.undo()) mutated("undo"); },
     redo() { if (log?.redo()) mutated("redo"); },

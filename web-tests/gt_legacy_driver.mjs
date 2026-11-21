@@ -31,7 +31,6 @@ await until(page, () => !$("#gt-offers").hidden);
 let o = await offers(page);
 await check(o.box && o.legacy && !o.draft && /^Load earlier edits/.test(o.text) && /marks kept in this browser/.test(o.title), "the old store is offered beside Load draft once the run lands, saying where it came from", o);
 await check(JSON.parse(fromRun).length === 2 && (await kept(page)), "nothing is loaded unasked, and the old store is still there");
-await page.click("#gt-start");
 
 // loaded as a base, counted as unsaved, and not yet forgotten
 await page.click("#gt-load-legacy");
@@ -58,7 +57,6 @@ await until(page, () => !!window.fixture.model());
 await until(page, () => !$("#gt-offers").hidden);
 o = await offers(page);
 await check(o.legacy && await kept(page), "the page closed before a draft held the base: the old store is still there and offered again", o);
-await page.click("#gt-start");
 
 // loaded and saved: forgotten, and the draft holds the base
 await page.click("#gt-load-legacy");
@@ -94,7 +92,6 @@ await page.context().close();
   await until(page, () => !$("#gt-offers").hidden);
   let o = await offers(page);
   await check(o.legacy && /3 actions/.test(o.title) && !(await page.evaluate(() => window.fixture.model().checked)), "actions of an old store are offered, and none is done unasked", o);
-  await page.click("#gt-start");
   await page.click("#gt-load-legacy");
   await until(page, () => window.fixture.model().checked);
   const m = await page.evaluate(() => window.fixture.model());

@@ -1,7 +1,7 @@
 // The study's ground-truth tasks in the shell's Ground Truth Tasks box (req/shell/ground-truth/tasks): a bar of one
 // part per task, a row per task, and Submit Ground Truth last. The study says what its tasks are and how far each has
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
-// only while the tagger tags, from Start GT tagging to Stop tagging (req/shell/ground-truth/tagging).
+// only while the user annotates, from the choice that enters annotation mode to its end (shell/annotate/choice).
 "use strict";
 import * as Areas from "./gt_areas.js";
 
@@ -20,17 +20,13 @@ export function truthTasks({ $, icon, started, heardBy }) {
   ico.innerHTML = ["done", "part", "todo"].map((n) => icon(n).replace("<svg ", `<svg class="${n}" `)).join("");
 
   $("#gt-submit").onclick = () => submit?.();
-  $("#gt-start").onclick = () => api.tagging(!on);
+  $("#gt-download").onclick = () => submit?.();
   $("#gt-tasks").addEventListener("click", (e) => {
     const t = e.target.closest("button.t"), li = t?.closest("li");
     if (!li || li.parentElement !== $("#gt-tasks")) return;
-    if (!on) api.tagging(true);
     pick?.(li.dataset.task);
   });
   function tagged(now) {
-    $("#gt-start").textContent = now ? "Stop tagging" : "Start GT tagging";
-    $("#gt-start").title = now ? "Back to viewing the image" : "Work through the tasks, one item at a time";
-    $("#gt-start").classList.toggle("primary", !now);
     if (!now) for (const li of rows()) li.classList.remove("now");
   }
 
@@ -71,13 +67,13 @@ export function truthTasks({ $, icon, started, heardBy }) {
       p.style.flexGrow = did == null ? 1 : whole; p.style.setProperty("--done", did == null ? 0 : part_);
     },
     // the open task, its name in bold: its row, for the study to put its item and tools on; null for none, and
-    // always null while the tagger is not tagging
+    // always null while the user is not annotating
     open(key) {
       if (!on) key = null;
       for (const li of rows()) li.classList.toggle("now", li.dataset.task === key);
       return key == null ? null : row(key);
     },
-    // whether the tagger tags now; with a value, tagging started or stopped, the study told when it changes
+    // whether the user annotates now; with a value, annotation started or ended, the study told when it changes
     tagging(now) {
       if (now === undefined) return on;
       now = !!now;
@@ -106,12 +102,12 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // what is left to do as its tooltip
     ready(on, state, title) {
       const b = $("#gt-submit");
-      wants = !!on; b.disabled = !wants || !started();
+      wants = !!on; b.disabled = !wants || !started(); $("#gt-download").disabled = b.disabled;
       if (state) b.dataset.state = state; else delete b.dataset.state;
       if (title) b.title = title; else b.removeAttribute("title");
     },
     // the study's steps moved: Submit follows its first one
-    stepped() { $("#gt-submit").disabled = !wants || !started(); },
+    stepped() { $("#gt-submit").disabled = $("#gt-download").disabled = !wants || !started(); },
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);

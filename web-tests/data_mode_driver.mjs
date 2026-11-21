@@ -16,7 +16,7 @@ import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
-const { ROOT, FILES, GT, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
+const { ROOT, FILES, GT, writes, thumbs, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
 // the data folder's previews file (req/shell/drive/previews): in the root's Previews folder, which the page made, under the
 // data folder's id, a file someone else put there; the copy the tool left beside the images is never read
 const OURS = `${ROOT}.tiff`;
@@ -28,10 +28,10 @@ const neededOf = (name) => { const f = FILES.find((g) => g.name === name); retur
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered as a viewer's
+// not signed in: the drawers numbered, none for what the image has not got yet
 let page = await open(false);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2,3",
-  "the drawers on show, a viewer's without the postprocessing, are numbered");
+await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2",
+  "the drawers on show before an image, with no Summary yet, are numbered");
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
@@ -42,8 +42,8 @@ const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-
   && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
-await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
-await role(page, "Study Manager");
+await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "until its item in the avatar's menu is chosen, a study owner sees no Data Management");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 // Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
 await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
@@ -164,24 +164,24 @@ await expecting(gone, async () => {
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 }, { maybe: true });
 
-await role(page, "Viewer");
+await dataManagement(page, false);
 const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
 await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
-  "another role leaves the mode: the column gone, Load back");
-// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode);
-// the role just chosen is a setting the page may still be saving to Drive as the network goes
+  "choosing its item again leaves the mode: the column gone, Load back");
+// offline, Data Management is listed in the avatar's menu but says it needs the internet, and choosing it does nothing
+// (req/shell/data/mode)
 await expecting(NETWORK_GONE, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-  await page.click("#role-menu summary");
-  const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
-    return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
-  await page.click('#role-list .item:text-is("Study Manager")', { force: true });
+  await page.click("#user-menu summary");
+  const offered = await page.evaluate(() => { const b = document.querySelector("#open-data");
+    return !b.hidden && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
+  await page.click("#open-data", { force: true });
   // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
-  const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
-  await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
-  await page.evaluate(() => { $("#role-menu").open = false; });
+  const after = await page.evaluate(() => ({ open: $("#user-menu").open, mode: document.documentElement.dataset.mode || "" }));
+  await check(offered?.needs && offered.dim && after.open && !after.mode, "offline, Data Management is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await page.evaluate(() => { $("#user-menu").open = false; });
   await page.context().setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 }, { maybe: true });
@@ -208,7 +208,7 @@ await expecting(/could not be (read|counted)|is corrupted/, async () => {
   };
   const kept = FILES.find((f) => f.name === OURS);
   kept.bytes = damage(Buffer.from(kept.bytes));
-  await role(page, "Study Manager");
+  await dataManagement(page);
   await page.click("#data-tree .tree-folder .name");
   await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
   await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");

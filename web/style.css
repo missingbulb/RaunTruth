@@ -39,27 +39,18 @@ header > .grow { flex: 1; }
 h1 { font-size: 16px; font-weight: 600; margin: 0; }
 /* the study switcher, after GitHub's repository switcher: the title and a solid caret as one control, opening a
    panel under the caret with a search box and the studies, the one on show ticked */
-/* the role menu after the study's, the header reading "[study] as [role]" (req/shell/account/role), drawn like it */
-header > .as { color: var(--dim); font-size: 14px; }
-#role-menu .caret { anchor-name: --role-caret; }
-#role-menu .pop { left: anchor(--role-caret left); top: calc(100% + 8px); width: 240px; max-width: calc(100vw - 32px); }
-#role-menu .pop h2 { font-size: 13px; margin: 0 0 4px; color: var(--dim); font-weight: 600; }
-#role-list { display: flex; flex-direction: column; }
-#role-list .item[aria-checked=true] { font-weight: 600; } #role-list .item[aria-checked=true]::before { content: "✓ "; }
-#role-list .item[aria-checked=false]::before { content: "✓ "; visibility: hidden; }
-#role-hint { margin: 6px 0 0; font-size: 12px; white-space: normal; }
-#study-menu summary, #role-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
-#study-menu summary::after, #role-menu summary::after { content: none; }
-#study-menu h1, #role-name { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
+#study-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
+#study-menu summary::after { content: none; }
+#study-menu h1 { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon { display: flex; align-items: center; height: 32px; padding-left: 8px; color: var(--text); background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon svg { fill: currentColor; }
 #title-icon .study-icon[hidden] { display: none; }
 #title-icon:empty { display: none; }
-#study-menu .caret, #role-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
-#study-menu .caret svg, #role-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
-#study-menu summary:hover h1, #study-menu[open] h1, #role-menu summary:hover #role-name, #role-menu[open] #role-name, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
-#study-menu summary:hover .caret, #study-menu[open] .caret, #role-menu summary:hover .caret, #role-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
-#study-menu summary:focus-visible, #role-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#study-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
+#study-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
+#study-menu summary:hover h1, #study-menu[open] h1, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
+#study-menu summary:hover .caret, #study-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
+#study-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #study-menu .caret { anchor-name: --study-caret; }
 #study-menu .pop { left: anchor(--study-caret left); top: calc(100% + 8px); width: 320px; max-width: calc(100vw - 32px); min-width: 0; padding: 0 0 8px; gap: 0; border-radius: var(--r-panel);
   background: var(--panel); box-shadow: 0 8px 24px #0006; }
@@ -334,8 +325,8 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 #view[data-view=image] .for-items, #view[data-view=items] .for-image { display: none; }
 /* a published study shows what it finds: the steps that serve making ground truth go */
 [data-stage=Published] .unpublished { display: none !important; }
-/* nothing that makes ground truth but for a Ground Truth Tagger (req/shell/account/role) */
-:root:not([data-role=tagger]) .unpublished { display: none !important; }
+/* nothing that makes ground truth but while the user annotates (shell/annotate/choice) */
+:root:not([data-annotating]) .unpublished { display: none !important; }
 #switch .count { opacity: .7; font-weight: 400; }
 #switch .count:empty { display: none; }
 /* a card whose task is still open */
@@ -1031,10 +1022,10 @@ html:not(.offline) #welcome-offline { display: none; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 
-/* the tagger's line in a study's ground-truth box: may they write to the submissions folder (req/shell/ground-truth/tagger-access) */
+/* the line in a study's ground-truth box saying whether the user may save to the study (shell/annotate/no-save) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
 .gt-access[hidden] { display: none; }
-.gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
+.gt-access[data-access="signedout"], .gt-access[data-access="nosave"], .gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
 /* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
 #folder-items .tag.pending { color: var(--accent); }
@@ -1055,7 +1046,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
 #gt-areas-row[hidden] { display: none; }
 #gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
-#gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
@@ -1077,7 +1067,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
-#gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
+#gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
 #gt-offers[hidden], #gt-edits[hidden] { display: none; }
 #gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
@@ -1140,3 +1130,14 @@ html:not(.offline) #welcome-offline { display: none; }
 .study-areas .damaged { fill: #000; fill-opacity: .55; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .study-areas .interest { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .study-areas .interest.under { stroke: #000; stroke-width: 3; stroke-opacity: .5; }
+
+/* the Annotations box: how to get annotations on the image open (shell/annotate/choice) */
+#annotate-box[hidden], #annotate-choices[hidden], #annotate-list[hidden], #annotate-ask[hidden] { display: none; }
+#annotate-choices { display: flex; flex-direction: column; gap: 6px; }
+#annotate-choices > button, #annotate-edit, #annotate-clear { width: 100%; }
+#annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; }
+#annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
+#annotate-say { margin: 8px 0 0; }
+#annotate-edit, #annotate-clear { margin-top: 8px; }
+#gt-waiting { margin: 6px 0 0; }
+#gt-submit[hidden], #gt-download[hidden] { display: none; }

@@ -1,8 +1,10 @@
-"""req/shell/account/role: the role menu beside the avatar on the fixture study, in headless Chromium against a stand-in
-Google (roles_driver.mjs): the roles each visitor may choose, each role's own view, and the role kept."""
-import os
-
+"""shell/annotate/choice, shell/annotate/clear, shell/annotate/no-save, shell/annotate/survives, req/shell/left-bar/shells: the main
+app's one page for everyone, with no role menu, on the fixture study in headless Chromium against a stand-in Google
+(annotate_driver.mjs): how an image's annotations are got once it loads, annotation mode and its tools, who may save, and
+what keeps the work through a token run out and a store that does not answer."""
+import numpy as np
 import pytest
+from PIL import Image
 
 from test_data_mode_page import folder
 from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
@@ -10,8 +12,18 @@ from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
 pytestmark = pytest.mark.full
 
 
+@pytest.fixture(scope='module')
+def second(tmp_path_factory):
+    """Another grey image, with other squares, so that it has a SHA-256 of its own."""
+    a = np.zeros((60, 80), np.uint8)
+    a[5:15, 60:75] = 220
+    path = str(tmp_path_factory.mktemp('second') / 'other.png')
+    Image.fromarray(a).save(path)
+    return path
+
+
 @pytest.mark.skipif(not NODE, reason='node missing')
-def test_roles(answers, png, tmp_path):
+def test_annotating(answers, png, second, tmp_path):
     root = tmp_path / 'drive'
     folder(root)
-    run('roles_driver.mjs', answers[0], answers[1], str(root), png)
+    run('annotate_driver.mjs', answers[0], answers[1], str(root), png, second, timeout=240)

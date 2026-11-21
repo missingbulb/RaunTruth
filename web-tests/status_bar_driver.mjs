@@ -10,6 +10,7 @@
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
+import { annotateIfAsked } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import { helpTip, anyHelp } from "./help_tip.mjs";
@@ -164,7 +165,7 @@ const switchIs = async (page, want, on, what) => {
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
   await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
-const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !document.querySelector("#fx-count").disabled); };
+const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => document.querySelector("#fx-count")?.disabled === false); await annotateIfAsked(page, "#fx-count"); };
 const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
 // ---- a GT study: Load image, its Count, Submit GT; the resources block always open, as it was before it could fold ----
@@ -235,8 +236,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.click("#sb-load");
   await check(!!(await chooser), "clicking the shining Load image presses Load");
 
-  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the study makes ground truth there is no item view and no switch to one");
   await loadImage(page);
+  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
   await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
   await check((await tip(page, "Load image")).includes("squares.png"), "Load image's popup names the image");
   // Count's box folded and scrolled away: its crumb unfolds it, scrolls to Count and presses it
@@ -272,8 +273,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   const l0 = await list();
   await check(l0.rows.join() === "0/1 Count checked,Submit Ground Truth" && l0.last && l0.submit && l0.state === "todo",
     "the study's task is a row, 0 of 1 done, and Submit Ground Truth, on, is the last", l0);
-  await check(!l0.open, "no task is open until Start GT tagging (req/shell/ground-truth/tagging)", l0);
-  await page.click("#gt-start");
+  await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
   await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
   await page.check("#fx-done");

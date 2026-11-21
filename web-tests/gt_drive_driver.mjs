@@ -10,17 +10,25 @@
 // check, 2 when it cannot run.
 //   node web-tests/gt_drive_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
+import { fromScratch } from "./annotating.mjs";
 import { standIn } from "./stand_in_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir, gt: false });
-const { ROOT, FILES, writes, keptForever, viewOnly, sharedOut, open, role, check, done } = drive;
+const { ROOT, FILES, writes, keptForever, viewOnly, sharedOut, open, dataManagement, check, done } = drive;
 const id = (name) => FILES.find((f) => f.folder && f.name === name)?.id;
 // the access line once read: what it says, and whether it takes any room
 const line = (page) => page.waitForFunction(() => { const e = document.querySelector("#left .gt-access"); return e?.dataset.access ? { access: e.dataset.access, text: e.textContent.trim(), room: e.getClientRects().length > 0 && e.offsetHeight > 0 } : null; }).then((h) => h.jsonValue());
-const asTagger = async (page) => { await role(page, "Ground Truth Tagger"); return line(page); };
+// the study's image opened from its folder, and annotation from scratch chosen for it: the access line once read
+const openPng = async (page) => {
+  await page.click("#load-remote");
+  await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
+  await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
+  await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
+};
+const asTagger = async (page) => { await openPng(page); await fromScratch(page, "#fx-count"); return line(page); };
 // an image's ground-truth subfolder, and what Needs GT writes for it
 const subOf = (f) => `${f.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(f.bytes).digest("hex").slice(0, 8)}`;
 const neededOf = (f) => subOf(f) + ".needs_gt";
@@ -37,12 +45,15 @@ const markNeeded = async (page, f) => {
   return writes.slice(n);
 };
 const pressed = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-items .cell")].map((c) => [c.dataset.id, c.querySelector(".mark-gt").getAttribute("aria-pressed")])));
-const offered = (page) => page.evaluate(() => [...document.querySelectorAll("#role-list .item")].map((b) => b.textContent));
+// whether the page offers Save, and the line it gives
+const saves = (page) => page.evaluate(() => ({ save: !$("#gt-submit").hidden, download: !$("#gt-download").hidden, access: $("#left .gt-access").dataset.access || "" }));
 
-// not set up: nobody is offered Ground Truth Tagger, and the study manager is offered Set up ground truth
+// not set up: nobody may save, and the study manager is offered Set up ground truth
 let page = await open(true);
-await check(!(await offered(page)).includes("Ground Truth Tagger"), "with no submissions folder, Ground Truth Tagger is not offered", await offered(page));
-await role(page, "Study Manager");
+await asTagger(page);
+await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosave");
+await check(!(await saves(page)).save && (await saves(page)).download, "with no submissions folder, no one may save: there is no Save, and Download is there", await saves(page));
+await dataManagement(page);
 await page.waitForSelector("#gt-setup:not([hidden])");
 const top = await page.evaluate(() => ({ first: document.querySelector("#data-body").firstElementChild?.id, nudged: $("#gt-setup").classList.contains("nudge"), text: $("#gt-setup").textContent.trim() }));
 await check(top.text === "Set up ground truth…" && top.first === "gt-setup" && top.nudged, "a study manager is offered Set up ground truth at the top of the bar, highlighted while the folders are missing", top);
@@ -72,45 +83,36 @@ let on = await pressed(page);
 await check(on[png.id] === "true" && on[beta.id] === "false", "only the image marked shows Needs GT pressed", on);
 await page.context().close();
 
-// a user the store lets only view the submissions folder is not offered Ground Truth Tagger
+// a user the store lets only view the submissions folder may not save
 viewOnly.add(SUBS);
 page = await open(true);
-await check(!(await offered(page)).includes("Ground Truth Tagger"), "where the store lets the user only view submissions, Ground Truth Tagger is not offered", await offered(page));
+await asTagger(page);
+await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosave");
+await check(!(await saves(page)).save && (await saves(page)).download, "where the store lets the user only view submissions, there is no Save, and Download is there", await saves(page));
 await page.context().close();
 viewOnly.delete(SUBS);
 
-// writable: open the image from the study's folder, count, submit
+// writable: open the image from the study's folder, annotate from scratch, count, submit
 page = await open(true);
 let said = await asTagger(page);
 await check(said.access === "write" && !said.text && !said.room, "writable: the line says nothing and takes no room", said);
 // req/shell/ground-truth/pending: before any ground truth, the Drive dialog tags the marked image GT wanted, the other nothing
-await page.click("#load-remote");
+await page.evaluate(() => document.querySelector("#load-remote").click());
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 const wanted = await page.waitForFunction((id) => document.querySelector(`#remote-list .item[data-id="${id}"] .gt-tag`)?.textContent || null, png.id, { timeout: 5000 }).then((h) => h.jsonValue(), () => "");
 const other = await page.evaluate((id) => document.querySelector(`#remote-list .item[data-id="${id}"] .gt-tag`)?.textContent || "", beta.id);
 await check(wanted === "GT wanted" && !other, "to the tagger, the Drive dialog tags the marked image GT wanted, the other nothing", { wanted, other });
 await page.keyboard.press("Escape");
-await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
-await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
 await page.click("#fx-count");
 await page.waitForFunction(() => !$("#gt-submit").disabled);
-// req/shell/ground-truth/tagging: counted, no task opens until Start GT tagging; Stop tagging closes it; a task's name starts it there
+// req/shell/ground-truth/tagging: annotating, the study's task is open once there is a count; a task's name opens it again
 const tagging = () => page.evaluate(() => ({ open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null, check: !!document.querySelector("#gt-tasks li.now #fx-check"),
-  start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, first: [...$("#gt-list").children].find((e) => !e.hidden) === $("#gt-start") }));
+  start: !!$("#gt-start") }));
 let tg = await tagging();
-await check(!tg.open && !tg.check && tg.start === "Start GT tagging" && tg.first, "counted, no task is open, and Start GT tagging heads the tasks", tg);
-await page.click("#gt-start");
-tg = await tagging();
-await check(tg.open === "check" && tg.check && tg.start === "Stop tagging", "Start GT tagging opens the study's task, the button now Stop tagging", tg);
-await page.click("#gt-start");
-tg = await tagging();
-await check(!tg.open && !tg.check && tg.start === "Start GT tagging", "Stop tagging closes it", tg);
+await check(tg.open === "check" && tg.check && !tg.start, "counted while annotating, the study's task is open and there is no Start GT tagging", tg);
 await page.click('#gt-tasks > li[data-task="check"] .task-head .t');
 tg = await tagging();
-await check(tg.open === "check" && tg.start === "Stop tagging", "clicking a task's name starts tagging at that task", tg);
-await page.click("#gt-start");
+await check(tg.open === "check", "clicking a task's name opens it", tg);
 const submit = async () => {
   // the button sits in the item view's bar: pressed where it is
   await page.evaluate(() => $("#gt-submit").click());
@@ -173,7 +175,7 @@ tag = await recentTag("GT pending");
 await check(tag === "GT pending", "to the tagger, the image selector marks the submitted image GT pending", tag);
 
 // req/shell/ground-truth/curate: the study manager sees it pending, reviews it and accepts it into the curated folder
-await role(page, "Study Manager");
+await dataManagement(page);
 await orMissed(page.waitForFunction(() => /1 image.*pending/.test($("#gt-box").textContent), null, { timeout: 5000 }));
 await check(/1 image.*pending/.test(await page.textContent("#gt-box")), "the Ground Truth box counts the submission pending", await page.textContent("#gt-box"));
 const sw = await page.evaluate(() => ({ text: $("#gt-switch").textContent.trim(), off: $("#gt-switch").disabled, why: $("#gt-switch").title }));
@@ -227,27 +229,25 @@ on = await pressed(page);
 await check(on[beta.id] === "true" && FILES.some((f) => f.name === neededOf(png)), "the image with ground truth keeps its marker, no longer shown", on);
 await page.context().close();
 
-// req/shell/ground-truth/view: a viewer, not signed in, loads the image and its curated ground truth, with no algorithm run
+// shell/annotate/choice: someone not signed in loads the image and, from Drive, its curated ground truth, with no algorithm run
 page = await open(false);
 // what the page downloads from the store, to tell the listing from reading the ground truth
 const downloads = [];
 page.on("request", (q) => { const u = new URL(q.url()); if (u.searchParams.get("alt") === "media") downloads.push(decodeURIComponent(u.pathname.split("/").pop())); });
-await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
-await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await orMissed(page.waitForSelector("#load-gt:not([hidden])", { timeout: 5000 }));
-await check(await page.isVisible("#load-gt"), "a viewer is offered Load GT tagging for an image with curated ground truth");
-await check(downloads.every((d) => d === png.id || d === settings.id), "before the click, only the image and the root's study file (which holds the study index) are downloaded: the curated folder's listing alone offers it", downloads);
+await openPng(page);
+await page.waitForFunction(() => document.querySelector("#annotate-drive")?.checkVisibility());
 const beforeGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden }));
-await check(beforeGt.processing && beforeGt.items, "before Load GT tagging, Processing and the Items switch show", beforeGt);
-await page.click("#load-gt");
-// only the click reads the image's ground truth (req/shell/ground-truth/view)
-await page.waitForFunction(() => document.querySelector("#gt-summary").textContent.trim());
-const summed = await page.textContent("#gt-summary"), shown = await page.textContent("#fx-result");
-await check(/tester@example\.com/.test(summed) && /accepted by/.test(summed) && /pixels counted/.test(summed), "its summary names who made it, who accepted it, and the study's counts", summed);
+await check(!beforeGt.processing, "before choosing an annotation, Processing is not shown: only starting from scratch shows it", beforeGt);
+await page.click("#annotate-drive");
+await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length > 0);
+await check(downloads.every((d) => d === png.id || d === settings.id), "before a row is chosen, only the image and the root's study file (which holds the study index) are downloaded: the curated folder's listing alone offers it", downloads);
+await page.click('#annotate-list button[data-key="curated"]');
+// only the click reads the image's ground truth
+await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
+const summed = await page.textContent("#annotate-say"), shown = await page.textContent("#fx-result");
+await check(/tester@example\.com/.test(summed) && /accepted by/.test(summed) && /pixels counted/.test(summed), "its line names who made it, who accepted it, and the study's counts", summed);
 await check(/^Ground truth: \d+ pixels/.test(shown) && await page.evaluate(() => !document.querySelector("#busy") || $("#busy").hidden), "the study shows the final result, with nothing run", shown);
-// ground truth loaded or the algorithm run, never both: Processing goes, and the Items view with it
+// ground truth loaded or the algorithm run, never both: Processing is not shown, nor the Items switch
 const afterGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden, view: $("#view").dataset.view }));
 await check(!afterGt.processing && !afterGt.items && afterGt.view === "image", "with its ground truth loaded, Processing and the Items switch are gone, the image in view", afterGt);
 await page.context().close();

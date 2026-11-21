@@ -6,6 +6,7 @@
 // study with no algorithms showing none. Exits 1 on a failed check, 2 when it
 // cannot run.
 //   node web-tests/algorithm_choice_driver.mjs ANSWERS IMAGE.png STUDIES
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -72,8 +73,9 @@ await check(s.bold === `Above algorithm shows precision of 0.90 and recall of 0.
   "... ending in bold with its precision and recall, its note beside it", s);
 
 await page.setInputFiles("#file", image);
-await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && !document.querySelector("#fx-count").disabled);
-await check(await page.evaluate(() => document.querySelector("#algorithm").checkVisibility()), "an image open, Processing opens with the list on show");
+await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && document.querySelector("#fx-count")?.disabled === false);
+await fromScratch(page, "#fx-count");
+await check(await page.evaluate(() => document.querySelector("#algorithm").checkVisibility()), "an image open and annotation started from scratch, Processing opens with the list on show");
 const scoring = () => page.evaluate(() => {
   const q = document.querySelector("#scoring-help"), note = document.querySelector("#scoring-note"), sel = document.querySelector("#algorithm");
   const a = sel.getBoundingClientRect(), b = q.getBoundingClientRect();
