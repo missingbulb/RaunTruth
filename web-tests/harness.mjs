@@ -38,6 +38,11 @@ export const pw = (() => {
 })();
 
 const unexpected = [];
+// Each message as it is said, {line, expected}, to whoever listens besides the run's own record: a driver keeping its
+// own account of what came when (explore/).
+//   const stop = listen(({ line, expected }) => ...);
+const hearers = new Set();
+export const listen = (hear) => { hearers.add(hear); return () => hearers.delete(hear); };
 // the patterns declared by the cases running now, each with how many messages it matched
 const declared = new Set();
 // Expected in every run, the one message no test or page can avoid: with no GPU, headless Chromium composites in
@@ -70,8 +75,10 @@ function note(line) {
 function said(kind, text, where, among = declared, excused = "") {
   const line = `${kind}: ${text}${where ? ` (${where})` : ""}`;
   note(excused ? `${line} [${excused}]` : line);
-  for (const d of among) if (d.pattern.test(line)) { d.seen++; return; }
-  if (excused) return;
+  const d = [...among].find((d) => d.pattern.test(line));
+  if (d) d.seen++;
+  for (const hear of hearers) hear({ line, expected: !!(d || excused) });
+  if (d || excused) return;
   unexpected.push(line);
   // as it comes, among the test's own lines, so the case it came in is plain
   console.log("not expected: " + line);
