@@ -30,11 +30,11 @@ owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
 |---|---|---|
 | One Drive batch request per load: can this user read each study's settings file | main app, signed in | approved |
 | Read a study's sharing (People) | Study Setup | approved |
-| Pin the marked revision of an extraction (`keepForever`) | Study Setup | approved |
+| Pin the marked revision of an extraction (`keepForever`) | Study Setup | approved, then not needed: marks follow the latest |
 | Batch runs write extractions to the store | Study Setup | approved |
 | Save writes the person's extraction, replacing their own (old revision kept) | main app | approved |
 | Change any file's sharing | - | **not approved**: the owner shares by hand, guided |
-| Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing | tests | **to approve** (one question, WP1) |
+| Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing | tests | approved |
 | Lab reads the study index by link | lab | covered: the lab reads link-shared files today, no sign-in |
 
 ## Settled after the second persona reviews
@@ -48,15 +48,12 @@ each shared "anyone with the link" on top. The settings file, in the root, is me
 - **Save.** Every action is kept on the device as today's draft. Save writes the person's one extraction for the
   image to the store, replacing their own (Drive keeps the old revision). A count beside Save says how many images
   wait to upload.
-- **A mark pins a revision.** The index records file id, revision id and content hash. An edit after marking
-  makes a newer revision, shown to its author as "newer than the marked one" and to the owner in Study Setup's
-  marking list; the mark stays on the pinned revision.
+- **A mark follows the latest** (owner): it names the extraction file, so its author's later edit counts at once
+  and changes the dataset SHA; the Review freeze's committed copy is what keeps published numbers fixed.
 - **Annotators see their marks.** Load study images rows show, per image, "yours: saved / GT / official" and
   whether another's extraction was marked; one popup line counts them.
 - **The extraction list** orders mine, then marked, then others (folded). Another's extraction opens read-only
-  with "Start from this", which saves as mine and records its base.
-- **Annotation mode names its use** in one line: "Your work scores the algorithm" (Develop) or "Your work can
-  become this image's result" (Analyze).
+  with "Edit this annotation", which saves as mine and records its base.
 - **Outsiders** (not members) are listed only GT and official extractions, labelled by algorithm version or "by
   hand", with no person's name.
 - **The article link** shows from Public, or earlier when the owner ticks "show the article".
@@ -81,8 +78,7 @@ each shared "anyone with the link" on top. The settings file, in the root, is me
   stage. `RAUNTRUTH_INDEX_<STUDY>` names the index file; the lab reads it by link and downloads by id.
 - **The dataset SHA is computed over the model-only form** of each GT file, so Drive and the committed copy agree.
 
-Still the owner's (asked when the package reaches it): what the landing page lists now that membership is read at
-run time (WP2), and the cross-image results view (WP8).
+Still the owner's (asked when the package reaches it): the cross-image results view (WP8).
 
 ## Requirements
 
@@ -101,8 +97,8 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
 - **Fake: batch endpoint.** `POST /batch/drive/v3` with `multipart/mixed` parts, each answered as its single call
   would be. Asserted by the same test: three `GET files/<id>` parts, one refused, come back as three parts with
   200, 200, 404.
-- **Fake: revisions.** Each replace keeps a revision (`id`, `keepForever`, bytes); `GET/PATCH
-  files/<id>/revisions/<rev>` and `?alt=media` on a revision. Asserted: replace twice, pin the first, read its
+- **Fake: revisions.** Each replace keeps a revision (`id`, bytes), listed by `GET files/<id>/revisions`, as the
+  page's Save relies on Drive keeping the old one. Asserted: replace twice, two revisions, read the first's
   bytes back.
 - **Fake: permissions listing.** `GET files/<id>/permissions` lists readers and writers as Drive does (`type`,
   `role`, `emailAddress`). Asserted against a seeded root.
@@ -139,38 +135,55 @@ Depends on WP1.
   - **Test:** stand-in study D, settings link-shared, stage Review: signed out, `app/D` opens; the switcher does
     not list D; a member's switcher lists D.
   - **Build:** the stage read from the settings file (WP6) decides listing: `Public` listed, `Review` not.
-- `req/shell/site/landing` (rewritten) - **owner's question first** (what it lists). Test stays in
-  `test_published_site.py`.
+- `req/shell/site/landing` (rewritten) The landing page lists no studies; it describes the site and links into the
+  app, whose switcher lists them.
+  - **Test:** `test_published_site.py`: the built `index.html` has no `#studies` list and no study id in its text;
+    the app link is present.
+  - **Build:** `dev/tools/build/build.py` drops `list_studies()`.
 
 ### WP3 - one main app, no role menu
 
 Depends on WP2.
 
-- `req/shell/account/role` (removed) and `req/shell/annotate/start` The header has no role menu; someone Drive lets
-  write the study's extractions folder sees **Start Annotating**, which moves the page into annotation mode; every
-  annotation tool shows only in it, and the mode stays across images and reloads.
-  - **Test:** `web-tests/test_annotate_mode_page.py` (rename of `test_roles_page.py`, driver `annotate_driver.mjs`
-    from `roles_driver.mjs`). Stand-in Drive with `writers` on the extractions folder for t. As t: no
-    `#role-menu` in the DOM; `#annotate-start` visible; before pressing, the DOM differs from a non-annotator's
-    only by that button (compare the visible control ids of both pages, a set difference of exactly
-    `{annotate-start}`); after pressing, `html[data-annotating]` is set and the GT tasks box shows; next image and
-    a reload keep it; Stop leaves it.
-  - **Build:** delete `web/roles.js` and its uses in `web/shell.js` (506-538); `makesTruth()` becomes
-    `stageAnnotates() && annotating`; CSS `[data-role=…]` rules become `[data-annotating]`. `truth_tasks.js`
-    `#gt-start` is replaced by the page-level button.
-- `req/shell/annotate/access` Signed in but not let to write, Start Annotating shows with "Ask the study owner
-  for access".
-  - **Test:** same file, as v (member, no write): button disabled, the line shown; signed out: no button.
-  - **Build:** today's `tagger-access` line moves to the button.
+- `req/shell/account/role` (removed) and `req/shell/annotate/choice` The header has no role menu. After an image
+  loads, the left bar asks how to get annotations on it, per image: **Continue local annotation work** (only when
+  this device holds a draft for the image; enters annotation mode), **Load annotation from Drive** (the image's
+  extraction list, req/shell/extractions/list; the chosen one shows read-only, with **Edit this annotation**
+  entering annotation mode from it), or **Start annotating from scratch** (annotation mode, and the only route that
+  shows the algorithm runner). Every annotation tool shows only in annotation mode. Loading another image asks again.
+  - **Test:** `web-tests/test_annotate_mode_page.py` (rename of `test_roles_page.py`; driver `annotate_driver.mjs`
+    from `roles_driver.mjs`). Stand-in Drive, one image with a device draft (seeded IndexedDB `gt-drafts`) and one
+    without, two extractions on Drive. Assert: no `#role-menu` in the DOM; after load the three choices show, the
+    first only on the image with a draft; the Processing box (algorithm runner) is absent until "from scratch";
+    "Load annotation from Drive" shows the list, choosing one draws its model with no annotation tool, "Edit this
+    annotation" enters `html[data-annotating]`; loading the second image clears the mode and asks again.
+  - **Build:** delete `web/roles.js` and its uses in `web/shell.js` (506-538); a new `web/annotate_choice.js` draws
+    the choice in the left bar; `makesTruth()` becomes `stageAnnotates() && annotating`; CSS `[data-role=…]` rules
+    become `[data-annotating]`; `truth_tasks.js` `#gt-start`/Stop goes. The Processing box's visibility follows the
+    "from scratch" route.
+- `req/shell/annotate/clear` **Clear all annotations from image** resets the page to just after loading and, after a
+  confirmation naming the unsaved actions lost, discards this device's draft for the image; Drive is untouched.
+  - **Test:** same file: 4 actions, Clear, confirm: model empty, the three choices back, `gt-drafts` has no record
+    for the image, the fake's writes log is unchanged; Cancel changes nothing.
+- `req/shell/annotate/no-save` Someone who may not save gets the same choices and tools, with no Save: their work
+  can be downloaded, and a line says to ask the study owner for access (signed out: to sign in).
+  - **Test:** same file as v (member, no write) and signed out: choices present, `#save` absent, Download present,
+    the line's text per case.
+  - **Build:** today's `tagger-access` line moves here.
 - `req/shell/annotate/survives` Annotation mode and unsaved work survive the token running out and going
-  offline; Save waits for the next click online.
+  offline; Save waits for the next click online, and a count says how many images have work waiting to upload.
   - **Test:** same file: annotate 3 actions, `google.expire()`, mode still on, Undo count 3; offline
-    (`context.setOffline(true)`), add one, count 4, Save shows "waits for the network"; back online and a click:
-    the fake's writes log one extraction write.
+    (`context.setOffline(true)`), annotate a second image, Save on both: "2 waiting"; back online and a click: the
+    fake's writes log two extraction writes, count gone.
   - **Build:** `web/shell.js` stops dropping the session on expiry (`save-draft` path); Save queues on the device.
-- `req/shell/annotate/use` Annotation mode names what the work is for in this stage.
-  - **Test:** stage Develop shows "scores the algorithm"; Analyze "can become this image's result".
-- Shell states: `role` leaves `dev/requirements/shell-states.json`; `annotating` (bool) and `mayAnnotate` join;
+- `req/shell/left-bar/shells` (changed) The Summary box shows whenever the image carries any model, however far
+  along, annotation mode included; Ground Truth Tasks shows beside it, no longer in its place.
+  - **Test:** `test_left_bar_page.py`: no model: no Summary; after one action in annotation mode: Summary and
+    Ground Truth Tasks both visible; a model loaded read-only from Drive: Summary visible.
+  - **Build:** the swap in `web/shell.js` that hides Summary while `makesTruth()` goes; Summary's visibility keys on
+    the model being non-empty.
+- Shell states: `role` leaves `dev/requirements/shell-states.json`; `annotating` (bool), `maySave`, `hasDraft` and
+  `route` (scratch / drive / local) join;
   regenerate with `python3 dev/tools/build/shell_states.py`; `test_shell_states_page.py` passes. Each new case to
   the owner.
 
@@ -193,9 +206,9 @@ Depends on WP3.
   - **Build:** `web/truth_folders.js` loses `accept`/`reject`/`status`'s curated branch; `submit` becomes `save`
     into one `extractions` folder; the `submitTruth` dialog in `web/shell.js` (around 1943) becomes Save.
 - `req/shell/extractions/list` Loading an image lists every extraction of it, labelled: mine, then marked (GT,
-  official), then others folded; another's opens read-only with "Start from this".
+  official), then others folded; another's opens read-only with "Edit this annotation".
   - **Test:** same file: seed three extractions (mine, y's marked GT, a batch run); assert the order and labels;
-    "Start from this" on y's then Save writes mine with `base: <y's file id>`; y's file unchanged (fake writes log).
+    "Edit this annotation" on y's then Save writes mine with `base: <y's file id>`; y's file unchanged (fake writes log).
 - `req/shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no
   person's name.
   - **Test:** same seed, signed out on a Review study: two rows, neither containing an `@`.
@@ -225,15 +238,14 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
   access, ground-truth setup (now: the extractions folder), previews, tags and descriptions, hide rules, the
   grouping tag, areas of interest, damaged areas, Needs GT.
   - **Test:** `test_data_mode_page.py` and `test_study_index_page.py` re-pointed at `app/setup`; same assertions.
-- `req/setup/marks` The owner marks an extraction GT or official; the study index records file id, pinned revision
-  and content hash; one GT mark and one official mark per image; "mark all of this batch official".
-  - **Test:** `test_setup_page.py`: mark y's extraction GT: index JSON (read from the fake) has
-    `{sha256, file, revision, hash}`, the fake's revision has `keepForever: true`; y saves again: the mark keeps the
-    old revision and Study Setup lists the image as "newer than the marked one"; marking another GT replaces the
-    first.
-  - **Build:** `web/study_root.js` `writeIndex` gains `marks`; `web/drive.js` gains `pin(fileId, revisionId)`.
-    Verify first, with a real run, that the owner's per-file permission (`drive.file`) lets them pin a revision of
-    a file another member's page made; if not, stop and bring it to the owner.
+- `req/setup/marks` The owner marks an extraction GT or official; the study index records the extraction's file id,
+  and the mark follows that file's latest content; one GT mark and one official mark per image; "mark all of this
+  batch official".
+  - **Test:** `test_setup_page.py`: mark y's extraction GT: the index JSON (read from the fake) holds
+    `{sha256, file}` for the image; y saves again: the mark still names the file and the main app shows y's new
+    model as GT; marking another GT for the image replaces the first; "mark all of this batch" marks each image the
+    batch reached.
+  - **Build:** `web/study_root.js` `writeIndex` gains `marks`.
 - `req/setup/batch` The owner runs a chosen algorithm over chosen images; each image gets an extraction at that
   version and parameters; images already done are skipped; a token running out holds it until the next click.
   - **Test:** stand-in Python worker answering from `answers.json`; batch over 3 images writes 3 files; rerun
@@ -283,10 +295,8 @@ Depends on WP4 (marks format), can run beside WP5-6.
     is printed in either output.
   - **Build:** `lab/fetch.py` `Root` replaced by `Index`; `images()` downloads by the index's ids; `sources.json`
     keeps names and hashes only (a check asserts no `drive_id` key).
-- `req/lab/gt-marks` The lab scores against GT marks only, at their pinned revision, and refuses a file whose
-  hash differs from the mark.
-  - **Test:** stub index with two GT marks and one official; scoring corpus has two pairs; a tampered byte: exit
-    with the mismatch.
+- `req/lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
+  - **Test:** stub index with two GT marks and one official; the scoring corpus has exactly the two GT pairs.
 - `req/lab/dataset-sha` The dataset SHA is computed over the model-only form of each GT file.
   - **Test:** two GT files differing only in `history` and `tagger` give the same dataset SHA.
 - `req/lab/stage` The lab prints the study's stage from the index, and unattended tasks stop on Review or Public.
