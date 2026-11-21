@@ -142,7 +142,7 @@ Depends on WP1.
   - **Test:** `web-tests/test_study_members_page.py` with a new `members_driver.mjs`, stand-in Drive seeded with
     three studies whose roots are: A members {x}, B members {y}, C link-shared at stage Public. Signed in as x: switcher lists A and C;
     the fake's request log shows exactly one `/batch` call and no per-study metadata call. Signed in as y: B and C.
-    Signed out: C only, and no `/batch` call. Token expired (`google.expire()`): the last list, and the line
+    Signed out: C only, and no `/batch` call. Token expired (the token expiring (as `account_driver.mjs` ages it)): the last list, and the line
     "as Drive last said" under it. Sign out then in as y: x's list is gone.
   - **Build:** `web/shell.js` `studyMenu()`/`drawStudies()` take the list from a new `web/members.js`
     (`members(remote, studies)` returning ids, cached per account through `signIn.learn("members")`).
@@ -193,7 +193,7 @@ Depends on WP2.
   - **Build:** today's `tagger-access` line moves here.
 - `shell/annotate/survives` Annotation mode and unsaved work survive the token running out and going
   offline; Save waits for the next click online, and a count says how many images have work waiting to upload.
-  - **Test:** same file: annotate 3 actions, `google.expire()`, mode still on, Undo count 3; offline
+  - **Test:** same file: annotate 3 actions, the token expiring (as `account_driver.mjs` ages it), mode still on, Undo count 3; offline
     (`context.setOffline(true)`), annotate a second image, Save on both: "2 waiting"; back online and a click: the
     fake's writes log two extraction writes, count gone.
   - **Build:** `web/shell.js` stops dropping the session on expiry (`save-draft` path); Save queues on the device.
