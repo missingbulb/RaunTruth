@@ -23,7 +23,8 @@ RUN sh /tmp/inputs/dev/tools/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/in
 
 # the Playwright the page tests drive the browsers with; its Chromium must have what the page uses, interest invokers
 # among them. Chromium's headless shell is what a headless launch runs; Firefox runs on Mesa's software EGL for its
-# WebGL (web-tests/engine.mjs)
+# WebGL (web-tests/engine.mjs); WebKit draws its WebGL on a newer Mesa, Debian's own crashing its page process now and
+# then as it shows the 3D view
 ARG PLAYWRIGHT=1.63.0
 ARG ENGINE
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
@@ -32,7 +33,10 @@ RUN test -n "$ENGINE" \
  && case "$ENGINE" in \
       chromium) playwright install --with-deps --only-shell chromium ;; \
       firefox) playwright install --with-deps firefox && apt-get install -y --no-install-recommends libegl1 libegl-mesa0 libgl1-mesa-dri ;; \
-      *) playwright install --with-deps "$ENGINE" ;; \
+      webkit) playwright install --with-deps webkit \
+        && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends -t bookworm-backports libgl1-mesa-dri libegl-mesa0 libglx-mesa0 libgbm1 mesa-libgallium ;; \
     esac \
  && rm -rf /var/lib/apt/lists/* /root/.npm
 
