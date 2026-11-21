@@ -19,7 +19,9 @@ STUDY = '{"title": "Acme", "python": {"wheels": ["acme-1.0-py3-none-any.whl"], "
 FILES = {'requirements.txt': 'numpy\n', 'dev/tools/test-image/Dockerfile': 'FROM acme\n',
          'dev/tools/test-image/prepare.sh': 'echo fetch\n', 'dev/tools/test-image/run.sh': 'docker run\n',
          'web/acme.js': 'import "https://cdn.jsdelivr.net/npm/acme@1.0.0/acme.js"; // a page module\n',
-         'studies/acme/study.json': STUDY, 'studies/acme/algorithm/acme.py': '# a finder\n', 'README.md': 'acme\n'}
+         'studies/acme/study.json': STUDY, 'studies/acme/algorithm/acme.py': '# a finder\n', 'README.md': 'acme\n',
+         '.claudinite/settings.yaml': 'engine:\n  version: "1.0.0"\npacks:\n  - basics\n',
+         '.github/workflows/tests.yml': 'run: npx --yes @claudinite/setup@1.0.1\nname: Tests\n'}
 
 
 def moves(tmp_path, root, f, change):
@@ -41,7 +43,11 @@ def test_the_tag_moves_with_what_the_image_takes_in_and_with_nothing_else(tmp_pa
     assert moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('acme-1.0', 'acme-1.1'))
     assert moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('"numpy"', '"numpy", "scipy"'))
     assert moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('det.onnx', 'det2.onnx'))
-    # the page's own code and the rest of a study's settings: nothing the image holds
+    assert moves(tmp_path, root, '.claudinite/settings.yaml', lambda t: t.replace('1.0.0', '1.0.1'))
+    assert moves(tmp_path, root, '.github/workflows/tests.yml', lambda t: t.replace('setup@1.0.1', 'setup@1.0.2'))
+    # the page's own code, the rest of a study's or Claudinite's settings and of the workflow: nothing the image holds
+    assert not moves(tmp_path, root, '.claudinite/settings.yaml', lambda t: t + '  - html\n')
+    assert not moves(tmp_path, root, '.github/workflows/tests.yml', lambda t: t + 'on: push\n')
     assert not moves(tmp_path, root, 'web/acme.js', lambda t: t + 'export const x = 1;\n')
     assert not moves(tmp_path, root, 'studies/acme/study.json', lambda t: t.replace('"Acme"', '"Acme 2"'))
     assert not moves(tmp_path, root, 'studies/acme/algorithm/acme.py', lambda t: t + 'x = 1\n')

@@ -41,5 +41,6 @@ RUN test -n "$ENGINE" \
 COPY . /tmp/inputs
 RUN sh /tmp/inputs/dev/tools/test-image/prepare.sh /tmp/inputs && rm -rf /tmp/inputs
 
-# what the run then reaches for, from here alone: the studies' wheels for the build, the files the tests would fetch once
-ENV PIP_NO_INDEX=1 PIP_FIND_LINKS=/opt/wheels TEST_DOWNLOADS=/opt/test-downloads
+# what the run then reaches for, from here alone: the studies' wheels for the build, the files the tests would fetch once,
+# the Claudinite engine
+ENV PIP_NO_INDEX=1 PIP_FIND_LINKS=/opt/wheels TEST_DOWNLOADS=/opt/test-downloads CLAUDINITE_CN=/opt/claudinite/cn
