@@ -4,7 +4,7 @@ A [Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/
 kept as this one file instead of tracker issues (the owner's choice). The design below is decided; what is left is
 the hand-off and the items Not yet specified.
 
-Requirements, tests and build plan: [`study-stages-spec.md`](study-stages-spec).
+Requirements, tests and build plan: [`study-stages-spec.md`](study-stages-spec.md).
 
 ## Destination
 
@@ -119,7 +119,7 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
   environment (for example `RAUNTRUTH_ROOT_VASCULAR`), never the repo; a session without it stops with a clear
   message. `sources.json` keeps image names and hashes and drops Drive IDs. CI and the website need no root.
 
-- **Superseded by the spec review** ([`study-stages-spec.md`](study-stages-spec)): membership is "can read the
+- **Superseded by the spec review** ([`study-stages-spec.md`](study-stages-spec.md)): membership is "can read the
   root" (members-only), not the settings file; one study file in the root holds settings, index, tags, marks and
   stage, link-readable, its id only in the cloud environment; the stage lives on Drive only, never in `STATE.md`;
   after loading an image the page asks how to get annotations on it (continue local work, load from Drive, start

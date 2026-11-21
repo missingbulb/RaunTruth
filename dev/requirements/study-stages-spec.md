@@ -1,6 +1,6 @@
 # Study stages: requirements, tests and implementation
 
-The build plan for the design in [`study-stages-map.md`](study-stages-map) (#1015). The map holds the decisions
+The build plan for the design in [`study-stages-map.md`](study-stages-map.md) (#1015). The map holds the decisions
 and why; this file holds the requirements to land in `requirements.md`, how each is tested, and where the code
 goes, cut into work packages a worker session can take one at a time.
 
