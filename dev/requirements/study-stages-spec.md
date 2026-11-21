@@ -32,8 +32,8 @@ owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
 | Pin the marked revision of an extraction (`keepForever`) | Study Setup | approved, then not needed: marks follow the latest |
 | Batch runs write extractions to the store | Study Setup | approved |
 | Save writes the person's extraction, replacing their own (old revision kept) | main app | approved |
-| Change any file's sharing | - | **not approved**: the owner shares by hand, guided |
-| Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing | tests | approved |
+| Change one item's sharing, only when the owner presses that correction's Fix button | Study Setup | approved (owner, 2026-11-21); never otherwise |
+| Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing and changing | tests | approved (changing comes with the sharing fix above) |
 | Lab reads the study file by link | lab | covered: the lab reads link-shared files today, no sign-in |
 
 ## Decided after the second persona reviews
@@ -44,7 +44,7 @@ previews, extractions) are each shared "anyone with the link" on top. **One stud
 (`rauntruth-study.json`) holds what the settings, index and tags files hold today, plus the marks and the stage;
 it too is link-readable on top, its id kept only in the cloud environment (`RAUNTRUTH_STUDY_<STUDY>`). The repo
 names the root's id, harmless since only members open it. Entering Review or Public, the owner shares the root by
-link, guided by Study Setup.
+link, from Study Setup's sharing check (below).
 
 Each answering a review finding, accepted by the owner:
 
@@ -105,8 +105,9 @@ Depends on nothing. Needs the owner's one approval for the fake's new parts.
 - **Fake: revisions.** Each replace keeps a revision (`id`, bytes), listed by `GET files/<id>/revisions`, as the
   page's Save relies on Drive keeping the old one. Asserted: replace twice, two revisions, read the first's
   bytes back.
-- **Fake: permissions listing.** `GET files/<id>/permissions` lists readers and writers as Drive does (`type`,
-  `role`, `emailAddress`). Asserted against a seeded root.
+- **Fake: permissions listing and changing.** `GET files/<id>/permissions` lists readers and writers as Drive does
+  (`type`, `role`, `emailAddress`); `POST` (exists) and `DELETE files/<id>/permissions/<pid>` change them and are
+  logged as writes. Asserted against a seeded root.
 - **Build:** only `web-tests/fakes/google_drive.mjs` and `web-tests/stand_in_drive.mjs` (a `members` option seeding
   readers on the root).
 
@@ -267,14 +268,21 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
   again on opening, on each promotion or move back, and on a Check again button. What the stage needs: before
   Review the root is shared with named people only, never by link; from Review on the root is shared by link; in
   every stage `Data`, `Previews`, the extractions folder and the study file are readable by link; at least one
-  person may write the extractions folder once the stage allows annotating. The site never changes sharing itself.
+  person may write the extractions folder once the stage allows annotating. Each correction the site can make has
+  a **Fix** button: pressing it, and confirming what will change, makes that one sharing change and checks again.
+  Nothing changes sharing without that press, not a promotion, not opening the page.
   - **Test:** `test_setup_page.py`, the fake's permissions seeded per case, one assertion per rule: a Develop root
     shared by link: one correction naming the root, "Make it shared with named people only"; `Previews` not
     link-readable: one correction naming it; everything right: "Sharing is as this stage needs" and no correction;
     promote to Review with the root still members-only: the correction "Share the root by link" appears; seed the
-    share and press Check again: it clears. The fake's log shows only permission reads, never a write.
+    share and press Check again: it clears. Through every case above the fake's log holds permission reads only.
+    Then press Fix on "Share the root by link" and confirm: the log holds exactly one permission write, on the
+    root, and the correction clears; Fix then Cancel writes nothing.
   - **Build:** a rules table in `web/setup_sharing.js` (stage, item, expected), checked against the permissions read
-    of `req/setup/people`; the corrections list renders above People.
+    of `req/setup/people`; the corrections list renders above People. Fix calls `web/drive.js` `share(id)` (exists)
+    or a new `unshare(id, permissionId)`. Verify first, with a real run, that the owner's sign-in scope may change
+    sharing on a folder the page did not make; where it may not, the correction keeps its pictures and link and
+    shows no Fix button.
 
 ### WP6 - the five stages
 
