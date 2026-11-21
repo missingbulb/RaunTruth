@@ -1,0 +1,500 @@
+<title>RaunTruth Storyboards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a production board — the animatic player on top, then every frame as a numbered panel, chapter by chapter. */
+:root {
+  --paper: #eef0ec; --sheet: #fbfcfa; --ink: #1d2320; --muted: #5d6762; --rule: #cfd5d0;
+  --accent: #b5562b; --accent-soft: #f2dccf;
+  --ui-bg: #f6f7f5; --ui-bar: #e6e9e5; --ui-line: #c3cac4; --ui-text: #2b322e; --ui-dim: #7b847f;
+  --scope: #050807; --red: #ff4a3d; --green: #3ddc6a; --ring: #ffc22e;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #161a18; --sheet: #1e2321; --ink: #e5e9e6; --muted: #9aa49f; --rule: #343b37;
+  --accent: #e98a5c; --accent-soft: #3d2a20;
+  --ui-bg: #262c29; --ui-bar: #303733; --ui-line: #4a524d; --ui-text: #dde2df; --ui-dim: #8f9993; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #161a18; --sheet: #1e2321; --ink: #e5e9e6; --muted: #9aa49f; --rule: #343b37;
+  --accent: #e98a5c; --accent-soft: #3d2a20;
+  --ui-bg: #262c29; --ui-bar: #303733; --ui-line: #4a524d; --ui-text: #dde2df; --ui-dim: #8f9993; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0 }
+h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: -0.01em }
+.lede { color: var(--muted); max-width: 66ch; margin: 6px 0 0 }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 22px 0 18px }
+.tab { font: 600 14px var(--body); padding: 8px 14px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink);
+  border-radius: 999px; cursor: pointer }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink) }
+.tab small { font: 400 12px var(--mono); opacity: .75; margin-left: 6px }
+.tab:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+.player { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 12px }
+.stage { aspect-ratio: 16 / 9; width: 100%; max-width: 100%; background: var(--ui-bg); border-radius: 3px; overflow: hidden; position: relative }
+.stage svg { width: 100%; height: 100%; display: block }
+.caption { min-height: 3.2em; font-size: 1.05rem; line-height: 1.45; max-width: 75ch }
+.caption .who { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); display: block }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.controls button { font: 600 14px var(--body); padding: 7px 14px; border-radius: 4px; border: 1px solid var(--rule);
+  background: var(--paper); color: var(--ink); cursor: pointer }
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 92px }
+.clock { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto }
+.timeline { display: flex; gap: 2px; height: 14px }
+.seg { flex: var(--w) 1 0; min-width: 2px; background: var(--rule); border: 0; padding: 0; cursor: pointer; border-radius: 1px; position: relative; overflow: hidden }
+.seg.chapter { background: var(--muted); opacity: .55 }
+.seg.on { background: var(--accent); opacity: 1 }
+.seg .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent) }
+.note { font-size: 13px; color: var(--muted) }
+
+.board { margin-top: 34px; display: grid; gap: 34px }
+.chap h2 { font-size: 1.25rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.chap h2 .num { font: 500 13px var(--mono); color: var(--accent) }
+.chap h2 .st { font: 500 12px var(--mono); color: var(--muted); letter-spacing: .04em }
+.panels { margin-top: 12px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)) }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0 }
+.panel.now { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.panel .thumb { aspect-ratio: 16 / 9; max-width: 100%; border: 0; padding: 0; background: var(--ui-bg); cursor: pointer; border-radius: 2px; overflow: hidden }
+.panel .thumb svg { width: 100%; height: 100%; display: block }
+.meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font: 500 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums }
+.meta b { color: var(--ink); font-weight: 500 }
+.chip { font: 500 10.5px var(--mono); letter-spacing: .06em; padding: 1px 6px; border-radius: 3px; border: 1px solid currentColor }
+.chip.UI { color: #3b7a57 } .chip.MG { color: #8b5bb8 } .chip.B { color: #2f73a8 } .chip.C { color: var(--accent) }
+.over { color: var(--accent) }
+.pic { font-size: 13px; color: var(--muted); margin: 0 }
+.vo { font-size: 14px; margin: 0 }
+.vo::before { content: "VO  "; font: 500 11px var(--mono); color: var(--accent) }
+
+/* the drawn frames */
+.f-ui { fill: var(--ui-bg) } .f-bar { fill: var(--ui-bar) } .f-line { stroke: var(--ui-line); fill: none }
+.f-box { fill: var(--ui-bg); stroke: var(--ui-line) } .f-t { fill: var(--ui-text); font-family: var(--body) }
+.f-d { fill: var(--ui-dim); font-family: var(--body) } .f-m { font-family: var(--mono) } .f-h { font-family: var(--display); font-weight: 700 }
+.f-acc { fill: var(--accent) } .f-accs { stroke: var(--accent); fill: none } .f-accsoft { fill: var(--accent-soft) }
+.f-scope { fill: var(--scope) } .f-red { fill: var(--red) } .f-green { fill: var(--green) }
+.f-ring { stroke: var(--ring); fill: none } .f-white { fill: #fff } .f-wline { stroke: #fff; fill: none }
+.f-ink { fill: var(--ink) } .f-inks { stroke: var(--ink); fill: none } .f-sheet { fill: var(--sheet) } .f-paper { fill: var(--paper) }
+.f-foot { fill: #2a2f2d } .f-footl { stroke: #c9cfcb; fill: none } .f-footw { fill: #e8ece9 }
+.live .pulse { animation: pulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center }
+.live .grow { animation: grow 1.6s ease-out both; transform-box: fill-box; transform-origin: left }
+.live .rise { animation: rise .7s ease-out both }
+@keyframes pulse { 50% { transform: scale(1.18); opacity: .75 } }
+@keyframes grow { from { transform: scaleX(0) } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px) } }
+@media (prefers-reduced-motion: reduce) { .live .pulse, .live .grow, .live .rise { animation: none } }
+</style>
+
+<div class="wrap">
+  <h1>RaunTruth Storyboards</h1>
+  <p class="lede">Two videos drawn frame by frame, as the study-stages design will look. Press Play to hear each beat's
+    voice-over over its frame; click any frame to start there. The voice is a synthetic draft, and the bars in a few frames are illustrative,
+    not measured.</p>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <section class="player" aria-label="Animatic player">
+    <div class="stage" id="stage"></div>
+    <div class="caption" id="caption" aria-live="polite"></div>
+    <div class="timeline" id="timeline"></div>
+    <div class="controls">
+      <button id="prev" type="button" aria-label="Previous frame">◀</button>
+      <button id="play" type="button" class="primary">Play</button>
+      <button id="next" type="button" aria-label="Next frame">▶</button>
+      <span class="clock" id="clock">0:00 / 0:00</span>
+    </div>
+    <div class="note" id="note"></div>
+  </section>
+  <div class="board" id="board"></div>
+</div>
+
+<script>
+const VIDEOS = /*DATA*/null;
+const W = 960, H = 540, STAGES = ["Setup", "Develop", "Analyze", "Review", "Public"];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const T = (x, y, s, cls = "f-t", size = 14, extra = "") => `<text x="${x}" y="${y}" class="${cls}" font-size="${size}" ${extra}>${esc(s)}</text>`;
+const R = (x, y, w, h, cls, rx = 0, extra = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" class="${cls}" ${extra}/>`;
+
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+
+// A field of Caspr–Nav–Caspr triplets: green, red, green along a fibre.
+function field(x, y, w, h, o = {}, seed = 7) {
+  const r = rng(seed), n = o.n ?? Math.round(w * h / 2600), cut = o.cut || 0;
+  let s = R(x, y, w, h, "f-scope");
+  const pts = [];
+  for (let i = 0; i < n; i++) pts.push([x + 14 + r() * (w - 28), y + 14 + r() * (h - 28), r() * Math.PI, 0.7 + r() * 0.6]);
+  for (const [px, py, a, k] of pts) {
+    const dx = Math.cos(a) * 7 * k, dy = Math.sin(a) * 7 * k, deg = a * 180 / Math.PI;
+    s += `<g opacity=".92"><ellipse cx="${px - dx}" cy="${py - dy}" rx="${5 * k}" ry="${2.6 * k}" transform="rotate(${deg} ${px - dx} ${py - dy})" class="f-green"/>` +
+      `<ellipse cx="${px}" cy="${py}" rx="${2.4 * k}" ry="${2.2 * k}" class="f-red"/>` +
+      `<ellipse cx="${px + dx}" cy="${py + dy}" rx="${5 * k}" ry="${2.6 * k}" transform="rotate(${deg} ${px + dx} ${py + dy})" class="f-green"/></g>`;
+  }
+  if (o.outlines) pts.forEach(([px, py], i) => { if (i % 2 === 0) s += `<rect x="${px - 13}" y="${py - 9}" width="26" height="18" rx="3" class="f-wline" stroke-opacity=".45" stroke-width="1"/>`; });
+  const cw = w / 10, ch = h / 10;
+  if (cut) {
+    let k = 0;
+    for (let row = 0; row < 10 && k < cut; row++) for (let c0 = 0; c0 < 10 && k < cut; c0++, k++) {
+      const c = row % 2 ? 9 - c0 : c0;
+      s += R(x + c * cw, y + row * ch, cw + .5, ch + .5, "", 0, `fill="#000"`);
+    }
+  }
+  if (o.frame) {
+    const k = Math.min(cut, 99), row = Math.floor(k / 10), c = row % 2 ? 9 - (k % 10) : k % 10;
+    s += `<rect x="${x + c * cw - cw * .5}" y="${y + row * ch}" width="${cw * 2}" height="${ch * 1.6}" class="f-wline" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+  }
+  if (o.ring) { const p = pts[5] || pts[0]; s += `<circle cx="${p[0]}" cy="${p[1]}" r="17" class="f-ring pulse" stroke-width="3"/>`; }
+  if (o.aoi) s += `<path d="M${x + w * .15} ${y + h * .3} C ${x + w * .3} ${y + h * .05}, ${x + w * .75} ${y + h * .1}, ${x + w * .85} ${y + h * .4} S ${x + w * .6} ${y + h * .92}, ${x + w * .3} ${y + h * .8} Z" class="f-wline" stroke-width="2.5" stroke-dasharray="9 5"/>` + T(x + w * .17, y + h * .27, "area of interest", "", 15, `fill="#fff"`);
+  if (o.damaged) {
+    s += `<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="9" fill="#ff9f43"/></pattern></defs>`;
+    s += `<path d="M${x + w * .55} ${y + h * .55} l60 -20 l45 40 l-25 55 l-70 -5 z" fill="url(#hatch)" fill-opacity=".8" stroke="#ff9f43" stroke-width="2"/>` + T(x + w * .55, y + h * .52, "damaged", "", 15, `fill="#ffb877"`);
+  }
+  if (o.lasso) s += `<path d="M${x + w * .2} ${y + h * .25} q ${w * .2} -${h * .12} ${w * .35} 0 t ${w * .05} ${h * .4} q -${w * .2} ${h * .2} -${w * .4} 0 z" class="f-ring" stroke-width="2.5" stroke-dasharray="3 6"/>`;
+  return s;
+}
+
+const ICON = {
+  microscope: `<g class="f-footl" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M-60 90 h140"/><path d="M-20 90 q0 -40 40 -50"/><path d="M-10 -80 l30 -10 l40 110 l-30 10 z"/><path d="M28 40 l-8 30"/><path d="M-50 40 h70"/><circle cx="30" cy="40" r="6"/></g>`,
+  laptop: `<g class="f-footl" stroke-width="6" stroke-linejoin="round"><rect x="-90" y="-70" width="180" height="115" rx="6"/><path d="M-120 60 h240 l-15 20 h-210 z"/><path d="M-60 -30 h70 M-60 -5 h110 M-60 20 h50"/></g>`,
+  reviewer: `<g class="f-footl" stroke-width="6" stroke-linecap="round"><circle cx="-70" cy="-40" r="28"/><path d="M-120 70 q50 -80 100 0"/><rect x="10" y="-70" width="130" height="90" rx="5"/><path d="M75 20 v25 M45 48 h60"/><circle cx="50" cy="-30" r="5"/><circle cx="85" cy="-40" r="5"/><circle cx="105" cy="-15" r="5"/></g>`,
+  tally: `<g class="f-inks" stroke-width="5" stroke-linecap="round"><path d="M-30 -25 v50 M-15 -25 v50 M0 -25 v50 M15 -25 v50 M-38 18 l60 -36"/></g>`,
+  box: `<g class="f-inks" stroke-width="5" stroke-linejoin="round"><path d="M-35 -15 l35 -18 l35 18 v40 l-35 18 l-35 -18 z M-35 -15 l35 18 l35 -18 M0 3 v40"/><text x="-7" y="-2" font-size="26" class="f-ink f-h" stroke="none">?</text></g>`,
+  code: `<g class="f-inks" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M-20 -22 l-22 22 l22 22 M20 -22 l22 22 l-22 22 M8 -30 l-16 60"/></g>`,
+};
+
+function ribbon(cur, x = 640, y = 506, small = true) {
+  const pw = small ? 58 : 150, gap = small ? 4 : 12, h = small ? 20 : 54;
+  let s = "";
+  STAGES.forEach((st, i) => {
+    const on = cur && cur.includes(st), px = x + i * (pw + gap);
+    s += R(px, y, pw, h, on ? "f-acc" : "f-bar", h / 2);
+    s += `<text x="${px + pw / 2}" y="${y + h / 2 + (small ? 4 : 7)}" text-anchor="middle" font-size="${small ? 10 : 19}" class="${on ? "f-white" : "f-d"} f-m">${st}</text>`;
+  });
+  return s;
+}
+
+function chrome(app, stage, article) {
+  let s = R(0, 0, W, H, "f-ui") + R(0, 0, W, 44, "f-bar");
+  s += T(18, 28, "RaunTruth", "f-t f-h", 16) + T(118, 28, "NoR Finder ▾", "f-d", 14);
+  if (app === "setup") s += R(216, 12, 96, 22, "f-accsoft", 11) + T(228, 28, "Study Setup", "f-t", 12);
+  if (article) s += T(560, 28, "✦ Article ↗", "f-acc f-h", 14);
+  s += R(820, 11, 82, 22, "f-box", 11) + T(834, 27, stage || "", "f-t f-m", 12) + `<circle cx="930" cy="22" r="12" class="f-box"/>`;
+  s += `<line x1="260" y1="44" x2="260" y2="${H}" class="f-line"/>`;
+  return s;
+}
+
+function leftBar(boxes) {
+  let y = 58, s = "";
+  for (const b of boxes) {
+    const rows = b.rows || [], h = 34 + rows.length * 26 + (b.item ? 150 : 0) + (b.hist ? 74 : 0) + (b.bar !== undefined ? 18 : 0);
+    s += R(12, y, 236, h, "f-box", 4) + T(24, y + 22, b.h, "f-t f-h", 13);
+    rows.forEach((r, i) => {
+      const ry = y + 34 + i * 26;
+      if (b.hl === i) s += R(18, ry, 224, 23, "f-accsoft", 3);
+      const btn = /^\[.*\]$/.test(r.trim()) || r.includes("[ ");
+      s += T(26, ry + 16, r.replace(/[\[\]]/g, "").trim(), btn ? "f-acc" : "f-t", 12.5, btn ? `font-weight="600"` : "");
+    });
+    let yy = y + 34 + rows.length * 26;
+    if (b.bar !== undefined) { s += R(24, yy, 212, 7, "f-bar", 3) + R(24, yy, 212 * b.bar, 7, "f-acc grow", 3); yy += 18; }
+    if (b.item) {
+      s += `<g class="rise">` + field(24, yy, 212, 98, { n: 3, outlines: false }, 3) + `<circle cx="130" cy="${yy + 49}" r="20" class="f-ring" stroke-width="3"/>`;
+      s += R(24, yy + 106, 102, 34, "f-acc", 4) + T(46, yy + 128, "Approve", "f-white", 14) + R(134, yy + 106, 102, 34, "f-box", 4) + T(162, yy + 128, "Reject", "f-t", 14) + `</g>`;
+    }
+    if (b.hist) { [22, 38, 56, 44, 30, 18, 9].forEach((v, i) => { s += R(30 + i * 28, yy + 64 - v, 20, v, "f-acc grow"); }); }
+    y += h + 12;
+  }
+  return s;
+}
+
+function thumbs(f) {
+  let s = "";
+  for (let i = 0; i < 12; i++) {
+    const c = i % 4, r = Math.floor(i / 4), x = 284 + c * 166, y = 66 + r * 146;
+    const faded = (f.hidden || []).includes(i);
+    s += `<g opacity="${faded ? .25 : 1}">` + field(x, y, 150, 104, { n: 10 }, 11 + i) + `</g>`;
+    s += T(x, y + 122, `A${1 + (i % 3)} · ${i % 2 ? "4-AP" : "control"}`, "f-d", 11.5);
+    if (faded) s += T(x + 46, y + 58, "hidden", "f-t f-h", 16);
+    if ((f.flags || []).includes(i)) s += R(x + 108, y + 6, 36, 18, "f-acc", 9) + T(x + 114, y + 19, "GT", "f-white f-m", 11);
+    if (f.done !== undefined && i < f.done) s += `<circle cx="${x + 136}" cy="${y + 92}" r="9" class="f-acc"/>` + T(x + 131, y + 96, "✓", "f-white", 11);
+  }
+  return s;
+}
+
+function mainArea(f) {
+  const x = 274, y = 56, w = 674, h = 472;
+  if (f.main === "thumbs") return thumbs(f);
+  if (f.main === "tags") {
+    let s = thumbs(f);
+    s += R(284, 60, 316, 30, "f-sheet", 4, `stroke-width="1" style="stroke:var(--ui-line)"`) + T(296, 80, "Data/A3   animal: A3 · condition: 4-AP", "f-t f-m", 11.5);
+    return s;
+  }
+  if (f.main === "people") {
+    let s = R(x + 30, y + 30, 560, 230, "f-box", 6) + T(x + 52, y + 64, "People", "f-t f-h", 18);
+    ["sees", "annotates", "manages"].forEach((c, i) => s += T(x + 290 + i * 100, y + 98, c, "f-d f-m", 12));
+    [["you", 3], ["Dana", 2], ["Omer", 1]].forEach(([n, k], r) => {
+      const yy = y + 134 + r * 40;
+      s += `<line x1="${x + 52}" y1="${yy - 22}" x2="${x + 570}" y2="${yy - 22}" class="f-line"/>` + T(x + 52, yy, n, "f-t", 15);
+      for (let i = 0; i < 3; i++) s += T(x + 305 + i * 100, yy, i < k ? "●" : "○", i < k ? "f-acc" : "f-d", 15);
+      s += T(x + 500, yy, "Drive ↗", "f-acc", 12.5);
+    });
+    return s;
+  }
+  if (f.main === "fix") {
+    let s = R(x + 40, y + 40, 520, 300, "f-box", 6) + T(x + 64, y + 80, "Sharing check", "f-t f-h", 18);
+    s += T(x + 64, y + 118, "⚠  Previews is not readable by link", "f-t", 15) + T(x + 64, y + 142, "Visitors and the lab can't reach the previews.", "f-d", 13);
+    s += R(x + 64, y + 164, 300, 120, "f-sheet", 4, `style="stroke:var(--ui-line)"`) + T(x + 80, y + 190, "Share “Previews”", "f-t f-h", 13);
+    s += T(x + 80, y + 222, "General access", "f-d", 12) + R(x + 80, y + 232, 190, 26, "f-accsoft", 4) + T(x + 90, y + 250, "Anyone with the link ▾", "f-t", 12);
+    s += R(x + 400, y + 220, 110, 40, "f-acc pulse", 5) + T(x + 440, y + 246, "Fix", "f-white f-h", 16);
+    return s;
+  }
+  if (f.main === "table") {
+    let s = R(x + 20, y + 20, 630, 420, "f-box", 6) + T(x + 44, y + 56, "Results · 12 images", "f-t f-h", 18) + T(x + 470, y + 56, "example values", "f-d f-m", 11);
+    ["image", "condition", "count", "density", "length"].forEach((c, i) => s += T(x + 44 + i * 118, y + 92, c, "f-d f-m", 12));
+    for (let r = 0; r < 8; r++) {
+      const yy = y + 124 + r * 34;
+      s += `<line x1="${x + 44}" y1="${yy - 22}" x2="${x + 630}" y2="${yy - 22}" class="f-line"/>`;
+      s += T(x + 44, yy, `A${1 + r % 3}-${r + 1}`, "f-t f-m", 13) + T(x + 162, yy, r % 2 ? "4-AP" : "control", "f-t", 13);
+      s += R(x + 280, yy - 12, 30 + ((r * 37) % 60), 12, "f-acc grow", 2) + R(x + 398, yy - 12, 25 + ((r * 53) % 70), 12, "f-accsoft grow", 2) + R(x + 516, yy - 12, 40 + ((r * 29) % 50), 12, "f-bar grow", 2);
+    }
+    s += R(x + 470, y + 392, 160, 34, "f-acc", 4) + T(x + 492, y + 414, "Download table", "f-white", 13);
+    return s;
+  }
+  return field(x, y, w, h, f.micro || {}, 21);
+}
+
+function popup(p) {
+  let s = `<g class="rise">` + R(560, 64, 370, 40 + p.lines.length * 30, "f-sheet", 6, `style="stroke:var(--ui-line)" stroke-width="1.5"`) + T(580, 92, p.title, "f-t f-h", 15);
+  p.lines.forEach((l, i) => s += T(580, 124 + i * 30, l, l.startsWith("→") ? "f-acc" : "f-t", 14, l.startsWith("→") ? `font-weight="600"` : ""));
+  return s + `</g>`;
+}
+
+function chatPanel(c, x = 40, y = 30, w = 880, h = 480) {
+  let s = R(x, y, w, h, "f-sheet", 8, `style="stroke:var(--ui-line)"`) + T(x + 24, y + 34, "Claude", "f-t f-h", 15) + `<line x1="${x}" y1="${y + 50}" x2="${x + w}" y2="${y + 50}" class="f-line"/>`;
+  const lines = wrap(c.user, Math.floor(w / 9.5) - 10);
+  const bw = Math.min(w - 120, Math.max(...lines.map(l => l.length)) * 8.6 + 36), bx = x + w - 24 - bw;
+  s += R(bx, y + 70, bw, 22 + lines.length * 22, "f-accsoft", 10);
+  lines.forEach((l, i) => s += T(bx + 18, y + 96 + i * 22, l, "f-t", 15));
+  let yy = y + 110 + lines.length * 22;
+  (c.attach || []).forEach((a, i) => { s += R(bx + i * 0, yy + i * 34, 260, 28, "f-box", 4) + T(bx + 12, yy + 19 + i * 34, "▤ " + a, "f-t f-m", 12); });
+  yy += (c.attach || []).length * 34 + 16;
+  s += `<g class="rise"><circle cx="${x + 38}" cy="${yy + 8}" r="10" class="f-acc"/>`;
+  c.reply.forEach((l, i) => s += T(x + 60, yy + 14 + i * 26, l, "f-t", 15));
+  if (c.figure) s += field(x + 60, yy + 20 + c.reply.length * 26, 220, 110, { n: 8, outlines: true }, 5);
+  return s + `</g>`;
+}
+
+function wrap(t, n) { const out = []; let line = ""; for (const w of t.split(" ")) { if ((line + " " + w).trim().length > n) { out.push(line.trim()); line = w; } else line += " " + w; } if (line.trim()) out.push(line.trim()); return out; }
+
+function scene(f, video) {
+  let s;
+  switch (f.scene) {
+    case "ui":
+      s = chrome(f.app, f.stage, f.article) + leftBar(f.left || []) + mainArea(f) + (f.popup ? popup(f.popup) : "");
+      if (f.envelope) s += `<g transform="translate(860 470)" class="rise">${R(-40, -26, 80, 52, "f-sheet", 3, `style="stroke:var(--ink)" stroke-width="2"`)}<path d="M-40 -26 l40 30 l40 -30" class="f-inks" stroke-width="2"/></g>`;
+      break;
+    case "split": {
+      s = R(0, 0, W, H, "f-ui") + chatPanel(f.chat, 20, 20, 470, 500) + R(510, 20, 430, 500, "f-box", 8) + T(534, 58, "Algorithm", "f-t f-h", 16);
+      f.versions.slice().reverse().forEach(([v, p, r], i) => {
+        const y = 100 + i * 120;
+        s += T(534, y, v, "f-t f-h", 18) + T(534, y + 30, "precision", "f-d f-m", 11) + R(620, y + 20, 290, 12, "f-bar", 3) + R(620, y + 20, 290 * p, 12, "f-acc grow", 3);
+        s += T(534, y + 56, "recall", "f-d f-m", 11) + R(620, y + 46, 290, 12, "f-bar", 3) + R(620, y + 46, 290 * r, 12, "f-acc grow", 3);
+      });
+      s += T(534, 490, f.note, "f-d f-m", 12);
+      break;
+    }
+    case "chat": s = R(0, 0, W, H, "f-ui") + chatPanel(f); break;
+    case "tiles": {
+      s = R(0, 0, W, H, "", 0, `fill="#0c0f0e"`);
+      const r = rng(4);
+      for (let i = 0; i < 16; i++) for (let j = 0; j < 25; j++) {
+        const x = 8 + j * 38, y = 8 + i * 33;
+        s += R(x, y, 34, 29, "f-scope");
+        for (let k = 0; k < 3; k++) s += `<circle cx="${x + 4 + r() * 26}" cy="${y + 4 + r() * 21}" r="1.6" class="${k ? "f-green" : "f-red"}"/>`;
+      }
+      s += R(250, 190, 460, 160, "", 8, `fill="#000" fill-opacity=".78"`) + `<text x="480" y="268" text-anchor="middle" font-size="56" class="f-white f-h">${esc(f.count)}</text>`;
+      s += `<text x="480" y="318" text-anchor="middle" font-size="22" class="f-m" fill="#ffc22e">clicked so far: ${esc(f.tally)}</text>`;
+      break;
+    }
+    case "cards3":
+      s = R(0, 0, W, H, "f-paper") + T(60, 80, "Today you choose…", "f-ink f-h", 30);
+      f.cards.forEach((c, i) => {
+        const x = 60 + i * 290;
+        s += `<g class="rise" style="animation-delay:${i * .25}s">` + R(x, 130, 260, 330, "f-sheet", 8, `style="stroke:var(--rule)" stroke-width="1.5"`);
+        s += `<g transform="translate(${x + 130} 230)">${ICON[c.icon]}</g>` + T(x + 24, 340, `${i + 1}. ${c.t}`, "f-ink f-h", 22);
+        wrap(c.s, 26).forEach((l, k) => s += T(x + 24, 376 + k * 24, l, "f-d", 16));
+        s += `</g>`;
+      });
+      break;
+    case "loop": {
+      s = R(0, 0, W, H, "f-paper") + `<circle cx="480" cy="270" r="160" class="f-accs" stroke-width="10" stroke-dasharray="300 35"/>`;
+      s += `<path d="M622 212 l20 -26 l14 32 z" class="f-acc"/><path d="M386 418 l-32 -2 l18 -28 z" class="f-acc"/>`;
+      s += `<text x="480" y="284" text-anchor="middle" font-size="44" class="f-ink f-h">${esc(f.title)}</text>`;
+      [[480, 92], [690, 420], [270, 420]].forEach(([x, y], i) => s += `<text x="${x}" y="${y}" text-anchor="middle" font-size="22" class="f-ink f-m">${esc(i === 1 ? "improve" : "annotate")}</text>`);
+      break;
+    }
+    case "faster": {
+      s = chrome("main", "Develop") + leftBar([{ h: "Ground Truth Tasks", rows: ["each image quicker than the last"] }]);
+      f.images.forEach(([name, t], i) => {
+        const x = 286 + i * 222;
+        s += field(x, 80, 206, 260, { n: 22, outlines: true, cut: Math.round(100 * (0.4 + i * 0.3)) }, 30 + i) + T(x, 368, name, "f-t f-h", 14);
+        s += R(x, 382, 206, 14, "f-bar", 3) + R(x, 382, 206 * t, 14, "f-acc grow", 3, `style="animation-delay:${i * .4}s"`);
+      });
+      s += T(286, 430, f.note, "f-d f-m", 12);
+      break;
+    }
+    case "seal": {
+      s = R(0, 0, W, H, "f-paper") + R(160, 40, 380, 470, "f-sheet", 3, `style="stroke:var(--rule)" stroke-width="1.5"`);
+      s += R(190, 76, 260, 18, "f-ink", 2);
+      for (let i = 0; i < 14; i++) s += R(190, 120 + i * 22, 300 - (i % 4) * 34, 8, "f-bar", 2);
+      s += `<g class="rise" transform="translate(600 250)"><circle r="150" class="f-accsoft"/><circle r="150" class="f-accs" stroke-width="6"/><circle r="132" class="f-accs" stroke-width="2" stroke-dasharray="4 5"/>`;
+      s += `<text y="-46" text-anchor="middle" font-size="22" class="f-acc f-h">FROZEN SCORE</text>`;
+      f.lines.forEach((l, i) => s += `<text y="${-6 + i * 34}" text-anchor="middle" font-size="${i ? 17 : 22}" class="f-ink f-m">${esc(l)}</text>`);
+      s += `</g>`;
+      if (f.fix) s += R(560, 452, 370, 44, "f-sheet", 6, `style="stroke:var(--ui-line)"`) + T(580, 480, f.fix, "f-acc", 15);
+      break;
+    }
+    case "end":
+      s = R(0, 0, W, H, "f-ink") + `<text x="480" y="220" text-anchor="middle" font-size="64" class="f-sheet f-h">${esc(f.title)}</text>`;
+      f.lines.forEach((l, i) => s += `<text x="480" y="${280 + i * 34}" text-anchor="middle" font-size="22" class="f-paper">${esc(l)}</text>`);
+      s += `<text x="480" y="420" text-anchor="middle" font-size="18" class="f-acc f-m">rauntruth.com · ${esc(f.next)} ▸</text>`;
+      break;
+    case "footage":
+      s = R(0, 0, W, H, "f-foot") + `<g transform="translate(480 240) scale(1.4)">${ICON[f.icon]}</g>`;
+      s += `<text x="480" y="470" text-anchor="middle" font-size="22" class="f-footw">${esc(f.caption)}</text>`;
+      s += `<text x="34" y="52" font-size="14" class="f-footw f-m" letter-spacing="3">FOOTAGE</text>`;
+      s += `<path d="M24 24 h40 M24 24 v40 M936 24 h-40 M936 24 v40 M24 516 h40 M24 516 v-40 M936 516 h-40 M936 516 v-40" class="f-footl" stroke-width="3"/>`;
+      break;
+    case "ribbon":
+      s = R(0, 0, W, H, "f-paper") + T(60, 130, "Five stages", "f-ink f-h", 40) + ribbon(null, 60, 200, false);
+      ["Ch 1–3", "Ch 4–5", "Ch 6", "Ch 7", "Ch 7"].forEach((c, i) => s += `<text x="${60 + i * 162 + 75}" y="290" text-anchor="middle" font-size="16" class="f-d f-m">${c}</text>`);
+      break;
+    case "drive":
+      s = R(0, 0, W, H, "f-ui") + R(0, 0, W, 52, "f-bar") + T(24, 33, "Drive", "f-t f-h", 18) + T(110, 33, f.path, "f-d", 15);
+      f.items.forEach(([k, n, sub], i) => {
+        const y = 90 + i * 64;
+        s += `<line x1="40" y1="${y + 40}" x2="920" y2="${y + 40}" class="f-line"/>` + T(48, y + 22, k === "folder" ? "▰" : "▤", k === "folder" ? "f-acc" : "f-d", 22) + T(86, y + 22, n, "f-t", 17) + T(380, y + 22, sub, "f-d", 14);
+      });
+      s += `<g class="rise">` + R(560, 380, 340, 90, "f-accsoft", 8, `stroke-dasharray="8 6" style="stroke:var(--accent)" stroke-width="2"`) + T(590, 432, f.drop, "f-t f-h", 18) + `</g>`;
+      break;
+    case "share":
+      s = R(0, 0, W, H, "f-paper") + T(60, 80, "Who can read what", "f-ink f-h", 30);
+      f.items.forEach(([n, ic, what], i) => {
+        const y = 130 + i * 86, x = 60 + (i ? 60 : 0);
+        if (i) s += `<path d="M${x - 30} ${y - 40} v40 h22" class="f-inks" stroke-width="2"/>`;
+        s += R(x, y - 30, 560 - (i ? 60 : 0), 60, "f-sheet", 6, `style="stroke:var(--rule)"`) + T(x + 20, y + 7, n, "f-ink f-h", 19);
+        s += `<text x="${x + 380 - (i ? 60 : 0)}" y="${y + 8}" font-size="22" class="${ic === "lock" ? "f-ink" : "f-acc"}">${ic === "lock" ? "🔒︎" : "🔗︎"}</text>` + T(700, y + 7, what, "f-d", 16);
+      });
+      break;
+    default: s = R(0, 0, W, H, "f-ui");
+  }
+  if (video === "walkthrough" && f.stage) s += ribbon(f.stage);
+  return s;
+}
+
+function chapterCard(c) {
+  return R(0, 0, W, H, "f-paper") + `<circle cx="140" cy="270" r="70" class="f-accs" stroke-width="8" stroke-dasharray="130 18"/>` +
+    `<text x="140" y="290" text-anchor="middle" font-size="52" class="f-acc f-h">${c.n}</text>` + T(250, 260, c.title, "f-ink f-h", 40) +
+    T(252, 300, c.stage ? "stage: " + c.stage : "", "f-d f-m", 18) + ribbon(c.stage || "", 63, 400, false);
+}
+
+const svg = (inner, live) => `<svg viewBox="0 0 ${W} ${H}" class="${live ? "live" : ""}" role="img" aria-hidden="true">${inner}</svg>`;
+
+// ---- sequence and player ----
+let cur = null, seq = [], idx = 0, playing = false, timer = null, startAt = 0;
+const audio = new Audio();
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+
+function build(v) {
+  seq = [];
+  for (const c of v.chapters) {
+    if (c.title) seq.push({ kind: "chapter", chapter: c, dur: 2.5, draw: () => chapterCard(c) });
+    for (const b of c.beats) seq.push({ kind: "beat", beat: b, chapter: c, dur: b.spoken ? b.spoken + 0.7 : b.planned, draw: () => scene(b.frame, v.id) });
+  }
+  let t = 0; seq.forEach(s => { s.at = t; t += s.dur; });
+  return t;
+}
+
+function select(id) {
+  stop();
+  cur = VIDEOS.find(v => v.id === id) || VIDEOS[0];
+  const total = build(cur);
+  const planned = cur.chapters.flatMap(c => c.beats).reduce((a, b) => a + b.planned, 0);
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.id === cur.id));
+  $("timeline").innerHTML = seq.map((s, i) => `<button class="seg ${s.kind === "chapter" ? "chapter" : ""}" style="--w:${s.dur}" data-i="${i}" aria-label="${s.kind === "chapter" ? "Chapter " + s.chapter.n : "Beat " + s.beat.n}"><span class="fill"></span></button>`).join("");
+  const hasAudio = seq.some(s => s.beat && s.beat.audio);
+  $("note").textContent = hasAudio ? `Voiced run ${fmt(total)} against ${fmt(planned)} planned in the storyboard.` : `No audio was rendered; frames play on their planned times (${fmt(total)}).`;
+  board();
+  show(0);
+}
+
+function board() {
+  let html = "";
+  for (const c of cur.chapters) {
+    html += `<section class="chap">${c.title ? `<h2><span class="num">${c.n}</span>${esc(c.title)}<span class="st">${c.stage ? "stage: " + esc(c.stage) : ""}</span></h2>` : ""}<div class="panels">`;
+    for (const b of c.beats) {
+      const i = seq.findIndex(s => s.beat === b);
+      const over = b.spoken && b.spoken > b.planned + 0.5;
+      html += `<article class="panel" id="p${i}"><button class="thumb" data-i="${i}" aria-label="Play from beat ${b.n}">${svg(b.frame ? scene(b.frame, cur.id) : "")}</button>` +
+        `<div class="meta"><b>${esc(b.n)}</b>${b.tags.map(t => `<span class="chip ${t}">${t}</span>`).join("")}<span>planned ${b.planned}s</span>${b.spoken ? `<span class="${over ? "over" : ""}">voiced ${b.spoken.toFixed(1)}s</span>` : ""}</div>` +
+        `<p class="pic">${esc(b.picture)}</p>${b.voice ? `<p class="vo">${esc(b.voice)}</p>` : ""}</article>`;
+    }
+    html += `</div></section>`;
+  }
+  $("board").innerHTML = html;
+}
+
+function show(i, autoplay) {
+  clearTimeout(timer); audio.pause();
+  idx = Math.max(0, Math.min(seq.length - 1, i));
+  const s = seq[idx];
+  $("stage").innerHTML = svg(s.draw(), true);
+  $("caption").innerHTML = s.kind === "chapter" ? `<span class="who">Chapter ${s.chapter.n}</span>${esc(s.chapter.title)}` :
+    `<span class="who">${esc(s.beat.n)} · ${s.beat.tags.join(" + ")}</span>${esc(s.beat.voice || "—")}`;
+  document.querySelectorAll(".seg").forEach((g, k) => { g.classList.toggle("on", k === idx); g.querySelector(".fill").style.width = k < idx ? "100%" : "0"; });
+  document.querySelectorAll(".panel.now").forEach(p => p.classList.remove("now"));
+  const p = $("p" + idx); if (p) p.classList.add("now");
+  tick();
+  if (autoplay ?? playing) run();
+}
+
+function run() {
+  playing = true; $("play").textContent = "Pause";
+  const s = seq[idx]; startAt = performance.now();
+  const advance = () => { if (idx < seq.length - 1) show(idx + 1, true); else stop(); };
+  if (s.beat && s.beat.audio) {
+    audio.src = s.beat.audio;
+    audio.onended = () => { timer = setTimeout(advance, 700); };
+    audio.play().catch(() => { timer = setTimeout(advance, s.dur * 1000); });
+  } else timer = setTimeout(advance, s.dur * 1000);
+  requestAnimationFrame(frameTick);
+}
+
+function frameTick() {
+  if (!playing) return;
+  const s = seq[idx], el = (performance.now() - startAt) / 1000;
+  const seg = document.querySelectorAll(".seg")[idx];
+  if (seg) seg.querySelector(".fill").style.width = Math.min(100, el / s.dur * 100) + "%";
+  tick(Math.min(el, s.dur));
+  requestAnimationFrame(frameTick);
+}
+
+function tick(el = 0) { const total = seq.reduce((a, s) => a + s.dur, 0); $("clock").textContent = `${fmt(seq[idx].at + el)} / ${fmt(total)}`; }
+function stop() { playing = false; clearTimeout(timer); audio.pause(); $("play").textContent = "Play"; }
+
+$("tabs").innerHTML = VIDEOS.map(v => {
+  const t = build(v);
+  return `<button class="tab" role="tab" data-id="${v.id}">${esc(v.title)}<small>${fmt(t)}</small></button>`;
+}).join("");
+$("tabs").addEventListener("click", e => { const t = e.target.closest(".tab"); if (t) { location.hash = t.dataset.id; } });
+$("timeline").addEventListener("click", e => { const g = e.target.closest(".seg"); if (g) show(+g.dataset.i); });
+$("board").addEventListener("click", e => { const t = e.target.closest(".thumb"); if (t) { show(+t.dataset.i, true); $("stage").scrollIntoView({ behavior: "smooth", block: "center" }); } });
+$("play").addEventListener("click", () => playing ? stop() : (idx >= seq.length - 1 && show(0), run()));
+$("prev").addEventListener("click", () => show(idx - 1));
+$("next").addEventListener("click", () => show(idx + 1));
+document.addEventListener("keydown", e => { if (e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") show(idx + 1); if (e.key === "ArrowLeft") show(idx - 1); });
+const route = () => select(location.hash.slice(1) || "pitch");
+window.addEventListener("hashchange", route);
+route();
+</script>

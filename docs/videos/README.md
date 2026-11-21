@@ -8,6 +8,17 @@ Two videos for biology researchers, PIs and lab managers, storyboarded on the st
 | [Teach it one image at a time](2-the-loop.md) | PIs and lab managers meeting RaunTruth | the pitch: today's pain against the annotate-and-improve loop | 1:45, plus a 60 s cut |
 | [A study, start to publication](1-full-workflow.md) | the researcher who will run a study | every action, Setup to Public | ~7:30, as eight chapter clips |
 
+Both play as an animatic, every frame drawn and each beat's voice-over rendered, from the storyboard page:
+
+```
+python3 docs/videos/storyboard/build.py OUT_DIR --voice en_US-lessac-medium.onnx
+```
+
+The page takes the picture and voice text from these two files and each frame's sketch from
+`storyboard/frames.json`; the voice is a [Piper](https://github.com/rhasspy/piper) model (`pip install piper-tts`,
+installed ad hoc, the model downloaded from its voices list) and ffmpeg. Its first run voiced the pitch at 1:17 against
+1:45 planned and the walkthrough at 3:45 against 7:30: the walkthrough's planned time is mostly action shown in silence.
+
 The pitch is the entry point and ends on a link to the walkthrough; the walkthrough's chapter 5 is the pitch's
 loop shown in full.
 

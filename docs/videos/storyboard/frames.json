@@ -1,0 +1,93 @@
+{
+  "about": "One sketch per storyboard row, in the rows' order; build.py refuses a count that differs from the Markdown's.",
+  "pitch": [
+    {"scene": "tiles", "count": "400 images", "tally": "287"},
+    {"scene": "cards3", "cards": [
+      {"t": "By hand", "s": "weeks of clicking, two people, two counts", "icon": "tally"},
+      {"t": "Off the shelf", "s": "“How accurate is this?” — Reviewer 2", "icon": "box"},
+      {"t": "Custom code", "s": "“the core can fit you in… in March”", "icon": "code"}]},
+    {"scene": "loop", "title": "RaunTruth", "steps": ["annotate", "improve", "annotate"]},
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Processing", "rows": ["▶ Run  v1 · rough draft"]},
+      {"h": "Ground Truth Tasks", "rows": ["13/47 Finalists", "0/22 Rejected", "Missed"], "item": true}],
+      "micro": {"outlines": true, "ring": true, "frame": true, "cut": 3}},
+    {"scene": "split", "chat": {"user": "Improve the finder on the new ground truth.",
+      "reply": ["Ran the lab on 2 images.", "v2 beats v1 on precision and recall.", "Figure: what v2 found against your marks."]},
+      "versions": [["v1", 0.35, 0.4], ["v2", 0.55, 0.6]], "note": "measured on 2 images · bars illustrative"},
+    {"scene": "faster", "images": [["image 1", 1.0], ["image 2", 0.62], ["image 3", 0.38]], "note": "bar = time to tag · illustrative"},
+    {"scene": "ui", "app": "main", "stage": "Analyze", "left": [
+      {"h": "Summary", "rows": ["count 193", "density / mm²", "lengths"], "hist": true}],
+      "micro": {"outlines": true, "lasso": true}},
+    {"scene": "seal", "lines": ["precision · recall", "dataset SHA 768c…", "frozen 2027-03-02"]},
+    {"scene": "end", "title": "RaunTruth", "lines": ["Runs in your browser.", "Your images stay on your Drive."], "next": "Next: a study, start to publication"}
+  ],
+  "walkthrough": [
+    {"scene": "footage", "icon": "microscope", "caption": "microscope → files → table → article"},
+    {"scene": "ribbon"},
+
+    {"scene": "footage", "icon": "laptop", "caption": "export from the microscope software"},
+    {"scene": "drive", "path": "My Drive › NoR study", "items": [["folder", "Data", "animal A1 · A2 · A3"], ["folder", "Previews", ""], ["folder", "extractions", ""], ["file", "rauntruth-study.json", ""]], "drop": "12 TIFFs → Data"},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Folders", "rows": ["Data/A1", "Data/A2", "Data/A3", "+ Add folder"]},
+      {"h": "Previews", "rows": ["Make previews  9/12"], "bar": 0.75}], "main": "thumbs"},
+    {"scene": "share", "items": [["NoR study (root)", "lock", "members only"], ["Data", "link", "anyone with the link"], ["Previews", "link", "anyone with the link"], ["extractions", "link", "anyone with the link"]]},
+
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Tags", "rows": ["animal: A3", "condition: 4-AP", "region: corpus callosum"], "hl": 1},
+      {"h": "Grouping tag", "rows": ["condition ▾"]}], "main": "tags"},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Hide rules", "rows": ["quality: blurry  → hidden", "+ Add rule"], "hl": 0}], "main": "thumbs", "hidden": [2, 7]},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Areas", "rows": ["◯ Area of interest", "▨ Damaged area"], "hl": 1}],
+      "micro": {"aoi": true, "damaged": true}},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Study images", "rows": ["☑ Needs GT  A1 · control", "☑ Needs GT  A2 · 4-AP", "☑ Needs GT  A3 · control", "☑ Needs GT  A3 · 4-AP"]}], "main": "thumbs", "flags": [0, 4, 6, 9]},
+
+    {"scene": "chat", "user": "Add these two papers to the study's literature.", "attach": ["arancibia-carcamo-2017.pdf", "song-2022-concussion.pdf"],
+      "reply": ["Summarised both into the study:", "• what counts as a node", "• how length is measured", "• sanity values to check against"]},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "People", "rows": ["you · manages", "Dana · annotates", "Omer · sees"]}], "main": "people"},
+    {"scene": "ui", "app": "setup", "stage": "Setup", "left": [
+      {"h": "Sharing check", "rows": ["⚠ Previews is not readable by link", "[ Fix ]"], "hl": 0}], "main": "fix"},
+
+    {"scene": "chat", "user": "Write a rough first algorithm for this study and the ground-truth tools to correct it.",
+      "reply": ["Plan: candidates from the red channel, two green flanks.", "Opened a pull request:", "• algorithm v1 + its scorer", "• ground-truth tasks"]},
+    {"scene": "ui", "app": "main", "stage": "Setup", "left": [
+      {"h": "Processing", "rows": ["v1 · no score yet"]}],
+      "popup": {"title": "Stage: Setup", "lines": ["✓ inputs marked", "✓ an annotation tool works", "→ promote to Develop"]}, "micro": {}},
+
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Annotations", "rows": ["Continue local work", "Load from Drive", "▶ Start annotating from scratch"], "hl": 2}], "micro": {}},
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Ground Truth Tasks", "rows": ["13/47 Finalists", "0/22 Rejected", "Missed"], "item": true}],
+      "micro": {"outlines": true, "ring": true, "frame": true, "cut": 4}},
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Ground Truth Tasks", "rows": ["✓ 47/47 Finalists", "✓ 22/22 Rejected", "✓ Missed"]},
+      {"h": "Save", "rows": ["Saved ✓", "0 waiting to upload"]}], "micro": {"cut": 100}},
+    {"scene": "ui", "app": "setup", "stage": "Develop", "left": [
+      {"h": "Extractions · A1 control", "rows": ["Dana · by hand  [ Mark GT ]", "batch v1"], "hl": 0}], "micro": {"outlines": true}},
+    {"scene": "chat", "user": "Improve the algorithm on the new ground truth.",
+      "reply": ["Ran the lab: every version scored on 1 image.", "v2 finds more and rejects better.", "Figure attached: v2 against your marks."], "figure": true},
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Algorithm", "rows": ["v2  — P · R", "v1  — P · R", "measured on 1 image"], "hl": 0}], "micro": {"outlines": true}},
+    {"scene": "faster", "images": [["image 1 · v1", 1.0], ["image 2 · v2", 0.65], ["image 3 · v3", 0.42]], "note": "bar = time to tag · illustrative"},
+    {"scene": "ui", "app": "main", "stage": "Develop", "left": [
+      {"h": "Algorithm", "rows": ["v4  — P · R", "v3", "v2", "v1"]}],
+      "popup": {"title": "Stage: Develop", "lines": ["Annotate: 1 image still needs it", "you judge: good enough?", "→ promote to Analyze"]}, "micro": {"outlines": true}},
+
+    {"scene": "ui", "app": "setup", "stage": "Analyze", "left": [
+      {"h": "Batch run", "rows": ["v4 over 12 images", "8 done · 3 skipped · 1 running", "[ Mark all official ]"], "bar": 0.9}], "main": "thumbs", "done": 11},
+    {"scene": "ui", "app": "main", "stage": "Analyze", "left": [
+      {"h": "From Drive", "rows": ["official · batch v4", "[ Edit this annotation ]"], "hl": 1}], "micro": {"outlines": true, "ring": true}},
+    {"scene": "ui", "app": "main", "stage": "Analyze", "left": [
+      {"h": "Results", "rows": ["12 images · by condition", "[ Download table ]"]}], "main": "table"},
+
+    {"scene": "ui", "app": "setup", "stage": "Analyze", "left": [
+      {"h": "Promote to Review", "rows": ["3 images: edits newer than GT", "resolved ✓", "[ Freeze ]"], "hl": 2}], "main": "thumbs", "envelope": true},
+    {"scene": "seal", "lines": ["v4", "dataset SHA 768c…", "frozen 2027-03-02 · GT commit"], "fix": "Share the root by link  [ Fix ]"},
+    {"scene": "footage", "icon": "reviewer", "caption": "a reviewer, signed out, opens the study's link"},
+    {"scene": "ui", "app": "main", "stage": "Public", "left": [
+      {"h": "Your own image", "rows": ["opened from this computer", "runs in your browser", "[ Download result ]"]}], "micro": {"outlines": true}, "article": true},
+    {"scene": "end", "title": "That's a study", "lines": ["Setup · Develop · Analyze · Review · Public"], "next": "Watch: Teach it one image at a time"}
+  ]
+}
