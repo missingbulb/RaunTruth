@@ -34,6 +34,17 @@ Before handing the integration pull request to the owner, the orchestrating sess
 the `exploring-the-ui` skill (a seeded random walk over the fakes, checking each state change): it fixes the bugs it
 finds test-first, fixes small gaps, and brings the owner only the calls that are theirs, with screenshots.
 
+### Found by the explorer's first run, already on `main`, to triage at the end
+
+- Switching study while offline leaves no study loaded; Load image then throws in `openRemote`, and leaving the page
+  throws in `makesTruth` (bug; shrunk reproduction in the explorer's first run).
+- NoR's Find Candidates raises `h = 0 is ambiguous` from `h_maxima` on some images (bug, study code).
+- Focus falls to the page body when several dialogs close (gap).
+- Phone-width cut-off controls (call: phones are not supported, `req/shell/browsers/supported`).
+- The fake Drive answers 404 to `fields=appProperties` for a file the site did not make, where Drive answers 200
+  (fake behaviour, owner's call); the CDN fake lacks the Bookshelf's offline libraries.
+- `studies/nor/tests/test_ground_truth_page.py` flaked once under a parallel full run.
+
 ## Approvals on record
 
 | What | Who calls it | Status |
