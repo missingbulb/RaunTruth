@@ -28,6 +28,12 @@ A package starts only once the ones it depends on are merged into the integratio
 listed under "Approvals" are approved as listed; anything a worker finds it needs beyond them stops the package and
 goes to the owner (rules `network-calls-approved`, `fakes-for-outside-systems`).
 
+## When the packages are in
+
+Before handing the integration pull request to the owner, the orchestrating session explores the built page with
+the `exploring-the-ui` skill (a seeded random walk over the fakes, checking each state change): it fixes the bugs it
+finds test-first, fixes small gaps, and brings the owner only the calls that are theirs, with screenshots.
+
 ## Approvals on record
 
 | What | Who calls it | Status |
