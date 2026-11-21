@@ -43,8 +43,9 @@ check(JSON.stringify(await statuses([DATA, ROOT], null)) === "[200,404]", "signe
 check(JSON.stringify(await statuses([ROOT, STUDY, DATA], member)) === "[200,200,200]", "a member reads the root, the study file in it and Data");
 check(JSON.stringify(await statuses([ROOT, STUDY, INNER], stranger)) === "[404,404,404]", "a non-member signed in is refused the root, the study file and a folder that inherits the root's readers");
 check((await get(DATA, stranger)).status === 200, "a non-member signed in reads the link-shared Data");
-check(JSON.stringify(await statuses([OWN], stranger)) === "[200]" && JSON.stringify(await statuses([OWN], member)) === "[404]",
-  "an item with readers of its own has those alone, not its parent's");
+check(JSON.stringify(await statuses([OWN], stranger)) === "[200]" && JSON.stringify(await statuses([OWN], member)) === "[200]",
+  "sharing adds up: a folder with a reader of its own is read by that reader and by the readers of the root above it");
+check((await get(INNER, stranger)).status === 404, "and a reader of one folder reads no folder beside it");
 {
   const list = await ask("GET", `/drive/v3/files?q=${encodeURIComponent(`'${ROOT}' in parents`)}&fields=files(id)`, { who: member });
   const refused = await ask("GET", `/drive/v3/files?q=${encodeURIComponent(`'${ROOT}' in parents`)}&fields=files(id)`, { who: stranger });

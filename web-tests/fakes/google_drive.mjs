@@ -13,8 +13,10 @@
 //     emails), its subfolders too; a folder no writers reach lets anyone add; drive.hidden: folders shared with
 //     the user alone
 //   drive.readers                                      per item, who Drive's sharing lets read it (a Set of emails),
-//     its contents too until one has a set of its own; where none is set along the way, any signed-in user reads what
-//     the link does not reach. An item shared with anyone with the link is read by all; the writers read too
+//     its contents too; sharing adds up, so an item is read by everyone named on it or on any folder above it. Where
+//     none is named along the way, any signed-in user reads what the link does not reach. An item shared with
+//     anyone with the link is read by all; the writers read too. drive.writers, unlike readers, is the nearest set
+//     alone, not a union
 //   drive.outage = null | "throttled" | "down" | "details";   downloads refused as Google throttles a site (a failed
 //     request), nothing answering, or the files' details alone not answering
 //   drive.checksums = false;                           no SHA-256 for any file, as Drive gives none for some
@@ -104,13 +106,19 @@ export function driveAnswers(drive, google) {
     for (let g = f; g; g = drive.get(g.parent)) if (map.has(g.id)) return map.get(g.id);
     return null;
   };
-  // whether the account reads g: the link reaches it; or the account is among the nearest readers or writers; or no
-  // readers are set along the way, and any signed-in user reads
+  // everyone named a reader on an item or any folder above it, or null where none is
+  const readersOf = (f) => {
+    let all = null;
+    for (let g = f; g; g = drive.get(g.parent)) if (drive.readers.has(g.id)) all = new Set([...(all ?? []), ...drive.readers.get(g.id)]);
+    return all;
+  };
+  // whether the account reads g: the link reaches it; or the account is among the readers along the way or the
+  // nearest writers; or no readers are named along the way, and any signed-in user reads
   const reads = (g, who) => {
     if (!g) return false;
     if (access(g) === "public") return true;
     if (!who) return false;
-    const readers = nearest(drive.readers, g);
+    const readers = readersOf(g);
     return !readers || readers.has(who.email) || !!nearest(drive.writers, g)?.has(who.email);
   };
   // whether the account may change an item's sharing: it made it, or Drive's sharing names it a writer
@@ -120,8 +128,8 @@ export function driveAnswers(drive, google) {
     const want = (k) => fields.includes("*") || fields.includes(k);
     const one = (p) => Object.fromEntries(Object.entries({ kind: "drive#permission", id: p.id, type: p.type, role: p.role, emailAddress: p.emailAddress })
       .filter(([k, v]) => v !== undefined && (["kind", "id", "type", "role"].includes(k) || want(k))));
-    const emails = (map) => { const s = nearest(map, g); return s instanceof Set ? [...s] : []; };
-    const writers = emails(drive.writers), readers = emails(drive.readers).filter((e) => !writers.includes(e));
+    const nearestWriters = nearest(drive.writers, g);
+    const writers = nearestWriters instanceof Set ? [...nearestWriters] : [], readers = [...(readersOf(g) ?? [])].filter((e) => !writers.includes(e));
     return [...(access(g) === "public" ? [{ id: "anyoneWithLink", type: "anyone", role: "reader" }] : []),
       ...readers.map((e) => ({ id: "user-" + e, type: "user", role: "reader", emailAddress: e })),
       ...writers.map((e) => ({ id: "user-" + e, type: "user", role: "writer", emailAddress: e }))].map(one);
@@ -178,8 +186,8 @@ export function driveAnswers(drive, google) {
       const p = JSON.parse(req.body.toString());
       drive.shared.push([on.name, p]); drive.writes.push(["share", on.name]);
       if (p.type === "user" && p.emailAddress) {
-        const map = p.role === "writer" ? drive.writers : drive.readers;
-        map.set(on.id, new Set([...(nearest(map, on) ?? []), p.emailAddress]));
+        const [map, held] = p.role === "writer" ? [drive.writers, nearest(drive.writers, on)] : [drive.readers, drive.readers.get(on.id)];
+        map.set(on.id, new Set([...(held ?? []), p.emailAddress]));
         return json(200, { kind: "drive#permission", id: "user-" + p.emailAddress, type: "user", role: p.role });
       }
       on.access = "public";
@@ -189,9 +197,9 @@ export function driveAnswers(drive, google) {
       const on = f, pid = decodeURIComponent(u.pathname.split("/").at(-1));
       if (!on || !manages(on, who)) return notFound();
       const email = pid.startsWith("user-") ? pid.slice(5) : null;
-      const held = email ? [drive.readers, drive.writers].filter((m) => nearest(m, on)?.has(email)) : [];
-      if (email ? !held.length : !(pid === "anyoneWithLink" && access(on) === "public")) return notFound();
-      if (email) for (const m of held) m.set(on.id, new Set([...nearest(m, on)].filter((e) => e !== email)));
+      const own = drive.readers.get(on.id), writers = nearest(drive.writers, on);
+      if (email ? !own?.has(email) && !writers?.has(email) : !(pid === "anyoneWithLink" && access(on) === "public")) return notFound();
+      if (email) { own?.delete(email); if (writers?.has(email)) drive.writers.set(on.id, new Set([...writers].filter((e) => e !== email))); }
       else on.access = "private";
       drive.unshared.push([on.name, pid]); drive.writes.push(["unshare", on.name]);
       return { status: 204, headers: CORS, contentType: "application/json", body: "" };
