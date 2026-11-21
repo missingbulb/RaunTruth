@@ -2,50 +2,122 @@
 
 **Job:** make a PI or lab manager who has never heard of RaunTruth want to try it, by showing one idea: tagging
 ground truth and building the algorithm are the same loop, and every turn of it makes the next turn shorter.
-**Length:** 1:45, and a 60-second cut (beats 1, 3, 4, 6, 9) for the landing page's muted autoplay. **Voice:**
-~140 words a minute, about 240 words in all.
-**Watched:** muted first, on a landing page or in a talk; every beat must read from captions and on-screen text.
+**Watched:** muted first, on a landing page or in a talk; every scene must read from captions and on-screen text.
+**Length:** whatever its moments take (see [how a scene is built](README.md#how-a-scene-is-built)); the animatic
+gives the running time. A 60-second cut for muted autoplay keeps scenes 1, 3, 4, 6 and 9.
 
-The UI here is the design in PR 1036 (`dev/requirements/study-stages-map.md`, `study-stages-spec.md`), not
-today's page; it is drawn as the page will look, not pixel-exact. A beat marked **[UI]** is a screen capture;
-**[MG]** is a motion graphic; **[B]** is real-world footage or illustration.
+The UI is the design in PR 1036 (`dev/requirements/study-stages-map.md`, `study-stages-spec.md`), not today's
+page, drawn as it will look, not pixel-exact. **[UI]** is a screen capture, **[MG]** a motion graphic, **[B]**
+real-world footage or illustration, **[C]** the Claude chat.
 
-## Beat sheet
+## Scenes
 
-| # | Time | Picture | Voice / on-screen text |
-|---|---|---|---|
-| 1 | 0:00–0:07 | **[B]** A confocal image fills the frame; zoom out and it tiles into 400 images. A counter ticks up beside the cursor clicking dots in Fiji. | "Four hundred images. Three hundred nodes in each. Someone in your lab is going to click every one." |
-| 2 | 0:07–0:25 | **[MG]** Three cards slide in, each a pain the audience owns: **1. By hand** — a tally clicker, weeks on a calendar, two people's counts disagreeing. **2. Off the shelf** — a black box returns a number; a reviewer's comment pops up: *"How accurate is this?"* **3. Custom** — a code editor, an email "can the bioinformatics core fit you in… in March?" | "Today you choose: count by hand for weeks, trust a tool you can't check, or wait months for someone to write code for your stain. And the ground truth that would prove any of it lives in a spreadsheet on one student's laptop." |
-| 3 | 0:25–0:31 | **[MG]** The three cards collapse into one circle: *annotate → improve → annotate*. Title: **RaunTruth**. | "What if annotating and building the algorithm were one loop?" |
-| 4 | 0:31–0:46 | **[UI]** A study page, an image loaded. The left bar asks *Start annotating from scratch*. A rough first algorithm (made by Claude from the study's papers) marks candidates as faint outlines. Ground Truth Tasks walks area by area: one item, **Approve / Reject**, the area cut to black as it's done; a missed node added with one click. | "Start with a rough draft. Claude writes it from your papers in an afternoon. You correct one image: approve, reject, add what it missed. Area by area, until the image is done." |
-| 5 | 0:46–0:58 | **[UI]** Split screen. Left: a chat with Claude — "Improve the finder on the new ground truth." Right: the algorithm list gains a version; its precision and recall numbers move. A small stamp reads *measured on 2 images*. | "Your corrections become ground truth, and Claude improves the algorithm against it. Every version is scored on your images, so you see exactly how good it is." |
-| 6 | 0:58–1:15 | **[UI]** Image 2, then 3, sped up. Each time the outlines are closer to right; the verdicts come faster; fewer *add missed* clicks. A thin progress bar per image empties quicker each time. **[MG]** overlay: the loop circle turns once per image. | "And the next image is easier — the algorithm already got most of it right. Tagging gets faster as the algorithm gets better. You stop when you judge it's good enough." |
-| 7 | 1:15–1:28 | **[UI]** Study Setup: *Batch run* over all images. Back in the main app: an image with its overlay beside the study's numbers — count, density, length histogram — a lasso around one region, and the numbers redraw for it. | "Then run it over the whole study. The numbers sit beside the image they came from: circle a region, the numbers follow; doubt an image, correct it." |
-| 8 | 1:28–1:38 | **[MG]** An article page; a seal stamps it: *precision · recall · dataset SHA · frozen 2027-03-02*. A link opens the study, read-only, for a reviewer. | "When you submit, the ground truth freezes and the score is published with it. Reviewers can open your images and check the analysis themselves." |
-| 9 | 1:38–1:45 | **[UI]** End card: rauntruth.com, "Runs in your browser. Your images stay on your Drive." Link to Video 1. | "RaunTruth. From your images to numbers you can defend." |
+### 1. Every node is a click
+
+**Conveys:** counting by hand is your lab's problem, and its scale is absurd.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| one image, every node a click | both | 3 | **[B]** A confocal field fills the frame; a cursor clicks node after node, a tally ticking 1, 2, 3… | "Every node in this image is a click." |
+| the scale | both | 3 | Zoom out: the field shrinks into a grid of 400; the tally reads 287 and keeps going. | "Three hundred in each image. Four hundred images." |
+
+### 2. Today's three roads
+
+**Conveys:** every route you have today costs weeks or trust, and the proof sits nowhere anyone can check.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| by hand: slow and inconsistent | both | 3 | **[MG]** Card 1, *By hand*: calendar pages flip; two counts of one image, 287 and 312. | "Count by hand, and it takes weeks, and two people never quite agree." |
+| off the shelf: no accuracy | both | 3 | Card 2, *Off the shelf*: a box returns a number; a reviewer's comment lands on it: *"How accurate is this?"* | "Use a tool off the shelf, and you can't say how accurate it is." |
+| custom: months | both | 3 | Card 3, *Custom code*: an email, *"the core can fit you in… in March"*. | "Or wait months for someone to write code for your stain." |
+| the proof nowhere | both | 3 | The cards slide aside: a laptop, a spreadsheet `GT_final_v3.xlsx`. | "And the ground truth that would prove any of it is a spreadsheet on one student's laptop." |
+
+### 3. One loop
+
+**Conveys:** annotating and building the algorithm can be one activity.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| the idea | both | 3 | **[MG]** The three cards fold into one circle: *annotate → improve → annotate*. | "What if annotating your images and building the algorithm were the same loop?" |
+| the name | picture | 1.5 | **RaunTruth** settles in the circle's centre. | |
+
+### 4. The first turn: correct, don't draw
+
+**Conveys:** you start from a rough draft, and your work is verdicts, not drawing; progress is visible as you go.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| a draft from your papers | both | 3 | **[C]** Two papers dropped into a Claude chat; it answers with `v1`. | "Claude reads your papers and drafts a rough algorithm." |
+| it is rough | both | 2.5 | **[UI]** `v1`'s candidates as faint outlines on the image; several plainly wrong. | "It's rough. It's supposed to be." |
+| approve | both | 2 | Ground Truth Tasks shows one item, ringed on the image; **Approve**. | "You correct it: approve," |
+| reject | both | 1.5 | The next item slides in; **Reject**. | "reject," |
+| add what it missed | both | 2 | A click on an unmarked node adds it. | "add what it missed." |
+| progress you can see | picture | 3 | Sped up: decided items cut to black, area by area, until the image is dark. | |
+
+### 5. The second turn: measured
+
+**Conveys:** your corrections turn into a better algorithm, and you can see by how much, on your own images.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| corrections become ground truth | both | 3 | **[C]** "Improve the finder on the new ground truth." Claude runs the lab. | "Your corrections become ground truth, and Claude improves the algorithm against it." |
+| every version scored | both | 3.5 | **[UI]** The algorithm list gains `v2`; its precision and recall bars grow past `v1`'s; *measured on 1 image*. | "Every version is scored on your own images, and says on how many." |
+
+### 6. Each image faster than the last
+
+**Conveys:** the payoff — the loop shortens itself, and you decide when it is done.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| the next image is easier | both | 3 | **[UI]** Image 2 with `v2`: fewer wrong outlines; verdicts come fast. | "And the next image is easier, because the algorithm already gets more of it right." |
+| faster each time | picture | 3 | **[MG]** Three tagging-time bars, image 1 to 3, each shorter; the loop turns once per image. *Illustrative.* | |
+| you decide | both | 2.5 | `v4` on a fresh image: almost every outline right. | "You stop when you judge it's good enough." |
+
+### 7. The whole study, in one place
+
+**Conveys:** the numbers and the images they came from live together, so you can explore and check.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| run it everywhere | both | 2.5 | **[UI]** Study Setup, *Batch run*: images tick done. | "Then run it over every image in the study." |
+| numbers beside images | both | 3.5 | The main app: an image beside its count and length histogram; a lasso round a region, the numbers redraw. | "Circle a region and the numbers follow. Doubt an image, correct it." |
+
+### 8. A score reviewers can check
+
+**Conveys:** publishing comes with a frozen, checkable accuracy, a thing reviewers rarely get.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| frozen with the paper | both | 3 | **[MG]** A seal stamps the manuscript: *precision · recall · dataset SHA · frozen*. | "When you submit, the ground truth freezes and the score is published with it." |
+| reviewers check | both | 3 | **[B]** A reviewer, signed out, opens the study's link: images, overlays, numbers. | "Reviewers can open your images and check the analysis themselves." |
+
+### 9. End
+
+**Conveys:** the name, the promise, where to go next.
+
+| Moment | By | Hold | Picture | Voice |
+|---|---|---|---|---|
+| the promise | both | 3 | End card: rauntruth.com · *Runs in your browser. Your images stay on your Drive.* · next: the walkthrough. | "RaunTruth. From your images to numbers you can defend." |
 
 ## Why this shape
 
-- **Open on the pain, in the viewer's own terms** (beat 1–2): a count and a deadline, not a feature. Every PI has
-  lived beat 2's three options; naming them earns the next minute and a half.
-- **One idea, shown, not listed** (beat 3–6): the loop is the product. Beat 6 is the payoff the viewer must leave
-  with: *each tagged image makes the next one faster*. Spend the most screen time there.
+- **Open on the pain, in the viewer's own terms** (scenes 1–2): a count and a deadline, not a feature.
+- **One idea, shown, not listed** (scenes 3–6): the loop is the product, and scene 6 is what the viewer must leave
+  with: each tagged image makes the next one faster.
 - **Credibility over hype**: the scores on screen are the page's real ones with their real caveat ("measured on N
-  images"), never a made-up 98%. Scientists distrust a number with no denominator; the denominator is the pitch.
-- **Speed through the UI**: beats 4 and 6 run at 2–4× with the cursor eased; the voice describes the meaning, the
-  picture shows the action. No sign-in, no loading, no Drive dialogs here — those belong to Video 1.
+  images"), never a made-up 98%; scientists distrust a number with no denominator.
+- **No sign-in, no loading, no Drive dialogs**: those belong to the walkthrough.
 
 ## Visual language
 
-- Real UI only where it is the argument (beats 4–7); motion graphics where the idea is abstract (the three
-  options, the loop, the freeze seal); one or two seconds of real lab footage (a microscope, a slide) for
-  recognition.
-- The loop circle is the recurring motif, also used in Video 1's chapter cards.
+- Real UI only where it is the argument (scenes 4–7); motion graphics where the idea is abstract (the three roads,
+  the loop, the seal); a few seconds of real lab footage for recognition.
+- The loop circle is the recurring motif, also used in the walkthrough's chapter cards.
 - Overlay colours on the microscopy follow the page's own rule: never a colour the stain itself carries.
 
 ## Open for production
 
-- The before/after timings in beat 6 must be real: record two actual tagging sessions (image 1, image 3) and show
-  their own durations, or show no number.
-- Beat 7 depends on the cross-image results view, the one part of PR 1036 still the owner's question (WP8); until
+- The tagging-time bars in scene 6 must be real: record actual tagging sessions of image 1 and image 3 and show their
+  durations, or show the bars unnumbered as now.
+- Scene 7 depends on the cross-image results view, the one part of PR 1036 still the owner's question (WP8); until
   it is decided, draw it from today's Summary box and its histograms.

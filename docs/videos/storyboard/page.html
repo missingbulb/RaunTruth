@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a production board — the animatic player on top, then every frame as a numbered panel, chapter by chapter. */
+/* Layout: a production board — the animatic player with picture and voice lanes on top, then each scene: what it conveys, and its moments. */
 :root {
   --paper: #eef0ec; --sheet: #fbfcfa; --ink: #1d2320; --muted: #5d6762; --rule: #cfd5d0;
   --accent: #b5562b; --accent-soft: #f2dccf;
@@ -46,10 +46,17 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
   background: var(--paper); color: var(--ink); cursor: pointer }
 .controls button.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 92px }
 .clock { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto }
-.timeline { display: flex; gap: 2px; height: 14px }
-.seg { flex: var(--w) 1 0; min-width: 2px; background: var(--rule); border: 0; padding: 0; cursor: pointer; border-radius: 1px; position: relative; overflow: hidden }
-.seg.chapter { background: var(--muted); opacity: .55 }
-.seg.on { background: var(--accent); opacity: 1 }
+.timeline { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center }
+.lane-name { font: 500 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.lanes { display: flex; gap: 2px; grid-row: span 2 }
+.seg { flex: var(--w) 1 0; min-width: 3px; border: 0; padding: 0; cursor: pointer; background: none; display: grid; gap: 4px }
+.seg.scene-start { margin-left: 4px }
+.seg .pic, .seg .voc { height: 12px; border-radius: 1px; position: relative; overflow: hidden; margin: 0 }
+.seg .pic { background: var(--rule) }
+.seg.chapter .pic { background: var(--muted); opacity: .5 }
+.seg .voc { background: none }
+.seg .voc i { display: block; height: 100%; width: var(--v); background: var(--muted); opacity: .45; border-radius: 1px }
+.seg.on .pic { background: var(--accent-soft) } .seg.on .voc i { opacity: 1; background: var(--accent) }
 .seg .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent) }
 .note { font-size: 13px; color: var(--muted) }
 
@@ -57,9 +64,18 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 .chap h2 { font-size: 1.25rem; font-weight: 700; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
 .chap h2 .num { font: 500 13px var(--mono); color: var(--accent) }
 .chap h2 .st { font: 500 12px var(--mono); color: var(--muted); letter-spacing: .04em }
-.panels { margin-top: 12px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)) }
-.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0 }
-.panel.now { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.scene { margin-top: 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 10px }
+.scene h3 { font-size: 1.05rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.scene h3 .num { font: 500 12px var(--mono); color: var(--accent) }
+.scene h3 .dur { font: 500 12px var(--mono); color: var(--muted); margin-left: auto }
+.conveys { margin: 0; font-size: 14px; max-width: 80ch }
+.conveys b { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-right: 6px }
+.panels { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)) }
+.panel { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; gap: 6px; align-content: start; min-width: 0 }
+.panel .name { font-weight: 600; font-size: 14px; margin: 0 }
+.by { font: 500 10.5px var(--mono); padding: 1px 6px; border-radius: 3px; background: var(--accent-soft); color: var(--ink) }
+.by.picture { background: var(--ui-bar) } .by.voice { background: none; border: 1px solid var(--rule) }
+.panel.now .thumb { outline: 3px solid var(--accent); outline-offset: 1px }
 .panel .thumb { aspect-ratio: 16 / 9; max-width: 100%; border: 0; padding: 0; background: var(--ui-bg); cursor: pointer; border-radius: 2px; overflow: hidden }
 .panel .thumb svg { width: 100%; height: 100%; display: block }
 .meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font: 500 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums }
@@ -91,18 +107,18 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 
 <div class="wrap">
   <h1>RaunTruth Storyboards</h1>
-  <p class="lede">Two videos drawn frame by frame, as the study-stages design will look. Press Play to hear each beat's
-    voice-over over its frame; click any frame to start there. The voice is a synthetic draft, and the bars in a few frames are illustrative,
-    not measured.</p>
+  <p class="lede">Two videos, scene by scene. Each scene names what it must convey and the moments that carry it, by
+    picture, by voice, or both in sync; a moment lasts as long as the longer of the two. Press Play, or click any moment
+    to start there. The voice is a synthetic draft, and bars marked illustrative are not measured.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
   <section class="player" aria-label="Animatic player">
     <div class="stage" id="stage"></div>
     <div class="caption" id="caption" aria-live="polite"></div>
     <div class="timeline" id="timeline"></div>
     <div class="controls">
-      <button id="prev" type="button" aria-label="Previous frame">◀</button>
+      <button id="prev" type="button" aria-label="Previous moment">◀</button>
       <button id="play" type="button" class="primary">Play</button>
-      <button id="next" type="button" aria-label="Next frame">▶</button>
+      <button id="next" type="button" aria-label="Next moment">▶</button>
       <span class="clock" id="clock">0:00 / 0:00</span>
     </div>
     <div class="note" id="note"></div>
@@ -150,6 +166,7 @@ function field(x, y, w, h, o = {}, seed = 7) {
     s += `<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="9" fill="#ff9f43"/></pattern></defs>`;
     s += `<path d="M${x + w * .55} ${y + h * .55} l60 -20 l45 40 l-25 55 l-70 -5 z" fill="url(#hatch)" fill-opacity=".8" stroke="#ff9f43" stroke-width="2"/>` + T(x + w * .55, y + h * .52, "damaged", "", 15, `fill="#ffb877"`);
   }
+  if (o.added) { const ax = x + w * .62, ay = y + h * .38; s += `<circle cx="${ax}" cy="${ay}" r="17" class="f-ring pulse" stroke-width="3"/><text x="${ax + 20}" y="${ay - 14}" font-size="22" fill="#ffc22e" font-weight="700">+</text>`; }
   if (o.lasso) s += `<path d="M${x + w * .2} ${y + h * .25} q ${w * .2} -${h * .12} ${w * .35} 0 t ${w * .05} ${h * .4} q -${w * .2} ${h * .2} -${w * .4} 0 z" class="f-ring" stroke-width="2.5" stroke-dasharray="3 6"/>`;
   return s;
 }
@@ -160,6 +177,7 @@ const ICON = {
   reviewer: `<g class="f-footl" stroke-width="6" stroke-linecap="round"><circle cx="-70" cy="-40" r="28"/><path d="M-120 70 q50 -80 100 0"/><rect x="10" y="-70" width="130" height="90" rx="5"/><path d="M75 20 v25 M45 48 h60"/><circle cx="50" cy="-30" r="5"/><circle cx="85" cy="-40" r="5"/><circle cx="105" cy="-15" r="5"/></g>`,
   tally: `<g class="f-inks" stroke-width="5" stroke-linecap="round"><path d="M-30 -25 v50 M-15 -25 v50 M0 -25 v50 M15 -25 v50 M-38 18 l60 -36"/></g>`,
   box: `<g class="f-inks" stroke-width="5" stroke-linejoin="round"><path d="M-35 -15 l35 -18 l35 18 v40 l-35 18 l-35 -18 z M-35 -15 l35 18 l35 -18 M0 3 v40"/><text x="-7" y="-2" font-size="26" class="f-ink f-h" stroke="none">?</text></g>`,
+  sheet: `<g class="f-footl" stroke-width="5" stroke-linejoin="round"><rect x="-90" y="-70" width="180" height="115" rx="6"/><path d="M-120 60 h240 l-15 20 h-210 z"/><path d="M-70 -50 h140 v80 h-140 z M-70 -23 h140 M-70 4 h140 M-23 -50 v80 M24 -50 v80"/></g>`,
   code: `<g class="f-inks" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M-20 -22 l-22 22 l22 22 M20 -22 l22 22 l-22 22 M8 -30 l-16 60"/></g>`,
 };
 
@@ -199,7 +217,9 @@ function leftBar(boxes) {
     if (b.bar !== undefined) { s += R(24, yy, 212, 7, "f-bar", 3) + R(24, yy, 212 * b.bar, 7, "f-acc grow", 3); yy += 18; }
     if (b.item) {
       s += `<g class="rise">` + field(24, yy, 212, 98, { n: 3, outlines: false }, 3) + `<circle cx="130" cy="${yy + 49}" r="20" class="f-ring" stroke-width="3"/>`;
-      s += R(24, yy + 106, 102, 34, "f-acc", 4) + T(46, yy + 128, "Approve", "f-white", 14) + R(134, yy + 106, 102, 34, "f-box", 4) + T(162, yy + 128, "Reject", "f-t", 14) + `</g>`;
+      const ap = b.verdict === "approve", rj = b.verdict === "reject";
+      s += R(24, yy + 106, 102, 34, ap ? "f-acc pulse" : "f-acc", 4, rj ? `opacity=".35"` : "") + T(46, yy + 128, "Approve", "f-white", 14);
+      s += R(134, yy + 106, 102, 34, rj ? "f-ink pulse" : "f-box", 4) + T(162, yy + 128, "Reject", rj ? "f-sheet" : "f-t", 14) + `</g>`;
     }
     if (b.hist) { [22, 38, 56, 44, 30, 18, 9].forEach((v, i) => { s += R(30 + i * 28, yy + 64 - v, 20, v, "f-acc grow"); }); }
     y += h + 12;
@@ -211,9 +231,10 @@ function thumbs(f) {
   let s = "";
   for (let i = 0; i < 12; i++) {
     const c = i % 4, r = Math.floor(i / 4), x = 284 + c * 166, y = 66 + r * 146;
-    const faded = (f.hidden || []).includes(i);
-    s += `<g opacity="${faded ? .25 : 1}">` + field(x, y, 150, 104, { n: 10 }, 11 + i) + `</g>`;
-    s += T(x, y + 122, `A${1 + (i % 3)} · ${i % 2 ? "4-AP" : "control"}`, "f-d", 11.5);
+    const faded = (f.hidden || []).includes(i), ready = f.previews === undefined || i < f.previews;
+    s += ready ? `<g opacity="${faded ? .25 : 1}">` + field(x, y, 150, 104, { n: 10 }, 11 + i) + `</g>` : R(x, y, 150, 104, "f-bar", 2);
+    s += T(x, y + 122, `A${1 + Math.floor(i / 4)} · ${i % 2 ? "4-AP" : "control"}`, "f-d", 11.5);
+    if (f.tagged && i >= 8) s += R(x + 4, y + 82, 112, 18, "f-accsoft", 9) + T(x + 11, y + 95, "A3 · 4-AP", "f-t f-m", 10.5);
     if (faded) s += T(x + 46, y + 58, "hidden", "f-t f-h", 16);
     if ((f.flags || []).includes(i)) s += R(x + 108, y + 6, 36, 18, "f-acc", 9) + T(x + 114, y + 19, "GT", "f-white f-m", 11);
     if (f.done !== undefined && i < f.done) s += `<circle cx="${x + 136}" cy="${y + 92}" r="9" class="f-acc"/>` + T(x + 131, y + 96, "✓", "f-white", 11);
@@ -240,9 +261,11 @@ function mainArea(f) {
     });
     return s;
   }
+  if (f.main === "fixed") return R(x + 40, y + 40, 520, 120, "f-box", 6) + T(x + 64, y + 80, "Sharing check", "f-t f-h", 18) + `<g class="rise">` + T(x + 64, y + 122, "✓  Sharing is as this stage needs", "f-acc", 17) + `</g>`;
   if (f.main === "fix") {
+    const [what, why] = f.fixText || ["Previews is not readable by link", "Visitors and the lab can't reach the previews."];
     let s = R(x + 40, y + 40, 520, 300, "f-box", 6) + T(x + 64, y + 80, "Sharing check", "f-t f-h", 18);
-    s += T(x + 64, y + 118, "⚠  Previews is not readable by link", "f-t", 15) + T(x + 64, y + 142, "Visitors and the lab can't reach the previews.", "f-d", 13);
+    s += T(x + 64, y + 118, "⚠  " + what, "f-t", 15) + T(x + 64, y + 142, why, "f-d", 13);
     s += R(x + 64, y + 164, 300, 120, "f-sheet", 4, `style="stroke:var(--ui-line)"`) + T(x + 80, y + 190, "Share “Previews”", "f-t f-h", 13);
     s += T(x + 80, y + 222, "General access", "f-d", 12) + R(x + 80, y + 232, 190, 26, "f-accsoft", 4) + T(x + 90, y + 250, "Anyone with the link ▾", "f-t", 12);
     s += R(x + 400, y + 220, 110, 40, "f-acc pulse", 5) + T(x + 440, y + 246, "Fix", "f-white f-h", 16);
@@ -265,7 +288,7 @@ function mainArea(f) {
 
 function popup(p) {
   let s = `<g class="rise">` + R(560, 64, 370, 40 + p.lines.length * 30, "f-sheet", 6, `style="stroke:var(--ui-line)" stroke-width="1.5"`) + T(580, 92, p.title, "f-t f-h", 15);
-  p.lines.forEach((l, i) => s += T(580, 124 + i * 30, l, l.startsWith("→") ? "f-acc" : "f-t", 14, l.startsWith("→") ? `font-weight="600"` : ""));
+  p.lines.forEach((l, i) => { if (p.hl === i) s += R(570, 106 + i * 30, 350, 26, "f-accsoft", 3); s += T(580, 124 + i * 30, l, l.startsWith("→") ? "f-acc" : "f-t", 14, l.startsWith("→") ? `font-weight="600"` : ""); });
   return s + `</g>`;
 }
 
@@ -278,6 +301,7 @@ function chatPanel(c, x = 40, y = 30, w = 880, h = 480) {
   let yy = y + 110 + lines.length * 22;
   (c.attach || []).forEach((a, i) => { s += R(bx + i * 0, yy + i * 34, 260, 28, "f-box", 4) + T(bx + 12, yy + 19 + i * 34, "▤ " + a, "f-t f-m", 12); });
   yy += (c.attach || []).length * 34 + 16;
+  if (!c.reply) return s + T(x + 30, yy + 14, "Claude is working…", "f-d", 14);
   s += `<g class="rise"><circle cx="${x + 38}" cy="${yy + 8}" r="10" class="f-acc"/>`;
   c.reply.forEach((l, i) => s += T(x + 60, yy + 14 + i * 26, l, "f-t", 15));
   if (c.figure) s += field(x + 60, yy + 20 + c.reply.length * 26, 220, 110, { n: 8, outlines: true }, 5);
@@ -286,12 +310,12 @@ function chatPanel(c, x = 40, y = 30, w = 880, h = 480) {
 
 function wrap(t, n) { const out = []; let line = ""; for (const w of t.split(" ")) { if ((line + " " + w).trim().length > n) { out.push(line.trim()); line = w; } else line += " " + w; } if (line.trim()) out.push(line.trim()); return out; }
 
-function scene(f, video) {
+function scene(f, video, chapterStage) {
   let s;
   switch (f.scene) {
     case "ui":
       s = chrome(f.app, f.stage, f.article) + leftBar(f.left || []) + mainArea(f) + (f.popup ? popup(f.popup) : "");
-      if (f.envelope) s += `<g transform="translate(860 470)" class="rise">${R(-40, -26, 80, 52, "f-sheet", 3, `style="stroke:var(--ink)" stroke-width="2"`)}<path d="M-40 -26 l40 30 l40 -30" class="f-inks" stroke-width="2"/></g>`;
+      if (f.envelope) s += `<g transform="translate(860 450)" class="rise">${R(-40, -26, 80, 52, "f-sheet", 3, `style="stroke:var(--ink)" stroke-width="2"`)}<path d="M-40 -26 l40 30 l40 -30" class="f-inks" stroke-width="2"/>${f.envelope === "accepted" ? `<text y="48" text-anchor="middle" font-size="16" class="f-acc f-h">Accepted</text>` : ""}</g>`;
       break;
     case "split": {
       s = R(0, 0, W, H, "f-ui") + chatPanel(f.chat, 20, 20, 470, 500) + R(510, 20, 430, 500, "f-box", 8) + T(534, 58, "Algorithm", "f-t f-h", 16);
@@ -304,6 +328,10 @@ function scene(f, video) {
       break;
     }
     case "chat": s = R(0, 0, W, H, "f-ui") + chatPanel(f); break;
+    case "field":
+      s = field(0, 0, W, H, { n: 90 }, 9) + `<path d="M520 250 l0 26 l7 -7 l6 13 l5 -2 l-6 -13 l10 0 z" fill="#fff" stroke="#000"/>`;
+      s += R(30, 30, 210, 60, "", 6, `fill="#000" fill-opacity=".75"`) + `<text x="50" y="72" font-size="30" class="f-m" fill="#ffc22e">clicks: ${esc(f.tally)}</text>`;
+      break;
     case "tiles": {
       s = R(0, 0, W, H, "", 0, `fill="#0c0f0e"`);
       const r = rng(4);
@@ -320,7 +348,9 @@ function scene(f, video) {
       s = R(0, 0, W, H, "f-paper") + T(60, 80, "Today you choose…", "f-ink f-h", 30);
       f.cards.forEach((c, i) => {
         const x = 60 + i * 290;
-        s += `<g class="rise" style="animation-delay:${i * .25}s">` + R(x, 130, 260, 330, "f-sheet", 8, `style="stroke:var(--rule)" stroke-width="1.5"`);
+        const dim = f.focus !== undefined && f.focus !== i, on = f.focus === i;
+        s += `<g opacity="${dim ? (i < f.focus ? .55 : .2) : 1}" class="${on ? "rise" : ""}">` + R(x, 130, 260, 330, "f-sheet", 8, `style="stroke:var(${on ? "--accent" : "--rule"})" stroke-width="${on ? 3 : 1.5}"`);
+        if (on || (f.focus !== undefined && i < f.focus)) s += T(x + 24, 446, c.x, "f-acc f-h", 17);
         s += `<g transform="translate(${x + 130} 230)">${ICON[c.icon]}</g>` + T(x + 24, 340, `${i + 1}. ${c.t}`, "f-ink f-h", 22);
         wrap(c.s, 26).forEach((l, k) => s += T(x + 24, 376 + k * 24, l, "f-d", 16));
         s += `</g>`;
@@ -329,7 +359,7 @@ function scene(f, video) {
     case "loop": {
       s = R(0, 0, W, H, "f-paper") + `<circle cx="480" cy="270" r="160" class="f-accs" stroke-width="10" stroke-dasharray="300 35"/>`;
       s += `<path d="M622 212 l20 -26 l14 32 z" class="f-acc"/><path d="M386 418 l-32 -2 l18 -28 z" class="f-acc"/>`;
-      s += `<text x="480" y="284" text-anchor="middle" font-size="44" class="f-ink f-h">${esc(f.title)}</text>`;
+      if (f.title) s += `<text x="480" y="284" text-anchor="middle" font-size="44" class="f-ink f-h rise">${esc(f.title)}</text>`;
       [[480, 92], [690, 420], [270, 420]].forEach(([x, y], i) => s += `<text x="${x}" y="${y}" text-anchor="middle" font-size="22" class="f-ink f-m">${esc(i === 1 ? "improve" : "annotate")}</text>`);
       break;
     }
@@ -379,7 +409,7 @@ function scene(f, video) {
       break;
     case "share":
       s = R(0, 0, W, H, "f-paper") + T(60, 80, "Who can read what", "f-ink f-h", 30);
-      f.items.forEach(([n, ic, what], i) => {
+      f.items.forEach(([n, ic, what], i) => { if (f.lit !== undefined && i >= f.lit) return;
         const y = 130 + i * 86, x = 60 + (i ? 60 : 0);
         if (i) s += `<path d="M${x - 30} ${y - 40} v40 h22" class="f-inks" stroke-width="2"/>`;
         s += R(x, y - 30, 560 - (i ? 60 : 0), 60, "f-sheet", 6, `style="stroke:var(--rule)"`) + T(x + 20, y + 7, n, "f-ink f-h", 19);
@@ -388,7 +418,8 @@ function scene(f, video) {
       break;
     default: s = R(0, 0, W, H, "f-ui");
   }
-  if (video === "walkthrough" && f.stage) s += ribbon(f.stage);
+  const st = f.stage || chapterStage;
+  if (video === "walkthrough" && st && !["end", "ribbon"].includes(f.scene)) s += ribbon(st);
   return s;
 }
 
@@ -404,27 +435,31 @@ const svg = (inner, live) => `<svg viewBox="0 0 ${W} ${H}" class="${live ? "live
 let cur = null, seq = [], idx = 0, playing = false, timer = null, startAt = 0;
 const audio = new Audio();
 const $ = id => document.getElementById(id);
-const fmt = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const said = m => m.voice ? (m.spoken ?? m.voice.split(/\s+/).length / 2.4) : 0;
+const lasts = m => m.by === "picture" ? m.hold : m.by === "voice" ? said(m) + 0.3 : Math.max(said(m), m.hold) + 0.3;
 
 function build(v) {
-  seq = [];
+  const out = [];
   for (const c of v.chapters) {
-    if (c.title) seq.push({ kind: "chapter", chapter: c, dur: 2.5, draw: () => chapterCard(c) });
-    for (const b of c.beats) seq.push({ kind: "beat", beat: b, chapter: c, dur: b.spoken ? b.spoken + 0.7 : b.planned, draw: () => scene(b.frame, v.id) });
+    if (c.title) out.push({ kind: "chapter", chapter: c, dur: 2.5, voice: 0, draw: () => chapterCard(c) });
+    c.scenes.forEach(sc => sc.moments.forEach((m, k) => out.push({ kind: "moment", m, scene: sc, chapter: c, first: k === 0, dur: lasts(m), voice: said(m), draw: () => scene(m.frame, v.id, c.stage) })));
   }
-  let t = 0; seq.forEach(s => { s.at = t; t += s.dur; });
-  return t;
+  let t = 0; out.forEach(s => { s.at = t; t += s.dur; });
+  return [out, t];
 }
 
 function select(id) {
   stop();
   cur = VIDEOS.find(v => v.id === id) || VIDEOS[0];
-  const total = build(cur);
-  const planned = cur.chapters.flatMap(c => c.beats).reduce((a, b) => a + b.planned, 0);
+  let total; [seq, total] = build(cur);
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.id === cur.id));
-  $("timeline").innerHTML = seq.map((s, i) => `<button class="seg ${s.kind === "chapter" ? "chapter" : ""}" style="--w:${s.dur}" data-i="${i}" aria-label="${s.kind === "chapter" ? "Chapter " + s.chapter.n : "Beat " + s.beat.n}"><span class="fill"></span></button>`).join("");
-  const hasAudio = seq.some(s => s.beat && s.beat.audio);
-  $("note").textContent = hasAudio ? `Voiced run ${fmt(total)} against ${fmt(planned)} planned in the storyboard.` : `No audio was rendered; frames play on their planned times (${fmt(total)}).`;
+  $("timeline").innerHTML = `<span class="lane-name">picture</span><div class="lanes">` + seq.map((s, i) =>
+    `<button class="seg ${s.kind === "chapter" ? "chapter" : ""} ${s.first ? "scene-start" : ""}" style="--w:${s.dur}" data-i="${i}" aria-label="${s.kind === "chapter" ? "Chapter " + s.chapter.n : s.scene.n + " " + esc(s.m.moment)}"><span class="pic"><span class="fill"></span></span><span class="voc"><i style="--v:${Math.min(100, s.voice / s.dur * 100)}%"></i></span></button>`).join("") +
+    `</div><span class="lane-name">voice</span>`;
+  const voiced = seq.some(s => s.m && s.m.audio);
+  const words = seq.reduce((a, s) => a + (s.m && s.m.voice ? s.m.voice.split(/\s+/).length : 0), 0);
+  $("note").textContent = `${fmt(total)} in all, ${seq.filter(s => s.m).length} moments, ${words} words spoken` + (voiced ? "." : "; no audio was rendered, so voice lengths are estimated at 145 words a minute.");
   board();
   show(0);
 }
@@ -432,15 +467,22 @@ function select(id) {
 function board() {
   let html = "";
   for (const c of cur.chapters) {
-    html += `<section class="chap">${c.title ? `<h2><span class="num">${c.n}</span>${esc(c.title)}<span class="st">${c.stage ? "stage: " + esc(c.stage) : ""}</span></h2>` : ""}<div class="panels">`;
-    for (const b of c.beats) {
-      const i = seq.findIndex(s => s.beat === b);
-      const over = b.spoken && b.spoken > b.planned + 0.5;
-      html += `<article class="panel" id="p${i}"><button class="thumb" data-i="${i}" aria-label="Play from beat ${b.n}">${svg(b.frame ? scene(b.frame, cur.id) : "")}</button>` +
-        `<div class="meta"><b>${esc(b.n)}</b>${b.tags.map(t => `<span class="chip ${t}">${t}</span>`).join("")}<span>planned ${b.planned}s</span>${b.spoken ? `<span class="${over ? "over" : ""}">voiced ${b.spoken.toFixed(1)}s</span>` : ""}</div>` +
-        `<p class="pic">${esc(b.picture)}</p>${b.voice ? `<p class="vo">${esc(b.voice)}</p>` : ""}</article>`;
+    html += `<section class="chap">${c.title ? `<h2><span class="num">${c.n}</span>${esc(c.title)}<span class="st">${c.stage ? "stage: " + esc(c.stage) : ""}</span></h2>` : ""}`;
+    for (const sc of c.scenes) {
+      const dur = sc.moments.reduce((a, m) => a + lasts(m), 0);
+      html += `<article class="scene"><h3><span class="num">${esc(sc.n)}</span>${esc(sc.title)}<span class="dur">${dur.toFixed(1)} s</span></h3>` +
+        `<p class="conveys"><b>Conveys</b>${esc(sc.conveys)}</p><div class="panels">`;
+      for (const m of sc.moments) {
+        const i = seq.findIndex(s => s.m === m);
+        html += `<div class="panel" id="p${i}"><button class="thumb" data-i="${i}" aria-label="Play from ${esc(m.moment)}">${svg(scene(m.frame, cur.id, c.stage))}</button>` +
+          `<p class="name">${esc(m.moment)}</p>` +
+          `<div class="meta"><span class="by ${m.by}">${m.by}</span>${m.tags.map(t => `<span class="chip ${t}">${t}</span>`).join("")}` +
+          `<span>${m.by !== "voice" ? `hold ${m.hold}s` : ""}${m.voice ? ` · voice ${said(m).toFixed(1)}s` : ""} → <b>${lasts(m).toFixed(1)}s</b></span></div>` +
+          `<p class="pic">${esc(m.picture)}</p>${m.voice ? `<p class="vo">${esc(m.voice)}</p>` : ""}</div>`;
+      }
+      html += `</div></article>`;
     }
-    html += `</div></section>`;
+    html += `</section>`;
   }
   $("board").innerHTML = html;
 }
@@ -451,7 +493,7 @@ function show(i, autoplay) {
   const s = seq[idx];
   $("stage").innerHTML = svg(s.draw(), true);
   $("caption").innerHTML = s.kind === "chapter" ? `<span class="who">Chapter ${s.chapter.n}</span>${esc(s.chapter.title)}` :
-    `<span class="who">${esc(s.beat.n)} · ${s.beat.tags.join(" + ")}</span>${esc(s.beat.voice || "—")}`;
+    `<span class="who">${esc(s.scene.n)} ${esc(s.scene.title)} · ${esc(s.m.moment)} · ${s.m.by}</span>${s.m.voice ? esc(s.m.voice) : `<span class="note">(${esc(s.m.picture)})</span>`}`;
   document.querySelectorAll(".seg").forEach((g, k) => { g.classList.toggle("on", k === idx); g.querySelector(".fill").style.width = k < idx ? "100%" : "0"; });
   document.querySelectorAll(".panel.now").forEach(p => p.classList.remove("now"));
   const p = $("p" + idx); if (p) p.classList.add("now");
@@ -463,11 +505,8 @@ function run() {
   playing = true; $("play").textContent = "Pause";
   const s = seq[idx]; startAt = performance.now();
   const advance = () => { if (idx < seq.length - 1) show(idx + 1, true); else stop(); };
-  if (s.beat && s.beat.audio) {
-    audio.src = s.beat.audio;
-    audio.onended = () => { timer = setTimeout(advance, 700); };
-    audio.play().catch(() => { timer = setTimeout(advance, s.dur * 1000); });
-  } else timer = setTimeout(advance, s.dur * 1000);
+  timer = setTimeout(advance, s.dur * 1000);
+  if (s.m && s.m.audio) { audio.src = s.m.audio; audio.play().catch(() => {}); }
   requestAnimationFrame(frameTick);
 }
 
@@ -483,17 +522,14 @@ function frameTick() {
 function tick(el = 0) { const total = seq.reduce((a, s) => a + s.dur, 0); $("clock").textContent = `${fmt(seq[idx].at + el)} / ${fmt(total)}`; }
 function stop() { playing = false; clearTimeout(timer); audio.pause(); $("play").textContent = "Play"; }
 
-$("tabs").innerHTML = VIDEOS.map(v => {
-  const t = build(v);
-  return `<button class="tab" role="tab" data-id="${v.id}">${esc(v.title)}<small>${fmt(t)}</small></button>`;
-}).join("");
-$("tabs").addEventListener("click", e => { const t = e.target.closest(".tab"); if (t) { location.hash = t.dataset.id; } });
+$("tabs").innerHTML = VIDEOS.map(v => `<button class="tab" role="tab" data-id="${v.id}">${esc(v.title)}<small>${fmt(build(v)[1])}</small></button>`).join("");
+$("tabs").addEventListener("click", e => { const t = e.target.closest(".tab"); if (t) location.hash = t.dataset.id; });
 $("timeline").addEventListener("click", e => { const g = e.target.closest(".seg"); if (g) show(+g.dataset.i); });
 $("board").addEventListener("click", e => { const t = e.target.closest(".thumb"); if (t) { show(+t.dataset.i, true); $("stage").scrollIntoView({ behavior: "smooth", block: "center" }); } });
 $("play").addEventListener("click", () => playing ? stop() : (idx >= seq.length - 1 && show(0), run()));
 $("prev").addEventListener("click", () => show(idx - 1));
 $("next").addEventListener("click", () => show(idx + 1));
-document.addEventListener("keydown", e => { if (e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") show(idx + 1); if (e.key === "ArrowLeft") show(idx - 1); });
+document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") show(idx + 1); if (e.key === "ArrowLeft") show(idx - 1); });
 const route = () => select(location.hash.slice(1) || "pitch");
 window.addEventListener("hashchange", route);
 route();
