@@ -62,7 +62,13 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     // a page opened while offline is the service worker's to answer, which the stand-in Google turns off: the walk
     // goes to another page online alone
     reload: { when: (v) => v.online !== false, run: () => page.reload() },
-    back: { when: (v) => v.online !== false, run: () => page.goBack() },
+    // back to the page before, never past the first one the walk opened, the browser's blank one
+    back: { when: (v) => v.online !== false, run: async () => {
+      await page.goBack();
+      if (!page.url().startsWith(s.origin)) { await page.goForward(); return "no page before"; }
+    } },
+    // the app opened again, where a step left it for a page that is not the app: the walk's own, never drawn at random
+    returnToApp: { when: () => false, run: () => page.goto(s.origin + "/web/" + world.study) },
     // Google ends the token before the page's own record of it says
     expireToken: { when: () => google.tokens.size > 0, run: () => { for (const t of google.tokens.values()) t.until = Date.now() - 1; } },
     signedOutElsewhere: { when: () => google.tokens.size > 0, run: () => google.revokeAll() },

@@ -9,7 +9,8 @@
     {"pattern": "status of 404 \\(Not Found\\) \\(https://www\\.googleapis\\.com/drive/v3/files/[\\w-]+\\?fields=appProperties", "why": "the Drive fake answers 404 when asked the appProperties of a file the site did not make, where Drive answers 200 with none: the fake's doing, to fix in fakes/google_drive.mjs"}
   ],
   "families": [
-    {"family": "theme", "match": {"key": "^#theme$"}, "must": ["html.theme"], "may": ["storage.*", "settings"], "writes": 0},
+    {"family": "theme", "match": {"key": "^#theme$"}, "must": ["html.theme"], "may": ["storage.*", "settings", "open"], "writes": 0},
+    {"family": "a box's fold", "match": {"key": "-box > div:nth-of-type\\(1\\) > h2$"}, "may": ["storage.*", "settings", "open"], "writes": 0},
     {"family": "sign in", "match": {"key": "^#(sign-in|welcome-sign-in|guide-go)$"}, "may": ["signin", "storage.*", "settings", "dialog", "html.*", "class.*", "url", "open"], "writes": 0},
     {"family": "sign out", "match": {"key": "^#sign-out$"}, "may": ["storage.*", "html.*", "class.*", "dialog", "url", "open"], "writes": 0},
     {"family": "continue anonymously", "match": {"key": "^#welcome-anonymous$"}, "may": ["storage.*", "dialog", "html.*"], "writes": 0},
@@ -24,7 +25,8 @@
     {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
     {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
     {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
-    {"family": "role", "match": {"within": "^role-(list|menu)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
+    {"family": "role", "match": {"within": "^role-(list|menu)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "signin", "dialog", "open", "url"], "writes": 0},
+    {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
     {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},
     {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
     {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|load-gt|gt-load-|gt-start)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
@@ -36,7 +38,7 @@
     {"family": "a key", "match": {"kind": "^key$"}, "may": ["dialog", "open", "storage.*", "html.*", "class.*"], "writes": 0},
     {"family": "offline", "match": {"event": "^offline$"}, "must": ["class.offline"], "may": ["storage.*", "html.*", "dialog"], "writes": 0},
     {"family": "online", "match": {"event": "^online$"}, "must": ["class.offline"], "may": ["storage.*", "html.*", "dialog", "settings"], "writes": "any"},
-    {"family": "navigation", "match": {"event": "^(reload|back|switchStudy)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": 0},
+    {"family": "navigation", "match": {"event": "^(reload|back|switchStudy|returnToApp)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": 0},
     {"family": "Google elsewhere", "match": {"event": "^(expireToken|signedOutElsewhere|googleAnswers)$"}, "may": ["storage.*", "html.*", "class.*", "dialog", "signin"], "writes": 0},
     {"family": "Drive elsewhere", "match": {"event": "^(driveAdded|driveRemoved|driveRenamed|accessRemoved)$"}, "may": ["storage.*", "html.*", "dialog"], "writes": 0},
     {"family": "a control", "match": {}, "may": ["dialog", "open", "storage.*"], "writes": 0}

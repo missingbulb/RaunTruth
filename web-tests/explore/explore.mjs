@@ -111,6 +111,8 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
   // with the old one are refused, as Chromium's console says of each, and the page may say so too
   let tokensWhenEnded = null;
   const REFUSED = /status of 40[13] |refused the token|Invalid Credentials/;
+  // what the page says of Google's window answering otherwise than granting, while it does (the googleAnswers event)
+  const DECLINED = /sign-in window|popup_failed_to_open|popup_closed|access_denied/;
   // each link out of the app the page shows, whether it leads somewhere, as the site serves a page at its address with
   // or without .html
   const leads = new Map();
@@ -133,6 +135,8 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     const offered = possible(before, { events: w.events, world, focus, tried, effects: EFFECTS, fresh: new Set(steps.at(-1)?.change.controls.added || []) });
     if (replay) {
       action = { ...replay[i] };
+    } else if (!before.app) {
+      action = { kind: "event", event: "returnToApp" };
     } else {
       action = choose(offered, rnd);
     }
@@ -147,7 +151,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     let error = null, said;
     // what a person offline or in this world sees the page say is not a finding of its own
     const allow = new RegExp([...allowed.map((r) => r.source), NETWORK_GONE.source, "^(warning|error): .*(offline|ERR_INTERNET_DISCONNECTED)",
-      ...(tokensWhenEnded !== null ? [REFUSED.source] : [])].map((p) => `(?:${p})`).join("|"));
+      ...(tokensWhenEnded !== null ? [REFUSED.source] : []), ...(google.answer !== "grant" ? [DECLINED.source] : [])].map((p) => `(?:${p})`).join("|"));
     const settled = await expecting(allow, async () => {
       try { said = await perform(w, action, prepared.files); } catch (e) { error = String(e.message ?? e).split("\n")[0]; }
       return settle(page);
@@ -164,7 +168,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     const refusing = tokensWhenEnded !== null;
     if (refusing && google.tokens.size > tokensWhenEnded) tokensWhenEnded = null;
     for (const m of heard) if (!m.expected && (allowed.some((r) => r.test(m.line)) || ((offline || nowOffline) && NETWORK_GONE.test(m.line))
-      || (refusing && REFUSED.test(m.line)))) m.allowed = true;
+      || (refusing && REFUSED.test(m.line)) || (google.answer !== "grant" && DECLINED.test(m.line)))) m.allowed = true;
     // the shell-states rules, for the vars the page shows, where it settled
     let shell = null;
     if (settled === true && after.app && after.study !== null && elementsOf[after.study || "viewer"]) {
@@ -173,12 +177,19 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
       const now = await read(page, expect);
       // what the vars cannot say, left to the person's eye (effects.json's shellStates.unread)
       const unread = EFFECTS.shellStates.unread.filter((u) => Object.entries(u.html).every(([k, v]) => after.html[k] === v)).map((u) => u.under);
-      const wrong = expect.filter((e) => now[e.name].seen !== e.expect && !unread.some((u) => e.name === u || e.path.includes(u)))
+      // a box the person folded or unfolded themselves shows as they left it
+      const foldedByHand = (e) => e.box && ["on", "folded"].includes(e.expect) && ["on", "folded"].includes(now[e.name].seen)
+        && [...steps.map((t) => t.action), action].some((a) => a.key?.startsWith(e.select + " "));
+      const byHand = new Set(expect.filter(foldedByHand).map((e) => e.name));
+      const wrong = expect.filter((e) => now[e.name].seen !== e.expect && !byHand.has(e.name) && !e.path.some((p) => byHand.has(p))
+        && !unread.some((u) => e.name === u || e.path.includes(u)))
         .map((e) => ({ ...e, seen: now[e.name].seen }));
       shell = { vars: after.vars, checked: expect.length, wrong };
     }
     const s = { i, action, family: fam, before, after, control, change: change(before, after, seen), heard, settled, writes: seen.writes, popups: [...seen.popups, ...lastPopups],
-      reads: seen.reads, shell, width, always: EFFECTS.always, written, deadLinks: await deadLinks(after), previous: steps.length ? { ...steps.at(-1).full } : null };
+      reads: seen.reads, shell, width,
+      // while its token is refused, the page renews it in the person's next click, whatever the click was for
+      always: [...EFFECTS.always, ...(refusing ? ["signin", "settings", "storage.nor-google-sign-in"] : [])], written, deadLinks: await deadLinks(after), previous: steps.length ? { ...steps.at(-1).full } : null };
     if (fam.writes !== 0) for (const [, name] of seen.writes) written.add(name);
     const found = [];
     for (const [name, check] of Object.entries(ORACLES)) for (const f of check(s)) found.push({ ...f, oracle: name });
@@ -200,6 +211,9 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
       shell: shell && { checked: shell.checked, wrong: shell.wrong.map((e) => e.name) }, findings: real.map((f) => f.sig), full: { before, action } });
     heard = [];
     lastPopups = seen.popups;
+    // what the run has found so far, readable while it goes on
+    if (i % 25 === 24) write(out, { world: { name: world.name, path: worldPath, about: world.about }, seed, budget, focus, plants, seconds: (Date.now() - started) / 1000,
+      command: "(under way)", replayOf: args.replay || null, out, steps: steps.map(({ full, ...t }) => t), findings: [...findings.values()], finalShot: "" });
     before = after;
     if (page.isClosed()) break;
   }

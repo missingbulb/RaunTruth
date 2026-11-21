@@ -79,6 +79,11 @@ export const ORACLES = {
   linksLead(s) {
     return (s.deadLinks || []).map((l) => ({ class: "bug", sig: "dead link " + l.path, what: `the link "${l.text}" (${l.key}) leads to ${l.path}, which the site does not serve` }));
   },
+  // a step a person takes inside the app that leaves them on a page that is not it
+  stayInTheApp(s) {
+    if (!s.before.app || s.after.app || s.action.kind === "event") return [];
+    return [{ class: "call", sig: `left the app ${s.action.key || s.action.press}`, what: `${where(s.action)} left the app for ${s.after.url} (${s.after.title || "no title"})` }];
+  },
   settles(s) {
     return s.settled === true ? [] : [{ class: "call", sig: `unsettled ${s.family.family}`, what: `the page had not settled after ${where(s.action)}: ${s.settled}` }];
   },
