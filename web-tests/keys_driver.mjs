@@ -7,22 +7,15 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/keys_driver.mjs ANSWERS IMAGE.png STUDIES
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
 import { frames } from "./page_frames.mjs";
-import { offSite } from "./off_site.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
+import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,27 +26,20 @@ postMessage({ type: "ready", info: A.ready.fixture, heap: 0, files: 0 });
 onmessage = ({ data: m }) => {
   if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 let failed = false;
-const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the fixture as one loading from this computer, declaring two actions of the shell's own buttons
-await ctx.route("**/studies/fixture/study.json", async (route) => {
-  const r = await route.fetch(), m = await r.json();
+studiesOf(ctx).edit("fixture", (m) => {
   m.files.from = ["local"];
   m.actions = [
     { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn", legend: true },
@@ -63,15 +49,12 @@ await ctx.route("**/studies/fixture/study.json", async (route) => {
     // saying nothing of the legend: refused, never wired
     { id: "unsaid", label: "Zoom out", keys: ["KeyX"], kind: "press", control: "#zoom-out" },
   ];
-  await route.fulfill({ response: r, body: JSON.stringify(m), contentType: "application/json" });
 });
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const BLUE = /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/;
 const legend = () => page.evaluate((blue) => {
@@ -95,8 +78,11 @@ const press = (code, { on = null, repeat = false, altKey = false, ctrlKey = fals
 }, { code, on, repeat, altKey, ctrlKey });
 
 try {
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  // the study's action saying nothing of the legend is refused as the study comes in, with an error naming it
+  await expecting(/unsaid/, async () => {
+    await page.goto(origin + "/web/fixture");
+    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  });
   // no image: the Ruler and Grid buttons are off, so their keys do nothing and the legend lists neither
   check((await legend()).length === 0, "with the buttons off the legend lists nothing", await legend());
   check(!(await press("KeyR")) && !(await ruler()), "R does nothing while the Ruler button is off");
@@ -123,8 +109,12 @@ try {
   check(!(await press("KeyR", { ctrlKey: true })) && (await ruler()), "Ctrl+R is not R");
   check(!(await press("KeyR", { on: "#fx-threshold" })) && (await ruler()), "R in a field does nothing");
   await page.evaluate(() => { const m = document.querySelector("details.menu"); m.hidden = false; m.open = true; });
+  // the menu open takes the keyboard to its search field; Escape there closes it, as a person closes it, and takes the
+  // keyboard back out: a menu closed under a field still holding the keyboard leaves it there in WebKit
+  await page.waitForFunction(() => document.activeElement?.id === "study-search");
   check(!(await press("KeyR")) && (await ruler()), "R with a menu open does nothing");
-  await page.evaluate(() => { document.querySelector("details.menu").open = false; });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector("details.menu").open);
   check(await press("KeyR") && !(await ruler()) && !(await legend())[0].lit, "R again lets Ruler go, its row grey again");
 
   check(!(await press("KeyG")) && !(await grid()), "G alone is not Alt+G");

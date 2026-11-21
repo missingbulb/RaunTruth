@@ -5,22 +5,16 @@
 // history that cannot be read says so. Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/version_history_driver.mjs [SHOTS]
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
-import { watchReads, readsDone } from "./page_reads.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { watchReads, readsDone } from "./page_reads.mjs";
+import { pw, launch, expecting } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
+
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const VERSION = JSON.parse(fs.readFileSync(path.join(repo, "package.json"))).version;
@@ -33,22 +27,12 @@ const HISTORY = [
 ];
 let history = JSON.stringify(HISTORY);
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/version_history.json") {
-    if (!history) { r.writeHead(404); return r.end(); }
-    r.writeHead(200, { "content-type": "application/json" }); return r.end(history);
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/web/version_history.json": () => history,
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -56,7 +40,6 @@ const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(s
 // a page whose browser last saw `seen` (null: never visited)
 async function open(seen, theme = "dark") {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(([seen, theme]) => {
     delete Navigator.prototype.serviceWorker;
     if (sessionStorage.getItem("primed")) return;
@@ -66,8 +49,7 @@ async function open(seen, theme = "dark") {
   }, [seen, theme]);
   await watchReads(ctx, ["version_history.json"]);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html");
   await historyRead(page);
   return { ctx, page };
@@ -158,11 +140,14 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
 // ---- a history that cannot be read ----
 {
   history = null;
-  const { ctx, page } = await open("0.10928.2");
-  await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
-  await page.click("#sb-version");
-  const msg = await page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)).then(() => true, () => false);
-  await check(msg, "the popup says the history could not be loaded");
-  await ctx.close();
+  // the site answers the history's file not found, as the browser says
+  await expecting(/status of 404/, async () => {
+    const { ctx, page } = await open("0.10928.2");
+    await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
+    await page.click("#sb-version");
+    const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
+    await check(msg, "the popup says the history could not be loaded");
+    await ctx.close();
+  });
 }
 await done(0);

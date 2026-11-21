@@ -4,12 +4,6 @@
     {"under": "Processing", "after": "Algorithms", "tree": [
       {"name": "The finder", "select": "#finder-box", "req": "req/nor/find/finders",
         "children": [
-          {"name": "Settings", "select": "#settings-box", "req": "req/nor/find/settings"},
-          {"name": "Filters", "select": "#filters-fold", "req": "req/nor/filters/live",
-            "rule": [
-              {"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "about": "the study's postprocessing, for its taggers"}
-            ]
-          },
           {"name": "Run algorithm", "select": "#find", "control": true, "req": "req/nor/find/one-slow-step"}
         ]
       }
@@ -62,32 +56,15 @@
     ]},
     {"under": "Keys legend", "tree": [
       {"name": "Finalists' key", "select": "#key-show-pass", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
-      {"name": "Rejected's key", "select": "#key-show-fails", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
       {"name": "Added NoRs' key", "select": "#key-show-added", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
       {"name": "Cut out what is done's key", "select": "#key-show-cut", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
       {"name": "Frame the area's key", "select": "#key-show-frame", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]}
     ]},
     {"under": "Main view", "after": "Tasks/Items switch", "tree": [
       {"name": "Show menu", "select": "#show-menu", "req": "req/nor/show-menu", "steady": "always shown"},
-      {"name": "Finalists tab", "select": "#tab-pass", "control": true, "req": "req/nor/candidates/decide", "unwalked": "the item view is shelved",
+      {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/options", "unwalked": "shows only on a task's card, while tagging, which no path starts (req/shell/ground-truth/tagging)",
         "rule": [
-          {"is": "hidden", "req": "req/shell/views/second", "about": "its item view is shelved"}
-        ],
-        "children": [
-          {"name": "Finalists' count", "select": "#n-pass", "req": "req/nor/candidates/decide"}
-        ]
-      },
-      {"name": "Rejected tab", "select": "#tab-fail", "control": true, "req": "req/nor/candidates/decide", "unwalked": "the item view is shelved",
-        "rule": [
-          {"is": "hidden", "req": "req/shell/views/second", "about": "its item view is shelved"}
-        ],
-        "children": [
-          {"name": "Rejected count", "select": "#n-fail", "req": "req/nor/candidates/decide"}
-        ]
-      },
-      {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/views", "unwalked": "the item view is shelved",
-        "rule": [
-          {"is": "hidden", "req": "req/shell/views/second", "about": "its item view is shelved"}
+          {"is": "hidden", "about": "it holds a task's card options, under the open task"}
         ]
       }
     ]},
@@ -104,16 +81,6 @@
             ]
           },
           {"name": "The candidate", "select": "#selected", "req": "req/nor/candidates/decide"}
-        ]
-      }
-    ]},
-    {"under": "Main view", "after": "Image view", "tree": [
-      {"name": "Item view", "select": "#items-view", "req": "req/shell/views/second", "unwalked": "shelved",
-        "rule": [
-          {"is": "hidden", "about": "shelved"}
-        ],
-        "children": [
-          {"name": "Cards", "select": "#list", "req": "req/nor/cards/views"}
         ]
       }
     ]}

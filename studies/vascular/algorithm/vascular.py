@@ -46,11 +46,12 @@ def read(path):
     return dict(cd31=np.ascontiguousarray(stack[cd31]), um=um, spacing=spacing, name=os.path.basename(path))
 
 
-def run(module, image, source=None, z_step=None):
+def run(module, image, source=None, z_step=None, damaged=()):
     """The vessel model the version in module draws from the stack's CD31, each confirmed vessel with its widths
     (r_a, r_b, taper_known) and the model with its plausibility card and the seconds the version took (`score`).
     source: the stack's name as the page shows it (else the file's); z_step: the µm between slices (else the file's,
-    or None while unknown)."""
+    or None while unknown); damaged: the damaged areas ([[x, y], ...] in the stack's pixels), which join the model's
+    excluded areas."""
     if not image['um']:
         raise ValueError('The file records no pixel size in µm, which the extraction measures every vessel in.')
     import evidence as ev
@@ -62,6 +63,7 @@ def run(module, image, source=None, z_step=None):
         t = time.time()
         m = version.extract(vol, um, source or image['name'], z_step if z_step is not None else image['spacing'])
         seconds = time.time() - t
+        m['excluded_regions'] = list(m.get('excluded_regions') or []) + _excluded(damaged, um)
         card = ev.card(m, ev.flat_signal(vol, um))
     m['score'] = {k: v for k, v in card.items() if not k.startswith('_')}
     m['score']['seconds'] = round(seconds, 1)
@@ -102,7 +104,7 @@ SCORING = """- Each model is its vessels as tubes: the centerline with its radiu
 - fp: the answer's µm, each by how much it is not right
 - A vessel traced twice counts once: tracings on one ground-truth vessel share what was found of it
 - The answer's vessels are its edges marked vessel; a candidate is not one
-- The ground truth's vessels are its edges marked accepted or vessel, anywhere in the stack; rejected and candidate edges are not vessels; excluded areas are left out
+- The ground truth's vessels are its edges marked accepted or vessel, anywhere in the stack; rejected and candidate edges are not vessels; excluded areas and the image's damaged areas are left out, on both sides
 - Every vessel has a width: one that carries none takes that of the vessels it joins, else the model's mean
 - Against the lab's provisional labels: inside the judged tiles only, the vessels are the curves judged vessel and the lines drawn as missed, at a capillary's 2.5 µm radius and without depth"""
 
@@ -272,6 +274,11 @@ def _in_boxes(xyz, boxes):
     return inside
 
 
+def _excluded(damaged, um):
+    """The damaged areas (outlines in the stack's pixels) as a model's excluded areas, in µm."""
+    return [dict(polygon=[[float(x) * um, float(y) * um] for x, y in p], reason='damaged') for p in damaged or ()]
+
+
 def _in_polygons(xyz, regions):
     inside = np.zeros(len(xyz), bool)
     x, y = xyz[:, 0], xyz[:, 1]
@@ -337,17 +344,19 @@ def _in(P, Q, p_is_truth, z_um):
     return np.clip(best, 0, 1), touch, who
 
 
-def score(answer, truth):
+def score(answer, truth, damaged=()):
     """tp, fp and fn (µm of centerline) of a version's vessel model against one ground-truth file: a corrected
-    vessel model, or the lab's provisional labels (its `tiles`); and what they are made of."""
+    vessel model, or the lab's provisional labels (its `tiles`); and what they are made of. What lies in a damaged
+    area (outlines in the stack's pixels) is left out of both."""
     A = _model_tubes(answer, VESSEL)
+    gone = _excluded(damaged, truth.get('um_per_px') or answer['um_per_px'])
     if 'tiles' in truth:
         T, boxes = _label_tubes(truth)
         T, A, z_um = T.keep(_in_boxes(T.xyz, boxes)), A.keep(_in_boxes(A.xyz, boxes)), None
     else:
         T, z_um = _model_tubes(truth, VESSEL), truth.get('z_step_um')
-        excluded = truth.get('excluded_regions') or []
-        T, A = T.keep(~_in_polygons(T.xyz, excluded)), A.keep(~_in_polygons(A.xyz, excluded))
+        gone += truth.get('excluded_regions') or []
+    T, A = T.keep(~_in_polygons(T.xyz, gone)), A.keep(~_in_polygons(A.xyz, gone))
 
     covered, t_touch, _ = _in(T, A, True, z_um)
     inside, a_touch, a_to = _in(A, T, False, z_um)

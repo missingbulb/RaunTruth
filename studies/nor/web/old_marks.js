@@ -46,7 +46,7 @@ export function oldMarks(readJSON, { name, finder, output, typical }) {
     did({ type: "add", cand, to: [(p + r) / 2, (q + t) / 2], lines: a.lines });
     if (a.verdict === "in") did({ type: "approve", cand });
   }
-  for (const area of Array.isArray(got.areas) ? got.areas : []) if (Number.isInteger(area) && area >= 0 && area < N.GRID * N.GRID) did({ type: "check-area", area, on: true });
+  for (const area of Array.isArray(got.areas) ? got.areas : []) if (Number.isInteger(area) && area >= 0 && area < N.OLD_GRID * N.OLD_GRID) did({ type: "check-area", area, on: true });
   if (!actions.length) return null;
   return { actions, from: "your earlier work in this browser",
     forget: () => { for (const key of kept) try { localStorage.removeItem(key); } catch { /* no storage */ } } };

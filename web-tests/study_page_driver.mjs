@@ -15,28 +15,28 @@
 import { EARLY } from "./early_messages.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
+import { held as holding } from "./held.mjs";
+import { pw, launch } from "./harness.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let pyodide;
+const require = createRequire(import.meta.url);
 try { pyodide = path.dirname(require.resolve("pyodide/pyodide.mjs", { paths: [path.dirname(fileURLToPath(import.meta.url))] })); } catch {
   console.error("no pyodide: npm i --prefix web-tests pyodide@314.0.7"); process.exit(2);
 }
 let stub = true;
+// the files slow to arrive, each held until the test lets it go: path → its hold
+const slow = {};
 // the switcher's titles, as the build lists the studies
 // what the switcher offers a visitor not signed in: the build's list but the studies shown to named accounts alone
 const offered = JSON.parse(fs.readFileSync(studies, "utf8")).filter((m) => !m.accounts), titles = offered.map((m) => m.title);
@@ -60,21 +60,22 @@ const server = http.createServer((q, r) => {
   if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
   const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+  const send = () => { r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r); };
+  if (slow[u]) return void slow[u].hold().then(send);
+  send();
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const problems = [];
 const done = async () => { await browser.close(); server.close(); for (const p of problems) console.error(p); process.exitCode = problems.length ? 1 : 0; };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
 await localStudy(ctx, "fixture");
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 try {
   await page.goto(origin + "/web/index.html?study=fixture");
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
@@ -136,7 +137,7 @@ try {
       return svg instanceof SVGSVGElement ? "generic" : "none";
     };
     const got = () => page.evaluate(look);
-    await page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: 3000 }).catch(() => {});
+    await orMissed(page.waitForFunction(new Function("want", `return (${look})() === want`), want, { timeout: STEP }));
     const seen = await got();
     if (seen !== want) problems.push(`the switcher's control shows ${seen}, not ${want}`);
   };
@@ -192,7 +193,7 @@ try {
     noHelp: !document.querySelector("#channels .help"), icon: document.querySelector("#favicon").href,
   }));
   await page.click("#study-menu summary");
-  const focused = await page.waitForFunction(() => document.activeElement?.type === "search").then(() => true, () => false);
+  const focused = await orMissed(page.waitForFunction(() => document.activeElement?.type === "search"));
   if (!focused) problems.push("the switcher does not open on its search box");
   const lined = await page.evaluate(() => $("#study-menu .pop").getBoundingClientRect().left - $("#study-menu .caret").getBoundingClientRect().left);
   if (Math.abs(lined) > 1) problems.push(`the switcher's popup does not open under its caret: ${lined} px off`);
@@ -255,24 +256,48 @@ try {
   await page.waitForFunction(() => document.title === "Image Viewer");
   if (new URL(page.url()).pathname !== "/web/") problems.push("index.html was not rewritten to the bare address: " + page.url());
 
+  // a study chosen in the switcher while the one the address names is still coming in, its module slow to arrive,
+  // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
+  const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
+  slow[MODULE] = holding(); slow[CHOSEN] = holding();
+  const early = await ctx.newPage();
+  early.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error, a study chosen while another came in: " + e.message); });
+  early.setDefaultTimeout(STEP);
+  await early.goto(origin + "/web/fixture");
+  await slow[MODULE].asked;
+  await early.evaluate(() => {
+    window.statuses = [];
+    new MutationObserver(() => window.statuses.push(document.querySelector("#status").textContent)).observe(document.querySelector("#status"), { childList: true, characterData: true, subtree: true });
+  });
+  await early.click("#study-menu summary");
+  await early.click("#study-list a >> text=Image Viewer");
+  slow[MODULE].release();
+  // the first study is in, or its coming in has failed
+  await early.waitForFunction(() => /^(Ready|Error)/.test(document.querySelector("#status").textContent));
+  await slow[CHOSEN].asked;
+  slow[CHOSEN].release();
+  const swapped = await orMissed(early.waitForFunction(() => document.title === "Image Viewer" && document.querySelector("#busy").hidden && document.querySelector("#status").textContent === "Ready. Load an image."));
+  const chosen = await early.evaluate(() => ({ title: document.title, path: location.pathname, fixture: !!document.querySelector("#fx-box, #fx-result, #fx-count"),
+    errors: window.statuses.filter((t) => /^Error/.test(t)) }));
+  console.log("chosen while another came in: " + JSON.stringify(chosen));
+  if (!swapped || chosen.path !== "/web/" || chosen.fixture) problems.push("a study chosen while another was coming in is not the one on show, alone: " + JSON.stringify(chosen));
+  if (chosen.errors.length) problems.push("a study chosen while another was coming in made the page say: " + chosen.errors.join(" | "));
+  await early.close();
+  delete slow[MODULE]; delete slow[CHOSEN];
+
   // the real worker: the fixture's own Python in Pyodide, answering the page
   stub = false;
   const real = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(real, "fixture");
-  await real.route("https://cdn.jsdelivr.net/pyodide/**", (r) => {
-    const f = path.join(pyodide, new URL(r.request().url()).pathname.split("/").pop());
-    if (!fs.existsSync(f)) return r.fulfill({ status: 404, body: "" });
-    r.fulfill({ body: fs.readFileSync(f), contentType: TYPES[path.extname(f)] || "application/octet-stream", headers: { "access-control-allow-origin": "*" } });
-  });
-  await real.route(offSite(origin, "https://cdn.jsdelivr.net/pyodide/"), (r) => r.abort());
   await real.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // each worker the page starts, and the bytes each open hands it, copied before they are transferred
   await real.addInitScript(() => {
-    window.__workers = 0; window.__held = [];
+    window.__workers = 0; window.__ended = 0; window.__held = [];
     const Base = window.Worker;
     window.Worker = class extends Base {
       constructor(...a) { super(...a); window.__workers++; }
       postMessage(m, t) { if (m?.type === "open") window.__held.push(Array.from(new Uint8Array(m.bytes))); return super.postMessage(m, t); }
+      terminate() { window.__ended++; return super.terminate(); }
     };
   });
   const live = await real.newPage();
@@ -299,6 +324,20 @@ try {
   const hidden = await live.textContent("#fx-result");
   if (hidden !== said) problems.push("with its channel hidden the real worker answered " + hidden);
   if (await live.evaluate(() => [window.__workers, window.__held.length].join()) !== "1,1") problems.push("a second Count started Python or handed it the file again");
+  // Unload Python after each run (req/shell/resources-dialog/unload-python): Python, idle, shut down as soon as it is
+  // checked; then started again by each Count, handed the file again, answering as before, and shut down as it ends
+  if (await live.evaluate(() => window.__ended) !== 0) problems.push("Python was shut down with Unload Python after each run off");
+  await live.evaluate(() => { const c = document.querySelector("#unload-python"); c.checked = true; c.dispatchEvent(new Event("change")); });
+  if (await live.evaluate(() => [window.__workers, window.__ended].join()) !== "1,1") problems.push("checked with Python idle, Unload Python after each run did not shut it down at once");
+  for (let k = 1; k <= 2; k++) {
+    await live.evaluate(() => { document.querySelector("#fx-result").textContent = ""; document.querySelector("#fx-count").click(); });
+    await live.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
+    const again = await live.textContent("#fx-result");
+    await orMissed(live.waitForFunction((n) => window.__ended === n, 1 + k, { timeout: 5000 }));
+    const seen = await live.evaluate(() => [window.__workers, window.__ended, window.__held.length].join());
+    if (again !== said || seen !== `${1 + k},${1 + k},${1 + k}`)
+      problems.push(`with Unload Python after each run, Count ${k} answered ${again}, workers started, shut down and handed the file: ${seen}`);
+  }
 } catch (e) {
   problems.push(String(e.message || e));
 }

@@ -1,27 +1,20 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers only the study's ready() (READY,
-// written by tests/test_processing_box.py), and checks the Processing box before any image: its settings and its
-// algorithm note start folded; the filters and their presets have a fold of their own after the settings, which starts
-// folded and is kept from a Viewer, and no box of their own follows it; each finder in the list carries its icon; the note's title names the chosen
-// algorithm, its explanation is drawn as a nested list of steps, and it gives in bold its precision and recall with its
-// default filters, as the list shows them, with those before any filter after them, not bold. Prints what it saw; exits 1 on a failure, 2
+// written by tests/test_processing_box.py), and checks the Processing box before any image: its algorithm note starts
+// folded, and it holds no setting, filter or preset; each finder in the list carries its icon; the note's title names the chosen
+// algorithm, its explanation is drawn as a nested list of steps, and it gives in bold its precision and recall as the
+// page runs it, as the list shows them, with the metrics' note after them, not bold. Prints what it saw; exits 1 on a failure, 2
 // when it cannot run.
 //   node tests/processing_box_driver.mjs READY
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { orMissed } from "../../../web-tests/page_until.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [ready] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const READY = JSON.parse(fs.readFileSync(ready, "utf8"));
@@ -30,56 +23,28 @@ const QUALITY = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "we
 const LISTED = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithms.json"), "utf8")).map((a) => [a.key, a]));
 
 const STAND_IN = `postMessage({ type: "ready", info: ${JSON.stringify(READY)}, secs: 0 });`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": () => EARLY + STAND_IN });
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const problems = [];
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
 page.on("pageerror", (e) => problems.push("page error: " + e.message));
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 try {
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   // the list's numbers arrive with the study's measured quality
   await page.waitForFunction(() => /\(P\s/.test(document.querySelector("#algorithm").options[0].textContent));
-  // the finder's controls arrive with its own list of them, apart from the shell's list of finders
-  await page.waitForFunction(() => document.querySelector("#filters").children.length > 0);
-  const folds = await page.evaluate(() => ({ settings: document.querySelector("#settings-box").open, about: document.querySelector("#algorithm-about").open }));
+  const folds = await page.evaluate(() => ({ about: document.querySelector("#algorithm-about").open }));
   console.log("folds", JSON.stringify(folds));
-  if (folds.settings) problems.push("Settings starts open");
   if (folds.about) problems.push("the algorithm's note starts open");
-  // the box is folded until an image opens, so it is unfolded here to see what a Viewer would see in it
-  const filters = await page.evaluate(() => {
-    const box = document.querySelector("#processing-box"), folded = box.classList.contains("folded"); box.classList.remove("folded"); set = document.querySelector("#settings-box"), fold = document.querySelector("#filters-fold");
-    const f = document.querySelector("#filters"), p = document.querySelector("#presets");
-    const got = { fold: !!fold && fold.matches("details.fold") && box.contains(fold) && fold.contains(f) && fold.contains(p),
-      title: fold && fold.querySelector(":scope > summary").textContent.trim(), open: !!fold && fold.open, count: f ? f.children.length : 0,
-      afterSettings: !!fold && !set.contains(fold) && !!(set.compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING),
-      kept: !!fold && getComputedStyle(fold).display === "none" && getComputedStyle(set).display !== "none",
-      boxes: [...document.querySelectorAll("#left > .box .sec-head h2")].map((h) => h.textContent.trim()) };
-    box.classList.toggle("folded", folded);
-    return got;
-  });
-  console.log("filters", JSON.stringify(filters));
-  if (!filters.fold) problems.push("the filters and their presets are not a fold of their own in the Processing box");
-  if (filters.title !== "Filters") problems.push(`the filters' fold is titled "${filters.title}", not "Filters"`);
-  if (filters.open) problems.push("Filters starts open");
-  if (!filters.afterSettings) problems.push("the filters' fold does not follow Settings");
-  if (!filters.count) problems.push("no filter is listed");
-  if (!filters.kept) problems.push("a Viewer sees the filters, or does not see Settings");
-  if (filters.boxes.some((b) => b.endsWith("Postprocessing"))) problems.push("the left bar still has a Postprocessing box");
+  // the algorithm gives a list of NoRs and nothing else: no setting, filter or preset anywhere on the page
+  const controls = await page.evaluate(() => ["#settings-box", "#filters-fold", "#filters", "#presets", "#main-params", "#detect-params", "#reset-detect"]
+    .filter((id) => document.querySelector(id)));
+  console.log("controls", JSON.stringify(controls));
+  if (controls.length) problems.push(`the page still has the algorithm's controls: ${controls.join(", ")}`);
 
   const options = await page.evaluate(() => [...document.querySelector("#algorithm").options].map((o) => [o.value, o.textContent]));
   console.log("options", JSON.stringify(options));
@@ -90,7 +55,7 @@ try {
     if (!icon || !text.startsWith(icon + " " + LISTED[k].title)) problems.push(`${k} in the list does not start with its icon: ${text}`);
     // the box is folded until an image opens, so the choice is made as the list would make it
     await page.evaluate((k) => { const s = document.querySelector("#algorithm"); s.value = k; s.dispatchEvent(new Event("change")); }, k);
-    await page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title).catch(() => {});
+    await orMissed(page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
     const note = await page.evaluate(() => {
       const n = document.querySelector("#algorithm-note"), sel = document.querySelector("#algorithm");
       return {
@@ -102,10 +67,10 @@ try {
     if (note.nested) nested++;
     if (note.title !== `How the ${LISTED[k].title} algorithm works`) problems.push(`${k}: the note's title does not name the algorithm: ${note.title}`);
     if (note.raw) problems.push(`${k}: the note shows its list's markup instead of a list`);
-    // the bold line gives the finder with its default filters, as the list does, and what it was measured on; its note follows, not bold
+    // the bold line gives the finder as the page runs it, as the list does, and what it was measured on; its note follows, not bold
     const def = QUALITY.versions[k];
     const [, lp, lr] = note.option.match(/\(P\s(\.\d+)\s·\sR\s(\.\d+)\)/) || [];
-    if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default filters' ${def.precision}, ${def.recall}`);
+    if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default's ${def.precision}, ${def.recall}`);
     const name = LISTED[k].title[0].toUpperCase() + LISTED[k].title.slice(1);
     const bold = `${name} algorithm shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} ${QUALITY.measured}`;
     const plain = `(${def.note})`;

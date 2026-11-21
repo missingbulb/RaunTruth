@@ -339,7 +339,6 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 #switch .count:empty { display: none; }
 /* a card whose task is still open */
 .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; }
-.menu .pop label.sort select { padding: 2px 6px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); }
 .tabs button { border: 0; border-radius: 0; background: transparent; padding: 5px 14px; }
 .tabs button + button { border-left: 1px solid var(--line); }
 .tabs button.on { background: var(--accent); color: #fff; }
@@ -378,6 +377,10 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 /* the minimap: hovering over the image's top left corner, framed in white to stand apart from any image;
    opaque at first, and under the pointer whatever opacity the user chose for it at rest */
 #image-view { position: relative; }
+#point-menu { position: fixed; z-index: 30; display: flex; flex-direction: column; padding: 4px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }
+#point-menu .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
+#point-menu .item:hover, #point-menu .item:focus-visible { color: var(--accent); }
+#point-menu[hidden] { display: none; }
 #minimap { position: absolute; top: 12px; left: 12px; z-index: 5; width: var(--mm-width); border: 2px solid #fff; border-radius: var(--r-ctl);
   background: var(--panel); box-shadow: 0 4px 14px #0008; overflow: hidden; opacity: var(--mm-opacity, 1); transition: opacity .15s; }
 #minimap:hover, #minimap:focus-within { opacity: 1; }
@@ -768,7 +771,9 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 #usage-dlg [role=tab][aria-selected=true] { color: var(--text); border-bottom-color: var(--accent); }
 #usage-dlg .total { margin: 0 0 6px; }
 #usage-dlg .motion { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-#usage-dlg .motion label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+#usage-dlg .motion label, #usage-dlg .unload label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+#usage-dlg .unload { margin-top: 6px; }
+#usage-dlg :is(.motion, .unload) .hint { margin: 2px 0 0 22px; }
 #usage-dlg:not([data-tab=storage]) [data-for=storage], #usage-dlg:not([data-tab=memory]) [data-for=memory] { display: none; }
 .rows { max-height: min(62vh, 560px); overflow-y: auto; padding-right: 6px; }
 #storage-list .group { border-top: 1px solid var(--line); padding: 6px 0; }
@@ -902,9 +907,7 @@ html.offline #sb-online .off { display: block; }
 #welcome-dlg h2 { margin: 0 0 6px; }
 #welcome-dlg .welcome-choices { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
 #welcome-dlg .welcome-choices button { padding: 8px 12px; }
-/* the guide to an outside window (req/shell/account/consent-guide): a step per column, its screenshot under it; aside,
-   over a window opened inside the page, a narrow column at the left edge under it, which draws at z-index 1001 later
-   in the page */
+/* the guide to an outside window (req/shell/account/consent-guide): a step per column, its screenshot under it */
 #guide-dlg { width: min(1080px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: 10px; }
 #guide-dlg::backdrop { background: #0007; }
@@ -913,21 +916,11 @@ html.offline #sb-online .off { display: block; }
 #guide-steps li p { margin: 0 0 6px; }
 #guide-steps li:not(:has(figure)) { grid-column: 1 / -1; }
 #guide-steps figure { margin: 0; }
-#guide-steps img, .guide-picker { display: block; width: 100%; max-width: 320px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+#guide-steps img { display: block; width: 100%; max-width: 320px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 #guide-steps figcaption { font-size: 11px; color: var(--dim); }
 #guide-wait { display: none; }
 #guide-dlg.waiting #guide-wait { display: block; }
 #guide-dlg.waiting #guide-go { display: none; }
-#guide-dlg.aside { position: fixed; inset: 16px auto 16px 16px; width: 260px; max-height: none; margin: 0; z-index: 1001; }
-#guide-dlg.aside #guide-steps { grid-template-columns: 1fr; }
-.guide-picker { padding: 10px; color: #202124; font: 12px/1.3 system-ui, sans-serif; box-sizing: border-box; }
-.guide-picker .gp-title { font-size: 13px; margin-bottom: 8px; }
-.guide-picker .gp-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-top: 1px solid #e0e0e0; }
-.guide-picker .gp-box { width: 12px; height: 12px; border: 2px solid #1a73e8; border-radius: 2px; background: #1a73e8; }
-.guide-picker .gp-folder { width: 14px; height: 10px; background: #5f6368; border-radius: 1px 3px 1px 1px; }
-.guide-picker .gp-foot { display: flex; gap: 8px; margin-top: 8px; }
-.guide-picker .gp-select { padding: 4px 12px; color: #fff; background: #1a73e8; border-radius: 4px; outline: 3px solid rgb(240, 50, 90); outline-offset: 2px; }
-.guide-picker .gp-cancel { padding: 4px 8px; color: #1a73e8; }
 html:not(.offline) #welcome-offline { display: none; }
 
 /* ---------- Data Management (req/shell/data/mode): the tree's column, left of the left bar, for study managers only ---------- */
@@ -972,7 +965,7 @@ html:not(.offline) #welcome-offline { display: none; }
 .tree-folder.chosen > .row .name { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .tree-folder .access { font-size: 10.5px; padding: 1px 5px; border-radius: 9px; white-space: nowrap; border: 1px solid var(--line); color: var(--dim); }
 .tree-folder .access[data-access=write] { color: var(--yes); border-color: currentColor; }
-.tree-folder .access[data-access=none], .tree-folder .access[data-access=view] { color: var(--warn); border-color: currentColor; }
+.tree-folder .access[data-access=unpermitted], .tree-folder .access[data-access=view] { color: var(--warn); border-color: currentColor; }
 .tree-folder .count { font-size: 11px; padding: 1px 6px; border: 0; background: transparent; color: var(--accent); white-space: nowrap; }
 .tree-folder .count:disabled { color: var(--dim); }
 .tree-children, .tree-images { padding-left: 14px; border-left: 1px solid var(--line); margin-left: 10px; }
@@ -1040,7 +1033,7 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the tagger's line in a study's ground-truth box: may they write to the submissions folder (req/shell/ground-truth/tagger-access) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
 .gt-access[hidden] { display: none; }
-.gt-access[data-access="none"], .gt-access[data-access="view"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
+.gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
 /* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
 #folder-items .tag.pending { color: var(--accent); }
@@ -1058,6 +1051,9 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
+#gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
+#gt-areas-row[hidden] { display: none; }
+#gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
 #gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;

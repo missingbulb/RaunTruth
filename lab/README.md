@@ -23,15 +23,19 @@ module defines:
 | name | what it is |
 |---|---|
 | `read(path)` | the image file opened as the versions take it (channels, masks, its pixel size): everything the file says, nothing the viewer does |
-| `VERSIONS` | `{key: run}`, the study's algorithm versions in the order `web/algorithms.json` lists them; `run(image, **params)` returns the answer |
+| `VERSIONS` | `{key: run}`, the study's algorithm versions in the order `web/algorithms.json` lists them; `run(image, **params)` returns the answer; a `run` that takes `damaged` is handed the image's damaged areas |
 | `STAGES` | `{name: stage}`, optional: a later step the page runs on an answer without running the version again, `stage(image, answer, **args)` |
-| `score(answer, truth)` | how one answer did against one ground-truth file: at least `tp`, `fp` and `fn` |
+| `score(answer, truth)` | how one answer did against one ground-truth file: at least `tp`, `fp` and `fn`; a `score` that takes `damaged` is handed the image's damaged areas |
 | `SCORING` | how `score` counts, as a short Markdown outline: what the page shows beside the precision and recall |
-| `SETTINGS` | optional, `{version: {name: params}}`: settings the lab scores beside each version's default (NoR's filter presets) |
+| `SETTINGS` | optional, `{version: {name: params}}`: settings the lab scores beside each version's default (NoR's filter presets, its default one filter on) |
 | `NOTES` | optional, `{version: text}`: the note the page shows beside a version's numbers |
 
 `score` may also return `items` (each truth and answer unit's verdict), which `items.py` and `mutate.py` read, and
 a study may give a `verify` stage the mutation sweep runs on a mutant's map.
+
+An image's damaged areas (`req/shell/data/damaged`) are `[[[x, y], ...], ...]` in its pixels, `[]` for none: the lab
+reads them from the study root's tags file, `rauntruth-tags.json`, by the image's Drive id, and keeps an answer for the
+areas it was run with.
 
 An answer is a dict the page can read as JSON; a numpy array in it travels to the page as bytes, a numpy number as a
 number. A version that

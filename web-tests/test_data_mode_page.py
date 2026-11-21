@@ -30,7 +30,7 @@ def folder(path):
         stack[z, 0, 30:50, 5 + 6 * z:15 + 6 * z] = 3000
     tifffile.imwrite(path / 'b stack.tif', stack, imagej=True, metadata={'axes': 'ZCYX'})
     Image.fromarray(np.stack([x * 1.5, y * 2, x + y], -1).astype(np.uint8)).save(path / 'd photo.jpg')  # a kind the study opens beside TIFFs
-    subprocess.run([sys.executable, os.path.join(HERE, '..', 'dev', 'tools', 'previews', 'make_previews.py'), str(path)], check=True)
+    subprocess.run([sys.executable, os.path.join(HERE, '..', 'dev', 'tools', 'previews', 'make_previews.py'), str(path)], check=True, timeout=120)
     with_photo(path / 'rauntruth-previews.tiff', path / 'd photo.jpg')  # as a previews file made before photos were left to Drive
     with open(path / 'b stack.tif', 'ab') as f:  # changed since its preview was made
         f.write(b'\0')
@@ -56,8 +56,8 @@ def test_data_management(answers, tmp_path):
 
 
 @pytest.mark.skipif(not NODE, reason='node missing')
-def test_choose_folders_asks_google(answers, tmp_path):
-    """Choose folders… for a user whose token lasts but lacks Drive's per-file permission asks for it, then shows the picker."""
+def test_write_permission_from_sign_in(answers, tmp_path):
+    """A token from before sign-in asked for Drive's per-file permission is renewed asking for it; none, every folder is view only."""
     root = tmp_path / 'drive'
     folder(root)
-    run('drive_approve_driver.mjs', answers[0], answers[1], str(root))
+    run('drive_write_permission_driver.mjs', answers[0], answers[1], str(root))

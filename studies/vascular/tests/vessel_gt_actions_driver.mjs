@@ -4,42 +4,35 @@
 // reload and Load draft bring the model back without Execute; and the edits kept in this browser before Edit History are offered
 // once as a base. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_gt_actions_driver.mjs STUDIES
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
+import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, drawnStack, STACK_PX } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 // the model in the pixels of the stack the stand-in draws, so that a place in the image's pixels is one place in both
 model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK_PX];
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const doc = () => page.evaluate(() => window.vascular.model().model);
 // the actions made, none of them saved yet: the count beside Undo
@@ -56,7 +49,7 @@ try {
   await opened();
   await execute();
   await page.click("#gt-start");
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);
 

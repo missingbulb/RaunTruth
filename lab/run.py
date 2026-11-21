@@ -60,14 +60,18 @@ def committed_truth(study):
 
 
 def corpus(study, transport=None, which='all'):
-    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first; which
-    is 'all', 'drive' (the curated files alone) or 'lab' (the study's own lab/truth/ alone)."""
-    found, refused = fetch.truth(study.id, transport) if which != 'lab' else ([], {})
+    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first, each
+    image with its damaged areas; which is 'all', 'drive' (the curated files alone) or 'lab' (the study's own
+    lab/truth/ alone)."""
+    root = fetch.study_root(study.id, transport)
+    found, refused = fetch.truth(study.id, transport, root) if which != 'lab' and root else ([], {})
     for path, why in refused.items():
         print(f'ground truth {path} left out: {why}', file=sys.stderr)
     truths = found + (committed_truth(study) if which != 'drive' else [])
     # only the images some ground truth names are fetched
-    imgs = {e['sha256']: e for e in fetch.images(study.id, transport, only={t['doc']['image']['sha256'] for t in truths})}
+    areas = fetch.damaged(root)
+    imgs = {e['sha256']: dict(e, damaged=areas.get(e['drive_id'], []))
+            for e in fetch.images(study.id, transport, only={t['doc']['image']['sha256'] for t in truths})}
     pairs = []
     for t in truths:
         sha = t['doc']['image']['sha256']
@@ -79,8 +83,11 @@ def corpus(study, transport=None, which='all'):
 
 
 def answer(study, version, entry, params, code, images):
-    """The version's answer on the image, from the cache while the code and the parameters are as they were."""
-    key = hashlib.sha256(json.dumps([code, version, entry['sha256'], params], sort_keys=True).encode()).hexdigest()[:24]
+    """The version's answer on the image, from the cache while the code, the parameters and the image's damaged areas
+    are as they were."""
+    damaged = entry.get('damaged') or []
+    key = hashlib.sha256(json.dumps([code, version, entry['sha256'], params] + ([damaged] if damaged else []),
+                                    sort_keys=True).encode()).hexdigest()[:24]
     path = os.path.join(study.data, 'runs', version, key + '.pickle')
     if os.path.exists(path):
         with open(path, 'rb') as f:
@@ -88,7 +95,7 @@ def answer(study, version, entry, params, code, images):
     if entry['sha256'] not in images:
         images[entry['sha256']] = study.read(entry['local'])
     t0 = time.perf_counter()
-    a = study.run(version, images[entry['sha256']], Services(study), **params)
+    a = study.run(version, images[entry['sha256']], Services(study), damaged=damaged, **params)
     print(f'  ran {version} on {entry["path"]} in {time.perf_counter() - t0:.1f} s', file=sys.stderr)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
@@ -119,7 +126,8 @@ def measure(study, versions=None, transport=None, which='all'):
         out[v] = {}
         for name, params in [(None, {})] + sorted((settings.get(v) or {}).items()):
             # by ground-truth file: one image may have several
-            per = {t['sha256']: study.score(answer(study, v, e, params, code, images), t['doc']) for e, t in pairs}
+            per = {t['sha256']: study.score(answer(study, v, e, params, code, images), t['doc'], e.get('damaged'))
+                   for e, t in pairs}
             out[v][name] = dict(total(per.values()), images=per)
     return out, pairs
 

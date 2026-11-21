@@ -40,7 +40,7 @@ def test_python_and_viewer_draw_the_same_curve():
     ts = np.linspace(0, 1, 11).tolist()
     url = 'file://' + os.path.abspath(MODEL_JS)
     out = subprocess.run(['node', '--input-type=module', '-e', JS, url, json.dumps(quads), json.dumps(ts)],
-                         capture_output=True, text=True, check=True).stdout
+                         capture_output=True, text=True, check=True, timeout=60).stdout
     js = np.array(json.loads(out))
     py = np.array([vm.catmull_rom(*q, ts) for q in quads])
     assert np.allclose(js, py, atol=1e-9), np.abs(js - py).max()

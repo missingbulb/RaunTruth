@@ -5,12 +5,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { motion } from "./page_motions.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, shots] = process.argv.slice(2);
 const shot = (page, name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
-const { ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
+const { google, drive, ROOT, open, check, done } = await standIn({ answers, studies, rootDir });
 const OTHER = "someone@example.com";
 
 // what the page shows: the role named, the roles listed, the line under them, and each role's tools (the ground-truth
@@ -82,9 +84,7 @@ await check(!s.truth && !s.counted, "back as Viewer, the ground-truth tools go",
 await page.context().close();
 
 // the same study as PreGT: Ground Truth Tagger is offered, and can be chosen there
-const preGT = { ...JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", "fixture", "study.json"), "utf8")), stage: "PreGT",
-  root: `https://drive.google.com/drive/folders/${ROOT}` };
-page = await open(true, { email: OTHER, prepare: async (ctx) => { await ctx.route("**/studies/fixture/study.json", (r) => r.fulfill({ json: preGT })); await standInDrive(ctx); } });
+page = await open(true, { email: OTHER, study: { stage: "PreGT" }, prepare: standInDrive });
 await page.waitForFunction(() => document.documentElement.dataset.stage === "PreGT");
 s = await seen(page);
 await check(s.role === "Viewer" && s.list.join() === "Viewer,Ground Truth Tagger", "in a PreGT study the signed-in are offered Ground Truth Tagger", s);
@@ -111,10 +111,10 @@ await choose(page, "Study Manager");
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column, folded or open, once its motion has ended at the width asked for
-const widthReaches = (open) => page.waitForFunction((open) => {
+const widthReaches = (open) => orMissed(page.waitForFunction((open) => {
   const w = $("#data-col").getBoundingClientRect().width;
   return (open ? w > 200 : w < 60) && !document.getAnimations().some((a) => a.transitionProperty && a.playState === "running");
-}, open).catch(() => {});
+}, open));
 await widthReaches(true);
 s = await seen(page);
 await shot(page, "data-manager");
@@ -131,39 +131,38 @@ await page.context().close();
 
 // Google's token lasts an hour, and only a click may ask for another: the page opening after it ran out shows the
 // roles Drive last gave this user, and opening the menu renews the token and asks Drive again
-const GSI = `window.google = { ...window.google, accounts: { oauth2: { initTokenClient(o) {
-  window.asked = [];
-  return { requestAccessToken(opts = {}) { window.asked.push(opts); queueMicrotask(() => o.callback({ access_token: "tok-" + Date.now(), expires_in: 3599, scope: o.scope })); } };
-} } } };`;
-const stubGoogle = (ctx) => ctx.route("https://accounts.google.com/gsi/client", (r) => r.fulfill({ contentType: "text/javascript", body: GSI }));
-const asked = (page) => page.evaluate(() => (window.asked || []).length);
-page = await open(true, { prepare: stubGoogle });
+// what Google's window was asked for since the page opened
+let askedBefore = 0;
+const asked = () => google.asked.length - askedBefore;
+const opened = async (...a) => { const p = await open(...a); askedBefore = google.asked.length; return p; };
+page = await opened(true);
 const record = await page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")));
 await page.context().close();
 const ranOut = (r) => ({ "nor-google-sign-in": JSON.stringify({ ...r, until: Date.now() - 1000 }) });
-page = await open(true, { seed: ranOut(record), prepare: stubGoogle });
+page = await opened(true, { seed: ranOut(record), keepSettings: true });
 s = await seen(page);
 await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager", "the token run out, the menu still lists the roles Drive last gave", s);
-await check(await asked(page) === 0, "and nothing asks Google for a token before a click", await asked(page));
+await check(asked() === 0, "and nothing asks Google for a token before a click", asked());
+const confirmed = drive.next((c) => c.fields.includes("capabilities"));
 await page.click("#role-menu summary");
-await page.waitForFunction(() => (window.asked || []).length === 1);
+await confirmed;
 await page.waitForFunction(() => $("#role-hint").hidden);
 s = await seen(page);
-await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.hint, "opening the menu renews the token and Drive confirms the roles", s);
+await check(s.list.join() === "Viewer,Ground Truth Tagger,Study Manager" && !s.hint && asked() === 1, "opening the menu renews the token and Drive confirms the roles", { ...s, asked: asked() });
 await page.context().close();
 // never told before on this device: Viewer, until opening the menu renews the token and Drive answers
 const { learned, ...fresh } = record;
-page = await open(true, { seed: ranOut(fresh), prepare: stubGoogle });
+page = await opened(true, { seed: ranOut(fresh), keepSettings: true });
 s = await seen(page);
 await check(s.list.join() === "Viewer" && !!s.hint, "with nothing remembered, Viewer alone, and a line saying why", s);
 await page.click("#role-menu summary");
 await page.waitForFunction(() => document.querySelectorAll("#role-list .item").length === 3);
 s = await seen(page);
-await check(!s.hint && await asked(page) === 1, "and opening the menu brings the roles Drive gives", { ...s, asked: await asked(page) });
+await check(!s.hint && asked() === 1, "and opening the menu brings the roles Drive gives", { ...s, asked: asked() });
 await page.context().close();
 
 // a site with no Google client signs no one in, so no one there may tag ground truth
-page = await open(false, { prepare: (ctx) => ctx.route("**/web/config.js", (r) => r.fulfill({ contentType: "text/javascript", body: 'window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "" } };' })) });
+page = await open(false, { prepare: (ctx) => { siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" }; } });
 s = await seen(page);
 await check(s.list.join() === "Viewer" && s.role === "Viewer", "with no sign-in on the site, Viewer alone is offered", s);
 await done(0);

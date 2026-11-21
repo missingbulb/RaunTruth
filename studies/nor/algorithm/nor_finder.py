@@ -1,24 +1,26 @@
-"""The NoR Finder study's algorithm, as the page and the lab run it (lab/README.md): an image detected once, then
-filtered many times.
+"""The NoR Finder study's algorithm, as the page and the lab run it (lab/README.md): an image's NoRs found.
 
   read(path)                         the channels and the blue (DAPI) mask
-  VERSIONS[finder](image, values=None, off=None, **overrides)
-                                     the slow part: a finder proposes candidates and measures each one (with its
-                                     parameters, plus overrides), and the filters judge them (at their own values,
-                                     plus values, less the filters named in off)
-  STAGES['refilter'](image, answer, spec)
-                                     the fast part: the checks, the nucleus rule and one-pixel-per-NoR run again on
-                                     the answer's stored measurements (milliseconds)
+  VERSIONS[finder](image, values=None, off=None, damaged=(), **overrides)
+                                     a finder proposes candidates and measures each one (with its parameters, plus
+                                     overrides), and the filters judge them (at their own values, plus values, less
+                                     the filters named in off: all but controls.DEFAULT_ON unless off is given, as
+                                     the page runs it); the pixels of the damaged areas (outlines in the image's pixels) are left
+                                     out of finding
+
+The page calls nothing but a version: its NoRs are the candidates an answer passes. The filters are the lab's to tune,
+through SETTINGS.
 
 The blue (DAPI) mask is only ever a filter here ('in nucleus'), never applied before finding.
 
-Refiltering reproduces a finder's own result exactly when the finder judges each candidate on its own (tl, fill, walk,
-blobs). rf chooses between alternative greens using the checks, so after a filter change it is an approximation until
-the finder runs again with the new values; at the finder's own values it returns the finder's own result.
+Judging again reproduces a finder's own result exactly when the finder judges each candidate on its own (tl, fill,
+walk, blobs). rf chooses between alternative greens using the checks, so at other filter values it approximates what rf
+would find with them; at the finder's own values it returns the finder's own result.
 """
 import math
 
 import numpy as np
+from skimage.draw import polygon as fill_polygon
 
 import channels
 import controls
@@ -45,13 +47,27 @@ def _num(v):
     return round(v, 6) if math.isfinite(v) else None
 
 
-def detect(image, finder, overrides=None):
-    """Run a finder with its parameters (plus overrides): each candidate's place, measurements and the finder's own
-    verdict, and its segments, an h*w block at the candidate's `off` in `segments` (1 = red, 2 and 3 = the greens)."""
+def damaged_mask(shape, damaged):
+    """The pixels whose centres lie in a damaged area ([[x, y], ...] in the image's pixels)."""
+    out = np.zeros(shape, bool)
+    for poly in damaged or ():
+        q = np.asarray(poly, float)
+        out[fill_polygon(q[:, 1] - 0.5, q[:, 0] - 0.5, shape)] = True
+    return out
+
+
+def detect(image, finder, overrides=None, damaged=()):
+    """Run a finder with its parameters (plus overrides), leaving out the pixels of the damaged areas: each
+    candidate's place, measurements and the finder's own verdict, and its segments, an h*w block at the candidate's
+    `off` in `segments` (1 = red, 2 and 3 = the greens)."""
     fn, P = FINDERS[finder]
     P = dict(P, **(overrides or {}))
     bm = image['blue']
-    cands, info = fn(image['caspr'], image['nav'], bm if finder in OWN_BLUE else np.zeros_like(bm), P)
+    gone = damaged_mask(bm.shape, damaged)
+    if finder in OWN_BLUE:
+        cands, info = fn(image['caspr'], image['nav'], bm, P, gone=gone)
+    else:
+        cands, info = fn(image['caspr'], image['nav'], gone, P)
     H, W = image['caspr'].shape
     blocks, off, rows = [], 0, []
     for i, c in enumerate(cands):
@@ -79,9 +95,7 @@ def detect(image, finder, overrides=None):
                             aspect=c.get('aspect'), solid=c.get('solid'), snr=c.get('snr'), red_on_blue=c['red_on_blue'])
             row['f'] = {k: _num(v) for k, v in row['f'].items() if v is not None}
         rows.append(row)
-    found = Found(finder=finder, exact_refilter=finder in EXACT_REFILTER, H=H, W=W, um=image['um'], unit=_num(info['unit']),
-                  filters=controls.filters(P), detection_params=controls.detection_params(P), reasons=controls.reasons(),
-                  pink=nor3.PINK, blue=nor3.BLUE, cands=rows,
+    found = Found(finder=finder, H=H, W=W, um=image['um'], unit=_num(info['unit']), cands=rows,
                   segments=np.concatenate(blocks) if blocks else np.zeros(0, np.uint8))
     found.cands, found.P, found.finder = cands, P, finder
     return found
@@ -111,36 +125,12 @@ def refilter(image, found, spec):
     return [c['fail'] for c in cands]
 
 
-def alone(image, found, spec):
-    """What each filter rejects with every other filter off, at the values in spec (whether or not it is switched
-    off): {'counts': {filter: n}, 'fails': per candidate, the filters that reject it, 'only': {filter: n} rejected by
-    that filter and by no other switched on}. Candidates the finder already rejected are not counted."""
-    p = dict(found.P, **spec.get('values', {})); keys = [f['key'] for f in controls.filters(found.P)]
-    frac = p.get('nucleus_frac', POST[NUCLEUS][1])
-    fails = [[] for _ in found.cands]; open_ = []
-    for i, c in enumerate(found.cands):
-        if c['fail0'] is not None or len(c['greens']) != 2:
-            continue
-        fails[i] = [k for k in keys if k in CHECKS and CHECKS[k](c, p)] + ([NUCLEUS] if c['red_on_blue'] >= frac else [])
-        open_.append((i, dict(c, fail=None)))
-    # one-pixel-per-NoR among every candidate the finder kept, the strongest first
-    resolve_overlaps([c for _, c in open_], image['caspr'].shape, p.get('max_shared', POST[SHARED][1]))
-    for i, c in open_:
-        if c['fail'] == SHARED:
-            fails[i].append(SHARED)
-    nor3.red_floor([c for _, c in open_], p.get('red_floor_q', POST[FAINT][1]))
-    for i, c in open_:
-        if c['fail'] == FAINT:
-            fails[i].append(FAINT)
-    off = set(spec.get('off', []))
-    only = {k: sum(k in f and all(o == k or o in off for o in f) for f in fails) for k in keys}
-    return dict(counts={k: sum(k in f for f in fails) for k in keys}, only=only, fails=fails)
-
-
 def version(finder):
-    def run(image, values=None, off=None, **overrides):
-        found = detect(image, finder, overrides)
-        for row, fail in zip(found['cands'], refilter(image, found, {'values': values or {}, 'off': off or []})):
+    def run(image, values=None, off=None, damaged=(), **overrides):
+        found = detect(image, finder, overrides, damaged)
+        if off is None:
+            off = [f['key'] for f in controls.filters(found.P) if f['key'] not in controls.DEFAULT_ON]
+        for row, fail in zip(found['cands'], refilter(image, found, {'values': values or {}, 'off': off})):
             row['fail'] = fail
         return found
     run.__name__ = finder
@@ -174,24 +164,21 @@ def verify(image, found, map, mode, q):
 
 VERSIONS = {f: version(f) for f in FINDERS}
 
-STAGES = {
-    'refilter': lambda image, answer, spec: dict(fails=refilter(image, answer, spec), alone=alone(image, answer, spec)),
-    'verify': verify,
-}
+STAGES = {'verify': verify}
 
 # the image's planes a transform of the image may change, in the colours they are drawn: red, then green
 PLANES = ('nav', 'caspr')
 
-# each finder scored beside its own filters: at the stricter and the looser preset, and with no filter at all (the
-# candidates its own structural checks keep: two greens around a red)
-SETTINGS = {f: dict({p: dict(values=controls.preset_values(f, p)) for p in controls.PRESETS if p != 'balanced'},
+# each finder's default is its filters off but controls.DEFAULT_ON; it is scored beside its filters on at each preset,
+# and with none on, the candidates its own structural checks keep (two greens around a red)
+SETTINGS = {f: dict({p: dict(values=controls.preset_values(f, p), off=[]) for p in controls.PRESETS},
                     unfiltered=dict(off=[k['key'] for k in controls.filters(P)]))
             for f, (_, P) in FINDERS.items()}
 
-NOTES = {f: 'with its default filters' for f in FINDERS}
+NOTES = {f: 'with one filter on, not stick-like' for f in FINDERS}
 
 SCORING = truth.SCORING
 
 
-def score(answer, doc):
-    return truth.score(answer['cands'], doc)
+def score(answer, doc, damaged=()):
+    return truth.score(answer['cands'], doc, damaged)

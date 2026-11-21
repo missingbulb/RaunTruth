@@ -22,6 +22,11 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   be regenerated from it. Before replying that work is done, check that nothing the next session
   would need exists only in the project. (working-claude-project)
 
+- **Starting on an issue you picked yourself, or on files another session may be changing** -
+  search the open pull requests for the issue's number and for the paths you will change, and
+  build on what an open one makes true or ask: parallel sessions here otherwise redo or undo each
+  other's work. (in-flight-work-first)
+
 ## What a study gives the shell
 
 - **Giving the shell something that varies by study** (its algorithms, channels, steps, their
@@ -35,6 +40,15 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   testing surface (a stand-in, a route, a seeded browser key, a shared helper beside the tests),
   never `web/` or a study's `web/`: the production code is written for the live site alone.
   (tests-bend-test-surface)
+
+- **Faking something in the tests** - fake a system the page reaches beyond its own code (an API, a CDN, a sign-in,
+  the deploy, a process) once, in `web-tests/fakes/`, active in every test, at the seam nearest that system, replacing
+  only its own part, with knobs a test sets; fake the repo's own code rarely, and put each new fake to the owner as
+  its own approval question first. (fakes-for-outside-systems)
+
+- **A test case that makes the page warn or err** - declare it around that case with the harness's `expecting()`,
+  by a loose pattern of a word or two, never the whole message; any other one fails the run, and is a bug to fix now.
+  (expected-warnings-per-case)
 
 - **Testing a motion the page makes** (a transition, an animation, a view transition) - check that it is on where
   it should be, that it starts and that it ends in the right state, through `web-tests/page_motions.mjs`; never
@@ -61,10 +75,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 
 ## The page's controls
 
-- **Placing several indicators on each row of a list** (a size, a date, an age tag, a mark) - put
-  the ones every row shows at the row's edges and the optional ones inward, between the name and
-  them, so what is always there lines up down the list and a missing one leaves no hole at the
-  edge. (row-indicators-edges)
+- **Placing items that are always there beside ones that come and go** (a list row's size, date,
+  age tag or mark; a status bar; a row of controls) - anchor the always-there ones whole at the
+  edges and the optional ones inward, and let variable content (text, a gauge, a slider) take the
+  space left, so nothing optional moves, hides or squeezes an anchored item. (row-indicators-edges)
 
 ## The page's version history
 
@@ -91,7 +105,15 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   not after each one: every push starts a Tests run, so a burst of pushes runs the suite once per
   commit for a single result. (push-in-batches)
 
+- **A pushed pull request showing no check runs, or one whose CI you are about to rerun or wait
+  on** - read its mergeable state first: GitHub starts no `pull_request` workflow while the branch
+  conflicts with its base, so merge the base in. (conflict-blocks-ci)
+
 ## Merging
+
+- **Calling a branch's failing test pre-existing because it fails on `main` too** - compare where
+  each run first failed; a flake that stops both early hides what fails after it, so rerun until
+  `main` passes before clearing the branch. (pre-existing-same-failure)
 
 - **A branch whose suite fails in a way not yet placed** - move its changes one logical change at a time onto a
   fresh branch off `main`, running the tests after each, and merge the ones that hold; the one that does not stays

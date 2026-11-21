@@ -36,6 +36,12 @@ P = dict(
 EIGHT = np.ones((3, 3), bool)
 
 
+def nothing_found():
+    """A finder's answer where no green segment is large enough to count: a node is measured in units of the greens
+    and made of two of them, so there is no candidate, and no unit."""
+    return [], dict(unit=float('nan'), n_red=0)
+
+
 def hmax_above(img, h, T):
     """skimage h_maxima(img, h) & (img > T), bit for bit, but reconstructing only the pieces of
     img that rise above T - h. Pixels below that level cannot carry a reconstruction value up to
@@ -91,6 +97,8 @@ def segment(caspr, nav, bm, p=P):
     gobj = ndi.find_objects(glab)
     lens = [max(s[0].stop - s[0].start, s[1].stop - s[1].start) / 2 for i, s in enumerate(gobj)
             if s is not None and gsz[i + 1] >= p['min_green']]
+    if not lens:
+        return nothing_found()
     unit = float(np.median(lens)); reach = p['reach_u'] * unit
     H, W = red.shape
     cands = []
@@ -143,7 +151,6 @@ def segment(caspr, nav, bm, p=P):
 
 
 # the settings the page shows first for this finder; the rest sit under Advanced
-segment.MAIN = ('green_frac', 'red_frac', 'touch', 'reach_u')
 
 
 # Checks that need two greens; each returns True when the candidate FAILS it.
@@ -338,6 +345,8 @@ def segment_walk(caspr, nav, bm, p=P2):
     glab, _ = ndi.label(green, EIGHT); gsz = np.bincount(glab.ravel())
     lens = [max(sl[0].stop - sl[0].start, sl[1].stop - sl[1].start) / 2
             for i, sl in enumerate(ndi.find_objects(glab)) if sl is not None and gsz[i + 1] >= p['min_green']]
+    if not lens:
+        return nothing_found()
     unit = float(np.median(lens)); reach = p['reach_u'] * unit; half_w = p['band_u'] * unit
     # seeds: red peaks
     peak = (rs_ == ndi.maximum_filter(rs_, size=p['seed_nms'])) & rS
@@ -440,7 +449,6 @@ def segment_walk(caspr, nav, bm, p=P2):
     return cands, dict(unit=unit, n_red=len(sy))
 
 
-segment_walk.MAIN = ('green_frac', 'red_frac', 'seed_smooth', 'strip', 'bend', 'max_green_u')
 
 
 # ---------------------------------------------------------------- "walk, land, colour in" candidates
@@ -470,6 +478,8 @@ def segment_fill(caspr, nav, bm, p=P3):
     glab, _ = ndi.label(green, EIGHT); gsz = np.bincount(glab.ravel())
     lens = [max(sl[0].stop - sl[0].start, sl[1].stop - sl[1].start) / 2
             for i, sl in enumerate(ndi.find_objects(glab)) if sl is not None and gsz[i + 1] >= p['min_green']]
+    if not lens:
+        return nothing_found()
     unit = float(np.median(lens))
     reach = p['reach_u'] * unit; touch = p['touch_u'] * unit; strip = p['strip_u'] * unit
     cs_ = ndi.gaussian_filter(cn, p['smooth_u'] * unit); rs_ = ndi.gaussian_filter(rn, p['smooth_u'] * unit)
@@ -611,10 +621,8 @@ def segment_fill(caspr, nav, bm, p=P3):
     return cands, dict(unit=unit, n_red=len(sy))
 
 
-segment_fill.MAIN = ('green_frac', 'red_frac', 'smooth_u', 'half', 'bend', 'reach_u')
 
 
-PINK, BLUE = (255, 105, 200), (0, 140, 255)
 # rejection reason -> (letter, colour of the letter)
 REASONS = {
     'one green':      ('A', (255, 255, 0)),

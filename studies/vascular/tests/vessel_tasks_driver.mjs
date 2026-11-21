@@ -9,39 +9,31 @@
 // the earlier three steps read; req/vascular/truth/marks: an area done blacked out of the stack while tagging, under the Show menu's Cut out what is done; req/vascular/model/ground-truth: Submit
 // last, its export carrying every verdict. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_tasks_driver.mjs STUDIES
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, ALGORITHMS, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
 const brightness = async () => {
@@ -122,7 +114,7 @@ try {
   check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Submit Ground Truth/.test(r0[all]),
     `a row per area, 4 × 4 at first, then Submit: ${r0.join(" | ")}`);
   check(await page.evaluate(() => $("#gt-bar").children.length === 16), "the bar has a part per area");
-  check(await page.evaluate(() => !!($("#area-grid").compareDocumentPosition($("#gt-start")) & Node.DOCUMENT_POSITION_FOLLOWING)
+  check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-start")) & Node.DOCUMENT_POSITION_FOLLOWING)
     && !!($("#gt-start").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
   check(await page.evaluate(() => !$("#m-draw") && !$("#m-lasso") && ![...document.querySelectorAll("button")].some((b) => /Draw a missed vessel|No missed vessels|Area done|Lines are right|Mark a damaged area/.test(b.textContent)) && !/Hold Ctrl/.test(document.body.textContent)),
     "no Draw a missed vessel, No missed vessels here, Area done, Mark a damaged area or Ctrl note on the page");
@@ -141,7 +133,7 @@ try {
   const under = await page.evaluate(() => {
     const cv = $("#gt-mini-image"), v = window.shellForTests.viewer.three;
     if (!cv) return null;
-    const [Z, Y, X] = v.meta.shape, vol = v.volume(), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    const [Z, Y, X] = v.meta.shape, vol = v.volume(), d = testCopy(cv).getImageData(0, 0, cv.width, cv.height).data;
     let worst = 0, lit = 0, n = 0;
     for (let cy = 0; cy < cv.height; cy += 7) for (let cx = 0; cx < cv.width; cx += 5) {
       let mv = -1, mz = 0;
@@ -160,7 +152,7 @@ try {
   check(await page.evaluate(() => !!$("#gt-tasks li.now #task-card canvas") && $("#task-card .verdict").children.length === 2), "the area's current junction is pictured in the box, its two verdicts under it");
 
   // how many areas is the person's to choose
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
   t = await tasks();
   check(t.grid === 2 && (await rows()).length === 5 && Math.abs(t.box.x1 - W / 2) < 0.01 && t.box.x0 === 0 && t.box.y0 === 0, `choosing 2 × 2 makes four areas, the first the top-left quarter: ${JSON.stringify(t.box)}`);
   mm = await mini();
@@ -171,6 +163,8 @@ try {
   const rot0 = (await view()).rot;
   // dragging a handle from straight above moves its point across the picture, never in depth
   let m = await doc();
+  // the points' places are those of the view's last draw: the one of the area just chosen
+  await viewDrawn(page);
   const pts = await page.evaluate(() => window.vascular.model().points);
   // inside the current area, the top-left quarter, at least margin µm from its edges
   const inArea = (n, margin = 0) => n.x > margin && n.x < W / 2 - margin && n.y > margin && n.y < H / 2 - margin;
@@ -269,7 +263,8 @@ try {
         const snap = await page.evaluate(() => window.vascular.model().drawing);
         check(snap?.onto?.node === +target && Math.hypot(snap.end[0] - qx, snap.end[1] - qy) < 0.5,
           `over a vessel's point, the line being drawn ends on it, not at the pointer: ${JSON.stringify(snap)} vs point ${target} at ${qx.toFixed(1)}, ${qy.toFixed(1)}`);
-        const mid = [(from2[0] + to2[0]) / 2, (from2[1] + to2[1]) / 2];
+        // on a whole pixel of the page: Firefox tells a page its pointer's place in whole pixels
+        const mid = [Math.round(cx + (from2[0] + to2[0]) / 2) - cx, Math.round(cy + (from2[1] + to2[1]) / 2) - cy];
         await page.mouse.move(cx + mid[0], cy + mid[1], { steps: 3 });
         const own = await page.evaluate(() => window.vascular.model().drawing);
         check(own && !own.onto && Math.hypot(own.end[0] - mid[0], own.end[1] - mid[1]) < 0.5,
@@ -390,7 +385,9 @@ try {
   }
 
   // every junction judged, Area is right does the area
-  for (let k = 0; k < 200 && (await tasks()).key; k++) await page.click("#task-card .verdict .yes");
+  // the rest by the card's own button, clicked in the page one after another with no draw awaited between: the click
+  // by hand is the one above
+  await page.evaluate(() => { for (let k = 0; k < 200 && window.vascular.tasks().key; k++) document.querySelector("#task-card .verdict .yes").click(); });
   // Area is right opens the area's widths step (req/vascular/truth/widths), whose button waits for the vessels drawn
   // there: given a width here
   check(!(await page.evaluate(() => $("#area-ok").disabled)), "Area is right is on once every junction there has a verdict");
@@ -423,9 +420,9 @@ try {
   check(await page.evaluate(() => { const ps = [...$("#gt-bar").children]; return ps.length === 4 && parseFloat(ps[0].style.getPropertyValue("--done")) === 1; }), "the bar's first part is full");
 
   // a finer choice keeps what was done over the areas it covers
-  await page.selectOption("#area-grid", "4");
+  await page.selectOption("#gt-areas", "4");
   check((await doneRows()).join() === "a0,a1,a6,a7", `the top-left quarter done is four areas of 4 × 4: ${await doneRows()}`);
-  await page.selectOption("#area-grid", "2");
+  await page.selectOption("#gt-areas", "2");
 
   // Back to image: the whole stack, the Show menu again, the map still over it; Back to task returns
   await page.click("#vm-focus");

@@ -1,26 +1,20 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
-// of real results written by tests/test_memory.py, and checks that opening IMAGE, finding and moving
-// filters over and over leaves the page holding no more JavaScript heap, array buffers, DOM nodes or
+// of real results written by tests/test_memory.py, and checks that opening IMAGE and finding over and over leaves the page holding no more JavaScript heap, array buffers, DOM nodes or
 // event listeners. Prints what it measured; exits 1 on growth, 2 when it cannot run.
 // THROTTLE=n slows its CPU n times over, as a slow test machine is.
 //   node tests/memory_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
+import { detached, grown } from "./detached_nodes.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -29,15 +23,16 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][m.echo % 2], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
@@ -53,16 +48,17 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+// Chromium running its bytecode alone, and keeping it: its compilers, and its flushing of bytecode left idle, add and
+// drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps
+const browser = await launch(pw, ENGINE === "chromium" ? { args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : {});
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
 const ctx = await browser.newContext();
-// nothing leaves this machine, and the cache of third-party files, which the stand-in never needs, is off
-await ctx.route(offSite(origin), (r) => r.abort());
+// the cache of third-party files, which the stand-in never needs, is off
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fail("page error: " + e.message));
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const cdp = await ctx.newCDPSession(page);
 await cdp.send("Performance.enable");
 if (process.env.THROTTLE) await cdp.send("Emulation.setCPUThrottlingRate", { rate: +process.env.THROTTLE });
@@ -77,7 +73,7 @@ const next = (action) => page.evaluate((action) => new Promise((ok) => {
   };
   hook();
 }), action);
-const settled = () => page.waitForFunction(() => !st.inflight && !st.pending && $("#busy").hidden);
+const settled = () => page.waitForFunction(() => !st.running && $("#busy").hidden);
 
 let opened = 0;
 const slide = fs.readFileSync(image);
@@ -88,30 +84,11 @@ async function open() {
   await page.waitForFunction((n) => shellForTests.page.get("image")?.name === n, name);
   await settled();
 }
-// finding ends with the first filter pass on the new candidates
+// finding, with each finder by turns
 async function find() {
   for (const f of ["tl", "rf"]) {
-    const done = next("refilter");
+    const done = next("run");
     await page.evaluate((f) => { $("#algorithm").value = f; $("#algorithm").dispatchEvent(new Event("change")); $("#find").click(); }, f);
-    await done; await settled();
-  }
-}
-// each numeric filter moved away from its value and back, in both views, and a filter switched off and on
-async function tune() {
-  const n = await page.evaluate(() => document.querySelectorAll("#filters .param.number").length);
-  if (n < 6) await fail(`only ${n} filter dials to move`);
-  for (let k = 0; k < 2 * n; k++) {
-    const done = next("refilter");
-    await page.evaluate(([k, n]) => {
-      if (k === 0) nor.showView("items"); if (k === n) nor.showView("image");
-      const p = document.querySelectorAll("#filters .param.number")[Math.floor(k / 2)], box = p.querySelector(".box");
-      box.value = k % 2 ? st.defaults[p.dataset.name] : st.defaults[p.dataset.name] * 1.3 + 0.1; box.dispatchEvent(new Event("input"));
-    }, [k, n]);
-    await done; await settled();
-  }
-  for (const on of [false, true]) {
-    const done = next("refilter");
-    await page.evaluate((on) => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = on; c.dispatchEvent(new Event("change")); }, on);
     await done; await settled();
   }
 }
@@ -122,9 +99,9 @@ async function measure() {
   // The status bar's numbers hold a node or more for each character of their last change, and the network's
   // changes every second as its rate falls: written plain, and measured again whenever one changed meanwhile, the
   // count is the same whatever they last read.
-  // the page's frames done first: the item view draws its cards in them as they come near, which a slow machine
-  // can still be doing when the work itself has settled
-  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose: the memory count settles after the cards drawn as they come near; being reworked on #932
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete));
+  // the page's frames done first, which a slow machine can still be drawing when the work itself has settled
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 100))))); // waits on purpose (no event): the memory count settles after the page's last frames; being reworked on #932
   // An attribute is a node of its own once something reads it as one, as Playwright does with every attribute of an
   // element it writes into an action's log, and the page adds attributes as it goes (a class the first time an
   // animation is seen off screen): each one in the document is read here, made a node whoever read it before, and
@@ -154,7 +131,7 @@ async function measure() {
 }
 // the page's counts after a collection; twice, as DOM nodes freed by the first are swept only after it
 async function collected() {
-  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose: the page runs between the two collections, so the second sweeps what the first freed
+  await cdp.send("HeapProfiler.collectGarbage"); await page.waitForTimeout(50); await cdp.send("HeapProfiler.collectGarbage"); // waits on purpose (no event): the page runs between the two collections, so the second sweeps what the first freed
   return Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]));
 }
 // the nodes in the document, by the nearest ancestor with an id, and how many that is in all
@@ -169,27 +146,51 @@ const where = () => page.evaluate(() => {
   return { by, all };
 });
 const KB = 1024;
-// the heap settles by a few kilobytes of compiled code and caches over the first rounds; the image
-// alone is a quarter of a megabyte and a candidate's card several kilobytes
-const LIMITS = { heap: 256 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
+// a round keeps a kilobyte or so; a warning the page writes keeps what it hands the console, an error's stack four
+// kilobytes an open, and the image alone is a quarter of a megabyte
+const ROUNDS = +(process.env.ROUNDS || 8);
+const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
+// The heap, the buffers and the listeners are read every EVERY rounds, and judged by the median growth between
+// readings, as over ROUNDS: what the page keeps each round is in every interval, where a step it takes once, a cache
+// filling or code compiled on a busy machine, two listeners now and then, is in one, and moves the median nothing.
+// Nodes, whose growth is then traced to where it went, are judged over all the rounds.
+const EVERY = 2, SLOPED = ["heap", "buffers", "listeners"];
+const median = (xs) => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 
 await page.goto(origin + "/web/?study=nor");
 await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
-await open(); await find(); await tune();
+await open(); await find();
+// a reading first, kept by none: the first one's own reads make what the page holds for them from then on (the DOM's
+// interfaces, the shapes of what they return), which would otherwise be in the first base
+await measure();
 const problems = [];
-for (const [name, act] of Object.entries({ open, find, tune })) {
+for (const [name, act] of Object.entries({ open, find })) {
   // the heap climbs by steps over the first eight or so opens, as the page's caches and compiled code fill, then holds
   for (let r = 0; r < 10; r++) await act();
-  const base = await measure();
-  for (let r = 0; r < +(process.env.ROUNDS || 4); r++) await act();
-  const m = await measure();
-  console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${base[k]} -> ${m[k]}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
-  for (const [k, lim] of Object.entries(LIMITS)) if (m[k] - base[k] > lim) problems.push(`${name}: ${k} grew by ${m[k] - base[k]} over 4 rounds`);
+  // what holds the nodes outside the document, read before the base so its own reading is in it
+  const held = await detached(cdp), readings = [await measure()];
+  let after;
+  for (let r = 1; r <= ROUNDS; r++) {
+    await act();
+    if (r % EVERY) continue;
+    // the last read after the same snapshot as the base, so work the last round left running has ended in both or neither
+    if (r === ROUNDS) after = await detached(cdp);
+    readings.push(await measure());
+  }
+  const base = readings[0], m = readings.at(-1);
+  console.log(name.padEnd(5), Object.keys(LIMITS).map((k) => `${k} ${readings.map((x) => x[k]).join(" -> ")}`).join(", "), `(collections ${base.sweeps}, ${m.sweeps})`);
+  for (const [k, lim] of Object.entries(LIMITS)) {
+    const steps = readings.slice(1).map((x, i) => x[k] - readings[i][k]);
+    const grew = SLOPED.includes(k) ? median(steps) * ROUNDS / EVERY : m[k] - base[k];
+    if (grew > lim) problems.push(`${name}: ${k} grew by ${grew} over ${ROUNDS} rounds` + (SLOPED.includes(k) ? `, as the median of its growth every ${EVERY} (${steps.join(", ")})` : ""));
+  }
   // where the nodes went, so a growth seen only on another machine says where to look
   if (m.nodes > base.nodes) {
     const a = base.where.by, b = m.where.by;
     const grew = Object.keys({ ...a, ...b }).filter((k) => (a[k] || 0) !== (b[k] || 0)).map((k) => `${k} ${a[k] || 0} -> ${b[k] || 0}`);
     problems.push(`${name}: in the document ${grew.join(", ") || "nothing changed"}; outside it ${base.nodes - base.where.all} -> ${m.nodes - m.where.all}`);
+    // and, outside it, which nodes and what holds them
+    if (m.nodes - m.where.all > base.nodes - base.where.all) for (const d of grown(held, after)) problems.push(`${name}: outside the document, ${d}`);
   }
 }
 await browser.close(); server.close();

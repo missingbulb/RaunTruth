@@ -7,39 +7,32 @@
 // alone as Ctrl did, Ctrl no longer does, 2 held hides the lines over the stack, 3 held shows side by side, each kept on
 // by clicking its row, no key for Vessel widths or Missed, and a digit typed in a field does nothing. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_keys_driver.mjs STUDIES
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
+import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { serve, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -99,7 +92,7 @@ try {
   const keptBare = await mode();
   await page.click("#key-outlines");
   check(keptBare === "image" && (await mode()) === "overlay", `clicking the 2 row keeps the lines hidden, again shows them: ${keptBare} → ${await mode()}`);
-  check(!(await press("Digit2", { on: "#area-grid" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
+  check(!(await press("Digit2", { on: "#gt-areas" })) && (await mode()) === "overlay", "2 typed in a field does nothing");
   await page.evaluate(() => { $("#vm-show").open = true; });
   check(!(await press("Digit2")) && (await mode()) === "overlay", "2 with the Show menu open does nothing");
   await page.evaluate(() => { $("#vm-show").open = false; });
@@ -214,7 +207,7 @@ try {
   // held down, in a field, with a menu open: nothing
   s0 = s1;
   check(!(await press("KeyF", { repeat: true })) && same(await state(), s0), "F held down judges no second junction");
-  check(!(await press("KeyF", { on: "#area-grid" })) && same(await state(), s0), "F in a field does nothing");
+  check(!(await press("KeyF", { on: "#gt-areas" })) && same(await state(), s0), "F in a field does nothing");
   await page.evaluate(() => { $("#task-menu").hidden = false; $("#task-menu").open = true; });
   check(!(await press("KeyF")) && same(await state(), s0), "F with a menu open does nothing");
   await page.evaluate(() => { $("#task-menu").open = false; });

@@ -120,27 +120,33 @@ def by_lines(im, lang, at):
             for t in ([0] if at else [0, 2]):
                 r = yield from tesseract_at(line, t, lang)
                 tries.append(dict(text=r['text'], confidence=r['confidence'], t=t))
-            parts.append(best(tries))
+            parts.append(dict(best(tries), box=(x0, y0, x1, y1)))
         chars = sum(len(p['text']) for p in parts)
+        size = (up.shape[1], up.shape[0])
         found.append(dict(text=tidy(' '.join(p['text'] for p in parts)), turn=turn, lines=len(parts),
-                          confidence=sum(p['confidence'] * len(p['text']) for p in parts) / chars if chars else 0))
+                          confidence=sum(p['confidence'] * len(p['text']) for p in parts) / chars if chars else 0,
+                          blocks=[dict(text=p['text'], box=p['box'], size=size, turn=turn) for p in parts]))
     return best(found)
 
 
 def read(im, how, spell, turn=None, lang='both'):
     """The crop's text by one reader: {text, confidence (0 to 1), turn (quarter turns clockwise that set it
-    upright)}, its Hebrew words spelled by spell; given a turn, read upright at that turn alone."""
+    upright), blocks (each line read, for fields.label)}, its Hebrew words spelled by spell; given a turn, read
+    upright at that turn alone."""
     at = None if turn is None else [turn]
     if how == 'tesseract':
         tries = []
         for t in at or turns(im):
             tries.append((yield from tesseract_at(im, t, lang)))
         r = best(tries)
+        h, w = im.shape[:2]
+        size = (h, w) if r['turn'] % 2 else (w, h)
+        r = dict(r, blocks=[dict(text=r['text'], box=(0, 0) + size, size=size, turn=r['turn'])])
     elif how == 'lines':
         r = yield from by_lines(im, lang, at)
     else:
         raise ValueError(f'no reader {how!r}')
-    return dict(r, text=spell(r['text']))
+    return dict(r, text=spell(r['text']), blocks=[dict(b, text=spell(b['text'])) for b in r['blocks']])
 
 
 # Hebrew letters print makes look alike, each set a reader confuses one for another; and the letters a word may be

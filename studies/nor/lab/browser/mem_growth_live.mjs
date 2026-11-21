@@ -1,6 +1,6 @@
 // The whole page's memory growth, Pyodide and the real finders included (tests/test_memory.py checks
 // each layer on its own in seconds). Drives the real page (web/) in headless Chromium: opens the
-// reference slide, finds candidates and moves filters, first once to warm up and then over and over,
+// reference slide and finds candidates, first once to warm up and then over and over,
 // and after each round measures what the page, its worker and the Python inside the worker still
 // hold once garbage is collected.
 //
@@ -8,19 +8,18 @@
 //   python3 lab/fetch.py nor
 //   node studies/nor/lab/browser/mem_growth_live.mjs [--rounds N] [--finders tl,rf,...]   (about 2.5 minutes)
 //
-// Needs Playwright (npm i -g playwright). Remote files (Pyodide and its packages) are fetched with
-// curl when HTTPS_PROXY is set, since headless Chromium does not trust a proxy's own CA.
+// Needs Playwright (npm i -g playwright) and the page tests' libraries (web-tests/page_libraries.py), which the
+// page tests' fakes serve in place of the CDN.
 import { repoFile } from "../../../../web-tests/repo_file.mjs";
 import { createRequire } from "node:module";
-import { execFileSync, execSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { standInDrive, openFromDrive } from "../../../../web-tests/drive_open.mjs";
+import { launch } from "../../../../web-tests/harness.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -29,7 +28,7 @@ try { pw = require("playwright"); } catch { pw = require(path.join(execSync("npm
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const TIF = path.join(repo, "studies", "nor", "data", "raw", "images", "1NRObE-kEsINGTvFkI-uh3dFjiZgcWMUp__Slide5_4AP_NoR.sld - Slice1_up_left2.tif");
 const opt = (name, def) => { const i = process.argv.indexOf("--" + name); return i > 0 ? process.argv[i + 1] : def; };
-const ROUNDS = +opt("rounds", 2), MOVES = 12;
+const ROUNDS = +opt("rounds", 2);
 let FINDERS = opt("finders", "").split(",").filter(Boolean);   // all the page offers, unless named
 const MB = 1024 * 1024;
 // every wait is bounded, and the whole run too, so a message that never comes fails instead of hanging
@@ -56,23 +55,10 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const url = `http://127.0.0.1:${server.address().port}/web/?study=nor`;
 
-const browser = await pw.chromium.launch();
+const browser = await launch(pw);
 const ctx = await browser.newContext();
 // the page without its cache of third-party files, which is not what is measured here
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-if (process.env.HTTPS_PROXY) {
-  const cache = path.join(os.tmpdir(), "norfinder-remote-cache"); fs.mkdirSync(cache, { recursive: true });
-  await ctx.route(/^https:/, (r) => {
-    const u = r.request().url(), f = path.join(cache, crypto.createHash("sha1").update(u).digest("hex"));
-    try {
-      if (!fs.existsSync(f)) {
-        const type = execFileSync("curl", ["-sSfL", "--max-time", "300", "-o", f + ".tmp", "-w", "%{content_type}", u]).toString();
-        fs.writeFileSync(f + ".type", type || "application/octet-stream"); fs.renameSync(f + ".tmp", f);
-      }
-      return r.fulfill({ body: fs.readFileSync(f), contentType: fs.readFileSync(f + ".type", "utf8"), headers: { "access-control-allow-origin": "*" } });
-    } catch (e) { console.error("could not fetch", u, e.message); return r.fulfill({ status: 404, body: "" }); }
-  });
-}
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { console.error("page error:", e.message); process.exitCode = 1; });
@@ -101,7 +87,7 @@ const next = (type) => bounded(page.evaluate((type) => new Promise((ok, bad) => 
   };
   st.worker.addEventListener("message", h);
 }), type), type);
-const settled = () => page.waitForFunction(() => !st.inflight && !st.pending && $("#busy").hidden, null, { timeout: STEP_MS });
+const settled = () => page.waitForFunction(() => !st.running && $("#busy").hidden, null, { timeout: STEP_MS });
 
 // the slide under a new name each time, as when someone goes through a folder of images
 let opened = 0;
@@ -111,33 +97,11 @@ async function open() {
   await openFromDrive(page, { name: `slide ${++opened}.tif`, mimeType: "image/tiff", buffer: slide }); await done; await settled();
 }
 async function findWith(f) {
-  const done = next("refilter");   // finding ends with the first filter pass on the new candidates
+  const done = next("run");
   await page.evaluate((f) => { $("#algorithm").value = f; $("#algorithm").dispatchEvent(new Event("change")); $("#find").click(); }, f);
   await done; await settled();
 }
 async function find() { for (const f of FINDERS) await findWith(f); }
-// moves each numeric filter in turn away from its value and back, in both views, as someone tuning would
-async function tune() {
-  const n = await page.evaluate(() => document.querySelectorAll("#filters .param.number").length);
-  assert.ok(n >= 6, `only ${n} filter dials to move`);
-  for (let k = 0; k < MOVES; k++) {
-    const done = next("refilter");
-    await page.evaluate(([k, n]) => {
-      if (k === 0) showView("items"); if (k === 6) showView("image");
-      const p = document.querySelectorAll("#filters .param.number")[Math.floor(k / 2) % n], box = p.querySelector(".box");
-      const def = st.defaults[p.dataset.name];
-      box.value = k % 2 ? def : def * 1.3 + 0.1; box.dispatchEvent(new Event("input"));
-    }, [k, n]);
-    await done; await settled();
-  }
-  // switching a filter off and on again
-  for (const on of [false, true]) {
-    const done = next("refilter");
-    await page.evaluate((on) => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = on; c.dispatchEvent(new Event("change")); }, on);
-    await done; await settled();
-  }
-}
-
 // what everything holds once garbage is collected. Python is measured before the worker's JS is
 // collected as well as after: memory Python can only free when JavaScript collects a handle to it
 // would be held for as long as the browser does not happen to collect, so it counts as held.
@@ -171,8 +135,8 @@ if (!FINDERS.length) FINDERS = await page.evaluate(() => [...$("#algorithm").opt
 assert.ok(FINDERS.length >= 1, "the page offers no finder");
 
 // each action on its own, so a leak is pinned to the action that makes it
-const actions = { open, find, tune };
-await open(); await find(); await tune();
+const actions = { open, find };
+await open(); await find();
 const failures = [];
 for (const [name, act] of Object.entries(actions)) {
   await act();
@@ -195,4 +159,4 @@ for (const [name, act] of Object.entries(actions)) {
 await browser.close(); server.close();
 console.log(`${((Date.now() - t0) / 1000).toFixed(0)} s in all`);
 assert.deepEqual(failures, [], "memory held after repeated actions:\n" + failures.join("\n"));
-console.log("ok: no memory growth across repeated image loads, finder runs and filter changes");
+console.log("ok: no memory growth across repeated image loads and finder runs");

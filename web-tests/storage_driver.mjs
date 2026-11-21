@@ -12,57 +12,38 @@
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/storage_driver.mjs [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { createHash } from "node:crypto";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { keptContext } from "./kept_context.mjs";
 import { cutShort } from "./page_errors.mjs";
-import { until } from "./page_until.mjs";
+import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { studies as studiesOf } from "./fakes/studies.mjs";
+import { siteSettings } from "./fakes/site_settings.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
+import { cdnFile } from "./fakes/cdn.mjs";
+import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ROOT = "acmefolder0000000001";
+// NoR Finder's own folder, which its dialog lists
+const ROOT = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop();
 // two images in a folder; their bytes need only be a real picture, which the worker never reads
 const PNG = noisePng();
 const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acmeimage00000000002", name: "acme two.png" }];
 // a subfolder, listed after the images, holding an image named as the first one
 const SUB = { id: "acmefolder0000000002", name: "sub" }, TWIN = { id: "acmeimage00000000003", name: "acme one.png" };
 const OWN_PACKAGE = "acmepkg";
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/studies.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(LISTED); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
-  // NoR Finder with a package of its own, which no other study names
-  if (u === "/studies/nor/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" }); return r.end(JSON.stringify({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/web/studies.json": () => LISTED,
+  "/web/vendor/wheels.json": "[]",
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // what a browser that has used the page keeps: the shell's keys and the NoR study's, as their code writes them
 const PIC = "data:image/jpeg;base64," + "A".repeat(4000);
@@ -89,28 +70,20 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
 const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+// NoR Finder with a package of its own, which no other study names
+studiesOf(ctx).edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
+// the deploy with a Google key
+siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+// the Drive fake's folder: the two images, and the subfolder holding the first one's twin
+const drive = googleDrive(ctx);
+for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+drive.folder({ ...SUB, parent: ROOT });
+drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
 // how often each image was downloaded from Drive
-const downloads = Object.fromEntries([...DRIVE, TWIN].map((f) => [f.id, 0]));
-const cors = { "access-control-allow-origin": "*" };
-await ctx.route("https://www.googleapis.com/**", (route) => {
-  const id = new URL(route.request().url()).pathname.match(/\/drive\/v3\/files\/?(.*)$/)[1];
-  // each file's SHA-256, where a request's fields ask for it, as Drive gives it
-  const fields = new URL(route.request().url()).searchParams.get("fields") || "";
-  const hash = fields.includes("sha256Checksum") ? { sha256Checksum: createHash("sha256").update(PNG).digest("hex") } : {};
-  if (!id) {
-    const image = (f) => ({ ...f, mimeType: "image/png", size: String(PNG.length), createdTime: "2026-10-01T10:00:00Z", ...hash });
-    const list = new URL(route.request().url()).searchParams.get("q").includes(SUB.id) ? [image(TWIN)]
-      : [...DRIVE.map(image), { ...SUB, mimeType: "application/vnd.google-apps.folder" }];
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files: list }) });
-  }
-  // a file's details, as Drive answers them
-  if (new URL(route.request().url()).searchParams.get("alt") !== "media")
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ id, ...hash }) });
-  downloads[id]++;
-  return route.fulfill({ status: 200, headers: cors, contentType: "image/png", body: PNG });
-});
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
-await ctx.route(CORE.at(-1), (r) => r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, contentType: "application/json", body: JSON.stringify(LOCK) }));
+const downloads = new Proxy({}, { get: (_, id) => drive.calls.filter((c) => c.kind === "download" && c.id === id).length });
+// jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
+cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
+for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
 await ctx.addInitScript((seed) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -119,7 +92,7 @@ await ctx.addInitScript((seed) => {
 }, SEED);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 try {
   await page.goto(origin + "/web/index.html?study=nor");
@@ -141,7 +114,7 @@ try {
   // req/shell/offline/mark: a study whose Python is all here is marked in the switcher, green, a state rather than a
   // prompt: a tiny tooltip and no question-mark pointer, what it means in full said to assistive tech
   await page.click("#study-menu summary");
-  await page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector('#study-list a[data-id="viewer"] .offline-mark'), null, { timeout: 5000 }));
   const marks = await page.$$eval("#study-list a", (as) => as.map((a) => {
     const m = a.querySelector(".offline-mark"), cs = m && getComputedStyle(m);
     const end = Math.max(...[...a.children].filter((c) => c.offsetParent).map((c) => c.getBoundingClientRect().right));
@@ -372,17 +345,21 @@ try {
     sessionStorage.setItem("test-thumbs-cache-refuses", "1");
   }, { pic: PIC, ids: LEGACY });
   const legacyKeys = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort());
-  await page.reload();
-  await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
-  const stayed = await legacyKeys();
-  check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
-  await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
-  await page.reload();
-  await until(page, async (ids) => {
+  // the page says each thumbnail the cache would not take, and that what it keeps cannot be counted meanwhile
+  // the page left for one whose cache takes them before the case ends, so a count it was still making is said within it
+  await expecting(/no room/, async () => {
+    await page.reload();
+    await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
+    const stayed = await legacyKeys();
+    check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
+    await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
+    await page.reload();
+  });
+  await orMissed(until(page, async (ids) => {
     const c = await caches.open("nor-thumbs-v1");
     for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
     return !Object.keys(localStorage).some((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs");
-  }, LEGACY).catch(() => {});
+  }, LEGACY));
   const moved = await page.evaluate(async () => {
     const c = await caches.open("nor-thumbs-v1"), of = (id) => c.match(new URL("drive-thumb/" + id, location.href).href);
     return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };

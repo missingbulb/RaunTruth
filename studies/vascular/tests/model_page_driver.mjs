@@ -5,40 +5,32 @@
 // outside a ground-truth stage and approves a low-confidence vessel from one; and the model's canvas leaves the 3D
 // view with the study. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/model_page_driver.mjs STUDIES
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 // the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
-const site = await serve(repo, studies, model, "PreGT"), origin = site.origin;
+const site = await serve(studies, model), origin = site.origin;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+atStage(browser, "PreGT");
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's brightness now, its mean over every pixel of red, green and blue
 const brightness = async () => { await viewDrawn(page); return brightnessNow(); };
@@ -50,16 +42,25 @@ const brightnessNow = () => page.evaluate(() => {
   return s / (d.length / 4);
 });
 const facts = () => page.textContent("#model-facts");
-// the model's own canvas now: how many pixels are lit, and how many of those are coloured rather than grey
+// the model's own canvas now: how many pixels are lit, how many of those are coloured rather than grey, and how many
+// are thick, lit all round: the body of a tube, which a line a pixel or so wide has none of but where lines cross,
+// however the engine smooths the line's edge
 const drawn = async () => { await frames(page); return drawnNow(); };
 const drawnNow = () => page.evaluate(() => {
-  const d = document.querySelector("#mcv").getContext("2d").getImageData(0, 0, document.querySelector("#mcv").width, document.querySelector("#mcv").height).data;
-  let lit = 0, coloured = 0;
+  const { width: W, height: H } = document.querySelector("#mcv"), d = testCopy(document.querySelector("#mcv")).getImageData(0, 0, W, H).data;
+  const on = new Uint8Array(W * H);
+  let lit = 0, coloured = 0, thick = 0;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 128 || d[i] + d[i + 1] + d[i + 2] < 60) continue;
+    on[i / 4] = 1;
     lit++; if (Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 60) coloured++;
   }
-  return { lit, coloured };
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    let around = 0;
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) around += on[(y + b) * W + x + a];
+    if (around === 9) thick++;
+  }
+  return { lit, coloured, thick };
 });
 
 try {
@@ -147,7 +148,7 @@ try {
   await page.setChecked("#depth-0", depth);
   await page.uncheck(await inMenu("#m-widths"));
   const thin = await drawn();
-  check(thin.lit < alone.lit * 0.7, `Vessel widths off draws the vessels as lines: ${alone.lit} → ${thin.lit} lit pixels`);
+  check(thin.thick < alone.thick * 0.2, `Vessel widths off draws the vessels as lines: ${alone.thick} → ${thin.thick} thick pixels`);
   await page.check(await inMenu("#m-widths"));
   await page.click(await inMenu('#model-mode [data-v="alone"]'));
   check((await shown()).pressed === "overlay", "Model clicked again shows the model over the stack");

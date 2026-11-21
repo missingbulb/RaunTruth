@@ -1,6 +1,5 @@
 // Drives the Bookshelf Reader's page in headless Chromium against stand-ins: a worker whose one run finds three books
-// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and
-// straightens each into a crop as big as its box for the tagger's readers, and a Tesseract that reads each crop as
+// and reads each through the page's own engines (the text finder and Tesseract, asked for as the bridge asks), and a Tesseract that reads each crop as
 // "Title <w>x<h>", surest when the crop is wider than tall. Checks req/shelves/books/find (the books drawn, their
 // titles read in the same run), req/shelves/read/readers (each read at the turn that reads across, the reader kept,
 // Read titles reading every book again), req/shelves/matcher/export (the matcher's file),
@@ -13,25 +12,18 @@
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/shelves/tests/shelves_page_driver.mjs STUDIES
 import { noisePng } from "../../../web-tests/png_fixture.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
-import { until } from "../../../web-tests/page_until.mjs";
+import { until, orMissed } from "../../../web-tests/page_until.mjs";
+import { pw, launch, expecting, check, siteOf } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const repo = path.resolve(import.meta.dirname, "..", "..", ".."), [studies] = process.argv.slice(2);
 const W = 400, H = 300;
 // two standing spines and a cover, clockwise from the top left; the finder lists the second spine first
@@ -81,30 +73,16 @@ onmessage = ({ data: m }) => {
   else if (m.type === "call" && m.action === "run")
     run(m).then((meta) => postMessage({ type: "result", action: "run", meta, bytes: null, echo: m.echo }),
       (e) => postMessage({ type: "error", text: String(e.message || e) }));
-  else if (m.type === "call" && m.action === "straighten") {
-    const sizes = m.args.corners.map(size), bytes = new Uint8Array(sizes.reduce((a, [w, h]) => a + w * h * 4, 0)).fill(200);
-    let at = 0;
-    const crops = sizes.map(([w, h]) => { const c = array(w * h * 4, "uint8", [h, w, 4]); c.$bytes[0] = at; at += w * h * 4; return c; });
-    postMessage({ type: "result", action: "straighten", meta: { crops }, bytes, echo: m.echo }, [bytes.buffer]);
-  }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
-  if (u === "/web/worker.js") return send("text/javascript", WORKER);
-  if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
-  // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-  if (u === "/studies/shelves/study.json") return send("application/json", JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u), "utf8")), visibility: { accounts: ["tagger@acme.example"] } }));
-  const f = u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": WORKER,
+  "/web/vendor/wheels.json": "[]",
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
+siteOf(browser).studies.edit("shelves", (m) => ({ ...m, visibility: { accounts: ["tagger@acme.example"] } }));
 let failed = false;
-const check = (ok, what, seen) => { if (!ok) { failed = true; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); } else console.log("ok: " + what); };
 
 const PNG = noisePng(W, H);
 async function load(page, name = "shelf.png", png = PNG) {
@@ -116,15 +94,22 @@ async function open(role, seed = {}, finder = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   await keepStudyKeyListeners(ctx);
   await asTagger(ctx);
-  await ctx.route(offSite(origin), (r) => r.abort());
   await prepare(ctx, finder);
   await ctx.addInitScript(([role, seed]) => {
     delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
     for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
   }, [role, seed]);
+  // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
+  await ctx.addInitScript(() => {
+    const W = window.Worker; window.pyCalls = []; window.pyStarted = 0; window.pyEnded = 0;
+    window.Worker = class extends W {
+      constructor(u, o) { super(u, o); this.python = /worker\.js/.test(String(u)); if (this.python) window.pyStarted++; }
+      postMessage(m, t) { if (m?.type === "call") window.pyCalls.push(m.action); return super.postMessage(m, t); }
+      terminate() { if (this.python) window.pyEnded++; return super.terminate(); }
+    };
+  });
   const page = await ctx.newPage();
-  page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
   page.on("dialog", (d) => d.accept());
   await page.goto(origin + "/web/shelves");
@@ -171,6 +156,8 @@ try {
   await page.waitForFunction(() => $("#status").textContent === "Titles read again.");
   check(await page.evaluate(() => tess.reads) === 12 && (await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent))).join() === "Title 240x35,Title 260x40,Title 180x180",
     "Read titles reads every book again with the reader chosen, on the page alone", await page.evaluate(() => tess.reads));
+  const asked = await page.evaluate(() => pyCalls);
+  check(asked.length && asked.every((x) => x === "run"), "Read titles straightens and labels each book in the page, asking Python for nothing but Find books' run", asked);
   const [m1, m2, m3] = m.doc.books;
   check(m.name === "shelf_books.json" && m.doc.books.length === 3 && m1.id === 1 && m1.text === "Title 240x35" && m1.confidence === 0.9 && m1.reader === "lines"
     && m3.view === "cover" && m2.corners.length === 4 && m.doc.W === W,
@@ -224,10 +211,38 @@ try {
 
   // the text finder out of reach: the books are found without it, and Find says so
   page = await open("viewer", KEPT, { textFinder: false });
-  await page.click("#bs-find");
-  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  await expecting(/text finder|status of 404|onnxruntime/, async () => {
+    await page.click("#bs-find");
+    await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  });
   const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
+  await page.context().close();
+
+  // Unload Python after each run (req/shell/resources-dialog/unload-python): Python shut down once Find books has read
+  // the titles; Read titles, and a book flipped while tagging, then read on the page's own engines with no Python,
+  // and the next Find books starts it again
+  const python = (page) => page.evaluate(() => [pyStarted, pyEnded].join());
+  const findBooks = async (page, n) => { await page.click("#bs-find"); await page.waitForFunction((n) => $("#status").textContent.startsWith("Titles read") && pyEnded === n, n); };
+  page = await open("viewer", { ...KEPT, "nor-unload-python": "true" });
+  check(await page.evaluate(() => $("#unload-python").checked), "the setting kept shows checked in the CPU tab");
+  await findBooks(page, 1);
+  check(await python(page) === "1,1" && (await books(page)).length === 3, "Find books ends with Python shut down, its books drawn", await python(page));
+  const readBefore = await page.evaluate(() => tess.reads);
+  await page.evaluate(() => $("#bs-read").click());
+  await page.waitForFunction(() => $("#status").textContent === "Titles read again.");
+  check(await page.evaluate((n) => tess.reads - n, readBefore) === 6 && await python(page) === "1,1",
+    "with Python shut down, Read titles reads every book on the page's engines, starting no Python", await python(page));
+  await findBooks(page, 2);
+  check(await python(page) === "2,2" && (await books(page)).length === 3, "the next Find books starts Python again, and shuts it down once done", await python(page));
+  await page.context().close();
+  page = await open("tagger", { ...KEPT, "nor-unload-python": "true" });
+  await findBooks(page, 1);
+  await page.click("#gt-start");
+  const turned = await page.evaluate(() => tess.reads);
+  await page.click('.bs-item [data-do="flip"]');
+  await page.waitForFunction((n) => tess.reads > n && $("#status").textContent === "Book read again.", turned);
+  check(await python(page) === "1,1", "with Python shut down, a book flipped while tagging is read again, starting no Python", await python(page));
   await page.context().close();
 
   // the box's one tagging button: Start GT tagging, Stop tagging while tagging; Continue GT tagging is gone, a draft
@@ -255,7 +270,7 @@ try {
   check(await valueOf(page) === "Title 180x180", "Back no longer finds the book marked not a book", await valueOf(page));
   const toScreenOf = (page, x, y) => page.evaluate(([x, y]) => { const r = $("#base").getBoundingClientRect(); return [r.left + x * st.zoom, r.top + y * st.zoom]; }, [x, y]);
   await page.mouse.click(...(await toScreenOf(page, 77, 200)), { button: "right" });
-  await page.click('#bs-menu [data-do="delete"]');
+  await page.click('#point-menu .item:text-is("Delete this book")');
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books" && !(await page.$$eval("#overlay g.bs-book.wrong", (g) => g.length)),
     "Delete this book takes a found book off the photo too, nothing left faint", [await books(page), await rowsOf(page)]);
   check((await history(page)).slice(0, 2).join() === "Deleted 2 books,Algorithm ran: 3 books" && await unsaved(page) === 2,
@@ -353,7 +368,56 @@ try {
   check(!(await press({ key: "a", code: "KeyA", ctrlKey: true })), "a key the task does not use is left to the page");
   await page.context().close();
 
-  // a tagger: one book at a time, in the order the books stand, the missed ones added, then Submit
+  // req/shelves/truth/fields: a book's text set field by field
+  page = await open("tagger", KEPT);
+  await page.click("#bs-find");
+  await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
+  await page.click("#gt-start");
+  await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  const fieldsShown = () => page.$$eval(".bs-item input[data-field]", (l) => l.map((x) => `${x.dataset.field}=${x.value}`));
+  const adds = () => page.$$eval(".bs-item .bs-add a", (l) => l.map((x) => x.textContent));
+  const chips = () => page.$$eval(".bs-item .bs-chip", (l) => l.map((x) => x.textContent));
+  const focusedField = () => page.evaluate(() => document.activeElement?.dataset?.field ?? null);
+  const fHistory = (n = 1) => history(page).then((h) => h.slice(0, n).join());
+  check((await fieldsShown()).join() === "title=Title 260x40,author=" && (await chips()).join() === "T,A"
+    && (await adds()).join() === "+ Publisher,+ Volume,+ Library mark",
+    "Title and Author are shown, each led by its letter, and the other fields wait behind small links", [await fieldsShown(), await chips(), await adds()]);
+  await page.keyboard.press("Tab");
+  check(await focusedField() === "author", "Tab moves from the title to the author", await focusedField());
+  await page.keyboard.type("Herbert");
+  await page.keyboard.press("Tab");
+  check(await fHistory() === "Set an author: Herbert", "leaving a field commits it: one GT action", await history(page));
+  await page.focus('.bs-item input[data-field="author"]');
+  await page.keyboard.press("Alt+ArrowUp");
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "title");
+  check((await fieldsShown()).join() === "title=Herbert,author=Title 260x40" && await fHistory() === "Swapped the title and the author",
+    "Alt+↑ swaps a field with the one above, the focus going with its text", [await fieldsShown(), await history(page)]);
+  await page.click(".bs-item .bs-swap");
+  check((await fieldsShown()).join() === "title=Title 260x40,author=Herbert", "⇅ swaps them back", await fieldsShown());
+  // part of the title selected and sent down to the author
+  await page.fill('.bs-item input[data-field="title"]', "Dune Frank");
+  await page.evaluate(() => { const t = $('.bs-item input[data-field="title"]'); t.focus(); t.setSelectionRange(5, 10); });
+  await page.keyboard.press("Alt+ArrowDown");
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "author");
+  check((await fieldsShown()).join() === "title=Dune,author=Frank Herbert", "Alt+↓ with text selected moves only that text to the field below", await fieldsShown());
+  await page.click('.bs-item .bs-add a[data-open="volume"]');
+  await page.waitForFunction(() => document.activeElement?.dataset?.field === "volume");
+  check((await adds()).join() === "+ Publisher,+ Library mark", "+ Volume opens the volume's box, focused", await adds());
+  await page.keyboard.type("IV");
+  await page.keyboard.press("Enter");
+  check((await rowsOf(page))[0] === "1/3 Books" && await fHistory() === "Approved a book: IV",
+    "Enter approves the book, carrying the field typed and not yet committed: one GT action", await history(page));
+  check(!(await fieldsShown()).some((f) => f.startsWith("volume")), "the next book has no volume, and shows none", await fieldsShown());
+  await page.click('.bs-item .bs-add a[data-open="library"]');
+  await page.keyboard.type("892.4 הר");
+  await page.keyboard.press("Tab");
+  await page.click('.bs-verdicts [data-do="right"]');
+  check((await fieldsShown()).some((f) => f === "library="), "once a book on the photo has a library mark, every book shows its box open", await fieldsShown());
+  check(await page.evaluate(() => $(".bs-item .bs-field input[data-field=title]").style.borderLeftColor || getComputedStyle($(".bs-item .bs-field input[data-field=title]")).borderLeftColor) === "rgb(41, 121, 255)",
+    "each field's box carries its colour", null);
+  await page.context().close();
+
+    // a tagger: one book at a time, in the order the books stand, the missed ones added, then Submit
   page = await open("tagger", KEPT);
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
@@ -367,7 +431,7 @@ try {
   const isSelected = () => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length && t.value.length > 0; };
   const selected = () => page.evaluate(isSelected);
   // a few frames' grace for the box to take focus, bounded so a miss fails at once rather than hanging
-  const settledSelected = () => page.waitForFunction(isSelected, null, { timeout: 2000 }).then(() => true, () => false);
+  const settledSelected = () => orMissed(page.waitForFunction(isSelected, null, { timeout: STEP }));
   const titleState = () => page.evaluate(() => [document.activeElement?.tagName, $(".bs-item input")?.selectionStart, $(".bs-item input")?.selectionEnd]);
   check(await value() === "Title 260x40" && await page.$$eval(".bs-item canvas", (c) => c[0].width) === 260,
     "the walk starts at the leftmost book, not the finder's first, upright with what the reader read", await value());
@@ -376,7 +440,7 @@ try {
   check(await page.evaluate(() => !document.querySelector(".bs-item [data-view], .bs-item [data-lang], .bs-item [data-do='turn']")),
     "the task asks no spine or cover, no language and no quarter turn: Flip alone");
   // the stand-in worker's crops are flat grey: a picture with the photo's noise in it is drawn by the page itself
-  check(await page.$eval(".bs-item canvas", (c) => { const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
+  check(await page.$eval(".bs-item canvas", (c) => { const d = testCopy(c).getImageData(0, 0, c.width, c.height).data; return new Set(Array.from(d.filter((_, i) => i % 4 === 0))).size > 10; }),
     "the book's picture is drawn by the page from the photo it shows, not by Python");
   // flipped upside down: drawn so, and read again at that turn alone, in both languages
   const reads = await page.evaluate(() => tess.reads);
@@ -393,7 +457,8 @@ try {
   await page.click('.bs-tools [data-do="back"]');
   check((await rows())[0] === "1/3 Books" && await value() === "הארי פוטר" && await page.$eval('.bs-verdicts [data-do="right"]', (b) => b.getAttribute("aria-pressed")) === "true",
     "Back goes to the book left of this one, its verdict kept and shown", await rows());
-  await page.click('.bs-verdicts [data-do="right"]');
+  // the same verdict again changes nothing, which the page notes as an action not recorded
+  await expecting(/not recorded/, () => page.click('.bs-verdicts [data-do="right"]'));
   check((await rows())[0] === "1/3 Books" && await value() === "Title 240x35", "a verdict given again there moves on to the next book still open", await value());
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "2/3 Books" && await value() === "Title 180x180" && await cut() === 2, "the next verdict moves on along the shelf");
@@ -431,33 +496,40 @@ try {
   await page.mouse.click(...(await toScreen(77, 200)));
   check(await value() === "Title 240x35", "a book already approved opens from the photo too", await value());
   await page.mouse.click(...(await toScreen(210, 190)));
-  // the cover's top-right corner dragged 120 px to the right, past the photo's edge, the photo zoomed in so it could
+  // the cover's top-left corner dragged 140 px to the left, past the photo's edge, the photo zoomed in so it could
   // pan: the picture follows while dragging, the book is straightened and read again with the photo never covered,
-  // and the photo stays where it was (req/shell/image/minimap)
+  // and the photo stays where it was (req/shell/image/minimap). The pointer stays inside the window, over the left
+  // bar, on whole pixels: only Chromium's Playwright carries one past the window's edge, or between two pixels.
   for (let i = 0; i < 3; i++) await page.click("#zoom-in");
-  await page.evaluate(() => { const sc = $("#scroller"); sc.scrollLeft = 300 * st.zoom - sc.clientWidth / 2; sc.scrollTop = 100 * st.zoom - sc.clientHeight / 2; });
+  await page.evaluate(() => { const sc = $("#scroller"); sc.scrollLeft = 50 * st.zoom; sc.scrollTop = 100 * st.zoom - sc.clientHeight / 2; });
   const scrolled = () => page.evaluate(() => [$("#scroller").scrollLeft, $("#scroller").scrollTop]);
   const before = await scrolled();
-  const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+  const knob = await page.$$eval("#overlay .bs-corner", (cs) => { const r = cs[0].getBoundingClientRect(); return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]; });
   const zoom = await page.evaluate(() => st.zoom);
   // Escape in the middle of a corner's drag puts the corner back, the book read as it was (req/shell/drag/escape)
   {
     const corners = () => page.evaluate(() => JSON.stringify([...document.querySelectorAll("#overlay .bs-corner")].map((c) => [c.getAttribute("cx"), c.getAttribute("cy")])));
     const kept = await corners(), read = await page.$eval(".bs-item input", (i) => i.value), logged = await history(page);
-    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 60 * zoom, knob[1], { steps: 6 });
+    await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(Math.round(knob[0] - 60 * zoom), knob[1], { steps: 6 });
     const mid = await corners();
-    await page.keyboard.press("Escape"); await page.mouse.move(knob[0] + 80 * zoom, knob[1], { steps: 2 }); await page.mouse.up();
+    await page.keyboard.press("Escape"); await page.mouse.move(Math.round(knob[0] - 80 * zoom), knob[1], { steps: 2 }); await page.mouse.up();
     check(mid !== kept && await corners() === kept && await page.$eval(".bs-item input", (i) => i.value) === read && (await history(page)).join() === logged.join(),
       "Escape mid-drag puts a corner back where it was, the book unchanged and no GT action made", { kept, mid, after: await corners() });
   }
   await page.evaluate(() => { window.covered = !$("#busy").hidden; new MutationObserver(() => { if (!$("#busy").hidden) covered = true; }).observe($("#busy"), { attributes: true }); });
-  await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(knob[0] + 120 * zoom, knob[1], { steps: 6 });
+  await page.mouse.move(...knob); await page.mouse.down(); await page.mouse.move(Math.round(knob[0] - 140 * zoom), knob[1], { steps: 6 });
+  // the picture is painted in the frame after the corner moves
+  await framesOf(page);
   const live = await page.$eval(".bs-item canvas", (c) => c.width);
-  check(live === 240, "the book's picture follows the corner while it is dragged", live);
+  check(live === 250, "the book's picture follows the corner while it is dragged", live);
+  // where a pointer on a whole pixel put the corner, within that pixel of 140 px left of where it was
+  const dragged = await page.$$eval("#overlay .bs-corner", (cs) => cs.map((c) => [+c.getAttribute("cx"), +c.getAttribute("cy")]));
+  check(Math.abs(dragged[0][0] + 20) < 0.3 && Math.abs(dragged[0][1] - 100) < 0.3 && dragged.slice(1).join() === "300,100,300,280,120,280", "the corner is where the pointer is, past the photo's left edge, the other three where they were", dragged);
   await page.mouse.up();
   const after = await scrolled();
   check(before[0] > 0 && after.join() === before.join(), "dragging a corner moves the corner alone, never the photo under it", { before, after });
-  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 300x180");
+  // the box as dropped, straightened to the means of its opposite sides
+  await page.waitForFunction(() => $(".bs-item input")?.value === "Title 250x204");
   check((await history(page)).slice(0, 2).join() === "Read a title again,Moved a book's corner",
     "a corner dropped is one GT action, and the reading that follows it is another, carrying its answer", await history(page));
   check(!(await page.evaluate(() => covered)), "a corner dragged on the photo re-straightens and re-reads the book, the photo never covered");
@@ -465,7 +537,7 @@ try {
   await page.hover("#eh-list li.go");
   await page.waitForFunction(() => !!document.querySelector('#overlay g[data-layer="ring"]')?.dataset.box);
   const ringed = await page.evaluate(() => { const g = document.querySelector('#overlay g[data-layer="ring"]'); return { box: g.dataset.box, colour: getComputedStyle(g.querySelector("ellipse")).stroke }; });
-  check(ringed.box === "120,100,420,280" && ringed.colour === "rgb(255, 0, 255)", "a row's hover rings the book it is about, in the study's own colour, round the corners as dragged", ringed);
+  check(ringed.box === [dragged[0][0], Math.min(dragged[0][1], 100), 300, 280].join() && ringed.colour === "rgb(255, 0, 255)", "a row's hover rings the book it is about, in the study's own colour, round the corners as dragged", ringed);
   await page.mouse.move(5, 5);
   for (let i = 0; i < 3; i++) await page.click("#zoom-out");
   await page.click('.bs-verdicts [data-do="right"]');
@@ -475,17 +547,19 @@ try {
   // Edit History floats over the photo's right side, where the next clicks are: it is switched off
   await page.uncheck("#gt-history-on");
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
-  check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add", "right-click off every book offers only Add a book");
-  await page.click('#bs-menu [data-do="add"]');
+  check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here", "right-click off every book offers only Add a book");
+  await page.click('#point-menu .item:text-is("Add a book here")');
   await page.waitForFunction(() => $(".bs-item input")?.value === "Title 240x40");
   check((await books(page)).length === 4 && (await rows())[0] === "3/4 Books", "Add a book here boxes a book at the click, sized as the books found, and reads it as one more book", await rows());
   check(await settledSelected(), "a book added here opens with its title focused and all its text selected, to retype", await titleState());
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
-  await page.click('#bs-menu [data-do="delete"]');
+  await page.click('#point-menu .item:text-is("Delete this book")');
   check((await books(page)).length === 3 && (await rows())[0] === "3/3 Books", "Delete this book takes an added book away", await rows());
+  const tagged = await page.evaluate(() => pyCalls);
+  check(tagged.length && tagged.every((x) => x === "run"), "a book flipped, dragged or added is straightened and labelled in the page, asking Python for nothing but Find books' run", tagged);
   // a book can be added over a box already drawn: a box the finder drew over two books hides one of them
   await page.mouse.click(...(await toScreen(30, 150)), { button: "right" });
-  check(await page.$$eval("#bs-menu:not([hidden]) button:not([hidden])", (b) => b.map((x) => x.dataset.do).join()) === "add,flip,delete", "right-click on a book offers Add a book too, with Flip and Delete");
+  check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here,Flip upside down,Delete this book", "right-click on a book offers Add a book too, with Flip and Delete");
   await page.keyboard.press("Escape");
   await page.click('[data-do="draw"]');
   for (const [x, y] of [[330, 60], [380, 60], [380, 280], [330, 280]]) await page.mouse.click(...(await toScreen(x, y)));
@@ -502,14 +576,14 @@ try {
   const gt = await saved(page, "#gt-export");
   const [b1, b2, b3, b4] = gt.doc.books;
   check(gt.name === "shelf_books_gt.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
-    && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[1][0] === 420 && b3.proposed.corners[1][0] === 300 && b4.source === "missed" && b4.corners[0].join() === "330,60" && !b4.proposed,
+    && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[0][0] === dragged[0][0] && b3.proposed.corners[0][0] === 120 && b4.source === "missed" && Math.abs(b4.corners[0][0] - 330) < 1 && Math.abs(b4.corners[0][1] - 60) < 1 && !b4.proposed,
   "Submit's file carries each book in the order they stand: its verdict, corners (past the photo's edge where dragged there), turn and text, and what the finder and the reader proposed", gt.doc);
   check(gt.doc.books.map((b) => b.id).join() === "b2,b1,b3,u2" && gt.doc.none_missed === true && gt.doc.books.every((b) => b.verdict === "right"),
     "each book carries its id, the finder's b1, b2, b3 and the tagger's own kind, u1 taken by the book added and deleted again; none missed is in the file", gt.doc.books.map((b) => b.id));
   const kinds = gt.doc.history.actions.map((a) => a.type);
   check(gt.doc.history.replay === "verified" && kinds[0] === "open" && kinds[1] === "run" && kinds.includes("move-corners") && kinds.includes("flip") && kinds.includes("add") && kinds.includes("delete")
     && kinds.includes("none-missed") && kinds.includes("read") && !kinds.includes("set-text-per-key"), "the file's history replays to it, every GT action in order", kinds);
-  const typedOnce = gt.doc.history.actions.filter((a) => a.text?.startsWith("הארי"));
+  const typedOnce = gt.doc.history.actions.filter((a) => (a.text ?? a.fields?.title)?.startsWith("הארי"));
   check(typedOnce.length === 1 && typedOnce[0].type === "approve", "the Hebrew title filled in and marked right is one GT action, whatever the keys it took", typedOnce);
   check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
   // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again
@@ -551,7 +625,7 @@ try {
   await page.click("#gt-start");
   await page.evaluate(() => document.activeViewTransition?.finished);
   await page.mouse.click(...(await toScreenOf(page, 350, 150)), { button: "right" });
-  await page.click('#bs-menu [data-do="add"]');
+  await page.click('#point-menu .item:text-is("Add a book here")');
   await page.waitForFunction(() => $(".bs-item input")?.value && $("#status").textContent === "Book read again.");
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books", "a book is added on a photo where no book was found yet", [await books(page), await rowsOf(page)]);
   check((await history(page)).join() === "Read a title again,Added a missed book,Ground truth from the photo alone, before Find books, no history,Image opened" && await unsaved(page) === 2,

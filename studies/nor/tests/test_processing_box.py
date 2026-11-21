@@ -1,15 +1,13 @@
-"""req/nor/find/settings, req/nor/layout: the Processing box before any image, its settings and algorithm note folded,
-the filters folded on their own after the settings, each finder
-listed with its icon, the note titled for the chosen algorithm, its steps drawn as a nested list, and its precision
-and recall before any filter told apart from the list's after the filters. Drives web/ in headless Chromium with a
+"""req/nor/find/nors-only, req/nor/layout: the Processing box before any image, its algorithm note folded and no
+setting, filter or preset in it, each finder listed with its icon, the note titled for the chosen algorithm, its steps
+drawn as a nested list, and its precision and recall as the list gives them. Drives web/ in headless Chromium with a
 stand-in worker answering the study's real ready() (processing_box_driver.mjs)."""
-import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
+from drivers import run_driver
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NODE = shutil.which('node')
@@ -20,11 +18,6 @@ pytestmark = pytest.mark.full
 
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_processing_box_explains_each_algorithm(tmp_path):
-    import controls, json
     ready = tmp_path / 'ready.json'
-    ready.write_text(json.dumps(controls.listing()))
-    r = subprocess.run([NODE, os.path.join(HERE, 'processing_box_driver.mjs'), str(ready)], capture_output=True, text=True, timeout=120)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    ready.write_text('{}')
+    run_driver(os.path.join(HERE, 'processing_box_driver.mjs'), str(ready), timeout=120)

@@ -29,13 +29,19 @@
 #overlay { overflow: visible; }
 .bs-corner { fill: #ffd400; stroke: #000; stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: move; }
 #scroller.bs-drawing { cursor: crosshair; }
-.bs-menu { position: absolute; z-index: 6; display: flex; flex-direction: column; min-width: 160px; padding: 4px; border-radius: 6px;
-  background: var(--panel, #fff); color: var(--text, #000); box-shadow: 0 4px 16px #0006; }
-.bs-menu[hidden] { display: none; }
-.bs-menu button { text-align: left; border: 0; background: none; padding: 6px 10px; cursor: pointer; }
-.bs-menu button[hidden] { display: none; }
-.bs-menu button:hover { background: var(--hover, #0001); }
 #bs-found:empty { display: none; }
 /* each button's key, in small type (req/shelves/truth/keys) */
 .bs-item kbd.key-on { font-size: 10px; padding: 0 4px; margin-left: 4px; opacity: 0.75; vertical-align: 1px; }
 .bs-confirm { margin: 2px 0; }
+/* a book's fields (req/shelves/truth/fields): each box led by its letter in its colour, the colour also outlining
+   where the reader read it on the picture; the letter, not the colour alone, says which field it is */
+.bs-fields { display: flex; flex-direction: column; }
+.bs-field { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.bs-field input[type="text"] { flex: 1; margin: 0; border-left: 4px solid var(--field); }
+.bs-chip { flex: none; width: 1.6em; text-align: center; font-weight: 700; font-size: 0.85em; border-radius: 4px; padding: 2px 0;
+  background: #000; color: var(--field); }
+.bs-swap { align-self: center; border: 0; background: none; padding: 0 6px; line-height: 1; font-size: 0.9em; opacity: 0.6; cursor: pointer; }
+.bs-swap:hover { opacity: 1; }
+.bs-add { display: flex; gap: 12px; font-size: 0.8em; margin: 2px 0 4px; }
+.bs-add:empty { display: none; }
+.bs-add a { cursor: pointer; opacity: 0.75; }

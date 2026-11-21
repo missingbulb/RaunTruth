@@ -25,6 +25,8 @@ def segment_tl(caspr, nav, bm, p=PT):
     glab, _ = ndi.label(green, EIGHT); gsz = np.bincount(glab.ravel())
     lens = [max(sl[0].stop - sl[0].start, sl[1].stop - sl[1].start) / 2
             for i, sl in enumerate(ndi.find_objects(glab)) if sl is not None and gsz[i + 1] >= p['min_green']]
+    if not lens:
+        return nor3.nothing_found()
     unit = float(np.median(lens)); H, W = cn.shape
     # Full-image arrays are dropped as soon as they are done with: the page's WebAssembly memory
     # never shrinks, so the tab keeps this function's peak for good.
@@ -138,4 +140,3 @@ def segment_tl(caspr, nav, bm, p=PT):
 
 
 # the settings the page shows first for this finder; the rest sit under Advanced
-segment_tl.MAIN = ('green_frac', 'red_frac', 'win_u', 'd_u', 'half', 'g_reach_u')

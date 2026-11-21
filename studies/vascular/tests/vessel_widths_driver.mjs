@@ -7,24 +7,18 @@
 // look right waits for a drawn vessel's width, marks the rest looked at and does the area; the export carries each
 // width and still names the estimates unchecked. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_widths_driver.mjs STUDIES [SHOTS_DIR]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { writeTiff } from "../../../web/tiff_file.js";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, legend, legendKeys } from "./stand_in.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { asTagger } from "../../../web-tests/tagger.mjs";
+import { serve, atStage, legend, legendKeys } from "./stand_in.mjs";
+import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { frames as framesOf, viewDrawn } from "../../../web-tests/page_frames.mjs";
+import { pw, launch, check } from "../../../web-tests/harness.mjs";
+import { orMissed } from "../../../web-tests/page_until.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies, shots] = process.argv.slice(2);
 
@@ -57,18 +51,16 @@ const model = {
     via: [{ x: (X0 + X1) / 2, y: v.y, z: FOCUS, ...(v.r && { r: v.r }) }] })),
   reviewed_regions: [],
 };
-const site = await serve(repo, studies, model, "GT");
+const site = await serve(studies, model);
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+atStage(browser, "GT");
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1, acceptDownloads: true });
 await asTagger(ctx);
-await ctx.route(offSite(site.origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
 page.setDefaultTimeout(15000);
 
 const look = () => page.evaluate(() => window.vascular.model().widths);
@@ -76,7 +68,7 @@ const doc = () => page.evaluate(() => window.vascular.model().model);
 const frames = () => framesOf(page);
 // the model canvas's pixel at a place on it, [r, g, b]
 const pixel = (x, y) => page.evaluate(([x, y]) => { const c = document.querySelector("#mcv"), k = c.width / c.clientWidth;
-  return [...c.getContext("2d").getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
+  return [...testCopy(c).getImageData(Math.floor(x * k), Math.floor(y * k), 1, 1).data].slice(0, 3); }, [x, y]);
 const MAGENTA = ([r, g, b]) => r > 180 && b > 150 && g < 140, AMBER = ([r, g, b]) => r > 180 && g > 110 && b < 90;
 const near = (rgb, want) => rgb && want(rgb);
 // a vessel of the look by its line's y in µm
@@ -165,7 +157,7 @@ try {
   // resting on a vessel opens the lens beside it, about three slices at its depth, the brightness across it
   const [ex, ey] = screen(70, 40, w);
   await page.mouse.move(ex, ey);
-  await page.waitForFunction(() => !!window.vascular.model().widths.lens).catch(() => {});
+  await orMissed(page.waitForFunction(() => !!window.vascular.model().widths.lens));
   w = await look();
   check(!!w.lens && w.lens.vessel === est.n && w.lens.slices.join() === `${FOCUS - 1},${FOCUS + 1}` && w.lens.profile >= 20 && w.lens.half > 0,
     `resting on a vessel opens its lens, slices ${FOCUS}±1, the brightness across it with half its height: ${JSON.stringify(w.lens)}`);
@@ -195,6 +187,7 @@ try {
   check(e.width?.how === "nudge" && Math.abs(e.width.um - 3.25) < 1e-9 && !edgeAt(await doc(), 90).width && e.r_a === 1.5,
     `+ makes the selected vessel 0.25 µm wider than its estimate, not the one under the pointer, the estimate untouched: ${JSON.stringify(e.width)}`);
   w = await look();
+  await viewDrawn(page);
   check(vesselAt(w, 40).kind === "set" && near(await pixel(...vesselAt(w, 40).rims[0]), AMBER) && /3\.3 µm|3\.25 µm/.test((await card()).text), `... drawn amber, the box saying so: ${(await card()).text}`);
   await page.click("#w-narrower"); await page.click("#w-narrower");
   e = edgeAt(await doc(), 40);

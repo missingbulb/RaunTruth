@@ -6,23 +6,16 @@
 // actions at the click and forgotten when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
 //   node tests/gt_actions_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
+
 import { asTagger } from "../../../web-tests/tagger.mjs";
 import { localStudy } from "../../../web-tests/local_study.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -30,38 +23,31 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
-
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  const f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/answers/": { dir: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, more) => { if (!ok) { console.error("FAILED: " + what, more === undefined ? "" : JSON.stringify(more)); await done(1); } console.log("ok: " + what); };
 const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json"), "utf8"));
 
 async function open(ctx) {
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await loadImage(page);
@@ -73,8 +59,7 @@ async function loadImage(page) {
 }
 async function newContext(init) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
-  await asTagger(ctx, { apiKey: "test-key" });
-  await ctx.route(offSite(origin), (r) => r.abort());
+  await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   await localStudy(ctx, "nor");
   return ctx;
@@ -83,7 +68,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 async function find(page) {
   await unfold(page, "#processing-box");
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden && !document.querySelector("button.working"));
+  await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working"));
 }
 // the log as Edit History words it, newest first, the actions not yet saved, and what the page reads of the model
 const rows = (page) => page.$$eval("#eh-list .what", (h) => h.map((x) => x.textContent.trim()));
@@ -173,7 +158,7 @@ try {
 
   // an added NoR has an id of its own kind, and the next is never the id of one removed
   const mid = await page.evaluate(() => { const v = $("#scroller").getBoundingClientRect(), b = $("#base").getBoundingClientRect(); return [(Math.max(v.left, b.left) + Math.min(v.right, b.right)) / 2, (Math.max(v.top, b.top) + Math.min(v.bottom, b.bottom)) / 2]; });
-  const addAt = async () => { await page.mouse.click(...mid, { button: "right" }); await page.click("#ctx button"); await settle(page); };
+  const addAt = async () => { await page.mouse.click(...mid, { button: "right" }); await page.click('#point-menu [role="menuitem"]'); await settle(page); };
   await addAt();
   await check(await page.evaluate(() => st.added.map((a) => a.id).join()) === "u1" && /^Added a NoR at \d+, \d+$/.test((await rows(page))[0]), `a NoR is added as u1: "${(await rows(page))[0]}"`, await rows(page));
   await check(await unsaved(page) === before + 6, "in one GT action", await unsaved(page));
@@ -231,12 +216,12 @@ try {
   await check(JSON.stringify(back) === JSON.stringify({ ...kept, count: 0 }) || JSON.stringify([back.forced, back.edits, back.added, back.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]),
     "Load draft brings back the votes, the lengths, the added NoRs and the checked areas", { back, kept });
   const drawn = await page.evaluate(() => ({ groups: document.querySelectorAll("#overlay > g[data-i] .hit").length, outlines: [...document.querySelectorAll("#overlay > g[data-i] path")].filter((p) => p.getAttribute("d")).length, find: $("#find").disabled,
-    filtersInert: $("#filters").inert, rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
-  await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find && drawn.filtersInert, "each candidate is drawn from its box, with no outline, Find Candidates is on and the filters wait for it", drawn);
+    rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
+  await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find, "each candidate is drawn from its box, with no outline, and Find Candidates is on", drawn);
   await page.click("#gt-start");
   await settle(page);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
   const again = await read(page);
   await check(JSON.stringify([again.forced, again.edits, again.added, again.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]) && await page.evaluate(() => [...document.querySelectorAll("#overlay > g[data-i] path")].some((p) => p.getAttribute("d"))),
     "Find Candidates again keeps every id by place, so the votes and lengths stay, and the outlines are drawn", { again, kept });
@@ -299,12 +284,10 @@ try {
     && await page.evaluate(() => st.order.length === nor.model().cands.length + nor.model().deleted.length),
     "each as a GT action of the log, the old thumbs down a delete of its candidate, and no candidate out of the model", { lrows, deleted: lm.deleted.map((c) => c.id) });
   await check((await keys(page)).length === 4, "the old keys are kept until a draft holds them", await keys(page));
-  // a filter moved is a run again: what was loaded stays, by id
-  const ran = await page.evaluate(() => nor.model().meta.filters.off.length);
-  await page.evaluate(() => { const c = document.querySelector("#filters .filter input[type=checkbox]"); c.checked = !c.checked; c.dispatchEvent(new Event("change")); });
-  await page.waitForFunction((n) => nor.model().meta.filters.off.length !== n, ran);
+  // Find Candidates again: what was loaded stays, by id
+  await find(page);
   const after = await read(page);
-  await check(JSON.stringify(after) === JSON.stringify(got) && await page.evaluate(() => nor.model().deleted.length) === 1, "a filter switched after it runs again and keeps every earlier vote, length, added NoR and area", { after, got });
+  await check(JSON.stringify(after) === JSON.stringify(got) && await page.evaluate(() => nor.model().deleted.length) === 1, "Find Candidates after it runs again and keeps every earlier vote, length, added NoR and area", { after, got });
   await page.click("#gt-undo");
   await page.click("#gt-undo");
   await check(JSON.stringify((await read(page)).areas) === "[3]", "and Undo takes back the last of them alone", await read(page));

@@ -17,13 +17,41 @@
     "id": "fixed-wait-in-test",
     "on_fail": "block",
     "failureMessage": "a test that sleeps a fixed time guesses how long the page takes: too short on a slow runner, so it flakes, and wasted on every fast one",
-    "fix": "wait for what the next check reads, hold a stand-in's answer with held(), or move ctx.clock; else end the line `// waits on purpose: <reason>`, or `// bounds a hang: <reason>`",
+    "fix": "wait for what the next check reads, hold a stand-in with held(), or move ctx.clock; else mark it `// waits on purpose (<listed kind>): <why>` or `// bounds a hang: <why>`",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.(m?js|py)$/",
     "matchLines": [
       {
         "match": "/\\.waitForTimeout\\(|\\bawait\\s+pause\\(|\\bsetTimeout\\(|\\btime\\.sleep\\(/",
         "what": "waits a fixed time instead of for what it needs: {match}",
-        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)|(\\/\\/|#)\\s*(waits on purpose|bounds a hang):/"
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)|(\\/\\/|#)\\s*(waits on purpose \\((no event|user activation|a measured rate|a slow computer)\\)|bounds a hang):/"
+      }
+    ]
+  },
+  {
+    "id": "browser-from-harness",
+    "on_fail": "block",
+    "failureMessage": "a browser a test launches itself misses the harness: the outside systems' fakes, and the check that the run wrote no warning or error it did not expect",
+    "fix": "launch through launch() or keptContext() from web-tests/harness.mjs",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!harness\\.mjs$)[^/]+\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\.(launch|launchPersistentContext)\\(/",
+        "what": "launches a browser outside web-tests/harness.mjs: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
+    "id": "outside-systems-faked-once",
+    "on_fail": "block",
+    "failureMessage": "an outside system answered by one test's own route is a second fake of it, which drifts from the one every other test runs against",
+    "fix": "answer it in its fake under web-tests/fakes/, through that fake's own knobs; a new fake is the owner's call. A reserved .example host may stay",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/[^/]+\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\.route\\(\\s*([\"'`\\/]\\^?https?:|[A-Z][A-Z_]{2,}\\b)/",
+        "what": "routes an outside address outside web-tests/fakes/: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\.example\\b/"
       }
     ]
   },
@@ -31,13 +59,74 @@
     "id": "frame-wait-in-one-file",
     "on_fail": "block",
     "failureMessage": "a frame wait copied into each driver drifts: one waits one frame, the next two, and nobody can say which a page needs",
-    "fix": "import frames(page, n) from web-tests/page_frames.mjs; where a wait in the page itself is needed, end the line `// waits on purpose: <reason>`",
+    "fix": "import frames(page, n) from web-tests/page_frames.mjs; where a wait in the page itself is needed, end the line `// waits on purpose (<kind>): <reason>`",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!page_frames\\.mjs$).*\\.m?js$/",
     "matchLines": [
       {
         "match": "/requestAnimationFrame\\(\\s*(\\(\\)|\\w+)\\s*=>\\s*(\\{\\s*)?\\w*\\(?\\s*requestAnimationFrame\\(|requestAnimationFrame\\(\\s*(ok|r|done|resolve)\\s*\\)/",
         "what": "waits for frames outside web-tests/page_frames.mjs: {match}",
-        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*waits on purpose:/"
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*waits on purpose( \\([^)]*\\))?:/"
+      }
+    ]
+  },
+  {
+    "id": "counted-wait",
+    "on_fail": "block",
+    "failureMessage": "a loop waiting so many frames for a condition is a timeout counted in frames: a loaded runner draws them before the work ends, and the next check reads unfinished work",
+    "fix": "wait for the work itself: idle(page) from web-tests/page_until.mjs once the page's work is in flight, or until(page, fn) for a state the page shows",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/\\bfor\\s*\\([^;]*;\\s*\\w+\\s*<=?\\s*\\d+\\s*&&[^;]*;[^)]*\\)\\s*\\{?\\s*await\\s+(frames|viewDrawn)\\(|\\.waitForFunction\\(\\s*\\(\\)\\s*=>\\s*true\\s*\\)/",
+        "what": "waits a count of frames, or for nothing, instead of for the work: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
+    "id": "swallowed-wait",
+    "on_fail": "block",
+    "failureMessage": "a wait whose miss is swallowed carries on as though its condition came: a sleep in disguise, whose next check fails far from the cause or passes on a page still working",
+    "fix": "wrap the wait in orMissed() from web-tests/page_until.mjs, which says what was not seen and resolves to null, or let the wait fail the test",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/.*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/(\\.waitFor(Function|Selector|Event|Response|Request|URL|LoadState)|\\buntil|\\bidle)\\(.*\\.(catch\\(\\s*\\(\\)\\s*=>\\s*(\\{\\s*\\}|null|false|undefined|0)\\s*\\)|then\\(\\s*\\(\\)\\s*=>\\s*true\\s*,\\s*\\(\\)\\s*=>\\s*false\\s*\\))/",
+        "what": "swallows a wait's miss: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      },
+      {
+        "match": "/^\\s*([})\\]]|&&|\\|\\||null\\b|[?:]).*\\)\\.(catch\\(\\s*\\(\\)\\s*=>\\s*(\\{\\s*\\}|null|false|undefined|0)\\s*\\)|then\\(\\s*\\(\\)\\s*=>\\s*true\\s*,\\s*\\(\\)\\s*=>\\s*false\\s*\\))/",
+        "what": "swallows the miss of a wait begun on an earlier line: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
+  },
+  {
+    "id": "hand-rolled-poll",
+    "on_fail": "block",
+    "failureMessage": "a deadline a test keeps for itself is a poll written again: each copy has its own bound and its own wake, and none says what it gave up on",
+    "fix": "wait with until(page, fn) for the page's state or untilHeard(fn, wake) for the test's own, from web-tests/page_until.mjs; else end the line `// waits on purpose (<kind>): <reason>`",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!page_until\\.mjs$).*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/=\\s*Date\\.now\\(\\)\\s*\\+/",
+        "what": "keeps a deadline of its own: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)|\\/\\/\\s*(waits on purpose( \\([^)]*\\))?|bounds a hang):/"
+      }
+    ]
+  },
+  {
+    "id": "deadline-literal",
+    "on_fail": "advise",
+    "failureMessage": "a deadline written as a number guesses how long one wait may take, and a slow runner then needs every such guess found and raised by hand",
+    "fix": "name the kind of wait in web-tests/deadlines.mjs (STEP for a step of the page's own) and use the name; a pytest's driver goes through run()",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!deadlines\\.mjs$).*\\.(m?js|py)$/",
+    "matchLines": [
+      {
+        "match": "/\\btimeout:\\s*\\d|setDefaultTimeout\\(\\s*\\d|\\btimeout\\s*=\\s*\\d/",
+        "what": "writes a deadline as a number: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)/"
       }
     ]
   },
@@ -140,6 +229,36 @@
         "match": "/\\bdata\\/raw\\b|['\"]data['\"]\\s*,\\s*['\"]raw['\"]/",
         "what": "reads a study's downloaded data/raw: {match}",
         "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*|#)/"
+      }
+    ]
+  },
+  {
+    "id": "page-file-untracked",
+    "on_fail": "block",
+    "since": "2026-11-20",
+    "scope": "work",
+    "failureMessage": "the site build ships what git ls-files lists, so a page file left untracked is missing from the build every page test runs against",
+    "flagUntrackedFilesMatching": [
+      {
+        "match": "/^(web|studies\\/[^/]+\\/web)\\//",
+        "what": "{path} is untracked, so the build the page tests run omits it",
+        "fix": "git add {path}, then re-run the page tests"
+      }
+    ]
+  },
+  {
+    "id": "merge-sha-full",
+    "on_fail": "block",
+    "since": "2026-11-20",
+    "scope": "action",
+    "failureMessage": "merge_pull_request refuses an expectedHeadSha that is not the full 40-character SHA",
+    "guardToolCalls": [
+      {
+        "tool": "mcp__github__merge_pull_request",
+        "inputField": "expectedHeadSha",
+        "match": "/^([0-9a-fA-F]{1,39}|[0-9a-fA-F]{41,}|.*[^0-9a-fA-F].*)$/",
+        "what": "an expectedHeadSha of \"{match}\"",
+        "fix": "pass the full SHA from git rev-parse HEAD"
       }
     ]
   }

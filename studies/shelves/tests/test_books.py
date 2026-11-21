@@ -387,8 +387,7 @@ def test_books_lying_cover_up_are_boxed_as_covers_and_the_planks_are_not():
 
 def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkeypatch):
     """The page's Pyodide installs only study.json's packages: a module of any other installed distribution is
-    blocked here, as it is missing there. Every version the page offers, run end to end on stand-in services, and the
-    straightening the tagger's readers ask for."""
+    blocked here, as it is missing there. Every version the page offers, run end to end on stand-in services."""
     import importlib
     import importlib.abc
     import importlib.metadata
@@ -416,7 +415,6 @@ def test_the_finder_runs_on_only_the_packages_the_page_installs(tmp_path, monkey
         for version, run in study.VERSIONS.items():
             found = drive(run(rgb), STAND_IN)['books']
             assert found, f'the photo has books for {version} to box'
-            study.STAGES['straighten'](rgb, None, corners=[b['corners'] for b in found])
         error = None
     except ModuleNotFoundError as e:
         error = e

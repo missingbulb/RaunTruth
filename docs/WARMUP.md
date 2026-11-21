@@ -120,11 +120,22 @@ The build assembles under `dev/build/site/` exactly what is published (req/shell
 site's pages at the top, the app under `app/` and the studies under `studies/`, as rauntruth.com serves
 them (req/shell/site/app-address); serving the repo root instead and
 opening `/web/` shows the page with every file of every study reachable.
-The full set (`python3 -m pytest web-tests studies -n auto`) also needs Node, Pyodide
-(`npm i --prefix web-tests pyodide@314.0.7`, as CI does) and Playwright's Chromium. `-n auto` runs one
-pytest-xdist worker per core, as CI does: most of the full set waits on browsers and timers, so it takes about
-3 minutes instead of 10. Each test keeps its files under its own `tmp_path`; the one writing into the tree,
-the offline test's build, writes each file whole.
+The full set (`python3 -m pytest web-tests studies -n auto --dist worksteal`) also needs Node, the page's libraries
+(`python3 web-tests/page_libraries.py`) and Playwright's Chromium. `-n auto` runs one pytest-xdist worker per core,
+as CI does, and `worksteal` hands a worker that is done another's waiting tests, so one long file does not hold the
+run. Each test keeps its files under its own `tmp_path`; the one writing into the tree, the offline test's build,
+writes each file whole.
+
+Every test as CI runs it is one command in its engine's test image, with no way off the machine
+(`dev/tools/test-image/`). Build Chromium's with `python3 dev/tools/test-image/inputs.py --context /tmp/inputs && docker
+build --build-arg ENGINE=chromium -t rauntruth-tests -f /tmp/inputs/dev/tools/test-image/Dockerfile /tmp/inputs`, or
+pull CI's, `ghcr.io/missingbulb/rauntruth/tests:<tag>-chromium` with the tag `inputs.py --tag` prints; then:
+
+```
+sh dev/tools/test-image/run.sh rauntruth-tests
+```
+
+`firefox` or `webkit` in place of `chromium`, and as run.sh's second argument, run the set on that engine.
 
 ## Map
 

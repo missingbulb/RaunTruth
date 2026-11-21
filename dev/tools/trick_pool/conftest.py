@@ -3,4 +3,4 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build'))
-from pytest_ci import pytest_configure, pytest_runtest_makereport
+from pytest_ci import pytest_configure, pytest_runtest_makereport, pytest_sessionstart

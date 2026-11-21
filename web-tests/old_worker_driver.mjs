@@ -3,44 +3,39 @@
 // ends that registration, and /app/ registers its own.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/old_worker_driver.mjs SITE OLD_SW
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
+import { until, orMissed } from "./page_until.mjs";
+import { pw, keptContext, check, expecting } from "./harness.mjs";
+import { siteHeaders } from "./site_headers.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
-import { until } from "./page_until.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [site, oldSw] = process.argv.slice(2);
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let before = true;
-// before: the app at the top, registering the old worker; after: the built site, as Cloudflare serves it
+// before: the app at the top, registering the old worker; after: the built site, as Cloudflare serves it, with the
+// headers its _headers file names
+const HEADERS = siteHeaders(site);
 const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (before) {
     if (u === "/sw.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(fs.readFileSync(oldSw)); }
-    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
+    if (u === "/") { r.writeHead(200, { "content-type": "text/html" }); return r.end('<!doctype html><title>the app at the top</title><script>navigator.serviceWorker.register("sw.js")</script>'); }
     r.writeHead(404); return r.end();
   }
   let f = path.join(site, u);
   if (u.endsWith("/")) f = path.join(f, "index.html");
   else if (!fs.existsSync(f) && fs.existsSync(f + ".html")) f += ".html";
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" });
+  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream", ...HEADERS[u] });
   fs.createReadStream(f).pipe(r);
 });
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "old-worker-")), LAUNCH);
+const ctx = await keptContext(pw);
 const page = ctx.pages()[0] || await ctx.newPage();
 const scopes = () => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => new URL(r.scope).pathname));
 try {
@@ -52,14 +47,20 @@ try {
   await page.goto(origin + "/");
   const title = await page.title();
   check(!!(await page.$('a[href="app/"]')), "after: / shows the landing page: " + title);
-  await until(page, async () => !(await navigator.serviceWorker.getRegistrations()).length).catch(() => {});
+  await orMissed(until(page, async () => !(await navigator.serviceWorker.getRegistrations()).length));
   const left = await scopes();
   check(!left.length, "after: the old registration is gone: " + JSON.stringify(left));
-  await page.goto(origin + "/app/");
-  await until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }).catch(() => {});
-  // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
-  const now = await scopes();
-  check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));
+  // Playwright answers a service worker's requests with a test's routes in Chromium alone: elsewhere, once the app's
+  // worker is in control, what the page asks of the CDN through it reaches no fake, fails, and the page says so
+  const throughWorker = (run) => (ENGINE === "chromium" ? run() : expecting(/pyodide|Load failed|NetworkError/, run, { maybe: true }));
+  await throughWorker(async () => {
+    await page.goto(origin + "/app/");
+    await orMissed(until(page, async () => (await navigator.serviceWorker.getRegistrations()).some((r) => new URL(r.scope).pathname === "/app/"), null, { timeout: 15000 }));
+    // the app also registers its address with no slash (req/shell/offline/default), which may land before or after this
+    const now = await scopes();
+    check(now.includes("/app/") && now.every((s) => s === "/app/" || s === "/app"), "after: /app/ registers its own worker, none outside the app: " + JSON.stringify(now));
+    await page.close();
+  });
 } catch (e) {
   failed = true; console.error("FAILED:", e.message);
 } finally {

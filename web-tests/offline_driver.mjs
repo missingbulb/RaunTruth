@@ -17,24 +17,19 @@
 // TIFF: a small z-stack the vascular study can open. Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/offline_driver.mjs SITE TIFF [SHOTS]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
 import path from "node:path";
-import { ENGINE, LAUNCH } from "./engine.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { until } from "./page_until.mjs";
+import { until, orMissed } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
+import { pw, launch, keptContext, expecting, check } from "./harness.mjs";
+import { siteHeaders } from "./site_headers.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
+import { cdnFile } from "./fakes/cdn.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [site, tiffPath, shots] = process.argv.slice(2);
 const TIFF = fs.readFileSync(tiffPath);
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png") }); };
@@ -49,23 +44,25 @@ const vascularServed = JSON.stringify({ ...vascular, web: { ...vascular.web, off
 const servedList = (list) => ({ ...list, files: list.files.map((f) => f.path === "../studies/vascular/study.json" ? { ...f, sha256: crypto.createHash("sha256").update(vascularServed).digest("hex") } : f) });
 const ROOT = vascular.root.match(/folders\/([\w-]+)/)[1];
 const SUB = "acmefolder0000000002";
-const FILES = { [ROOT]: [{ id: "acmestack00000000001", name: "stack one.tif" }, { id: SUB, name: "sub", folder: true }], [SUB]: [{ id: "acmestack00000000002", name: "stack two.tif" }] };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".whl": "application/zip" };
+// what the browser and the page say of a request the network does not carry: each case that takes the network away
+const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|ERR_FAILED|ERR_EMPTY_RESPONSE|ERR_CONNECTION|Failed to fetch|not up to date/;
 let down = false, pyDown = false; // pyDown: the network gone for the study's Python modules alone
 // release: a release landed while the page was offline, one of its files slow to arrive
 let release = false;
 const slowFile = held();
+// the site's list of its files asked for while the network is gone, kept unanswered until let go: the page not yet
+// told that the site does not answer
+let unanswered = null;
 // as Cloudflare serves the site: /<name> is <name>.html, a folder its index.html, a folder's address with no slash
 // redirected to it with one and a file's with one to it without, the headers _headers names added; and an unlisted
 // study's address in the app the app's page too, as the tests' repo server serves it, so the fixture study runs
-const HEADERS = {};
-const headersFile = path.join(site, "_headers");
-for (const [, at, lines] of (fs.existsSync(headersFile) ? fs.readFileSync(headersFile, "utf8") : "").matchAll(/^(\/\S*)\n((?:[ \t]+.*\n?)*)/gm))
-  HEADERS[at] = Object.fromEntries(lines.split("\n").filter((l) => l.trim()).map((l) => l.trim().split(/:\s*/, 2)));
+const HEADERS = siteHeaders(site);
 const server = http.createServer((q, r) => {
   const url = new URL(q.url, "http://x");
   let u = decodeURIComponent(url.pathname);
+  if (down && unanswered && u === "/app/offline.json") return void unanswered.hold().then(() => q.socket.destroy());
   if (down || (pyDown && u.endsWith(".py"))) return q.socket.destroy();
   const at = path.join(site, u), folder = fs.existsSync(at) && fs.statSync(at).isDirectory();
   if (folder !== u.endsWith("/") && (folder || fs.existsSync(at.replace(/\/$/, "") + ".html") || /^\/app\/[\w-]+\/$/.test(u))) {
@@ -94,30 +91,22 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 
 // a profile of its own: a browser's private window can install nothing
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "offline-"));
-const ctx = await pw[ENGINE].launchPersistentContext(profile, { ...LAUNCH, viewport: { width: 1400, height: 900 } });
+const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
 // the page's clock, which runs as the real one does, so the test can move it past a wait on the page's own timers
 await ctx.clock.install();
 // the page asks whether the site answers every 30 s while the browser says it is online, every 5 s while offline
 // (web/offline.js)
 const pastHeartbeat = () => ctx.clock.fastForward(30000), pastOfflineRetry = () => ctx.clock.fastForward(5000);
-let driveDownloads = 0;
-await ctx.route("https://www.googleapis.com/**", (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/drive\/v3\/files\/?(.*)$/)[1];
-  const cors = { "access-control-allow-origin": "*" };
-  if (!id) {
-    const parent = (u.searchParams.get("q") || "").match(/'([^']+)' in parents/)[1];
-    const files = (FILES[parent] || []).map((f) => f.folder ? { id: f.id, name: f.name, mimeType: "application/vnd.google-apps.folder" }
-      : { id: f.id, name: f.name, mimeType: "image/tiff", size: String(TIFF.length) });
-    return route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify({ files }) });
-  }
-  if (u.searchParams.get("alt") === "media") { driveDownloads++; return route.fulfill({ status: 200, headers: { ...cors, "content-type": "image/tiff" }, body: TIFF }); }
-  const f = Object.values(FILES).flat().find((x) => x.id === id);
-  return route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify({ id, name: f?.name, mimeType: "image/tiff" }) });
-});
+// the study's folder on the Drive fake: a stack, and a subfolder holding another
+const drive = googleDrive(ctx);
+drive.file({ id: "acmestack00000000001", name: "stack one.tif", parent: ROOT, bytes: TIFF, mimeType: "image/tiff" });
+drive.folder({ id: SUB, name: "sub", parent: ROOT });
+drive.file({ id: "acmestack00000000002", name: "stack two.tif", parent: SUB, bytes: TIFF, mimeType: "image/tiff" });
+const driveDownloads = () => drive.calls.filter((c) => c.kind === "download").length;
+// a file beyond its Python the study names, on jsDelivr
+cdnFile(ctx, BEYOND, "export {};", "text/javascript");
 const page = ctx.pages()[0] || await ctx.newPage();
 page.on("pageerror", (e) => console.log("pageerror:", e.message));
 page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") console.log(`console ${m.type()}:`, m.text()); });
@@ -137,19 +126,22 @@ try {
   // a first visit, no copy of the site kept yet, the network dropping as the study's own Python modules are fetched:
   // the status says what the network's going stops, never Python's traceback
   {
-    const fresh = await pw[ENGINE].launch(LAUNCH), first = await fresh.newPage();
-    pyDown = true;
-    await first.goto(origin + "/app/fixture");
-    await count(first);
-    // the status and the spinner read at the one moment the failure is told: the site still answering, the page
-    // soon takes the network as back and tries the Python again, which is its own, later state
-    const seen = await first.waitForFunction(() => {
-      const s = document.querySelector("#status");
-      return /not on this device|Error/.test(s.textContent) && { said: s.textContent, red: s.classList.contains("err"), spin: document.querySelector("#spin").classList.contains("on") };
-    }, null, { timeout: 180000 }).then((h) => h.jsonValue(), () => ({ said: "", red: false, spin: true }));
-    check(/not on this device/i.test(seen.said) && !/Traceback|Error/.test(seen.said) && !seen.red, "the network dropping while the study's modules load says so plainly, not as an error: " + seen.said.slice(-300));
-    check(!seen.spin, "and the spinner stops: nothing is loading any more");
-    await fresh.close(); pyDown = false;
+    const fresh = await launch(pw), first = await fresh.newPage();
+    // the page's requests failing as the network drops
+    await expecting(NETWORK_GONE, async () => {
+      pyDown = true;
+      await first.goto(origin + "/app/fixture");
+      await count(first);
+      // the status and the spinner read at the one moment the failure is told: the site still answering, the page
+      // soon takes the network as back and tries the Python again, which is its own, later state
+      const seen = await first.waitForFunction(() => {
+        const s = document.querySelector("#status");
+        return /not on this device|Error/.test(s.textContent) && { said: s.textContent, red: s.classList.contains("err"), spin: document.querySelector("#spin").classList.contains("on") };
+      }, null, { timeout: 180000 }).then((h) => h.jsonValue(), () => ({ said: "", red: false, spin: true }));
+      check(/not on this device/i.test(seen.said) && !/Traceback|Error/.test(seen.said) && !seen.red, "the network dropping while the study's modules load says so plainly, not as an error: " + seen.said.slice(-300));
+      check(!seen.spin, "and the spinner stops: nothing is loading any more");
+      await fresh.close(); pyDown = false;
+    });
   }
 
   await page.goto(origin + "/app/fixture");
@@ -167,10 +159,10 @@ try {
     }
     return out;
   }, listed);
-  await until(page, async (paths) => {
+  await orMissed(until(page, async (paths) => {
     for (const p of paths) if (!(await caches.match(new URL(p.replace(/(^|\/)index\.html$/, "$1").replace(/\.html$/, ""), location.origin + "/app/").href))) return false;
     return true;
-  }, listed, { timeout: 30000 }).catch(() => {});
+  }, listed, { timeout: 30000 }));
   const left = await missing();
   check(listed.length > 30 && !left.length, `the site's own ${listed.length} files are kept on this device` + (left.length ? `; missing ${left.slice(0, 5)}` : ""));
 
@@ -191,7 +183,7 @@ try {
   const data = await page.$$eval("#offline-files .file-row:not(.python)", (rs) => rs.map((r) => ({ text: r.textContent, on: r.querySelector("input").checked })));
   check(data.some((t) => t.text.includes("stack one.tif")) && data.some((t) => t.text.includes("stack two.tif") && t.text.includes("sub")) && data.every((t) => t.on),
     "the popup lists the images in the study's Drive folder, its subfolder's with their folder, all ticked: " + JSON.stringify(data));
-  check(driveDownloads === 0, "listing the folder downloads no image");
+  check(driveDownloads() === 0, "listing the folder downloads no image");
   await page.waitForFunction(() => /\d/.test(document.querySelector("#offline-go").textContent));
   const py = await page.$eval("#offline-dlg .file-row", (r) => ({ python: r.classList.contains("python"), text: r.textContent, on: r.querySelector("input").checked, held: r.querySelector("input").disabled }));
   check(py.python && /Python/.test(py.text) && /MB/.test(py.text) && py.on && py.held, "its first row is the study's Python, ticked and greyed, with its size: " + JSON.stringify(py));
@@ -216,10 +208,10 @@ try {
   await page.click("#offline-go");
   await page.waitForFunction(() => /available offline/i.test(document.querySelector("#offline-msg").textContent) || /could not/i.test(document.querySelector("#offline-msg").textContent), null, { timeout: 240000 });
   check(/available offline/i.test(await page.textContent("#offline-msg")), "Download ends saying what is on this device: " + (await page.textContent("#offline-msg")));
-  check(driveDownloads === 2, `it downloads the two ticked images (${driveDownloads})`);
+  check(driveDownloads() === 2, `it downloads the two ticked images (${driveDownloads()})`);
   check(await page.evaluate((u) => caches.match(u).then((r) => !!r), BEYOND), "and, with its Python, the files beyond it the study names, kept on this device");
   await page.click("#offline-close");
-  await page.waitForFunction(() => document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }));
   check(!!(await page.$('#storage-list .group[data-group="study:vascular"] summary .offline-mark')) && !!(await page.$('#storage-list .group[data-group="study:vascular"] .make-offline')),
     "the study, its Python and images here, is then marked available offline, and with a Drive folder still offers to fetch more");
   await shot(page, "offline-prepared");
@@ -230,7 +222,7 @@ try {
     window.keptImages = out; return out.length;
   });
   await page.click("#usage-dlg [role=tab][data-tab=memory]"); await page.click("#usage-dlg [role=tab][data-tab=storage]");
-  await page.waitForFunction(() => !document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => !document.querySelector('#storage-list .group[data-group="study:vascular"] summary .offline-mark'), null, { timeout: 10000 }));
   check(keptImages === 2 && !(await page.$('#storage-list .group[data-group="study:vascular"] summary .offline-mark')), "with its Python here and none of its images, the study is not marked");
   await page.evaluate(async () => { const c = await caches.open("nor-images-v1"); for (const [u, r] of window.keptImages) await c.put(u, r); });
 
@@ -242,80 +234,83 @@ try {
   for (let t = 0; t < 20; t++) {
     errors = (await cdp.send("Page.getInstallabilityErrors")).installabilityErrors.map((e) => e.errorId);
     if (!errors.length) break;
-    await page.waitForTimeout(500); // waits on purpose: Chromium tells installability only when asked, with no event to wait on
+    await page.waitForTimeout(500); // waits on purpose (no event): Chromium tells installability only when asked, with no event to wait on
   }
   check(!errors.length, "once asked for, the site is installable" + (errors.length ? ": " + errors.join(", ") : ""));
   await page.keyboard.press("Escape");
 
   // req/shell/offline/default: the network goes
-  await ctx.setOffline(true); down = true;
-  const reached = await page.evaluate(() => fetch("https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide-lock.json?offline-probe").then(() => true, () => false));
-  check(!reached, "offline, nothing the cache lacks is reached, the service worker's own downloads included");
-  await page.goto(origin + "/app/fixture");
-  await page.waitForFunction(() => document.querySelector("#title")?.textContent, null, { timeout: 10000 }).catch(() => {});
-  check(!!(await page.textContent("#title")), "offline, the page opens at its address: " + (await page.textContent("#title")));
-  await count(page); await counted(60000);
-  check(true, "offline, the Python already on this device runs");
-  check(await page.isVisible("#sb-online .off"), "the status bar's online icon shows offline");
-  check(/offline/i.test(await page.getAttribute("#sb-net", "title")), "its tooltip says the page is offline: " + (await page.getAttribute("#sb-net", "title")));
-  // going offline leaves the resources block folded (req/shell/status-bar/resources): the network is a hover away
-  await page.hover("#sb-res-icon");
-  await page.click("#sb-net");
-  check(await page.evaluate(() => document.querySelector("#usage-dlg").open && document.querySelector("#usage-dlg").dataset.tab === "network"), "clicking it still opens the Network tab");
-  check(/offline/i.test(await page.textContent("#net-total")), "whose total says the page is offline: " + (await page.textContent("#net-total")));
-  await page.keyboard.press("Escape");
-  check(await page.$eval("#study-request", (a) => a.getAttribute("aria-disabled") === "true" && /offline/i.test(a.title)), "Submit New Study Request is held, its tooltip saying why");
-  // a click on it opens nothing
-  const popup = page.waitForEvent("popup", { timeout: 1500 }).then(() => true, () => false);
-  await page.evaluate(() => document.querySelector("#study-request").click());
-  check(!(await popup), "offline, Submit New Study Request opens nothing");
-  await shot(page, "offline-page");
+  // the page's requests failing while the network is gone
+  await expecting(NETWORK_GONE, async () => {
+    await ctx.setOffline(true); down = true;
+    const reached = await page.evaluate(() => fetch("https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide-lock.json?offline-probe").then(() => true, () => false));
+    check(!reached, "offline, nothing the cache lacks is reached, the service worker's own downloads included");
+    await page.goto(origin + "/app/fixture");
+    await orMissed(page.waitForFunction(() => document.querySelector("#title")?.textContent, null, { timeout: 10000 }));
+    check(!!(await page.textContent("#title")), "offline, the page opens at its address: " + (await page.textContent("#title")));
+    await count(page); await counted(60000);
+    check(true, "offline, the Python already on this device runs");
+    check(await page.isVisible("#sb-online .off"), "the status bar's online icon shows offline");
+    check(/offline/i.test(await page.getAttribute("#sb-net", "title")), "its tooltip says the page is offline: " + (await page.getAttribute("#sb-net", "title")));
+    // going offline leaves the resources block folded (req/shell/status-bar/resources): the network is a hover away
+    await page.hover("#sb-res-icon");
+    await page.click("#sb-net");
+    check(await page.evaluate(() => document.querySelector("#usage-dlg").open && document.querySelector("#usage-dlg").dataset.tab === "network"), "clicking it still opens the Network tab");
+    check(/offline/i.test(await page.textContent("#net-total")), "whose total says the page is offline: " + (await page.textContent("#net-total")));
+    await page.keyboard.press("Escape");
+    check(await page.$eval("#study-request", (a) => a.getAttribute("aria-disabled") === "true" && /offline/i.test(a.title)), "Submit New Study Request is held, its tooltip saying why");
+    // a click on it opens nothing
+    const popup = orMissed(page.waitForEvent("popup", { timeout: 1500 }));
+    await page.evaluate(() => document.querySelector("#study-request").click());
+    check(!(await popup), "offline, Submit New Study Request opens nothing");
+    await shot(page, "offline-page");
 
-  // the addresses the site redirects online lead where it would: the app's with no slash, a study's with one
-  for (const [from, to] of [["/app", "/app/"], ["/app/vascular/", "/app/vascular"]]) {
-    await page.goto(origin + from).catch(() => {});
-    await page.waitForFunction(() => window.$ && $("#title").textContent, null, { timeout: 10000 }).catch(() => {});
-    const at = new URL(page.url()), styled = await page.evaluate(() => [...document.styleSheets].some((s) => s.cssRules.length)).catch(() => false);
-    check(at.origin === origin && at.pathname === to && styled && !!(await page.textContent("#title").catch(() => "")),
-      `offline, ${from} opens at ${to}, styled and running: ${page.url()}`);
-  }
-  await page.goto(origin + "/app/vascular");
-  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent), null, { timeout: 60000 });
-  check(true, "offline, the prepared study opens");
-  await pressDrive(page);
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length >= 2, null, { timeout: 10000 }).catch(() => {});
-  const kept = await page.$$eval("#remote-list .item .name", (ns) => ns.map((n) => n.textContent));
-  check(kept.includes("stack one.tif") && kept.includes("stack two.tif"), "offline, the Drive dialog lists the images kept here: " + kept.join(", "));
-  await shot(page, "offline-drive");
-  await page.dblclick('#remote-list .item:has-text("stack two.tif")');
-  await page.waitForFunction(() => window.shellForTests.page.get("image")?.name === "stack two.tif", null, { timeout: 60000 }).catch(() => {});
-  check((await page.evaluate(() => window.shellForTests.page.get("image")?.name)) === "stack two.tif", "offline, a kept image opens");
+    // the addresses the site redirects online lead where it would: the app's with no slash, a study's with one
+    for (const [from, to] of [["/app", "/app/"], ["/app/vascular/", "/app/vascular"]]) {
+      await page.goto(origin + from).catch(() => {});
+      await orMissed(page.waitForFunction(() => window.$ && $("#title").textContent, null, { timeout: 10000 }));
+      const at = new URL(page.url()), styled = await page.evaluate(() => [...document.styleSheets].some((s) => s.cssRules.length)).catch(() => false);
+      check(at.origin === origin && at.pathname === to && styled && !!(await page.textContent("#title").catch(() => "")),
+        `offline, ${from} opens at ${to}, styled and running: ${page.url()}`);
+    }
+    await page.goto(origin + "/app/vascular");
+    await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent), null, { timeout: 60000 });
+    check(true, "offline, the prepared study opens");
+    await pressDrive(page);
+    await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length >= 2, null, { timeout: 10000 }));
+    const kept = await page.$$eval("#remote-list .item .name", (ns) => ns.map((n) => n.textContent));
+    check(kept.includes("stack one.tif") && kept.includes("stack two.tif"), "offline, the Drive dialog lists the images kept here: " + kept.join(", "));
+    await shot(page, "offline-drive");
+    await page.dblclick('#remote-list .item:has-text("stack two.tif")');
+    await orMissed(page.waitForFunction(() => window.shellForTests.page.get("image")?.name === "stack two.tif", null, { timeout: 60000 }));
+    check((await page.evaluate(() => window.shellForTests.page.get("image")?.name)) === "stack two.tif", "offline, a kept image opens");
 
-  await page.goto(origin + "/app/nor");
-  await page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 60000 }).catch(() => {});
-  check(/not on this device/i.test(await statusText()) && !/Error/.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
-    "offline, a study whose Python is not here says so before any Run, not as an error: " + (await statusText()));
-  // its Make Available Offline, opened offline: nothing to read yet, Download held
-  await page.click("#user-menu summary");
-  await page.click("#manage-storage");
-  await page.waitForSelector('#storage-list .group[data-group="study:nor"] .make-offline', { state: "attached", timeout: 20000 });
-  await page.$eval('#storage-list .group[data-group="study:nor"] .make-offline', (b) => b.click());
-  await page.waitForSelector("#offline-dlg[open]");
-  await page.waitForFunction(() => /once you are online/.test(document.querySelector("#offline-files").textContent), null, { timeout: 10000 }).catch(() => {});
-  check(/once you are online/.test(await page.textContent("#offline-files")) && (await page.$eval("#offline-go", (b) => b.disabled)),
-    "offline, Make Available Offline says the study's folder waits for the network, Download held");
+    await page.goto(origin + "/app/nor");
+    await orMissed(page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 60000 }));
+    check(/not on this device/i.test(await statusText()) && !/Error/.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
+      "offline, a study whose Python is not here says so before any Run, not as an error: " + (await statusText()));
+    // its Make Available Offline, opened offline: nothing to read yet, Download held
+    await page.click("#user-menu summary");
+    await page.click("#manage-storage");
+    await page.waitForSelector('#storage-list .group[data-group="study:nor"] .make-offline', { state: "attached", timeout: 20000 });
+    await page.$eval('#storage-list .group[data-group="study:nor"] .make-offline', (b) => b.click());
+    await page.waitForSelector("#offline-dlg[open]");
+    await orMissed(page.waitForFunction(() => /once you are online/.test(document.querySelector("#offline-files").textContent), null, { timeout: 10000 }));
+    check(/once you are online/.test(await page.textContent("#offline-files")) && (await page.$eval("#offline-go", (b) => b.disabled)),
+      "offline, Make Available Offline says the study's folder waits for the network, Download held");
 
-  await ctx.setOffline(false); down = false;
+    await ctx.setOffline(false); down = false;
+  });
   // what Download would then fetch depends on whether the study's Python, loading again meanwhile, is all here yet
-  await page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => /Drive folder holds/.test(document.querySelector("#offline-files").textContent) && document.querySelector("#offline-python").textContent, null, { timeout: 40000 }));
   check(/Drive folder holds/.test(await page.textContent("#offline-files")) && !!(await page.textContent("#offline-python")),
     "back online, the open Prepare for Offline popup reads the study's folder and counts again: " + (await page.textContent("#offline-files")) + " " + (await page.textContent("#offline-python")));
   await page.click("#offline-close");
   await page.keyboard.press("Escape");
-  await page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => /^Ready/.test($("#status").textContent), null, { timeout: 240000 }));
   check(/^Ready/.test(await statusText()), "back online, the study whose Python was not here keeps it, with no reload: " + (await statusText()));
   // the browser here still says it is online, as on a plane's Wi-Fi: the page notices the site answering again
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }).catch(() => {});
+  await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
   check(!(await page.isVisible("#sb-online .off")), "back online, the online icon shows online again");
   check(!/offline/i.test(await page.getAttribute("#sb-net", "title")), "and the network's tooltip is its own again");
   check(await page.$eval("#study-request", (a) => !a.hasAttribute("aria-disabled")), "back online, Submit New Study Request is offered again");
@@ -331,36 +326,62 @@ try {
   const drivePath = () => page.textContent("#remote-path");
   down = true;
   await pastHeartbeat();
-  await page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }).catch(() => {});
+  await orMissed(page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }));
   check(await page.isVisible("#sb-online .off"), "mid-session, with the browser still saying online, the page notices the site not answering");
   // req/shell/drive/offline-listing: the folder stays as last listed, what is not kept here greyed
   const greyed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#remote-list .item")].map((b) => [b.querySelector(".name").textContent, b.disabled])));
-  await page.waitForFunction(() => document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }));
   let g = await greyed();
   check(g.sub === true && g["stack one.tif"] === false && !/offline/.test(await drivePath()), "the open Drive dialog then greys the subfolder never listed, the kept image left to open: " + JSON.stringify(g) + " " + (await drivePath()));
   down = false;
   await pastOfflineRetry();
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }).catch(() => {});
+  await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
   check(!(await page.isVisible("#sb-online .off")), "and notices it answering again");
-  await page.waitForFunction(() => document.querySelector("#remote-list .item") && !document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector("#remote-list .item") && !document.querySelector("#remote-list .item:disabled"), null, { timeout: 5000 }));
   g = await greyed();
   check(Object.keys(g).length === 2 && !Object.values(g).some(Boolean), "and the Drive dialog's folder can be opened from again: " + JSON.stringify(g));
   await page.keyboard.press("Escape");
 
+  // the network dies as a study opens, the browser saying online all along, one of its Python's files not on this
+  // device: that file fails before the page learns the site does not answer, and the page says so once it learns
+  const wheels = await page.evaluate(async () => {
+    let n = 0;
+    for (const name of await caches.keys()) {
+      const c = await caches.open(name);
+      for (const q of await c.keys()) if (/\/vendor\/[^/]+\.whl$/.test(new URL(q.url).pathname)) { await c.delete(q); n++; }
+    }
+    return n;
+  });
+  unanswered = held(); down = true;
+  await expecting(NETWORK_GONE, async () => {
+    const failing = orMissed(page.waitForEvent("console", { predicate: (m) => /not kept yet/.test(m.text()), timeout: 60000 }));
+    await page.goto(origin + "/app/nor");
+    const told = await failing;
+    check(wheels > 0 && !!told && !(await page.isVisible("#sb-online .off")), `a file of the study's Python (${wheels} taken off this device) fails while the page still takes the network as there`);
+    unanswered.release();
+    await orMissed(page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 20000 }));
+    check(/not on this device/i.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
+      "once the page learns the site does not answer, it says the study's Python is not here, not as an error: " + (await statusText()));
+    unanswered = null; down = false;
+    await pastOfflineRetry();
+    await orMissed(page.waitForFunction(() => /^Ready/.test(document.querySelector("#status").textContent), null, { timeout: 60000 }));
+    check(/^Ready/.test(await statusText()), "and the site answering again, it keeps that file and says Ready: " + (await statusText()));
+    await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 40000 }));
+  });
+
   // a release lands while the page is offline: back online, the icon says so at once, not once the new copy is in
   down = true;
   await pastHeartbeat();
-  await page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }).catch(() => {});
+  await orMissed(page.waitForSelector("#sb-online .off", { state: "visible", timeout: 40000 }));
   release = true; down = false;
   const back = Date.now();
   await pastOfflineRetry();
-  await page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 15000 }).catch(() => {});
+  await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 15000 }));
   check(!(await page.isVisible("#sb-online .off")), `back online with a release to copy, the online icon shows online within seconds (${Date.now() - back} ms)`);
 } catch (e) {
   failed = true; console.error("FAILED: " + (e.stack || e));
   console.error("status: " + (await statusText().catch(() => "(no page)")));
 } finally {
   await ctx.close(); server.close();
-  fs.rmSync(profile, { recursive: true, force: true });
 }
 process.exit(failed ? 1 : 0);

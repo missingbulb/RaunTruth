@@ -42,11 +42,15 @@ def nor_image(path, side=160, n=25, seed=0):
         for sign in (-1, 1):
             blob(planes[1], cy + sign * GAP * np.sin(angle), cx + sign * GAP * np.cos(angle), 1.4, 2.2, angle, PARANODE * bright)
         blob(planes[2], cy, cx, 1.2, 1.2, angle, NODE * bright)
-    a = np.stack([rng.poisson(np.clip(p, 0, None)).astype(np.uint16) for p in planes])
+    return write(path, np.stack([rng.poisson(np.clip(p, 0, None)).astype(np.uint16) for p in planes]))
+
+
+def write(path, planes):
+    """Writes three uint16 planes (DAPI, Caspr, Nav) to path as ImageJ writes a slide, and returns path."""
     ramp = np.arange(256, dtype=np.uint8)
     none = ramp * 0
     luts = [np.stack([none, none, ramp]), np.stack([none, ramp, none]), np.stack([ramp, none, none])]
     # big-endian, as ImageJ writes its files
-    tifffile.imwrite(path, a, imagej=True, byteorder='>', metadata={'axes': 'CYX', 'LUTs': luts, 'unit': 'micron'},
+    tifffile.imwrite(path, planes, imagej=True, byteorder='>', metadata={'axes': 'CYX', 'LUTs': luts, 'unit': 'micron'},
                      resolution=(PX_PER_UM, PX_PER_UM))
     return path

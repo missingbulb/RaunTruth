@@ -20,18 +20,16 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-17, since while the site is unverified Google hides the way in. Signing in when no
-  one is signed in on this device (the welcome popup's Sign in with Google, the avatar menu's), and approving a
-  study's folders (`req/shell/data/drive-access`, the ground-truth setup, the Tagger's Approve…), first open the
+  one is signed in on this device (the welcome popup's Sign in with Google, the avatar menu's) first opens the
   guide: numbered steps, each with a screenshot of Google's screen and what to click framed. Signing in: choose the
-  account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (Drive
-  among them) and Continue. Approving folders: the same unverified-app steps and the per-file Drive box, unless
-  that permission was given already, then Google's picker: tick the study's folders and press Select. The guide's
+  account; on Google's unverified-app screen, Advanced, then Go to rauntruth.com (unsafe); tick every box (both
+  Drive ones among them, the per-file one shown) and Continue. The guide's
   Open Google's window asks Google in that click; the guide stays, saying it waits for Google, until Google
-  answers, then closes; its Cancel asks Google nothing. Over the picker, which opens in the page, the guide steps
-  aside to the page's left edge, under the picker. A renewal Google answers by itself shows no guide. The
+  answers, then closes; its Cancel asks Google nothing. A renewal Google answers by itself shows no guide. The
   screenshots are of other apps' screens on Google, published on help pages (owner, 2026-11-17, the source under
-  each), and served from the site; the picker's step is drawn. Test: `web-tests/test_welcome_page.py`,
-  `web-tests/test_data_mode_page.py`.
+  each), and served from the site. Changed by the owner on 2026-11-20: sign-in asks for the per-file permission
+  too, so no separate approval, Google's picker or guide for it is left (`req/shell/data/drive-access`). Test:
+  `web-tests/test_welcome_page.py`.
   </details>
 
 - `req/shell/account/role` Beside the study's name, a menu picks the role the user works in; the page shows that role's own view.
@@ -89,8 +87,10 @@ nobody has decided: what the page does there is not a requirement yet.
   When the site has a Google client (the repository variable `GOOGLE_CLIENT_ID`, written into
   `config.js` by the build), the avatar's menu offers Sign in with Google, which asks Google for the
   user's name, email and picture, for the app's own folder in their Drive, and, set by the owner on
-  2026-11-06, to read their Drive (`req/shell/drive/credentials`); it changes nothing in their Drive but its own folder
-  and what a study's folders let it write (`req/shell/data/drive-access`).
+  2026-11-06, to read their Drive (`req/shell/drive/credentials`), and, set by the owner on 2026-11-20, Google's
+  per-file permission (`drive.file`, `req/shell/data/drive-access`); it changes nothing in their Drive but its own
+  folder and the files it adds to a study's folders. A token from before, lacking `drive.file`, is renewed on the
+  next click on a Drive control, Google then asking for it.
   Signed in, the avatar is the user's picture, the menu names them and offers Sign out. These
   settings follow the user: dark or light, the tips closed, the version last seen, the low-memory
   popup turned off, the role the user works in (`req/shell/account/role`), the last Drive link (in each study too), Show thumbnails,
@@ -204,23 +204,27 @@ nobody has decided: what the page does there is not a requirement yet.
   anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
   (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
   every call, as its Session's `damaged` (`req/shell/python/one-call`), and decides itself what to leave out; the
-  fixture study leaves out the pixels whose centres lie in one. Undecided: the NoR Finder, Vascular Measurements and
-  the Bookshelf Reader do not read `damaged` yet, and Vascular's summary, which reads the mask's outlines rather than
-  whether a point is inside, counts the damaged areas still: tracked in missingbulb/RaunTruth#1024. Test: `web-tests/test_study_index_page.py`,
-  `web-tests/test_study_runs.py`.
+  fixture study leaves out the pixels whose centres lie in one. Set by the owner on 2026-11-19 (missingbulb/RaunTruth#1024):
+  the NoR Finder and the Bookshelf Reader analyse no pixel of a damaged area (`req/nor/find/damaged`,
+  `req/shelves/books/damaged`), Vascular Measurements leaves them out of its model's measurements
+  (`req/vascular/model/damaged`), and each study's scorer leaves what lies in one out of both the answer and the
+  ground truth. The lab reads the damaged areas from the study root's tags file, without signing in, and hands them
+  to the versions and the scorers as the page hands them to its Python, an answer kept for the areas it was run with.
+  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
 
-- `req/shell/data/drive-access` A study manager is offered, in the folder tree, to let the site into the study's folders, just those, and sees which it may write.
+- `req/shell/data/drive-access` A study manager sees, in the folder tree, which of the study's folders the site may write for them.
   <details>
 
-  Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), the tree's head
-  offers to approve the folders the site lacks access to, and its click asks for Google's
-  per-file permission (`drive.file`) and then Google's own picker showing just the study's folders and
-  their subfolders, to approve all or some. The page then knows, for each folder: not approved for this
-  site; approved but view-only in Drive; or writable; a folder added since, or one left out, is offered
-  again. Changed by the owner on 2026-11-03: the page asks nowhere else, and no bar over the image asks
-  for the folders. The page only creates files and changes or trashes the ones it created; it never changes
-  a file anyone else made. Test: `web-tests/test_data_mode_page.py`.
+  Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), the tree shows, for each
+  folder: writable, as Drive's sharing lets the user add files there, or view only. The site writes with Google's
+  per-file permission (`drive.file`), asked at sign-in (`req/shell/account/sign-in`); a sign-in without it, its box
+  unticked, reads every folder as No permission, saying to sign out and in again ticking that box (owner,
+  2026-11-20). The page only creates files and changes or trashes the ones it
+  created; it never changes a file anyone else made. Changed by the owner on 2026-11-20: no approval of folders, no
+  Google picker and no button asking for the permission. Real Drive lets the per-file permission create files in
+  any folder the user may add to, picked or not, and a pick gave the site nothing it used
+  (missingbulb/RaunTruth#1042). Test: `web-tests/test_data_mode_page.py`.
   </details>
 
 - `req/shell/data/folder` A folder chosen shows its images as a grid or a list, and the left bar sums it up.
@@ -411,7 +415,7 @@ nobody has decided: what the page does there is not a requirement yet.
   to the user's Drive (`drive.readonly`) along with the rest (`req/shell/account/sign-in`); a token from before
   that, lacking it, is renewed on the next click on a Drive control. `drive.readonly` is a restricted scope: until
   Google verifies the site, Google shows an "unverified app" screen on signing in and lets in at most 100 new users
-  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_credentials_page.py`.
+  (missingbulb/RaunTruth#803). Test: `web-tests/test_drive_reads.py`, and, of the page's own sign-in, `web-tests/test_drive_renewal_page.py`.
   </details>
 
 - `req/shell/drive/dialog` Google Drive: a study browses its own folders, the Image Viewer takes a pasted link; open on Open, double click or Enter.
@@ -543,7 +547,23 @@ nobody has decided: what the page does there is not a requirement yet.
   Open, the list, its thumbnails and badges all wait. The wait is kept in the browser, so reloading
   the page does not end it. An image kept on this device (`req/shell/drive/kept-images`) still opens, from the device. When
   the countdown ends, the notice goes and the dialog lists its link again. Test:
-  `web-tests/test_drive_throttle_page.py`.
+  `web-tests/test_drive_throttle_page.py`, and, of telling throttling from another failure, `web-tests/test_drive_reads.py`.
+  </details>
+
+- `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
+  <details>
+
+  Set by the owner on 2026-11-19 (missingbulb/RaunTruth#747): the field is cut into n × n areas, and n is the
+  tagger's to choose in an Areas menu at the top of Ground Truth Tasks, the same for every study: the whole field,
+  2 × 2, 3 × 3, 4 × 4, 5 × 5, 6 × 6, 8 × 8 and 10 × 10, the list Vascular Measurements offered of its own since
+  2026-11-07. A study that walks by areas names the count it starts at in its `study.json`
+  (`groundTruth.areas`: NoR 10, Vascular 4); one that names none has no menu. The shell owns the walk's order: the
+  rows of areas top to bottom, each row the way back from the last, so the next area always borders the one just
+  done, and hands the study each area's place and box and the area a point lies in. The count only divides the work:
+  what is checked is the field it covers, whatever count it was checked under, and an area is done once all of it is
+  (owner: "all pixels need to be approved"). The study hears each change of count and walks again from its first area
+  not done. Test: `web-tests/test_gt_areas.py`,
+  `studies/nor/tests/test_truth_tasks_page.py`, `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
 - `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
@@ -764,8 +784,7 @@ nobody has decided: what the page does there is not a requirement yet.
   ground truth. It asks whether submissions need review: yes makes `GT curated` and `GT submissions` in the
   root, no makes one `GT` for both. It shares the curated folder with anyone with the link to view, then
   writes `rauntruth-study.json` in the root naming the data folder and the ground-truth folders by id, who
-  set it up and when. It asks first for the page's per-file permission and Google's picker on the root, if
-  not granted. Run again, it makes only what is missing and rewrites the file; it never makes a second
+  set it up and when. Without the page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites the file; it never makes a second
   folder of a name. Google's own words show when it refuses. Changed by the owner on 2026-11-07: it sits
   at the top of Data Management's column, highlighted while the root has no ground-truth folders; choosing
   an answer closes the dialog once the folders are made; once the settings file names the folders it is no
@@ -818,9 +837,9 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-05. At the top of the Ground Truth Tasks box, a line says whether this tagger
-  may write to the submissions folder when they may not: Not approved, with a button that asks Google for
-  the page's per-file permission and opens its picker on the submissions folder (as Data Management does,
-  `req/shell/data/drive-access`); or View only, telling them to ask the study's owner for edit access. It
+  may write to the submissions folder when they may not: View only, telling them to ask the study's owner for
+  edit access; or, for a sign-in without the per-file permission, No permission, telling them to sign out and in
+  again ticking its box (`req/shell/data/drive-access`). It
   is checked before any work, not first found at submit. Changed by the owner on 2026-11-07: a tagger who may
   write is told nothing, the line taking no room. Test: `web-tests/test_gt_drive_page.py`.
   </details>
@@ -836,8 +855,8 @@ nobody has decided: what the page does there is not a requirement yet.
   item's ring, the area's frame and what is cut out of the image, is shown only while tagging, and the Show menu's
   rows for them are off out of it. Tagging stops when another image opens or
   the study leaves. Set by the owner on 2026-11-10, what is cut out can be the viewer's: a study gives it the shapes
-  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, showing there the
-  study's `groundTruth.reveal` picture, black while it names none, and gives the image back whole out of tagging. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
+  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, black where it is cut out,
+  and gives the image back whole out of tagging; changed by the owner on 2026-11-19, no picture shows behind it. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
   `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
@@ -858,7 +877,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the open one, its name in bold: the study puts what it needs under its row and beside its name (its item,
   Back and Skip, an area's check), and hears when the user clicks a task's name. The walk through the tasks
   stays each study's own (owner: a change of heart on how one study does its tasks must not move the others;
-  what proves common is merged later). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
+  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
   the shell's Submit. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
   `studies/nor/tests/test_truth_tasks_page.py`, the vascular study's vessel tasks test.
   </details>
@@ -928,6 +947,17 @@ nobody has decided: what the page does there is not a requirement yet.
   details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
   </details>
 
+- `req/shell/image/frame` A study names a box of the image to bring into view; the shell zooms and glides there, the same way in every study.
+  <details>
+
+  Set by the owner on 2026-11-20: framing is the shell's, a study saying only the box, in the image's pixels, and how
+  much of the view it should fill (NoR's area 0.6, a Shelves book 0.7). The shell zooms to that fill, at most 800%,
+  only when the zoom now is more than half again too far in or too far out; a zoom inside that band is left as it
+  is, so a step to the next area or book at much the same size moves the view without touching the zoom. It then
+  glides the box's middle to the view's middle, as near as the image's edges let it. Test:
+  `web-tests/test_image_point_page.py`.
+  </details>
+
 - `req/shell/image/keys` A study declares its keyboard shortcuts as data; the shell wires them and lists those that act now at the image's bottom left.
   <details>
 
@@ -965,6 +995,18 @@ nobody has decided: what the page does there is not a requirement yet.
   press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
   browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
   study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
+  </details>
+
+- `req/shell/image/menu` Right-clicking the image opens the study's menu for that point; the shell opens, places and closes it.
+  <details>
+
+  Set by the owner on 2026-11-20: the menu is the shell's, the study saying only which items it offers at the point
+  clicked (NoR's Add a NoR Here, Shelves' Add a book here, Flip upside down and Delete this book), each with what it
+  does; a point the study offers nothing at leaves the browser's own menu. The menu opens at the pointer, inside the
+  window, its first item focused, and closes when an item is chosen, on Escape, on a press anywhere off it and on the
+  user's wheel over the image. A glide of the page's own (`req/shell/image/frame`) leaves it open: the item acts on
+  the point that was clicked. While it is open the study's keys do not act (`req/shell/image/keys`). Test:
+  `web-tests/test_image_point_page.py`.
   </details>
 
 - `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.
@@ -1354,7 +1396,10 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07. The study's Python opens the file's own bytes, exactly as they came from this
   computer, Google Drive or the device's copy, and every algorithm reads only what it reads from them. Nothing the
   viewer does (its contrast, the channels shown, the black and white points, the 3D view) reaches Python, so the
-  same file gives the same result however it is viewed. Test: `web-tests/test_study_runs.py`.
+  same file gives the same result however it is viewed. Narrowed by the owner on 2026-11-20 (#1059): this holds for
+  the algorithms, a study's run; a ground-truth tool may work in the page on the pixels the shell decoded from the
+  file (the image's planes, before any of the viewer's settings), so that tagging needs no Python. Test:
+  `web-tests/test_study_runs.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/python/on-run` Python starts only when the user runs an algorithm.
@@ -1433,8 +1478,8 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/resources-dialog/animations` An Animations checkbox in the resources dialog's CPU tab turns every animation on the page off.
   <details>
 
-  Set by the owner on 2026-10-31. It is the checkbox alone, with no text explaining it (set by the owner on
-  2026-11-07). Checked at first, it is kept as the user's setting: the next visit
+  Set by the owner on 2026-10-31. Set by the owner on 2026-11-20, a line under it explains it: "Stop animations if
+  the website is slow" (on 2026-11-07 it had been the checkbox alone). Checked at first, it is kept as the user's setting: the next visit
   opens with it as it was left, and signed in it follows the user (`req/shell/account/sign-in`). Unchecked, nothing on the
   page moves to draw the eye: the minimap and the drawers change at once, the photocopier's light
   does not sweep the image, no button shines or glows (one that would looks plain, with no light or
@@ -1442,6 +1487,20 @@ nobody has decided: what the page does there is not a requirement yet.
   bar's digits change without rolling and a sharp rise does not flash. A spinner still turns, since
   it is what says the page is working rather than stuck. Test: `web-tests/test_status_bar_page.py`,
   `web-tests/test_account_page.py`.
+  </details>
+
+- `req/shell/resources-dialog/unload-python` An "Unload Python after each run" checkbox beside Animations in the resources dialog's CPU tab trades speed for memory.
+  <details>
+
+  Set by the owner on 2026-11-20 (#381). A line under it explains it: "Unloading python saves memory between
+  algorithm runs, but the following run will take as long as the first run". Unchecked at first, and kept on this device only, since how much memory a
+  computer can spare is the computer's: Python, once started by a study's run, stays loaded, and every later run
+  starts at once on the image it already holds. Checked, the page shuts Python down as soon as a run ends, with its
+  answer or an error, and at once when it is checked with Python idle; the memory it held is freed (about 540 MB after a NoR Find, measured 2026-11-20 in
+  Chromium on Linux); the next run starts Python again from the files kept on this device and hands it the image's
+  file again, about 9 s more on that measure. Nothing else the page does waits on Python, since only a study's run
+  asks it anything (#1059): Shelves' reading of the titles, its tagging and its engines are the page's own and
+  carry on after Python is gone. Test: `web-tests/test_study_runs.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
 - `req/shell/site/app-address` The app is at rauntruth.com/app/; the site's root says what the site is.
@@ -1751,7 +1810,7 @@ nobody has decided: what the page does there is not a requirement yet.
   yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
   shows what it finds, so it makes no ground truth (no Submit GT, as in PreGT) and
   drops the steps that serve making it: the study's
-  postprocessing (NoR's Filters fold in its Processing box, `req/nor/filters/live`) is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
+  postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
   NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
   </details>
 
@@ -1770,8 +1829,9 @@ nobody has decided: what the page does there is not a requirement yet.
   parts, a folder Data Management had open, an edit, the remote files dialog's listing, or a ground-truth line.
   What the browser keeps carries over as a reload would keep it (who is signed in, the role, the theme, the
   user's choices, the images kept here), and so do the tab's own measures in the status bar. Test:
-  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where every path of the shell's
-  states ends by going to another study and back, each compared with a fresh load of its address.
+  `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where the first path of each study and
+  role of the shell's states ends by going to another study and back, each compared with a fresh load of its address
+  (set by the owner on 2026-11-20, in place of every path: the other paths' last states add little the first does not).
   </details>
 
 - `req/shell/study/viewer-choice` The viewer is the study's choice.
@@ -1912,7 +1972,9 @@ nobody has decided: what the page does there is not a requirement yet.
   points of its row, which redraw the 3D view as they move. The study's `view` sets the render and the
   spacing it opens with. A study draws over the 3D view, over the stack or beside it
   in the same camera, picks and drags there, and can keep only the stack inside or outside a mask of
-  its own. Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
+  its own. The stack's own picture is drawn again only when what it is made from has changed (the camera, the
+  slices and channels shown, a mask): the ruler and a study's marks are drawn over it as it stands (owner,
+  2026-11-20). Test: `web-tests/test_viewer3d_page.py`, and the vascular study's `req/vascular/model/correct`.
   </details>
 
 - `req/shell/views/second` A study's item view shows what was found, behind the shell's Items switch; there is none while ground truth is made.
@@ -1925,9 +1987,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
   while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
   (a Ground Truth Tagger in a GT or PostGT study, `req/shell/account/role`) there is no item view and no switch:
-  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Set by the
-  owner on 2026-11-04: an item view marked `data-shelved` gets no switch in any role, its code kept for a later
-  use; NoR's is shelved, and missingbulb/RaunTruth#740 decides whether it goes.
+  the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
+  owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
+  the shell's `data-shelved` mark.
   Test: `web-tests/test_status_bar_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
@@ -1941,8 +2003,9 @@ nobody has decided: what the page does there is not a requirement yet.
   frees its button. Browsers do not say how much memory is free, so when the browser reports 4 GB
   or less in all (Chrome and Edge report it), a popup on opening asks the user to close other tabs
   and apps, with tips (tab groups, the shortcut that reopens closed tabs, Memory Saver) and "Don't
-  show this again". The page running out of memory shows it whatever was chosen, saying so
-  (`studies/nor/tests/test_slow_machine_page.py`).
+  show this again". The page running out of memory shows it whatever was chosen, saying so. An
+  image chosen while the study's own code is still coming in opens once the study is in, as loaded,
+  the study's first step the one to do (`studies/nor/tests/test_slow_machine_page.py`).
   </details>
 
 - `req/shell/waiting/visible` Visible waiting: a spinner and the elapsed time, and a sweeping light while the study works.
@@ -1957,17 +2020,38 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/checks` The repo's checks
 
-- `req/checks/ci-sets` CI runs in two sets, and a test that would skip there fails instead.
+- `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, and a test that would skip there fails instead.
   <details>
 
-  The fast set runs on each PR (`.github/workflows/tests.yml`, `-m "not full"`) and needs neither
-  Node nor a browser; every test that drives Node, Pyodide or Chromium, or measures speed or memory,
-  is marked `full` and runs only in the full set, nightly (the workflow's own schedule)
-  and on every push to main, so it has run on anything a release can ship: a green full run on main
-  wakes the site release (`.github/workflows/tests-full.yml`, `web-tests/test_ci_split.py`). The nightly run also
-  runs the full set on Firefox and WebKit (`req/checks/other-engines`). The repo's Claudinite checks run on every PR and
-  every push to main, in a job of their own beside the fast set (set by the owner on 2026-11-16), so a PR breaking one
-  is red before it merges.
+  Set by the owner on 2026-11-20, in place of the fast set each PR ran and the full set only main did. Each PR runs
+  the whole set on Chromium (`.github/workflows/tests.yml`), and every push to main runs it again, so it has run on
+  anything a release can ship: a green run on main wakes the site release (`.github/workflows/tests-full.yml`). The
+  nightly run also runs it on Firefox and WebKit (`req/checks/other-engines`). The `full` mark still names the tests that
+  drive Node, Pyodide or a browser, or measure speed or memory, so `-m "not full"` stays a quick local loop
+  (`web-tests/test_ci_split.py`). The repo's Claudinite checks run on every PR and every push to main, in a job of
+  their own (set by the owner on 2026-11-16), so a PR breaking one is red before it merges.
+  </details>
+
+- `req/checks/ci-sets/one-image` Every CI test run runs in its engine's test image, which already holds everything the tests use, with no way off the machine.
+  <details>
+
+  Set by the owner on 2026-11-20. Each engine's image (`dev/tools/test-image/`) holds the Python packages, Node, the
+  page's libraries and Pyodide's packages, the studies' vendored wheels, Tesseract and the files the tests would
+  otherwise fetch once, all in layers the three images share, and last that engine's browser alone, so a Chromium run
+  pulls half what an image of all three weighed. They are tagged by a hash of what goes into them and the engine, and
+  built only when that changes (`.github/workflows/test-image.yml`); each run pulls it and runs the tests in it on a network with no way off
+  the machine (`dev/tools/test-image/run.sh`), so a test that downloads anything fails rather than slowing every run. Test: `dev/tools/test-image/test_inputs.py`.
+  </details>
+
+- `req/checks/clean-console` A page test fails on any warning or error its case did not declare, and the outside systems the page reaches are faked once, in every test.
+  <details>
+
+  Set by the owner on 2026-11-19. Every page test's browser comes from `web-tests/harness.mjs`, which fails the run as
+  it exits on a warning or error the page or the browser wrote that no case declared with `expecting()`, by a loose
+  pattern; a case declaring one that never came fails too. Each context it opens reaches the network through a server
+  of its own on the test's machine, which answers the systems the page reaches with the fakes in `web-tests/fakes/` and
+  turns away every other request leaving the machine; the run fails when a test's own route answers what a fake does.
+  Test: `web-tests/test_harness.py`.
   </details>
 
 - `req/checks/other-engines` Every night the full set also runs on Firefox and WebKit; their failures fail the night only once the page supports their browser.
@@ -2001,7 +2085,7 @@ nobody has decided: what the page does there is not a requirement yet.
   has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
-  never shown when shelved, `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
+  `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
   not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage and a
   role) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen
@@ -2013,7 +2097,7 @@ nobody has decided: what the page does there is not a requirement yet.
   reaches; a case decided only where a parent hides or folds the element, which the browser reads as gone whatever
   the case says, unless the element or the case is marked unwalked with why no path shows it (what an unwalked
   element holds goes with it); an element every state shows the same, unless marked steady with why; such a mark a
-  state contradicts; an action no path takes; and a value of a var no state has. In the fast set the
+  state contradicts; an action no path takes; and a value of a var no state has. Without a browser the
   generated files must be up to date, every element in each study's tree must be on the shell's page or that
   study's panels (one the page makes as it runs, such as the 3D view's controls, by the nearest element holding it
   that the page does not make), every element of the shell's page and of each study's panels, but what a dialog,
@@ -2022,8 +2106,8 @@ nobody has decided: what the page does there is not a requirement yet.
   against a stand-in Google and a stand-in Python answering what the study's own Python answers on loading and on
   opening the image, or the z-stack a path loads, and the study's own Python answering its calls once it takes its
   first step, signed in as an account the study is shown to, and at every state, the study's calls answered, reads each element as shown,
-  disabled, held offline, folded or gone. After its last state, back online first, each path goes to another
-  study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
+  disabled, held offline, folded or gone. After its last state, back online first, the first path of each study and
+  role goes to another study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
   shows in the same browser: the whole page read element by element and the shell's own state, leaving out what
   changes between two readings of the same page (the status bar's measures of the tab, the browser's mark on what is
   scrolled out of view, an attribute left empty, the order of a class list); every difference is listed before it fails. Test: `web-tests/test_shell_states.py`,

@@ -2,8 +2,10 @@
 // cover) and the title read from it, and, while ground truth is made, one task that takes each book in turn, in the
 // order they stand, its corners, its turn and its text set right, and adds the books the finder missed.
 import { engineSet, reader, services, rotate, READERS, MODELS, WORDS } from "./reading.js";
-import { clockwise, shape, inPlace, nextAdded, blank } from "./gt_actions.js";
+import { clockwise, shape, inPlace, nextAdded, blank, FIELDS } from "./gt_actions.js";
 import { oldDraft } from "./old_draft.js";
+import { homography, straighten as cut } from "./straighten.js";
+import { label as fieldsOf } from "./fields.js";
 
 const CDN = "https://cdn.jsdelivr.net/npm/";
 const TESSERACT = CDN + "tesseract.js@7.0.0/dist/", CORE = CDN + "tesseract.js-core@7.0.0", ORT = CDN + "onnxruntime-web@1.31.1/dist/";
@@ -25,22 +27,24 @@ function engines() {
 
 // the longest side of a book's picture in the task, in its pixels
 const PICTURE = 640;
-
-// the homography taking four points onto four others, as a 3×3 matrix by rows
-function homography(from, to) {
-  const A = [];
-  from.forEach(([x, y], i) => {
-    const [u, v] = to[i];
-    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u], [0, 0, 0, x, y, 1, -v * x, -v * y, v]);
-  });
-  for (let c = 0; c < 8; c++) {
-    let r = c;
-    for (let k = c + 1; k < 8; k++) if (Math.abs(A[k][c]) > Math.abs(A[r][c])) r = k;
-    [A[c], A[r]] = [A[r], A[c]];
-    for (let k = 0; k < 8; k++) if (k !== c) { const f = A[k][c] / A[c][c]; for (let j = c; j < 9; j++) A[k][j] -= f * A[c][j]; }
-  }
-  return [...A.map((row, i) => row[8] / A[i][i]), 1];
+// each field of a book's text as the task shows it: its name, the letter on its box and on where it was read, and its
+// colour there. Title and Author, the fields always shown, are the two colours kept apart from each other and from the
+// current book's yellow; the letter tells the others
+const FIELD = {
+  title: { name: "Title", letter: "T", colour: "#2979ff" },
+  author: { name: "Author", letter: "A", colour: "#ff1744" },
+  publisher: { name: "Publisher", letter: "P", colour: "#00c853" },
+  volume: { name: "Volume", letter: "V", colour: "#00e5ff" },
+  library: { name: "Library mark", letter: "L", colour: "#ff9100" },
+};
+const ALWAYS = ["title", "author"];
+// a share of the book's crop at its first turn, (x0, y0, x1, y1), as the same share of it turned k quarter turns clockwise
+function turned([x0, y0, x1, y1], k) {
+  const to = [(x, y) => [x, y], (x, y) => [1 - y, x], (x, y) => [1 - x, 1 - y], (x, y) => [y, 1 - x]][((k % 4) + 4) % 4];
+  const pts = [to(x0, y0), to(x1, y1)];
+  return [Math.min(pts[0][0], pts[1][0]), Math.min(pts[0][1], pts[1][1]), Math.max(pts[0][0], pts[1][0]), Math.max(pts[0][1], pts[1][1])];
 }
+
 // the photo as the viewer shows it (a canvas of the image's size), through a book's corners into an upright picture
 // as wide as its top and bottom edges and as tall as its sides, on average, at most PICTURE long; black off the photo
 export function picture(photo, corners) {
@@ -84,11 +88,13 @@ export function mount(shell) {
   // books: the model's books (shell.gt), each {id, corners, view, text, confidence, reader, turn, source: "found" | "missed",
   // verdict: null | "right", proposed: what the finder and the reader said, kept for scoring, turnSet: the tagger set the turn,
   // typed: the tagger typed its text}; the model is the log's, and the page draws what it hands over
-  // curId: the book open in the task; asked: the book whose title, left as read, one Enter has asked to approve as it is;
-  // pending: the title typed in the field and not yet committed, {id, value}
+  // curId: the book open in the task; asked: the book whose title and author, left as read, one Enter has asked to approve
+  // as they are; pending: the fields typed and not yet committed, {id, fields: {field: text}}; opened: the optional
+  // fields the tagger opened on a book, "id:field"; focusTo: the field the focus goes to once the book is drawn again
   // raw: the finder's books as found and read, what the log's run is made of
   // found: whether books were found (or drafted) on the photo open, for the summary to count
-  let books = [], curId = null, drawing = null, drag = null, opened = false, selectFor = null, asked = null, found = false, pending = null, raw = null;
+  let books = [], curId = null, drawing = null, drag = null, opened = false, selectFor = null, asked = null, found = false, pending = null, raw = null, focusTo = null;
+  const openedFields = new Set();
   // what the page keeps of a book beside the model: whether it is being read again, and which reading is the latest
   const reads = new Map();
   const readOf = (id) => reads.get(id) ?? reads.set(id, { gen: 0, reading: false }).get(id);
@@ -117,17 +123,19 @@ export function mount(shell) {
 
   // ---------- the model: every change of the books is a GT action (req/shell/ground-truth/history) ----------
   const act = (action) => shell.gt.act(action);
-  // the title typed and not yet committed is one GT action, when it is: not one a key
+  // the fields typed and not yet committed are one GT action, when they are: not one a key
   let quiet = false;
+  // what of the fields typed differs from the book's: none when nothing does
+  const changed = (b, fields) => { const out = Object.fromEntries(Object.entries(fields).filter(([k, v]) => (b.fields?.[k] ?? "") !== v)); return Object.keys(out).length ? out : null; };
   function commitTitle() {
     if (!pending) return;
-    const { id, value } = pending;
+    const { id, fields } = pending;
     pending = null;
-    const b = byId(id);
-    if (!b || value === b.text) return;
+    const b = byId(id), now = b && changed(b, fields);
+    if (!now) return;
     // the field keeps the focus and the buttons their place while it is committed
     quiet = true;
-    try { act({ type: "set-text", book: id, text: value }); } finally { quiet = false; }
+    try { act({ type: "set-fields", book: id, fields: now }); } finally { quiet = false; }
   }
   // Right pressed with the pointer takes the field's focus before its click lands: the title typed waits for that click,
   // and goes with the verdict as one GT action; let go anywhere else, it is committed as the field left is
@@ -163,7 +171,7 @@ export function mount(shell) {
     shell.gt.legacy(oldDraft(shell.readJSON, { name: st.fileName, sha: st.sha, image: st.fileName, W: st.W, H: st.H, reader: choice.value }));
   }
 
-  // ---------- Python: the algorithm in one go, and straightening for the tagger's readers ----------
+  // ---------- Python: the algorithm in one go ----------
   // why the last Find ran without the text finder, or null when it ran with it; and how far the run has come, for the
   // busy line: "text" while the boxes are being found, "read" once the titles are being read
   let textless = null, phase = null, lines = 0;
@@ -186,33 +194,29 @@ export function mount(shell) {
     await shell.algorithm.ready;
     const algorithm = shell.algorithm.key;
     textless = null; phase = "text"; lines = 0;
-    const run = python.then(async () => {
-      const done = shell.until("result:run");
-      shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
-      await done;
-    });
-    python = run.catch(() => {});
-    try { await run; } finally { phase = null; }
+    const done = shell.until("result:run");
+    shell.busy(true, "Finding the books…"); shell.call("run", { algorithm });
+    try { await done; } finally { phase = null; }
   };
   $("#bs-read").onclick = () => readAgain();
   shell.slow($("#bs-find")); shell.slow($("#bs-read"));
 
-  // the crops the tagger's readers read, straightened by the study's Python from the photo's file, one request at a time
-  let python = Promise.resolve();
-  function straighten(list) {
-    const run = python.then(async () => {
-      const done = shell.until("result:straighten");
-      shell.call("straighten", { corners: list.map((b) => b.corners) });
-      const { meta: { crops }, bytes } = await done;
-      return crops.map(({ $bytes: [at, n], shape: [height, width] }) => ({ width, height, data: new Uint8ClampedArray(bytes.buffer, bytes.byteOffset + at, n) }));
-    });
-    python = run.catch(() => {});
-    return run;
+  // the texts the tagger's readers read, read into fields in the page as the algorithm reads a block on its text
+  // alone (req/shelves/read/fields)
+  async function label(texts) {
+    return texts.map(fieldsOf);
+  }
+  // the crops the tagger's readers read, straightened in the page from the photo's pixels as the shell decoded them
+  // (req/shell/python/file-bytes)
+  async function straighten(list) {
+    const im = shell.page.get("image");
+    return list.map((b) => cut(im, b.corners));
   }
   // the run's answer: its books shown, and recorded in the log as the run, the algorithm's whole output and not the
   // tagger's work
   function ran(meta) {
-    raw = meta.books.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn ?? 0, text: b.title ?? "", confidence: b.confidence ?? null, reader: meta.reader }));
+    raw = meta.books.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn ?? 0, text: b.title ?? "", ...(b.fields ? { fields: b.fields, regions: b.regions ?? {} } : {}),
+      confidence: b.confidence ?? null, reader: meta.reader }));
     books = raw.map((b, i) => ({ ...b, id: `r${i + 1}`, source: "found", verdict: null, typed: false, turnSet: false, proposed: null }));
     found = true; curId = null; shell.busy(false);
     shell.step("find", true, `${shell.algorithm.title}: ${books.length} books found` + (textless ? `, without the text finder (${textless})` : ""));
@@ -220,7 +224,7 @@ export function mount(shell) {
     shell.boxDone($("#bs-box"), `${books.length} books`);
     shell.status("Titles read.");
     shell.gt.ran({ algorithm: { key: shell.algorithm.key }, output: { image: st.fileName, W: st.W, H: st.H, reader: meta.reader,
-      books: raw.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn, text: b.text, confidence: b.confidence, reader: b.reader })) } });
+      books: raw.map((b) => ({ corners: b.corners, view: b.view, turn: b.turn, text: b.text, ...(b.fields ? { fields: b.fields, regions: b.regions } : {}), confidence: b.confidence, reader: b.reader })) } });
     legacy();
     if (tagging() && curId === null) next();
     draw();
@@ -236,7 +240,8 @@ export function mount(shell) {
       for (const [i, b] of list.entries()) {
         shell.busy(true, `Reading ${i + 1} of ${list.length} with ${READERS[how]}…`);
         const read = await r.read(got[i], how, { turn: b.turnSet ? b.turn : null });
-        if (byId(b.id)) act({ type: "read", book: b.id, text: read.text, confidence: read.confidence, reader: how, ...(read.turn != null ? { turn: read.turn } : {}) });
+        const [{ fields, regions }] = await label([read.text]);
+        if (byId(b.id)) act({ type: "read", book: b.id, text: read.text, fields, regions, confidence: read.confidence, reader: how, ...(read.turn != null ? { turn: read.turn } : {}) });
       }
     } finally { shell.busy(false); }
     shell.step("read", true, `${books.filter((b) => b.text).length} of ${books.length} titles read again with ${READERS[how]}`);
@@ -256,11 +261,13 @@ export function mount(shell) {
       if (!at) return;
       const r = await ocrNow().read(crop, how, { turn: at.turnSet ? at.turn : null });
       if (gen !== u.gen) return;
+      const [{ fields, regions }] = await label([r.text]);
+      if (gen !== u.gen) return;
       const b = byId(id);
       if (!b) return;
       // an added book's first title, read after it opened, is selected to retype as a found one's is
       if (!b.text && !b.typed && id === curId && b.verdict !== "right") selectFor = id;
-      act({ type: "read", book: id, text: r.text, confidence: r.confidence, reader: how, ...(r.turn != null ? { turn: r.turn } : {}) });
+      act({ type: "read", book: id, text: r.text, fields, regions, confidence: r.confidence, reader: how, ...(r.turn != null ? { turn: r.turn } : {}) });
       shell.status("Book read again.");
     } finally { if (gen === u.gen) { u.reading = false; draw(); } }
   }
@@ -330,14 +337,11 @@ export function mount(shell) {
   };
   // what the database matcher is sent: each book's text, where it is, and how sure the reading is
   const matcherDoc = () => ({ image: st.fileName, W: st.W, H: st.H,
-    books: books.map((b, i) => ({ b, i })).filter(({ b }) => inMask(b)).map(({ b, i }) => ({ id: i + 1, view: b.view, text: b.text ?? "", confidence: b.confidence ?? null, reader: b.reader ?? null, corners: b.corners })) });
-  // the book framed in the view: zoomed to fill most of it, unless already close to that, and in its middle
+    books: books.map((b, i) => ({ b, i })).filter(({ b }) => inMask(b)).map(({ b, i }) => ({ id: i + 1, view: b.view, text: b.text ?? "", fields: { ...(b.fields ?? (b.text ? { title: b.text } : {})) }, confidence: b.confidence ?? null, reader: b.reader ?? null, corners: b.corners })) });
+  // the book framed in the view, filling most of it
   function focus(b) {
-    const xs = b.corners.map((p) => p[0]), ys = b.corners.map((p) => p[1]), sc = $("#scroller");
-    const w = Math.max(...xs) - Math.min(...xs) || 1, h = Math.max(...ys) - Math.min(...ys) || 1;
-    const fit = Math.min(8, 0.7 * Math.min(sc.clientWidth / w, sc.clientHeight / h));
-    if (st.zoom > fit * 1.5 || st.zoom < fit / 1.5) shell.viewer.setZoom(fit);
-    shell.viewer.focus((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2);
+    const xs = b.corners.map((p) => p[0]), ys = b.corners.map((p) => p[1]);
+    shell.viewer.frame([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], 0.7);
   }
   // any part of the book's box on the screen
   function inView(b) {
@@ -372,10 +376,10 @@ export function mount(shell) {
   function verdict(v) {
     if (!curId) return;
     if (v === "wrong") return remove(curId);
-    // the title typed and not yet committed goes with the approval
-    const b = byId(curId), typed = pending?.id === curId && pending.value !== b.text ? { text: pending.value } : {};
+    // the fields typed and not yet committed go with the approval
+    const b = byId(curId), now = pending?.id === curId ? changed(b, pending.fields) : null;
     pending = null;
-    act({ type: "approve", book: curId, ...typed });
+    act({ type: "approve", book: curId, ...(now ? { fields: now } : {}) });
     next();
   }
   function tasks(rebuild = true) {
@@ -385,16 +389,17 @@ export function mount(shell) {
     if (rebuild) {
       const row = shell.tasks.row("books")?.querySelector(".task-body");
       // the title being typed keeps its place while the book is drawn again
-      const typing = document.activeElement?.closest?.(".bs-item input") ? { s: document.activeElement.selectionStart, e: document.activeElement.selectionEnd } : null;
+      const typing = document.activeElement?.closest?.(".bs-item input") ? { field: document.activeElement.dataset.field, s: document.activeElement.selectionStart, e: document.activeElement.selectionEnd } : null;
       row?.replaceChildren();
       const now = shell.tasks.open(tagging() ? "books" : null);
       if (now) {
         const box = curId && byId(curId) ? item(cur()) : missedTools();
         now.querySelector(".task-body").append(box);
-        const t = box.querySelector("input");
+        const t = box.querySelector("input"), to = focusTo?.id === curId ? box.querySelector(`input[data-field="${focusTo.field}"]`) : null;
         // kept until a box still on the page takes it: the book may be drawn again before the next frame
-        if (t && selectFor === curId) requestAnimationFrame(() => { if (t.isConnected && selectFor === curId) { selectFor = null; t.focus({ preventScroll: true }); t.select(); } });
-        else if (t && typing) { t.focus({ preventScroll: true }); t.setSelectionRange(typing.s, typing.e); }
+        if (to) { focusTo = null; to.focus({ preventScroll: true }); to.setSelectionRange(to.value.length, to.value.length); }
+        else if (t && selectFor === curId) requestAnimationFrame(() => { if (t.isConnected && selectFor === curId) { selectFor = null; t.focus({ preventScroll: true }); t.select(); } });
+        else if (typing) { const f = box.querySelector(`input[data-field="${typing.field}"]`) ?? t; f?.focus({ preventScroll: true }); f?.setSelectionRange(typing.s, typing.e); }
       }
     }
     shell.tasks.ready(!!(all.length && !open().length && noneMissed()));
@@ -403,8 +408,20 @@ export function mount(shell) {
   // the book's picture in the task, drawn here from the photo the viewer shows, at the book's turn
   function paint(cv, b) {
     if (!st.plain) { cv.hidden = true; return; }
-    const up = rotate(picture(st.plain, b.corners), b.turn || 0);
-    cv.width = up.width; cv.height = up.height; cv.getContext("2d").putImageData(new ImageData(up.data, up.width, up.height), 0, 0);
+    const up = rotate(picture(st.plain, b.corners), b.turn || 0), g = cv.getContext("2d");
+    cv.width = up.width; cv.height = up.height; g.putImageData(new ImageData(up.data, up.width, up.height), 0, 0);
+    // where the reader read each field, in its colour, dark under light so it shows on any cover, its letter on its corner
+    const lw = Math.max(2, Math.round(Math.max(cv.width, cv.height) / 160)), focused = document.activeElement?.dataset?.field;
+    for (const [k, r] of Object.entries(b.regions ?? {})) {
+      if (!FIELD[k] || !r) continue;
+      const [x0, y0, x1, y1] = turned(r, b.turn || 0), X = x0 * cv.width, Y = y0 * cv.height, w = (x1 - x0) * cv.width, h = (y1 - y0) * cv.height;
+      const thick = k === focused ? 2 : 1;
+      g.lineWidth = lw * thick + 2; g.strokeStyle = "#000"; g.strokeRect(X, Y, w, h);
+      g.lineWidth = lw * thick; g.strokeStyle = FIELD[k].colour; g.strokeRect(X, Y, w, h);
+      const fs = Math.max(10, lw * 5);
+      g.font = `bold ${fs}px sans-serif`; g.fillStyle = "#000"; g.fillRect(X, Y, fs * 0.9, fs * 1.1);
+      g.fillStyle = FIELD[k].colour; g.fillText(FIELD[k].letter, X + fs * 0.12, Y + fs * 0.92);
+    }
   }
   let painting = 0;
   const repaint = () => {
@@ -412,23 +429,68 @@ export function mount(shell) {
     painting = requestAnimationFrame(() => { const cv = document.querySelector(".bs-item canvas"), b = cur(); if (cv && b) paint(cv, b); });
   };
   function flip(id) { commitTitle(); if (act({ type: "flip", book: id })) reread(id); }
-  // the title typed counts as typed before it is committed
-  const typedNow = (b) => b.typed || pending?.id === b.id;
+  // the title or the author typed, before it is committed too: only then does one Enter approve
+  const typedNow = (b) => ALWAYS.some((k) => b.typedFields?.[k] || (pending?.id === b.id && k in pending.fields));
+  // the fields a book's task shows: Title and Author always, another once it holds text or the tagger opened it, and the
+  // library mark on every book once any book of the photo carries one
+  const library = () => books.some((b) => b.fields?.library);
+  const shown = (b) => FIELDS.filter((k) => ALWAYS.includes(k) || b.fields?.[k] || (pending?.id === b.id && pending.fields[k])
+    || openedFields.has(`${b.id}:${k}`) || (k === "library" && library()));
+  const valueOf = (b, k) => (pending?.id === b.id && k in pending.fields ? pending.fields[k] : b.fields?.[k] ?? "");
+  // a field swapped with its neighbour below (+1) or above (-1), or only the text selected in it moved there
+  function moveField(by) {
+    const el = document.activeElement, b = cur();
+    if (!b || !el?.matches?.(".bs-item input[data-field]")) return;
+    const list = shown(b), k = el.dataset.field, other = list[list.indexOf(k) + by];
+    if (!other) return;
+    const s = el.selectionStart, e = el.selectionEnd, v = el.value;
+    commitTitle();
+    const now = byId(b.id);
+    focusTo = { id: b.id, field: other };
+    if (s < e && !(s === 0 && e === v.length)) {
+      const there = now.fields?.[other] ?? "", moved = v.slice(s, e).trim(), rest = (v.slice(0, s) + " " + v.slice(e)).replace(/\s+/g, " ").trim();
+      act({ type: "set-fields", book: b.id, fields: { [k]: rest, [other]: by > 0 ? [moved, there].filter(Boolean).join(" ") : [there, moved].filter(Boolean).join(" ") } });
+    } else act({ type: "swap-fields", book: b.id, a: k, b: other });
+    draw();
+  }
   // the book on show: its picture, Flip, its text and the verdict
   function item(b) {
     const box = document.createElement("div"); box.className = "bs-item";
     box.innerHTML = `<div class="bs-tools"><a data-do="back">Back</a><a data-do="next">Next</a></div><canvas></canvas>
       <div class="bs-row"><button type="button" data-do="flip" title="Turn the picture upside down">Flip</button></div>
-      <input type="text" dir="auto" placeholder="The title, as printed" aria-label="Title"><p class="bs-reading dim" hidden>Reading again…</p>
+      <div class="bs-fields"></div><div class="bs-add"></div><p class="bs-reading dim" hidden>Reading again…</p>
       <p class="bs-confirm hint" role="status" hidden>Left as read: Enter again if it is exactly right</p>
       <div class="bs-verdicts"><button type="button" class="primary" data-do="right">Right</button><button type="button" data-do="wrong">Not a book</button></div>`;
     paint(box.querySelector("canvas"), b);
     box.querySelector('[data-do="flip"]').onclick = () => flip(b.id);
     box.querySelector(".bs-reading").hidden = !readOf(b.id).reading;
     box.querySelector(".bs-confirm").hidden = asked !== b.id;
-    const t = box.querySelector("input"); t.value = pending?.id === b.id ? pending.value : b.text || "";
-    t.oninput = () => { pending = { id: b.id, value: t.value }; asked = null; box.querySelector(".bs-confirm").hidden = true; };
-    t.onblur = () => { if (!rightDown) commitTitle(); };
+    // a box per field shown, in its order, a swap between each two, and a small link for each field not shown
+    const list = shown(b), rows = box.querySelector(".bs-fields");
+    list.forEach((k, i) => {
+      if (i) {
+        const sw = Object.assign(document.createElement("button"), { type: "button", className: "bs-swap", tabIndex: -1, textContent: "⇅", title: `Swap ${FIELD[list[i - 1]].name} and ${FIELD[k].name} (Alt+↑ / Alt+↓)` });
+        sw.onclick = () => { commitTitle(); act({ type: "swap-fields", book: b.id, a: list[i - 1], b: k }); };
+        rows.append(sw);
+      }
+      const row = document.createElement("label");
+      row.className = "bs-field"; row.style.setProperty("--field", FIELD[k].colour);
+      row.innerHTML = `<span class="bs-chip" aria-hidden="true"></span><input type="text" dir="auto">`;
+      row.querySelector(".bs-chip").textContent = FIELD[k].letter;
+      const t = row.querySelector("input");
+      Object.assign(t, { value: valueOf(b, k), placeholder: k === "title" ? "The title, as printed" : `${FIELD[k].name}, as printed` });
+      t.dataset.field = k; t.setAttribute("aria-label", FIELD[k].name);
+      t.oninput = () => { pending = { id: b.id, fields: { ...(pending?.id === b.id ? pending.fields : {}), [k]: t.value } }; asked = null; box.querySelector(".bs-confirm").hidden = true; };
+      t.onblur = () => { if (!rightDown) commitTitle(); };
+      t.onfocus = () => repaint();
+      rows.append(row);
+    });
+    box.querySelector(".bs-add").replaceChildren(...FIELDS.filter((k) => !list.includes(k)).map((k) => {
+      const a = Object.assign(document.createElement("a"), { textContent: `+ ${FIELD[k].name}`, tabIndex: -1 });
+      a.dataset.open = k;
+      a.onclick = () => { commitTitle(); openedFields.add(`${b.id}:${k}`); focusTo = { id: b.id, field: k }; draw(); };
+      return a;
+    }));
     for (const v of ["right", "wrong"]) {
       const k = box.querySelector(`[data-do="${v}"]`);
       k.setAttribute("aria-pressed", String(b.verdict === v)); k.onclick = () => verdict(v);
@@ -481,35 +543,23 @@ export function mount(shell) {
     const name = st.fileName.replace(/\.[^.]*$/, ""), kept = books.filter((b) => b.verdict === "right");
     const items = [{ ok: true, text: `${books.filter((b) => b.source === "found" && b.verdict === "right").length} books the finder proposed kept` },
       { ok: true, text: `${books.filter((b) => b.source === "missed" && b.verdict === "right").length} missed books added` },
-      ...(kept.some((b) => !b.text) ? [{ ok: false, level: "warning", text: `${kept.filter((b) => !b.text).length} books with no title typed` }] : [])];
+      ...(kept.some((b) => !b.fields?.title) ? [{ ok: false, level: "warning", text: `${kept.filter((b) => !b.fields?.title).length} books with no title typed` }] : []),
+      // a library's shelf: the books walked before its first mark was seen may lack theirs
+      ...(kept.some((b) => b.fields?.library) && kept.some((b) => !b.fields?.library)
+        ? [{ ok: false, level: "warning", text: `${kept.filter((b) => b.fields?.library).length} books with a library mark, ${kept.filter((b) => !b.fields?.library).length} without` }] : [])];
     shell.submitTruth({ count: kept.length, file: name + "_books_gt.json", items, empty: "No book marked right yet." });
   }
 
   // ---------- the right-click menu: a book added anywhere, a book flipped or deleted ----------
-  const menu = $("#bs-menu");
-  let menuAt = null;
   // the book under a point: of several, the last drawn
   const bookAt = (p) => books.findLast((b) => inside(p, b.corners)) || null;
-  const hideMenu = () => { menu.hidden = true; menuAt = null; };
-  $("#scroller").addEventListener("contextmenu", (e) => {
-    if (!opened || !tagging() || drawing) return;
-    e.preventDefault();
-    const p = at(e), b = bookAt(p), r = $("#image-view").getBoundingClientRect();
-    menuAt = { p, b };
+  function menuAt(e) {
+    if (!opened || !tagging() || drawing) return [];
+    const p = at(e), b = bookAt(p);
     // a box drawn over two books hides one of them: a book may be added on a box too
-    for (const k of ["flip", "delete"]) menu.querySelector(`[data-do="${k}"]`).hidden = !b;
-    Object.assign(menu.style, { left: e.clientX - r.left + "px", top: e.clientY - r.top + "px" });
-    menu.hidden = false;
-  }, here);
-  menu.onclick = (e) => {
-    const k = e.target.closest("button")?.dataset.do, m = menuAt;
-    hideMenu();
-    if (!m || !k) return;
-    if (k === "add") addAt(m.p);
-    if (k === "delete") remove(m.b.id);
-    if (k === "flip") { show(m.b.id); flip(m.b.id); }
-  };
-  document.addEventListener("pointerdown", (e) => { if (!menu.hidden && !menu.contains(e.target)) hideMenu(); }, { ...here, capture: true });
+    return [{ label: "Add a book here", run: () => addAt(p) },
+      ...(b ? [{ label: "Flip upside down", run: () => { show(b.id); flip(b.id); } }, { label: "Delete this book", run: () => remove(b.id) }] : [])];
+  }
 
   // ---------- the pointer: dragging the current book's corners, drawing a missed one ----------
   const sc = $("#scroller"), at = (e) => shell.viewer.toImage(e);
@@ -538,7 +588,7 @@ export function mount(shell) {
     drag = null;
     if (act({ type: "move-corners", book: id, corners })) reread(id); else { drawBoxes(); repaint(); }
   }
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (drawing) endDrawing(); hideMenu(); } }, here);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && drawing) endDrawing(); }, here);
 
   // ---------- the keyboard (req/shelves/truth/keys, req/shell/image/keys) ----------
   // the shell presses the open book's buttons by the keys study.json gives them; Right's key, on a title still as
@@ -550,12 +600,16 @@ export function mount(shell) {
       if (!typedNow(b) && asked !== b.id) { asked = b.id; document.querySelector(".bs-item .bs-confirm").hidden = false; return; }
       control.click();
     },
+    down: () => moveField(1),
+    up: () => moveField(-1),
   });
 
   return {
+    menuAt,
     ready() { $("#bs-find").disabled = !opened; },
     opened() {
-      opened = true; found = false; books = []; raw = null; curId = null; drag = null; drawing = null; selectFor = null; asked = null; pending = null; reads.clear(); hideMenu();
+      openedFields.clear(); focusTo = null;
+      opened = true; found = false; books = []; raw = null; curId = null; drag = null; drawing = null; selectFor = null; asked = null; pending = null; reads.clear();
       $("#bs-find").disabled = false; $("#bs-read").disabled = true; $("#bs-export").disabled = true;
       shell.viewer.layer("bs").replaceChildren(); draw();
     },

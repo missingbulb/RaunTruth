@@ -1,12 +1,10 @@
-"""req/checks/ci-sets: CI runs in two sets. The fast set (`-m "not full"`) runs on every PR and needs neither Node nor a
-browser; the full set adds every test that drives Node, Pyodide or Chromium, or measures speed or memory,
-and runs on every push to main, before anything can be released, and nightly on the workflow's own schedule."""
+"""req/checks/ci-sets: CI runs every test, and the `full` mark names those that drive Node, Pyodide or a browser, or
+measure speed or memory, so `-m "not full"` is a quick local loop that needs neither Node nor a browser."""
 import ast
 import glob
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WORKFLOWS = os.path.join(HERE, '..', '.github', 'workflows')
 HEAVY = ('_driver.mjs', 'needs_node', 'subprocess', 'perf_counter', 'mallinfo', 'Speed-ups')
 
 
@@ -24,10 +22,3 @@ def test_every_heavy_test_is_in_the_full_set():
     unmarked = [os.path.basename(p) for p in heavy if not marked_full(p)]
     assert not unmarked, f'drive Node or a browser, or time or weigh something, but are not marked full: {unmarked}'
 
-
-def test_the_fast_workflow_leaves_out_what_is_marked_full():
-    fast = open(os.path.join(WORKFLOWS, 'tests.yml')).read()
-    full = open(os.path.join(WORKFLOWS, 'tests-full.yml')).read()
-    assert '-m "not full"' in fast, 'the fast workflow does not deselect the full mark'
-    assert 'playwright' not in fast and 'pyodide' not in fast, 'the fast workflow still installs the browser'
-    assert '-m "not full"' not in full, 'the full workflow leaves the full mark out'

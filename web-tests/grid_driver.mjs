@@ -8,22 +8,16 @@
 //   node web-tests/grid_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
 import { scaledImage } from "./scaled_image.mjs";
 import { EARLY } from "./early_messages.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
-import { localStudy } from "./local_study.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { localStudy } from "./local_study.mjs";
+import { pw, launch } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
+
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,24 +30,16 @@ onmessage = async ({ data: m }) => {
   if (m.type === "open") { const O = await (await fetch("answers.json")).json(), images = bytes(O.images); postMessage({ type: "opened", meta: O.opened, images }, [images.buffer]); }
 };`;
 let scale = [null, null]; // the pixel's width and height in µm the image opens with, null for a file without a scale
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  if (u === "/web/answers.json") {
+const { origin, server } = await serveSite({
+  "/web/worker.js": EARLY + STAND_IN,
+  "/web/answers.json": () => {
     const A = JSON.parse(fs.readFileSync(answers));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...A, opened: { ...A.opened, um: scale[0], um_y: scale[1] } }));
-  }
-  const f = u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+    return JSON.stringify({ ...A, opened: { ...A.opened, um: scale[0], um_y: scale[1] } });
+  },
+  "/web/studies.json": { file: studies },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#view").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -88,11 +74,9 @@ const closePop = async (page) => { await page.mouse.move(700, 600); await page.k
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 
 await localStudy(ctx, "fixture");
-await ctx.route(offSite(origin), (r) => r.abort());
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 const page = await ctx.newPage();
-page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 const start = async () => {
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
@@ -114,13 +98,13 @@ await closePop(page);
 // keyboard's focus, and that keeps the popup open
 await page.evaluate(() => document.activeElement.blur());
 await page.hover("#grid-btn");
-await page.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+await orMissed(page.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
 await check((await pop(page)).open, "hovering the button opens the popup");
 await check(await page.evaluate(() => ("interestForElement" in HTMLButtonElement.prototype ? $("#grid-btn").interestForElement === $("#grid-pop") : !$("#grid-btn").hasAttribute("interestfor"))),
   "the browser's own hover where it has interest invokers, the button one for the popup; the page's own elsewhere");
 await check(await placed(page), "the popup sits under its button, their right edges lined up", await placed(page, true));
 await page.mouse.move(700, 600);
-await page.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+await orMissed(page.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")));
 await check(!(await pop(page)).open, "moving away from the button and the popup closes it");
 await closePop(page);
 await page.click("#zoom-in");
@@ -158,22 +142,20 @@ await check(listed.some((t) => t.includes("Grid colour and spacing")), "Settings
 {
   const old = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(old, "fixture");
-  await old.route(offSite(origin), (r) => r.abort());
   await old.addInitScript(() => { delete Navigator.prototype.serviceWorker; delete HTMLButtonElement.prototype.interestForElement; });
   const p2 = await old.newPage();
-  p2.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
   await p2.goto(origin + "/web/fixture");
   await p2.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   await load(p2, [0.2, 0.5]);
   await check(!(await p2.evaluate(() => $("#grid-btn").hasAttribute("interestfor"))), "without interest invokers the button carries none");
   await p2.hover("#grid-btn");
-  await p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await orMissed(p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
   await check(await placed(p2), "hovering opens the popup under its button all the same", await placed(p2, true));
   await p2.mouse.move(700, 600);
-  await p2.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await orMissed(p2.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")));
   await check(!(await pop(p2)).open, "and moving away closes it");
   await p2.focus("#grid-btn");
-  await p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")).catch(() => {});
+  await orMissed(p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
   await check((await pop(p2)).open, "focusing the button opens it too");
 }
 await done(0);

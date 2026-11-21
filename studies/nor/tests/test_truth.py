@@ -265,6 +265,18 @@ def test_a_three_file_gives_each_element_its_state():
     assert S.truth_of(three(areas=[19]))[1](20, 60) and not S.truth_of(three(areas=[19]))[1](380, 60)
 
 
+def test_a_four_file_knows_the_pixels_its_checks_cover():
+    """req/nor/downloads: /4 keeps each check as its box in whole pixels, x0 to x1 not included, whatever count of
+    areas it was made under; the elements are read as in /3."""
+    doc = dict(three(PLACES[:2]), format='norfinder-ground-truth/4', checked=[[0, 0, 200, 200], [190, 0, 400, 40]])
+    del doc['grid'], doc['areas']
+    assert states(doc) == states(three(PLACES[:2]))
+    known = S.truth_of(doc)[1]
+    assert known(0, 0) and known(199, 199) and known(399, 39) and known(250, 10)
+    assert not known(200, 100) and not known(399, 40) and not known(300, 300) and not known(-1, 20) and not known(400, 10)
+    assert not S.truth_of(dict(doc, checked=[]))[1](20, 20)
+
+
 def test_an_element_is_measured_on_the_lines_it_stands_on():
     doc = three(PLACES[:1])
     doc['candidates'][0]['edited'] = {'red': [[50.0, 60.0], [64.0, 60.0]]}

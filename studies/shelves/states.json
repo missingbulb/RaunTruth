@@ -39,7 +39,7 @@
           {"is": "hidden"}
         ]
       },
-      {"name": "Book menu", "select": "#bs-menu", "req": "req/shelves/truth/task", "steady": "shows only on a right-click while tagging",
+      {"name": "Book menu", "select": "#point-menu", "req": "req/shelves/truth/task", "steady": "shows only on a right-click while tagging",
         "rule": [
           {"is": "hidden"}
         ]

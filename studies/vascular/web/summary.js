@@ -1,7 +1,7 @@
 // What a vessel model adds up to over the tissue a mask outlines: the Summary box's numbers. The mask is areas
 // outlined from straight above, [[x, y], ...] in µm, combined by exclusive or, each running through every slice;
-// with none it is the whole field. Areas the model marks as damaged are never tissue. Plain data in, data out, so it
-// can be tested without a browser.
+// with none it is the whole field. Areas the model marks as damaged, and the image's damaged areas (in µm), are never
+// tissue. Plain data in, data out, so it can be tested without a browser.
 import * as Mo from './model.js';
 
 const len3 = (x, y, z) => Math.sqrt(x * x + y * y + z * z);
@@ -178,7 +178,11 @@ function withRadii(every) {
 
 // The seven numbers the model's own geometry gives, over the tissue the mask and the damaged areas leave: sums and
 // counts over its points and segments, nothing sampled. zStepUm: µm a slice stands for.
-export function summarize(m, { mask = [], zStepUm } = {}) {
+// the model with the image's damaged areas among its own
+const withDamaged = (m, damaged) => (damaged.length ? { ...m, excluded_regions: [...(m.excluded_regions || []), ...damaged.map((polygon) => ({ polygon }))] } : m);
+
+export function summarize(m, { mask = [], damaged = [], zStepUm } = {}) {
+  m = withDamaged(m, damaged);
   const t3 = tissueUm3(m, mask, zStepUm), mm3 = t3 * 1e-9, every = withRadii(branches(m, zStepUm));
   // the vessels' volume inside the tissue: each piece of tube, π r² times its length, counted where its middle lies
   let vesselUm3 = 0;
@@ -210,7 +214,8 @@ export function summarize(m, { mask = [], zStepUm } = {}) {
 // The eighth number, the one that is not the model's alone: how far the tissue lies from its nearest vessel wall,
 // measured from an even lattice of about `points` points through the tissue, to any vessel, the mask's or not; a point
 // inside a vessel has none. Its cost grows with the points, not the model.
-export function nearestVessel(m, { mask = [], zStepUm, points = 2000 } = {}) {
+export function nearestVessel(m, { mask = [], damaged = [], zStepUm, points = 2000 } = {}) {
+  m = withDamaged(m, damaged);
   const T = lattice(m, mask, zStepUm, points), near = walls(withRadii(branches(m, zStepUm)).map((b) => b.path), 20), far = [];
   for (const [x, y, z] of T.out) { const d = near(x, y, z); if (d != null && d > 0) far.push(d); }
   return { ...stats(far), samples: T.out.length, spacingUm: T.s };

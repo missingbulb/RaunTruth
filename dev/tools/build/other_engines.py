@@ -25,7 +25,8 @@ def counts(engine, supported):
 
 def verdict(engine, code, supported):
     """The run's exit code from the tests' own."""
-    if code == 0 or counts(engine, supported):
+    # only tests failing are forgiven: a run that could not collect them, or stopped, fails whatever the engine
+    if code != 1 or counts(engine, supported):
         return code
     # expected while the browser is not supported: the failures are reported, and the night stays green
     print(f'::warning title={BROWSER[engine]} not yet supported::the full set failed on {engine}; '
@@ -36,7 +37,7 @@ def verdict(engine, code, supported):
 def main(engine):
     supported = json.load(open(os.path.join(ROOT, 'web', 'browsers.json')))['supported']
     counts(engine, supported)
-    code = subprocess.run([sys.executable, '-m', 'pytest', 'web-tests', 'studies', 'lab', *SELECTED, '-q', '-n', 'auto', '--durations=10'],
+    code = subprocess.run([sys.executable, '-m', 'pytest', 'web-tests', 'studies', 'lab', *SELECTED, '-q', '-n', 'auto', '--dist', 'worksteal', '--durations=10'],
                           cwd=ROOT, env={**os.environ, 'PW_ENGINE': engine}).returncode
     return verdict(engine, code, supported)
 

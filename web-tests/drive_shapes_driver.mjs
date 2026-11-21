@@ -1,28 +1,22 @@
-// Drives the Google Drive dialog (web/) in headless Chromium against a stand-in Drive API that answers Range
+// Drives the Google Drive dialog (web/) in headless Chromium against the Drive fake, which answers Range
 // requests, listing ImageJ TIFFs: a flat three-channel image, an eight-slice stack, a TIFF with no ImageJ header
 // and a run of stacks below them. Checks req/shell/drive/stacks: each row says what its file holds, read from the file's first 64 KB
 // for the rows in view and the next 10, remembered so a reload reads nothing again, and not read while Show
 // thumbnails is off; opening the stack saves a 3D thumbnail at once, opening the flat image does not.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_shapes_driver.mjs [SHOTS]
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
-import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { repoFile } from "./repo_file.mjs";
-import { frames as framesOf } from "./page_frames.mjs";
-import { until } from "./page_until.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { pressDrive, pickRecent } from "./drive_open.mjs";
+import { frames as framesOf } from "./page_frames.mjs";
+import { until, orMissed, untilHeard } from "./page_until.mjs";
+import { pw, launch, siteOf, check } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { googleDrive } from "./fakes/google_drive.mjs";
+import { STEP } from "./deadlines.mjs";
+
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HEAD = 65536, AHEAD = 10;
@@ -60,40 +54,20 @@ const FILES = [
 const MORE = tiff(256, 256, 5, "ImageJ=1.54f\nimages=5\nslices=5\n", tube);
 for (const f of FILES) f.bytes = f.bytes || MORE;
 const ROOT = "shapefolder000000001";
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-const CONFIG = `window.NOR_CONFIG = { google: { apiKey: "stand-in" } };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(CONFIG); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
-
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the deploy with a Google key
+siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-const cors = { "access-control-allow-origin": "*" };
-// every read of a file's bytes: its row and the Range asked for ("" for the whole file)
-const reads = [];
-let inflight = 0;
-await ctx.route("https://www.googleapis.com/**", async (route) => {
-  const u = new URL(route.request().url()), id = u.pathname.match(/\/files\/?(.*)$/)[1];
-  if (!id) {
-    const files = FILES.map((f) => ({ id: f.id, name: f.name, mimeType: "image/tiff", size: String(f.bytes.length), createdTime: "2026-10-01T10:00:00Z" }));
-    return route.fulfill({ status: 200, headers: cors, contentType: "application/json", body: JSON.stringify({ files }) });
-  }
-  const k = FILES.findIndex((f) => f.id === id), range = route.request().headers().range || "";
-  reads.push({ k, range }); inflight++;
-  const m = range.match(/^bytes=(\d+)-(\d+)$/), body = m ? FILES[k].bytes.subarray(+m[1], +m[2] + 1) : FILES[k].bytes;
-  try { await route.fulfill({ status: m ? 206 : 200, headers: cors, contentType: "image/tiff", body }); } finally { inflight--; }
-});
-await ctx.route(offSite(origin, "https://www.googleapis.com/"), (r) => r.abort());
+// the Drive fake's folder of TIFFs; reads(): every read of a file's bytes since the test cleared them, its row and
+// the Range asked for ("" for the whole file)
+const drive = googleDrive(ctx);
+drive.folder({ id: ROOT, name: "Shapes", access: "public" });
+for (const f of FILES) drive.file({ id: f.id, name: f.name, parent: ROOT, bytes: f.bytes, mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
+let readsFrom = 0;
+const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ k: FILES.findIndex((f) => f.id === c.id), range: c.range || "" }));
 await ctx.addInitScript((link) => {
   delete Navigator.prototype.serviceWorker;
   if (sessionStorage.getItem("primed")) return;
@@ -101,31 +75,28 @@ await ctx.addInitScript((link) => {
   localStorage.setItem("nor-drive-link", JSON.stringify(link));
 }, `https://drive.google.com/drive/folders/${ROOT}`);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started
 // every row in view, and every row read, has its badge (or holds nothing to tell), and no read is on the way once the
 // page has run its handlers, the rows ahead of the view among them; 10 s at most, the checks after it saying what is
 // missing
 const quiet = async () => {
-  const end = Date.now() + 10000, wants = FILES.map((f) => f.want);
-  const told = () => page.waitForFunction(([wants, read]) => {
+  const wants = FILES.map((f) => f.want);
+  const told = () => orMissed(page.waitForFunction(([wants, read]) => {
     const box = $("#remote-list").getBoundingClientRect(), rows = [...document.querySelectorAll("#remote-list .item")];
     return rows.every((b, k) => { const r = b.getBoundingClientRect(); return !(r.bottom > box.top && r.top < box.bottom || read.includes(k)) || (b.querySelector(".shape")?.textContent || "") === wants[k]; });
-  }, [wants, reads.map((r) => r.k)], { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-  for (;;) {
-    const asked = reads.length;
+  }, [wants, reads().map((r) => r.k)], { timeout: 10000 }));
+  // done when nothing is on the way and no read began since the rows read were told
+  const done = await untilHeard(async () => {
+    const asked = reads().length;
     await told();
     await framesOf(page);
-    // done when nothing is on the way and no read began since the rows read were told
-    if (!inflight && reads.length === asked) break;
-    if (Date.now() >= end) break;
-    if (inflight) await page.waitForEvent("requestfinished", { timeout: Math.max(1, end - Date.now()) }).catch(() => {});
-  }
-  if (Date.now() >= end) {
+    return !drive.inflight && reads().length === asked;
+  }, () => drive.inflight && orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
+  if (!done) {
     const rows = await inView(), b = await badges();
-    console.log("quiet: gave up after 10 s", JSON.stringify({ inflight, rows, badges: rows.map((k) => b[k]) }));
+    console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows, badges: rows.map((k) => b[k]) }));
   }
 };
 const open = async () => {
@@ -144,7 +115,7 @@ const thumbOf = (k) => page.evaluate(async (id) => {
   const r = await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href);
   return r ? new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); r.blob().then((b) => f.readAsDataURL(b)); }) : "";
 }, FILES[k].id);
-const thumbSaved = (k, timeout = 3000) => until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }).then(() => true, () => false);
+const thumbSaved = (k, timeout = 3000) => orMissed(until(page, async (id) => !!(await (await caches.open("nor-thumbs-v1")).match(new URL("drive-thumb/" + id, location.href).href)), FILES[k].id, { timeout }));
 
 try {
   await page.goto(origin + "/web/");
@@ -153,18 +124,18 @@ try {
   const seen = await inView(), window = []; for (let k = seen[0]; k <= seen[seen.length - 1] + AHEAD; k++) window.push(k);
   let b = await badges();
   check(FILES.slice(0, 4).every((f, k) => b[k] === f.want), `each row says what its file holds: ${JSON.stringify(b.slice(0, 4))}`);
-  const read = [...new Set(reads.map((r) => r.k))].sort((x, y) => x - y);
+  const read = [...new Set(reads().map((r) => r.k))].sort((x, y) => x - y);
   check(read.length === window.length && read.every((k, i) => k === window[i]), `read for the rows in view and the next ${AHEAD} only: ${read} (want ${window})`);
-  check(reads.length > 0 && reads.length === read.length && reads.every((r) => r.range === `bytes=0-${HEAD - 1}`), `each read once, its first 64 KB: ${JSON.stringify(reads.slice(0, 3))}`);
+  check(reads().length > 0 && reads().length === read.length && reads().every((r) => r.range === `bytes=0-${HEAD - 1}`), `each read once, its first 64 KB: ${JSON.stringify(reads().slice(0, 3))}`);
   check(window.every((k) => b[k] === FILES[k].want), `every row read shows its badge: ${JSON.stringify(window.map((k) => [k, b[k], FILES[k].want]))}`);
   if (shots) await page.locator("#remote-dlg").screenshot({ path: path.join(shots, "drive_shapes.png") });
 
   // remembered: a reload reads nothing it read before
   await page.reload(); await page.waitForFunction(() => window.$ && $("#title").textContent);
-  reads.length = 0;
+  readsFrom = drive.calls.length;
   await open();
   b = await badges();
-  check(reads.length === 0 && window.every((k) => b[k] === FILES[k].want), `after a reload, the badges show with no read: ${reads.length} reads`);
+  check(reads().length === 0 && window.every((k) => b[k] === FILES[k].want), `after a reload, the badges show with no read: ${reads().length} reads`);
 
   // not read while Show thumbnails, in Settings, is off
   const thumbsSetting = async (v) => {
@@ -175,12 +146,12 @@ try {
     await framesOf(page);
   };
   await thumbsSetting("off");
-  check(reads.length === 0, `with Show thumbnails off, nothing is read: ${reads.length} reads`);
+  check(reads().length === 0, `with Show thumbnails off, nothing is read: ${reads().length} reads`);
   await thumbsSetting("on");
   await quiet();
   const end = await inView();
   b = await badges();
-  check(end.length > 0 && end.every((k) => b[k] === FILES[k].want) && reads.every((r) => r.range), `turned on again, the rows in view are read: ${end.map((k) => b[k] || "-")}`);
+  check(end.length > 0 && end.every((k) => b[k] === FILES[k].want) && reads().every((r) => r.range), `turned on again, the rows in view are read: ${end.map((k) => b[k] || "-")}`);
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
 
   // opening the stack saves its 3D thumbnail at once; opening the flat image does not (its waits for the image to show)
@@ -189,7 +160,7 @@ try {
   await page.waitForFunction(() => st.fileName === "c stack.tif");
   await thumbSaved(2);
   const pic = await thumbOf(2);
-  check(reads.some((r) => r.k === 2 && !r.range), "opening the stack downloads the whole file");
+  check(reads().some((r) => r.k === 2 && !r.range), "opening the stack downloads the whole file");
   check(!!pic && pic.startsWith("data:image/"), "and saves a thumbnail of it as it opens");
   const size = pic && await page.evaluate((u) => new Promise((ok) => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.src = u; }), pic);
   check(size && size[0] > 0 && size[0] <= 128 && size[1] <= 128, `a small picture: ${size}`);

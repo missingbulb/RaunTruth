@@ -10,11 +10,11 @@ import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
+import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { FILES, GT, approved, open, role, check, done } = drive;
-approved.add(GT.submissions);
+const { FILES, GT, open, role, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
@@ -211,21 +211,23 @@ await page.goForward();
 await page.waitForFunction(() => document.title === "Image Viewer");
 await check(dialogs === 0, "Forward swapped the study over an unsaved action while tagging, without a question and without an error: the action is lost there", dialogs);
 await page.context().close();
-// a write that fails is said, and the unsaved count stays
-page = await open(true, { prepare: (ctx) => ctx.addInitScript(() => {
-  const real = IDBFactory.prototype.open;
-  IDBFactory.prototype.open = function (name, ...rest) { if (name === "gt-drafts") throw new Error("storage refused"); return real.call(this, name, ...rest); };
-}) });
-await tagger(page);
-await page.waitForFunction(() => /could not be read/.test($("#status").textContent));
-await check(true, "a draft that cannot be looked up is said on the status line", await page.textContent("#status"));
-await counted(page);
-await moved(page, "m1", 12, 12);
-await page.click("#gt-save-draft");
-await page.waitForFunction(() => /could not be saved/.test($("#notice").textContent));
-l = await label(page);
-await check(l.text === "· 1 unsaved" && await unloadAsks(page), "a draft that cannot be written is said, and the action stays unsaved", l);
-await page.context().close();
+// a write that fails is said, and the unsaved count stays; the page warns of each refusal
+await expecting(/storage refused/, async () => {
+  page = await open(true, { prepare: (ctx) => ctx.addInitScript(() => {
+    const real = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function (name, ...rest) { if (name === "gt-drafts") throw new Error("storage refused"); return real.call(this, name, ...rest); };
+  }) });
+  await tagger(page);
+  await page.waitForFunction(() => /could not be read/.test($("#status").textContent));
+  await check(true, "a draft that cannot be looked up is said on the status line", await page.textContent("#status"));
+  await counted(page);
+  await moved(page, "m1", 12, 12);
+  await page.click("#gt-save-draft");
+  await page.waitForFunction(() => /could not be saved/.test($("#notice").textContent));
+  l = await label(page);
+  await check(l.text === "· 1 unsaved" && await unloadAsks(page), "a draft that cannot be written is said, and the action stays unsaved", l);
+  await page.context().close();
+});
 // a draft is listed in Manage storage, under its image, and deleted there
 page = await open(true);
 await tagger(page);

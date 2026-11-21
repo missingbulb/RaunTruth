@@ -3,9 +3,9 @@ bar's icon in any other, the problem report it and the avatar's menu open, and t
 (problem_report_driver.mjs, in a headless browser)."""
 import os
 import shutil
-import subprocess
 
 import pytest
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -15,8 +15,4 @@ NODE = shutil.which('node')
 
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_problem_report():
-    r = subprocess.run([NODE, os.path.join(HERE, 'problem_report_driver.mjs')], capture_output=True, text=True, timeout=120)
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
+    run_driver(os.path.join(HERE, 'problem_report_driver.mjs'), timeout=120)

@@ -10,23 +10,15 @@
 //   node web-tests/viewer3d_driver.mjs [SHOT.png]
 import { writeTiff } from "../web/tiff_file.js";
 import { EARLY } from "./early_messages.mjs";
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
+import { ENGINE, SOFTWARE_3D } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
+import { pw, launch, check, siteOf } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { STEP } from "./deadlines.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
 const [shot] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -55,34 +47,20 @@ onmessage = ({ data: m }) => {
   if (m.type === "study") postMessage({ type: "ready", info: {} });
   else if (m.type === "open") postMessage({ type: "held" });
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
-  if (u === "/studies/vascular/study.json") {
-    const m = JSON.parse(fs.readFileSync(path.join(repo, u), "utf8"));
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...m, view: { ...m.view, stretch: false } }));
-  }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/vendor/wheels.json": "[]",
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
+siteOf(browser).studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 let failed = false;
-const check = (ok, what) => { if (!ok) { failed = true; console.error("FAILED: " + what); } else console.log("ok: " + what); };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-await ctx.route(offSite(origin), (r) => r.abort());
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
 await standInDrive(ctx);
 const page = await ctx.newPage();
-page.on("pageerror", (e) => { failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(10000);
+page.setDefaultTimeout(STEP);
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
 const picture = async () => { await viewDrawn(page); return pictureNow(); };
@@ -149,9 +127,17 @@ try {
     const c3 = await page.evaluate(() => { const b = $("#v3-gl").getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
     const rot0 = await rotNow();
     await page.click("#ruler-btn");
+    // how often the stack's own picture has been drawn, as the page's WebGL was asked to
+    await viewDrawn(page);
+    await page.evaluate(() => {
+      const gl = WebGL2RenderingContext.prototype, draw = gl.drawArrays;
+      window.stackDrawn = 0;
+      gl.drawArrays = function (...a) { window.stackDrawn++; return draw.apply(this, a); };
+    });
+    const stackDrawn = async () => { await viewDrawn(page); return page.evaluate(() => window.stackDrawn); };
     await page.mouse.move(c3[0] - 40, c3[1]); await page.mouse.down();
     await page.mouse.move(c3[0] + 20, c3[1], { steps: 4 }); await page.mouse.move(c3[0] + 40, c3[1], { steps: 4 });
-    const live = await rulerNow();
+    const live = await rulerNow(), drawnInDrag = await stackDrawn();
     const topZ = await page.evaluate(() => { const v = window.shellForTests.viewer.three, S = v.S, Zs = v.meta.shape[0]; return v.half[2] * (1 - (2 * S.z0) / Zs); });
     check(live.orb && Math.abs(live.orb.r - 80) < 8 && /rgb\(255, 255, 255\)|url\(/.test(live.orb.fill) && live.line && /^\d+(\.\d+)? µm$/.test(live.text || ""),
       `dragging the 3D ruler shows an orb of the reach, its radius the drag, with the distance in µm: ${JSON.stringify(live)}`);
@@ -165,7 +151,8 @@ try {
     check(!down.orb && down.line && down.text === live.text && down.pressed === "true" && await rotNow() === rot0,
       `on release the ruler alone stays, and the drag did not turn the view: ${JSON.stringify(down)}`);
     await page.evaluate(() => { const v = window.shellForTests.viewer.three; v.S.rot = v.facing(0.5, -0.4); v.redraw(); });
-    const turnedR = await rulerNow();
+    const turnedR = await rulerNow(), drawnTurned = await stackDrawn();
+    check(drawnInDrag === 0 && drawnTurned === 1, `the ruler's drag draws over the stack's picture, which is drawn again only as the view turns: ${drawnInDrag} times in the drag, ${drawnTurned} by the turn`);
     check(turnedR.line && turnedR.text === down.text, `the ruler stays with its distance as the view turns: ${JSON.stringify(turnedR)}`);
     await page.click("#ruler-btn");
     const gone = await rulerNow();
@@ -391,7 +378,6 @@ try {
 
   // a browser without WebGL2: the stack still opens, flattened, its volume there for the study to read
   const noGl = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await noGl.route(offSite(origin), (r) => r.abort());
   await noGl.addInitScript(() => {
     delete Navigator.prototype.serviceWorker;
     const get = HTMLCanvasElement.prototype.getContext;

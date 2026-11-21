@@ -25,7 +25,7 @@ Full specification, including the parts the overview leaves unstated:
 [`../lab/STATE.md`](../lab/STATE.md) holds the current state — the default finder, its
 scores, what to run — and is updated in every PR that changes it, so this file does not repeat it.
 
-Run the tests: `pip install -r requirements.txt && python3 -m pytest web-tests studies` from the repo root (the page tests also need `npm i --prefix web-tests pyodide@314.0.7` and Playwright's Chromium). CI runs the fast set (`-m "not full"`, no Node or browser) on every PR (`.github/workflows/tests.yml`) and every test nightly and on each push to main (`.github/workflows/tests-full.yml`), where a green run wakes the site release.
+Run the tests: `pip install -r requirements.txt && python3 -m pytest web-tests studies` from the repo root (the page tests also need `npm i --prefix web-tests pyodide@314.0.7` and Playwright's Chromium). CI runs every test on Chromium, in the test image with no network (`dev/tools/test-image/`), on every PR (`.github/workflows/tests.yml`) and on each push to main (`.github/workflows/tests-full.yml`), where a green run wakes the site release; nightly it adds Firefox and WebKit.
 Fetch the raw data and score every finder: `python3 lab/fetch.py nor && python3 lab/run.py nor`
 
 ## What blocks starting
@@ -124,7 +124,7 @@ This study is one of the page's studies; the repo's own map, and what the shell 
 ```
 web/         the study's page: panels, script, style, algorithm_metrics.json (the lab's numbers)
 web/gt_actions.js  the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: a candidate has an id
-             (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/3`)
+             (c1, c2, … the finder's, kept by place across runs; u1, u2, … the tagger's added NoRs); the file is the model (`norfinder-ground-truth/4`)
 web/old_marks.js   what the page kept in five browser keys before the log, offered once through shell.gt.legacy as the GT actions it implies
 algorithm/   the finders and the page's entry, nor_finder.py: the only Python the page loads, and the code the lab runs
 lab/         the research records: STATE.md, ledger.md, the lab's labels (truth/), browser measurements
@@ -143,7 +143,7 @@ docs/
 
 **Ground truth.** The tagger's work (approve, reject = delete, lengths moved, NoRs added, areas checked) is GT actions in the shell's log
 (`shell.gt`, `gt_actions.js`); the page derives `st.forced`, `st.edits`, `st.added` and `st.areas` from the log's model (`sync` in `nor.js`), so
-the readers are the old ones. A refilter's answer that moves a candidate's pass or fail, or the filters, is a new `run`; the run's output holds
+the readers are the old ones. Each Find Candidates is a new `run`, its output the NoRs the finder passes; it holds
 no pixel masks, so a draft loaded with no Find Candidates draws each candidate from its box with no outline. The lab reads the file
 through `truth.labels_of` (`algorithm/truth.py`): `/2` as it always was, `/3` as its approved candidates and added NoRs, and a label 0 for each candidate of the
 history's last run that a `delete` in the history names and the file no longer lists (one absent with no delete is not known, and no label).

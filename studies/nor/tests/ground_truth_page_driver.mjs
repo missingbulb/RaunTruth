@@ -4,32 +4,26 @@
 // until the user decides; the measuring ends drag freely and keep the NoR on one axis; the
 // Ground truth button's colour follows the verdicts (red while an added NoR waits for one) and opens a popup that
 // names what is missing; the file holds only the candidates voted on, the added NoR once approved; for an image
-// from Google Drive (a stand-in Drive API), for a tagger who never approved the site for the submissions folder,
-// Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
-// study, where the summary and the item views are (req/nor/layout), it checks the summary mask: lassoed areas,
-// combined by exclusive or, limit the summary and the CSVs but not the ground truth; and the item views' sort. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
-// with the settings chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
+// from Google Drive (a stand-in Drive API), for a tagger whose sign-in lacks Drive's per-file permission, its box
+// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
+// study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
+// combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
+// chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { withItemView } from "./item_view_shown.mjs";
-import { localStudy } from "../../../web-tests/local_study.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { asTagger, TAGGER } from "../../../web-tests/tagger.mjs";
+import { signIn, SCOPES } from "../../../web-tests/fakes/google_sign_in.mjs";
+const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+import { localStudy } from "../../../web-tests/local_study.mjs";
+import { pw, launch, googleOf, siteOf } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
+
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const DRIVE_ID = "FAKEDRIVEID1234567890ab";
@@ -38,61 +32,46 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
 let stage = null; // the study's stage as served; null: as committed
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/studies/nor/study.json" && stage) {
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage }));
-  }
-  const f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => EARLY + STAND_IN,
+  "/web/answers/": { dir: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+siteOf(browser).studies.edit("nor", (m) => (stage ? { ...m, stage } : m));
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const bytes = fs.readFileSync(image);
+// the image on the Drive fake, in the study's own folder
+googleOf(browser).drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", bytes,
+  parent: JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop() });
 
 async function open(drive) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-  await asTagger(ctx, { apiKey: "test-key" });
-  await withItemView(ctx); // the item views' sort, on the shelved view
-  const asked = []; // what was asked of github.com
-  await ctx.route(offSite(origin), (r) => {
-    const u = new URL(r.request().url());
-    if (u.host === "github.com") asked.push(u);
-    if (u.host !== "www.googleapis.com") return r.abort();
-    const headers = { "access-control-allow-origin": "*" };
-    if (u.searchParams.get("alt") === "media") return r.fulfill({ status: 200, headers: { ...headers, "content-length": String(bytes.length) }, body: bytes });
-    // the study's folder, holding the image
-    if (u.searchParams.get("q")) return r.fulfill({ status: 200, headers, contentType: "application/json",
-      body: JSON.stringify({ files: [{ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", size: String(bytes.length) }] }) });
-    return r.fulfill({ status: 200, headers, contentType: "application/json", body: JSON.stringify({ name: "corner.tif", mimeType: "image/tiff" }) });
-  });
+  if (drive) {
+    // Google's window answers as the tagger, the per-file box left unticked
+    Object.assign(signIn(ctx), { withhold: [DRIVE_FILE], account: { ...signIn(ctx).account, email: TAGGER, name: "Acme Tagger" } });
+    await asTagger(ctx, { scopes: SCOPES.split(" ").filter((s) => s !== DRIVE_FILE).join(" ") });
+  } else await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) await localStudy(ctx, "nor");
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   if (drive) {
@@ -102,7 +81,7 @@ async function open(drive) {
     await page.setInputFiles("#file", image);
   }
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  return { ctx, page, asked };
+  return { ctx, page };
 }
 
 // the status bar's steps, the one to do now marked *, and what shines
@@ -154,26 +133,12 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 async function markAndVote(page) {
   await unfold(page, "#processing-box");
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
   await check(ran === "Load image › Run algorithm › Review all items* | #sb-review", `once it has run, Review all items is: ${ran}`);
   await check(await gtColour(page) === "todo", "with no verdict the Ground truth button is red");
-  // the filters rejecting every finalist, with nothing voted on: the crumb waits on what the button waits on;
-  // their answer lands, is read and is taken back in one turn of the page, so no real answer interleaves
-  const none = await page.evaluate(() => {
-    const land = (fails) => st.worker.onmessage({ data: { type: "result", action: "refilter", meta: { fails, alone: st.alone }, echo: st.seq } });
-    const kept = st.fails, why = Object.values(kept).find((f) => f !== null), all = JSON.parse(JSON.stringify(kept));
-    for (const k of Object.keys(all)) all[k] = why;
-    land(all);
-    const seen = { finalists: st.passes.filter((c) => !c.added).length, button: $("#gt-submit").dataset.state,
-      crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › ") };
-    land(kept);
-    return seen;
-  });
-  await check(none.finalists === 0 && none.button === "todo" && none.crumbs === "Load image › Run algorithm › Review all items*",
-    `every finalist filtered out and none voted on: the button stays red and Review all items stays the step to do: ${JSON.stringify(none)}`);
   // the walk opens once tagging starts (req/shell/ground-truth/tagging), framing its first area; the view is put back
-  // as it was, the whole image, once it rests, since a scroll closes the menu a right click opens
+  // as it was, the whole image, once it rests, so a right click lands on the image point it aims at
   const rest = () => page.waitForFunction(() => {
     const sc = $("#scroller"), at = [sc.scrollLeft, sc.scrollTop, st.zoom].join();
     window.still = window.lastAt === at ? (window.still || 0) + 1 : 0; window.lastAt = at;
@@ -186,8 +151,8 @@ async function markAndVote(page) {
   await rest();
   const m = await middle(page);
   await page.mouse.click(m.sx, m.sy, { button: "right" });
-  await check(await page.isVisible("#ctx") && (await page.textContent("#ctx button")) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
-  await page.click("#ctx button");
+  await check(await page.isVisible("#point-menu") && (await page.textContent('#point-menu [role="menuitem"]')) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
+  await page.click('#point-menu [role="menuitem"]');
   const added = await page.evaluate(() => ({ sel: st.sel, c: nor.candOf(st.sel) }));
   await check(added.sel === "u1" && Math.hypot(added.c.cx - m.x, added.c.cy - m.y) < 1, `the added NoR is centred where clicked and selected (${added.c.cx}, ${added.c.cy})`);
   await check(await page.$$eval("#overlay .added .glow", (c) => c.length) === 1, "it glows on the image");
@@ -221,6 +186,8 @@ async function markAndVote(page) {
   await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   await page.click("#task-card .verdict .up");
   await page.click("#task-skip");
+  // the area's check may come next, so the finalists' task is asked for its next one again
+  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   // a found candidate's red end dragged off the axis only slides along it: the green ends stay put
   L = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
   if (L) {
@@ -235,42 +202,6 @@ async function markAndVote(page) {
   return page.evaluate(() => ({ undecided: st.order.length - st.forced.size }));
 }
 
-// the item views' sort, in each view's Options menu: by number (the default), the verified first or last, and on the rejected the most
-// rejecting filters first; remembered per view
-async function sorting(page) {
-  await page.evaluate(() => { const xs = st.passes.filter((c) => !c.added); nor.decide(xs[0].i, "approve"); nor.decide(xs[2].i, "approve"); nor.decide(st.rejects[1].i, "reject"); });
-  await page.click("#switch"); await idle(page);
-  const shown = () => page.evaluate(() => [...document.querySelectorAll("#list .card")].map((d) => {
-    const c = nor.candOf(d.dataset.i[0] === "u" ? d.dataset.i : +d.dataset.i);
-    return { n: nor.numOf(c), v: !!(c.added ? st.added[c.k].verdict : st.forced.get(c.i)), f: nor.whyAll(c).length };
-  }));
-  const sortBy = async (v) => { await page.$eval("#card-menu", (d) => { d.open = true; }); await page.selectOption("#sort", v); await idle(page); return shown(); };
-  const up = (xs) => xs.every((x, k) => !k || xs[k - 1] <= x), down = (xs) => xs.every((x, k) => !k || xs[k - 1] >= x);
-  const byNum = (L) => up(L.map((c) => c.n));
-  for (const tab of ["#tab-pass", "#tab-fail"]) {
-    await page.click(tab); await idle(page);
-    const choices = await page.$$eval("#sort option", (o) => o.map((x) => x.value));
-    const fail = tab === "#tab-fail";
-    await check(JSON.stringify(choices) === JSON.stringify(["number", "verified-first", "verified-last", ...(fail ? ["filters"] : [])]),
-      `the ${fail ? "rejected" : "finalists"} sort by ${choices.join(", ")}`);
-    let L = await shown();
-    await check(await page.$eval("#sort", (s) => s.value) === "number" && byNum(L) && L.length > 2, "by number by default");
-    L = await sortBy("verified-first");
-    await check(down(L.map((c) => +c.v)) && L.some((c) => c.v) && byNum(L.filter((c) => c.v)) && byNum(L.filter((c) => !c.v)), "verified first, each part by number");
-    L = await sortBy("verified-last");
-    await check(up(L.map((c) => +c.v)) && byNum(L.filter((c) => !c.v)), "verified last, each part by number");
-    if (fail) {
-      L = await sortBy("filters");
-      await check(down(L.map((c) => c.f)) && L[0].f > L[L.length - 1].f, `the rejected sort by how many filters reject them, most first (${L[0].f} to ${L[L.length - 1].f})`);
-    }
-  }
-  await page.click("#tab-pass"); await idle(page);
-  await check(await page.$eval("#sort", (s) => s.value) === "verified-last", "each view keeps its own sort");
-  for (const tab of ["#tab-pass", "#tab-fail"]) { await page.click(tab); await idle(page); await sortBy("number"); }
-  await page.$eval("#card-menu", (d) => { d.open = false; });
-  await page.click("#switch"); await idle(page);
-}
-
 // the popup the Ground truth button opens: its text, and the file its Export button downloads
 async function popup(page) {
   // Submit Ground Truth is the last of the tasks (req/nor/truth/tasks)
@@ -279,7 +210,7 @@ async function popup(page) {
   // a checklist of every issue, the resolved ones crossed out: what is still open
   const items = await page.$$eval("#gt-problems li", (li) => li.map((l) => ({ ok: l.classList.contains("ok"), struck: getComputedStyle(l.querySelector("span")).textDecorationLine, text: l.textContent })));
   const has = await page.evaluate(() => ({ added: st.added.length > 0 }));
-  await check(items.length === 5 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
+  await check(items.length === 4 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
     `the popup lists every issue that applies, crossing out the resolved ones (${items.filter((t) => t.ok).length} of ${items.length})`);
   const line = (re) => items.find((t) => re.test(t.text));
   await check(!!line(/you added/) === has.added && !line(/mask/),
@@ -324,8 +255,8 @@ async function mask(page) {
     await check(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
   }
   await lasso(page, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]]);
-  const fit = await page.evaluate(() => ({ view: st.view, w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
-  await check(fit.view === "image" && fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
+  const fit = await page.evaluate(() => ({ w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
+  await check(fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
   // what the summary should count: the finalists whose centre lies in the middle square
   const inside = (page) => page.evaluate(() => [...nor.addedCands(), ...st.order].filter((c) => {
     const x = c.cx / st.W, y = c.cy / st.H, mid = x > 0.25 && x < 0.75 && y > 0.25 && y < 0.75, hole = x > 0.4 && x < 0.6 && y > 0.4 && y < 0.6;
@@ -357,7 +288,7 @@ async function mask(page) {
 
 // ---- an image from this computer ----
 {
-  const { ctx, page, asked } = await open(false);
+  const { ctx, page } = await open(false);
   const warn = await page.isVisible("#notice") && (await page.textContent("#notice-text"));
   await check(warn && /local files/.test(warn) && warn.split(/\s+/).length <= 15, `a local image warns its ground truth cannot be sent: "${warn}"`);
   const where = await page.evaluate(() => { const n = $("#notice").getBoundingClientRect(), v = $("#view").getBoundingClientRect(); return { top: n.top - v.top, centre: (n.left + n.right) / 2 - (v.left + v.right) / 2 }; });
@@ -366,7 +297,7 @@ async function mask(page) {
   const before = await crumbs(page);
   await check(before === "Load image › Run algorithm* | #find,#sb-find", `with an image open, Run algorithm is the step to do: ${before}`);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const none = await popup(page);
   await check(/Vote on at least one/.test(none) && /thumbs/.test(await page.textContent("#gt-msg")) && await page.isDisabled("#gt-export"), `with nothing marked the popup says how to mark and exports nothing: "${none}"`);
   await page.click("#gt-close");
@@ -378,8 +309,8 @@ async function mask(page) {
   // approval; the one rejected absent, and read from the history
   const total = await page.evaluate(() => st.order.length);
   const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
-  await check(gt.format === "norfinder-ground-truth/3" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
-    && gt.areas.length === 0 && gt.grid === 10 && undecided > 0 && !("labels" in gt),
+  await check(gt.format === "norfinder-ground-truth/4" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+    && gt.checked.length === 0 && undecided > 0 && !("labels" in gt),
     `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
   const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
   const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);
@@ -408,7 +339,10 @@ async function mask(page) {
   await page.click("#gt-close");
   await page.evaluate(() => st.order.filter((c) => !st.forced.has(c.i)).forEach((c) => nor.decide(c.i, "approve")));
   await check(await gtColour(page) === "part", "with every candidate voted on but the areas not checked the button is orange");
-  await page.click('#gt-tasks > li[data-task="missed"] .task-head .t'); for (let k = 0; k < 100; k++) await page.click("#area-ok");
+  await page.click('#gt-tasks > li[data-task="missed"] .task-head .t');
+  // every area checked by its own button, clicked in the page one after another with no draw awaited between: the walk
+  // by hand, area by area, is the tasks test's
+  await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });
   await check(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
   await check(all_ === "Load image › Run algorithm › Review all items › Submit GT | ", `with every task done and the file exported, every step is done: ${all_}`);
@@ -418,13 +352,13 @@ async function mask(page) {
   await ctx.close();
 }
 
-// ---- a PreGT study: the summary, its mask and CSVs, and the item views' sort ----
+// ---- a PreGT study: the summary, its mask and CSVs ----
 {
   stage = "PreGT";
   const { ctx, page } = await open(false);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
@@ -444,11 +378,10 @@ async function mask(page) {
     `each histogram names its mean, draws it where it falls and has a count axis, and no table repeats them (${JSON.stringify(hists)})`);
   await check(csvAt.every(Boolean), `both CSV buttons sit at the bottom of the Summary box (${csvAt})`);
   await page.mouse.click(...(await (async () => { const m = await middle(page); return [m.sx, m.sy]; })()), { button: "right" });
-  await page.click("#ctx button");
+  await page.click('#point-menu [role="menuitem"]');
   await mask(page);
   const gt = await page.evaluate(() => nor.document());
   await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
-  await sorting(page);
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");
   await check(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");
@@ -460,7 +393,7 @@ async function mask(page) {
 
 // ---- an image from Google Drive ----
 {
-  const { ctx, page, asked } = await open(true);
+  const { ctx, page } = await open(true);
   await check(await page.isHidden("#notice"), "a Drive image shows no warning");
   await markAndVote(page);
   const { said, name, gt, after } = await download(page);
@@ -468,7 +401,7 @@ async function mask(page) {
   await check(!/mask/i.test(said), `with no mask the mask item is crossed out: "${said}"`);
   await check(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
-  await check(send.off && /Not approved/.test(send.why), `with the site not approved for the submissions folder, Submit is off and says why: "${send.why}"`);
+  await check(send.off && /No permission/.test(send.why) && /sign out/i.test(send.why), `with no per-file permission, Submit is off and says to sign in again ticking its box: "${send.why}"`);
   await ctx.close();
 }
 await done(0);

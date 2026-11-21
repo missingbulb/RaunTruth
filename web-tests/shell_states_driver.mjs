@@ -1,20 +1,28 @@
 // Walks the shell's states (req/checks/shell-states) in a browser, against the stand-in Google of stand_in_drive.mjs
 // serving ROOT: each path of EXPECT (shell-states.GENERATED.json) opens its study as its root says, takes its
 // actions one after another, and at every state reads each element as shown, disabled, folded or gone, against what
-// the rules expect; after its last state, it goes to another study and back, each page then compared with a fresh
-// load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
+// the rules expect; after its last state, the first path of each study and role goes to another study and back, each
+// page then compared with a fresh load of its address (req/shell/study/switch-in-place). Every difference is reported, then the run fails. Optional RENDERS: a directory for a picture of
 // every state, arrows pointing at the elements that changed there, and an index.html of them all (req/checks/shell-states/renders).
+// SHARD, i/n, walks the paths whose place in EXPECT is i modulo n, so n runs side by side walk them all.
 // STACK is the z-stack a path loads with its stack action; ANSWERS' files[study] may name a study's own image and stack, and names the large image of the large action. Exits 1 on a difference, 2 when it cannot run.
-//   node web-tests/shell_states_driver.mjs ANSWERS STUDIES ROOT IMAGE STACK EXPECT [RENDERS]
+//   node web-tests/shell_states_driver.mjs ANSWERS STUDIES ROOT IMAGE STACK EXPECT SHARD [RENDERS]
 import fs from "node:fs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
+import { idle, orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
-const [answers, studies, rootDir, image, stack, expectFile, renders] = process.argv.slice(2);
-const { FILES, open, role, check, done, calls } = await standIn({ answers, studies, rootDir });
-const { elements: trees, paths } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
+const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
+const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
+const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
+const [part, parts] = shard.split("/").map(Number);
+const paths = [...every.entries()].filter(([k]) => k % parts === part);
+// the first path of each study and role goes away and back after its last state (req/shell/study/switch-in-place),
+// chosen from every path so a shard walks what the whole walk would
+const SWITCHERS = new Set([...new Map(every.map((p, k) => [`${p.study} ${p.role}`, k]).reverse()).values()]);
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
 const OTHER = "someone@example.com";
@@ -23,13 +31,13 @@ const ROLE = { viewer: "viewer", tagger: "tagger", data: "data" };
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
 // done: the page settled, its drawers and fades over (a spinner going round never ends, so it is left out)
 const settled = async (page) => {
-  // no call of a live study's on its way, nor one more after the last answered
-  for (let quiet = 0; quiet < 3; ) { await new Promise((ok) => setTimeout(ok, 100)); quiet = calls() ? 0 : quiet + 1; } // waits on purpose: a call the page makes after the last one answered can only be ruled out by a quiet spell
+  // nothing of the page's own work under way: its store's and Python's calls, its folders' listing
+  await idle(page);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")
     && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
   // and the disk's count, which the page makes once it is ready and the Storage item waits for; one that never comes
   // is reported as the item not showing
-  await page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }).catch(() => {});
+  await orMissed(page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }));
   // and the frame after them drawn
   await frames(page);
 };
@@ -185,7 +193,7 @@ const arrows = (page, marks) => page.evaluate(([marks, ARROW, WRONG]) => {
 }, [marks, ARROW, WRONG]);
 const unarrow = (page) => page.evaluate(() => document.querySelector("#state-arrows")?.remove());
 
-// Away to another study and back, from the path's last state (req/shell/study/switch-in-place): each study then is
+// Away to another study and back, from a path's last state (req/shell/study/switch-in-place): each study then is
 // the page a fresh load of its address shows, in the same browser, its storage kept. Back online first: offline, the
 // switch waits for the network.
 const awayAndBack = async (page, p) => {
@@ -199,8 +207,10 @@ const awayAndBack = async (page, p) => {
   await page.waitForFunction(() => document.querySelector("[data-study-panel]") !== window.panelsBefore);
   await ready(page); await settled(page);
   const there = await snapshot(page), away = page.url();
+  // the study swapped back, not only the address: the page shows the one it left until its own has mounted
+  await page.evaluate(() => { window.panelsBefore = document.querySelector("[data-study-panel]"); });
   await page.goBack();
-  await page.waitForFunction((h) => location.href === h, home);
+  await page.waitForFunction((h) => location.href === h && document.querySelector("[data-study-panel]") !== window.panelsBefore, home);
   await ready(page); await settled(page);
   const back = await snapshot(page);
   // the fresh loads start from the storage the switched page left, not the path's seed
@@ -209,8 +219,7 @@ const awayAndBack = async (page, p) => {
   await page.context().addInitScript((kept) => { localStorage.clear(); for (const [k, v] of Object.entries(kept)) localStorage.setItem(k, v); }, kept);
   for (const [url, switched, label] of [[away, there, `away at ${other}`], [home, back, "back"]]) {
     const fresh = await page.context().newPage();
-    fresh.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-    fresh.setDefaultTimeout(10000);
+    fresh.setDefaultTimeout(STEP);
     await fresh.goto(url);
     await ready(fresh); await settled(fresh);
     for (const d of differ(switched, await snapshot(fresh))) differences.push(`${where}, ${label}, not as a fresh load: ${d}`);
@@ -221,7 +230,7 @@ const awayAndBack = async (page, p) => {
 const differences = [];
 const index = [];
 if (renders) fs.mkdirSync(renders, { recursive: true });
-for (const [k, p] of paths.entries()) {
+const walk = async (k, p) => {
   const elements = trees[p.study];
   // each path finds the folder as it started: no previews made by an earlier one
   const made = new Set(FILES.filter((f) => f.folder && f.name === "Previews").map((f) => f.id));
@@ -275,9 +284,10 @@ for (const [k, p] of paths.entries()) {
     before = now;
   }
   index.push({ root: `${p.study} · ${p.root}`, shots });
-  await awayAndBack(page, p);
+  if (SWITCHERS.has(k)) await awayAndBack(page, p);
   await page.context().close();
-}
+};
+for (const [k, p] of paths) await walk(k, p);
 
 if (renders) {
   const esc = (t) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -288,5 +298,5 @@ figure{margin:0;flex:0 0 auto}img{width:560px;border:1px solid #ccc}figcaption{m
 ${index.map((r) => `<h2>${esc(r.root)}</h2><div class="row">${r.shots.map((s) => `<figure><a href="${s.file}"><img src="${s.file}" alt="${esc(r.root + ", " + s.label)}"></a><figcaption>${esc(s.label)}${s.wrong.length ? ` <span class="wrong">${esc(s.wrong.join(", "))}</span>` : ""}</figcaption></figure>`).join("")}</div>`).join("\n")}`);
 }
 for (const d of differences) console.error("DIFFERENT: " + d);
-await check(!differences.length, `every element in every state is what the rules say (${paths.reduce((n, p) => n + p.states.length, 0)} states on ${paths.length} paths)`, differences.length);
+await check(!differences.length, `every element in every state is what the rules say (${paths.reduce((n, [, p]) => n + p.states.length, 0)} states on ${paths.length} paths, shard ${shard})`, differences.length);
 await done(0);

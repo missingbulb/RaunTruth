@@ -1,28 +1,19 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
 // of real results written by tests/test_memory.py, and checks that no image is drawn out of its own
-// proportions when the side bar is narrow: the minimap, the image, the cards in both item views and the
+// proportions when the side bar is narrow: the minimap, the image and the
 // selected card; and where the selected card and Submit Ground Truth sit, with no right bar. Prints what it
 // measured; exits 1 on a skewed image or a misplaced part, 2 when it cannot run.
 //   node tests/page_layout_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "../../../web-tests/off_site.mjs";
-import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { withItemView } from "./item_view_shown.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { asTagger } from "../../../web-tests/tagger.mjs";
+import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
+import { STEP } from "../../../web-tests/deadlines.mjs";
+
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -30,34 +21,27 @@ const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
 const bin = async (n) => new Uint8Array(await (await fetch("answers/" + n)).arrayBuffer());
 let finder;
-postMessage({ type: "ready", info: { finders: A.finders, about: A.about }, secs: 0 });
+postMessage({ type: "ready", info: {}, secs: 0 });
 onmessage = async ({ data: m }) => {
   if (m.type === "open") {
     postMessage({ type: "held", secs: 0 });
   } else if (m.type === "call" && m.action === "run") {
     finder = m.args.algorithm; const seg = await bin("seg_" + finder + ".bin");
     postMessage({ type: "result", action: "run", meta: A.detected[finder], bytes: seg, secs: 0 }, [seg.buffer]);
-  } else if (m.type === "call" && m.action === "refilter") {
-    postMessage({ type: "result", action: "refilter", meta: A.filtered[finder][0], echo: m.echo, ms: 0 });
+  } else if (m.type === "call") {
+    // the page asks Python for nothing but a run (req/nor/find/nors-only)
+    postMessage({ type: "error", text: "the page asked Python for " + m.action + ", not a run" });
   }
 };`;
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  if (u === "/studies/nor/study.json") {
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(repo, u))), stage }));
-  }
-  let f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": EARLY + STAND_IN,
+  "/web/answers/": { dir: answers },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await pw[ENGINE].launch(LAUNCH);
+const browser = await launch(pw);
+// the study at the stage the test sets
+siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage }));
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 // every drawn canvas and image: how far its shown width / height strays from its pixels' own
 const measure = (page) => page.evaluate(() => [...document.querySelectorAll("canvas, img")].filter((c) => c.offsetWidth && c.offsetHeight).map((c) => {
@@ -65,26 +49,23 @@ const measure = (page) => page.evaluate(() => [...document.querySelectorAll("can
   return { where: c.closest("[id]").id, skew: Math.abs(r.width / r.height / (w / h) - 1) };
 }));
 let seen = 0, worst = { skew: 0 };
-// the item views and the selected card only show what was found, so they are driven in a PreGT study
+// the selected card only shows what was found, so it is driven in a PreGT study
 // (req/shell/views/second); while the study makes ground truth, the task's card is in the left bar
 let stage = "PreGT";
 // the side bars at their narrowest, in a narrow and a wide window
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
   await asTagger(ctx);
-  await withItemView(ctx); // the switch to the shelved item view
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-bars-v1", JSON.stringify({ left: 200, right: 200 })); });
   await standInDrive(ctx);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
     // ---- the selected card over the image's top right corner, only while one is selected; Submit Ground
   // Truth not in the image view; no right bar (req/nor/layout, req/nor/candidates/decide, req/nor/downloads) ----
   const fail = async (what, seen) => { console.error("FAILED: " + what + ": " + JSON.stringify(seen)); await done(1); };
@@ -109,30 +90,13 @@ for (const width of [1000, 1600]) {
   if (layout.gt !== "Submit Ground Truth" || layout.gtShown) await fail("Submit Ground Truth shows in the image view", layout);
   if (layout.right) await fail("the right bar is still there", layout);
   if (process.env.SHOTS) { await page.evaluate(() => { $("#notice").hidden = true; }); await page.mouse.move(5, 5); await page.screenshot({ path: `${process.env.SHOTS}/${width}_image.png` }); }
-  const views = [["image", async () => {}], ["finalists", async () => {
-    await page.click("#switch"); await page.waitForFunction(() => document.querySelector("#view").dataset.view === "items" && document.querySelector("#list .card:not(.stub)"));
-    // the item view opens on the selected candidate's own tab, which may be the rejected one
-    await page.click("#tab-pass"); await page.waitForFunction(() => document.querySelector("#list .card:not(.stub)"));
-  }], ["rejected", () => page.click("#tab-fail")]];
-  for (const [view, go] of views) {
-    await go(); await page.waitForFunction(() => !document.querySelector("button.working"));
-    // the cards near the view are drawn as the list's observer reports them (req/nor/cards/lazy)
-    if (view !== "image") await page.waitForFunction(() => document.querySelector("#list .card canvas"));
-    const got = await measure(page);
-    const cards = got.filter((g) => g.where === "list").length, selected = got.filter((g) => g.where === "selected").length;
-    console.log(`${width}px ${view}: ${got.length} images, ${cards} cards, ${selected} selected`);
-    if (!selected !== (view !== "image")) { console.error(view === "image" ? "no selected card drawn" : `the selected card shows over the ${view}`); await done(1); }
-    if (view !== "image" && !cards) { console.error(`no ${view} cards drawn`); await done(1); }
+  {
+    await page.waitForFunction(() => !document.querySelector("button.working"));
+    const got = await measure(page), view = "image";
+    const selected = got.filter((g) => g.where === "selected").length;
+    console.log(`${width}px ${view}: ${got.length} images, ${selected} selected`);
+    if (!selected) { console.error("no selected card drawn"); await done(1); }
     seen += got.length;
-    // the rejected are never turned level, so their Options menu does not offer it
-    if (view !== "image") {
-      await page.click("#card-menu summary");
-      const shown = await page.isVisible("#opt-align");
-      if (process.env.SHOTS) await page.evaluate(() => { $("#notice").hidden = true; });
-      if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${width}_${view}.png` });
-      await page.click("#card-menu summary");
-      if (shown !== (view === "finalists")) { console.error(`"align to horizon" ${shown ? "shown" : "missing"} in the ${view} options`); await done(1); }
-    }
     for (const g of got) if (g.skew > worst.skew) worst = { ...g, width, view };
   }
   await ctx.close();
@@ -141,19 +105,17 @@ for (const width of [1000, 1600]) {
 stage = "GT";
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await asTagger(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-bars-v1", JSON.stringify({ left: 200, right: 200 })); });
   await standInDrive(ctx);
   const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { console.error("page error: " + e.message); await done(1); });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await page.click("#find");
-  await page.waitForFunction(() => st.alone && $("#busy").hidden);
+  await page.waitForFunction(() => st.passes && $("#busy").hidden);
   // the walk may open on an area's check; the finalists' row goes to a candidate
   await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   await page.waitForFunction(() => document.querySelector("#task-card canvas"));

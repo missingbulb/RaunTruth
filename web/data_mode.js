@@ -12,6 +12,7 @@ import { writeTiff } from "./tiff_file.js";
 import { readImage } from "./image_open.js";
 import { CONNECTION, holdOwns } from "./offline.js";
 import { asLoaded } from "./as_loaded.js";
+import { work } from "./pending.js";
 import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
 import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
@@ -22,7 +23,7 @@ const MAX_FOLDERS = 200;
 const ACCESS = {
   write: ["Writable", "This site may add files here for you."],
   view: ["View only", "The store lets you only view this folder: ask its owner for edit access."],
-  none: ["Not approved", "Not yet open to this site: approve it to add files here."],
+  unpermitted: ["No permission", "You did not let this site add files for you: sign out, then sign in again and tick that box."],
   unknown: ["Checking…", "Your sign-in is being renewed."],
 };
 
@@ -71,7 +72,7 @@ export function dataMode(ctx) {
     if (offline()) { msg($("#data-msg"), "You are offline: the study's folders can be read once you are back online."); return Promise.resolve(); }
     msg($("#data-msg"), "");
     const of = epoch;
-    return (loaded = (async () => {
+    return (loaded = work.during((async () => {
       // the root's settings name the data folder and the ground-truth folders
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
@@ -107,7 +108,7 @@ export function dataMode(ctx) {
       }
       await checkAccess();
       await index(of, nodes.size >= MAX_FOLDERS);
-    })());
+    })(), "the study's folders listed"));
   }
   async function checkAccess() {
     await Promise.all([...nodes.values(), ...gtNodes].map(async (n) => {
@@ -115,18 +116,6 @@ export function dataMode(ctx) {
     }));
     drawTree();
   }
-  const lacking = () => [...nodes.values(), ...gtNodes].filter((n) => n.access === "none");
-
-  async function approve() {
-    const want = lacking();
-    if (!want.length) return;
-    try {
-      if (!(await sd.approve(want.map((n) => ({ id: n.id, name: n.name }))))) return msg($("#data-msg"), "No permission was given: nothing changed.", true);
-      for (const n of want) n.access = null;
-      drawTree(); await checkAccess();
-    } catch (e) { msg($("#data-msg"), e.message || String(e), true); }
-  }
-  $("#data-approve").onclick = approve;
 
   // ---------- the study's listed folders and its index (req/shell/data/folders, req/shell/data/index) ----------
   // every image of the listed folders, in their order, each folder's images then its subfolders', with its path
@@ -154,6 +143,7 @@ export function dataMode(ctx) {
     if (!top || of !== epoch) return;
     if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
     if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
+    if (["view", "unpermitted"].includes(nodes.get(top)?.access)) return say("Study index: not written, as this site may not add files to the study's root for you.", true);
     const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
     try {
       const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
@@ -175,7 +165,7 @@ export function dataMode(ctx) {
     return out;
   };
   // the tags file and the index written after an edit; what the edit said, or why it was not saved
-  async function saveTags(next, said) {
+  const saveTags = work.counting("tags saved", async (next, said) => {
     const top = place.root(), was = tagsDoc;
     if (!top || offline()) return;
     tagsDoc = next; drawTags();
@@ -183,7 +173,7 @@ export function dataMode(ctx) {
     catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
     msg($("#tags-msg"), said || "");
     await index(epoch);
-  }
+  });
   // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
   function drawTags() {
     const box = $("#tags-box"), c = chosen;
@@ -294,14 +284,14 @@ export function dataMode(ctx) {
     const hidden = (ix?.images || []).filter((i) => isHidden(i.tags || [], look.hide)).length;
     $("#study-hide-count").textContent = look.hide.length ? `${hidden === 1 ? "1 image" : hidden + " images"} hidden from viewers and taggers.` : "";
   }
-  async function setLook(change) {
+  const setLook = work.counting("the study set saved", async (change) => {
     const top = place.root();
     if (!top || offline()) return;
     try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
     catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
     msg($("#study-msg"), "");
     await index(epoch);
-  }
+  });
   $("#study-group").onchange = () => setLook({ group: $("#study-group").value === FOLDER ? null : $("#study-group").value });
   const hideAdd = () => {
     const got = parseTag($("#study-hide-add").value);
@@ -313,7 +303,7 @@ export function dataMode(ctx) {
   $("#study-hide-add").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); hideAdd(); } };
 
   // the listed folders changed in the study file, the tree read again, and anything to say after
-  async function setListed(next, said = "") {
+  const setListed = work.counting("the study's folders changed", async (next, said = "") => {
     const top = place.root();
     if (!top || offline()) return;
     $("#data-tree").classList.add("busy");
@@ -323,7 +313,7 @@ export function dataMode(ctx) {
     await load();
     $("#data-tree").classList.remove("busy");
     if (said) msg($("#data-msg"), said);
-  }
+  });
   async function addLink() {
     const ref = remote.parse($("#data-add-link").value || "");
     if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);
@@ -353,10 +343,7 @@ export function dataMode(ctx) {
     const top = place.root();
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = true;
     try {
-      if ((await sd.access(top)) !== "write") {
-        say("Approve the study's root for this site…");
-        if (!(await sd.approve([{ id: top, name: "Study root" }])) || (await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
-      }
+      if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
       say("Making the ground-truth folders…");
       await setUp({ reader, writer, root: top, review, by: account.email() });
       $("#setup-dlg").close();
@@ -459,8 +446,6 @@ export function dataMode(ctx) {
       d.querySelector(".add").onclick = () => setListed([...roots, f.id]);
       return d;
     }));
-    const allowed = lacking().length;
-    $("#data-approve").hidden = !allowed; $("#data-approve").textContent = `Approve ${allowed === 1 ? "1 folder" : allowed + " folders"}…`;
   }
   // a folder's images, each with a small preview, folded under it until its count is clicked
   async function toggleImages(n) {
@@ -556,7 +541,7 @@ export function dataMode(ctx) {
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const why = !gt.curated ? "Set up ground truth first: the mark is kept in its curated folder"
-        : ["view", "none"].includes(gtNodes.find((g) => g.id === gt.curated)?.access) ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
+        : ["view", "unpermitted"].includes(gtNodes.find((g) => g.id === gt.curated)?.access) ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
       mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the curated ground-truth folder";
       mark.onclick = () => markTruth(n, s, mark);
@@ -594,7 +579,7 @@ export function dataMode(ctx) {
     const image = { name: f.name, sha256: f.sha };
     $("#curate-title").textContent = f.name; list.replaceChildren(); say("Reading the submissions…");
     dlg.showModal();
-    const curatedOk = gtNodes.find((g) => g.id === gt.curated)?.access === "write";
+    const curated = gtNodes.find((g) => g.id === gt.curated)?.access, curatedOk = curated === "write";
     try {
       const subs = await tf.files(reader, gt.submissions, image);
       const rows = await Promise.all(subs.map(async (s) => {
@@ -610,7 +595,7 @@ export function dataMode(ctx) {
         li.querySelector(".who").textContent = doc?.tagger || s.name;
         li.querySelector(".hint").textContent = s.rejected ? `rejected: ${s.reason || "no reason given"}` : `${when}, ${doc?.labels?.length ?? "?"} marks`;
         const [ok, no] = li.querySelectorAll("button");
-        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : ACCESS.none[1];
+        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : (ACCESS[curated] || ACCESS.view)[1];
         no.disabled = s.rejected;
         ok.onclick = async () => {
           ok.disabled = no.disabled = true; say("Accepting…");
@@ -626,7 +611,7 @@ export function dataMode(ctx) {
         };
         return li;
       }));
-      say(rows.length ? (curatedOk ? "" : "Approve the curated folder in the tree's head to accept.") : "No submissions.");
+      say(rows.length ? (curatedOk ? "" : curated === "unpermitted" ? `To accept: ${ACCESS.unpermitted[1]}` : "The curated folder is view only for you: ask its owner for edit access to accept.") : "No submissions.");
     } catch (e) { say(e.message || String(e), true); }
   }
   $("#curate-close").onclick = () => $("#curate-dlg").close();

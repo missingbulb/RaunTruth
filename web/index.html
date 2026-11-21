@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11119.140">
+<meta name="version" id="site-version" title="version 0.11121.153">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -74,7 +74,7 @@
         <p id="gt-counts" role="status"></p>
         <button id="gt-switch" type="button" class="link" data-needs-network></button>
       </section>
-      <div class="data-head"><h2>Folders</h2><button id="data-approve" type="button" class="link" data-needs-network hidden></button></div>
+      <div class="data-head"><h2>Folders</h2></div>
       <div id="data-tree" role="tree" aria-label="The study's folders" data-log-as="a folder or image in the Data Management tree"></div>
       <section id="data-unlisted" aria-labelledby="data-unlisted-title" hidden>
         <h3 id="data-unlisted-title">Not in the study</h3>
@@ -123,7 +123,7 @@
       <div class="sec-head"><h2>Selected Folder</h2></div>
       <div id="folder-name"></div>
       <dl id="folder-summary"></dl>
-      <div class="folder-actions"><button id="update-previews" type="button" data-needs-network disabled>Update previews</button></div>
+      <div class="folder-actions"><button id="update-previews" type="button" data-needs-network disabled autocomplete="off">Update previews</button></div>
       <p id="folder-msg" class="hint" role="status"></p>
     </section>
 
@@ -145,7 +145,7 @@
       <div class="sec-head"><h2>Processing</h2></div>
       <div id="algorithm-pick" hidden>
         <div class="algorithm-row">
-          <select id="algorithm" disabled aria-label="Algorithm"></select>
+          <select id="algorithm" disabled autocomplete="off" aria-label="Algorithm"></select>
           <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
         </div>
         <div id="scoring-note" class="hint" hidden></div>
@@ -162,14 +162,15 @@
       <slot-here data-slot-for="tasks"></slot-here>
       <div id="gt-offers" hidden><button id="gt-load-draft" type="button" hidden></button><button id="gt-load-legacy" type="button" hidden>Load earlier edits</button><button id="gt-load-submission" type="button" data-needs-network hidden></button></div>
       <div id="gt-list" hidden>
+        <label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label>
         <button id="gt-start" type="button" class="primary" title="Work through the tasks, one item at a time">Start GT tagging</button>
         <div id="gt-bar"></div>
-        <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled>Undo</button><button id="gt-redo" type="button" disabled>Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="edits" id="gt-history-row" hidden><label><input type="checkbox" id="gt-history-on" checked> Show Edit History</label></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled>Save Draft</button><button id="gt-submit" type="button" disabled><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button></div></li></ol>
+        <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled autocomplete="off">Undo</button><button id="gt-redo" type="button" disabled autocomplete="off">Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="edits" id="gt-history-row" hidden><label><input type="checkbox" id="gt-history-on" checked> Show Edit History</label></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled autocomplete="off">Save Draft</button><button id="gt-submit" type="button" disabled autocomplete="off"><span class="gt-ico" aria-hidden="true"></span>Submit Ground Truth</button></div></li></ol>
       </div>
     </section>
     <section class="box foldable study-box" id="summary-box" hidden>
       <div class="sec-head"><h2>Summary</h2></div>
-      <div class="mask-btns" id="mask-row" hidden><button id="mask-add" type="button" class="primary" disabled title="Lasso the part of the image the summary counts (on a stack, from straight above, through every slice); lasso again to add or cut out an area">Add mask</button><button id="mask-clear" type="button" hidden>Clear mask</button></div>
+      <div class="mask-btns" id="mask-row" hidden><button id="mask-add" type="button" class="primary" disabled autocomplete="off" title="Lasso the part of the image the summary counts (on a stack, from straight above, through every slice); lasso again to add or cut out an area">Add mask</button><button id="mask-clear" type="button" hidden>Clear mask</button></div>
       <slot-here data-slot-for="summary"></slot-here>
       <div class="summary-dl-row"><button id="summary-dl" type="button" hidden title="The summary's numbers as a CSV file, one row per measurement">Download Summary</button></div>
     </section>
@@ -178,7 +179,7 @@
 
   <main id="view">
     <div class="toolbar">
-      <button id="switch" class="big" type="button" hidden disabled><span class="name"></span> <span class="count"></span></button>
+      <button id="switch" class="big" type="button" hidden disabled autocomplete="off"><span class="name"></span> <span class="count"></span></button>
       <slot-here data-slot-for="toolbar"></slot-here>
       <span class="grow"></span>
       <button id="ruler-btn" class="for-image tool" type="button" aria-pressed="false" title="Ruler: drag across the image to measure a distance. Click again to clear it." aria-label="Ruler"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/></g></svg></button>
@@ -208,6 +209,7 @@
           Python, which runs the analysis, loads in the background meanwhile: about 50 MB on the first visit, then from this browser's cache for 30 days.</div>
         <div id="stage" hidden><canvas id="base"></canvas><canvas id="shrunk" hidden></canvas><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg><svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg><svg id="ruler" xmlns="http://www.w3.org/2000/svg"></svg></div>
       </div>
+      <div id="point-menu" class="pop" role="menu" hidden></div>
       <div id="minimap" hidden>
         <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
         <div class="mm-body"><canvas id="minimap-canvas"></canvas><div id="minimap-view"></div></div>
@@ -256,7 +258,7 @@
     <div id="remote-path"></div>
     <div id="remote-list" data-log-as="an item in the remote list"></div>
     <div id="remote-throttle" hidden><p id="remote-throttle-say"></p><div id="remote-clock">15:00</div></div>
-    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled>Open</button><button value="close">Close</button></div>
+    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button><button value="close">Close</button></div>
   </form>
 </dialog>
 <dialog id="memory-dlg" aria-labelledby="memory-title">
@@ -307,11 +309,11 @@
 </dialog>
 <dialog id="offline-dlg" aria-labelledby="offline-title">
   <h2 id="offline-title">Prepare for Offline</h2>
-  <label class="file-row python"><input type="checkbox" checked disabled><span class="name">Python</span><span class="where">jsDelivr</span><span class="size" id="offline-python"></span></label>
+  <label class="file-row python"><input type="checkbox" checked disabled autocomplete="off"><span class="name">Python</span><span class="where">jsDelivr</span><span class="size" id="offline-python"></span></label>
   <div id="offline-files"></div>
   <p id="offline-warn" role="alert" hidden></p>
   <progress id="offline-progress" hidden></progress>
-  <div class="dlg-row end"><span id="offline-msg" class="hint" role="status"></span><span class="grow"></span><button type="button" id="offline-stop" hidden>Stop</button><button type="button" id="offline-close">Close</button><button type="button" id="offline-go" class="primary" disabled>Download Now</button></div>
+  <div class="dlg-row end"><span id="offline-msg" class="hint" role="status"></span><span class="grow"></span><button type="button" id="offline-stop" hidden>Stop</button><button type="button" id="offline-close">Close</button><button type="button" id="offline-go" class="primary" disabled autocomplete="off">Download Now</button></div>
 </dialog>
 <dialog id="settings-dlg" aria-labelledby="settings-title">
   <form method="dialog">
@@ -348,7 +350,7 @@
     <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
     <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
-    <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label></div></section>
+    <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>
     <div class="dlg-row end"><span id="storage-msg" class="hint" data-for="storage"></span><span class="grow"></span><button id="storage-reload" type="button" data-for="storage" hidden>Reload the page</button><button value="close" class="primary">Close</button></div>
   </form>
 </dialog>

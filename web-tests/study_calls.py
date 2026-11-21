@@ -69,7 +69,11 @@ def answer(m):
     ps = inspect.signature(fn).parameters.values()
     if any(p.name == 'damaged' or p.kind == p.VAR_KEYWORD for p in ps):
         args['damaged'] = m.get('damaged') or []
-    out = drive(fn(*before, **args), Services(Study(m['id'])))
+    study = Study(m['id'])
+    # the files its services fetch once: in the test image, already there (req/checks/ci-sets/one-image)
+    if 'TEST_DOWNLOADS' in os.environ:
+        study.data = os.path.join(os.environ['TEST_DOWNLOADS'], m['id'])
+    out = drive(fn(*before, **args), Services(study))
     if m['action'] == 'run':
         s['answer'] = out
     meta, data = encode(out)

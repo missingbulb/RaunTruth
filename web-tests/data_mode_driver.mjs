@@ -7,12 +7,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
+import { expecting, NETWORK_GONE } from "./harness.mjs";
+import { BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
-const { ROOT, FILES, GT, approved, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
+const { ROOT, FILES, GT, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
 // the data folder's previews file (req/shell/drive/previews): in the root's Previews folder, which the page made, under the
 // data folder's id, a file someone else put there; the copy the tool left beside the images is never read
 const OURS = `${ROOT}.tiff`;
@@ -20,8 +23,6 @@ FILES.push({ id: PREVIEWS_DIR, name: "Previews", parent: ROOT, folder: true, byt
   { id: "dmpreviewsfile000001", name: OURS, parent: PREVIEWS_DIR, folder: false, bytes: FILES.find((f) => f.name === "rauntruth-previews.tiff").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 // an image's Needs GT marker, in the curated folder, named as its ground-truth subfolder
 const neededOf = (name) => { const f = FILES.find((g) => g.name === name); return `${name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(f.bytes).digest("hex").slice(0, 8)}.needs_gt`; };
-// the curated folder approved for the site, as the study manager does from the tree's head, so the page may write its markers
-approved.add(GT.curated);
 // someone else marked the stack as needing ground truth
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
@@ -36,8 +37,8 @@ await page.context().close();
 page = await open(true, { study: { files: { from: ["drive"], accept: ".png,.tif,.tiff,.jpg", empty: "Load an image." } } });
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
 // the column at a width and its slide over; the check after it says what it found when it never gets there
-const slid = (wide) => page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
-  && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }).catch(() => {});
+const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
+  && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
 await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
@@ -54,9 +55,9 @@ await shot("1-strip");
 await page.click("#data-open");
 await slid(true);
 await check((await width()) > 200, "the chevron opens the column again", await width());
-await check(await page.textContent("#data-approve") === "Approve 1 folder…" && await page.isVisible("#data-approve"), "the tree's head offers the one folder not approved yet", await page.textContent("#data-approve"));
+await check(!(await page.isVisible("#data-approve")), "with the per-file permission given, the tree's head asks for nothing");
 const access = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => [f.querySelector(":scope > .row .name").textContent, f.querySelector(":scope > .row .access").textContent]));
-await check(JSON.stringify(access) === JSON.stringify([["Study folder one", "Writable"], ["sub", "Not approved"]]), "the tree shows every folder with its access", access);
+await check(JSON.stringify(access) === JSON.stringify([["Study folder one", "Writable"], ["sub", "Writable"]]), "the tree shows every folder with its access, as Drive's sharing gives it: a subfolder never picked is writable too", access);
 await check(await page.evaluate(() => [...document.querySelectorAll(".tree-images")].every((b) => b.hidden)), "the images stay folded under their folders");
 
 const summary = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-summary dd")].map((d) => [d.dataset.k, +d.textContent])));
@@ -68,8 +69,11 @@ await page.click('#folder-layout button[data-layout="list"]');
 await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
 await check(true, "the list button lays the images out as a list");
 
-await page.click("#update-previews");
-await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
+// whether the page made the previews file is asked of Drive, which knows nothing of the page's making it
+await expecting(/status of 404.*googleapis/, async () => {
+  await page.click("#update-previews");
+  await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
+});
 await check(!writes.filter(([, name]) => name !== "rauntruth-index.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
@@ -110,8 +114,10 @@ await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
 await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
-await page.click(cell("b stack.tif") + " .mark-gt");
-await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
+await expecting(/status of 404.*googleapis/, async () => {
+  await page.click(cell("b stack.tif") + " .mark-gt");
+  await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
+});
 await check(writes.at(-1)[1] !== neededOf("b stack.tif"), "a marker someone else made is left alone");
 
 await page.click("#data-tree .tree-folder .count");
@@ -128,7 +134,7 @@ await check(got.name === "a flat.preview.tif", "the preview opens as a TIFF, the
 fs.writeFileSync(out + ".preview.tif", Buffer.from(got.bytes));
 await page.click("#load-original");
 // the name is set as the open starts, the image's source once it is done
-await page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden).catch(() => {});
+await orMissed(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
 await check(await page.evaluate(() => st.fileName === "a flat.tif" && shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden), "Load Original opens the image itself");
 
 // offline (req/shell/offline/default): no bar asking for folders, and nothing written to Drive
@@ -137,64 +143,78 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 // its previews drawn first: Playwright's WebKit, set offline, fails every read of a Blob's bytes, the previews' among them
 await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .cell .pic")].every((p) => p.querySelector("img") || p.classList.contains("none")));
 const before = writes.length;
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
-await turned();
-await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
-// Data Management as a whole needs the network: its column's chevron does nothing
-const folded = () => page.evaluate(() => $("#data-open").getAttribute("aria-expanded"));
-await page.click("#data-open", { force: true });
-await turned();
-await check(await folded() === "true", "and its chevron does nothing", await folded());
-await page.context().setOffline(false);
-await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+// offline, what the page still asks of Drive fails as the network would, when it asks anything then; and where
+// offline refuses the page a Blob's bytes, so does each preview the page draws again as the network goes
+const gone = BLOBS_READ_OFFLINE ? NETWORK_GONE : new RegExp(NETWORK_GONE.source + "|preview could not be read");
+await expecting(gone, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  // the list as the page shows it offline, whatever it drew again as the network went
+  await page.waitForSelector(cell("e plain.tif") + " .mark-gt", { state: "visible" });
+  await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
+  await turned();
+  await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
+  // Data Management as a whole needs the network: its column's chevron does nothing
+  const folded = () => page.evaluate(() => $("#data-open").getAttribute("aria-expanded"));
+  await page.click("#data-open", { force: true });
+  await turned();
+  await check(await folded() === "true", "and its chevron does nothing", await folded());
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+}, { maybe: true });
 
 await role(page, "Viewer");
 const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
-await page.waitForFunction(leftMode, null, { timeout: 5000 }).catch(() => {});
+await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
   "another role leaves the mode: the column gone, Load back");
-// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode)
-await page.context().setOffline(true);
-await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-await page.click("#role-menu summary");
-const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
-  return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
-await page.click('#role-list .item:text-is("Study Manager")', { force: true });
-// the item's own click closes the menu at once, so a menu still open is a click that reached nothing
-const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
-await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
-await page.evaluate(() => { $("#role-menu").open = false; });
-await page.context().setOffline(false);
-await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode);
+// the role just chosen is a setting the page may still be saving to Drive as the network goes
+await expecting(NETWORK_GONE, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await page.click("#role-menu summary");
+  const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
+    return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
+  await page.click('#role-list .item:text-is("Study Manager")', { force: true });
+  // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
+  const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
+  await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await page.evaluate(() => { $("#role-menu").open = false; });
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+}, { maybe: true });
 
 // a previews file whose pictures cannot be read, its index intact: each image shows no preview, and one chosen
 // opens itself, with nothing left uncaught; nor is it when what the site keeps cannot be counted as it is stored
-await page.evaluate(() => { CacheStorage.prototype.keys = () => Promise.reject(new Error("keys refused for the test")); });
-const damage = (bytes) => {
-  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), le = v.getUint16(0) === 0x4949;
-  const values = (e) => {
-    const type = v.getUint16(e + 2, le), count = v.getUint32(e + 4, le), one = type === 3 ? 2 : 4;
-    const at = count * one <= 4 ? e + 8 : v.getUint32(e + 8, le);
-    return Array.from({ length: count }, (_, i) => (one === 2 ? v.getUint16(at + 2 * i, le) : v.getUint32(at + 4 * i, le)));
+await expecting(/could not be (read|counted)|is corrupted/, async () => {
+  await page.evaluate(() => { CacheStorage.prototype.keys = () => Promise.reject(new Error("keys refused for the test")); });
+  const damage = (bytes) => {
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), le = v.getUint16(0) === 0x4949;
+    const values = (e) => {
+      const type = v.getUint16(e + 2, le), count = v.getUint32(e + 4, le), one = type === 3 ? 2 : 4;
+      const at = count * one <= 4 ? e + 8 : v.getUint32(e + 8, le);
+      return Array.from({ length: count }, (_, i) => (one === 2 ? v.getUint16(at + 2 * i, le) : v.getUint32(at + 4 * i, le)));
+    };
+    for (let ifd = v.getUint32(4, le); ifd; ) {
+      const n = v.getUint16(ifd, le), tags = {};
+      for (let i = 0; i < n; i++) { const e = ifd + 2 + 12 * i; tags[v.getUint16(e, le)] = e; }
+      const offsets = values(tags[273]), counts = values(tags[279]);
+      offsets.forEach((o, i) => bytes.fill(0xff, o + 2, o + counts[i]));
+      ifd = v.getUint32(ifd + 2 + 12 * n, le);
+    }
+    return bytes;
   };
-  for (let ifd = v.getUint32(4, le); ifd; ) {
-    const n = v.getUint16(ifd, le), tags = {};
-    for (let i = 0; i < n; i++) { const e = ifd + 2 + 12 * i; tags[v.getUint16(e, le)] = e; }
-    const offsets = values(tags[273]), counts = values(tags[279]);
-    offsets.forEach((o, i) => bytes.fill(0xff, o + 2, o + counts[i]));
-    ifd = v.getUint32(ifd + 2 + 12 * n, le);
-  }
-  return bytes;
-};
-const kept = FILES.find((f) => f.name === OURS);
-kept.bytes = damage(Buffer.from(kept.bytes));
-await role(page, "Study Manager");
-await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }).catch(() => {});
-await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");
-await page.click(cell("a flat.tif"));
-await page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }).catch(() => {});
-await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
-await done(0);
+  const kept = FILES.find((f) => f.name === OURS);
+  kept.bytes = damage(Buffer.from(kept.bytes));
+  await role(page, "Study Manager");
+  await page.click("#data-tree .tree-folder .name");
+  await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
+  await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");
+  await page.click(cell("a flat.tif"));
+  await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }));
+  await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
+  // the test's last case, which lasts until it closes: the page draws the previews again as the image opens, and
+  // says each it cannot read, and what it cannot count, until then
+  await done(0);
+});

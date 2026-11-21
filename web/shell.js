@@ -19,6 +19,7 @@
 import { drag, dragging } from "./drag.js";
 import { viewer as viewer2d, GRID, MINIMAP, closesOnLeave } from "./viewer2d.js";
 import { every, within, after } from "./pacing.js";
+import { work } from "./pending.js";
 import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
 import { shape, stackPicture, holds, drawVolume, TURN } from "./stack.js";
@@ -107,6 +108,7 @@ const THUMB_PATH = "drive-thumb/";
 const THUMBS_CACHE = "nor-thumbs-v1";
 const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
+const UNLOAD_PYTHON = "nor-unload-python"; // true: Python is shut down as each of a study's runs ends
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
 const SEEN_VERSION = "nor-seen-version"; // the site version the user last saw, to tell them what changed since
 const MEMORY_TIP = "nor-memory-tip-off"; // true: the user asked never to see the low-memory popup again
@@ -351,6 +353,11 @@ const showMotion = () => {
 showMotion();
 motion.onchange = () => { writeJSON(MOTION, motion.checked); showMotion(); };
 function still() { return !motion.checked || matchMedia("(prefers-reduced-motion: reduce)").matches; }
+// ---------- Python after a run: kept loaded for the next, unless the user trades the speed for the memory ----------
+const unloading = $("#unload-python");
+const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false) === true; };
+showUnloading();
+unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
 
 $("#sb-net").onclick = () => usage("network");
@@ -534,8 +541,8 @@ const roleChooser = roleMenu($("#role-menu"), (r) => {
 // ---------- the image and the item view ----------
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
 // has counted its items: count(total), null until it has any; on(fn) hears the view now shown, "image" or "items".
-// While the study makes ground truth there is none, its tasks being in the left bar. One marked data-shelved is never shown.
-const itemsView = () => { const v = $("#items-view"); return v && !v.hasAttribute("data-shelved") && !makesTruth() && !truthShown ? v : null; };
+// While the study makes ground truth there is none, its tasks being in the left bar.
+const itemsView = () => { const v = $("#items-view"); return v && !makesTruth() && !truthShown ? v : null; };
 const views = {
   now: "image", total: null, heard: [],
   show(v) {
@@ -680,6 +687,7 @@ async function keepPython() {
   // a study with no step to run never starts Python
   if (!manifest?.phases?.length || !("caches" in self)) return;
   const id = manifest.id, python = manifest.python;
+  delete st.unkept;
   try {
     const [lock, vendored] = await Promise.all([fetch(PYODIDE + "pyodide-lock.json", { priority: "low" }), fetch("vendor/wheels.json")].map(async (r) => (await r).json()));
     const urls = [...CORE, ...packagesOf(python, lock, vendored, new URL("vendor/", location.href).href).map((w) => w.url)];
@@ -690,13 +698,16 @@ async function keepPython() {
     if (st.notHere) { st.notHere = false; status("Ready. Load an image."); }
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
-    if (manifest?.id === id && !st.worker && offlineCopy.offline()) { st.notHere = true; status(NOT_HERE); }
+    if (manifest?.id === id && !st.worker) st.unkept = true;
+    if (st.unkept && offlineCopy.offline()) notHere();
     else console.warn("Python's files are not kept yet:", e);
   }
 }
+const notHere = () => { st.notHere = true; status(NOT_HERE); };
 // Python's thread, on the study the address names, in place of any before it
 function pythonWorker() {
   st.worker?.terminate();
+  for (const end of pyCalls.splice(0)) end();
   st.heap = null; // Python's memory, unknown until it says (Python not started holds none)
   st.worker = new Worker("worker.js?study=" + encodeURIComponent(studyOf(location)), { type: "module" });
   st.worker.onmessage = (e) => onWorker(e.data);
@@ -723,6 +734,7 @@ function call(action, args, echo) {
     st.held = st.kept;
   }
   // the Study Manager's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
+  pyCalls.push(work.begin(`Python ${action}`));
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
 
@@ -741,15 +753,27 @@ function memoryTip(ranOut) {
 }
 $("#memory-off").onchange = () => writeJSON(MEMORY_TIP, $("#memory-off").checked);
 
+// Python's calls on their way, each ended by its answer, its error, or Python stopped
+const pyCalls = [];
 function onWorker(m) {
+  if (m.type === "result" || m.type === "error") pyCalls.shift()?.();
   if (m.heap != null) { st.heap = m.heap; st.files = m.files || 0; }
   if (m.busy) cpu.py = m.busy;
   if (m.net != null) net.worker = m.net;
   // a late answer for a study that has left, or a word from one still coming in
-  if (m.study && m.study !== manifest?.id) return statusBar();
+  if (m.study && m.study !== manifest?.id) { statusBar(); return ended(m); }
   // the page opens images itself (req/shell/image/open): Python only holds the file
   if (m.type === "opened") return statusBar();
-  handle(m); settle(m); statusBar();
+  handle(m); settle(m); statusBar(); ended(m);
+}
+const ended = (m) => (m.type === "result" || m.type === "error") && unloadIfDone();
+// Python shut down once nothing is asked of it, when the user chose to (req/shell/resources-dialog/unload-python): its
+// memory freed, and the next call starts it again and hands it the image again
+function unloadIfDone() {
+  if (!unloading.checked || !st.worker || pyCalls.length) return;
+  st.worker.terminate();
+  Object.assign(st, { worker: null, held: null, ready: false, heap: null, files: 0 });
+  statusBar();
 }
 function handle(m) {
   if (m.type === "progress") status(m.text);
@@ -845,7 +869,10 @@ function imageBox() {
 page.watch("image", imageBox); page.watch("opening", imageBox);
 
 // source: where the image came from, {kind: "local"} or the remote store's source of it
-async function openBytes(name, bytes, source) {
+const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
+async function openNow(name, bytes, source) {
+  // an image chosen while the study is still coming in opens into it, once it is in
+  await work.during(studyIn.catch(() => {}), "waiting for the study");
   if (st.img && !gtSession.leaving("open another image")) return;
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
@@ -929,6 +956,8 @@ $("#unload").onclick = () => {
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
   swapping = swapping.then(async () => {
+    // no study came in before this turn: there is none to mount again
+    if (!manifest) return;
     const { ready, readyInfo } = st, id = manifest.id, image = again && st.img ? st.kept : null;
     dropImage();
     leaveStudy();
@@ -1522,7 +1551,7 @@ async function keepThumb(id, name, url) {
     thumbClock = Math.max(Date.now(), thumbClock + 1);
     await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
     kept = true;
-    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q)).headers.get(IMAGE_AT)) || 0 })));
+    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q))?.headers.get(IMAGE_AT)) || 0 })));
     all.sort((x, y) => x.at - y.at);
     for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
   } catch (e) { console.warn("the thumbnail could not be kept:", e); }
@@ -1633,7 +1662,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1664,7 +1693,7 @@ async function inventory() {
   try { keys = Object.keys(localStorage); } catch { /* no storage */ }
   const stores = window.caches ? await Promise.all((await caches.keys()).map(async (n) => ({ name: n, cache: await caches.open(n) }))) : [];
   const images = stores.find((c) => c.name === IMAGES);
-  if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q)).headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
+  if (images) for (const q of await images.cache.keys()) { const kept = (await images.cache.match(q))?.headers.get(IMAGE_STUDY); if (kept) studyOf[idOf(q.url)] = kept; }
 
   const selections = new Map();
   for (const k of keys) {
@@ -1712,7 +1741,10 @@ async function inventory() {
   const code = {}, site = { size: 0, files: 0, del: null };
   for (const { name: c, cache } of stores) {
     for (const req of await cache.keys()) {
-      const res = await cache.match(req), u = new URL(req.url), size = (await res.blob()).size, del = () => cache.delete(req);
+      // one dropped since the keys were read, as the thumbnails beyond the latest hundred are, is gone
+      const res = await cache.match(req);
+      if (!res) continue;
+      const u = new URL(req.url), size = (await res.blob()).size, del = () => cache.delete(req);
       if (c === offlineCopy.siteCache()) {
         const id = u.pathname.match(/\/studies\/([\w-]+)\//)?.[1];
         if (id && sections.some((x) => x.study === id)) code[id] = (code[id] || 0) + size;
@@ -1832,6 +1864,7 @@ const settings = settingsDialog({
     { key: TIPS, label: "Tips you closed (clear one to see it again)", kind: "set" },
     { key: RECENT, label: `Recent images from ${remote.label} (clear one to drop it)`, kind: "list", name: (r) => (r.study ? `${r.study}: ` : "") + (r.path?.length ? `${r.path.join("/")}/` : "") + r.name },
     { key: MOTION, label: "Animations", kind: "toggle", on: true, off: false, fallback: true },
+    { key: UNLOAD_PYTHON, label: "Unload Python after each run", kind: "toggle", on: true, off: false, fallback: false },
     { key: RESOURCES, label: "Autohide the status bar's disk, memory, network and CPU", kind: "toggle", on: "auto", off: "open", fallback: "auto" },
     { key: SEEN_VERSION, label: "Version you saw last", kind: "text" },
     { key: AUTO_SAVE, label: `Auto-save images from ${remote.label}, on this device`, kind: "toggle", on: "on", off: "off", fallback: "on" },
@@ -1850,7 +1883,7 @@ function reapply() {
   let t = null;
   try { t = localStorage.getItem(THEME); } catch { /* no storage */ }
   if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  showMotion(); showResources(); showRecent(); showRole();
+  showMotion(); showUnloading(); showResources(); showRecent(); showRole();
 }
 $("#open-settings").onclick = () => { $("#user-menu").open = false; settings.open(); };
 $("#storage-reload").onclick = () => location.reload();
@@ -2306,7 +2339,8 @@ addEventListener("popstate", () => swap());
 // the network back: a study whose Python could not load loads again, on a Python of its own, since a worker
 // keeps a module it failed to download failed; and the storage it then kept shows
 addEventListener(CONNECTION, (e) => {
-  if (!e.detail.online) return;
+  // the network gone: a file of Python's that failed before the page was told so failed for that, and the study says it
+  if (!e.detail.online) { if (st.unkept && !st.worker) notHere(); return; }
   offlineCopy.keepSite().then(diskBar, () => {});
   if (!st.worker) keepPython();
   if (!st.failed || st.ready || !st.worker || !manifest) return;
@@ -2333,7 +2367,10 @@ function swap() {
 // the study's panels, put into the shell's slots, and its stylesheet: what leaves with it
 let lifetime = new AbortController(), mounted = [], css = null;
 // its panels go into the shell's slots, its stylesheet beside the shell's, then its module mounts
-async function mountStudy(id) {
+// counted as the page's work until the study is in, its steps drawn
+let studyIn = Promise.resolve();
+const mountStudy = (id) => (studyIn = work.during(mountNow(id), `study ${id} coming in`));
+async function mountNow(id) {
   if (!/^[\w-]+$/.test(id)) throw new Error(`no study "${id}"`);
   base = `../studies/${id}/`;
   const r = await fetch(base + "study.json");
@@ -2342,7 +2379,7 @@ async function mountStudy(id) {
   if (!maySee(manifest.visibility.accounts)) {
     manifest = null;
     history.replaceState(null, "", addressOf(DEFAULT_STUDY));
-    await mountStudy(DEFAULT_STUDY);
+    await mountNow(DEFAULT_STUDY);
     return notice("That study is shown only to the accounts it names. Signed in with one of them, the switcher offers it.");
   }
   data.mount(manifest);
@@ -2370,6 +2407,7 @@ async function mountStudy(id) {
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
   gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  tasks.mount(manifest.groundTruth?.areas);
   // the colour of Edit History's ring, where the study's image or marks carry the shell's
   if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
   const mod = await import(base + manifest.web.module);
@@ -2510,10 +2548,13 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, mask: summaryMasks.api, get viewer() { return view; } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
 remoteDialog(); slow($("#gt-export"));
-mountStudy(studyOf(location)).then(start).catch((e) => status("Error: " + (e.message || e), true));
+// the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
+const first = mountStudy(studyOf(location));
+swapping = first.catch(() => {});
+first.then(start).catch((e) => status("Error: " + (e.message || e), true));

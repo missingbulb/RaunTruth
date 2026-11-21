@@ -6,22 +6,15 @@
 // listed in Settings and cleared there; an error the page meets kept apart from the actions; and no image's name
 // reaching the log or the report. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/problem_report_driver.mjs
-import { repoFile } from "./repo_file.mjs";
-import { createRequire } from "node:module";
-import { execSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { offSite } from "./off_site.mjs";
-import { ENGINE, LAUNCH } from "./engine.mjs";
-import { watchReads, readsDone } from "./page_reads.mjs";
 
-const require = createRequire(import.meta.url);
-let pw;
-try { pw = require("playwright"); } catch {
-  try { pw = require(path.join(execSync("npm root -g").toString().trim(), "playwright")); } catch { console.error("no playwright: npm i -g playwright"); process.exit(2); }
-}
+import { watchReads, readsDone } from "./page_reads.mjs";
+import { pw, launch, expecting } from "./harness.mjs";
+import { serveSite } from "./site_server.mjs";
+import { STEP } from "./deadlines.mjs";
+
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { identify, verdict } = await import(pathToFileURL(path.join(repo, "web", "browsers.js")).href);
 const { supported } = JSON.parse(fs.readFileSync(path.join(repo, "web", "browsers.json")));
@@ -65,17 +58,8 @@ for (const [key, touch, name, version, ok] of table) {
 }
 
 // ---- the page ----
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await pw[ENGINE].launch(LAUNCH);
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
+const browser = await launch(pw);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 
@@ -83,7 +67,6 @@ const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 // window.open records the address it is given
 async function open(ua) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...(ua && { userAgent: ua }) });
-  await ctx.route(offSite(origin), (r) => r.abort());
   await ctx.addInitScript((secret) => {
     delete Navigator.prototype.serviceWorker;
     window.open = (url) => { window.opened = url; return null; };
@@ -96,7 +79,7 @@ async function open(ua) {
   await watchReads(ctx, ["browsers.json"]);
   const page = await ctx.newPage();
   page.on("pageerror", async (e) => { if (!/thrown-for-the-test/.test(e.message)) { console.error("page error: " + e.message); await done(1); } });
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/fixture");
   await page.waitForFunction(() => $("#sb-version").textContent && $("#recent .recent"));
   await readsDone(page);
@@ -138,8 +121,11 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await page.click("#user-menu summary");
   await page.click("#open-settings");
   await page.click("#settings-cancel");
-  await page.evaluate(() => { const c = new MessageChannel(); c.port1.onmessage = () => { throw new Error("thrown-for-the-test"); }; c.port2.postMessage(0); });
-  await page.waitForFunction(() => (JSON.parse(localStorage.getItem("nor-actions")) || []).some((e) => /thrown-for-the-test/.test(e.text)));
+  // an error the page meets, uncaught, for the report to list
+  await expecting(/thrown-for-the-test/, async () => {
+    await page.evaluate(() => { const c = new MessageChannel(); c.port1.onmessage = () => { throw new Error("thrown-for-the-test"); }; c.port2.postMessage(0); });
+    await page.waitForFunction(() => (JSON.parse(localStorage.getItem("nor-actions")) || []).some((e) => /thrown-for-the-test/.test(e.text)));
+  });
   await page.click("#sb-report");
   const q = await issue(page);
   await check(q.template === "bug-report.yml" && q.title === "Unsupported browser: ", `the icon opens a new issue on the bug-report form: ${q.template}, "${q.title}"`);

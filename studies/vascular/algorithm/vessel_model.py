@@ -26,7 +26,6 @@ import contextlib, heapq
 import numpy as np
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
-from scipy.stats import poisson
 from skimage.filters import apply_hysteresis_threshold
 from skimage.morphology import skeletonize, remove_small_objects
 
@@ -505,6 +504,7 @@ def dense_regions(nodes, edges, area):
     the junctions within DENSE_WIDTHS typical widths are counted, and a count the stack's mean
     density makes less likely than DENSE_P marks it; marked junctions within reach of each other
     make one box."""
+    from scipy.stats import poisson
     sure = [e for e in edges if e['state'] == 'vessel']
     deg = np.bincount([e[k] for e in sure for k in 'ab'], minlength=len(nodes) + 1)
     J = np.array([[n['x'], n['y']] for n in nodes if deg[n['id']] >= 3])

@@ -1,4 +1,5 @@
 import { WORDS } from "../web/reading.js";
+import { cdnFile } from "../../../web-tests/fakes/cdn.mjs";
 // A stand-in Tesseract for the Bookshelf Reader's page tests, and the reader it is kept as: the real one comes from a
 // CDN the tests do not reach. It reads the BMP's own width and height: "Title <w>x<h>", 90% sure across, 20% sure up
 // or down. It counts what it is asked in window.tess: the languages each worker was made for, and the crops read.
@@ -19,13 +20,13 @@ export class Tensor { constructor(type, data, dims) { Object.assign(this, { type
 export const InferenceSession = { create: async () => ({ inputNames: ["x"], outputNames: ["y"],
   run: async (feeds) => { globalThis.textRuns++; const [, , h, w] = feeds.x.dims; return { y: { data: new Float32Array(h * w) } }; } }) };`;
 const CDN = "https://cdn.jsdelivr.net/npm/";
-// ctx: a browser context, its CDN requests for Tesseract and for the text finder answered by the stand-ins; with
-// textFinder false, the text finder's never answered, as when it cannot be reached
+// ctx: a browser context, the jsDelivr fake handing it the stand-ins for Tesseract and for the text finder; with
+// textFinder false, the text finder's files are not found, as when it cannot be reached
 export const prepare = async (ctx, { textFinder = true } = {}) => {
-  await ctx.route(CDN + "tesseract.js@7.0.0/dist/tesseract.esm.min.js", (r) => r.fulfill({ contentType: "text/javascript", body: TESSERACT }));
+  cdnFile(ctx, CDN + "tesseract.js@7.0.0/dist/tesseract.esm.min.js", TESSERACT, "text/javascript");
   // the subtitle word list the readings are spelled by, a stand-in of two words
-  await ctx.route(WORDS.list, (r) => r.fulfill({ contentType: "text/plain", body: "את 100\nלא 90\n" }));
+  cdnFile(ctx, WORDS.list, "את 100\nלא 90\n", "text/plain");
   if (!textFinder) return;
-  await ctx.route(CDN + "onnxruntime-web@1.31.1/dist/ort.wasm.min.mjs", (r) => r.fulfill({ contentType: "text/javascript", body: ORT }));
-  await ctx.route(CDN + "@gutenye/ocr-models@1.4.2/assets/ch_PP-OCRv4_det_infer.onnx", (r) => r.fulfill({ contentType: "application/octet-stream", body: Buffer.alloc(8) }));
+  cdnFile(ctx, CDN + "onnxruntime-web@1.31.1/dist/ort.wasm.min.mjs", ORT, "text/javascript");
+  cdnFile(ctx, CDN + "@gutenye/ocr-models@1.4.2/assets/ch_PP-OCRv4_det_infer.onnx", Buffer.alloc(8), "application/octet-stream");
 };
