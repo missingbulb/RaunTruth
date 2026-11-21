@@ -12,6 +12,7 @@ import { BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
 import { orMissed } from "./page_until.mjs";
+import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
@@ -212,7 +213,7 @@ await expecting(/could not be (read|counted)|is corrupted/, async () => {
   await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
   await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");
   await page.click(cell("a flat.tif"));
-  await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: 5000 }));
+  await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: STEP }));
   await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
   // the test's last case, which lasts until it closes: the page draws the previews again as the image opens, and
   // says each it cannot read, and what it cannot count, until then
