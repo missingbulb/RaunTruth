@@ -1,5 +1,6 @@
 // A world the explorer walks (explore.mjs): a world file of worlds/ (data: the study and its stage, the Drive tree
-// and who Drive's sharing lets read and write it, who is signed in and as what, the window, the world events' weights)
+// and who Drive's sharing lets read and write it, who is signed in and as what, the window, the world events' weights,
+// and allow: patterns of what the page says by design in this world, as a stranger refused the study's folder)
 // made real on the stand-in Google of stand_in_drive.mjs, its page open; and the world events, what happens to the
 // person beyond the page: the network going and coming, the token running out, Drive changed elsewhere.
 //   const w = await boot(world, prepared, { plants, pageError });
@@ -37,6 +38,8 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     if (d.submissionsWriters) drive.writers.set(s.GT.submissions, new Set(d.submissionsWriters));
     if (d.curatedWriters) drive.writers.set(s.GT.curated, new Set(d.curatedWriters));
   }
+  // the study's settings file, as the page makes it when the study is set up: the site's own, which it may replace
+  for (const f of drive.files) if (/^rauntruth-/.test(f.name)) f.mine = true;
   const account = world.user || world.signIn?.account;
   if (account) google.account = { sub: "2001", name: account.name, email: account.email, picture: null };
   google.answer = world.signIn?.answer || "grant";

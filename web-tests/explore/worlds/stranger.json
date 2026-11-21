@@ -78,5 +78,9 @@
     "sample": "large"
    }
   ]
- }
+ },
+ "allow": [
+  "cannot see this folder",
+  "status of 404 \\(Not Found\\) \\(https://www\\.googleapis\\.com/drive/v3/files"
+ ]
 }

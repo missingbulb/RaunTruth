@@ -1,5 +1,5 @@
 {
- "about": "The owner on a phone-sized window, where nothing may spill past the screen's width.",
+ "about": "The owner on a phone-sized window, which the page does not support (req/shell/browsers/supported): what spills past the screen's width, or is cut off at it, is the owner's call.",
  "study": "fixture",
  "stage": "GT",
  "user": {

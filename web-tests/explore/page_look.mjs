@@ -46,7 +46,7 @@ export const look = (page) => page.evaluate(() => {
       pressed: el.getAttribute("aria-pressed") ?? el.getAttribute("aria-expanded") ?? (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : null),
       value: ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) && el.type !== "password" ? String(el.value).slice(0, 40) : null,
       options: el.tagName === "SELECT" ? [...el.options].filter((o) => !o.disabled).map((o) => o.value) : null,
-      w: Math.round(r.width), h: Math.round(r.height),
+      w: Math.round(r.width), h: Math.round(r.height), right: Math.round(r.right),
     });
   }
   const html = document.documentElement;
@@ -80,6 +80,6 @@ export const look = (page) => page.evaluate(() => {
     controls, focus: { key: keyOf(focused), body: !focused || focused === document.body },
     overflow: wide ? { by: html.scrollWidth - html.clientWidth, past: [...document.querySelectorAll("body *")]
       .filter((e) => { const r = e.getBoundingClientRect(); return r.right > html.clientWidth + 1 && r.width > 0 && e.checkVisibility(); }).slice(0, 5).map(keyOf) } : null,
-    storage, vars, app, study: (location.pathname.match(/^\/web\/([\w-]*)/) || [])[1] ?? null,
+    width: html.clientWidth, storage, vars, app, study: (location.pathname.match(/^\/web\/([\w-]*)/) || [])[1] ?? null,
   };
 });

@@ -73,7 +73,7 @@ export const ORACLES = {
   },
   overflow(s) {
     if (!s.after.overflow || (s.before.overflow && s.before.overflow.past[0] === s.after.overflow.past[0])) return [];
-    return [{ class: "bug", sig: `overflow ${s.width} ${s.after.overflow.past[0]}`,
+    return [{ class: s.width < 600 ? "call" : "bug", sig: `overflow ${s.width} ${s.after.overflow.past[0]}`,
       what: `the page scrolls sideways at ${s.width}px wide, by ${s.after.overflow.by}px, after ${where(s.action)}: ${s.after.overflow.past.join(", ")} past the edge` }];
   },
   linksLead(s) {
@@ -83,6 +83,13 @@ export const ORACLES = {
   stayInTheApp(s) {
     if (!s.before.app || s.after.app || s.action.kind === "event") return [];
     return [{ class: "call", sig: `left the app ${s.action.key || s.action.press}`, what: `${where(s.action)} left the app for ${s.after.url} (${s.after.title || "no title"})` }];
+  },
+  // in a window narrower than a laptop's, a control cut off at its right edge, which the page clips rather than
+  // scrolls to: the page supports no phone or tablet (req/shell/browsers/supported), so the owner's call
+  cutOff(s) {
+    if (s.width >= 600) return [];
+    return s.after.controls.filter((c) => c.right > s.after.width + 1)
+      .map((c) => ({ class: "call", sig: `cut off ${s.width} ${c.key}`, what: `${c.key} ("${c.text}") is cut off at the window's right edge at ${s.width}px wide, ${c.right - s.after.width}px past it, after ${where(s.action)}` }));
   },
   settles(s) {
     return s.settled === true ? [] : [{ class: "call", sig: `unsettled ${s.family.family}`, what: `the page had not settled after ${where(s.action)}: ${s.settled}` }];

@@ -6,6 +6,7 @@
   ]},
   "allow": [
     {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"},
+    {"pattern": "status of 404 \\(Not Found\\) \\(https://cdn\\.jsdelivr\\.net/npm/(onnxruntime-web|tesseract\\.js)", "why": "the CDN fake serves the libraries web-tests/page_libraries.py installs, which leave out those the Bookshelf Reader keeps offline: the fake's doing"},
     {"pattern": "status of 404 \\(Not Found\\) \\(https://www\\.googleapis\\.com/drive/v3/files/[\\w-]+\\?fields=appProperties", "why": "the Drive fake answers 404 when asked the appProperties of a file the site did not make, where Drive answers 200 with none: the fake's doing, to fix in fakes/google_drive.mjs"}
   ],
   "families": [
@@ -19,7 +20,7 @@
     {"family": "undo", "match": {"key": "^#gt-undo$"}, "reverts": true, "may": ["storage.*"], "writes": 0},
     {"family": "redo", "match": {"key": "^#gt-redo$"}, "may": ["storage.*"], "writes": 0},
     {"family": "previews", "match": {"key": "^#update-previews$"}, "may": ["storage.*", "html.*"], "writes": "any"},
-    {"family": "tags and areas", "match": {"key": "^#(tags-|study-hide-|areas-)"}, "may": ["storage.*", "html.*", "dialog"], "writes": "any"},
+    {"family": "tags and areas", "match": {"key": "^#(tags-|study-hide-|study-group|areas-)"}, "may": ["storage.*", "html.*", "dialog"], "writes": "any"},
     {"family": "folders", "match": {"key": "^#(data-add|gt-setup|setup-|switch-go|gt-switch)"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
     {"family": "settings", "match": {"key": "^#(settings-save|open-settings|settings-)"}, "may": ["settings", "storage.*", "dialog", "html.*", "class.*", "open"], "writes": 0},
     {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
@@ -27,6 +28,7 @@
     {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
     {"family": "role", "match": {"within": "^role-(list|menu)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "signin", "dialog", "open", "url"], "writes": 0},
     {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
+    {"family": "marks on an image", "match": {"text": "^(Needs GT|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},
     {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},
     {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
     {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|load-gt|gt-load-|gt-start)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
