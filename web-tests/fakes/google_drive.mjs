@@ -17,8 +17,8 @@
 //     none is named along the way, any signed-in user reads what the link does not reach. An item shared with
 //     anyone with the link is read by all; the writers read too. drive.writers, unlike readers, is the nearest set
 //     alone, not a union
-//   drive.outage = null | "throttled" | "down" | "details";   downloads refused as Google throttles a site (a failed
-//     request), nothing answering, or the files' details alone not answering
+//   drive.outage = null | "throttled" | "down" | "details" | "writes";   downloads refused as Google throttles a site (a failed
+//     request), nothing answering, the files' details alone not answering, or what the page writes alone not answering
 //   drive.checksums = false;                           no SHA-256 for any file, as Drive gives none for some
 //   drive.hold = (call) => promise;                    an answer kept back until the promise settles, as a test
 //     holds one (held.mjs) to make it slower than the user
@@ -283,7 +283,7 @@ export function driveAnswers(drive, google) {
     await drive.hold(call);
     try {
       // Google's refusal of a throttled download lacks the header that lets the page read it: a failed request
-      if (drive.outage === "down" || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return null;
+      if (drive.outage === "down" || (drive.outage === "writes" && call.kind === "write") || (drive.outage === "throttled" && call.kind === "download") || (drive.outage === "details" && call.kind === "details")) return null;
       return await answer(req, call);
     } finally {
       drive.inflight--;
