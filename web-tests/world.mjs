@@ -10,6 +10,7 @@
 //   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
 //   w.studyFolder("nor").holds(image.tiff("s.tif", {...}))  a study's own folder, as its study.json names it
+//   w.file(image.png("b.png"))                            a file at Drive's top, in no folder
 //   const page = await w.device().signedInAs(ada).asRole("tagger").keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
@@ -55,6 +56,8 @@ export function foldersOn(drive) {
     // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
     folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
     studyFolder: (study) => folderOf(drive.rootOf(study)),
+    // an image or file at Drive's top, in no folder, as a folder holds one
+    file: (image, options) => folderOf({ id: null }).holds(image, options),
   };
   return on;
 }
@@ -64,7 +67,7 @@ export function world(browser, origin) {
   const w = {
     browser, drive, google, site: settingsIn(shared), studies: studiesIn(shared),
 
-    folder: folders.folder, studyFolder: folders.studyFolder,
+    folder: folders.folder, studyFolder: folders.studyFolder, file: folders.file,
 
     // a Google account, the one Google's window signs in next
     user(email) {
