@@ -12,7 +12,8 @@
 //   google.asked, google.scriptLoads, google.calls, google.settings   what the page asked for ("METHOD url" for each
 //     call), and the app folders' files ({id, owner, name, parents, body}, a test may change one's body)
 //   google.next()                                              resolves at the page's next call to Google's APIs
-//   google.answersAs({ email, name });                         who Google's window signs in next
+//   google.answersAs({ email, name, picture });                who Google's window signs in next, picture the address
+//                                                              of theirs, or null for none
 //   google.savedSettings(email, { key: "value" });            the settings file the user's app folder holds, as
 //     another device left it; null: none
 //   google.revokeAll();                                        every token so far refused from now on
@@ -89,7 +90,7 @@ function makeSignIn() {
       return { user: { name, email, picture: null }, token, until, scopes };
     },
     revokeAll() { for (const t of google.tokens.values()) t.revoked = true; },
-    answersAs({ email, name = email }) { google.account = { ...google.account, sub: `sub-${email}`, email, name }; },
+    answersAs({ email, name = email, picture = null }) { google.account = { ...google.account, sub: `sub-${email}`, email, name, picture }; },
     savedSettings(email, record) {
       const kept = google.settings.find((f) => f.owner === email);
       if (record === null) { if (kept) google.settings.splice(google.settings.indexOf(kept), 1); return; }

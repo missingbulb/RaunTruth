@@ -35,13 +35,15 @@ export function world(browser, origin) {
 
     // a Google account, the one Google's window signs in next
     user(email) {
-      let name = email, withheld = [];
+      let name = email, picture = null, withheld = [];
       google.answersAs({ email, name });
       const user = {
         email,
         get name() { return name; },
         get scopes() { return SCOPES.split(" ").filter((s) => !withheld.includes(s)).join(" "); },
-        named(n) { name = n; google.answersAs({ email, name }); return user; },
+        named(n) { name = n; google.answersAs({ email, name, picture }); return user; },
+        // the picture Google's account details give, at that address
+        pictured(url) { picture = url; google.answersAs({ email, name, picture }); return user; },
         // a scope Google leaves out of their token, its box unticked
         without(...scopes) { withheld = scopes; google.withhold = scopes; return user; },
         // the settings file another device of theirs left on Drive
@@ -137,6 +139,16 @@ export function world(browser, origin) {
           await page.goto(origin + address);
           await UNTIL[until](page);
           return page;
+        },
+        // the hour up for the device, on a page of the site's it has open: Google refuses every token so far, and the
+        // page's record of the sign-in says it ran out
+        async tokenRunsOut(page) {
+          google.revokeAll();
+          await page.evaluate(() => {
+            const s = JSON.parse(localStorage.getItem("nor-google-sign-in"));
+            s.until = Date.now() - 1;
+            localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
+          });
         },
         close: () => ctx?.close(),
       };
