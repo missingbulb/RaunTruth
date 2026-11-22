@@ -1,6 +1,6 @@
 // Opens an image in a study that opens from Google Drive (req/shell/load/from) the way a user does, through the
 // Google Drive dialog, from the Drive fake: standInDrive(ctx) before the page loads gives the deploy a Google key,
-// and openFromDrive puts each file it is handed on Drive under an id of its own, listed in whichever folder the
+// and openFromDrive puts each file it is handed at Drive's top, listed in whichever folder the
 // dialog shows while it is being opened.
 // openFromDrive(page, file) takes a path or {name, mimeType, buffer}, as setInputFiles does, the same name and bytes
 // again being the same file on Drive; it pastes the file's link where the dialog takes one (req/shell/drive/dialog),
@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { click } from "./page_click.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 
 // per context, the files handed over: {name, buffer, id}
 const handed = new WeakMap();
@@ -21,9 +21,8 @@ export async function standInDrive(ctx) {
   if (!settings.env?.GOOGLE_API_KEY) settings.withoutGoogleClient();
 }
 
-let next = 0;
 export async function openFromDrive(page, file) {
-  const mine = handed.get(page.context()), drive = googleDrive(page.context());
+  const mine = handed.get(page.context()), w = world(page.context().browser()), drive = w.drive;
   if (!mine) throw new Error("openFromDrive needs standInDrive(context) first");
   const f = typeof file === "string"
     ? { name: path.basename(file), mimeType: /\.png$/i.test(file) ? "image/png" : "image/tiff", buffer: fs.readFileSync(file) }
@@ -31,7 +30,7 @@ export async function openFromDrive(page, file) {
   // the same file handed again is the same file on Drive
   const again = mine.find((g) => g.name === f.name && g.buffer.equals(f.buffer));
   if (again) f.id = again.id;
-  else { f.id = "standinfile" + String(++next).padStart(9, "0"); mine.push(f); drive.file({ id: f.id, name: f.name, mimeType: f.mimeType, bytes: f.buffer }); }
+  else { f.id = w.file({ name: f.name, mimeType: f.mimeType, bytes: f.buffer }).id; mine.push(f); }
   drive.offered.add(f.id);
   try {
     // the Image box may be folded: the button is pressed where it is
