@@ -296,6 +296,8 @@ export async function launch(pw, options = {}) {
 // a browser's Google, before any of its contexts opens: {drive, signIn}, the fakes' own (fakes/google_drive.mjs,
 // fakes/google_sign_in.mjs)
 const worlds = new WeakMap();
+// the outside systems' state a browser's contexts share (world.mjs says it in a test's terms)
+export const worldOf = (browser) => worlds.get(browser);
 export const googleOf = (browser) => ({ drive: driveIn(worlds.get(browser)), signIn: signInIn(worlds.get(browser)) });
 export const siteOf = (browser) => ({ settings: settingsIn(worlds.get(browser)), studies: studiesIn(worlds.get(browser)) });
 

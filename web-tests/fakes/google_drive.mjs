@@ -23,6 +23,10 @@
 //   drive.inflight                                     how many calls are being answered now
 //   drive.offered                                      files the remote files dialog lists in whichever folder it shows
 //     (its listings alone, which ask for thumbnails), as a test hands the user a file to open
+//   drive.rootOf(study)                                the study's own folder, as its study.json names it
+//   drive.writableBy(folder, ...emails)                Drive's sharing lets them add to it; writableByAnyone(folder):
+//     anyone signed in; viewableOnly(folder): the user may only view it; sharedWithUserAlone(folder): not "Anyone with the
+//     link", so the site's key reads neither it nor what it holds
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,7 +49,7 @@ const ROOTS = fs.readdirSync(path.join(REPO, "studies")).flatMap((id) => {
   try {
     const s = JSON.parse(fs.readFileSync(path.join(REPO, "studies", id, "study.json"), "utf8"));
     const root = (s.root || "").match(/\/folders\/([\w-]+)/)?.[1];
-    return root ? [{ id: root, name: s.title || id }] : [];
+    return root ? [{ id: root, name: s.title || id, study: id }] : [];
   } catch { return []; }
 });
 
@@ -71,6 +75,15 @@ function makeDrive() {
       return f;
     },
     next: (match = () => true) => new Promise((ok) => drive.waiting.push({ match, ok })),
+    rootOf: (study) => drive.get(ROOTS.find((r) => r.study === study)?.id),
+    writableBy(folder, ...emails) {
+      const id = folder.id ?? folder, now = drive.writers.get(id);
+      drive.writers.set(id, new Set([...(now instanceof Set ? now : []), ...emails]));
+      return folder;
+    },
+    writableByAnyone(folder) { drive.writers.set(folder.id ?? folder, { has: () => true }); return folder; },
+    viewableOnly(folder) { drive.viewOnly.add(folder.id ?? folder); return folder; },
+    sharedWithUserAlone(folder) { drive.hidden.add(folder.id ?? folder); return folder; },
   };
   for (const r of ROOTS) drive.folder({ ...r, access: "public" });
   return drive;

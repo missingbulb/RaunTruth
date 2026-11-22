@@ -4,6 +4,8 @@
 //   studies(ctx).edit(id, (m) => m);       study id's study.json as the test needs it, made from the one served; an
 //                                          edit may change m in place or return another
 //   studies(ctx).editList((list) => list); the list of studies, the same way
+//   studies(ctx).atStage(id, "PostGT");    the study in that stage; fromThisComputer(id): it opens files from this
+//                                          computer alone; rootedAt(id, folder): its own Drive folder is that one
 const fakes = new WeakMap();
 export const studies = (ctx) => fakes.get(ctx);
 
@@ -12,6 +14,9 @@ const making = (parent) => {
   return {
     edit(id, fn) { own.edits.set(id, [...(own.edits.get(id) || []), fn]); },
     editList(fn) { own.list.push(fn); },
+    atStage(id, stage) { this.edit(id, (m) => ({ ...m, stage })); },
+    fromThisComputer(id) { this.edit(id, (m) => ({ ...m, files: { ...m.files, from: ["local"] } })); },
+    rootedAt(id, folder) { this.edit(id, (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${folder.id ?? folder}` })); },
     // the browser's edits, then the context's own
     editsOf: (id) => [...(parent?.editsOf(id) || []), ...(own.edits.get(id) || [])],
     listEdits: () => [...(parent?.listEdits() || []), ...own.list],
