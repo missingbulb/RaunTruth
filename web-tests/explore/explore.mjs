@@ -110,7 +110,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
   // how many tokens Google had issued when an event ended them: until it issues the page another, the page's calls
   // with the old one are refused, as Chromium's console says of each, and the page may say so too
   let tokensWhenEnded = null;
-  const REFUSED = /status of 40[13] |refused the token|Invalid Credentials|sign-in has run out/;
+  const REFUSED = /status of 40[13] |Drive refused the [a-z ]+ \(40[13]\)|refused the token|Invalid Credentials|sign-in has run out/;
   // what the page says of Google's window answering otherwise than granting, while it does (the googleAnswers event)
   const DECLINED = /sign-in window|popup_failed_to_open|popup_closed|access_denied/;
   // each link out of the app the page shows, whether it leads somewhere, as the site serves a page at its address with
