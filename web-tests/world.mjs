@@ -30,8 +30,9 @@ const UNTIL = {
   none: async () => {},
 };
 
-export function world(browser, origin) {
-  const shared = worldOf(browser), drive = driveIn(shared), google = signInIn(shared);
+// Drive's folders, said as a test means them, on a Drive fake: a browser's world's, or one under Node with no browser
+// (fakes/google_drive_under_node.mjs)
+export function foldersOn(drive) {
   // a folder on Drive, said as a test means it; record: the fake's own
   const folderOf = (record) => {
     const f = {
@@ -42,7 +43,7 @@ export function world(browser, origin) {
       viewableOnly() { drive.viewableOnly(record); return f; },
       writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
       writableByAnyone() { drive.writableByAnyone(record); return f; },
-      folder: (name, options = {}) => w.folder(name, { ...options, in: record }),
+      folder: (name, options = {}) => on.folder(name, { ...options, in: record }),
       // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; the fake's record
       holds({ name, mimeType, bytes }, { id, createdTime } = {}) {
         return drive.file({ name, mimeType, bytes, parent: record.id, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}) });
@@ -50,12 +51,20 @@ export function world(browser, origin) {
     };
     return f;
   };
-  const w = {
-    browser, drive, google, site: settingsIn(shared), studies: studiesIn(shared),
-
+  const on = {
     // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
     folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
     studyFolder: (study) => folderOf(drive.rootOf(study)),
+  };
+  return on;
+}
+
+export function world(browser, origin) {
+  const shared = worldOf(browser), drive = driveIn(shared), google = signInIn(shared), folders = foldersOn(drive);
+  const w = {
+    browser, drive, google, site: settingsIn(shared), studies: studiesIn(shared),
+
+    folder: folders.folder, studyFolder: folders.studyFolder,
 
     // a Google account, the one Google's window signs in next
     user(email) {
