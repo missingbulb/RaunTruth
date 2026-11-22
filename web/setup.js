@@ -28,3 +28,8 @@ attach(dataMode({
   relabel: () => retitle(),
   openPreview: (name, bytes, source) => openBytes(name, bytes, source),
 }));
+
+// Study Setup's sharing (req/setup/sharing-check, req/setup/people): what the study's stage needs of its Drive sharing, and who holds which
+// of the three shares
+import { sharingPanel } from "./setup_sharing.js";
+attach(sharingPanel(lent));

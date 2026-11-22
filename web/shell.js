@@ -60,8 +60,13 @@ const $ = (s) => document.querySelector(s);
 // whether this is Study Setup's page (req/setup/page), which shows the study as the one whose root its owner may write, online only
 const SETUP = document.documentElement.dataset.page === "setup";
 // what Study Setup's own script (setup.js) attached: the study's folders and what is set on them; the study's own page has none
-let data = { signedIn() {}, open() {}, opened() {}, mount() {}, on: false };
-export const attach = (d) => { data = d; };
+const attached = [];
+const data = {
+  signedIn: () => attached.forEach((d) => d.signedIn?.()), open: (on) => attached.forEach((d) => d.open?.(on)),
+  opened: () => attached.forEach((d) => d.opened?.()), mount: (m) => attached.forEach((d) => d.mount?.(m)),
+  get on() { return attached.some((d) => d.on); },
+};
+export const attach = (d) => { attached.push(d); };
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
 const log = actionLog();
 log.watch();

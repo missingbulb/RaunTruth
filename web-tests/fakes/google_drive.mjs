@@ -17,6 +17,8 @@
 //     none is named along the way, any signed-in user reads what the link does not reach. An item shared with
 //     anyone with the link is read by all; the writers read too. drive.writers, unlike readers, is the nearest set
 //     alone, not a union
+//   drive.refuseSharing = false;                       true: a change of an item's sharing (adding or deleting a permission) is
+//     refused 403 insufficientFilePermissions, as Drive refuses a sign-in whose scope does not reach the item
 //   drive.outage = null | "throttled" | "down" | "details" | "writes";   downloads refused as Google throttles a site (a failed
 //     request), nothing answering, the files' details alone not answering, or what the page writes alone not answering
 //   drive.checksums = false;                           no SHA-256 for any file, as Drive gives none for some
@@ -69,7 +71,7 @@ function makeDrive() {
   const drive = {
     files: [], viewOnly: new Set(), writers: new Map(), readers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
     get: (id) => drive.files.find((f) => f.id === id),
-    outage: null, checksums: true, hold: () => null, uploaded: () => {},
+    outage: null, refuseSharing: false, checksums: true, hold: () => null, uploaded: () => {},
     calls: [], writes: [], thumbs: [], shared: [], unshared: [], keptForever: [], inflight: 0,
     folder({ id = `fakefolder${String(++n).padStart(10, "0")}`, name, parent = null, access, mine = false } = {}) {
       const f = { id, name, parent, folder: true, access, mine, props: {}, revisions: [], createdTime: tick(), modified: tick() };
@@ -179,6 +181,9 @@ export function driveAnswers(drive, google) {
       f.bytes = req.body || Buffer.alloc(0); f.modified = tick(); drive.writes.push(["replace", f.name]); drive.uploaded(f);
       if (u.searchParams.get("keepRevisionForever") === "true") drive.keptForever.push(f.name);
       return json(200, { id: f.id });
+    }
+    if (drive.refuseSharing && (method === "POST" || method === "DELETE") && /\/permissions(\/[^/]+)?$/.test(u.pathname)) {
+      return json(403, { error: { code: 403, message: "The user does not have sufficient permissions for this file.", errors: [{ reason: "insufficientFilePermissions" }] } });
     }
     if (method === "POST" && u.pathname.endsWith("/permissions")) {
       const on = drive.get(decodeURIComponent(u.pathname.split("/").at(-2)));

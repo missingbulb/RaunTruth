@@ -84,7 +84,9 @@ permission for the site to:</p>
     the folders and images you open in it and, for a study you open, its root folder's list and the study file in it, and whether you may add files to that root and to its
     Extractions folder, to offer you Save and, for the study's owner, Study Setup. It also asks Google, in one request each time the page
     loads, whether your account can read the root folder of each study the site lists, to list you the studies you may open.
-    It never changes anything with this permission.</li>
+    In Study Setup, for the study's owner, it also reads who the study's root, folders and study file are shared with
+    (their sharing lists, with the email addresses on them), to check it against what the study's stage needs and to show
+    who holds which access. It never changes anything with this permission.</li>
   <li>see, change, create and delete only the Google Drive files it works with (Google's per-file permission), so
     that it can add files for you to a study's folders, as below, and change or remove only the files it added.</li>
 </ul>
@@ -100,9 +102,13 @@ its images are grouped and hidden, the tags, descriptions and areas (damaged par
 the study's images and folders, and which annotation files they mark as ground truth or official; and, when they set
 up the study's extractions, the Extractions folder, then shared with anyone with its link to view. It changes, marks or
 moves to the bin only files the site itself added. It never changes, moves or deletes a file someone made outside the
-site.</p>
-<p>The site changes nothing in your Google Drive but its own settings file and, in the study folders you chose, the
-files it adds there for you. It reads the folders and images you open in its Google Drive dialog, and the study
+site, and changes who an item is shared with only as the next paragraph says.</p>
+<p>Study Setup reads the study's sharing, and changes it only when the study's owner presses the Fix button of a
+correction it lists and confirms what will change: then it adds or removes the link sharing of that one folder or file
+of the study. Opening Study Setup, promoting a study to another stage and Check again change no sharing. Where Google
+does not let the site make that change, the site says so and leaves it to you in Google Drive.</p>
+<p>The site changes nothing in your Google Drive but its own settings file, in the study folders you chose the
+files it adds there for you, and, on a Fix press as above, one item's link sharing. It reads the folders and images you open in its Google Drive dialog, and the study
 folders it shows you. The settings file holds only the settings listed in the avatar menu's Settings.</p>
 <p>How this data is handled:</p>
 <ul>
@@ -112,7 +118,9 @@ folders it shows you. The settings file holds only the settings listed in the av
     In the study folders you chose, the site reads which ones you may add files to, and adds the files you
     ask it to. A folder a study's owner adds by its link is checked, with the site's own key, for whether anyone with
     its link can open it. A folder you open in the Google Drive dialog is listed (its files' names, sizes and dates), and an image
-    you open there is downloaded into your browser, as for a public link. Nothing else is done with any of it.</li>
+    you open there is downloaded into your browser, as for a public link. In Study Setup, a study's owner sees who its
+    root, folders and study file are shared with, read from Google when the page checks the sharing and shown on the page
+    alone, not kept; a Fix press changes one item's link sharing, as above. Nothing else is done with any of it.</li>
   <li><b>Stored:</b> your name, email address, picture and Google's sign-in token (which expires
     after about an hour) are kept in your browser on this device until you sign out, and so is which study folders
     Google last said you may add files to, and which studies' root folders it last said you may read, so what you may save and your

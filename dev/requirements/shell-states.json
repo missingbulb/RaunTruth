@@ -99,6 +99,20 @@
                     {"name": "Extraction counts", "select": "#gt-counts", "req": "req/shell/ground-truth/summary"}
                   ]
                 },
+                {"name": "Sharing", "select": "#sharing-box", "req": "req/setup/sharing-check",
+                  "children": [
+                    {"name": "Sharing's title", "select": "#sharing-title", "req": "req/setup/sharing-check"},
+                    {"name": "Check again", "select": "#sharing-recheck", "control": true, "req": "req/setup/sharing-check",
+                      "rule": [
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Sharing's state", "select": "#sharing-state", "req": "req/setup/sharing-check"},
+                    {"name": "Corrections", "select": "#sharing-corrections", "req": "req/setup/sharing-check"},
+                    {"name": "People's title", "select": "#people-title", "req": "req/setup/people"},
+                    {"name": "People", "select": "#people-list", "req": "req/setup/people"}
+                  ]
+                },
                 {"name": "Folder tree", "select": "#data-tree", "req": "req/shell/data/mode"},
                 {"name": "Not in the study", "select": "#data-unlisted", "req": "req/shell/data/folders", "unwalked": "shows only while the study's root holds a folder no listed folder is, and the walked study lists its root",
                   "rule": [

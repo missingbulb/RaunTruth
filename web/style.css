@@ -933,7 +933,7 @@ html:not(.offline) #welcome-offline { display: none; }
 :root[data-tree=folded] #data-open:hover { color: var(--text); border-color: var(--accent); }
 :root[data-tree=folded] #data-open .strip-name { writing-mode: vertical-rl; font-size: 12px; letter-spacing: .03em; }
 :root:not([data-tree=folded]) #data-open { align-self: flex-start; border: 0; background: transparent; color: var(--dim); }
-#data-body { display: none; min-width: 240px; flex: 1; min-height: 0; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 10px 8px; margin-top: 6px; }
+#data-body { display: none; min-width: 240px; flex: 1; min-height: 0; overflow-y: auto; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 10px 8px; margin-top: 6px; }
 :root[data-mode=data]:not([data-tree=folded]) #data-body { display: flex; animation: data-in .35s ease-out; }
 @keyframes data-in { from { opacity: 0; transform: translateX(-24px); } }
 .data-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px 8px; } .data-head h2 { font-size: 14px; margin: 0; flex: 1; }
@@ -942,7 +942,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-setup.nudge { border-color: var(--warn); color: var(--text); background: color-mix(in srgb, var(--warn) 18%, transparent); font-weight: 600; }
 #gt-box { border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
 #gt-box h2 { font-size: 14px; margin: 0 0 4px; } #gt-box p { margin: 2px 0; }
-#data-tree { overflow: auto; flex: 1; min-height: 0; font-size: 13px; }
+#data-tree { overflow: auto; flex: 1 0 200px; min-height: 200px; font-size: 13px; }
 .tree-folder .row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* the study's listed folders: Remove beside each, the root's other folders under them to add, a pasted link to add another */
 .tree-folder .row .unlist { flex: none; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; border-radius: var(--r-chip); }
@@ -993,6 +993,19 @@ html:not(.offline) #welcome-offline { display: none; }
 #study-set { padding: 8px 4px 0; border-top: 1px solid var(--line); margin-top: 8px; font-size: 13px; }
 #study-set h3 { font-size: 12px; margin: 0 0 6px; color: var(--dim); font-weight: 600; }
 .study-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+/* Study Setup's sharing check: each correction with its link and picture, then People */
+#sharing-box { flex: none; border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
+.sharing-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+#sharing-box h2 { font-size: 14px; margin: 0; } #sharing-box h3 { font-size: 12px; margin: 10px 0 4px; color: var(--dim); font-weight: 600; }
+#sharing-corrections, #people-list { list-style: none; margin: 4px 0; padding: 0; }
+.sharing-correction { border-top: 1px solid var(--line); padding: 6px 0; }
+.sharing-correction p { margin: 2px 0; }
+.sharing-item, .sharing-change { display: block; }
+.sharing-how summary { cursor: pointer; color: var(--accent); }
+.sharing-correction img { display: block; max-width: 100%; height: auto; margin: 4px 0; border-radius: var(--r-chip); }
+.sharing-fix, .sharing-confirm button { margin: 2px 6px 2px 0; }
+#people-list li { padding: 2px 0; overflow-wrap: anywhere; }
+.holds { font-size: 10.5px; padding: 1px 5px; border-radius: 9px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
 :root[data-mode=data] #load.gone { display: none; }
 #load.poof { animation: poof .45s ease-in forwards; pointer-events: none; }
 #load.unpoof { animation: poof .3s ease-out reverse; }
