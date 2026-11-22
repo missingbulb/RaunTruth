@@ -13,10 +13,10 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
-import { cutShort } from "../../../web-tests/page_errors.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
-import { pw, launch, siteOf, googleOf } from "../../../web-tests/harness.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const [shot, thumbs, ...images] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -38,13 +38,14 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await launch(pw);
-siteOf(browser).studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/", root: `https://drive.google.com/drive/folders/${ROOT}` }));
+const browser = await launch(pw), w = world(browser, origin);
+w.studies.rootedAt("nor", ROOT);
+w.studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/" }));
 // the deploy with a Google key
-siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+w.site.withoutGoogleClient();
 const done = async (code, why) => { if (why) console.error(why); await browser.close(); server.close(); process.exit(code); };
 // the browser's Drive, every context's: a subfolder holding the first image too, the lab's images and one it lacks
-const { drive } = googleOf(browser);
+const { drive } = w;
 drive.folder({ id: ROOT, name: "Slides", access: "public" });
 drive.folder({ id: SUB, name: "More slides", parent: ROOT });
 for (const [k, f] of [...files, stranger].entries()) drive.file({ ...f, parent: ROOT, also: k ? undefined : [SUB], mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
@@ -53,21 +54,14 @@ const asked = (id) => { const c = drive.calls.filter((x) => x.kind === "download
 // resolves once the whole file is asked for, or rejects after ms
 const askedWhole = (id, ms) => asked(id).whole ? Promise.resolve() : Promise.race([drive.next((c) => c.kind === "download" && c.id === id && !c.range),
   new Promise((ok, no) => setTimeout(no, ms))]); // bounds a hang: a page that never asks fails, not hangs
-// a context opened at NoR Finder; seed: browser keys kept before the page opens; thumbs: thumbnails kept in the
-// browser, [{url, headers, bytes}] as Cache Storage holds them
-async function start({ seed = {}, thumbs = [] } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await ctx.addInitScript(({ seed, thumbs }) => {
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-    window.seeded = caches.open("nor-thumbs-v1").then((c) => Promise.all(thumbs.map(({ url, headers, bytes }) =>
-      c.put(url, new Response(Uint8Array.from(atob(bytes), (ch) => ch.charCodeAt(0)), { headers })))));
-  }, { seed, thumbs });
-  const page = await ctx.newPage();
-  page.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
+// a device opened at NoR Finder; keys: kept before the page opens; thumbs: thumbnails kept in the browser,
+// [{url, headers, bytes}] as Cache Storage holds them
+async function start({ keys = {}, thumbs = [] } = {}) {
+  const device = w.device().with({ viewport: { width: 1280, height: 900 } }).keeps(keys)
+    .keepsCached("nor-thumbs-v1", thumbs.map((t) => ({ ...t, bytes: Buffer.from(t.bytes, "base64") })));
+  const page = await device.opens("nor", { until: "none" });
   page.setDefaultTimeout(15000);
-  await page.goto(origin + "/web/index.html?study=nor");
-  await page.evaluate(() => window.seeded);
+  await page.evaluate(() => window.worldCached);
   return page;
 }
 const page = await start();
@@ -128,7 +122,7 @@ console.log("thumbnails kept:", kept.map((t) => t.url.split("/").pop()).join(" |
 if (!kept.some((t) => t.url.endsWith(stranger.id) && /jpeg/.test(t.headers["content-type"]))) await done(1, "the saved thumbnail was not kept in the browser");
 
 // with Show thumbnails off in Settings, nothing is downloaded
-const fresh = await start({ seed: { "nor-drive-thumbs": JSON.stringify("off") }, thumbs: kept });
+const fresh = await start({ keys: { "nor-drive-thumbs": JSON.stringify("off") }, thumbs: kept });
 const before = thumbsServed;
 let thumbsAsked = 0;
 fresh.on("request", (q) => { if (/\/ready-thumbs\/.*\.jpg$/.test(q.url())) thumbsAsked++; });
