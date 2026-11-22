@@ -126,14 +126,7 @@ export function world(browser, origin) {
           return ctx;
         },
         // a page on the study's own address, or the site's with none; until: ready, title or none
-        async opens(study, { until = "ready" } = {}) {
-          const c = await device.context(), blank = c.pages().find((p) => p.url() === "about:blank");
-          const page = blank || await c.newPage();
-          page.setDefaultTimeout(STEP);
-          await page.goto(`${origin}/web/${study ?? ""}`);
-          await UNTIL[until](page);
-          return page;
-        },
+        opens: (study, { until = "ready" } = {}) => device.visits(`/web/${study ?? ""}`, { until }),
         // a page on an address of the site's as a visitor has it (an old one, one with a query), until as opens()
         async visits(address, { until = "ready" } = {}) {
           const c = await device.context(), page = c.pages().find((p) => p.url() === "about:blank") || await c.newPage();
