@@ -12,27 +12,23 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 const site = await serve(studies, model);
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, site.origin);
 atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const device = taggersDevice(w).with({ ...SOFTWARE_3D });
+await standInDrive(await device.context());
+let page;
 
 const tasks = () => page.evaluate(() => window.vascular.tasks());
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -61,8 +57,7 @@ const ring = (id) => page.evaluate((id) => { const b = $(`#key-${id}`), cs = get
 const row = async (key) => (await legend(page)).find((r) => r.key === key);
 
 try {
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  page = await device.opens("vascular");
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
