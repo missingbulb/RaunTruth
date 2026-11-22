@@ -344,8 +344,8 @@ Depends on WP5.
   page measures them, and one line per action open to this user.
   - **Test:** `study_page_driver.mjs`: Develop with 12 images lacking a GT mark: the line "Annotate: 12 images
     still need it" for an annotator, absent for a viewer.
-- `setup/promote` Study Setup promotes and moves back; before Review it lists images with extractions newer
-  than their GT; promoting to Review freezes marking and data.
+- `setup/promote` Study Setup promotes and moves back; before Review a button, "Find images with newer extractions",
+  and promoting to Review (once, before Freeze) list images with extractions newer than their GT, never on open, a mark or a stage change; promoting to Review freezes marking and data.
   - **Test:** `test_setup_page.py`: the list; after Freeze, mark buttons gone; the main app's Save still works but
     labels "after the freeze, not counted".
 - Existing studies: NoR, vascular, shelves and fixture start in Develop (their study files written by WP2's

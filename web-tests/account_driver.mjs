@@ -20,7 +20,7 @@ import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
 import { pw, launch, googleOf, siteOf, check } from "./harness.mjs";
-import { orMissed, untilHeard } from "./page_until.mjs";
+import { orMissed, untilHeard, idle } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { frames } from "./page_frames.mjs";
 
@@ -106,7 +106,14 @@ try {
   // device A: used before, never signed in; it answered the sign-in popup (req/shell/account/welcome) and closed its tip
   const answered = { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) };
   const a = await device({ ...answered, "nor-theme": "dark", "nor-tips-closed": JSON.stringify(["recent-files", "sign-in"]), "nor-bars-v1": JSON.stringify({ left: 300 }) });
-  check(google.scriptLoads === 0 && !(await askedGoogle(a.page)) && !outside.some((u) => /google/.test(u)), "a visitor who never signs in loads nothing from Google", outside);
+  // the one read a visitor's page makes: the study's root, by the site's key, to read the study file's stage (a visitor's study file is link-shared)
+  await a.page.waitForFunction(() => window.googleCalls >= 1);
+  await idle(a.page);
+  const reads = drive.calls.filter((c) => !c.token);
+  check(google.scriptLoads === 0 && !(await askedGoogle(a.page)) && !outside.some((u) => /google/.test(u) && !/^https:\/\/www\.googleapis\.com\/drive\/v3\/files$/.test(u)),
+    "a visitor who never signs in loads nothing from Google but the study's shared file", outside);
+  check(drive.calls.length === reads.length && reads.length === 1 && reads[0].kind === "list" && reads[0].parent === "fixturefolder00000001" && reads[0].key,
+    "and the one read it makes is the study's root listed by the site's key, for the study file's stage", drive.calls.map((c) => [c.kind, c.parent, c.id, !!c.key, !!c.token]));
   check(await a.page.textContent("#who-where") === "On this device, not signed in" && await a.page.isHidden("#sign-out"), "not signed in, the menu says so");
   await a.page.click("#user-menu summary");
   await a.page.waitForFunction(() => window.tokenClient);

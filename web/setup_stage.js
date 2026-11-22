@@ -1,7 +1,7 @@
 // Stage (req/setup/promote): Study Setup's box for the study's stage. The owner promotes the study to the next stage and moves it back; the
 // stage is one key of the study file (study_root.js setStudy), and promoting is always the owner's act, however the page measures the
-// gate. Before Review the box lists the images whose extractions are newer than their GT, which the owner may want to mark first;
-// promoting to Review asks to confirm, since it freezes marking and data (stages.js).
+// gate. Before Review a button lists the images whose extractions are newer than their GT, which the owner may want to mark first, and so
+// does promoting to Review, once, before it asks to confirm, since that freezes marking and data (stages.js). Nothing else reads them.
 "use strict";
 import * as tf from "./truth_folders.js";
 import { setStudy } from "./study_root.js";
@@ -18,7 +18,7 @@ export function setupStage({ $, reader, writer, place, changed }) {
   const box = $("#stage-box"), dlg = $("#stage-freeze-dlg"), msg = $("#stage-msg");
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([box], holdOwns);
-  let manifest = null, epoch = 0, busy = false, live = false;
+  let manifest = null, epoch = 0, busy = false;
   const say = (t, err) => { msg.textContent = t; msg.classList.toggle("err", !!err); };
   const stage = () => (manifest && STAGES.includes(manifest.stage) ? manifest.stage : null);
 
@@ -57,15 +57,24 @@ export function setupStage({ $, reader, writer, place, changed }) {
     $("#stage-up").hidden = !up; $("#stage-back").hidden = !back;
     if (up) $("#stage-up").textContent = up === "Review" ? "Promote to Review…" : `Promote to ${up}`;
     if (back) $("#stage-back").textContent = `Move back to ${back}`;
-    for (const id of ["#stage-up", "#stage-back"]) $(id).disabled = busy;
+    for (const id of ["#stage-up", "#stage-back", "#stage-find"]) $(id).disabled = busy;
     // the list is of before Review: from there on marking is closed
-    $("#stage-newer-box").hidden = frozen(now);
-    if (frozen(now)) { listed($("#stage-newer"), []); return; }
-    if (!live || document.documentElement.classList.contains("offline")) return;
-    const mine = epoch;
-    newerThanGT().then((l) => { if (mine === epoch && stage() === now) { listed($("#stage-newer"), l); $("#stage-newer-box").hidden = !l.length; } },
-      (e) => { console.warn("the extractions newer than their GT were not listed:", e); });
+    $("#stage-find").hidden = frozen(now);
+    if (frozen(now)) shown([]);
   }
+
+  // the list of newer extractions: one listing per GT-marked image, read on the owner's press and on promoting to Review, never otherwise
+  const shown = (l, asked) => { listed($("#stage-newer"), l); $("#stage-newer-box").hidden = !l.length && !asked; $("#stage-newer-none").hidden = !!l.length; };
+  async function find() {
+    busy = true; draw(); say("");
+    const mine = epoch, now = stage();
+    try {
+      const l = await newerThanGT();
+      if (mine === epoch && stage() === now) shown(l, true);
+    } catch (e) { console.warn("the extractions newer than their GT were not listed:", e); say("The extractions could not be listed.", true); }
+    busy = false; draw();
+  }
+  $("#stage-find").onclick = () => work.during(find(), "the images with newer extractions were listed");
 
   async function write(to) {
     busy = true; draw(); say("");
@@ -94,11 +103,11 @@ export function setupStage({ $, reader, writer, place, changed }) {
 
   return {
     // a study comes in: its stage, from the page's read of the study file
-    mount(m) { epoch++; manifest = m; busy = false; say(""); draw(); },
+    mount(m) { epoch++; manifest = m; busy = false; say(""); shown([]); draw(); },
     // the stage changed from outside this box (the page read it again)
-    stageChanged() { epoch++; draw(); },
+    stageChanged() { epoch++; shown([]); draw(); },
     // Study Setup opened for someone the store lets write the root, or not: only then is the store asked
-    open(on) { const was = live; live = !!on; if (live && !was) draw(); },
+    open() {},
     signedIn() {},
     opened() {},
     leave() { epoch++; manifest = null; asStarted(); },
