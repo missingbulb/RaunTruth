@@ -16,19 +16,19 @@ import { orMissed } from "./page_until.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const folder = (id) => `https://drive.google.com/drive/folders/${id}`;
-const FIXTURE_FOLDER = folder("fixturefolder0000001"), PASTED = folder("pastedfolder00000001");
 const NOR_FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root;
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
 w.site.withoutGoogleClient();
-w.studies.rootedAt("fixture", FIXTURE_FOLDER.split("/").pop());
 let failed = false;
 // on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,
 // the folders listed since the test cleared them
+const fixture = w.folder("A folder").public(), pasted = w.folder("A folder").public();
+const FIXTURE_FOLDER = folder(fixture.id), PASTED = folder(pasted.id);
+w.studies.rootedAt("fixture", fixture.id);
 const drive = w.drive;
-for (const link of [FIXTURE_FOLDER, PASTED]) drive.folder({ id: link.split("/").pop(), name: "A folder", access: "public" });
 let listedFrom = 0;
 const listed = () => drive.calls.slice(listedFrom).filter((c) => c.kind === "list").map((c) => c.parent);
 // resolves at the next folder the dialog lists
