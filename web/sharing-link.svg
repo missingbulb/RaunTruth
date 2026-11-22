@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 150" width="280" height="150" role="img" aria-label="Drive's Share dialog: General access changed from Restricted to Anyone with the link, as Viewer">
+  <rect width="280" height="150" rx="8" fill="#f4f6f8"/>
+  <rect x="10" y="8" width="260" height="134" rx="8" fill="#fff" stroke="#c9d1d9"/>
+  <text x="22" y="30" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2328">Share "folder"</text>
+  <text x="22" y="56" font-family="sans-serif" font-size="11" fill="#57606a">General access</text>
+  <rect x="22" y="62" width="150" height="26" rx="13" fill="#fff" stroke="#c9d1d9" stroke-dasharray="3 2"/>
+  <text x="34" y="79" font-family="sans-serif" font-size="11" fill="#8c959f" text-decoration="line-through">Restricted</text>
+  <path d="M176 75h22" stroke="#d1242f" stroke-width="2"/><path d="M193 70l6 5-6 5" fill="none" stroke="#d1242f" stroke-width="2"/>
+  <rect x="204" y="62" width="58" height="26" rx="13" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
+  <text x="212" y="79" font-family="sans-serif" font-size="11" fill="#0969da">Anyone</text>
+  <text x="22" y="108" font-family="sans-serif" font-size="11" fill="#1f2328">1  Open Share on the item</text>
+  <text x="22" y="122" font-family="sans-serif" font-size="11" fill="#1f2328">2  General access: Anyone with the link</text>
+  <text x="22" y="136" font-family="sans-serif" font-size="11" fill="#1f2328">3  Role: Viewer, then Done</text>
+</svg>

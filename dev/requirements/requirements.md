@@ -2149,6 +2149,36 @@ nobody has decided: what the page does there is not a requirement yet.
   be named `setup`. Test: `web-tests/test_setup_page.py`, `web-tests/test_published_site.py`.
   </details>
 
+- `req/setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each item's Drive sharing dialog.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5; reading a study's sharing is
+  approved). The three shares: reading the root (sees), writing the extractions folder (annotates), writing the root
+  (manages); a person who holds none is not listed. Anyone with the link is said once, beside the people. The
+  links are the Drive sharing forms, `https://drive.google.com/drive/folders/<id>?usp=sharing`, for the root and the
+  extractions folder. Test: `web-tests/test_setup_sharing_page.py`, `web-tests/test_setup_sharing_rules.py`.
+  </details>
+
+- `req/setup/sharing-check` Study Setup checks the study's Drive sharing against what its stage needs and lists each correction, with what to change, where and pictures; Fix changes one item's sharing only when the owner presses it and confirms.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5; changing one item's sharing, only on that
+  correction's Fix press, is approved, 2026-11-21). It checks again on opening, on each promotion or move back, and on a Check
+  again button. What a stage needs: before Review (Setup, Develop, Analyze) the root is shared with named people only,
+  never by link; from Review on it is shared by link; in every stage `Data`, `Previews`, the extractions folder and the
+  study file are readable by link; while people annotate (Setup, Develop, Analyze) at least one person may write the
+  extractions folder. A study whose file names none of the five stages is in Develop until the stages are built.
+  Each correction names the item, what to change, a link to that item's sharing dialog and a picture of Drive's own
+  dialog; one the site can make has a **Fix** button, which asks to confirm what will change, makes that one change
+  and checks again; Cancel writes nothing. Nothing else changes sharing: not opening the page, not a promotion, not
+  Check again. Where Drive refuses the change (403), that correction drops its Fix, keeps its link and picture, and
+  says to change it there. Tentative: a correction for an item whose sharing this account may not read has no Fix,
+  only the link; the owner of the extractions folder counts as someone who may write it; a person with an
+  `anyone`-with-the-link edit permission on it counts too. Test: `web-tests/test_setup_sharing_page.py` (the fake
+  Drive's permissions seeded per case, each rule, Fix, Cancel, Drive refusing), `web-tests/test_setup_sharing_rules.py`
+  (the rules per stage).
+  </details>
+
 ## `req/checks` The repo's checks
 
 - `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, the tests of the repo's own Claudinite checks among them, and a test that would skip there fails instead.

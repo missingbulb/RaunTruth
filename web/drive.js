@@ -5,7 +5,8 @@
 // account can see; signed out, the site's API key (NOR_CONFIG.google.apiKey, written into config.js at deploy),
 // reaching what is shared as "Anyone with the link". Writes (req/shell/data/drive-access) go only to a study's own
 // folders, with Google's per-file permission: the page only creates files, each marked as its own, and changes or
-// trashes only the files so marked. Reading keeps nothing: a file goes to the study
+// trashes only the files so marked; the one other write is an item's link sharing, on the owner's press of Fix in Study
+// Setup's sharing check (req/setup/sharing-check). Reading keeps nothing: a file goes to the study
 // like one loaded from the computer.
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
@@ -240,6 +241,21 @@ export const remote = (() => {
     return out;
   }
 
+  // who an item is shared with, as Drive lists it (req/setup/people): [{id, type, role, emailAddress, name}], an Error with
+  // status set where Drive does not let the signed-in account read it
+  async function permissions(id) {
+    need();
+    const out = [];
+    for (let page = ""; ;) {
+      const r = await get(`${API}/${encodeURIComponent(id)}/permissions?fields=${encodeURIComponent("nextPageToken,permissions(id,type,role,emailAddress,displayName)")}&pageSize=100${page}`);
+      if (!r.ok) throw Object.assign(refused(r, "sharing"), { status: r.status });
+      const got = await r.json();
+      out.push(...(got.permissions || []).map((p) => ({ id: p.id, type: p.type, role: p.role, emailAddress: p.emailAddress, name: p.displayName })));
+      if (!got.nextPageToken) return out;
+      page = "&pageToken=" + encodeURIComponent(got.nextPageToken);
+    }
+  }
+
   // a file's or a folder's name
   async function name(id) {
     need();
@@ -309,11 +325,15 @@ export const remote = (() => {
         await google(`${API}/${encodeURIComponent(id)}/permissions?supportsAllDrives=true`, { method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ type: "anyone", role: "reader" }) });
       },
+      // an item's link permission taken off, only when the owner pressed Fix and confirmed (req/setup/sharing-check)
+      async unshare(id, permissionId) {
+        await google(`${API}/${encodeURIComponent(id)}/permissions/${encodeURIComponent(permissionId)}?supportsAllDrives=true`, { method: "DELETE" });
+      },
       // a file the page made, to Drive's bin
       async trash(id) {
         await google(`${API}/${encodeURIComponent(id)}?supportsAllDrives=true`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ trashed: true }) });
       },
-    }, ["access", "create", "folder", "ours", "replace", "mark", "share", "trash"], "store write");
+    }, ["access", "create", "folder", "ours", "replace", "mark", "share", "unshare", "trash"], "store write");
   }
 
   // the parts of a study's study.json that name Drive: whether its images open from the store, its root folder's id
@@ -339,7 +359,7 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, batch, name, publicly, canWrite, writer, study,
+    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, batch, name, permissions, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),
@@ -347,5 +367,5 @@ export const remote = (() => {
     // what a document records of where an image from the store is: the id field it carries, and its full location
     cite: (src) => ({ drive_id: src.id }),
     locate: (src) => ({ source: KIND, drive_id: src.id, url: `https://drive.google.com/file/d/${src.id}/view` }),
-  }, ["file", "head", "checksum", "list", "all", "batch", "name", "publicly", "canWrite"], "store read");
+  }, ["file", "head", "checksum", "list", "all", "batch", "name", "permissions", "publicly", "canWrite"], "store read");
 })();
