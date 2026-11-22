@@ -11,10 +11,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { localStudy } from "./local_study.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -36,7 +35,8 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
+w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#view").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -44,15 +44,9 @@ const shot = async (page, name) => { if (shots) await page.locator("#view").scre
 // the page on the fixture with an image open; um: [width, height] of a pixel in µm, or nothing for a file without a scale
 async function open(um) {
   scale = um || [null, null];
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await localStudy(ctx, "fixture");
   // the minimap hidden, as a user would put it away: it hovers over the image's top left corner, where these
   // checks point and click
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-minimap", JSON.stringify({ mode: "hidden" })); });
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  const page = await w.device().keeps({ "nor-minimap": JSON.stringify({ mode: "hidden" }) }).opens("fixture");
   await page.setInputFiles("#file", um ? scaledImage(answers, um) : image);
   await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
   return page;
