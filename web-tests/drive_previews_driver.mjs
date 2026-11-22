@@ -7,7 +7,6 @@
 // (req/shell/drive/dialog) shows for every photo, the file's picture of one ignored, and never for a TIFF, which may be a stack.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_previews_driver.mjs IMAGES [SHOTS]
-import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,24 +19,22 @@ import { orMissed, untilHeard } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [images, shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const ROOT = "previewfolder0000001", PREVIEWS = "rauntruth-previews.tiff";
-const FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
+const PREVIEWS = "rauntruth-previews.tiff";
+const FILES = fs.readdirSync(images).sort().map((name) => ({ name, bytes: fs.readFileSync(path.join(images, name)) }));
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key, IMAGES on Drive, and the Image Viewer opening photos too
 w.site.withoutGoogleClient();
-drive.folder({ id: ROOT, name: "Previews test", access: "public" });
-const files = FILES.map((f) => drive.file({ ...f, parent: ROOT, createdTime: "2026-10-01T10:00:00Z" }));
+const shown = w.folder("Previews test").public();
+const files = FILES.map((f) => shown.holds(f, { createdTime: "2026-10-01T10:00:00Z" }));
 w.studies.edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
 const file = (name) => files.find((f) => f.name === name);
 // a device of its own remembering the folder's link, opened at the page; previews: a copy of the folder's previews
 // file kept on it before the page opens, {url, headers, bytes} as Cache Storage holds it
 async function start(previews) {
-  const device = w.device().kept().remembersDriveLink(ROOT);
+  const device = w.device().kept().remembersDriveLink(shown);
   if (previews) device.keepsCached("nor-previews-v1", [{ ...previews, bytes: Buffer.from(previews.bytes, "base64") }]);
   const page = await device.opens(undefined, { until: "title" });
   if (previews) await page.evaluate(() => window.worldCached);
@@ -126,7 +123,7 @@ try {
     return { url: q.url, headers: Object.fromEntries(r.headers), bytes: btoa(Array.from(b, (x) => String.fromCharCode(x)).join("")) };
   });
   const pvBytes = file(PREVIEWS).bytes;
-  check(kept && kept.url.endsWith("/drive-previews/" + ROOT) && Buffer.from(kept.bytes, "base64").equals(pvBytes)
+  check(kept && kept.url.endsWith("/drive-previews/" + shown.id) && Buffer.from(kept.bytes, "base64").equals(pvBytes)
     && kept.headers["x-nor-sha256"] === createHash("sha256").update(pvBytes).digest("hex"),
     `the previews file is kept on this device, by its folder, with its SHA-256: ${kept?.url}, ${JSON.stringify(kept?.headers)}`);
   {
