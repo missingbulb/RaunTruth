@@ -1,6 +1,8 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
-// a user signed in on it is who the page names, and the settings another device of theirs left on Drive are the ones
-// it takes; a device with no one signed in is the device's own; a kept device holds the cache entries it was given; a device visits an address as given; a deploy with no Google client offers no sign-in.
+// a user signed in on it is who the page names, its token may do only the scopes it was signed in with, and the
+// settings another device of theirs left on Drive are the ones it takes; a device with no one signed in is the
+// device's own; a kept device holds the cache entries it was given; a device visits an address as given; a deploy
+// with no Google client offers no sign-in.
 //   node web-tests/world_driver.mjs
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -23,6 +25,11 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
   check(true, "and the settings another device of theirs left on Drive are the ones it takes");
   await hers.close();
+
+  const narrow = w.device().signedInAs(ada, { scopes: "openid email" });
+  const held = await (await narrow.opens("fixture", { until: "title" })).evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")).scopes);
+  check(held === "openid email", "a device signed in with fewer scopes keeps a token that may do only those", held);
+  await narrow.close();
 
   const nobody = w.device();
   const own = await nobody.opens("fixture", { until: "title" });
