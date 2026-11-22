@@ -2091,6 +2091,25 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/setup` Study Setup, the study owner's page
 
+- `req/setup/batch` The owner runs a chosen algorithm over chosen images on Study Setup; each gets an extraction at that version, images already done are skipped, and a token running out holds the batch until the next click.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5), batch runs being a write to the store the owner approved. With a
+  folder chosen, Study Setup's Batch run box lists the study's algorithms; each image of the folder has a checkbox, and Choose
+  all ticks or unticks them. Run presses the study's first step on each chosen image in turn, as the main app's user does, so
+  the study's own run is the one that runs, and writes the document that makes (the model and the log that made it, with
+  the version of the site and of the study's code, and no person's name) to the image's subfolder of the extractions folder
+  as `run_<algorithm>__<code version>.json`. An image whose subfolder already holds that file is skipped, so a stopped
+  batch goes on from where it was; a batch that has run, or skipped, an image has reached it. The study's code version is
+  the first eight characters of its hash, or `unknown` where Python did not tell it. A token that has run out stops the
+  batch before the next image runs, says so, and the next click on Run renews it and goes on; any other failure stops it
+  naming the image. While a batch runs the tree, the cells and the choices wait. Mark this batch official marks
+  each image the batch reached official, in one write. In Review and Public a batch is exploratory and counts only once marked
+  (`req/setup/marks`). Tentative: the parameters of a run are the study's own at the time (a threshold in its panel);
+  they are kept in the file but do not tell one batch from another, which the algorithm and the code version do. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_batch_driver.mjs`.
+  </details>
+
 - `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, extractions set-up, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
   <details>
 
@@ -2099,6 +2118,21 @@ nobody has decided: what the page does there is not a requirement yet.
   boxes, and each now reads as they do there. Set up extractions makes the one extractions folder
   (`req/shell/ground-truth/setup`). Study Setup shows images in the shell's plain view: the study's own drawers,
   item view and steps do not show on it. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
+  </details>
+
+- `req/setup/marks` The owner marks an extraction GT or official on Study Setup; a mark names the extraction's file, and so follows that file's latest content; an image has one GT mark and one official mark.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5). Choosing an image on Study Setup lists its extractions,
+  each labelled by the algorithm version that made it or "by hand", with the time it was last saved, and each with GT and Official
+  buttons, pressed where it holds that mark; pressing one marks, pressing a pressed one takes the mark off. The study file
+  keeps `marks: {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}`: the file's Drive id, and its author's email
+  (null for a batch's). A later save by the author replaces the file's content, so the mark follows it: the main app shows
+  the new model as GT at once and the dataset SHA changes. Marking another extraction GT replaces the first; GT and official
+  are separate marks and may name one file or two. Each write reads the study file afresh and merges. A folder's cells say
+  Ground truth and Official for the images that have them. Tentative: the list names no one, only a marked
+  extraction's author, since an extraction's author is read from its file on marking. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_marks_driver.mjs`.
   </details>
 
 - `req/setup/page` Study Setup is the site page `app/setup`, opened from the avatar's menu by those Drive lets write the study's root, online only.

@@ -58,6 +58,9 @@ export function algorithmChoice({ $, outline, status }) {
       get ready() { return ready; },
       get key() { return chosen()?.key; },
       get title() { return chosen()?.title; },
+      // the list as the box shows it, and a choice made as the user's own is (a batch run, req/setup/batch, runs each of them)
+      get list() { return list.slice(); },
+      choose(key) { if (sel.value !== key && list.some((a) => a.key === key)) { sel.value = key; sel.dispatchEvent(new Event("change")); } },
       on(fn) { heard.push(fn); },
     },
   };

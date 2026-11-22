@@ -105,6 +105,22 @@ export const setStudy = ({ reader, writer, root, changes }) => save({ reader, wr
 // The listed folders written into the study file (req/shell/data/folders)
 export const setFolders = ({ reader, writer, root, folders }) => setStudy({ reader, writer, root, changes: { folders: [...new Set(folders)] } });
 
+// The marks of the study file changed (req/setup/marks), in one write that merges into the marks the root holds now:
+// changes [{sha, kind: "gt" | "official", mark: {file, by} | null}], each setting the image's mark of that kind or, with null,
+// taking it off; a kind holds one mark per image, so a later change replaces an earlier. A study file the page did not make
+// is left alone. Returns read()'s answer afresh.
+export function writeMarks({ reader, writer, root, changes }) {
+  return save({ reader, writer, root, change: (d) => {
+    const marks = { ...(d.marks && typeof d.marks === "object" ? d.marks : {}) };
+    for (const { sha, kind, mark } of changes) {
+      const one = { ...(typeof marks[sha] === "object" && marks[sha] ? marks[sha] : {}) };
+      if (mark) one[kind] = { file: mark.file, by: mark.by ?? null }; else delete one[kind];
+      if (Object.keys(one).length) marks[sha] = one; else delete marks[sha];
+    }
+    return { ...d, marks };
+  } });
+}
+
 // The tags in the study file (req/shell/data/tags): {format, images: {id: {tags, description}}, folders: {id: {tags}}},
 // empty while there are none, from the read of the minute
 export async function readTags(reader, root) {

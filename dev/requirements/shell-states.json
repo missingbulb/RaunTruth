@@ -332,6 +332,46 @@
                 {"name": "Tags' message", "select": "#tags-msg", "req": "req/shell/data/tags"}
               ]
             },
+            {"name": "Extractions", "select": "#marks-box", "box": true, "req": "req/setup/marks",
+              "rule": [
+                {"when": {"managing": [false]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"selected": ["nothing", "folder"]}, "is": "hidden", "approval": "tentative", "about": "the box lists the extractions of the image chosen"},
+                {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+              ],
+              "children": [
+                {"name": "What the extractions are of", "select": "#marks-for", "req": "req/setup/marks"},
+                {"name": "Extractions' list", "select": "#marks-list", "req": "req/setup/marks"},
+                {"name": "Extractions' message", "select": "#marks-msg", "req": "req/setup/marks"}
+              ]
+            },
+            {"name": "Batch run", "select": "#batch-box", "box": true, "req": "req/setup/batch",
+              "rule": [
+                {"when": {"managing": [false]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"selected": ["nothing", "image"]}, "is": "hidden", "approval": "tentative", "about": "the box runs an algorithm over the images of the folder chosen"},
+                {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+              ],
+              "children": [
+                {"name": "What the batch runs on", "select": "#batch-for", "req": "req/setup/batch"},
+                {"name": "Batch's algorithm", "select": "#batch-algorithm", "control": true, "req": "req/setup/batch"},
+                {"name": "Choose all", "select": "#batch-all", "control": true, "req": "req/setup/batch",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Run the batch", "select": "#batch-run", "control": true, "req": "req/setup/batch",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"},
+                    {"is": "disabled", "approval": "tentative", "about": "Run waits until an image is chosen, which no path does"}
+                  ]
+                },
+                {"name": "Mark the batch official", "select": "#batch-official", "control": true, "req": "req/setup/batch", "steady": "shows only once a batch has run, which no path does",
+                  "rule": [
+                    {"is": "hidden"}
+                  ]
+                },
+                {"name": "Batch's message", "select": "#batch-msg", "req": "req/setup/batch"}
+              ]
+            },
             {"name": "Annotations", "select": "#annotate-box", "box": true, "req": "req/shell/annotate/choice",
               "rule": [
                 {"when": {"stage": [null, "PreGT", "Published"]}, "is": "hidden"},
