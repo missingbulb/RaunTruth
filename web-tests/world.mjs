@@ -65,13 +65,14 @@ export function world(browser, origin) {
     device() {
       const kept = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [];
-      let who = null, left = 3599e3, welcome, drafts = [], worker = false, profile = false, given = null, held, ctx = null;
+      let who = null, left = 3599e3, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
       const device = {
         // signed in on the device, Google's token lasting left ms; token: its value, for a test that checks what
-        // carried it, else one of the sign-in fake's
-        signedInAs(user, { tokenLeft = left, token } = {}) { who = user; left = tokenLeft; held = token; return device; },
-        // the opening popup's answer kept ("google", "anonymous"), or null for none yet
-        welcomed(answer) { welcome = answer; return device; },
+        // carried it, else one of the sign-in fake's; unsaved: the settings' keys changed here since Drive last had them
+        signedInAs(user, { tokenLeft = left, token, unsaved } = {}) { who = user; left = tokenLeft; held = token; waiting = unsaved; return device; },
+        // the opening popup's answer kept ("google", "anonymous"), or null for none yet; remembered: whether its
+        // Remember this choice was ticked
+        welcomed(answer, { remembered = true } = {}) { welcome = answer; remember = remembered; return device; },
         asRole(role) { kept["nor-role"] = role; return device; },
         keeps(keys) { Object.assign(kept, keys); return device; },
         // ground-truth drafts kept, as device_storage.mjs reads them back
@@ -95,9 +96,12 @@ export function world(browser, origin) {
           if (ctx) return ctx;
           ctx = given || (profile ? await keptContext(pw, options, shared) : await browser.newContext(options));
           const seed = { ...kept };
-          if (who) seed["nor-google-sign-in"] = JSON.stringify(google.signedIn({ email: who.email, name: who.name, scopes: who.scopes, token: held, until: Date.now() + left }));
+          if (who) {
+            const record = google.signedIn({ email: who.email, name: who.name, scopes: who.scopes, token: held, until: Date.now() + left });
+            seed["nor-google-sign-in"] = JSON.stringify(waiting ? { ...record, changed: waiting } : record);
+          }
           const answer = welcome === undefined ? (who ? "google" : "anonymous") : welcome;
-          if (answer) seed["nor-welcome"] = JSON.stringify({ choice: answer, remember: true });
+          if (answer) seed["nor-welcome"] = JSON.stringify({ choice: answer, remember });
           // written once a tab, before any script of the page's runs, so a page that changes it keeps its change
           await ctx.addInitScript(([seed, drafts, worker, cached]) => {
             if (!worker) delete Navigator.prototype.serviceWorker;
