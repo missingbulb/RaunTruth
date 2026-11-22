@@ -476,17 +476,16 @@ askSw(); usageNow();
 // once that is read (readStage), its study.json's until then, and none for a study outside the model.
 const stageAllows = (action) => !!manifest && allows(manifest.stage, action);
 // the stage read from the study file, which the study.json's stage stands in for where the file names none or cannot be read: from the
-// minute's copy, or fresh; the one the account last read stands in while the store does not answer. Only a signed-in user reads it (the
-// roles it is read with already ask the store): a visitor who never signs in loads nothing from Google, so has the study.json's. A
-// study with no stage keeps none.
+// minute's copy, or fresh; the one the account last read stands in while the store does not answer. A visitor who never signs in reads
+// it too, by the site's key, since the file is shared by link. A study with no stage keeps none.
 async function readStage({ fresh = false } = {}) {
   if (!manifest || manifest.stage == null) return manifest?.stage ?? null;
   const name = "stage:" + manifest.id;
   let file = null;
-  if (remote.ready && signIn.signedIn() && signIn.token() && place.root() && !setupOffline() && !document.documentElement.classList.contains("offline")) {
+  if (remote.ready && (!signIn.signedIn() || signIn.token()) && place.root() && !setupOffline() && !document.documentElement.classList.contains("offline")) {
     try {
       file = await place.settings({ fresh });
-      if (file && STAGES.includes(file.stage)) signIn.learn(name, file.stage);
+      if (file && STAGES.includes(file.stage) && signIn.signedIn()) signIn.learn(name, file.stage);
     } catch (e) { console.warn("the study's stage was not read:", e); }
   }
   const last = signIn.learned(name);
@@ -2515,6 +2514,9 @@ async function refusal(m) {
   try { return (await remote.publicly(root)) === false ? "That study is not open right now." : null; } catch (e) { console.warn("whether the study is open was not asked:", e); return null; }
 }
 function drawStudies() {
+  // the study on show is listed by its stage as the page reads it, the build's list holding its study.json's
+  const shown = listed.find((s) => s.id === manifest?.id);
+  if (shown && manifest.stage) shown.stage = manifest.stage;
   $("#study-stale").hidden = !(signIn.signedIn() && memberStale && memberIds);
   $("#study-list").replaceChildren(...listed.filter((s) => offers(s, { signedIn: signIn.signedIn(), ids: memberIds })).map((s) => {
     const a = document.createElement("a");
@@ -2640,6 +2642,7 @@ async function mountNow(id) {
   data.mount(manifest);
   storeRoles = await readRoles();
   manifest.stage = await readStage(); data.stageChanged();
+  if (listed.find((s) => s.id === manifest.id)?.stage !== manifest.stage) drawStudies();
   document.title = SETUP ? `Study Setup · ${manifest.title}` : manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;

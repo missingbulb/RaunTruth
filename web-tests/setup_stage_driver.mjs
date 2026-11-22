@@ -9,7 +9,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { pressDrive } from "./drive_open.mjs";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
@@ -48,23 +48,47 @@ await settledStage(page, "Develop");
 await check(await visible(page, "#stage-box"), "Study Setup has a stage box, whatever the stage");
 await check(await text(page, "#stage-up") === "Promote to Analyze" && await text(page, "#stage-back") === "Move back to Setup", "it offers the next stage and the one before", { up: await text(page, "#stage-up"), back: await text(page, "#stage-back") });
 
-// before Review: the images whose extractions are newer than their GT
-await page.waitForFunction(() => document.querySelectorAll("#stage-newer li").length >= 1);
-await check(JSON.stringify(await names(page, "#stage-newer li")) === JSON.stringify(["img1.png"]), "it lists the image with an extraction newer than its GT, and not the one without", await names(page, "#stage-newer li"));
+// no listing of an image's extractions on opening, on a mark being written or on a stage change: the list of newer extractions is read on a press alone
+const lists = () => drive.calls.filter((c) => c.kind === "list" && FILES.some((f) => f.id === c.parent && f.folder && (f.parent === GT.extractions || f.id === GT.extractions)))
+  .map((c) => FILES.find((f) => f.id === c.parent).name).filter((n) => n !== "Extractions").map((n) => n.split("__")[0]);
+const subs = () => new Set(lists());
+await idle(page);
+await check(lists().length === 0 && !(await visible(page, "#stage-newer-box")), "opening Study Setup lists no image's extractions and shows no list", lists());
+await check(await text(page, "#stage-find") === "Find images with newer extractions" && await visible(page, "#stage-find"), "the Stage box has a button, Find images with newer extractions", await text(page, "#stage-find"));
+await page.click("#data-tree .tree-folder .name");
+await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
+await page.click('#folder-items .cell:has(.name:text-is("img2.png")) .name');
+await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 1);
+await page.click(`#marks-list .mark-row[data-id="${y2.id}"] button[data-kind="official"]`);
+await page.waitForFunction(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent));
+await idle(page);
+await check(study().marks[shaOf("img2.png")].official?.file === y2.id, "a mark is written", study().marks);
+await check([...subs()].every((n) => n === "img2") && !(await visible(page, "#stage-newer-box")), "writing a mark lists only the extractions of the image it is on, and no list of newer ones", lists());
 
 // promote to Analyze: the stage is written into the study file, its other keys kept, and the sharing is checked again
 const was = await checks(page);
 const wrote = drive.writes.length;
+const listed = lists().length;
 await page.click("#stage-up");
 await settledStage(page, "Analyze");
+await idle(page);
+await check(!lists().slice(listed).includes("img1") && !(await visible(page, "#stage-newer-box")), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
+
+// the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
+await page.click("#stage-find");
+await page.waitForFunction(() => document.querySelectorAll("#stage-newer li").length >= 1);
+await check(JSON.stringify(await names(page, "#stage-newer li")) === JSON.stringify(["img1.png"]), "pressing it lists the image with an extraction newer than its GT, and not the one without", await names(page, "#stage-newer li"));
+await check(lists().slice(listed).includes("img1") && lists().slice(listed).includes("img2"), "by one extractions listing per GT-marked image", lists().slice(listed));
 await check(study().stage === "Analyze" && study().marks?.[shaOf("img1.png")]?.gt?.file === y1.id && study().extractions === GT.extractions, "promoting writes the stage into the study file and keeps the rest of it", study());
 await check((await until(page, (n) => +document.querySelector("#sharing-box").dataset.checks > n && document.querySelector("#sharing-title").textContent === "Sharing (Analyze)", was)) !== false, "and the sharing is checked again, for the new stage", await text(page, "#sharing-title"));
 await check(drive.writes.slice(wrote).every((w) => w[0] === "replace" && w[1] === "rauntruth-study.json"), "the promotion writes the study file and nothing else", drive.writes.slice(wrote));
 
 // promote to Review: a dialog names what freezes and the images whose newer extractions are not marked; Cancel writes nothing
 await check(await text(page, "#stage-up") === "Promote to Review…", "the way into Review is marked as asking", await text(page, "#stage-up"));
+const listsBefore = lists().length;
 await page.click("#stage-up");
 await page.waitForFunction(() => document.querySelector("#stage-freeze-dlg").open);
+await check(lists().length > listsBefore, "promoting to Review lists the extractions before the Freeze dialog is shown", lists().slice(listsBefore));
 await check(/marking|marks/i.test(await text(page, "#stage-freeze-dlg")) && /data/i.test(await text(page, "#stage-freeze-dlg")), "it says marking and data close", await text(page, "#stage-freeze-dlg"));
 await check(JSON.stringify(await names(page, "#stage-freeze-newer li")) === JSON.stringify(["img1.png"]), "and lists the images with newer unmarked extractions again", await names(page, "#stage-freeze-newer li"));
 await page.click("#stage-freeze-cancel");

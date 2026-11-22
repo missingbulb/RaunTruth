@@ -78,7 +78,9 @@ nobody has decided: what the page does there is not a requirement yet.
   file yet, this device's start it. While it has a token,
   each change to a setting that follows the user saves the whole file. Sign out forgets the user and
   the token on this device and leaves its settings as they are. A visitor who never signs in is asked
-  once on opening the page (`req/shell/account/welcome`) and loads nothing from Google for it. Test: `web-tests/test_account_page.py`,
+  once on opening the page (`req/shell/account/welcome`) and loads no script or account detail from Google for it; the one
+  thing the page reads from Google signed out is the study's link-shared study file, by the site's key, for the study's stage
+  (`req/shell/study/stage`; approved by the owner on 2026-11-22). Test: `web-tests/test_account_page.py`,
   `web-tests/test_site_config.py`.
   </details>
 
@@ -1875,7 +1877,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-map.md`, `dev/requirements/study-stages-spec.md`, WP6), in place of PreGT, GT,
-  PostGT and Published. The stage is a key of the study file (`req/shell/study/one-file`), read, for someone signed in (a visitor who never signs in loads nothing from Google, and has `study.json`'s stage), when the study comes in, when the user signs in
+  PostGT and Published. The stage is a key of the study file (`req/shell/study/one-file`), read, signed in or not (a visitor who never signs in reads the link-shared study file by the site's key, once on load, the one read the page makes of Google signed out; the switcher lists the study on show by the stage so read, Public listed and Review not, and `study.json`'s stage stands in until the read answers or if it fails), when the study comes in, when the user signs in
   or out and when the user saves; `study.json`'s `stage` is the one the study has until its file names one of the five (every study but the Image
   Viewer starts in Develop), and `null` for a study outside the model, the Image Viewer, which has no stage and so no annotating, marking, batch run
   or data to close. The one table of what each stage opens is `web/stages.js`, read through `stageAllows(action)` by the shell, Study Setup and
@@ -1885,8 +1887,8 @@ nobody has decided: what the page does there is not a requirement yet.
   it counts once marked) and the numbers shown (none in Setup). `web-tests/stage_table.json` transcribes those rows of the map's table, and a
   test holds it to the map and to `stages.js`. The header's switcher (`req/shell/header`) shows each study's stage at the end of its row as a small
   label, in 10 px type, the stage's name bordered in its colour: red for Setup, yellow for Develop, green for Analyze, blue for Review, green and
-  filled for Public. A study listed to everyone while signed out is one whose `study.json` says Public; the page cannot read each study file
-  for that. Where Study Setup promotes or moves the study back the page takes the new stage at once. Public drops the steps that serve making ground truth
+  filled for Public. A study listed to everyone while signed out is one whose study file says Public for the study on show, which the page reads by the site's key (set by the owner on 2026-11-22), and for every other study one whose `study.json` says Public; the page reads no other study's file for that. The test
+  for the signed-out read: `web-tests/test_study_members_page.py` (a file at Review shows as Review, annotating closed and not listed; at Public, listed), `web-tests/test_account_page.py` (the one read). Where Study Setup promotes or moves the study back the page takes the new stage at once. Public drops the steps that serve making ground truth
   (the study's postprocessing is not shown). The popup is `shell/study/stage-popup`. Test: `web-tests/test_study_contract.py`,
   `web-tests/test_status_bar_page.py`, `web-tests/test_stage_table.py`, `web-tests/test_stage_table_page.py`.
   </details>
@@ -2181,10 +2183,12 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Study Setup's Stage box shows the study's stage and what it
   means, a button to promote to the next stage and one to move back to the one before; only the owner (whoever may write the root) reaches it, and
   nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
-  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review the box lists each
-  image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first.
-  Promoting to Review asks first, in a dialog that says marking and data close, what people save afterwards is kept but not counted, and lists
-  those images again; Freeze writes Review and Cancel writes nothing. From Review on the GT and official buttons are gone from an image's
+  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the box, Find images with newer extractions, lists each
+  image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first;
+  the listing (one extractions listing per GT-marked image) runs on that press and never on opening Study Setup, on a mark or on a stage change
+  (set by the owner on 2026-11-22).
+  Promoting to Review runs it once more first and asks, in a dialog that says marking and data close, what people save afterwards is kept but not counted, and lists
+  those images; Freeze writes Review and Cancel writes nothing. From Review on the GT and official buttons are gone from an image's
   extractions and every control that changes the study's data is gone (folders, set-up of extractions, previews, tags, descriptions, areas, hide rules, the
   grouping tag, Needs GT, and the study index is no longer written), while the stage, the sharing and the batch run stay. Moving back reopens them. The main app's Save of a
   session begun before the freeze still writes the person's extraction, and says it was saved "after the freeze, not counted". Test:

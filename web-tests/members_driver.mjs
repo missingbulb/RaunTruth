@@ -3,6 +3,8 @@
 // (D) being the one whose root is shared by link and whose study file says Review. Exits 1 on a failed check, 2 when
 // it cannot run.
 //   node web-tests/members_driver.mjs ANSWERS ROOT
+import fs from "node:fs";
+import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 import { idle } from "./page_until.mjs";
@@ -105,6 +107,46 @@ await page.context().close();
     out: !!document.querySelector("#notice-sign-out") && !document.querySelector("#notice-sign-out").hidden }));
   await check(seen.shown && /not open right now/.test(seen.text) && !seen.out, "opened signed out, study A says it is not open right now", seen);
   await out.context().close();
+}
+// signed out, the stage is the study file's, read by the site's key (shell/study/stage): the study.json's and the list's stand in until it answers
+{
+  const image = path.join(rootDir, "d photo.jpg");
+  const fileSays = (stage) => { drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify({ ...JSON.parse(drive.get("dmsettings00000000001").bytes.toString()), stage })); };
+  const listedAs = (stage) => (ctx) => { prepare(ctx); studiesOf(ctx).editList(() => LIST.map((e) => (e.id === "fixture" ? { ...e, stage } : e))); };
+  const annotatable = async (pg) => {
+    await pg.setInputFiles("#file", image);
+    await pg.waitForFunction(() => !!window.shellForTests?.page.get("image") && document.querySelector("#busy").hidden);
+    await idle(pg);
+    return pg.evaluate(() => !!document.querySelector("#annotate-scratch")?.checkVisibility());
+  };
+  const stageOn = (pg, want) => pg.waitForFunction((w) => document.documentElement.dataset.stage === w, want).then(() => true, async () => pg.evaluate(() => document.documentElement.dataset.stage));
+  const reads = () => drive.calls.filter((c) => !c.token && c.key && c.kind !== "batch" && c.parent === ROOT || c.id === "dmsettings00000000001");
+
+  // the file says Review, study.json and the list Public: shown as Review, annotating closed, not listed
+  fileSays("Review");
+  let sp = await open(false, { prepare: listedAs("Public"), study: { stage: "Public" } });
+  await check(await stageOn(sp, "Review") === true, "signed out, a study whose file says Review shows as Review though study.json says Public", await stageOn(sp, "Review"));
+  await listed(sp, ["c"]);
+  await check(!(await annotatable(sp)), "and annotating is closed", await sp.evaluate(() => document.documentElement.dataset.stage));
+  await check(reads().length >= 1, "the study file was read signed out, by the site's key", reads().length);
+  await sp.context().close();
+
+  // the file says Public, study.json and the list Develop: shown as Public and listed
+  fileSays("Public");
+  sp = await open(false, { prepare: listedAs("Develop"), study: { stage: "Develop" } });
+  await check(await stageOn(sp, "Public") === true, "signed out, a study whose file says Public shows as Public though study.json says Develop", await stageOn(sp, "Public"));
+  await listed(sp, ["c", "fixture"]);
+  await check(true, "and it is listed");
+  await sp.context().close();
+
+  // the file says Develop, study.json and the list Public: not listed, and annotating open
+  fileSays("Develop");
+  sp = await open(false, { prepare: listedAs("Public"), study: { stage: "Public" } });
+  await check(await stageOn(sp, "Develop") === true, "signed out, a study whose file says Develop shows as Develop though study.json says Public", await stageOn(sp, "Develop"));
+  await listed(sp, ["c"]);
+  await check(await annotatable(sp), "annotating is open, which the Review case had closed");
+  await sp.context().close();
+  fileSays("Review");
 }
 await check(!moduleFetches.length, "neither loads the study's module", moduleFetches);
 await done(0);

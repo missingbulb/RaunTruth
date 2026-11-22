@@ -125,13 +125,20 @@
                         {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
                       ]
                     },
-                    {"name": "Newer than their GT", "select": "#stage-newer-box", "req": "req/setup/promote", "unwalked": "shows only while an image has an extraction newer than its GT mark, and the walked study marks none",
+                    {"name": "Find newer extractions", "select": "#stage-find", "control": true, "req": "req/setup/promote",
+                      "rule": [
+                        {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "approval": "tentative"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Newer than their GT", "select": "#stage-newer-box", "req": "req/setup/promote", "unwalked": "shows only after the Find images with newer extractions press, and the walked study never presses it",
                       "rule": [
                         {"is": "hidden", "approval": "tentative"}
                       ],
                       "children": [
                         {"name": "Newer's title", "select": "#stage-newer-title", "req": "req/setup/promote"},
-                        {"name": "The images", "select": "#stage-newer", "req": "req/setup/promote"}
+                        {"name": "The images", "select": "#stage-newer", "req": "req/setup/promote"},
+                        {"name": "No newer extraction", "select": "#stage-newer-none", "req": "req/setup/promote"}
                       ]
                     },
                     {"name": "Stage's message", "select": "#stage-msg", "req": "req/setup/promote"}
