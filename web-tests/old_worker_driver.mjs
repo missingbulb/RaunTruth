@@ -41,7 +41,7 @@ const scopes = () => page.evaluate(async () => (await navigator.serviceWorker.ge
 try {
   await page.goto(origin + "/");
   await until(page, async () => !!(await navigator.serviceWorker.getRegistration())?.active, null, { timeout: 15000 });
-  await page.reload();
+  await page.reload(); // visits again on purpose (a reload is the subject): a worker controls only a page loaded after it took over
   check(await page.evaluate(() => !!navigator.serviceWorker.controller), "before: the old worker controls the site's top");
   before = false;
   await page.goto(origin + "/");
