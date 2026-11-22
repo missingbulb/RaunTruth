@@ -265,8 +265,8 @@
   {
     "id": "world-set-up",
     "on_fail": "block",
-    "failureMessage": "a test that sets up the outside systems or the device by hand has to know how each fake keeps its state and how the page keeps its own, and says the same set-up differently from every other test",
-    "fix": "say it through web-tests/world.mjs (a user, their Drive and saved settings, the deploy, the studies, a device and what it keeps), adding the intent there or on its fake where none says it yet",
+    "failureMessage": "set-up written by hand has to know how each fake and the page keep their state, and says each set-up differently from every other test",
+    "fix": "say it through web-tests/world.mjs, adding the intent there or on its fake where none says it yet",
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!world\\.mjs$|harness_driver\\.mjs$|fakes\\/)[^]*\\.m?js$/",
     "matchLines": [
       {
