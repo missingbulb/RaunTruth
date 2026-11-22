@@ -16,9 +16,9 @@ const handed = new WeakMap();
 
 export async function standInDrive(ctx) {
   handed.set(ctx, []);
-  // the deploy given a Google key where it has none
+  // the context's deploy given a Google key where it has none, which a deploy with no key never gave a client
   const settings = siteSettings(ctx);
-  if (!settings.env?.GOOGLE_API_KEY) settings.env = { ...settings.env, GOOGLE_API_KEY: "stand-in" };
+  if (!settings.env?.GOOGLE_API_KEY) settings.withoutGoogleClient();
 }
 
 let next = 0;
