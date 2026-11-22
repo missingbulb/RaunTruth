@@ -70,6 +70,9 @@ finds test-first, fixes small gaps, and brings the owner only the calls that are
 | Lab reads the study file by link | lab | covered: the lab reads link-shared files today, no sign-in |
 | Re-read the study file on each "Load annotation from Drive" click, so marks are current | main app | approved (owner, 2026-11-22) |
 | Extraction files named by a hash of the email, not the email | main app | decided (owner, 2026-11-22) |
+| List the images with extractions newer than their GT: one extractions listing per GT-marked image | Study Setup | approved only on a button press, and once on promoting to Review (owner, 2026-11-22); never on open or on a mark |
+| Re-read the study file's stage just before each Save, so a save after the freeze is labelled | main app, signed in | approved (owner, 2026-11-22) |
+| Read the link-shared study file by the site's API key on load, so a signed-out visitor and the switcher's listing know the stage | main app, signed out | approved (owner, 2026-11-22) |
 
 ## Decided after the second persona reviews
 
