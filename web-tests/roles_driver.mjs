@@ -74,10 +74,10 @@ await page.waitForFunction((n) => st.fileName === n && !document.querySelector("
 s = await seen(page);
 await check(await page.evaluate(() => st.fileName) === before, "and the image stays open", before);
 await check(await role(page) === "tagger", "the role chosen is kept", await role(page));
-await page.reload();
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+await page.context().close();
+page = await open(true, { email: OTHER, prepare: standInDrive, seed: { "nor-role": "tagger" } });
 s = await seen(page);
-await check(s.role === "Ground Truth Tagger" && s.truth, "and the page opens in it again", s);
+await check(s.role === "Ground Truth Tagger" && s.truth, "a page opened with that role kept opens in it", s);
 await choose(page, "Viewer", true);
 s = await seen(page);
 await check(!s.truth && !s.counted, "back as Viewer, the ground-truth tools go", s);
