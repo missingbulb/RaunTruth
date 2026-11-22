@@ -155,7 +155,7 @@ await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await page.click("#annotate-drive");
+await page.click("#annotate-load");
 await page.click(`#annotate-list button[data-key="${file.id}"]`);
 await until(page, () => !!window.fixture.truth());
 const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));

@@ -1,7 +1,7 @@
 // A study's root folder in the remote store (req/shell/data/roles, req/shell/ground-truth/setup, shell/study/one-file):
 // the one folder its study.json names, and the one study file in it, which holds the folders under it by id, the study
 // index, the tags, the hide and grouping rules, the marks and the stage. Its marks are
-// {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}: the extraction file each mark names by its Drive id, and its
+// {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}: the extraction file each mark names by its id in the store, and its
 // author's email or null, one of each kind per image; a mark follows its file's latest content (shell/study/marks). A root with no study file has its folders
 // found by name; one still holding the settings, index and tags files of before is read as it was and written back as
 // one file by the next save. read() is cached a minute per root; every write reads the root afresh and merges into what

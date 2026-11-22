@@ -46,7 +46,7 @@ const bodyOf = (f) => JSON.parse(f.bytes.toString());
 // ---- a member: the list is mine, then the marked, then the others folded, each labelled
 let page = await open(true, { email: ME, prepare: standInDrive });
 await opened(page, image);
-await page.click("#annotate-drive");
+await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 3);
 await check(JSON.stringify(await rows(page)) === JSON.stringify(["Yours", "by hand · GT", "Others (1)"]),
   "the list holds mine, then the marked by how it was made and its mark, naming no one, then the others folded", await rows(page));
@@ -90,7 +90,7 @@ await page.context().close();
 studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL }, official: { file: batch.id, by: null } } } });
 page = await open(false, { prepare: standInDrive });
 await opened(page, image);
-await page.click("#annotate-drive");
+await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length > 0);
 const outsider = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.textContent));
 await check(outsider.length === 2 && outsider.every((t) => !t.includes("@")) && !(await page.evaluate(() => !!document.querySelector("#annotate-list .others"))),

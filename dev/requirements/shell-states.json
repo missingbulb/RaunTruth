@@ -486,7 +486,7 @@
                         {"when": {"hasDraft": [false]}, "is": "hidden"}
                       ]
                     },
-                    {"name": "Load annotation from Drive", "select": "#annotate-drive", "control": true, "req": "req/shell/annotate/choice",
+                    {"name": "Load annotation from Drive", "select": "#annotate-load", "control": true, "req": "req/shell/annotate/choice",
                       "rule": [
                         {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"}
                       ]

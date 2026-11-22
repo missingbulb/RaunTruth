@@ -3,12 +3,12 @@
 // chosen; the shell owns the mode.
 "use strict";
 
-// $: the page's selector; the handlers: scratch(), local(), drive(), pick(key) a row of the list, edit(), clear()
-export function annotateChoice({ $, remote, scratch, local, drive, pick, edit, clear }) {
-  $("#annotate-drive").textContent = `Load annotation from ${remote.short}`;
+// $: the page's selector; the handlers: scratch(), local(), stored(), pick(key) a row of the list, edit(), clear()
+export function annotateChoice({ $, remote, scratch, local, stored, pick, edit, clear }) {
+  $("#annotate-load").textContent = `Load annotation from ${remote.short}`;
   $("#annotate-scratch").onclick = () => scratch();
   $("#annotate-local").onclick = () => local();
-  $("#annotate-drive").onclick = () => drive();
+  $("#annotate-load").onclick = () => stored();
   $("#annotate-edit").onclick = () => edit();
   $("#annotate-clear").onclick = () => clear();
   $("#annotate-list").addEventListener("click", (e) => { const b = e.target.closest("button[data-key]"); if (b && !b.disabled) pick(b.dataset.key); });

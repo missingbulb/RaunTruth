@@ -9,12 +9,12 @@ import os
 import pathlib
 import sys
 
+import numpy as np
+import tifffile
+from PIL import Image
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [os.path.join(HERE, '..'), os.path.join(HERE, '..', '..', 'dev', 'tools', 'build')]
-
-import numpy as np  # noqa: E402
-import tifffile  # noqa: E402
-from PIL import Image  # noqa: E402
 
 
 def squares(path):

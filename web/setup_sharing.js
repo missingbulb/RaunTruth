@@ -1,6 +1,6 @@
-// Study Setup's sharing (req/setup/sharing-check, req/setup/people): what a study's stage needs of its Drive sharing, the
+// Study Setup's sharing (req/setup/sharing-check, req/setup/people): what a study's stage needs of its sharing in the store, the
 // corrections that make it so, and who holds which of the three shares. The rules and the reading of People are plain
-// functions of what Drive lists (permissions); the panel draws them and changes one item's sharing only when the owner
+// functions of what the store lists (permissions); the panel draws them and changes one item's sharing only when the owner
 // presses that correction's Fix and confirms.
 "use strict";
 import { CONNECTION } from "./offline.js";
@@ -22,9 +22,6 @@ const BY_LINK = ["data", "previews", "extractions", "file"];
 const WRITES = ["owner", "organizer", "fileOrganizer", "writer"];
 const PERSON = ["user", "group"];
 
-export const folderLink = (id) => `https://drive.google.com/drive/folders/${encodeURIComponent(id)}?usp=sharing`;
-export const fileLink = (id) => `https://drive.google.com/file/d/${encodeURIComponent(id)}/view?usp=sharing`;
-
 const WHY = {
   named: "Before Review the root is for the study's named people: anyone with a link could open its files.",
   link: "From Review on the study opens by its address, so its root is shared by link.",
@@ -34,14 +31,14 @@ const WHY = {
 };
 
 // The corrections the stage's rules ask of items [{kind: root | data | previews | extractions | file, id, label, perms}], perms
-// what Drive lists on the item ([{id, type, role, emailAddress}]) or null where it could not be read. Each is {key, kind, id, label, link,
+// what the store lists on the item ([{id, type, role, emailAddress}]) or null where it could not be read. Each is {key, kind, id, label, link,
 // change, why, how: "share" | "unshare" | "ask", permission, picture}; "ask" ones the site cannot make. An item absent from items has none.
-export function corrections(stage, items) {
+export function corrections(stage, items, sharing) {
   const rule = RULES[stage] || RULES.Develop, out = [];
   for (const it of items) {
-    const at = { kind: it.kind, id: it.id, label: it.label, link: it.kind === "file" ? fileLink(it.id) : folderLink(it.id) };
+    const at = { kind: it.kind, id: it.id, label: it.label, link: sharing.link(it.kind, it.id) };
     const add = (how, change, why, picture, permission) => out.push({ key: `${it.kind}:${it.id}:${how}`, ...at, how, change, why, picture, permission });
-    if (!it.perms) { add("ask", "Check its sharing in Drive", WHY.unread, null); continue; }
+    if (!it.perms) { add("ask", sharing.check, WHY.unread, null); continue; }
     const anyone = it.perms.find((p) => p.type === "anyone");
     if (it.kind === "root") {
       if (rule.root === "named" && anyone) add("unshare", "Make it shared with named people only", WHY.named, "named", anyone.id);
@@ -74,14 +71,10 @@ export function people(items) {
     link: !!root?.perms?.some((p) => p.type === "anyone") };
 }
 
-const PICTURES = { link: ["sharing-link.svg", "Drive's Share dialog: General access set to Anyone with the link, as Viewer"],
-  named: ["sharing-named.svg", "Drive's Share dialog: General access set to Restricted, the named people kept"],
-  editor: ["sharing-editor.svg", "Drive's Share dialog: a person's email added as an Editor"] };
 const CONFIRM = {
   share: (c) => `${c.label} will be shared with anyone with the link, to view.`,
   unshare: (c) => `Anyone with the link will no longer open ${c.label.toLowerCase()}; the people named on it keep their access.`,
 };
-const REFUSED = "Drive did not let this sign-in change it: change it there, with the link above and the picture.";
 
 // ctx: what the shell lends it, named below where it is used
 export function sharingPanel(ctx) {
@@ -89,7 +82,7 @@ export function sharingPanel(ctx) {
   const sd = remote.writer(account);
   const box = $("#sharing-box"), root = document.documentElement;
   // manifest and who: the study and account last mounted; last: what the check found; confirming: the key of the correction whose Fix awaits its
-  // confirmation; refused: the keys Drive refused the change of, which then show no Fix
+  // confirmation; refused: the keys the store refused the change of, which then show no Fix
   let manifest = null, who = null, epoch = 0, shownOn = false, last = null, confirming = null, refused = new Set();
   const offline = () => root.classList.contains("offline");
   const h = (tag, attrs = {}, ...kids) => {
@@ -115,7 +108,7 @@ export function sharingPanel(ctx) {
     return { stage: stageOf(s, manifest), items };
   }
 
-  // the study's sharing read afresh and drawn; the one place the page asks Drive about sharing
+  // the study's sharing read afresh and drawn; the one place the page asks the store about sharing
   function check() {
     if (offline() || !manifest) return Promise.resolve();
     const of = ++epoch;
@@ -134,7 +127,7 @@ export function sharingPanel(ctx) {
     const list = $("#sharing-corrections"), folks = $("#people-list");
     if (!last) { list.replaceChildren(); folks.replaceChildren(); return; }
     $("#sharing-title").textContent = `Sharing (${last.stage})`;
-    const fixes = corrections(last.stage, last.items);
+    const fixes = corrections(last.stage, last.items, remote.sharing);
     say(fixes.length ? `${fixes.length} thing${fixes.length === 1 ? "" : "s"} to change for this stage:` : "Sharing is as this stage needs.");
     list.replaceChildren(...fixes.map(card));
     const { members, link } = people(last.items);
@@ -146,11 +139,11 @@ export function sharingPanel(ctx) {
         ...m.holds.map((x) => h("span", { class: "holds", text: x }))
           .flatMap((s) => [s, " "]))),
       h("li", { class: "people-where" }, ...[[rootItem, "Root sharing"], [gt, "Extractions folder sharing"]].filter(([i]) => i).flatMap(([i, text]) =>
-        [h("a", { href: folderLink(i.id), target: "_blank", rel: "noopener", text }), " "])));
+        [h("a", { href: remote.sharing.link("folder", i.id), target: "_blank", rel: "noopener", text }), " "])));
   }
 
   function card(c) {
-    const [src, alt] = PICTURES[c.picture] || [];
+    const [src, alt] = remote.sharing.pictures[c.picture] || [];
     const fixable = c.how !== "ask" && !refused.has(c.key);
     const actions = h("div", { class: "sharing-actions" });
     if (confirming === c.key) {
@@ -167,14 +160,14 @@ export function sharingPanel(ctx) {
     return h("li", { class: "sharing-correction", "data-key": c.key },
       h("strong", { class: "sharing-item", text: c.label }), h("span", { class: "sharing-change", text: c.change }), actions,
       h("p", { class: "hint sharing-why", text: c.why }),
-      refused.has(c.key) && h("p", { class: "hint sharing-refused", text: REFUSED }),
-      h("a", { class: "sharing-where", href: c.link, target: "_blank", rel: "noopener", text: "Open its sharing in Drive" }),
+      refused.has(c.key) && h("p", { class: "hint sharing-refused", text: remote.sharing.refused }),
+      h("a", { class: "sharing-where", href: c.link, target: "_blank", rel: "noopener", text: remote.sharing.open }),
       src && h("details", { class: "sharing-how" }, h("summary", { text: "Show how" }), h("img", { src, alt, width: "280", height: "150" })));
   }
   // the control of a correction, focused again once the list is drawn afresh
   const focusOn = (key, cls) => $(`#sharing-corrections [data-key="${CSS.escape(key)}"] ${cls}`)?.focus();
 
-  // the one change of sharing the page makes, once the owner confirmed it; Drive refusing it takes the Fix off that correction
+  // the one change of sharing the page makes, once the owner confirmed it; the store refusing it takes the Fix off that correction
   async function fix(c) {
     confirming = null;
     try {

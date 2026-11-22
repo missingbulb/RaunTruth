@@ -55,7 +55,7 @@ const main = await open(true);
 await pressDrive(main);
 await main.dblclick(`#remote-list .item[data-id="${FILES.find((f) => f.parent === ROOT && f.name === "img1.png").id}"]`);
 await main.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), "img1.png");
-await main.click("#annotate-drive");
+await main.click("#annotate-load");
 await main.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length >= 1);
 await check(marks().gt.file === yFile.id, "y's later save leaves the mark on the same file", marks());
 await main.click(`#annotate-list button[data-key="${yFile.id}"]`);

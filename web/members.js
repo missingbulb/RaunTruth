@@ -1,4 +1,4 @@
-// Who may open which study (shell/study/members, req/shell/study/visibility, shell/study/review-link): Drive's sharing
+// Who may open which study (shell/study/members, req/shell/study/visibility, shell/study/review-link): the store's sharing
 // decides. A study's root is members-only until the owner shares it by link, so whoever can read the root is a member;
 // the stage only says whether the study is also listed for everyone.
 "use strict";

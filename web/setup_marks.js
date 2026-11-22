@@ -1,5 +1,5 @@
 // Marks (req/setup/marks): Study Setup's box for the image chosen, listing the image's extractions, each with GT and Official to mark
-// or unmark it. A mark names the extraction's file by its Drive id, so it follows that file's latest content; an image holds one
+// or unmark it. A mark names the extraction's file by its id in the store, so it follows that file's latest content; an image holds one
 // GT mark and one official mark, and marking another replaces the first. The marks are kept in the study file (study_root.js).
 "use strict";
 import * as tf from "./truth_folders.js";

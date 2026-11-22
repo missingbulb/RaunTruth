@@ -106,7 +106,7 @@ const ACTIONS = {
         labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
       studyFile({ marks: { [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
     }
-    await page.click("#annotate-drive");
+    await page.click("#annotate-load");
     await page.click("#annotate-list button[data-key]");
     await page.waitForFunction(() => /^Showing/.test(document.querySelector("#annotate-say").textContent.trim()));
   },

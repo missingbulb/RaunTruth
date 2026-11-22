@@ -6,7 +6,7 @@
 export const STAGES = ["Setup", "Develop", "Analyze", "Review", "Public"];
 
 // per action, open (1) or closed (0) in each stage, in the order of STAGES. view and own-images are open in every stage: who may use them
-// is Drive's sharing (members, anyone with the address, everyone), not the stage
+// is the store's sharing (members, anyone with the address, everyone), not the stage
 const TABLE = {
   "setup-data": [1, 1, 1, 0, 0],
   view: [1, 1, 1, 1, 1],

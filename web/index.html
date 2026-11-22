@@ -31,7 +31,7 @@
       <h2 id="study-menu-title">Switch study</h2>
       <label class="search"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg><input id="study-search" type="search" placeholder="Search studies" autocomplete="off" spellcheck="false" aria-label="Search studies" aria-controls="study-list"></label>
       <nav id="study-list" aria-label="Studies"></nav>
-      <p id="study-stale" class="dim" hidden>The list is as Drive last said: it renews when you click and Google lets the page ask again.</p>
+      <p id="study-stale" class="dim" hidden></p>
       <p id="study-none" class="dim" hidden>No study matches.</p>
       <a id="study-request" target="_blank" rel="noopener" data-needs-network><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>Submit New Study Request</a>
     </div>
@@ -82,7 +82,7 @@
       <p id="annotate-ask" class="hint">How do you want to get annotations on this image?</p>
       <div id="annotate-choices">
         <button id="annotate-local" type="button" hidden>Continue local annotation work</button>
-        <button id="annotate-drive" type="button" data-needs-network>Load annotation from Drive</button>
+        <button id="annotate-load" type="button" data-needs-network>Load annotation</button>
         <button id="annotate-scratch" type="button" class="primary">Start annotating from scratch</button>
       </div>
       <div id="annotate-list" role="list" hidden></div>
@@ -229,7 +229,7 @@
 </dialog>
 <dialog id="setup-dlg" aria-labelledby="setup-title">
   <h2 id="setup-title">Set up extractions</h2>
-  <p class="hint">Makes the study's Extractions folder in its root, shared with anyone with the link to view, and names it in the study file. Everyone's saved annotations of its images go there; who may save is who Drive lets write it.</p>
+  <p class="hint">Makes the study's Extractions folder in its root, shared with anyone with the link to view, and names it in the study file. Everyone's saved annotations of its images go there; who may save is whoever may write it.</p>
   <p id="setup-msg" class="hint" role="status"></p>
   <div class="dlg-row end"><span class="grow"></span><button id="setup-go" type="button" class="primary">Set up</button><button id="setup-cancel" type="button">Cancel</button></div>
 </dialog>

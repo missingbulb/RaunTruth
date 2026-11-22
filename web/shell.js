@@ -561,11 +561,11 @@ stagePop.addEventListener("mouseleave", stageClose.leave);
 // ---------- annotating (req/shell/annotate/choice) ----------
 // After an image loads the user chooses how to get annotations on it. Annotation mode is on from the choice that enters it
 // until the image goes: the study is mounted afresh in it, on the same image, as it was for a role of its own once, and
-// route says how it began: "scratch" | "local" | "drive". resume holds a choice made until the study has the image again:
+// route says how it began: "scratch" | "local" | "stored". resume holds a choice made until the study has the image again:
 // {then()} what to do once it has.
 let annotating = false, route = null, resume = null;
 // the annotation of the store shown read-only, {label, doc, counts}, or null, and what the store's list of them held when last asked
-let viewing = null, driveList = null;
+let viewing = null, storeList = null;
 // the extraction the annotation being made was edited from, its file's id, which Save records (req/shell/extractions/list)
 let editBase = null;
 const makesTruth = () => !!manifest && stageAllows("annotate") && annotating;
@@ -586,7 +586,7 @@ function showAccess() {
   drawAnnotate();
 }
 // Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
-// run out, as Drive's reads do, and the page opens once Google has answered
+// run out, as the store's reads do, and the page opens once the sign-in has answered
 $("#open-setup").onclick = (e) => {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault(); $("#user-menu").open = false;
@@ -601,8 +601,8 @@ const setupOffline = () => SETUP && !setupLive && document.documentElement.class
 function setupNote(manage) {
   const note = $("#setup-note");
   const says = setupOffline() ? "Study Setup needs the internet: you are offline."
-    : manage ? "" : !signIn.signedIn() ? "Study Setup is for those who may write this study's folder in Drive: sign in with an account that may."
-    : "Study Setup is for those who may write this study's folder in Drive, and this account may not.";
+    : manage ? "" : !signIn.signedIn() ? `Study Setup is for those who may write this study's folder in ${remote.short}: sign in with an account that may.`
+    : `Study Setup is for those who may write this study's folder in ${remote.short}, and this account may not.`;
   note.textContent = says; note.hidden = !says;
 }
 
@@ -895,7 +895,7 @@ function imageOpened(m) {
   // annotation mode lasts as long as the image: this one is in it only when the choice that entered it brought it here
   const resumed = resume; resume = null;
   if (!resumed) { annotating = false; route = null; editBase = null; }
-  viewing = null; driveList = null; driveRows = new Map(); listing++;
+  viewing = null; storeList = null; storeRows = new Map(); listing++;
   if (resumed) tasks.tagging(true);
   showBoxes();
   // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
@@ -1041,7 +1041,7 @@ function dropImage() {
   if (st.held && st.worker) st.worker.postMessage({ type: "close" });
   Object.assign(st, { kept: null, held: null, fileName: "", source: null, sha: "", um: null, umY: null });
   page.set({ image: null, opening: null }); boxDone($("#image-box"), null);
-  viewing = null; driveList = null; listing++;
+  viewing = null; storeList = null; listing++;
 }
 // Unload: no image open, the study starting over as one that has just come in
 $("#unload").onclick = () => {
@@ -2041,27 +2041,27 @@ async function storeAnnotations() {
   return listed.map((r) => ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
     read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your annotation" : `the annotation ${r.label}` }) }));
 }
-let driveRows = new Map(), listing = 0;
+let storeRows = new Map(), listing = 0;
 async function listAnnotations() {
   const mine = ++listing;
-  driveList = { busy: true }; drawAnnotate();
+  storeList = { busy: true }; drawAnnotate();
   let rows;
   try { rows = await storeAnnotations(); } catch (e) {
     console.warn("annotations not listed:", e);
-    if (mine === listing) { driveList = { failed: `The annotations of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
+    if (mine === listing) { storeList = { failed: `The annotations of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
     return;
   }
   if (mine !== listing) return;
-  driveRows = new Map(rows.map((r) => [r.key, r]));
-  driveList = { rows }; drawAnnotate();
+  storeRows = new Map(rows.map((r) => [r.key, r]));
+  storeList = { rows }; drawAnnotate();
 }
 // a stored annotation drawn read-only through the study's showTruth, its final results alone
 async function viewAnnotation(key) {
-  const row = driveRows.get(key), mine = listing;
+  const row = storeRows.get(key), mine = listing;
   if (!row) return;
   let got;
   try { got = await row.read(); } catch (e) {
-    driveList = { ...driveList, failed: `The annotation could not be read: ${e.message || e}` }; return drawAnnotate();
+    storeList = { ...storeList, failed: `The annotation could not be read: ${e.message || e}` }; return drawAnnotate();
   }
   if (mine !== listing || annotating || !st.img) return;
   const { history: _, ...plain } = got.doc;
@@ -2080,9 +2080,9 @@ function enterAnnotating(how, then) {
 const choice = annotateChoice({ $, remote,
   scratch: () => enterAnnotating("scratch"),
   local: () => enterAnnotating("local", () => gtSession.loadDraft()),
-  drive: () => { signIn.renew(); listAnnotations(); },
+  stored: () => { signIn.renew(); listAnnotations(); },
   pick: (key) => viewAnnotation(key),
-  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("drive", () => gtSession.loadDocument(v.doc, "Annotation")); } },
+  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("stored", () => gtSession.loadDocument(v.doc, "Annotation")); } },
   clear: () => clearAnnotations() });
 // the boxes that follow whether an image is open
 page.watch("image", () => { showBoxes(); drawAnnotate(); });
@@ -2091,9 +2091,9 @@ function drawAnnotate() {
   document.documentElement.toggleAttribute("data-annotating", !!manifest && makesTruth());
   const shown = !!manifest && stageAllows("annotate") && !!page.get("image") && !data.on;
   const says = { scratch: "Annotating from scratch.", local: "Annotating from the work kept on this device.",
-    drive: `Annotating from ${remote.short}'s annotation${viewing ? `: ${viewing.label}` : ""}.` };
+    stored: `Annotating from ${remote.short}'s annotation${viewing ? `: ${viewing.label}` : ""}.` };
   choice.draw({ shown, annotating, route: says[route] || "", draft: shown && !annotating ? gtSession.draft() : null,
-    list: driveList, viewing: viewing && `Showing ${viewing.label}, read-only${viewing.counts ? `: ${viewing.counts}` : "."}` });
+    list: storeList, viewing: viewing && `Showing ${viewing.label}, read-only${viewing.counts ? `: ${viewing.counts}` : "."}` });
 }
 // Clear all annotations from image: the page back to just after the image loaded, this device's draft of it let go and the store untouched
 async function clearAnnotations() {
@@ -2101,7 +2101,7 @@ async function clearAnnotations() {
   const n = gtSession.unsaved();
   if (!confirm(`Clear all annotations from ${st.fileName}? ${n ? `Your ${n} unsaved action${n === 1 ? "" : "s"} will be lost. ` : ""}This device's draft of it is discarded; ${remote.label} is not touched.`)) return;
   try { await gtSession.discard(); } catch (e) { return notice(`The draft could not be cleared: ${e?.message || e}`); }
-  annotating = false; route = null; viewing = null; driveList = null; editBase = null;
+  annotating = false; route = null; viewing = null; storeList = null; editBase = null;
   log.add("Cleared all annotations from the image");
   restudy();
 }
@@ -2474,9 +2474,9 @@ const studyAddress = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComp
 // where a study is switched to: its own page, or on Study Setup's page its setup
 const addressOf = (id) => (SETUP ? `${HOME}setup?study=${encodeURIComponent(id)}` : studyAddress(id));
 
-// Who sees a study (shell/study/members): whoever Drive lets read its root. The studies the build lists, each with its
-// root's id (null for none), and the ids of those the signed-in user can read, asked of Drive in one batch request per load; while the
-// token has run out or Drive does not answer, the ids it last gave this user, marked stale; null while none is known.
+// Who sees a study (shell/study/members): whoever the store lets read its root. The studies the build lists, each with its
+// root's id (null for none), and the ids of those the signed-in user can read, asked of the store in one batch request per load; while the
+// token has run out or the store does not answer, the ids it last gave this user, marked stale; null while none is known.
 let listed = [], memberIds = null, memberStale = false, asking = null;
 async function readMembers() {
   if (setupOffline()) return;
@@ -2509,7 +2509,7 @@ async function refusal(m) {
   if (signIn.signedIn()) {
     await listedReady;
     if (!memberIds) return null;
-    return memberIds.includes(m.id) ? null : `${signIn.email()} cannot open this study: Drive does not let that account read it. Sign out to see what is open to everyone, or sign in with an account that can.`;
+    return memberIds.includes(m.id) ? null : `${signIn.email()} cannot open this study: ${remote.short} does not let that account read it. Sign out to see what is open to everyone, or sign in with an account that can.`;
   }
   try { return (await remote.publicly(root)) === false ? "That study is not open right now." : null; } catch (e) { console.warn("whether the study is open was not asked:", e); return null; }
 }
@@ -2518,6 +2518,7 @@ function drawStudies() {
   const shown = listed.find((s) => s.id === manifest?.id);
   if (shown && manifest.stage) shown.stage = manifest.stage;
   $("#study-stale").hidden = !(signIn.signedIn() && memberStale && memberIds);
+  $("#study-stale").textContent = `The list is as ${remote.short} last said: it renews when you click and the sign-in lets the page ask again.`;
   $("#study-list").replaceChildren(...listed.filter((s) => offers(s, { signedIn: signIn.signedIn(), ids: memberIds })).map((s) => {
     const a = document.createElement("a");
     a.href = addressOf(s.id); a.dataset.id = s.id;

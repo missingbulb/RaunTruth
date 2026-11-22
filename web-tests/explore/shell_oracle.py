@@ -13,7 +13,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'dev', 'tools', 'build'))
-import shell_states as ss  # noqa: E402
+import shell_states as ss  # noqa: E402 - the states generator is a build tool, importable only once its folder is on the path
 
 RULES, STUDIES = ss.load()
 TREES = {}

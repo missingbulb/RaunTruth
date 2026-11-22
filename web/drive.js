@@ -359,6 +359,17 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
+    // where a person changes an item's sharing in the store themselves, and the words and pictures of doing it there
+    sharing: {
+      link: (kind, id) => (kind === "file" ? `https://drive.google.com/file/d/${encodeURIComponent(id)}/view?usp=sharing`
+        : `https://drive.google.com/drive/folders/${encodeURIComponent(id)}?usp=sharing`),
+      check: "Check its sharing in Drive",
+      open: "Open its sharing in Drive",
+      refused: "Drive did not let this sign-in change it: change it there, with the link above and the picture.",
+      pictures: { link: ["sharing-link.svg", "Drive's Share dialog: General access set to Anyone with the link, as Viewer"],
+        named: ["sharing-named.svg", "Drive's Share dialog: General access set to Restricted, the named people kept"],
+        editor: ["sharing-editor.svg", "Drive's Share dialog: a person's email added as an Editor"] },
+    },
     use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, batch, name, permissions, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one

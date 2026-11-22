@@ -1,4 +1,4 @@
-// Study Setup (req/setup/page, req/setup/data): the page /setup?study=<id>, for those Drive lets write the study's root, online
+// Study Setup (req/setup/page, req/setup/data): the page /setup?study=<id>, for those the store lets write the study's root, online
 // only. It is the shell's page (shell.js: sign-in, the store, the study's place, the viewer, the left bar) with Data Management
 // (data_mode.js) attached to it, built here from what the shell lends: the study's folders, their access, previews, tags and
 // descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT, the extractions folder's set-up.
@@ -49,7 +49,7 @@ attach(data = dataMode({
   openPreview: (name, bytes, source) => openBytes(name, bytes, source),
 }));
 
-// Study Setup's sharing (req/setup/sharing-check, req/setup/people): what the study's stage needs of its Drive sharing, and who holds which
+// Study Setup's sharing (req/setup/sharing-check, req/setup/people): what the study's stage needs of its sharing in the store, and who holds which
 // of the three shares
 const sharing = sharingPanel(lent);
 attach(sharing);

@@ -93,7 +93,7 @@ async function ensure(reader, writer, folder, image) {
   return (await subfolder(reader, folder, image))?.id ?? (await writer.folder(folder, subfolderName(image.name, image.sha256)));
 }
 
-// the person's document written as their one extraction of the image in folder, replacing their own and keeping Drive's old
+// the person's document written as their one extraction of the image in folder, replacing their own and keeping the store's old
 // revision; the file's id
 export async function save({ reader, writer, folder, image, email, doc }) {
   const sub = await ensure(reader, writer, folder, image), name = await personFile(email);

@@ -829,7 +829,7 @@
    },
    {
     "name": "Load annotation from Drive",
-    "select": "#annotate-drive",
+    "select": "#annotate-load",
     "control": true,
     "box": false,
     "parent": "The ways to get annotations"
@@ -2497,7 +2497,7 @@
    },
    {
     "name": "Load annotation from Drive",
-    "select": "#annotate-drive",
+    "select": "#annotate-load",
     "control": true,
     "box": false,
     "parent": "The ways to get annotations"
@@ -4249,7 +4249,7 @@
    },
    {
     "name": "Load annotation from Drive",
-    "select": "#annotate-drive",
+    "select": "#annotate-load",
     "control": true,
     "box": false,
     "parent": "The ways to get annotations"
@@ -5910,7 +5910,7 @@
    },
    {
     "name": "Load annotation from Drive",
-    "select": "#annotate-drive",
+    "select": "#annotate-load",
     "control": true,
     "box": false,
     "parent": "The ways to get annotations"
@@ -7711,7 +7711,7 @@
    },
    {
     "name": "Load annotation from Drive",
-    "select": "#annotate-drive",
+    "select": "#annotate-load",
     "control": true,
     "box": false,
     "parent": "The ways to get annotations"

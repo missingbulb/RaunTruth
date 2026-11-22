@@ -27,7 +27,7 @@ const ownersFile = await seed(OWNER, [[12, 12], [55, 35]]), mineFile = await see
 studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 
 const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
-const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-drive", "#annotate-scratch"].filter((s) => document.querySelector(s).checkVisibility()).map((s) => document.querySelector(s).textContent.trim()));
+const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-load", "#annotate-scratch"].filter((s) => document.querySelector(s).checkVisibility()).map((s) => document.querySelector(s).textContent.trim()));
 const annotating = (page) => page.evaluate(() => document.documentElement.hasAttribute("data-annotating"));
 const model = (page) => page.evaluate(() => window.fixture?.model() ?? null);
 const loaded = (page, name) => page.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), name);
@@ -68,7 +68,7 @@ await check(!(await shown(page, "#processing-box")) && !(await shown(page, "#fx-
 await check(!(await shown(page, "#tasks-box")) && !(await shown(page, "#summary-box")), "with no model on the image, there is no Summary and no Ground Truth Tasks");
 
 // Load annotation from Drive: the list, one chosen read-only, no tool
-await page.click("#annotate-drive");
+await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 2);
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.dataset.key));
 await check(rows.join() === [mineFile.id, ownersFile.id].join(), "Load annotation from Drive lists the image's extractions: the user's own, then the marked", rows);
@@ -171,7 +171,7 @@ const work = await unsaved(page);
 await expecting(new RegExp(NETWORK_GONE.source + "|401|settings not (synced|saved)"), async () => {
   google.revokeAll();
   await page.evaluate(() => { window.skew = 2 * 3600 * 1000; });
-  await page.waitForTimeout(1500); // waits on purpose: the page's own once-a-second clock must pass over the run-out token
+  await page.waitForTimeout(1500); // waits on purpose (no event): the page's once-a-second clock must pass over the run-out token, and the check is that nothing then changes
   await check(await annotating(page) && await unsaved(page) === work && !(await page.evaluate(() => $("#gt-undo").disabled)),
     "the token run out, annotation mode and the unsaved work stay, Undo still counting them", { work, now: await unsaved(page) });
   await page.context().setOffline(true);

@@ -58,5 +58,5 @@ def test_people_hold_the_three_shares_by_what_drive_lists(out):
     assert out['people']['link'] is True
 
 
-def test_links_open_the_items_sharing_dialog(out):
-    assert out['links'] == ['https://drive.google.com/drive/folders/abc?usp=sharing', 'https://drive.google.com/file/d/xyz/view?usp=sharing']
+def test_each_correction_links_where_the_store_changes_its_items_sharing(out):
+    assert out['links'] == ['root:r', 'file:f']
