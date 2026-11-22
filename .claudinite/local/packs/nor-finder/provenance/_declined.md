@@ -38,3 +38,9 @@
   page-python-imports. Version-history conflicts, requirement-number conflicts and a test's own
   route losing to the harness's were removed by #750, #652 and #1033.
 - **Actor:** @missingbulb (owner), asking for growth from every session since the last growth run.
+
+## 2026-11-22 · declined · the prose-to-checks sweep of the local packs found nothing convertible
+- **Source:** the prose-to-checks sweep of nor-finder, nor-study and vascular-study (#1090).
+- **Reason:** nothing left that a check can carry with confidence. Each rule is already a check or a harness behavior (the harness fails an undeclared warning at exit), or judgment: how loose an `expecting()` pattern is, which fakes are the owner's call, when a change needs approval, how to order pushes and merges, how items sit in a row. `tests-bend-test-surface` leaves no violation mark, since a PR may legitimately touch `web/` for other reasons. `locked-metric-definitions` states what the product measures, a requirement, left in place.
+- **Actor:** claudinite/prose-to-checks-sweep (issue #1090).
+- **Model:** Claude, per the commit trailer.
