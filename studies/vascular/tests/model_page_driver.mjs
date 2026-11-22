@@ -9,12 +9,11 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, atStage, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
@@ -22,15 +21,12 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 // the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
 const site = await serve(studies, model), origin = site.origin;
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, site.origin);
 atStage(browser, "PreGT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true });
+await standInDrive(await device.context());
+let page;
 
 // the 3D view's brightness now, its mean over every pixel of red, green and blue
 const brightness = async () => { await viewDrawn(page); return brightnessNow(); };
@@ -64,8 +60,7 @@ const drawnNow = () => page.evaluate(() => {
 });
 
 try {
-  await page.goto(origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  page = await device.opens("vascular");
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
