@@ -2,8 +2,10 @@
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
 // the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
-// submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js), the resources dialog (storage, memory,
-// network and CPU) and the version history.
+// submission; and around them the theme, the left bar, foldable boxes, the resources dialog (storage, memory,
+// network and CPU) and the version history. The page is the shell of two addresses: the study's own, and Study Setup
+// (setup.html, which loads setup.js, which attaches Data Management, data_mode.js, to the shell); the shell lends setup.js
+// what that needs in `lent`, and calls what it attached back.
 //
 // The study's hooks, all optional, returned from mount: ready(info) once its Python is loaded;
 // opening(name, source) when an image starts to load; opened(meta) once it is shown; result(action,
@@ -35,7 +37,6 @@ import { guide } from "./guide.js";
 import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
-import { dataMode } from "./data_mode.js";
 import { annotateChoice } from "./annotate_choice.js";
 import { dialogMotion } from "./dialog_motion.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
@@ -56,6 +57,11 @@ import { summaryDownload } from "./summary_download.js";
 import { summaryMask } from "./summary_mask.js";
 
 const $ = (s) => document.querySelector(s);
+// whether this is Study Setup's page (req/setup/page), which shows the study as the one whose root its owner may write, online only
+const SETUP = document.documentElement.dataset.page === "setup";
+// what Study Setup's own script (setup.js) attached: the study's folders and what is set on them; the study's own page has none
+let data = { signedIn() {}, open() {}, opened() {}, mount() {}, on: false };
+export const attach = (d) => { data = d; };
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
 const log = actionLog();
 log.watch();
@@ -159,6 +165,7 @@ let storeRoles = { manager: false, tagger: false };
 // While the sign-in's token has run out, or the store does not answer, they are the ones it last gave this user here,
 // marked as such: stale until the next renewal reads them again, failed when it was asked and did not say
 async function readRoles() {
+  if (setupOffline()) return { manager: false, tagger: false };
   const name = "roles:" + manifest.id, last = () => signIn.learned(name) || { manager: false, tagger: false };
   if (signIn.signedIn() && !signIn.token()) return { ...last(), stale: true };
   try {
@@ -523,17 +530,36 @@ const mayManage = () => signIn.signedIn() && storeRoles.manager && remote.ready;
 // the user's access, or the study's roots, changed: what they may do shows again, the annotation mode kept
 function showAccess() {
   if (!manifest) return;
-  const manage = mayManage();
-  $("#open-data").hidden = !manage; $("#open-data").setAttribute("aria-pressed", String(dataOn && manage));
-  $("#open-data").textContent = dataOn && manage ? "Leave Data Management" : "Data Management";
-  data.open(dataOn && manage);
+  const manage = mayManage() && !setupOffline();
+  const link = $("#open-setup");
+  link.hidden = !manage;
+  link.textContent = SETUP ? "Leave Study Setup…" : "Study Setup…";
+  link.setAttribute("href", SETUP ? studyAddress(manifest.id) : `setup?study=${encodeURIComponent(manifest.id)}`);
+  if (SETUP) { setupLive ||= manage; data.open(manage); setupNote(manage); }
   for (const [id, show] of [["#gt-submit", maySave()], ["#gt-download", !maySave()]]) $(id).hidden = !show;
   truth.draw();
   drawAnnotate();
 }
-// Data Management, for now entered from the avatar's menu by those the store lets write the study's root; Study Setup replaces it
-let dataOn = false;
-$("#open-data").onclick = () => { signIn.renew(); $("#user-menu").open = false; dataOn = !dataOn; showAccess(); };
+// Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
+// run out, as Drive's reads do, and the page opens once Google has answered
+$("#open-setup").onclick = (e) => {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault(); $("#user-menu").open = false;
+  const go = () => location.assign($("#open-setup").href);
+  signIn.forRead().then(go, go);
+};
+// Study Setup works online only: opened offline it says so and asks the store nothing; once its folders were on show, the network
+// going leaves them as they are, their controls waiting for it as the page's do everywhere
+let setupLive = false;
+const setupOffline = () => SETUP && !setupLive && document.documentElement.classList.contains("offline");
+// what Study Setup says in place of its folders, to whom it is not for or while it cannot reach the store
+function setupNote(manage) {
+  const note = $("#setup-note");
+  const says = setupOffline() ? "Study Setup needs the internet: you are offline."
+    : manage ? "" : !signIn.signedIn() ? "Study Setup is for those who may write this study's folder in Drive: sign in with an account that may."
+    : "Study Setup is for those who may write this study's folder in Drive, and this account may not.";
+  note.textContent = says; note.hidden = !says;
+}
 
 // ---------- the image and the item view ----------
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
@@ -2380,16 +2406,20 @@ document.addEventListener("animationstart", (e) => inView.observe(e.target));
 // address from before paths, ?study=<id>, names the same study.
 const HOME = new URL("./", import.meta.url).pathname;
 function studyOf(loc) {
+  if (SETUP) return new URLSearchParams(loc.search).get("study") || DEFAULT_STUDY;
   const rest = decodeURIComponent(loc.pathname.startsWith(HOME) ? loc.pathname.slice(HOME.length) : "").replace(/\.html$/, "");
   return (rest && rest !== "index" ? rest : new URLSearchParams(loc.search).get("study")) || DEFAULT_STUDY;
 }
-const addressOf = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComponent(id));
+const studyAddress = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComponent(id));
+// where a study is switched to: its own page, or on Study Setup's page its setup
+const addressOf = (id) => (SETUP ? `${HOME}setup?study=${encodeURIComponent(id)}` : studyAddress(id));
 
 // Who sees a study (shell/study/members): whoever Drive lets read its root. The studies the build lists, each with its
 // root's id (null for none), and the ids of those the signed-in user can read, asked of Drive in one batch request per load; while the
 // token has run out or Drive does not answer, the ids it last gave this user, marked stale; null while none is known.
 let listed = [], memberIds = null, memberStale = false, asking = null;
 async function readMembers() {
+  if (setupOffline()) return;
   if (!signIn.signedIn()) { asking = null; memberIds = null; memberStale = false; return; }
   const last = signIn.learned("members");
   if (!signIn.token()) { memberIds = last; memberStale = true; return; }
@@ -2413,6 +2443,7 @@ function studyMenu() {
 // why a study may not be opened here, or null: signed in, its root is not one the account can read; signed out, its root is members-only
 async function refusal(m) {
   await listFetched;
+  if (setupOffline()) return null;
   const root = listed.find((x) => x.id === m.id)?.root;
   if (!root || released(m.stage)) return null;
   if (signIn.signedIn()) {
@@ -2498,6 +2529,8 @@ addEventListener("popstate", () => swap());
 // the network back: a study whose Python could not load loads again, on a Python of its own, since a worker
 // keeps a module it failed to download failed; and the storage it then kept shows
 addEventListener(CONNECTION, (e) => {
+  // the page's offline class follows this event, so what is asked of the store waits for it
+  if (SETUP && e.detail.online && manifest) queueMicrotask(() => { readRoles().then((r) => { storeRoles = r; showAccess(); }); readMembers().then(drawStudies); });
   // the network gone: a file of Python's that failed before the page was told so failed for that, and the study says it
   if (!e.detail.online) { if (st.unkept && !st.worker) notHere(); return; }
   offlineCopy.keepSite().then(diskBar, () => {});
@@ -2510,7 +2543,7 @@ function swap() {
   swapping = swapping.then(async () => {
     const id = studyOf(location);
     if (id === manifest?.id) return;
-    annotating = false; route = null; resume = null; editBase = null; dataOn = false;
+    annotating = false; route = null; resume = null; editBase = null;
     dropImage();
     leaveStudy();
     try {
@@ -2545,7 +2578,7 @@ async function mountNow(id) {
   }
   data.mount(manifest);
   storeRoles = await readRoles();
-  document.title = manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
+  document.title = SETUP ? `Study Setup · ${manifest.title}` : manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;
   $("#file").accept = manifest.files.accept; $("#empty-text").textContent = manifest.files.empty; placeLoad();
@@ -2673,29 +2706,15 @@ const offlineCopy = offline({ $, esc, sizeText, remote, throttled, throttle, sto
     for (const q of c ? await c.keys() : []) { const s = (await c.match(q))?.headers.get(IMAGE_STUDY); if (s) out.add(s); }
     return out;
   } });
-// Data Management (req/shell/data/mode): what it borrows from the shell
-const data = dataMode({
+// what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
+// and left bar, lent as they are
+export const lent = {
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
-  // the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): whether the image itself, by
-  // its id, is open; a lasso over it, done(points) once drawn; its areas, shown at once on the image open
+  page, views, summaryMasks, st, retitle, loadOriginal, minimapView: () => view?.minimapView(),
+  // the image itself, by its id, is open
   originalOpen: (id) => !!st.source && st.source.id === id && st.source.kind !== "preview" && !!page.get("image"),
-  lasso: (done, hint) => summaryMasks.lassoFor(done, hint),
-  areasOf: (id, areas) => { if (st.source?.id === id && st.source.kind !== "preview") summaryMasks.areas(areas); },
-  // the folder's images in the main area, or the image
-  showFolder(on) {
-    $("#folder-view").hidden = !on; $("#image-view").hidden = on || views.now !== "image";
-    if (!on) view?.minimapView();
-  },
-  modeChanged(on) {
-    retitle(); $("#tip").hidden = true;
-    if (!on && views.now !== "image") views.show("image");
-    view?.minimapView();
-  },
-  // the drawers on show changed: their numbers again
-  relabel: () => retitle(),
-  openPreview: (name, bytes, source) => openBytes(name, bytes, source),
-  loadOriginal,
-});
+  openBytes: (name, bytes, source) => openBytes(name, bytes, source),
+};
 // the image itself, for the preview on show: the copy kept on this device, else downloaded from the remote store
 async function loadOriginal(source) {
   if (!source?.id) return;
@@ -2729,7 +2748,7 @@ $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) clo
 window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
-if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
+if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
 remoteDialog(); slow($("#gt-export"));
 // the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in

@@ -3,6 +3,7 @@
 // and allow: patterns of what the page says by design in this world, as a stranger refused the study's folder)
 // made real on the stand-in Google of stand_in_drive.mjs, its page open; and the world events, what happens to the
 // person beyond the page: the network going and coming, the token running out, Drive changed elsewhere.
+// world.page: "setup" opens the study's Study Setup page, in place of the study's own.
 //   const w = await boot(world, prepared, { plants, pageError });
 //   w.page, w.ctx, w.drive, w.google, w.events[name].run(arg), w.close()
 // plants: faults planted on purpose, for the explorer's own test: "throw:<selector>", a control that throws when
@@ -44,7 +45,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
   google.answer = world.signIn?.answer || "grant";
   const seed = { ...(world.seed || {}) };
   const page = await s.open(!!world.user, {
-    id: world.study, email: world.user?.email, name: world.user?.name, seed, scale, welcome: !!world.welcome,
+    id: world.study, setup: world.page === "setup", email: world.user?.email, name: world.user?.name, seed, scale, welcome: !!world.welcome,
     study: { ...(world.stage ? { stage: world.stage } : {}), ...(world.studyJson || {}) },
     ...(world.viewport ? { viewport: world.viewport } : {}),
     ...(world.token?.expired ? { until: Date.now() - 60e3 } : {}),
@@ -70,7 +71,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
       if (!page.url().startsWith(s.origin)) { await page.goForward(); return "no page before"; }
     } },
     // the app opened again, where a step left it for a page that is not the app: the walk's own, never drawn at random
-    returnToApp: { when: () => false, run: () => page.goto(s.origin + "/web/" + world.study) },
+    returnToApp: { when: () => false, run: () => page.goto(s.origin + (world.page === "setup" ? "/web/setup?study=" : "/web/") + world.study) },
     // Google ends the token before the page's own record of it says
     expireToken: { when: () => google.tokens.size > 0, run: () => { for (const t of google.tokens.values()) t.until = Date.now() - 1; } },
     signedOutElsewhere: { when: () => google.tokens.size > 0, run: () => google.revokeAll() },
@@ -98,7 +99,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     } },
     switchStudy: { when: (v) => v.online !== false, run: (n) => {
       const to = world.switchTo || ["viewer", "nor", world.study];
-      return page.goto(s.origin + "/web/" + to[n % to.length]).then(() => to[n % to.length]);
+      return page.goto(s.origin + (world.page === "setup" ? "/web/setup?study=" : "/web/") + to[n % to.length]).then(() => to[n % to.length]);
     } },
   };
   return { page, ctx, drive, google, events, origin: s.origin, ROOT: s.ROOT, close: s.close };

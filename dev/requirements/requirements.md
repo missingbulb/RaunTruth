@@ -1,6 +1,6 @@
 # The page's requirements
 
-What a person using the page sees and can do whichever study it runs: the shell (`web/`), then the repo's
+What a person using the page sees and can do whichever study it runs: the shell (`web/`), Study Setup, then the repo's
 checks. Each line is a requirement; its detail and its test fold under it. What one study's page does is that
 study's own spec, `studies/<id>/requirements.md` (`req/checks/spec-layout`).
 
@@ -125,9 +125,7 @@ nobody has decided: what the page does there is not a requirement yet.
   tagging (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode.
   Loading another image leaves the mode and asks again, so does Unload, and the mode is not kept across a reload.
   The list is that of `req/shell/extractions/list`. Tentative: a study whose stage does
-  not annotate (PreGT, Published) asks nothing, and Processing shows as before. Tentative: Data Management, until
-  Study Setup replaces it, is entered from an item of the avatar's menu that Drive's sharing offers those who may
-  write the study's root, and left by the same item (`req/shell/data/mode`). Test:
+  not annotate (PreGT, Published) asks nothing, and Processing shows as before. Test:
   `web-tests/test_annotate_mode_page.py`.
   </details>
 
@@ -325,15 +323,14 @@ nobody has decided: what the page does there is not a requirement yet.
   beside it. Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
   </details>
 
-- `req/shell/data/mode` Data Management: a column of the study's folders left of the left bar, open until folded, entered from the avatar's menu.
+- `req/shell/data/mode` Data Management: Study Setup's column of the study's folders, left of the left bar, open until folded.
   <details>
 
   Set by the owner on 2026-11-02, changed on 2026-11-03: Data Management is a view of its own that nobody
   but those Drive lets write the study's root sees any of. Changed by the owner on 2026-11-21, with the role menu gone
-  (`req/shell/annotate/choice`): it is entered from a Data Management item in the avatar's menu, which shows only to
-  them, and left by the same item, now reading Leave Data Management; it is not kept across a reload or another study.
-  Tentative: this entry is temporary, Study Setup (`dev/requirements/study-stages-spec.md`, WP5) replacing the mode
-  and its item. In it the tree of the study's folders sits left of the left bar, open; its
+  (`req/shell/annotate/choice`): it was entered from an item of the avatar's menu. Changed by the owner on 2026-11-22:
+  it is Study Setup's (`req/setup/page`), the study's own page holding none of it, and it is on whenever that page is
+  open for someone Drive lets write the root. In it the tree of the study's folders sits left of the left bar, open; its
   chevron folds it to a narrow strip and opens it again. The tree shows every folder and subfolder, open,
   each with its access (`req/shell/data/drive-access`); a folder's images stay folded under it until
   its image count is clicked, each with a small preview. In the mode the left bar keeps the Image box
@@ -341,8 +338,9 @@ nobody has decided: what the page does there is not a requirement yet.
   and the steps; Load vanishes in a puff, Unload in its line with it: choosing another image or folder
   replaces the one open (set by the owner on 2026-11-04). The steps hidden are the status bar's breadcrumbs, with the item
   view's switch and its tasks' bar (set by the owner on 2026-11-04). Set by the owner on
-  2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, the avatar's Data Management item is listed
-  but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`). Going offline
+  2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, the avatar's Study Setup item is listed
+  but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`); Study Setup opened
+  offline says so and asks Drive nothing (`req/setup/page`). Going offline
   inside Data Management keeps what is open: the column and the folder's box say they need the internet and do
   nothing until the network is back, and what reaches Drive (Approve, Update previews, Needs
   GT) is held with them; the Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
@@ -371,7 +369,7 @@ nobody has decided: what the page does there is not a requirement yet.
   until the owner shares it by link (`req/shell/study/members`). The
   folders under it are named by the root's study file (`req/shell/ground-truth/setup`), and until it has
   one, by name: `Data`, its images, and `Extractions`. Signed in, opening a
-  GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Data Management is offered) and
+  GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Study Setup is offered) and
   to the extractions folder (they may save, `req/shell/annotate/no-save`); each is offered only where Drive says so. Nobody is
   listed in the repo, and what anyone can change is still what Drive lets them. Changed by the owner on 2026-11-21: who
   may read the root decides who sees the study at all (`req/shell/study/members`). Tests:
@@ -2091,6 +2089,32 @@ nobody has decided: what the page does there is not a requirement yet.
   alike. Test: `web-tests/test_status_bar_page.py`, `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
+## `req/setup` Study Setup, the study owner's page
+
+- `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, extractions set-up, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5). Unchanged in behaviour, moved to
+  `/setup`: the data requirements of `req/shell` (those tagged `data/...`) are those of Study Setup's Data Management column and its
+  boxes, and each now reads as they do there. Set up extractions makes the one extractions folder
+  (`req/shell/ground-truth/setup`). Study Setup shows images in the shell's plain view: the study's own drawers,
+  item view and steps do not show on it. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
+  </details>
+
+- `req/setup/page` Study Setup is the site page `app/setup`, opened from the avatar's menu by those Drive lets write the study's root, online only.
+  <details>
+
+  Set by the owner on 2026-11-22. The avatar's menu of the study's own page holds Study Setup…, for someone Drive
+  lets write the study's root; it opens `/app/setup?study=<id>`, renewing a token run out in its click as Drive's
+  reads do. The study's own page holds none of Data Management's elements (no `#data-*`, folder view, Tags or
+  Selected Folder box). On Study Setup the same menu item reads Leave Study Setup… and goes back to the study. The
+  page is the shell's, loaded with `setup.js`, which attaches Data Management; its study is the one `?study=`
+  names, its switcher lists the studies' setups. Someone Drive does not let write the root is told so in place of the
+  folders; opened offline, it says it needs the internet and makes no Drive call, and shows the folders once the
+  network is back. The page and what only it loads are left out of the list kept for working offline; no study may
+  be named `setup`. Test: `web-tests/test_setup_page.py`, `web-tests/test_published_site.py`.
+  </details>
+
 ## `req/checks` The repo's checks
 
 - `req/checks/ci-sets` Every PR runs every test on Chromium before it can merge, the tests of the repo's own Claudinite checks among them, and a test that would skip there fails instead.
@@ -2162,15 +2186,15 @@ nobody has decided: what the page does there is not a requirement yet.
   its page reaches off the site. The shell's paths
   open the study the file names, the fixture; a study's own paths open it, on the shell's tree with its own elements
   alone grafted in. Each element gives only what differs from its parent: cases over the state (the
-  study's stage, who is signed in, whether the store lets them save, whether they are annotating and by which route, whether this device holds a draft, whether Data Management is open, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
+  study's stage, who is signed in, whether the store lets them save, whether they are annotating and by which route, whether this device holds a draft, whether Study Setup is open, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
   has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
   `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
   not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage, who is signed in and whether they may save) and take actions one after another, each state one more action on the one before: loading an image, one
   larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, how to annotate chosen
-  (from scratch, from the work kept here, from an annotation of Drive, the study opening afresh in annotation mode), a draft saved, Data Management opened and left, another study and Back, the notice's OK, zooming in until
-  the image no longer fits, Data Management's folder, preview and Load Original, and
+  (from scratch, from the work kept here, from an annotation of Drive, the study opening afresh in annotation mode), a draft saved, Study Setup opened and left (the page opening afresh), another study and Back, the notice's OK, zooming in until
+  the image no longer fits, Study Setup's folder, preview and Load Original, and
   the network lost and back.
   `dev/tools/build/shell_states.py` writes from it the matrix, `dev/requirements/shell-states.GENERATED.md`, one table
   per path, and the browser test's expectations. It fails on what the walk would leave unchecked: a case no state

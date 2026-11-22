@@ -598,6 +598,11 @@
                 {"is": "hidden"}
               ]
             },
+            {"name": "Study Setup's note", "select": "#setup-note", "req": "req/setup/page", "steady": "shows only on Study Setup's page, to someone Drive does not let write the root or while it cannot reach the store, which no path does",
+              "rule": [
+                {"is": "hidden", "approval": "tentative"}
+              ]
+            },
             {"name": "Busy", "select": "#busy", "req": "req/shell/waiting/visible", "unwalked": "shows only while the study works, and the walk reads the page once it has settled",
               "rule": [
                 {"is": "hidden"}

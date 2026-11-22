@@ -138,9 +138,9 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
   // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept;
   // viewport: the window's size; name: the signed-in user's; until: when their token runs out, in place of an hour
-  // on; welcome: the welcome popup not yet answered, as on a first visit
+  // on; welcome: the welcome popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study
   async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
-    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false } = {}) {
+    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false, setup = false } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) google.settings.length = 0;
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: scale });
@@ -159,19 +159,21 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
     page.setDefaultTimeout(STEP);
-    await page.goto(origin + "/web/" + id);
+    await page.goto(origin + (setup ? "/web/setup?study=" + id : "/web/" + id));
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     return page;
   }
 
 
-  // Data Management opened (on) or left from the avatar's menu, the page then showing it (req/shell/data/mode)
+  // Study Setup (req/setup/page) opened (on) from the avatar's menu of the study, or left for the study again, the page then showing it
   async function dataManagement(page, on = true) {
     await page.click("#user-menu summary");
-    await page.waitForSelector("#open-data:not([hidden])");
-    const now = await page.evaluate(() => document.documentElement.dataset.mode === "data");
-    await page.click(now === on ? "#user-menu summary" : "#open-data");
-    await page.waitForFunction((on) => (document.documentElement.dataset.mode === "data") === on, on);
+    await page.waitForSelector("#open-setup:not([hidden])");
+    const now = await page.evaluate(() => document.documentElement.dataset.page === "setup");
+    if (now === on) return void (await page.click("#user-menu summary"));
+    await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
+    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+    if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
   return { drive, google, ROOT, FILES, SUB, GT, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };

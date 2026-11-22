@@ -7,6 +7,7 @@ Run: python3 -m pytest web-tests/test_published_site.py
 import glob
 import json
 import os
+import pytest
 import re
 import sys
 
@@ -153,6 +154,23 @@ def test_a_study_whose_path_the_site_already_serves_is_refused(tmp_path):
             raise AssertionError(f'a study named vendor was published over {taken}')
 
 
+def test_a_study_named_setup_is_refused(tmp_path):
+    """req/setup/page: app/setup is Study Setup's address, which no study may take, whatever the app serves at its top."""
+    root = listed_studies(tmp_path, ('setup', 'listed'))
+    with pytest.raises(ValueError, match='setup'):
+        build.study_pages(root, {'index.html', 'shell.js'})
+
+
+def test_the_setup_page_ships_under_app_and_is_left_out_of_the_offline_list(tmp_path):
+    """req/setup/page: Study Setup is online only, so the page and what only it loads are not kept for working offline."""
+    assert 'web/setup.html' in published() and 'web/setup.js' in published()
+    build.assemble(ROOT, str(tmp_path), {})
+    assert (tmp_path / 'app' / 'setup.html').is_file()
+    listed = {f['path'] for f in json.load(open(tmp_path / 'app' / 'offline.json'))['files']}
+    assert not listed & {'setup.html', 'setup.js', 'data_mode.js'}, listed
+    assert {'index.html', 'shell.js'} <= listed
+
+
 def test_the_repos_studies_take_no_path_the_app_serves():
     top = {p.split('/')[1] for p in map(build.served, published()) if p.startswith('app/')} | set(build.GENERATED)
     assert len(top) >= 5, top
@@ -290,7 +308,7 @@ def test_the_build_lists_every_file_the_app_needs_offline_with_its_hash(tmp_path
     files = json.load(open(app / 'offline.json'))['files']
     on_disk = {os.path.relpath(os.path.join(d, f), app).replace(os.sep, '/') for top in ('app', 'studies')
                for d, _, fs in os.walk(tmp_path / top) for f in fs}
-    assert {f['path'] for f in files} == on_disk - {'offline.json'}
+    assert {f['path'] for f in files} == on_disk - {'offline.json'} - set(build.OFFLINE_NOT)
     for f in files:
         assert f['sha256'] == hashlib.sha256(open(app / f['path'], 'rb').read()).hexdigest(), f['path']
     assert {'index.html', 'shell.js', 'sw.js', '../studies/nor/study.json'} <= {f['path'] for f in files}

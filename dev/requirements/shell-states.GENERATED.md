@@ -152,6 +152,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -358,6 +359,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -564,6 +566,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -770,6 +773,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -976,6 +980,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1182,6 +1187,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ |
@@ -1388,6 +1394,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1594,6 +1601,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1800,6 +1808,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1858,9 +1867,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
-## Fixture · GT, Study owner: Open Data Management · Folder · Preview · Load Original · Offline
+## Fixture · GT, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline
 
-| Element | Start | Open Data Management | Folder | Preview | Load Original | Offline |
+| Element | Start | Open Study Setup | Folder | Preview | Load Original | Offline |
 |---|---|---|---|---|---|---|
 | Header | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Logo | ● | ● | ● | ● | ● | ● |
@@ -2006,6 +2015,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2064,9 +2074,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 
-## Fixture · GT, Study owner: Open Data Management · Folder · Offline · Online
+## Fixture · GT, Study owner: Open Study Setup · Folder · Offline · Online
 
-| Element | Start | Open Data Management | Folder | Offline | Online |
+| Element | Start | Open Study Setup | Folder | Offline | Online |
 |---|---|---|---|---|---|
 | Header | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Logo | ● | ● | ● | ● | ● |
@@ -2212,6 +2222,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2270,9 +2281,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 
-## Fixture · GT, Study owner: Open Data Management · Folder · Preview a z-stack · Load Original
+## Fixture · GT, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original
 
-| Element | Start | Open Data Management | Folder | Preview a z-stack | Load Original |
+| Element | Start | Open Study Setup | Folder | Preview a z-stack | Load Original |
 |---|---|---|---|---|---|
 | Header | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Logo | ● | ● | ● | ● | ● |
@@ -2418,6 +2429,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2476,9 +2488,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 
-## Fixture · PreGT, Study owner: Open Data Management · Folder
+## Fixture · PreGT, Study owner: Open Study Setup · Folder
 
-| Element | Start | Open Data Management | Folder |
+| Element | Start | Open Study Setup | Folder |
 |---|---|---|---|
 | Header | ● | ● | ● |
 | &nbsp;&nbsp;Logo | ● | ● | ● |
@@ -2624,6 +2636,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ |
@@ -2830,6 +2843,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3036,6 +3050,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3242,6 +3257,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3300,9 +3316,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;OK | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Sign out | ⊘ | ⊘ | ⊘ | ⊘ |
 
-## Fixture · GT, Study owner: Open Data Management · Leave Data Management · Load · Open Data Management
+## Fixture · GT, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup
 
-| Element | Start | Open Data Management | Leave Data Management | Load | Open Data Management |
+| Element | Start | Open Study Setup | Leave Study Setup | Load | Open Study Setup |
 |---|---|---|---|---|---|
 | Header | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Logo | ● | ● | ● | ● | ● |
@@ -3338,30 +3354,30 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;How many are hidden | ⊘ | ● | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ● | ▸ | ▸ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channels | ○ | ○ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channel row | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show/hide checkbox | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Black and white points | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Colour picker | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Depth row | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First slice shown | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Last slice shown | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Spacing between slices | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channel's Colour by depth | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Colour by depth tick | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load | ● | ○ | ● | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ● | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ● | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ● | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File chooser | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ● | ▸ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ○ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channels | ○ | ○ | ○ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channel row | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show/hide checkbox | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Black and white points | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Colour picker | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Depth row | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;First slice shown | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Last slice shown | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Spacing between slices | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Channel's Colour by depth | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Colour by depth tick | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load | ● | ○ | ● | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ● | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ● | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ○ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ○ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ● | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ○ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File chooser | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Selected Folder | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's name | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's sums | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3438,27 +3454,28 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ◐ | ◐ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ● | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ● | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Reset view group | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reset view to top | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Zoom out | ◐ | ◐ | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Zoom in | ◐ | ◐ | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Zoom out | ◐ | ◐ | ◐ | ● | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Zoom in | ◐ | ◐ | ◐ | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's time | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ● | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ● | ● | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ○ | ○ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ● | ● | ○ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ● | ● | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ○ | ○ | ● | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3D view | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3D picture | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawn over the 3D view | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3654,6 +3671,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ |
@@ -3860,6 +3878,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ |
@@ -4071,6 +4090,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4289,6 +4309,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4501,6 +4522,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ |
@@ -4706,6 +4728,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4919,6 +4942,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -5144,6 +5168,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -5351,6 +5376,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ |
@@ -5544,6 +5570,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Zoom | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Lasso hint | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Own mask warning | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study Setup's note | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Busy | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scan light | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Busy's text | ⊘ | ⊘ | ⊘ | ⊘ |

@@ -94,9 +94,9 @@ def test_every_cited_tag_exists():
 
 
 def test_the_shell_spec_holds_only_the_shell_and_each_study_its_own():
-    """req/checks/spec-layout: no study's section in the shell's spec, and each study's spec one section of its own."""
+    """req/checks/spec-layout: no study's section in the shell's spec (Study Setup's is the shell's own), and each study's spec one section of its own."""
     shell = list(sections(SPEC))
-    assert shell == ['req/shell', 'req/checks'], f'the shell spec holds more than the shell: {shell}'
+    assert shell == ['req/shell', 'req/setup', 'req/checks'], f'the shell spec holds more than the shell: {shell}'
     studies = sorted(glob.glob(os.path.join(ROOT, 'studies', '*', 'requirements.md')))
     assert len(studies) >= 3, f'found {len(studies)} study specs'
     for path in studies:

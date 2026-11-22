@@ -42,7 +42,7 @@ const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-
   && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
-await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "until its item in the avatar's menu is chosen, a study owner sees no Data Management");
+await check(await page.evaluate(() => !$("#data-col") && !document.documentElement.dataset.mode), "the study's own page holds no Data Management: it is Study Setup's, chosen from the avatar's menu");
 await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 // Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
@@ -165,22 +165,22 @@ await expecting(gone, async () => {
 }, { maybe: true });
 
 await dataManagement(page, false);
-const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
+const leftMode = () => !$("#data-col") && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
 await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
-  "choosing its item again leaves the mode: the column gone, Load back");
-// offline, Data Management is listed in the avatar's menu but says it needs the internet, and choosing it does nothing
-// (req/shell/data/mode)
+  "choosing its item again leaves Study Setup for the study: the column gone, Load back");
+// offline, Study Setup is listed in the avatar's menu but says it needs the internet, and choosing it does nothing
+// (req/setup/page)
 await expecting(NETWORK_GONE, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.click("#user-menu summary");
-  const offered = await page.evaluate(() => { const b = document.querySelector("#open-data");
+  const offered = await page.evaluate(() => { const b = document.querySelector("#open-setup");
     return !b.hidden && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
-  await page.click("#open-data", { force: true });
+  await page.click("#open-setup", { force: true });
   // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
   const after = await page.evaluate(() => ({ open: $("#user-menu").open, mode: document.documentElement.dataset.mode || "" }));
-  await check(offered?.needs && offered.dim && after.open && !after.mode, "offline, Data Management is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await check(offered?.needs && offered.dim && after.open && !after.mode, "offline, Study Setup is listed, says it needs the internet, and choosing it does nothing", { offered, after });
   await page.evaluate(() => { $("#user-menu").open = false; });
   await page.context().setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));

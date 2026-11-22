@@ -37,6 +37,10 @@ OFFLINE = 'offline.json'
 OFFLINE_TREES = (APP, 'studies')
 # the files at the site's top the app's pages load, kept with them
 OFFLINE_FILES = ('analytics.js',)
+# what only Study Setup (req/setup/page) loads, which works online only: left out of that list
+OFFLINE_NOT = ('setup.html', 'setup.js', 'data_mode.js', 'previews_writer.js')
+# the app's own addresses, which no study may take
+RESERVED = ('setup',)
 
 
 def wheels():
@@ -63,7 +67,7 @@ def study_pages(root, top):
     (top: the names under app/) would hide that file or be hidden by it, and is refused."""
     pages = []
     for s in studies(root):
-        taken = {s['id'], s['id'] + '.html'} & set(top)
+        taken = {s['id'], s['id'] + '.html'} & (set(top) | set(RESERVED))
         if taken:
             raise ValueError(f'study "{s["id"]}" would take {", ".join(sorted(taken))}, which the site already serves')
         pages.append(s['id'] + '.html')
@@ -253,7 +257,7 @@ def offline_list(out):
             for f in fs:
                 path = os.path.join(d, f)
                 rel = os.path.relpath(path, app).replace(os.sep, '/')
-                if rel != OFFLINE:
+                if rel != OFFLINE and rel not in OFFLINE_NOT:
                     files.append({'path': rel, 'sha256': hashlib.sha256(open(path, 'rb').read()).hexdigest()})
     for name in OFFLINE_FILES:
         path = os.path.join(out, name)
