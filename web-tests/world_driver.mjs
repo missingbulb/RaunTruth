@@ -1,12 +1,14 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
 // a user signed in on it is who the page names, its token may do only the scopes it was signed in with, and the
 // settings another device of theirs left on Drive are the ones it takes; a device with no one signed in is the
-// device's own; a kept device holds the cache entries it was given; a device visits an address as given; a deploy
+// device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given; a device visits an address as given; a deploy
 // with no Google client offers no sign-in.
 //   node web-tests/world_driver.mjs
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
+import { pressDrive } from "./drive_open.mjs";
 
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 const browser = await launch(pw), w = world(browser, origin);
@@ -54,6 +56,19 @@ try {
   await visitor.close();
 
   w.site.withoutGoogleClient();
+  const cache = w.folder("Cache").public();
+  const aPng = cache.holds(image.png("a.png", { width: 64 }));
+  const lister = w.device().remembersDriveLink(cache);
+  const shelf = await lister.opens(undefined, { until: "title" });
+  await pressDrive(shelf);
+  await shelf.waitForFunction(() => document.querySelectorAll("#remote-list .item").length);
+  const listed = await shelf.$$eval("#remote-list .item", (rs) => rs.map((r) => [r.dataset.id, r.textContent.trim()]));
+  check(listed.length === 1 && listed[0][0] === aPng.id && listed[0][1].includes("a.png"), "a public folder holds the image it was given, and the Drive dialog lists it", listed);
+  await shelf.dblclick("#remote-list .item");
+  await shelf.waitForFunction(() => window.st?.fileName === "a.png");
+  check(true, "and opens it");
+  await lister.close();
+
   const keyOnly = w.device();
   const bare = await keyOnly.opens("fixture", { until: "title" });
   check(await bare.evaluate(() => document.querySelector("#sign-in").hidden), "a deploy with no Google client offers no sign-in");

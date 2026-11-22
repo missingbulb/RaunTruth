@@ -27,7 +27,7 @@ export async function openFromDrive(page, file) {
   if (!mine) throw new Error("openFromDrive needs standInDrive(context) first");
   const f = typeof file === "string"
     ? { name: path.basename(file), mimeType: /\.png$/i.test(file) ? "image/png" : "image/tiff", buffer: fs.readFileSync(file) }
-    : { ...file };
+    : { ...file, buffer: Buffer.from(file.bytes ?? file.buffer) };
   // the same file handed again is the same file on Drive
   const again = mine.find((g) => g.name === f.name && g.buffer.equals(f.buffer));
   if (again) f.id = again.id;

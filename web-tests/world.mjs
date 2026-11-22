@@ -7,7 +7,9 @@
 //   w.site.withGoogle();                                  the deploy's variables (fakes/site_settings.mjs)
 //   w.studies.atStage("nor", "PostGT");                   the studies as served (fakes/studies.mjs)
 //   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).tags("nor");
-//   w.drive.folder({ name, parent });                     what Drive holds (fakes/google_drive.mjs)
+//   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
+//   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
+//   w.studyFolder("nor").holds(image.tiff("s.tif", {...}))  a study's own folder, as its study.json names it
 //   const page = await w.device().signedInAs(ada).asRole("tagger").keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
@@ -30,8 +32,30 @@ const UNTIL = {
 
 export function world(browser, origin) {
   const shared = worldOf(browser), drive = driveIn(shared), google = signInIn(shared);
-  return {
+  // a folder on Drive, said as a test means it; record: the fake's own
+  const folderOf = (record) => {
+    const f = {
+      id: record.id, name: record.name, record,
+      // anyone with the link reads it, by the site's key too; sharedWithUserAlone: the signed-in user's token alone
+      public() { record.access = "public"; return f; },
+      sharedWithUserAlone() { drive.sharedWithUserAlone(record); return f; },
+      viewableOnly() { drive.viewableOnly(record); return f; },
+      writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
+      writableByAnyone() { drive.writableByAnyone(record); return f; },
+      folder: (name, options = {}) => w.folder(name, { ...options, in: record }),
+      // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; the fake's record
+      holds({ name, mimeType, bytes }, { id, createdTime } = {}) {
+        return drive.file({ name, mimeType, bytes, parent: record.id, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}) });
+      },
+    };
+    return f;
+  };
+  const w = {
     browser, drive, google, site: settingsIn(shared), studies: studiesIn(shared),
+
+    // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
+    folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
+    studyFolder: (study) => folderOf(drive.rootOf(study)),
 
     // a Google account, the one Google's window signs in next
     user(email) {
@@ -150,4 +174,5 @@ export function world(browser, origin) {
       return device;
     },
   };
+  return w;
 }
