@@ -144,8 +144,8 @@ Rows are actions, columns stages. "Members" as above. One stage per study.
   combining by area.
 - **Annotators**: someone signed in who may not save sees Start Annotating with a line to ask the owner for
   access; annotation mode and unsaved work survive the Google token expiring or going offline, saving waiting for
-  the next click online; Start Annotating replaces today's per-image Start GT tagging and stays across images and
-  reloads.
+  the next click online; Start Annotating replaces today's per-image Start GT tagging, and the choice of how to annotate is asked again
+  for each image and on each reload.
 - **Entering Review**: before promoting, Study Setup shows the owner the images with unmarked extractions newer
   than their GT. After the freeze the numbers use marked extractions only, so anything saved later does not count.
   Moving back from Review keeps the committed GT and published scores as a dated record; the next Review commits
