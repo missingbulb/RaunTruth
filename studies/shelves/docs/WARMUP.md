@@ -105,7 +105,7 @@ python3 -m pytest studies/shelves -q -m "not full"
 python3 -m pytest studies/shelves -q
 ```
 
-The photos and the ground truth (the study's curated folder on Drive), then every version end to end, natively, scored
+The photos and the ground truth (the files the study file's GT marks name on Drive), then every version end to end, natively, scored
 by `algorithm/score.py`; `--write` records the numbers the page lists (`web/algorithm_metrics.json`):
 
 ```
@@ -164,8 +164,8 @@ the viewer (`viewer.doneMask`). The book's picture in the task is
 the page's own, warped in JS from the photo the viewer shows (`picture` in `shelves.js`), so it follows a dragged
 corner at once; what the reader reads is still Python's straightening of the file, run behind it with the photo
 never covered. Flip reads the book again at that turn alone, in both languages. The submitted `<photo>_books_gt.json` lists every book with its id and verdict (right, or null), the log in `history`, and keeps, for each found book, what the
-finder and the reader proposed beside the corrected values, so one file scores both the boxes and the titles (`algorithm/score.py`). The ground truth is in the study's curated
-folder on Drive (`<photo>__<sha8>/gt_<tagger>.json`), fetched by `python3 lab/fetch.py shelves` into `data/raw/truth/`. Four photos so far: `1g4iFN`, re-tagged 2026-11-10 after the task's rework, 13 books right (4 of them added
+finder and the reader proposed beside the corrected values, so one file scores both the boxes and the titles (`algorithm/score.py`). The ground truth is the files the study file's GT
+marks name on Drive, fetched by `python3 lab/fetch.py shelves` into `data/raw/truth/`. Four photos so far: `1g4iFN`, re-tagged 2026-11-10 after the task's rework, 13 books right (4 of them added
 as missed) and 1 found box marked no book; `1HyJrL`, tagged 2026-11-10, 19 books right, all found (the book the
 frame cuts at its left edge left untagged); and, new for R8, `1zktX1`, 60 books right (24 added as missed), a
 bookcase of two cabinets side by side, and `16w5nW`, 8 books right (2 added as missed), **held out** since R8:
