@@ -63,3 +63,14 @@ def test_a_drive_write_nobody_asked_for_is_found(tmp_path):
     assert found and found[0]['class'] == 'bug', run['findings']
     # found at the step whose click set it off, which a person did
     assert run['steps'][found[0]['step']]['action']['kind'] in ('click', 'canvas', 'drag', 'key')
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_cdn(tmp_path):
+    click = {'kind': 'click', 'family': 'preferences', 'file': 'stack', 'confirm': True}
+    plan = {'world': {'name': 'annotator', 'path': os.path.join(HERE, 'worlds', 'annotator.json')}, 'seed': 1, 'focus': [], 'plants': [],
+            'steps': [{'i': 0, 'action': {**click, 'key': '#sb-res-icon', 'text': 'Resources'}},
+                      {'i': 1, 'action': {**click, 'key': '#storage-list > details:nth-of-type(1) > summary > button', 'text': 'Make Available Offline'}}]}
+    (tmp_path / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
+    run = explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
+    assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
