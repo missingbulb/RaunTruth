@@ -382,10 +382,11 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(still.shine === "none" && still.gt === "0s", "nothing shines or fades", still);
   await check(still.sweep === "none" && still.halo === "none", "a button that would shine looks plain: no light frozen on it, no halo", still);
   {
-    const seeded = await open("fixture", undefined, false, { "nor-motion": "false" });
-    const kept = await seeded.page.evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
+    // a device no one is signed in on: the setting is its own, with no Drive of the tagger's to sync it from
+    const seeded = w.device().keeps({ "nor-motion": "false" });
+    const kept = await (await seeded.opens("fixture", { until: "title" })).evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
     await check(!kept.box && kept.motion === "off", "a page opened with the animations turned off opens with them off", kept);
-    await seeded.ctx.close();
+    await seeded.close();
   }
   await check(still.spin === "spin" && still.working === "spin", "but a spinner still turns", still);
   await page.waitForFunction(() => !document.querySelector("#sb-net").classList.contains("spike"), null, { timeout: 6000 });
