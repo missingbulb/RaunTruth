@@ -5,24 +5,21 @@
 //   node web-tests/reload_driver.mjs
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const CONTROLS = "button, select, input, textarea, fieldset";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 try {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript((CONTROLS) => {
-    delete Navigator.prototype.serviceWorker;
+  const device = w.device();
+  await (await device.context()).addInitScript((CONTROLS) => {
     // the controls as the browser hands them over, the markup read and none of the page's scripts run yet
     document.addEventListener("readystatechange", () => {
       if (document.readyState === "interactive") window.handed = [...document.querySelectorAll(CONTROLS)].map((e) => ({ name: e.id || e.outerHTML.slice(0, 60), off: e.disabled }));
     });
   }, CONTROLS);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
+  const page = await device.opens(undefined, { until: "none" });
   const handed = async () => { await page.waitForFunction(() => document.querySelector("#title").textContent); return page.evaluate(() => window.handed); };
-  await page.goto(origin + "/web/");
   const first = await handed(), off = first.filter((c) => c.off);
   check(off.length >= 8, `the page's markup starts ${off.length} controls off`, off.map((c) => c.name));
   // each of them on, as the page turns each on in its time
