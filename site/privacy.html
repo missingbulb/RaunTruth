@@ -11,7 +11,7 @@
 <main>
 <nav><a href="/">← Back to rauntruth.com</a> · <a href="terms">Terms of service</a> · <a href="license">License</a></nav>
 <h1>Privacy policy</h1>
-<p class="dim">Last updated 20 November 2026</p>
+<p class="dim">Last updated 22 November 2026</p>
 
 <p>rauntruth.com is a free research tool for viewing and analysing microscopy images, run by Ariel
 (<a href="mailto:ariel@rauntruth.com">ariel@rauntruth.com</a>). It runs in your browser. The site has
@@ -20,9 +20,9 @@ stays on your device, and what reaches other services, and when.</p>
 
 <h2>Your images and results</h2>
 <p>Images are analysed on your own computer, inside your browser. They are never uploaded to us. The site
-sends them to no one else either, with the exceptions a person asks for: a study's data manager can have
+sends them to no one else either, with the exceptions a person asks for: a study's owner can have
 it save small previews of a study folder's images into a Previews folder in that study's Google Drive root. The results stay in your browser unless you download them yourself or
-submit ground truth, which the site saves into the study's Google Drive folders (below).</p>
+save an annotation, which the site saves into the study's Google Drive folders (below).</p>
 
 <h2>What stays on your device</h2>
 <p>To start faster, to work without the internet and to remember your choices, the site keeps these in
@@ -38,7 +38,7 @@ your browser's storage on this device:</p>
   <li>in Chrome and Edge, for each file you open from your computer in the Image Viewer, its name and the
     browser's reference to it, so the recent list opens it again, never a copy of the file;</li>
   <li>your settings, such as the theme, the tips you closed and your last Google Drive links;</li>
-  <li>your work on each image, such as your selections and corrections, and, when you press Save Draft or submit while annotating ground truth, your draft of that image: each correction in order, with the time you made it, and what the algorithm proposed, and, while the study's folder cannot be reached or your sign-in has run out, the ground-truth file you submitted, which waits here for your next click online to send it;</li>
+  <li>your work on each image, such as your selections and corrections, and, when you press Save Draft or Save while annotating, your draft of that image: each correction in order, with the time you made it, and what the algorithm proposed, and, while the study's folder cannot be reached or your sign-in has run out, the annotation you saved, which waits here for your next click online to send it; and which images you saved an annotation of, so Load study images can mark them;</li>
   <li>your last 200 actions on the page, such as the buttons you clicked, and the errors it met, never
     what you type or an image's name, so that Report a problem can list the last few in the GitHub issue it
     opens for you to read and submit;</li>
@@ -64,9 +64,8 @@ sent to us.</p>
     making a study available offline lists, or downloads, the images in its Drive folder, when
     you sign in with Google, and, while you are signed in, when the page reads or saves your settings
     file (see below); for a study's owners and those who may save its ground truth, when the page lists, checks and adds
-    files in that study's Drive folders (see below) and, for a tagger, looks for and, when they ask, reads back their own
-    submitted ground-truth file, to continue from it on another device; and for anyone, when the page reads which images have
-    ground truth, and an image's curated ground truth, from the study's ground-truth folders. Your profile picture and Drive's small pictures of images are loaded from
+    files in that study's Drive folders (see below) and, for anyone who loads an image, lists that image's annotations in the study's Extractions folder and reads the study
+    file again for which of them are marked, and reads back the one they open. Your profile picture and Drive's small pictures of images are loaded from
     Google's image servers. See <a href="https://policies.google.com/privacy">Google's privacy policy</a>.</li>
   <li><b>GitHub</b> is reached only when you click a link to it, for example to report a problem or
     propose a study. What you post there is public, under
@@ -83,7 +82,7 @@ permission for the site to:</p>
   <li>see and download the files in your Google Drive, so that while you are signed in the Google Drive dialog opens
     the images and folders your account can see, as you, whether or not they are shared publicly. The site reads
     the folders and images you open in it and, for a study you open, its root folder's list and the study file in it, and whether you may add files to that root and to its
-    ground-truth submissions folder, to offer you the study's roles. It also asks Google, in one request each time the page
+    Extractions folder, to offer you Save and, for the study's owner, Data Management. It also asks Google, in one request each time the page
     loads, whether your account can read the root folder of each study the site lists, to list you the studies you may open.
     It never changes anything with this permission.</li>
   <li>see, change, create and delete only the Google Drive files it works with (Google's per-file permission), so
@@ -91,17 +90,17 @@ permission for the site to:</p>
 </ul>
 <p>Google has not yet verified the site for reading your Drive, so its sign-in window warns that the app is
 unverified; continuing past the warning signs you in as above.</p>
-<p>If Google Drive lets you add files to a study's ground-truth submissions folder, you may save ground truth there; if it lets you add files to the study's root folder, you are the study's owner. With the per-file permission, the site adds files for
-you, only in the study's folders you may add files to: a tagger's ground-truth file; a data manager's preview files, in a Previews folder it makes in the root, markers
-saying an image needs ground truth, in the curated ground-truth folder, the study file in the root, one file which holds the study index, listing every
-image of the study's folders and naming the data manager whose visit wrote it, the list of the study's folders, which
-they choose, how its images are grouped and hidden, the tags, descriptions and areas
-(damaged parts, the area of interest) they give the study's images and folders, the ground truth they accept, and, when they set up the study's
-ground truth, its ground-truth folders, the curated folder then shared
-with anyone with its link to view. It changes, marks or moves to
-the bin only files the site itself added, for you or for another of the study's taggers and data managers: a data
-manager accepting or rejecting your ground truth copies or marks your file. It never changes, moves or deletes a
-file someone made outside the site.</p>
+<p>If Google Drive lets you add files to a study's Extractions folder, you may save annotations there; if it lets you
+add files to the study's root folder, you are the study's owner. With the per-file permission, the site adds files for
+you, only in the study's folders you may add files to: your annotation files, in the Extractions folder; and, for the
+study's owner, preview files in a Previews folder it makes in the root, markers saying an image needs ground truth, in
+the Extractions folder, and the study file in the root, one file which holds the study index, listing every image of
+the study's folders and naming the owner whose visit wrote it, the list of the study's folders, which they choose, how
+its images are grouped and hidden, the tags, descriptions and areas (damaged parts, the area of interest) they give
+the study's images and folders, and which annotation files they mark as ground truth or official; and, when they set
+up the study's extractions, the Extractions folder, then shared with anyone with its link to view. It changes, marks or
+moves to the bin only files the site itself added. It never changes, moves or deletes a file someone made outside the
+site.</p>
 <p>The site changes nothing in your Google Drive but its own settings file and, in the study folders you chose, the
 files it adds there for you. It reads the folders and images you open in its Google Drive dialog, and the study
 folders it shows you. The settings file holds only the settings listed in the avatar menu's Settings.</p>
@@ -109,18 +108,18 @@ folders it shows you. The settings file holds only the settings listed in the av
 <ul>
   <li><b>Accessed and used:</b> your name, email address and picture are shown in the avatar menu.
     Your settings file is read when you sign in and on later visits, and replaced when you change a
-    setting. When you submit ground truth, your email address names your file and is written into it.
+    setting. When you save an annotation, your email address names your file and is written into it.
     In the study folders you chose, the site reads which ones you may add files to, and adds the files you
-    ask it to. A folder a data manager adds by its link is checked, with the site's own key, for whether anyone with
+    ask it to. A folder a study's owner adds by its link is checked, with the site's own key, for whether anyone with
     its link can open it. A folder you open in the Google Drive dialog is listed (its files' names, sizes and dates), and an image
     you open there is downloaded into your browser, as for a public link. Nothing else is done with any of it.</li>
   <li><b>Stored:</b> your name, email address, picture and Google's sign-in token (which expires
     after about an hour) are kept in your browser on this device until you sign out, and so is which study folders
-    Google last said you may add files to, and which studies' root folders it last said you may read, so your roles and your
+    Google last said you may add files to, and which studies' root folders it last said you may read, so what you may save and your
     list of studies show while the token is renewed. The settings file
     stays in your own Google Drive, and the files the site adds stay in the study's folders. We keep no copy of any of it, anywhere.</li>
-  <li><b>Shared:</b> your email address is in the ground-truth files you submit, with the time of each correction, and,
-    for a data manager, in the study file their visit writes, which anyone with its link can read.
+  <li><b>Shared:</b> your email address is in the annotation files you save, which anyone with the Extractions folder's link can read, with the time of each correction, and,
+    for a study's owner, in the study file their visit writes, which anyone with its link can read.
     Otherwise Google user data goes only between your browser and Google, never to
     us or to any third party. It is not used for advertising, sold, or used to train any model.</li>
 </ul>
@@ -132,14 +131,17 @@ To delete the settings file, open Google Drive's Settings, then Manage apps, fin
 Google's sign-in window) and choose Delete hidden app data. To withdraw the site's access entirely, remove it at
 <a href="https://myaccount.google.com/connections">your Google Account's third-party connections</a>.</p>
 
-<h2>Ground truth</h2>
-<p>Submit saves your ground truth into the study's submissions folder in Google Drive, as a file named with your
-email address that holds your marks, your email address, when you made it and its history: each correction you kept, in order, with the time you made it, and what the algorithm proposed. Corrections you undid are not written. A study's data manager may copy it
-into the study's curated folder, which the study's algorithms are scored on. Setting up the study's ground truth shares
-the curated folder with anyone with its link, and the submissions folder is shared as the study's root is; anyone with
-their links can read the files, and Google Drive shows each file's owner, your name and
-email address, to anyone who can see it. Your file stays there under your Google account, and Drive keeps its
-earlier versions when you submit again. To remove it, delete it in Google Drive or ask the study's owner.</p>
+<h2>Annotations</h2>
+<p>Save writes your annotation of an image into the study's Extractions folder in Google Drive, as one file per
+image named with your email address, holding your marks, your email address, when you made it and its history: each
+correction you kept, in order, with the time you made it, and what the algorithm proposed. Corrections you undid are
+not written. Saving again replaces your own file, and Drive keeps its earlier versions. The study's owner may mark a
+file as the image's ground truth or as official; the study's algorithms are scored on the files marked ground truth.
+Setting up the study's extractions shares the Extractions folder with anyone with its link, so anyone with that link
+can read every file in it, your email address included, and Google Drive shows each file's owner, your name and email
+address, to anyone who can see it. The page itself lists, to someone who is not a member of the study, only the marked
+files and no one's name. Your file stays there under your Google account. To remove it, delete it in Google Drive or
+ask the study's owner.</p>
 
 <h2>Changes and contact</h2>
 <p>If this policy changes, this page will say so, with a new date at the top. Questions, or requests
