@@ -10,10 +10,11 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { pw, launch } from "../../../web-tests/harness.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { ENGINE, LAUNCH } from "../../../web-tests/engine.mjs";
 import { orMissed } from "../../../web-tests/page_until.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+
 
 const [ready] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -27,13 +28,12 @@ const { origin, server } = await serveSite({ "/web/worker.js": () => EARLY + STA
 
 const browser = await launch(pw);
 const problems = [];
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
+// a device whose welcome popup is not answered yet
+const device = world(browser, origin).device().welcomed(null);
+const page = await (await device.context()).newPage();
 page.on("pageerror", (e) => problems.push("page error: " + e.message));
-page.setDefaultTimeout(STEP);
 try {
-  await page.goto(origin + "/web/index.html?study=nor");
+  await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   // the list's numbers arrive with the study's measured quality
   await page.waitForFunction(() => /\(P\s/.test(document.querySelector("#algorithm").options[0].textContent));
