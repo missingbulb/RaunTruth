@@ -11,11 +11,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { tagger } from "./tagger.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -35,20 +34,13 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
+const page = await w.device().signedInAs(tagger(w)).asRole("tagger").opens("fixture");
 
 const own = (rel) => JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", rel), "utf8"));
 const [first, second] = own("web/algorithms.json"), listed = own("web/algorithm_metrics.json"), SCORING = listed.scoring;
