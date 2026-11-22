@@ -73,11 +73,11 @@
     }
   },
   "roots": {
-    "Published, signed in": {"stage": "Published", "signedIn": true, "maySave": true},
-    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true}
+    "Public, signed in": {"stage": "Public", "signedIn": true, "maySave": true},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "Published, signed in", "actions": ["load", "count"]},
-    {"root": "GT, Annotator", "actions": ["load", "scratch", "count"]}
+    {"root": "Public, signed in", "actions": ["load", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]}
   ]
 }

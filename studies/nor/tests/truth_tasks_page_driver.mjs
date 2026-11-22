@@ -4,7 +4,7 @@
 // req/shell/views/second); the tasks are one walk through the image's areas, with Back and Skip
 // (req/nor/truth/order); the image marks what is reviewed, under a task-named Show menu (req/nor/truth/marks,
 // req/nor/show-menu); while tagging a key gives each button's answer (req/nor/truth/keys); the summary's mask
-// waits for the summary (req/nor/summary/mask); in a PreGT study the summary is back. Prints what it saw; exits 1
+// waits for the summary (req/nor/summary/mask); in a Review study the summary is back. Prints what it saw; exits 1
 // on a failure, 2 when it cannot run.
 //   node tests/truth_tasks_page_driver.mjs ANSWERS IMAGE
 import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
@@ -426,11 +426,11 @@ await page.click("#key-show-pass");
 await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
 await page.close();
 
-// ---- a PreGT study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
-stage = "PreGT";
+// ---- a Review study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
+stage = "Review";
 page = await open();
 await check(await shown(page, "#summary-box") && !(await shown(page, "#tasks-box")) && !(await shown(page, "#switch")) && await shown(page, "#show-menu"),
-  "a PreGT study has its summary and its Show menu, no tasks and no switch to an item view");
+  "a Review study has its summary and its Show menu, no tasks and no switch to an item view");
 await check(await page.evaluate(() => !!document.querySelector("#overlay .mask-marks .edge")), "the summary's mask is drawn with the summary");
 await page.click("#show-menu summary");
 const vrows = await page.$$eval("#show-menu .pop label", (l) => l.filter((x) => x.offsetParent).map((x) => x.textContent.trim()));

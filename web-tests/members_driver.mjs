@@ -22,13 +22,13 @@ const settings = drive.get("dmsettings00000000001");
 settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toString()), format: "rauntruth-study/2", stage: "Review" }));
 
 const link = (id) => `https://drive.google.com/drive/folders/${id}`;
-const LIST = [{ id: "nor", title: "Study A", stage: "GT", root: ROOTS.nor }, { id: "b", title: "Study B", stage: "GT", root: ROOTS.b },
-  { id: "c", title: "Study C", stage: "Published", root: ROOTS.c }, { id: "fixture", title: "Study D", stage: "GT", root: ROOT }];
+const LIST = [{ id: "nor", title: "Study A", stage: "Develop", root: ROOTS.nor }, { id: "b", title: "Study B", stage: "Develop", root: ROOTS.b },
+  { id: "c", title: "Study C", stage: "Public", root: ROOTS.c }, { id: "fixture", title: "Study D", stage: "Develop", root: ROOT }];
 const moduleFetches = [];
 const prepare = (ctx) => {
   ctx.on("request", (r) => { if (/\/studies\/nor\/web\//.test(r.url())) moduleFetches.push(r.url()); });
   const s = studiesOf(ctx);
-  for (const [id, title, stage] of [["nor", "Study A", "GT"], ["b", "Study B", "GT"], ["c", "Study C", "Published"]]) {
+  for (const [id, title, stage] of [["nor", "Study A", "Develop"], ["b", "Study B", "Develop"], ["c", "Study C", "Public"]]) {
     s.edit(id, () => ({ id, title, visibility: "listed", stage, root: link(ROOTS[id]), web: { module: "web/none.js" }, python: { paths: [], entry: "none", packages: [], wheels: [] } }));
   }
   s.editList(() => LIST);

@@ -31,6 +31,7 @@
     {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
     {"family": "marks on an image", "match": {"text": "^(Needs GT|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},
     {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},
+    {"family": "the stage", "match": {"key": "^#stage-(up|back|freeze)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
     {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
     {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|gt-load-)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
     {"family": "report a problem", "match": {"key": "^#(report-problem|sb-report|problem-)"}, "may": ["dialog", "popup", "open", "storage.*"], "writes": 0},

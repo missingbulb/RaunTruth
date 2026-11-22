@@ -18,9 +18,9 @@ spec.loader.exec_module(shell_states)
 # an invented page: a box holding a button, beside a panel
 PAGE = {
     'study': 'acme',
-    'vars': {'stage': ['GT'], 'signedIn': [True], 'annotating': [False, True], 'image': ['none', 'local'],
+    'vars': {'stage': ['Develop'], 'signedIn': [True], 'annotating': [False, True], 'image': ['none', 'local'],
              'counted': [False, True], 'view': ['image'], 'selected': ['nothing']},
-    'roots': {'acme': {'stage': 'GT', 'signedIn': True}},
+    'roots': {'acme': {'stage': 'Develop', 'signedIn': True}},
     'paths': [{'root': 'acme', 'actions': ['load', 'count', 'scratch']}],
     'tree': [
         {'name': 'Box', 'select': '#box', 'box': True, 'req': 'req/checks/shell-states',
@@ -308,7 +308,7 @@ def test_each_study_walks_the_shells_tree_with_its_own_grafts():
     study it names."""
     studies = {'acme': ACME, 'other': {**ACME, 'study': {**ACME['study'], 'title': 'Other'},
                'grafts': [{'under': 'Box', 'tree': [{'name': 'Own', 'select': '#own', 'req': 'req/checks/shell-states'}]}],
-               'roots': {'own root': {'stage': 'GT', 'signedIn': True}},
+               'roots': {'own root': {'stage': 'Develop', 'signedIn': True}},
                'paths': [{'root': 'own root', 'actions': ['load', 'scratch']}]}}
     expect, matrix, _ = shell_states.build(copy.deepcopy(PAGE), studies)
     assert [(p['study'], p['root']) for p in expect['paths']] == [('acme', 'acme'), ('other', 'own root')]

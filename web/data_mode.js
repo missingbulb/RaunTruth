@@ -56,6 +56,10 @@ export function dataMode(ctx) {
   let tagsDoc = { images: {}, folders: {} }, look = { group: null, hide: [] };
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
   const on = () => root.dataset.mode === "data";
+  // whether the stage still lets the owner change the study's data (req/shell/study/stage): closed in Review and Public, where every
+  // control that writes is gone and nothing here writes the study
+  const editable = () => ctx.stageAllows("setup-data");
+  const showFrozen = () => root.toggleAttribute("data-frozen", !!manifest && !editable());
   // the study's extractions folder is not its data: the tree leaves it out
   // the root's Previews folder, left out of the tree like the extractions folder
   let previewsId = null;
@@ -146,7 +150,7 @@ export function dataMode(ctx) {
   };
   // what writing the index came to, as the Study index line says it
   function indexSaid(done, ix) {
-    place.forgetIndex(); drawStudySet(ix);
+    place.forgetIndex(); drawStudySet(ix); ctx.setup?.indexed();
     const n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
     msg($("#data-index"), done === "not ours" ? `Study index: ${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
       : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
@@ -154,7 +158,7 @@ export function dataMode(ctx) {
   // the index written when it differs from the one there
   async function index(of, cut) {
     const top = place.root(), say = (t, err) => msg($("#data-index"), t, err);
-    if (!top || of !== epoch) return;
+    if (!top || of !== epoch || !editable()) return;
     const why = indexBlocked(cut);
     if (why) return say(why, true);
     const ix = indexOf();
@@ -177,7 +181,7 @@ export function dataMode(ctx) {
   // the tags and the index written after an edit; what the edit said, or why it was not saved
   const saveTags = work.counting("tags saved", async (next, said) => {
     const top = place.root(), was = tagsDoc;
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     tagsDoc = next; drawTags();
     // the tags and the index are one write of the study file
     const of = epoch, why = indexBlocked(false), ix = why ? null : indexOf();
@@ -232,7 +236,7 @@ export function dataMode(ctx) {
   const areasOf = (id) => ({ damaged: tagsDoc.images[id]?.damaged || [], interest: tagsDoc.images[id]?.interest || [] });
   function markArea(k) {
     const c = chosen;
-    if (c?.kind !== "image" || !ctx.originalOpen(c.id)) return;
+    if (c?.kind !== "image" || !ctx.originalOpen(c.id) || !editable()) return;
     ctx.lasso((pts) => {
       if (chosen?.id !== c.id) return;
       const next = withImage(tagsDoc, c.id, { [k]: [...(tagsDoc.images[c.id]?.[k] || []), pts] });
@@ -242,7 +246,7 @@ export function dataMode(ctx) {
   }
   function clearAreas(k) {
     const c = chosen;
-    if (c?.kind !== "image") return;
+    if (c?.kind !== "image" || !editable()) return;
     const next = withImage(tagsDoc, c.id, { [k]: [] });
     ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
     saveTags(next);
@@ -303,7 +307,7 @@ export function dataMode(ctx) {
   }
   const setLook = work.counting("the study set saved", async (change) => {
     const top = place.root();
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
     catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
     msg($("#study-msg"), "");
@@ -322,7 +326,7 @@ export function dataMode(ctx) {
   // the listed folders changed in the study file, the tree read again, and anything to say after
   const setListed = work.counting("the study's folders changed", async (next, said = "") => {
     const top = place.root();
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     $("#data-tree").classList.add("busy");
     try { await setFolders({ reader, writer, root: top, folders: next }); }
     catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
@@ -332,6 +336,7 @@ export function dataMode(ctx) {
     if (said) msg($("#data-msg"), said);
   });
   async function addLink() {
+    if (!editable()) return;
     const ref = remote.parse($("#data-add-link").value || "");
     if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);
     if (roots.includes(ref.id)) return msg($("#data-msg"), "That folder is in the study already.");
@@ -346,7 +351,7 @@ export function dataMode(ctx) {
 
   // ---------- Set up extractions (req/shell/ground-truth/setup) ----------
   // offered while the study file names no extractions folder, and nudged while the root has none at all
-  const gtStudy = () => !!manifest && (manifest.stage === "GT" || manifest.stage === "PostGT");
+  const gtStudy = () => !!manifest && manifest.stage != null;
   function drawSetup(s) {
     const b = $("#gt-setup");
     b.hidden = !gtStudy() || !place.root() || !!s?.set;
@@ -551,6 +556,7 @@ export function dataMode(ctx) {
 
   // ---------- the folder's actions ----------
   async function markTruth(n, s, b) {
+    if (!editable()) return;
     b.disabled = true;
     try {
       if (!s.marker) await tf.markNeeded({ writer, folder: gt.extractions, image: { name: s.f.name, sha256: s.f.sha } });
@@ -561,7 +567,7 @@ export function dataMode(ctx) {
   }
   $("#update-previews").onclick = () => ctx.working($("#update-previews"), async () => {
     const n = nodes.get(chosen?.id);
-    if (!n) return;
+    if (!n || !editable()) return;
     const say = (t, err) => msg($("#folder-msg"), t, err);
     try {
       const f = await previewsFile(n, true);
@@ -648,6 +654,7 @@ export function dataMode(ctx) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
       if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(chosen?.kind === "folder"); return; }
       epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
+      showFrozen();
       ctx.setup?.leave();
       if (on()) enter(false);
       asStarted(); delete root.dataset.tree;
@@ -659,10 +666,13 @@ export function dataMode(ctx) {
     async marked() {
       const s = await place.settings().catch(() => null);
       if (s) marks = s.marks || {};
+      ctx.setup?.indexed();
       const n = chosen && nodes.get(chosen.kind === "folder" ? chosen.id : chosen.folder);
       truthStatus();
       if (chosen?.kind === "folder" && n) relist(n);
     },
+    // the stage changed, by a promotion or a move back: what it opens and closes of the data shows at once
+    stageChanged() { showFrozen(); drawTree(); drawTags(); },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },
     // Study Setup's page opened for someone the store lets write the root, or not

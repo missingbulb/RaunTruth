@@ -1,6 +1,6 @@
 ---
 name: designing-ground-truth-tasks
-description: How a study's page lets a person make ground truth - the left bar's tasks, one item at a time, area by area, what is done cut out of the image. Use when building or changing any study's ground-truth controls (its GT or PostGT stage), or reviewing them.
+description: How a study's page lets a person make ground truth - the left bar's tasks, one item at a time, area by area, what is done cut out of the image. Use when building or changing any study's ground-truth controls (Setup, Develop or Analyze, where annotating is open), or reviewing them.
 metadata:
   body: guidelines
   usage:
@@ -9,7 +9,7 @@ metadata:
 
 # Designing a study's ground-truth tasks
 
-While a study is in its GT or PostGT stage, the page exists to make ground truth, not to look at
+While annotating is open in a study (Setup, Develop or Analyze), the page exists to make ground truth, not to look at
 results. The person is working through a to-do list; the page should give them the pace of one
 item, one verdict, the next item, and show the progress on the image itself. The NoR study is the
 reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth/marks` in
@@ -30,7 +30,7 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
   nothing of the statistics on the image that is noise to the walk, a summary mask aside, which follows
   the summary.
 - **The main area is the image, always.** No item view and no switch to one: mark the study's
-  `#items-view` with `data-viewing` and the shell drops it and its switch in a GT stage
+  `#items-view` with `data-viewing` and the shell drops it and its switch while annotating
   (`req/shell/views/second`). No card hovers over the image; picking an item on the image makes
   it the current task's item.
 - **The display markings give way to the tasks' own.** Colour codes, numbers, reasons and
@@ -89,6 +89,6 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## Testing it
 
-- **Drive the tasks in a GT stage, the viewing parts in PreGT.** A page driver serves the
+- **Drive the tasks in Develop, the viewing parts in Review.** A page driver serves the
   study's `study.json` with the stage it needs; the item views, the summary and the Show menu are
-  only reachable outside a GT stage, and a driver that needs them asks for one.
+  only reachable where annotating is closed (Review, Public), and a driver that needs them asks for one.

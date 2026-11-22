@@ -5,10 +5,9 @@
 "use strict";
 import { CONNECTION } from "./offline.js";
 import { work } from "./pending.js";
+import { STAGES, stageOf } from "./stages.js";
 
-export const STAGES = ["Setup", "Develop", "Analyze", "Review", "Public"];
-// the stage of the study file, one of the five; a study whose file names none (today's GT, PostGT, Published, none) is in Develop
-export const stageOf = (file) => (STAGES.includes(file?.stage) ? file.stage : "Develop");
+export { STAGES, stageOf };
 
 // per stage: how the root is shared, and whether people annotate (someone must write the extractions folder). Before Review the
 // root is for named people; from Review on the study opens by its address. In every stage the items below are readable by link
@@ -113,7 +112,7 @@ export function sharingPanel(ctx) {
       ...(s.extractions ? [{ kind: "extractions", id: s.extractions, label: "The Extractions folder" }] : []),
       ...(s.file ? [{ kind: "file", id: s.file, label: "The study file" }] : [])];
     const items = await Promise.all(spec.map(async (it) => ({ ...it, perms: await remote.permissions(it.id).catch((e) => { console.warn(`${it.label}'s sharing was not read:`, e); return null; }) })));
-    return { stage: stageOf(s), items };
+    return { stage: stageOf(s, manifest), items };
   }
 
   // the study's sharing read afresh and drawn; the one place the page asks Drive about sharing

@@ -11,8 +11,9 @@ import { holdOwns } from "./offline.js";
 const KINDS = [["gt", "GT", "the ground truth the lab scores against"], ["official", "Official", "the extraction the study's numbers count"]];
 
 // $: the page's selector; reader, writer, place: the store's reads and writes and the study's place in it; data: Data Management
-// (marked() draws the folder on show with the marks written)
-export function setupMarks({ $, reader, writer, place, data }) {
+// (marked() draws the folder on show with the marks written); allows(action): whether the stage opens it, the buttons being there only while
+// it opens marking (req/shell/study/stage)
+export function setupMarks({ $, reader, writer, place, data, allows }) {
   const box = $("#marks-box"), list = $("#marks-list"), msg = $("#marks-msg");
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([$("#marks-box")], holdOwns);
@@ -30,6 +31,7 @@ export function setupMarks({ $, reader, writer, place, data }) {
   const draw = work.counting("the image's extractions drawn", () => paint());
 
   async function mark(row, kind) {
+    if (!allows("mark")) return;
     const sha = image.sha, on = row.marks.includes(kind), word = kind === "gt" ? "GT" : "official";
     for (const b of list.querySelectorAll("button")) b.disabled = true;
     let said = null;
@@ -64,7 +66,7 @@ export function setupMarks({ $, reader, writer, place, data }) {
       el.setAttribute("role", "listitem"); el.dataset.id = row.id;
       el.innerHTML = `<span class="mark-label"></span>`;
       el.querySelector(".mark-label").textContent = [row.label, when(row.modified)].filter(Boolean).join(" · ");
-      for (const [kind, word, title] of KINDS) {
+      for (const [kind, word, title] of allows("mark") ? KINDS : []) {
         const b = Object.assign(document.createElement("button"), { type: "button", className: "mark-" + kind, textContent: word });
         b.dataset.kind = kind; b.dataset.needsNetwork = ""; b.setAttribute("aria-pressed", String(row.marks.includes(kind)));
         b.title = row.marks.includes(kind) ? `Take off the ${word} mark` : `Mark it ${word}: ${title}`;
@@ -82,6 +84,8 @@ export function setupMarks({ $, reader, writer, place, data }) {
       image = kind === "image" ? info : null;
       draw();
     },
+    // the stage changed, by a promotion or a move back: the buttons are drawn, or taken away
+    stageChanged() { if (image) draw(); },
     leave() { image = null; ++epoch; asStarted(); },
   };
 }

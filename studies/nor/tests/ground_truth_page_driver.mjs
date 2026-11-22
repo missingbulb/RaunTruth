@@ -5,7 +5,7 @@
 // Ground truth button's colour follows the verdicts (red while an added NoR waits for one) and opens a popup that
 // names what is missing; the file holds only the candidates voted on, the added NoR once approved; for an image
 // from Google Drive (a stand-in Drive API), for a tagger whose sign-in lacks Drive's per-file permission, its box
-// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
+// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a Review
 // study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
 // combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
 // chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
@@ -353,14 +353,14 @@ async function mask(page) {
   await ctx.close();
 }
 
-// ---- a PreGT study: the summary, its mask and CSVs ----
+// ---- a Review study: the summary, its mask and CSVs ----
 {
-  stage = "PreGT";
+  stage = "Review";
   const { ctx, page } = await open(false);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
-  await check(await page.isHidden("#gt-submit"), "a PreGT study has no Save");
+  await check(await page.isHidden("#gt-submit"), "a Review study has no Save");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
     return ["#dl-cands", "#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });

@@ -2,7 +2,7 @@
  "about": "The study's owner, signed in, on Study Setup's page, where Drive lets them write the study's folder.",
  "page": "setup",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": {
   "email": "owner@acme.example",
   "name": "Acme Owner"

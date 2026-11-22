@@ -117,7 +117,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   CSV (every candidate, the user's decision and its measurements), and under it the shell's
   Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
   NoRs, their density and the area counted, and each measurement's statistics. Save, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
-  2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
+  2026-11-03, and shown only while annotating is open, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
   from: its Google Drive id and link, or "local") and the finder it was run with, with

@@ -50,9 +50,9 @@ const measure = (page) => page.evaluate(() => [...document.querySelectorAll("can
   return { where: c.closest("[id]").id, skew: Math.abs(r.width / r.height / (w / h) - 1) };
 }));
 let seen = 0, worst = { skew: 0 };
-// the selected card only shows what was found, so it is driven in a PreGT study
+// the selected card only shows what was found, so it is driven in a Review study
 // (req/shell/views/second); while the study makes ground truth, the task's card is in the left bar
-let stage = "PreGT";
+let stage = "Review";
 // the side bars at their narrowest, in a narrow and a wide window
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
@@ -104,7 +104,7 @@ for (const width of [1000, 1600]) {
   await ctx.close();
 }
 // a GT study: the image and the task's card in the left bar, at the left bar's narrowest
-stage = "GT";
+stage = "Develop";
 for (const width of [1000, 1600]) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 } });
   await asTagger(ctx);

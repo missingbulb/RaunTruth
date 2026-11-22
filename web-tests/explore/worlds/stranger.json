@@ -1,7 +1,7 @@
 {
  "about": "Someone signed in who is not a member of a private study: Drive refuses them its folder.",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": {
   "email": "stranger@acme.example",
   "name": "Acme Stranger"

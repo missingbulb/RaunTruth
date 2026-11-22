@@ -94,8 +94,8 @@ def test_a_study_names_files_that_exist(path):
 def test_a_study_names_its_stage_and_steps(path):
     """req/shell/study/stage, req/shell/status-bar/breadcrumbs: the stage and the study's own steps are stated, never assumed."""
     m = manifest(path)
-    assert 'stage' in m and m['stage'] in ('PreGT', 'GT', 'PostGT', 'Published', None), 'stage: PreGT, GT, PostGT, Published, or null for a tool making no ground truth'
-    if m['stage'] in ('GT', 'PostGT'):
+    assert 'stage' in m and m['stage'] in ('Setup', 'Develop', 'Analyze', 'Review', 'Public', None), 'stage: the one of the five a study is in until its study file says, or null for a tool outside the model'
+    if m['stage'] in ('Setup', 'Develop', 'Analyze'):
         gt = m.get('groundTruth', {})
         # req/shell/ground-truth/folders: its ground-truth folders are under its root, named there, not here
         assert 'root' in m, 'a study that makes ground truth names its Drive root'

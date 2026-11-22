@@ -93,8 +93,8 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 
 ## Ground truth
 
-- **Building or changing a study's ground-truth controls** (what its page shows in a GT or PostGT
-  stage) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
+- **Building or changing a study's ground-truth controls** (what its page shows in Setup, Develop or Analyze,
+  where annotating is open) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
   item at a time, area by area, what is done cut out of the image. (designing-ground-truth-tasks)
 
 ## The shell's states

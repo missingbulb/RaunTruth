@@ -30,6 +30,7 @@ import { isTiff } from "./accepts.js";
 import { account, SIGNED_IN, SIGNED_IN_LABEL } from "./account.js";
 import { remote } from "./drive.js";
 import { members, offers, released } from "./members.js";
+import { STAGES, LIGHT, WHAT, NEXT, stageAllows as allows, stageOf, frozen, gates, lines as stageLines } from "./stages.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
@@ -64,6 +65,7 @@ const attached = [];
 const data = {
   signedIn: () => attached.forEach((d) => d.signedIn?.()), open: (on) => attached.forEach((d) => d.open?.(on)),
   opened: () => attached.forEach((d) => d.opened?.()), mount: (m) => attached.forEach((d) => d.mount?.(m)),
+  stageChanged: () => attached.forEach((d) => d.stageChanged?.()),
   get on() { return attached.some((d) => d.on); },
 };
 export const attach = (d) => { attached.push(d); };
@@ -148,7 +150,7 @@ const signIn = account({
   applied: () => reapply(),
   // after the page's own start, which this may run during
   changed: () => queueMicrotask(async () => {
-    data.signedIn(); if (manifest) storeRoles = await readRoles();
+    data.signedIn(); if (manifest) { storeRoles = await readRoles(); setStage(await readStage()); }
     showAccess(); readMembers().then(drawStudies); remoteHint();
   }),
 });
@@ -470,16 +472,32 @@ every(2000, askSw, { whenHidden: true });
 askSw(); usageNow();
 
 // ---------- the study's stage and steps ----------
-// in order, each with its traffic light, what it means, and what moves a study on from it
-const STAGES = {
-  PreGT: { light: "red", what: "Its tools work, but cannot make ground truth yet, so there is nothing to export.",
-    next: "To move on to GT, the study needs a way to make ground truth: an export of what you confirm, to submit." },
-  GT: { light: "yellow", what: "Its tools make ground truth, to export and submit.",
-    next: "To move on to PostGT, the study needs batch actions: its tools run over many images at once." },
-  PostGT: { light: "green", what: "It makes ground truth, and has batch actions too.",
-    next: "To move on to Published, its algorithm needs to be trusted, so the page only shows what it finds." },
-  Published: { light: "all", what: "Its algorithm is trusted: the page shows what it finds, with no ground truth to make.", next: "This is the last stage." },
-};
+// What the stage opens (req/shell/study/stage): the one table of stages.js read for the study on show, whose stage is its study file's
+// once that is read (readStage), its study.json's until then, and none for a study outside the model.
+const stageAllows = (action) => !!manifest && allows(manifest.stage, action);
+// the stage read from the study file, which the study.json's stage stands in for where the file names none or cannot be read: from the
+// minute's copy, or fresh; the one the account last read stands in while the store does not answer. Only a signed-in user reads it (the
+// roles it is read with already ask the store): a visitor who never signs in loads nothing from Google, so has the study.json's. A
+// study with no stage keeps none.
+async function readStage({ fresh = false } = {}) {
+  if (!manifest || manifest.stage == null) return manifest?.stage ?? null;
+  const name = "stage:" + manifest.id;
+  let file = null;
+  if (remote.ready && signIn.signedIn() && signIn.token() && place.root() && !setupOffline() && !document.documentElement.classList.contains("offline")) {
+    try {
+      file = await place.settings({ fresh });
+      if (file && STAGES.includes(file.stage)) signIn.learn(name, file.stage);
+    } catch (e) { console.warn("the study's stage was not read:", e); }
+  }
+  const last = signIn.learned(name);
+  return stageOf(file || (STAGES.includes(last) ? { stage: last } : null), manifest);
+}
+// the study's stage changed, by Study Setup's promotion or a read: what follows from it is drawn again
+function setStage(stage) {
+  if (!manifest || manifest.stage == null || manifest.stage === stage || !STAGES.includes(stage)) return;
+  manifest.stage = stage;
+  showStage(); showBoxes(); drawAnnotate(); data.stageChanged();
+}
 function showStage() {
   if (manifest.stage) document.documentElement.dataset.stage = manifest.stage; else delete document.documentElement.dataset.stage;
   const tag = $(`#study-list a[data-id="${manifest.id}"] .stage-tag`);
@@ -487,17 +505,42 @@ function showStage() {
 }
 // a study's stage in the switcher: a small label bordered in the stage's colour; a study with none leaves it empty
 function stageTag(tag, stage) {
-  tag.textContent = stage || ""; tag.dataset.stage = stage || ""; tag.dataset.light = STAGES[stage]?.light || "";
+  tag.textContent = stage || ""; tag.dataset.stage = stage || ""; tag.dataset.light = LIGHT[stage] || "";
 }
-// the stages, the given one highlighted and those before it crossed out, with what moves a study on from it
-function fillStages(stage) {
-  const now = Object.keys(STAGES).indexOf(stage);
-  $("#stage-list").replaceChildren(...Object.entries(STAGES).map(([name, s], k) => {
+// the stages, the given one highlighted and those before it crossed out, with what moves a study on from it; for the study on show also
+// what the page measures of the gate and a line for each action open to this user (shell/study/stage-popup)
+function fillStages(stage, id) {
+  const now = STAGES.indexOf(stage);
+  $("#stage-list").replaceChildren(...STAGES.map((name, k) => {
     const li = document.createElement("li"); li.className = k < now ? "past" : k === now ? "now" : "";
-    li.innerHTML = `<span class="dot" data-light="${s.light}"></span><span class="name">${name}</span><span class="what">${esc(s.what)}</span>`;
+    li.innerHTML = `<span class="dot" data-light="${LIGHT[name]}"></span><span class="name">${name}</span><span class="what">${esc(WHAT[name])}</span>`;
     return li;
   }));
-  $("#stage-next").textContent = STAGES[stage]?.next || "";
+  $("#stage-next").textContent = NEXT[stage] || "";
+  $("#stage-gates").replaceChildren(); $("#stage-actions").replaceChildren();
+  if (manifest?.id === id) fillStageLines(stage, id);
+}
+// what the page measures of the study's gate: how many images its index lists for this user, and how many of them carry a GT and an
+// official mark; null where the study file or its index cannot be read
+async function stageFacts() {
+  try {
+    const s = await place.settings();
+    if (!s?.index) return null;
+    const images = s.index.images.filter((im) => storeRoles.manager || !isHidden(im.tags || [], s.hide));
+    const marked = (k) => images.filter((im) => !!marksOf(s.marks, im.sha)[k]?.file).length;
+    return { images: images.length, gt: marked("gt"), official: marked("official") };
+  } catch (e) { console.warn("the study's gate was not measured:", e); return null; }
+}
+async function fillStageLines(stage, id) {
+  const facts = await stageFacts();
+  if (manifest?.id !== id || manifest.stage !== stage) return;
+  const item = (text, action) => {
+    const li = Object.assign(document.createElement("li"), { textContent: text });
+    if (action) li.dataset.action = action;
+    return li;
+  };
+  $("#stage-gates").replaceChildren(...gates(stage, facts).map((t) => item(t)));
+  $("#stage-actions").replaceChildren(...stageLines(stage, { save: maySave(), manage: mayManage() }, facts).map(([action, text]) => item(text, action)));
 }
 // the stages pop up beside the switcher while a study's stage label is hovered, about that study
 const stagePop = $("#stage-pop"), stageClose = closesOnLeave(stagePop, () => stagePop.matches(":hover"));
@@ -505,7 +548,7 @@ function stageHover(tag) {
   tag.addEventListener("mouseenter", () => {
     if (!tag.dataset.stage) return;
     stageClose.stay();
-    fillStages(tag.dataset.stage);
+    fillStages(tag.dataset.stage, tag.closest("a").dataset.id);
     const menu = $("#study-menu .pop").getBoundingClientRect(), row = tag.closest("a").getBoundingClientRect();
     if (!stagePop.matches(":popover-open")) stagePop.showPopover();
     stagePop.style.left = Math.max(8, Math.min(menu.right + 8, innerWidth - stagePop.offsetWidth - 8)) + "px";
@@ -515,8 +558,6 @@ function stageHover(tag) {
 }
 stagePop.addEventListener("mouseenter", stageClose.stay);
 stagePop.addEventListener("mouseleave", stageClose.leave);
-// the study's stage lets its users annotate: GT and PostGT, as the study stages (study-stages-spec.md) are not yet in
-const stageAnnotates = () => manifest.stage === "GT" || manifest.stage === "PostGT";
 
 // ---------- annotating (req/shell/annotate/choice) ----------
 // After an image loads the user chooses how to get annotations on it. Annotation mode is on from the choice that enters it
@@ -528,7 +569,7 @@ let annotating = false, route = null, resume = null;
 let viewing = null, driveList = null;
 // the extraction the annotation being made was edited from, its file's id, which Save records (req/shell/extractions/list)
 let editBase = null;
-const makesTruth = () => !!manifest && stageAnnotates() && annotating;
+const makesTruth = () => !!manifest && stageAllows("annotate") && annotating;
 // whether the store lets this user save ground truth to the study, as far as last read
 const maySave = () => signIn.signedIn() && storeRoles.tagger;
 const mayManage = () => signIn.signedIn() && storeRoles.manager && remote.ready;
@@ -2049,7 +2090,7 @@ page.watch("image", () => { showBoxes(); drawAnnotate(); });
 // the choice drawn from where things stand
 function drawAnnotate() {
   document.documentElement.toggleAttribute("data-annotating", !!manifest && makesTruth());
-  const shown = !!manifest && stageAnnotates() && !!page.get("image") && !data.on;
+  const shown = !!manifest && stageAllows("annotate") && !!page.get("image") && !data.on;
   const says = { scratch: "Annotating from scratch.", local: "Annotating from the work kept on this device.",
     drive: `Annotating from ${remote.short}'s annotation${viewing ? `: ${viewing.label}` : ""}.` };
   choice.draw({ shown, annotating, route: says[route] || "", draft: shown && !annotating ? gtSession.draft() : null,
@@ -2129,9 +2170,11 @@ function submitTruth(gt) {
       await truth.save(doc, image, editBase);
       noteSaved(image.sha256);
       if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-      $("#gt-msg").textContent = `Saved to the study's extractions folder, as your annotation of ${st.fileName}.`;
+      // a session begun before the owner froze the study saves still, and the extraction is said not to count (req/setup/promote)
+      const late = frozen(await readStage({ fresh: true }));
+      $("#gt-msg").textContent = `Saved to the study's extractions folder, as your annotation of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
       step("submit", true, `Saved the annotation of ${st.fileName}`);
-      log.add("Saved the annotation");
+      log.add(late ? "Saved the annotation, after the freeze: not counted" : "Saved the annotation");
       next($("#gt-close"));
     } catch (e) {
       // the store refusing is final; a sign-in run out, or no network, is not: the save waits on this device for the next click
@@ -2596,6 +2639,7 @@ async function mountNow(id) {
   }
   data.mount(manifest);
   storeRoles = await readRoles();
+  manifest.stage = await readStage(); data.stageChanged();
   document.title = SETUP ? `Study Setup · ${manifest.title}` : manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;
@@ -2647,7 +2691,7 @@ function showBoxes() {
   for (const [slot, sel] of Object.entries(STUDY_BOXES)) {
     const b = $(sel), filled = !!b.querySelector("[data-study-panel]") || (slot === "processing" && !!manifest.algorithms);
     const gone = !filled || (slot === "tasks" && !makesTruth()) || (slot === "summary" && !hasModel())
-      || (slot === "processing" && stageAnnotates() && !!page.get("image") && !(annotating && route === "scratch"));
+      || (slot === "processing" && stageAllows("annotate") && !!page.get("image") && !(annotating && route === "scratch"));
     if (slot === "summary" && b.hidden !== gone) summary = true;
     b.hidden = gone;
   }
@@ -2761,7 +2805,7 @@ const batchRunner = {
 // what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
 // and left bar, lent as they are
 export const lent = {
-  batchRunner,
+  batchRunner, stageAllows, setStage, readStage,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
   page, views, summaryMasks, st, retitle, loadOriginal, minimapView: () => view?.minimapView(),
   // the image itself, by its id, is open

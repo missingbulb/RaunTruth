@@ -1,7 +1,7 @@
 {
  "about": "A first visit: the welcome popup not yet answered, Google granting a sign-in when asked, as the annotator.",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": null,
  "welcome": true,
  "signIn": {

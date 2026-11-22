@@ -3,7 +3,7 @@
   "title": "NoR Finder",
   "description": "Nodes of Ranvier, found, counted and measured in fluorescence images, then reviewed one by one.",
   "visibility": "listed",
-  "stage": "GT",
+  "stage": "Develop",
   "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",

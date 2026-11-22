@@ -40,7 +40,7 @@ Every capability of [missingbulb/vascularColoring](https://github.com/missingbul
   spacing go in a new `study.json` `view` block, and the page says the spacing was stated, not read
   from the file. Phases: contract (the Image Viewer and the fixture emit Z too), viewer3d with
   channel rows, view controls, then overlays (D2).
-- **D4, ground truth:** stage GT, using the shell's Submit Ground Truth with label
+- **D4, ground truth:** Develop (then GT), using the shell's Submit Ground Truth with label
   `vascular-ground-truth`. This needs the shell's submit popup to stop counting NoR's `labels`.
   An intake task follows once the first corrected model is submitted.
 - **D5, literature binaries:** none come into git, and the paper summaries no longer embed or link
@@ -62,7 +62,7 @@ Taken on Fable's recommendation unless the owner says otherwise:
   the shared `lab/` fetches, runs and scores for every study (#1011, 2026-11-18).
 - **D8:** ship the v5 drafts first. Extraction in the browser comes only after a measured run.
 
-- **Listing:** the study is listed now (owner, 2026-10-31), with the 3D viewer alone; it stays PreGT until
+- **Listing:** the study is listed now (owner, 2026-10-31), with the 3D viewer alone; it stays outside annotating until
   the model view brings Submit Ground Truth.
 - **D9:** decided once the model view lands here. Until then the old site stays the place to correct
   vessel models. After that: redirect its page to rauntruth.com/app/vascular, stop its scheduled

@@ -63,3 +63,9 @@
   runner"; "once there's any model on the image, no matter the progress of it, I want the 'summary'
   block showing."
 - **Landed:** #1036
+
+## 2026-11-22 · reworded · the old stages GT, PostGT and PreGT became the five stages
+- **Reason:** the rule and skill named stages that no longer exist; annotating is open in Setup,
+  Develop and Analyze.
+- **Actor:** Claude, work package WP6 of the study-stages plan (owner's decisions of 2026-11-22).
+- **Model:** claude-opus-5-5
