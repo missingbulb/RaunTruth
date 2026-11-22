@@ -5,5 +5,7 @@
   externals (or provides a fluent, clean API)".
 - **Mechanism:** prose for the intent, with the declared check `world-set-up` on the hand-written
   signatures (a fake's state assigned or pushed, the page's sign-in and welcome records, the service
-  worker removed); its rule and its check share this file.
+  worker removed); its rule and its check share this file. the declared check's pattern gains
+  `drive.folder({`/`drive.file({`.
 - **Retire when:** the fakes keep no state a test could reach but through the World.
+- **Reason:** the owner chose fluent Drive folders and images as the next layer; the check holds it.

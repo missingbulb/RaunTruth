@@ -270,7 +270,7 @@
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!world\\.mjs$|harness_driver\\.mjs$|fakes\\/)[^]*\\.m?js$/",
     "matchLines": [
       {
-        "match": "/delete Navigator\\.prototype\\.serviceWorker|\\.env\\s*=[^=]|\\bgoogle\\.(settings|account)\\b\\s*(\\.(push|splice)|=[^=])|\\.files\\.(push|splice)\\(|\\.writers\\.set\\(|localStorage\\.setItem\\(\\s*[\"'](nor-google-sign-in|nor-welcome)[\"']/",
+        "match": "/delete Navigator\\.prototype\\.serviceWorker|\\.env\\s*=[^=]|\\bgoogle\\.(settings|account)\\b\\s*(\\.(push|splice)|=[^=])|\\.files\\.(push|splice)\\(|\\.writers\\.set\\(|localStorage\\.setItem\\(\\s*[\"'](nor-google-sign-in|nor-welcome)[\"']|\\b(drive|googleDrive\\([^)]*\\)|googleOf\\([^)]*\\)\\.drive)\\.(folder|file)\\(\\s*\\{/",
         "what": "sets up the world by hand: {match}",
         "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
       }
