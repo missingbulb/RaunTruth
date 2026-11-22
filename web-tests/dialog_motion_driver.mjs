@@ -9,7 +9,7 @@ import path from "node:path";
 import { frames } from "./page_frames.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { origin, server } = await serveSite({
@@ -17,17 +17,16 @@ const { origin, server } = await serveSite({
   "/web/version_history.json": "[]",
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen ? " " + JSON.stringify(seen) : "")); await done(1); } console.log("ok: " + what); };
 
 // clock: the page's clock made one the test can move past the page's own time windows; it runs as the real one does
 async function open({ motion = true, reducedMotion = "no-preference", clock = false } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, reducedMotion });
+  const device = w.device().with({ reducedMotion }).keeps({ "nor-motion": JSON.stringify(motion) });
+  const ctx = await device.context();
   if (clock) await ctx.clock.install();
-  await ctx.addInitScript((motion) => {
-    delete Navigator.prototype.serviceWorker;
-    localStorage.setItem("nor-motion", JSON.stringify(motion));
+  await ctx.addInitScript(() => {
     // each dialog's motions as the page makes them, and how many have ended, so a test asks only whether one ran
     window.dialogMotions = {};
     const animate = Element.prototype.animate;
@@ -39,10 +38,8 @@ async function open({ motion = true, reducedMotion = "no-preference", clock = fa
       }
       return x;
     };
-  }, motion);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html");
+  });
+  const page = await device.opens(undefined, { until: "none" });
   await page.waitForFunction(() => $("#sb-version").textContent);
   return { ctx, page };
 }
