@@ -1,7 +1,7 @@
 // The images a page test hands the page, each {name, mimeType, bytes}, for a Drive folder to hold (world.mjs) or a
 // file chooser to pick. Drawn in the test, never a study's real data.
 //   image.png("a.png", { width, height, seed })          noise, different for each seed
-//   image.greyPng("g.png", { width, height, value })     one grey value
+//   image.greyPng("g.png", { width, height, value })     one grey value, or value(x, y) each pixel's
 //   image.tiff("s.tif", { width, height, planes, value, description, bps, headFirst })
 //     planes of width x height, value(plane, x, y) each pixel's; description: the ImageJ header, if any;
 //     headFirst: the IFD before the pixels, so a reader of the file's head alone has its shape, where ImageJ's own
@@ -33,7 +33,7 @@ function headFirstTiff(W, H, planes, desc, value) {
 
 export const image = {
   png: (name, { width = 200, height = width, seed = 1 } = {}) => ({ name, mimeType: "image/png", bytes: noisePng(width, height, seed) }),
-  greyPng: (name, { width, height = width, value }) => ({ name, mimeType: "image/png", bytes: greyPng(width, height, value) }),
+  greyPng: (name, { width, height = width, value }) => ({ name, mimeType: "image/png", bytes: greyPng(width, height, typeof value === "function" ? value : () => value) }),
   tiff(name, { width, height = width, planes = 1, value = () => 0, description, bps = 2, headFirst = false }) {
     if (headFirst) return { name, mimeType: "image/tiff", bytes: headFirstTiff(width, height, planes, description, value) };
     const Arr = bps === 1 ? Uint8Array : Uint16Array;
