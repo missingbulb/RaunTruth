@@ -21,9 +21,6 @@ import { world } from "../../../web-tests/world.mjs";
 const [shot, thumbs, ...images] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-const ROOT = "rootfolder0000000001", SUB = "subfolder00000000001";
-const files = images.map((p, k) => ({ id: `dialogfile${String(k).padStart(10, "0")}`, name: path.basename(p), bytes: fs.readFileSync(p) }));
-const stranger = { id: "notinthelab000000001", name: "Not in the lab's list.tif", bytes: files[0].bytes };
 const TYPES = { ".jpg": "image/jpeg", ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let thumbsServed = 0;
 const server = http.createServer((q, r) => {
@@ -39,16 +36,17 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw), w = world(browser, origin);
-w.studies.rootedAt("nor", ROOT);
 w.studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/" }));
 // the deploy with a Google key
 w.site.withoutGoogleClient();
 const done = async (code, why) => { if (why) console.error(why); await browser.close(); server.close(); process.exit(code); };
 // the browser's Drive, every context's: a subfolder holding the first image too, the lab's images and one it lacks
 const { drive } = w;
-drive.folder({ id: ROOT, name: "Slides", access: "public" });
-drive.folder({ id: SUB, name: "More slides", parent: ROOT });
-for (const [k, f] of [...files, stranger].entries()) drive.file({ ...f, parent: ROOT, also: k ? undefined : [SUB], mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
+const slides = w.folder("Slides").public(), more = slides.folder("More slides"), at = { createdTime: "2026-10-01T10:00:00Z" };
+w.studies.rootedAt("nor", slides);
+const files = images.map((p, k) => slides.holds({ name: path.basename(p), mimeType: "image/tiff", bytes: fs.readFileSync(p) }, { id: `dialogfile${String(k).padStart(10, "0")}`, ...at }));
+files[0].also = [more.id];
+const stranger = slides.holds({ name: "Not in the lab's list.tif", mimeType: "image/tiff", bytes: files[0].bytes }, at);
 // what the page took from Drive: per file, how often the whole file and how often a piece of it
 const asked = (id) => { const c = drive.calls.filter((x) => x.kind === "download" && x.id === id); return { whole: c.filter((x) => !x.range).length, pieces: c.filter((x) => x.range).length }; };
 // resolves once the whole file is asked for, or rejects after ms
