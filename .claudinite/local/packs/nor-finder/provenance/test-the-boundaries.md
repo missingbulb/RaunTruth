@@ -5,3 +5,7 @@
   No two sessions needed."
 - **Mechanism:** prose for the split, held by the coded check `second-visit-in-test` for its
   signature.
+- **Reason:** a second visit also runs whatever the first left in flight (a debounced save, a sync,
+  storage events).
+- **Retire when:** the page keeps nothing across visits, or the harness itself starts every case
+  from seeded storage.
