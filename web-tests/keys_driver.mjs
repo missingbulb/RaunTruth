@@ -12,9 +12,8 @@ import path from "node:path";
 import { frames } from "./page_frames.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { studies as studiesOf } from "./fakes/studies.mjs";
 import { ENGINE, LAUNCH } from "./engine.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -33,14 +32,13 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 let failed = false;
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // the fixture as one loading from this computer, declaring two actions of the shell's own buttons
-studiesOf(ctx).edit("fixture", (m) => {
-  m.files.from = ["local"];
+w.studies.fromThisComputer("fixture");
+w.studies.edit("fixture", (m) => {
   m.actions = [
     { id: "ruler", label: "Ruler", keys: ["KeyR"], kind: "toggle", control: "#ruler-btn", legend: true },
     { id: "grid", label: "Grid", keys: ["Alt+KeyG"], kind: "toggle", control: "#grid-btn", legend: true },
@@ -50,11 +48,10 @@ studiesOf(ctx).edit("fixture", (m) => {
     { id: "unsaid", label: "Zoom out", keys: ["KeyX"], kind: "press", control: "#zoom-out" },
   ];
 });
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
+const device = w.device();
 const consoleErrors = [];
-page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
-page.setDefaultTimeout(STEP);
+(await device.context()).on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
+let page;
 
 const BLUE = /^rgba?\(\s*\d{1,2},\s*\d+,\s*2\d\d(,\s*1)?\)$/;
 const legend = () => page.evaluate((blue) => {
@@ -80,8 +77,7 @@ const press = (code, { on = null, repeat = false, altKey = false, ctrlKey = fals
 try {
   // the study's action saying nothing of the legend is refused as the study comes in, with an error naming it
   await expecting(/unsaid/, async () => {
-    await page.goto(origin + "/web/fixture");
-    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+    page = await device.opens("fixture");
   });
   // no image: the Ruler and Grid buttons are off, so their keys do nothing and the legend lists neither
   check((await legend()).length === 0, "with the buttons off the legend lists nothing", await legend());
