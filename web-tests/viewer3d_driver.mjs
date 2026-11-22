@@ -15,9 +15,9 @@ import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "./engine.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
-import { pw, launch, check, siteOf } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [shot] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -52,15 +52,13 @@ const { origin, server } = await serveSite({
   "/web/vendor/wheels.json": "[]",
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
-siteOf(browser).studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
+w.studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const device = w.device().with(SOFTWARE_3D);
+await standInDrive(await device.context());
+let page;
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
 const picture = async () => { await viewDrawn(page); return pictureNow(); };
@@ -85,8 +83,7 @@ const level = async (k, which, v) => page.evaluate(([k, which, v]) => {
 }, [k, which, v]);
 
 try {
-  await page.goto(origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  page = await device.opens("vascular");
   // the 3D view needs WebGL2, which a headless browser may lack: then only the rest is checked
   const gl3d = await page.evaluate(() => !!document.createElement("canvas").getContext("webgl2"));
   if (gl3d) {
@@ -377,17 +374,14 @@ try {
   check(!(await page.$("#v3-switch")), "a 2D study has no 2D/3D switch");
 
   // a browser without WebGL2: the stack still opens, flattened, its volume there for the study to read
-  const noGl = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const bare = w.device(), noGl = await bare.context();
   await noGl.addInitScript(() => {
-    delete Navigator.prototype.serviceWorker;
     const get = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) { return kind === "webgl2" ? null : get.call(this, kind, ...rest); };
   });
   await standInDrive(noGl);
-  const p2 = await noGl.newPage();
-  p2.on("pageerror", (e) => { failed = true; console.error("page error, no WebGL2: " + e.message); });
-  await p2.goto(origin + "/web/vascular");
-  await p2.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  noGl.on("weberror", (e) => { failed = true; console.error("page error, no WebGL2: " + e.error().message); });
+  const p2 = await bare.opens("vascular");
   await openFromDrive(p2, { name: "stack.tif", mimeType: "image/tiff", buffer: STACK });
   await p2.waitForFunction(() => window.shellForTests.page.get("image"));
   const seen = await p2.evaluate(() => ({ shape: window.shellForTests.viewer.three?.meta?.shape || null, flat: !$("#stage").hidden, switch: !!$("#v3-switch") }));
