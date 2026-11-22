@@ -7,23 +7,16 @@
 // a tip at the image selector; its × closes it for good, a page opened with it closed too, and opening the selector does too.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_cache_driver.mjs [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
 import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const ROOT = "cachefolder000000001";
-// the folder's link, which the dialog remembers until a file's link is opened in its place
-const FOLDER = `https://drive.google.com/drive/folders/${ROOT}`;
-const PNG = noisePng();
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
@@ -31,11 +24,13 @@ let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key, and a.png on Drive, whose bytes the test changes
 w.site.withoutGoogleClient();
-drive.folder({ id: ROOT, name: "Cache", access: "public" });
-const FILE = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+const cache = w.folder("Cache").public(), PNG = image.png("a.png");
+const FILE = cache.holds(PNG, { createdTime: "2026-10-01T10:00:00Z" });
+// the folder's link, which the dialog remembers until a file's link is opened in its place
+const FOLDER = `https://drive.google.com/drive/folders/${cache.id}`;
 // a device of its own, remembering the folder's link; keys: kept before the page opens
 async function open(keys = {}) {
-  const device = w.device().kept().remembersDriveLink(ROOT).keeps(keys);
+  const device = w.device().kept().remembersDriveLink(cache).keeps(keys);
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }
 const { device, page } = await open();
@@ -101,7 +96,7 @@ try {
   check(downloads() === 0 && kinds().join() === "list,details", `by its link, the file's details give its SHA-256, and it opens from this device: ${kinds()}`);
 
   // the file changes on Drive
-  FILE.bytes = Buffer.concat([PNG, Buffer.from([0])]);
+  FILE.bytes = Buffer.concat([PNG.bytes, Buffer.from([0])]);
   calls.length = 0;
   await fromDialog();
   await until(page, async (want) => {
