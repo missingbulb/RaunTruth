@@ -1,6 +1,6 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
 // a user signed in on it is who the page names, and the settings another device of theirs left on Drive are the ones
-// it takes; a device with no one signed in is the device's own; a kept device holds the cache entries it was given; a deploy with no Google client offers no sign-in.
+// it takes; a device with no one signed in is the device's own; a kept device holds the cache entries it was given; a device visits an address as given; a deploy with no Google client offers no sign-in.
 //   node web-tests/world_driver.mjs
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -38,6 +38,11 @@ try {
   }, origin + "/acme.bin");
   check(there?.bytes.join() === "1,2,3" && there.header === "one", "a kept device holds the cache entries it was given", there);
   await profile.close();
+
+  const visitor = w.device();
+  const typed = await visitor.visits("/web/fixture?from=typed", { until: "title" });
+  check(new URL(typed.url()).search === "?from=typed" && await typed.textContent("#title"), "a device visits an address as given", typed.url());
+  await visitor.close();
 
   w.site.withoutGoogleClient();
   const keyOnly = w.device();

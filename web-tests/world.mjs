@@ -120,6 +120,14 @@ export function world(browser, origin) {
           await UNTIL[until](page);
           return page;
         },
+        // a page on an address of the site's as a visitor has it (an old one, one with a query), until as opens()
+        async visits(address, { until = "ready" } = {}) {
+          const c = await device.context(), page = c.pages().find((p) => p.url() === "about:blank") || await c.newPage();
+          page.setDefaultTimeout(STEP);
+          await page.goto(origin + address);
+          await UNTIL[until](page);
+          return page;
+        },
         close: () => ctx?.close(),
       };
       return device;
