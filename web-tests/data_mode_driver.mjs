@@ -71,10 +71,8 @@ await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
 await check(true, "the list button lays the images out as a list");
 
 // whether the page made the previews file is asked of Drive, which knows nothing of the page's making it
-await expecting(/status of 404.*googleapis/, async () => {
-  await page.click("#update-previews");
-  await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
-});
+await page.click("#update-previews");
+await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
 await check(!writes.filter(([, name]) => name !== "rauntruth-study.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
@@ -115,10 +113,8 @@ await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
 await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
-await expecting(/status of 404.*googleapis/, async () => {
-  await page.click(cell("b stack.tif") + " .mark-gt");
-  await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
-});
+await page.click(cell("b stack.tif") + " .mark-gt");
+await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
 await check(writes.at(-1)[1] !== neededOf("b stack.tif"), "a marker someone else made is left alone");
 
 await page.click("#data-tree .tree-folder .count");

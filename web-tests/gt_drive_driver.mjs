@@ -131,8 +131,8 @@ const gtDoc = JSON.parse(file.bytes.toString());
 await check(gtDoc.tagger === "tester@example.com" && !Number.isNaN(Date.parse(gtDoc.created)) && gtDoc.image.sha256 === createHash("sha256").update(png.bytes).digest("hex") && gtDoc.labels.length === 1,
   "the file names who made it, when it was made and the image's SHA-256, and holds the study's marks", gtDoc);
 const run = gtDoc.history?.actions?.find((a) => a.type === "run");
-await check(run?.version?.site === (await page.evaluate(() => $("#site-version").title.replace(/^version /, ""))) && run.version.code === null,
-  "its run records the site's version, and no code hash where the page was told none", run?.version);
+await check(run?.version?.site === (await page.evaluate(() => $("#site-version").title.replace(/^version /, ""))) && run.version.code === "standin0",
+  "its run records the site's version and the code version the worker reported", run?.version);
 msg = await submit();
 await check(/^Saved/.test(msg) && writes.filter(([w, n]) => w === "folder" && n === sub).length === 1 && JSON.stringify(writes.slice(-1)) === JSON.stringify([["replace", file.name]]) && keptForever.includes(file.name),
   "saving again replaces the person's own file, keeping the old version, and writes nothing else", writes);
