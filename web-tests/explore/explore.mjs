@@ -236,7 +236,7 @@ async function ownerScreenshot(page, file) {
     const cdp = await page.context().newCDPSession(page), { width, height } = page.viewportSize();
     await cdp.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 2, mobile: false });
     await frames(page);
-    await page.screenshot({ path: file });
+    fs.writeFileSync(file, Buffer.from((await cdp.send("Page.captureScreenshot", { format: "png" })).data, "base64"));
     await cdp.send("Emulation.clearDeviceMetricsOverride");
     await cdp.detach();
     await frames(page);
