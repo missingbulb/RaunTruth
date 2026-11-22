@@ -1,6 +1,7 @@
 // What the GT history drivers share: the fixture study opened as a Ground Truth Tagger on the stand-in Drive, marks counted and
-// dragged, the device's drafts read, and a question the page asks answered.
+// dragged, the device's drafts read, a page opened on a device keeping some, and a question the page asks answered.
 import { until } from "./page_until.mjs";
+import { storedDrafts, seedDrafts } from "./device_storage.mjs";
 
 export function kit({ drive, png }) {
   const { role, open } = drive;
@@ -13,7 +14,8 @@ export function kit({ drive, png }) {
     await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
   };
   const tagger = async (page) => { await asTagger(page); await openImage(page); };
-  const reopen = async (page) => { await page.reload(); await ready(page); await tagger(page); };
+  // a tagger's page in a fresh context, the image open, on a device keeping those drafts and browser keys
+  const openKept = async ({ drafts = [], seed = {} } = {}) => { const page = await open(true, { seed, prepare: (ctx) => seedDrafts(ctx, drafts) }); await tagger(page); return page; };
   const model = (page) => page.evaluate(() => window.fixture.model());
   const marks = async (page) => JSON.stringify((await model(page))?.marks ?? null);
   const counted = async (page) => { await page.click("#fx-count"); await until(page, () => !!window.fixture.model()); await page.click("#gt-start"); };
@@ -31,11 +33,7 @@ export function kit({ drive, png }) {
     await dragMark(page, id, dx, dy);
     await until(page, (b) => JSON.stringify(window.fixture.model().marks) !== b, before);
   };
-  const records = (page) => page.evaluate(() => new Promise((ok, bad) => {
-    const q = indexedDB.open("gt-drafts", 1);
-    q.onupgradeneeded = () => { q.transaction.abort(); ok([]); };
-    q.onsuccess = () => { const r = q.result.transaction("drafts").objectStore("drafts").getAll(); r.onsuccess = () => { q.result.close(); ok(r.result); }; r.onerror = () => bad(r.error); };
-  }));
+  const records = storedDrafts;
 
   // a question the page asks, answered as told; its text
   const ask = async (page, accept, act) => {
@@ -46,5 +44,5 @@ export function kit({ drive, png }) {
     await acting;
     return text;
   };
-  return { ready, asTagger, openImage, tagger, reopen, model, marks, counted, label, center, dragMark, moved, records, ask };
+  return { ready, asTagger, openImage, tagger, openKept, model, marks, counted, label, center, dragMark, moved, records, ask };
 }
