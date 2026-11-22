@@ -8,15 +8,13 @@
 // belongs to the read, not to a list of controls.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_renewal_driver.mjs
-import { fileURLToPath } from "node:url";
-import path from "node:path";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { ENGINE } from "./engine.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OLD = "old-token", NEW = "renewed-token", PRIVATE = "privatefolder0000001";
+const OLD = "old-token", NEW = "renewed-token";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin);
@@ -27,14 +25,14 @@ let failed = false;
 // user's token reads
 const { drive, google } = w;
 const tester = w.user("tester@example.com").named("Tester");
+const own = w.folder("Private folder").sharedWithUserAlone(), PRIVATE = own.id;
+own.holds(image.bytes("private.png", 10));
 google.nextToken = NEW;
 // Google's window answering only once the page's read of Drive has come back, for a renewal while the read goes on
 const answerAfterRead = () => {
   const back = drive.next((c) => c.kind === "list" && c.parent === PRIVATE);
   google.answerAfter = () => back;
 };
-drive.folder({ id: PRIVATE, name: "Private folder", access: "private" });
-drive.file({ id: "privateimage00000001", name: "private.png", parent: PRIVATE, bytes: Buffer.alloc(10), mimeType: "image/png" });
 
 // a signed-in page whose token lasts `left` ms more (negative: ran out that long ago); reads(): the bearer of each
 // read of the private folder; asked(): what Google's window was asked since it opened
