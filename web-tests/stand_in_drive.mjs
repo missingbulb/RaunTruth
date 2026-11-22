@@ -81,9 +81,9 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   let id = new URL(self.location.href).searchParams.get("study");
-  postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0 });
+  postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0, code: "standin0" });
   onmessage = async ({ data: m }) => {
-    if (m.type === "study") { id = m.id; postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0 }); }
+    if (m.type === "study") { id = m.id; postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0, code: "standin0" }); }
     else if (m.type === "open") {
       self.lastOpen = { name: m.name, bytes: new Uint8Array(m.bytes) };
       postMessage({ type: "held" });

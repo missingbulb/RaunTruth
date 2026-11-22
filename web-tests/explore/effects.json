@@ -5,9 +5,7 @@
     {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
   ]},
   "allow": [
-    {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"},
-    {"pattern": "status of 404 \\(Not Found\\) \\(https://cdn\\.jsdelivr\\.net/npm/(onnxruntime-web|tesseract\\.js|@gutenye/ocr-models)", "why": "the CDN fake serves the libraries web-tests/page_libraries.py installs, which leave out those the Bookshelf Reader keeps offline: the fake's doing"},
-    {"pattern": "status of 404 \\(Not Found\\) \\(https://www\\.googleapis\\.com/drive/v3/files/[\\w-]+\\?fields=appProperties", "why": "the Drive fake answers 404 when asked the appProperties of a file the site did not make, where Drive answers 200 with none: the fake's doing, to fix in fakes/google_drive.mjs"}
+    {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"}
   ],
   "families": [
     {"family": "theme", "match": {"key": "^#theme$"}, "must": ["html.theme"], "may": ["storage.*", "settings", "open"], "writes": 0},

@@ -127,4 +127,11 @@ check((await get(INNER, stranger)).status === 404, "and a reader of one folder r
   check(unlink.status === 204 && (await get(INNER, null)).status === 404, "and deleting that permission takes it away", unlink.status);
 }
 
+{
+  // Drive answers appProperties for any file the person can read, with none when the app did not make it
+  const made = await get(OWN, null, "appProperties"), theirs = await get(STUDY, member, "appProperties");
+  check(theirs.status === 200 && !theirs.json.appProperties, "a readable file the site did not make answers 200 with no appProperties, as Drive does", theirs);
+  check((await get(ROOT, stranger, "appProperties")).status === 404, "and one the person cannot read is still refused", made.status);
+}
+
 process.exit(failed ? 1 : 0);

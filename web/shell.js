@@ -781,7 +781,7 @@ function pythonWorker() {
   st.worker.onmessage = (e) => onWorker(e.data);
   st.worker.onerror = (e) => onWorker({ type: "error", text: e.message || "Python stopped." });
 }
-// The Study Manager's areas of the image opened from the study's store (req/shell/data/damaged,
+// The study owner's areas of the image opened from the study's store (req/shell/data/damaged,
 // req/shell/data/area-of-interest), from its study index, the one kept on this device offline; none for a preview,
 // whose pixels are not the image's, or an image the index does not hold
 async function studyAreas(source) {
@@ -801,7 +801,7 @@ function call(action, args, echo) {
     st.worker.postMessage({ type: "open", name: st.kept.name, bytes }, [bytes]);
     st.held = st.kept;
   }
-  // the Study Manager's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
+  // the study owner's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
   pyCalls.push(work.begin(`Python ${action}`));
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
@@ -1199,7 +1199,7 @@ function truthTag(g) {
   const others = [["gt", "GT"], ["official", "official"]].filter(([k]) => theirs(g.marks[k])).map(([, t]) => t);
   const parts = [...(mine ? [`yours: ${mine}`] : []), ...others.map((t) => `${t} marked`)];
   if (parts.length) return [parts.join(" · "), "What the study's extractions of this image say, yours first", mine === "saved" && !others.length ? "saved" : "marked"];
-  return g.needed ? ["GT wanted", "A study manager marked it as needing ground truth", "wanted"] : [];
+  return g.needed ? ["GT wanted", "A study owner marked it as needing ground truth", "wanted"] : [];
 }
 const putTruthTag = (tag, g) => {
   const [text, title, state] = truthTag(g);
@@ -1389,7 +1389,7 @@ function remoteDialog() {
     if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, list.childElementCount - 1);
   };
   // Load study images (req/shell/load/study-images): the study index's images in groups, by folder or by the
-  // multi-value tag the study names, less those its rules hide but to a Study Manager; each folder's previews file read
+  // multi-value tag the study names, less those its rules hide but to a study owner; each folder's previews file read
   // once one of its images scrolls into view
   let groupsSeen = null;
   const showIndex = async (ix, off) => {

@@ -43,6 +43,7 @@ export const look = (page) => page.evaluate(() => {
       key: keyOf(el), tag: el.tagName.toLowerCase(), type: el.type || "", role: el.getAttribute("role") || "", text: textOf(el),
       disabled: el.matches(":disabled") || el.getAttribute("aria-disabled") === "true", inScope: !modal || modal.contains(el), reachable,
       ids: ids(el), href: a ? a.href : "", external: !!a && new URL(a.href, location.href).origin !== location.origin, download: !!a?.hasAttribute("download"),
+      selected: el.getAttribute("aria-selected"),
       pressed: el.getAttribute("aria-pressed") ?? el.getAttribute("aria-expanded") ?? (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : null),
       value: ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) && el.type !== "password" ? String(el.value).slice(0, 40) : null,
       options: el.tagName === "SELECT" ? [...el.options].filter((o) => !o.disabled).map((o) => o.value) : null,

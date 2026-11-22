@@ -63,3 +63,38 @@ def test_a_drive_write_nobody_asked_for_is_found(tmp_path):
     assert found and found[0]['class'] == 'bug', run['findings']
     # found at the step whose click set it off, which a person did
     assert run['steps'][found[0]['step']]['action']['kind'] in ('click', 'canvas', 'drag', 'key')
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_cdn(tmp_path):
+    click = {'kind': 'click', 'family': 'preferences', 'file': 'stack', 'confirm': True}
+    plan = {'world': {'name': 'annotator', 'path': os.path.join(HERE, 'worlds', 'annotator.json')}, 'seed': 1, 'focus': [], 'plants': [],
+            'steps': [{'i': 0, 'action': {**click, 'key': '#sb-res-icon', 'text': 'Resources'}},
+                      {'i': 1, 'action': {**click, 'key': '#storage-list > details:nth-of-type(1) > summary > button', 'text': 'Make Available Offline'}}]}
+    (tmp_path / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
+    run = explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
+    assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_screenshot_for_the_owner_has_two_device_pixels_to_a_css_pixel(tmp_path):
+    from PIL import Image
+    run = explore(tmp_path, '--world', 'phone', '--seed', '1', '--steps', '2')
+    shots = [f['ownerShot'] for f in run['findings'] if f.get('ownerShot')]
+    assert shots, run['findings']
+    assert Image.open(tmp_path / shots[0]).size[0] == 2 * 390
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_press_repeated_that_answers_as_before_is_not_a_dead_control(tmp_path):
+    click = {'kind': 'click', 'family': 'a control', 'file': 'large', 'confirm': True}
+    memory = '#usage-dlg > form > div:nth-of-type(1) > div > button:nth-of-type(2)'
+    plan = {'world': {'name': 'visitor', 'path': os.path.join(HERE, 'worlds', 'visitor.json')}, 'seed': 1, 'focus': [], 'plants': [],
+            'steps': [{'i': 0, 'action': {**click, 'key': '#sb-res-icon', 'text': 'Resources'}},
+                      {'i': 1, 'action': {**click, 'key': '#offline-install', 'text': 'Install as an app'}},
+                      {'i': 2, 'action': {**click, 'key': '#offline-install', 'text': 'Install as an app'}},
+                      {'i': 3, 'action': {**click, 'key': memory, 'text': 'Memory'}},
+                      {'i': 4, 'action': {**click, 'key': memory, 'text': 'Memory'}}]}
+    (tmp_path / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
+    run = explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
+    assert not [f for f in run['findings'] if f['sig'].startswith('dead ')], run['findings']
