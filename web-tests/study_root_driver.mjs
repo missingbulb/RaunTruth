@@ -33,48 +33,42 @@ const out = {};
 {
   const m = memory(); m.add({ parent: "ROOT", name: "Data", folder: true });
   const s = await sr.read(m.reader, "ROOT", { fresh: true });
-  out.bare = { data: !!s.data, curated: s.curated, submissions: s.submissions, set: s.set, calls: m.calls.length };
+  out.bare = { data: !!s.data, extractions: s.extractions, set: s.set, calls: m.calls.length };
 }
 
-// set up with review: two folders, curated shared, the settings file naming them; read back from the file
+// set up: the one Extractions folder made, shared to view by link, the study file naming it; read back from the file
 {
   const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true });
-  const s = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "dm@acme.example", at: AT });
+  const s = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", by: "dm@acme.example", at: AT });
   const file = m.files.find((f) => f.name === sr.SETTINGS);
   const doc = JSON.parse(file.body);
   const again = await sr.read(m.reader, "ROOT", { fresh: true });
-  out.review = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), doc: { ...doc, curated: !!doc.curated, submissions: !!doc.submissions, data: doc.data === data.id },
-    same: s.same, readBack: again.curated === s.curated && again.submissions === s.submissions && again.data === data.id && again.set };
+  out.setup = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), doc: { ...doc, extractions: !!doc.extractions, data: doc.data === data.id },
+    readBack: again.extractions === s.extractions && again.data === data.id && again.set };
   // run again: nothing made twice, the file rewritten
   const before = m.files.filter((f) => f.folder).length;
   m.calls.length = 0;
-  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "dm@acme.example", at: AT });
+  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", by: "dm@acme.example", at: AT });
   out.rerun = { folders: m.files.filter((f) => f.folder).length - before, writes: m.calls.filter(([k]) => k !== "all" && k !== "text") };
 }
 
-// set up without review: one GT folder for both
-{
-  const m = memory(); m.add({ parent: "ROOT", name: "Data", folder: true });
-  const s = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "dm@acme.example", at: AT });
-  out.free = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), same: s.same, one: s.curated === s.submissions };
-}
-
-// folders made by hand, no settings file: found by name
+// a folder made by hand, no study file: found by name, any case
 {
   const m = memory(); m.add({ parent: "ROOT", name: "data", folder: true });
-  const c = m.add({ parent: "ROOT", name: "GT Curated", folder: true }), su = m.add({ parent: "ROOT", name: "GT submissions", folder: true });
+  const e = m.add({ parent: "ROOT", name: "EXTRACTIONS", folder: true });
+  m.add({ parent: "ROOT", name: "GT curated", folder: true });
   const s = await sr.read(m.reader, "ROOT", { fresh: true });
-  out.byName = { curated: s.curated === c.id, submissions: s.submissions === su.id, same: s.same, set: s.set };
+  out.byName = { extractions: s.extractions === e.id, set: s.set, old: "curated" in s || "submissions" in s };
 }
 
-// a settings file naming a folder by id wins over the names, so a renamed folder still counts
+// a study file naming the folder by id wins over the names, so a renamed folder still counts
 {
   const m = memory(); m.add({ parent: "ROOT", name: "Data", folder: true });
   const renamed = m.add({ parent: "ROOT", name: "Old GT", folder: true });
-  m.add({ parent: "ROOT", name: "GT", folder: true });
-  m.add({ parent: "ROOT", name: sr.SETTINGS, body: JSON.stringify({ format: sr.FORMAT, data: null, curated: renamed.id, submissions: renamed.id, review: false }) });
+  m.add({ parent: "ROOT", name: "Extractions", folder: true });
+  m.add({ parent: "ROOT", name: sr.SETTINGS, body: JSON.stringify({ format: sr.FORMAT, data: null, extractions: renamed.id }) });
   const s = await sr.read(m.reader, "ROOT", { fresh: true });
-  out.byFile = { curated: s.curated === renamed.id, same: s.same };
+  out.byFile = { extractions: s.extractions === renamed.id, set: s.set };
 }
 
 // the root's Previews folder (req/shell/drive/previews): found by name, made once when missing, a data folder's file
@@ -86,31 +80,6 @@ const out = {};
   const again = await sr.previewsFolder({ reader: m.reader, writer: m.writer, root: "ROOT" });
   out.previews = { none, made: made === again, folders: m.calls.filter(([k]) => k === "folder"), found: (await sr.read(m.reader, "ROOT", { fresh: true })).previews === made,
     name: sr.previewsName("1AbCdataFolderId") };
-}
-
-// switching a set-up study's mode (req/shell/ground-truth/switch): no file moved, copied or deleted; the settings file
-// recording the mode before, who switched and when
-{
-  const m = memory(); m.add({ parent: "ROOT", name: "Data", folder: true });
-  const two = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "dm@acme.example", at: AT });
-  m.calls.length = 0;
-  const one = await sr.switchMode({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "sm@acme.example", at: AT });
-  const doc = JSON.parse(m.files.find((f) => f.name === sr.SETTINGS).body);
-  out.toOne = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), same: one.same, curatedKept: one.curated === two.curated,
-    set: { by: doc.set_by, review: doc.review }, was: doc.switched?.from && { review: doc.switched.from.review, curated: doc.switched.from.curated === two.curated, submissions: doc.switched.from.submissions === two.submissions },
-    who: doc.switched?.by, at: doc.switched?.at };
-  m.calls.length = 0;
-  const back = await sr.switchMode({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "sm@acme.example", at: AT });
-  out.toTwo = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), same: back.same, curatedKept: back.curated === two.curated,
-    submissionsBack: back.submissions === two.submissions };
-}
-{
-  // from one folder: it becomes the curated one, and a new GT submissions folder is made
-  const m = memory(); m.add({ parent: "ROOT", name: "Data", folder: true });
-  const one = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "dm@acme.example", at: AT });
-  m.calls.length = 0;
-  const two = await sr.switchMode({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "sm@acme.example", at: AT });
-  out.oneToTwo = { writes: m.calls.filter(([k]) => k !== "all" && k !== "text"), curatedKept: two.curated === one.curated, same: two.same, review: two.review };
 }
 
 // read twice within the minute: one listing; fresh reads again
@@ -129,12 +98,11 @@ const out = {};
   const implicit = (await sr.read(m.reader, "ROOT", { fresh: true })).folders;
   const bare = memory();
   const rootOnly = (await sr.read(bare.reader, "BARE", { fresh: true })).folders;
-  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: true, by: "dm@acme.example", at: AT });
+  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", by: "dm@acme.example", at: AT });
   m.calls.length = 0;
   const s = await sr.setFolders({ reader: m.reader, writer: m.writer, root: "ROOT", folders: [data.id, other.id] });
   const doc = JSON.parse(m.files.find((f) => f.name === sr.SETTINGS).body);
-  await sr.switchMode({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "sm@acme.example", at: AT });
-  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", review: false, by: "sm@acme.example", at: AT });
+  await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", by: "sm@acme.example", at: AT });
   const kept = (await sr.read(m.reader, "ROOT", { fresh: true })).folders;
   const fresh = memory(); const d2 = fresh.add({ parent: "R3", name: "Data", folder: true });
   await sr.setFolders({ reader: fresh.reader, writer: fresh.writer, root: "R3", folders: [d2.id] });
@@ -144,7 +112,7 @@ const out = {};
   try { await sr.setFolders({ reader: hand.reader, writer: hand.writer, root: "R4", folders: ["x"] }); } catch (e) { refused = /not made by this page/.test(e.message); }
   out.folders = { implicit: implicit.length === 1 && implicit[0] === data.id, rootOnly: rootOnly.length === 1 && rootOnly[0] === "BARE",
     writes: m.calls.filter(([k]) => k !== "all" && k !== "text").slice(0, 1), listed: s.folders.length === 2 && s.folders[1] === other.id,
-    keysKept: doc.review === true && !!doc.curated && doc.set_by === "dm@acme.example", afterSwitchAndSetup: kept.length === 2,
+    keysKept: !!doc.extractions && doc.set_by === "dm@acme.example", afterSetup: kept.length === 2,
     made: { format: made.format, folders: made.folders.length }, refused, handWrites: hand.calls.filter(([k]) => k !== "all" && k !== "text").length };
 }
 
@@ -210,7 +178,7 @@ const out = {};
 {
   const make = (oursOld) => {
     const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true });
-    m.add({ parent: "ROOT", name: sr.SETTINGS, ours: true, body: JSON.stringify({ format: "rauntruth-study/1", data: data.id, curated: "C", submissions: "C", review: false, group: "group" }) });
+    m.add({ parent: "ROOT", name: sr.SETTINGS, ours: true, body: JSON.stringify({ format: "rauntruth-study/1", data: data.id, group: "group" }) });
     m.add({ parent: "ROOT", name: "rauntruth-index.json", ours: oursOld, body: JSON.stringify({ format: "rauntruth-index/1", built_by: "dm@acme.example", built_at: AT.toISOString(),
       folders: [{ id: data.id, name: "Data" }], images: [{ id: "I1", name: "a.png", folder: data.id, path: ["Data"] }] }) });
     m.add({ parent: "ROOT", name: "rauntruth-tags.json", ours: oursOld, body: JSON.stringify({ format: "rauntruth-tags/1", images: { I1: { tags: ["group:sick"] } }, folders: {} }) });

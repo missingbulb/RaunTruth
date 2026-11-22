@@ -103,7 +103,7 @@ try {
   // the tasks are the stack's areas, a row each, 4 × 4 at first, the choice of how many first in the box
   t = await tasks();
   const r0 = await rows(), all = t.grid * t.grid;
-  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Submit Ground Truth/.test(r0[all]),
+  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Save/.test(r0[all]),
     `a row per area, 4 × 4 at first, then Submit: ${r0.join(" | ")}`);
   check(await page.evaluate(() => $("#gt-bar").children.length === 16), "the bar has a part per area");
   check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
@@ -439,7 +439,7 @@ try {
   t = await tasks();
 
   await page.click("#gt-submit");
-  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export").disabled), "Submit Ground Truth, the last task, exports once there are verdicts");
+  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export").disabled), "Save, the last task, exports once there are verdicts");
   const open = await page.evaluate(() => $("#gt-dlg").textContent);
   check(/Areas: 3 of 4 left/.test(open), `its checklist says how many areas are left: ${open.replace(/\s+/g, " ").slice(0, 200)}`);
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);

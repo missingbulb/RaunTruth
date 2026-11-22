@@ -17,7 +17,8 @@ skill. Each step below is its step of the same number, filled in with NoR's comm
 research-project's and `studies/nor/docs/requirements.md` R7, R9 and R10. Read
 `studies/nor/lab/STATE.md` and `studies/nor/lab/ledger.md` first.
 
-The curated files are the best reference there is: a person marked each label, where the lab's own
+The curated files (the old layout; until the lab reads the study file's marks, new annotations are not among them,
+`lab/README.md`) are the best reference there is: a person marked each label, where the lab's own
 labels (`studies/nor/lab/truth/`) are Claude's eye. `--truth drive` scores on the curated files
 alone; never re-weigh the two by hand.
 

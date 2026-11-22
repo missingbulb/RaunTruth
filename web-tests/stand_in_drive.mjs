@@ -19,8 +19,8 @@ import { studies as studiesOf } from "./fakes/studies.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
 // (and what it holds, until a folder has readers of its own), which then no longer shares it with anyone with the link
-// pageError(e): what a page's uncaught error does, in place of ending the run
-export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, pageError }) {
+// rooted: see inList below; pageError(e): what a page's uncaught error does, in place of ending the run
+export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, rooted: inList = false, pageError }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
 
@@ -41,15 +41,20 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   add(rootDir, ROOT);
   if (members) { drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set(members)); }
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
-  // gt: the study set up with review, its study file in ROOT, the page's own as its set-up wrote it, naming two ground-truth folders kept outside ROOT,
+  // gt: the study set up, its study file in ROOT, the page's own as its set-up wrote it, naming the extractions folder kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
-  const GT = { curated: "dmgtcurated000000000001", submissions: "dmgtsubmissions0000001" };
+  const GT = { extractions: "dmextractions0000000001" };
   const anyone = { has: () => true };
   if (gt) {
-    for (const [id, name] of [[GT.curated, "GT curated"], [GT.submissions, "GT submissions"]]) { drive.folder({ id, name, parent: "elsewhere" }); drive.writers.set(id, anyone); }
+    drive.folder({ id: GT.extractions, name: "Extractions", parent: "elsewhere" }); drive.writers.set(GT.extractions, anyone);
     drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT, mine: true,
-      bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
+      bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", data: null, extractions: GT.extractions })) });
   }
+  // the study file's keys changed, as the owner's Study Setup would have written them (the marks, the stage), the rest kept
+  const studyFile = (changes) => {
+    const f = FILES.find((g) => g.parent === ROOT && g.name === "rauntruth-study.json");
+    f.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(f.bytes.toString()), ...changes }));
+  };
   // the folders Drive lets the user only view
   const viewOnly = drive.viewOnly;
   // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
@@ -69,6 +74,9 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   for (const id of fs.readdirSync(path.join(repo, "studies"))) if (fs.existsSync(path.join(repo, "studies", id, "study.json"))) site.studies.edit(id, rooted);
   site.studies.edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
   if (studies) site.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
+  // inList: the list of studies names ROOT as each rooted study's root, so that Drive's sharing of it decides who is a member (shell/study/members)
+  // (the fixture, which the build leaves out of the list as unlisted, is put in it rooted)
+  if (inList) site.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "GT", root: ROOT }])] : list));
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -166,5 +174,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForFunction((on) => (document.documentElement.dataset.mode === "data") === on, on);
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
+  return { drive, google, ROOT, FILES, SUB, GT, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

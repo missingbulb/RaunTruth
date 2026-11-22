@@ -1,6 +1,6 @@
 // Drives a study's listed folders, its study index, its tags and hiding (req/shell/data/folders, req/shell/data/index,
 // req/shell/data/tags, req/shell/data/hidden, req/shell/load/study-images, req/shell/data/damaged,
-// req/shell/data/area-of-interest) in headless Chromium on the fixture study, against the stand-in Google of
+// req/shell/data/area-of-interest, req/shell/extractions/marks-shown) in headless Chromium on the fixture study, against the stand-in Google of
 // stand_in_drive.mjs serving ROOT: a Data folder the study file names, a subfolder in it, and an Other folder.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
@@ -10,6 +10,7 @@ import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
@@ -57,7 +58,7 @@ await check(JSON.stringify(await tree()) === JSON.stringify({ listed: ["Data"], 
 await page.click('#data-unlisted .unlisted-folder:has-text("Other") .add');
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
-await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && studyFile().review === true && !!studyFile().curated,
+await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && !!studyFile().extractions,
   "Add to study writes the folder into the study file, every other key kept", studyFile());
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
@@ -186,6 +187,26 @@ const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
 await page.context().close();
+
+// req/shell/extractions/marks-shown: the study file's marks, seeded as Study Setup would write them, shown on each image's row in Load,
+// yours first and what another's marked after, and one line of the popup counting them
+{
+  const shaOf = (name) => createHash("sha256").update(FILES.find((f) => f.name === name).bytes).digest("hex");
+  const sha = { acme: shaOf("acme.png"), beta: shaOf("beta.png") };
+  settings.bytes = Buffer.from(JSON.stringify({ ...studyFile(), marks: {
+    [sha.acme]: { gt: { file: "F1", by: "tester@example.com" } },
+    [sha.beta]: { gt: { file: "F2", by: "yael@lab.org" }, official: { file: "F3", by: "yael@lab.org" } } } }));
+  page = await open(true);
+  await page.evaluate(() => document.querySelector("#load-remote").click());
+  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 2, null, { timeout: 10000 }));
+  await orMissed(page.waitForFunction(() => /^Yours/.test(document.querySelector("#remote-msg").textContent), null, { timeout: 10000 }));
+  const tags = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].map((e) => [e.querySelector(".name").textContent, e.querySelector(".gt-tag").textContent]));
+  await check(JSON.stringify(tags) === JSON.stringify([["beta.png", "GT marked · official marked"], ["acme.png", "yours: GT"]]),
+    "each row says what the study's marks say of its image: yours first, then another's, ", tags);
+  const line = await page.textContent("#remote-msg");
+  await check(line === "Yours: 1 GT. 1 with another's marked.", "one line of the popup counts them", line);
+  await page.context().close();
+}
 
 // the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): marked on the image itself, kept
 // in the tags file and the index; a viewer sees both, the summary starts as the area of interest, Python is handed the

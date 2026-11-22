@@ -155,10 +155,10 @@ await page.evaluate(() => shellForTests.page.set({ minimap: "hidden" }));
 await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "false", "the page's state hides the minimap and raises its button");
 await page.evaluate(() => shellForTests.page.set({ minimap: "open" }));
 
-// ---- Submit Ground Truth is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
+// ---- Save is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
 const bar = await page.evaluate(() => ({ last: document.querySelector("#gt-tasks").lastElementChild.contains(document.querySelector("#gt-submit")),
   inImage: document.querySelector("#view").contains(document.querySelector("#gt-submit")), right: !!document.querySelector("#right, #gutter-right") }));
-await check(bar.last && !bar.inImage && !bar.right, "Submit Ground Truth is the last task, not over the image, and there is no right bar", bar);
+await check(bar.last && !bar.inImage && !bar.right, "Save is the last task, not over the image, and there is no right bar", bar);
 
 // ---- the channel: the study's name and description, its black and white points, its checkbox ----
 const rows = () => page.$$eval("#channels .channel", (rs) => rs.map((r) => ({ name: r.querySelector("label").textContent, colour: r.dataset.colour,

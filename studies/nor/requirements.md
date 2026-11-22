@@ -110,14 +110,13 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   options are set.
   </details>
 
-- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
+- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Save writes the extraction.
   <details>
 
   Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
   CSV (every candidate, the user's decision and its measurements), and under it the shell's
   Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
-  NoRs, their density and the area counted, and each measurement's statistics. Submit Ground
-  Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
+  NoRs, their density and the area counted, and each measurement's statistics. Save, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
@@ -227,13 +226,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/submit/progress` The submit button's icon says how finished the work is; its popup lists what is left.
   <details>
 
-  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Submit Ground
-  Truth button's text says how finished the work is: a green check when every task before it is
+  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Save button's text says how finished the work is: a green check when every task before it is
   done (every finalist has the user's verdict, and every area is
   checked for missed NoRs), an orange warning when some candidates have a verdict but a task is not done, and a red
   error when no candidate has one yet or a candidate the user added still waits for a verdict; the
   warning and the error pulse gently. Any animation scrolled out of view is paused, since Chrome
-  would keep drawing it. The button itself stays plain. Its popup (`req/shell/ground-truth/submit`) carries a checklist of
+  would keep drawing it. The button itself stays plain. Its popup (`req/shell/extractions/save`) carries a checklist of
   short instructions (approve or reject the NoRs you added, vote on at least one candidate, vote on
   every finalist, check every area for missed NoRs, only
   images from Google Drive can be exported), each done one crossed out with a
@@ -326,7 +324,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
   long and filled as far as it is done, heads one row per task, each counting only once and never
   repeating that it is a review: "13/47 Finalists", "0/100 Areas" (the areas
-  checked for NoRs the finder missed), and Submit Ground Truth (`req/nor/downloads`); a done task
+  checked for NoRs the finder missed), and Save (`req/nor/downloads`); a done task
   is marked done with a check (no marks on the others). The rows count; the work is one walk
   (`req/nor/truth/order`), and the row of the current item's task is the open one. Clicking a task
   goes to its next item not done along the walk. The open task's row carries a

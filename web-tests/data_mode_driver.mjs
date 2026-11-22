@@ -22,10 +22,10 @@ const { ROOT, FILES, GT, writes, thumbs, open, dataManagement, check, done } = a
 const OURS = `${ROOT}.tiff`;
 FILES.push({ id: PREVIEWS_DIR, name: "Previews", parent: ROOT, folder: true, bytes: null, mine: true, props: {}, modified: "2026-11-05T07:00:00Z" },
   { id: "dmpreviewsfile000001", name: OURS, parent: PREVIEWS_DIR, folder: false, bytes: FILES.find((f) => f.name === "rauntruth-previews.tiff").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
-// an image's Needs GT marker, in the curated folder, named as its ground-truth subfolder
+// an image's Needs GT marker, in the extractions folder, named as its image's subfolder
 const neededOf = (name) => { const f = FILES.find((g) => g.name === name); return `${name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(f.bytes).digest("hex").slice(0, 8)}.needs_gt`; };
 // someone else marked the stack as needing ground truth
-FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
+FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.extractions, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
 // not signed in: the drawers numbered, none for what the image has not got yet
@@ -65,7 +65,7 @@ const summary = () => page.evaluate(() => Object.fromEntries([...document.queryS
 const folderMsg = () => page.textContent("#folder-msg");
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 4);
-await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 2, stale: 1, truth: 0, pending: 0, missing: 1 }), "the folder's sums, its photo among its images and pictured by Drive", await summary());
+await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 2, stale: 1, extracted: 0, truth: 0, missing: 1 }), "the folder's sums, its photo among its images and pictured by Drive", await summary());
 await page.click('#folder-layout button[data-layout="list"]');
 await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
 await check(true, "the list button lays the images out as a list");
@@ -85,7 +85,7 @@ await page.waitForFunction(() => /3 previews made/.test($("#folder-msg").textCon
 await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-study.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
-await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, truth: 0, pending: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
+await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, extracted: 0, truth: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .pic img").length === 4);
 const photoPic = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell")].find((c) => c.querySelector(".name").textContent === "d photo.jpg")?.querySelector(".pic img")?.src || "");
 await check(photoPic.startsWith("https://lh3.googleusercontent.com/") && thumbs.includes("d photo.jpg") && thumbs.every((n) => n === "d photo.jpg"),
@@ -110,8 +110,8 @@ const cell = (name) => `#folder-items .cell:has(.name:text-is("${name}"))`;
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "2");
 const eMarker = neededOf("e plain.tif");
-await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.curated,
-  "marking an image creates its marker in the curated folder, not beside the image", writes);
+await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.extractions,
+  "marking an image creates its marker in the extractions folder, not beside the image", writes);
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
 await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);

@@ -13,17 +13,17 @@ import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 
 const [answers, studies, rootDir, image, second] = process.argv.slice(2);
-const { google, drive, ROOT, GT, writes, viewOnly, open, check, done } = await standIn({ answers, studies, rootDir });
+const { google, drive, ROOT, GT, studyFile, writes, viewOnly, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const OTHER = "someone@example.com", OWNER = "owner@acme.example";
 
-// the curated ground truth and the user's own submission of IMAGE on Drive, as the page's own submissions are made
+// the owner's extraction of IMAGE on Drive, marked GT in the study file, and the user's own, as the page's own saves are made
 const bytes = fs.readFileSync(image), sha = createHash("sha256").update(bytes).digest("hex");
-const folderOf = (parent, mine) => drive.folder({ mine, name: `${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, parent }).id;
-const seed = (parent, who, marks, mine = false) => drive.file({ mine, name: `gt_${who}.json`, parent: folderOf(parent, mine),
-  bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, accepted: { by: OWNER }, image: { name: path.basename(image), sha256: sha },
+const sub = drive.folder({ mine: true, name: `${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, parent: GT.extractions }).id;
+const seed = (who, marks, mine = false) => drive.file({ mine, name: `x_${who}.json`, parent: sub,
+  bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: sha },
     labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true })) });
-seed(GT.curated, OWNER, [[12, 12], [55, 35]]);
-seed(GT.submissions, "someone@example.com", [[20, 20]], true);
+const ownersFile = seed(OWNER, [[12, 12], [55, 35]]), mineFile = seed(OTHER, [[20, 20]], true);
+studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 
 const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
 const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-drive", "#annotate-scratch"].filter((s) => document.querySelector(s).checkVisibility()).map((s) => document.querySelector(s).textContent.trim()));
@@ -70,8 +70,8 @@ await check(!(await shown(page, "#tasks-box")) && !(await shown(page, "#summary-
 await page.click("#annotate-drive");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 2);
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.dataset.key));
-await check(rows.join() === "curated,mine", "Load annotation from Drive lists the image's annotations: the curated ground truth and the user's own", rows);
-await page.click('#annotate-list button[data-key="curated"]');
+await check(rows.join() === [mineFile.id, ownersFile.id].join(), "Load annotation from Drive lists the image's extractions: the user's own, then the marked", rows);
+await page.click(`#annotate-list button[data-key="${ownersFile.id}"]`);
 await page.waitForFunction(() => /^Ground truth: 7 pixels/.test($("#fx-result").textContent));
 await check(!(await annotating(page)) && !(await shown(page, "#fx-count")) && !(await shown(page, "#gt-undo")) && await shown(page, "#annotate-edit"),
   "choosing one shows it read-only: no annotation tool, no runner, and Edit this annotation offered", { annotating: await annotating(page) });
@@ -146,7 +146,7 @@ await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-export").disabled)
 await check(await page.evaluate(() => $("#gt-send").hidden), "its dialog offers the download alone");
 await page.click("#gt-close");
 await page.context().close();
-viewOnly.add(GT.submissions);
+viewOnly.add(GT.extractions);
 page = await open(true, { email: OTHER, prepare: standInDrive });
 await opened(page);
 await scratch(page);
@@ -155,7 +155,7 @@ await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosav
 line = await page.evaluate(() => ({ save: !!$("#gt-submit").checkVisibility(), download: $("#gt-download").checkVisibility(), say: $("#left .gt-access").textContent.trim() }));
 await check(!line.save && line.download && /ask the study owner/i.test(line.say), "signed in without the right to save, there is no Save, Download is there and the line says to ask the study owner", line);
 await page.context().close();
-viewOnly.delete(GT.submissions);
+viewOnly.delete(GT.extractions);
 
 // ---- the token running out, and the store not answering: the mode and the work stay, Save waits for the next click
 page = await open(true, { email: OTHER, prepare: standInDrive });
@@ -185,7 +185,7 @@ const save = async () => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /waits on this device|Submitted|not submitted/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /waits on this device|Saved|not saved/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;

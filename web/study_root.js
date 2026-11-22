@@ -1,6 +1,8 @@
 // A study's root folder in the remote store (req/shell/data/roles, req/shell/ground-truth/setup, shell/study/one-file):
 // the one folder its study.json names, and the one study file in it, which holds the folders under it by id, the study
-// index, the tags, the hide and grouping rules, the marks and the stage. A root with no study file has its folders
+// index, the tags, the hide and grouping rules, the marks and the stage. Its marks are
+// {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}: the extraction file each mark names by its Drive id, and its
+// author's email or null, one of each kind per image; a mark follows its file's latest content (shell/study/marks). A root with no study file has its folders
 // found by name; one still holding the settings, index and tags files of before is read as it was and written back as
 // one file by the next save. read() is cached a minute per root; every write reads the root afresh and merges into what
 // it finds, as two managers may edit at once. reader: all(folder) as [{id, name, folder}], text(id); writer:
@@ -14,9 +16,9 @@ export const FORMAT = "rauntruth-study/2";
 const OLD_INDEX = "rauntruth-index.json", OLD_INDEX_FORMAT = "rauntruth-index/1";
 const OLD_TAGS = "rauntruth-tags.json", OLD_TAGS_FORMAT = "rauntruth-tags/1";
 // the names a folder is found by, lower-cased, best first, while the study file does not name it
-const NAMES = { data: ["data"], curated: ["gt curated", "gt"], submissions: ["gt submissions", "gt"], previews: ["previews"] };
+const NAMES = { data: ["data"], extractions: ["extractions"], previews: ["previews"] };
 // the names setup() and previewsFolder() give the folders they make
-const MADE = { curated: "GT curated", submissions: "GT submissions", both: "GT", previews: "Previews" };
+const MADE = { extractions: "Extractions", previews: "Previews" };
 const KEEP_MS = 60e3;
 const known = new Map();
 
@@ -33,8 +35,7 @@ const parsed = async (reader, id) => { try { return JSON.parse(await reader.text
 const indexOf = (d) => (Array.isArray(d?.folders) && Array.isArray(d?.images) ? { built_by: d.built_by ?? null, built_at: d.built_at ?? null, folders: d.folders, images: d.images } : null);
 const tagsOf = (d) => ({ images: d?.images && typeof d.images === "object" ? d.images : {}, folders: d?.folders && typeof d.folders === "object" ? d.folders : {} });
 
-// {root, data, curated, submissions, previews, same, review, set, file, doc, folders, group, hide, stage, tags, marks,
-// index, old}: the folders under root by id, each null while there is none; set whether the study file named them;
+// {root, data, extractions, previews, set, file, doc, folders, group, hide, stage, tags, marks, index, old}: the folders under root by id, each null while there is none; set whether the study file named them;
 // file its id or null and doc what it holds; folders the listed folders (req/shell/data/folders), the data folder or
 // else the root while the file names none; group and hide its grouping tag and hide rules; stage its stage or null;
 // tags {images, folders} and marks {} as it holds them; index its study index {folders, images, built_by, built_at}
@@ -52,10 +53,8 @@ export async function read(reader, root, { fresh = false } = {}) {
   if (!tags && oldTags) { const d = await parsed(reader, oldTags.id); if (d?.format === OLD_TAGS_FORMAT) tags = tagsOf(d); }
   // the file names a folder by id, wherever it now lives; the names count only where it names none
   const pick = (k) => doc?.[k] || byName(items, NAMES[k]);
-  const curated = pick("curated"), submissions = pick("submissions");
   const data = pick("data"), listed = Array.isArray(doc?.folders) ? doc.folders.filter((id) => typeof id === "string") : null;
-  const value = { root, data, curated, submissions, previews: pick("previews"), same: !!curated && curated === submissions,
-    review: doc?.curated ? !!doc.review : !!curated && curated !== submissions, set: !!doc?.curated, file: file?.id ?? null,
+  const value = { root, data, extractions: pick("extractions"), previews: pick("previews"), set: !!doc?.extractions, file: file?.id ?? null,
     doc, folders: listed || [data || root], index, tags: tags || tagsOf(null), marks: doc?.marks && typeof doc.marks === "object" ? doc.marks : {},
     stage: typeof doc?.stage === "string" ? doc.stage : null, old: { index: oldIndex?.id ?? null, tags: oldTags?.id ?? null },
     group: typeof doc?.group === "string" ? doc.group : null, hide: Array.isArray(doc?.hide) ? doc.hide.filter((t) => typeof t === "string") : [] };
@@ -88,39 +87,14 @@ async function save({ reader, writer, root, change, guard = true }) {
   return read(reader, root, { fresh: true });
 }
 
-// The study's ground-truth folders made where missing, the curated one shared to view, and the study file written:
-// review, two folders, else one for both. by: who set it up; at: when. Returns read()'s answer afresh.
-export async function setup({ reader, writer, root, review, by, at = new Date() }) {
+// The study's Extractions folder made where missing, shared to view by link, and the study file written naming it. by: who set it
+// up; at: when. Returns read()'s answer afresh.
+export async function setup({ reader, writer, root, by, at = new Date() }) {
   const was = await read(reader, root, { fresh: true });
-  let curated, submissions;
-  if (review) {
-    curated = was.curated && !was.same ? was.curated : await writer.folder(root, MADE.curated);
-    submissions = was.submissions && !was.same ? was.submissions : await writer.folder(root, MADE.submissions);
-  } else {
-    curated = submissions = was.same ? was.curated : await writer.folder(root, MADE.both);
-  }
-  await writer.share(curated);
+  const extractions = was.extractions || await writer.folder(root, MADE.extractions);
+  await writer.share(extractions);
   return save({ reader, writer, root, guard: false,
-    change: (d) => ({ ...d, data: was.data, curated, submissions, review: !!review, set_by: by, set_at: at.toISOString() }) });
-}
-
-// A set-up study switched between reviewed and unreviewed (req/shell/ground-truth/switch), no file moved, copied or
-// deleted: to one folder, the curated one serves as both; to review, the one folder is curated and a GT submissions
-// folder is found by name, else made. The study file keeps who set it up and records the mode before, who switched and
-// when. Returns read()'s answer afresh.
-export async function switchMode({ reader, writer, root, review, by, at = new Date() }) {
-  const was = await read(reader, root, { fresh: true });
-  if (!was.set || !was.file) throw new Error("The study's ground truth is not set up yet.");
-  if (!!review === !was.same) return was;
-  const curated = was.curated;
-  let submissions = curated;
-  if (review) {
-    const there = (await reader.all(root)).find((f) => f.folder && f.id !== curated && f.name.trim().toLowerCase() === MADE.submissions.toLowerCase());
-    submissions = there ? there.id : await writer.folder(root, MADE.submissions);
-  }
-  return save({ reader, writer, root, guard: false,
-    change: (d) => ({ ...d, data: was.data, curated, submissions, review: !!review,
-      switched: { from: { review: !was.same, curated: was.curated, submissions: was.submissions }, by, at: at.toISOString() } }) });
+    change: (d) => ({ ...d, data: was.data, extractions, set_by: by, set_at: at.toISOString() }) });
 }
 
 // The study file's keys in changes written, every other key it holds kept; a new file when the root has none. A study
@@ -217,12 +191,12 @@ export function studyPlace(remote, manifest) {
     },
     // what was written into the study file, read afresh next time
     forgetIndex() { if (root()) known.delete(root()); },
-    // {manager, tagger}: whether the store lets the signed-in user write to the root and to the submissions folder
+    // {manager, tagger}: whether the store lets the signed-in user write to the root and to the extractions folder
     // (req/shell/data/roles); both false for nobody signed in or a study with no root
     async roles() {
       if (!root() || !remote.signedIn()) return { manager: false, tagger: false };
       const s = await settings().catch(() => null);
-      const [manager, tagger] = await Promise.all([remote.canWrite(root()), s?.submissions ? remote.canWrite(s.submissions) : false]);
+      const [manager, tagger] = await Promise.all([remote.canWrite(root()), s?.extractions ? remote.canWrite(s.extractions) : false]);
       return { manager: !!manager, tagger: !!tagger };
     },
   };

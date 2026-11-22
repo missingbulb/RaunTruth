@@ -1,5 +1,5 @@
 {
- "about": "An annotator, signed in: Drive lets them add to the GT submissions folder alone, so they may save, and not open Data Management.",
+ "about": "An annotator, signed in: Drive lets them add to the Extractions folder alone, so they may save, and not open Data Management.",
  "study": "fixture",
  "stage": "GT",
  "user": {
@@ -12,7 +12,7 @@
    "owner@acme.example"
   ],
   "gt": true,
-  "submissionsWriters": [
+  "extractionsWriters": [
    "annotator@acme.example"
   ],
   "tree": [

@@ -16,7 +16,7 @@
    "owner@acme.example"
   ],
   "gt": true,
-  "submissionsWriters": [
+  "extractionsWriters": [
    "annotator@acme.example"
   ],
   "tree": [

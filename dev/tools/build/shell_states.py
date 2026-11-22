@@ -126,7 +126,7 @@ def walk(study, roots, paths):
             label, change = ACTIONS[a]
             s = {**s, **change}
             # an image from the computer, open for whoever annotates, is told it cannot be submitted
-            # (req/shell/ground-truth/submit); the study opening afresh in annotation mode tells it again
+            # (req/shell/extractions/save); the study opening afresh in annotation mode tells it again
             if a in ('load', 'large', 'stack', 'drive', 'unload', 'restudy') or a in AFRESH:
                 s['notice'] = derived(s)['makesTruth'] and s['image'] == 'local'
             states.append((label, dict(s)))

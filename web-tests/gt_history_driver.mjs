@@ -2,7 +2,7 @@
 // annotating. Checks req/shell/ground-truth/save-draft (nothing is kept until Save Draft; unsaved actions counted
 // and guarded; a failed write said; replacing an unloaded draft asks), req/shell/ground-truth/draft-offer (Load draft is
 // offered, never loaded unasked, and asks before it replaces unsaved actions), req/shell/ground-truth/history (Undo and
-// Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Submit's file carries the log in
+// Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Save's file carries the log in
 // force, and a viewer's copy is handed the study without it) and req/shell/storage/manage (a draft listed and deleted).
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_driver.mjs ANSWERS STUDIES ROOT
@@ -14,7 +14,7 @@ import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { FILES, GT, open, dataManagement, check, done } = drive;
+const { FILES, GT, studyFile, open, dataManagement, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
@@ -24,7 +24,7 @@ const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /Submitted|not submitted/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /Saved|not saved/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;
@@ -124,14 +124,14 @@ await until(page, () => $("#gt-unsaved").hidden);
 recs = await records(page);
 await check(recs.length === 1 && recs[0].saved !== savedAt && recs[0].log.filter((a) => a.type === "move-mark").length === 1, "accepted, it replaces the image's draft", recs.length);
 
-// Submit after one undo: the file carries the log in force, and the draft is saved with it
+// Save after one undo: the file carries the log in force, and the draft is saved with it
 await moved(page, "m2", -10, -10); await moved(page, "m1", 8, -6);
 await page.click("#gt-undo");
 const draftBefore = recs[0].saved;
-await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Submit", await label(page));
+await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Save", await label(page));
 const msg = await submit(page);
-await check(/Submitted/.test(msg), "Submit says the file landed", msg);
-const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.submissions);
+await check(/^Saved/.test(msg), "Save says the file landed", msg);
+const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.extractions);
 const file = FILES.filter((f) => f.parent === subFolder?.id).at(-1);
 const doc = JSON.parse(file.bytes.toString());
 await check(Array.isArray(doc.labels) && doc.history?.format === "rauntruth-gt-history/1" && doc.history.replay === "verified", "the file is the study's document with a history, its replay verified", { keys: Object.keys(doc), history: doc.history && { format: doc.history.format, replay: doc.history.replay } });
@@ -140,12 +140,10 @@ await check(acts.filter((a) => a.type === "move-mark").length === 2 && acts.ever
   "the undone move is not written, each action has its time, and the run's output is deflated", acts.map((a) => a.type));
 recs = await records(page);
 await check(recs.length === 1 && recs[0].saved !== draftBefore && recs[0].log.filter((a) => a.type === "move-mark").length === 2 && (await label(page)).hidden,
-  "Submit saved the draft too, the action it had not saved with it", recs.map((r) => ({ saved: r.saved, log: r.log.map((a) => a.type) })));
+  "Save saved the draft too, the action it had not saved with it", recs.map((r) => ({ saved: r.saved, log: r.log.map((a) => a.type) })));
 
-// a viewer loading that file as curated ground truth is handed the study's document, without the history
-const curated = { id: "dmcuratedsub0000000001", name: sub, parent: GT.curated, folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-17T09:00:00.000Z" };
-FILES.push(curated, { id: "dmcuratedfile00000001", name: file.name, parent: curated.id, folder: false, mine: false, props: {}, modified: "2026-11-17T09:00:01.000Z",
-  bytes: Buffer.from(JSON.stringify({ ...doc, accepted: { by: "boss@example.com", at: "2026-11-17T09:00:00.000Z", from_sha256: "0".repeat(64) } })) });
+// a viewer loading that file once the study file marks it GT is handed the study's document, without the history
+studyFile({ marks: { [createHash("sha256").update(png.bytes).digest("hex")]: { gt: { file: file.id, by: "tester@example.com" } } } });
 await page.context().close();
 page = await open(false);
 await page.click("#load-remote");
@@ -153,10 +151,10 @@ await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
 await page.click("#annotate-drive");
-await page.click('#annotate-list button[data-key="curated"]');
+await page.click(`#annotate-list button[data-key="${file.id}"]`);
 await until(page, () => !!window.fixture.truth());
 const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));
-await check(shown.includes("labels") && !shown.includes("history"), "a viewer loading the curated annotation from Drive hands the study the file without its history", shown);
+await check(shown.includes("labels") && !shown.includes("history"), "a viewer loading the marked annotation from Drive hands the study the file without its history", shown);
 await page.context().close();
 
 page = await open(true);

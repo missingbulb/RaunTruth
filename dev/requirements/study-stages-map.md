@@ -173,9 +173,9 @@ All nine were resolved in the decisions above, except where they fell under Not 
 Every requirement that names a stage, a role, Data Management or the root (most mentions first):
 `req/shell/study/stage`, `shell/account/role`, `req/shell/data/mode`, `req/checks/shell-states`,
 `req/shell/load/study-images`, `req/shell/data/index`, `req/shell/ground-truth/summary`,
-`req/shell/ground-truth/setup`, `req/shell/ground-truth/pending`, `req/shell/data/roles`,
+`req/shell/ground-truth/setup`, `shell/ground-truth/pending`, `req/shell/data/roles`,
 `req/shell/data/folders`, `req/shell/data/damaged`, `req/shell/left-bar/shells`, `req/shell/ground-truth/folders`,
-`req/shell/ground-truth/curate`, `req/shell/data/tags`, `req/shell/data/hidden`,
+`shell/ground-truth/curate`, `req/shell/data/tags`, `req/shell/data/hidden`,
 `req/shell/data/area-of-interest`, `req/shell/views/second`, `req/shell/study/switch-in-place`,
 `req/shell/status-bar`, `req/shell/status-bar/breadcrumbs`, `req/shell/report/bug`, `req/shell/report/action-log`,
 `req/shell/python/one-call`, `req/shell/python/on-run`, `req/shell/offline/default`, `req/shell/header`,

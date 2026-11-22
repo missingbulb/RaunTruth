@@ -72,7 +72,7 @@ async function open() {
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
   // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
-  await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Submit Ground Truth is off");
+  await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Save is off");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await page.evaluate(() => { $("#notice").hidden = true; });
@@ -86,7 +86,7 @@ await check(await shown(page, "#tasks-box") && await shown(page, "#summary-box")
 await check(!(await shown(page, "#switch")), "no view switch over the image");
 const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
 await check(JSON.stringify(tasks) === JSON.stringify(["pass", "missed", "submit"]), "the tasks in order: the finalists, the missed NoRs, Submit", tasks);
-await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Submit Ground Truth is the last task");
+await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Save is the last task");
 
 // req/nor/truth/order: one walk through the areas, the rows of areas back and forth; in each its finalists, the NoRs
 // added there, each top to bottom, and last the area's check
@@ -134,7 +134,7 @@ await check(s.cur === W[0].key && !s.back && s.open === W[0].t && (W[0].cy == nu
 await check(!(await tagRows()).some(Boolean), "and the Show menu's Cut out and Frame rows are on", await tagRows());
 await check(s.rows[0].startsWith(`0/${P} Finalists`), "the rows count the tasks", s.rows);
 // one row per task, each counting once, never saying "review"
-await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/100 Areas") && /Submit Ground Truth/.test(s.rows[2])
+await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/100 Areas") && /Save/.test(s.rows[2])
   && !s.rows.some((r) => /review/i.test(r)) && await page.$$eval("#tasks-box", (b) => !/\d+ of \d+/.test(b[0].textContent)), "one row per task: 0/N Finalists, 0/100 Areas, Submit", s.rows);
 // the bar, a part per task as long as the task, filled as far as done
 await check(s.bar.length === 2 && s.bar[0].grow === P && s.bar[1].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);

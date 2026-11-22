@@ -1,34 +1,34 @@
-// The annotator's side of the study's ground-truth folders (truth_folders.js): the line in the study's ground-truth box
-// (every `.gt-access` its panels hold) saying when the user may not save to the submissions folder and how to get there
-// (req/shell/annotate/no-save), and Submit (req/shell/ground-truth/submit).
+// The annotator's side of the study's extractions folder (truth_folders.js): the line in the study's ground-truth box
+// (every `.gt-access` its panels hold) saying when the user may not save to it and how to get there
+// (req/shell/annotate/no-save), Save (req/shell/extractions/save) and the list of an image's extractions (req/shell/extractions/list).
 "use strict";
-import { folders, submit, status, current, subfolderName, own } from "./truth_folders.js";
+import { folderOf, save, held, files, rows, marksOf, own } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
   signedout: "You are not signed in, so nothing here can be saved to the study. Sign in to save; you can download your work meanwhile.",
   nosave: "You may not save to this study. Ask the study owner for access; you can download your work meanwhile.",
-  unset: "This study has not set up its ground-truth folders yet, so ground truth cannot be submitted.",
-  view: "View only: the store lets you only view the study's submissions folder. Ask its owner for edit access.",
+  unset: "This study has not set up its extractions folder yet, so nothing can be saved to it.",
+  view: "View only: the store lets you only view the study's extractions folder. Ask its owner for edit access.",
   unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
-  unknown: "Your sign-in ran out. Sign in again to submit.",
+  unknown: "Your sign-in ran out. Sign in again to save.",
 };
-export const LOCAL_GT = (remote) => `Ground truth cannot be sent from local files, only from ${remote.label}.`;
+export const LOCAL_GT = (remote) => `An annotation can be saved only for an image from ${remote.label}, not one from this computer.`;
 
 // account: the sign-in; remote: the remote store; place: the study's place in it (study_root.js studyPlace); image() the image open, {name, sha256, source} or null; on() whether the user makes ground truth now;
-// may() whether the store lets this user save to the study's submissions folder, as far as last read
+// may() whether the store lets this user save to the study's extractions folder, as far as last read
 export function truthTagger({ account, remote, place, image, on, may }) {
   const sd = remote.writer(account);
   const reader = place.reader;
-  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark };
+  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace };
   // the access last read: "write" | "view" | "unpermitted" | "unset" | "unknown", or "signedout" | "nosave" for who may not
   // save at all; epoch: the draw a late answer belongs to
   let access = null, epoch = 0;
   // the access lines as the page loaded, put back when the study leaves
   const asStarted = asLoaded([...document.querySelectorAll("#left .gt-access")]);
-  // the study's ground-truth folders, from its root's settings
-  const gt = async () => folders(await place.settings().catch(() => null));
-  const where = async () => (await gt()).submissions;
+  // the study's extractions folder and marks, from its root's study file
+  const studyFile = (opts) => place.settings(opts).catch(() => null);
+  const where = async () => folderOf(await studyFile());
 
   async function read() {
     const id = await where();
@@ -58,29 +58,31 @@ export function truthTagger({ account, remote, place, image, on, may }) {
   return {
     draw, paint,
     leave() { access = null; epoch++; asStarted(); },
-    // Map(subfolder name -> {curated, pending, rejected}) of the study's images (req/shell/ground-truth/pending);
-    // with submissions, the pending ones too, else the curated alone. Empty while the study has no folders.
-    async status(submissions) {
-      const f = await gt();
-      if (!f.curated) return new Map();
-      return status(reader, submissions ? f : { submissions: f.curated, curated: f.curated, same: true });
+    // Map(subfolder name -> {needed}) of the images the extractions folder holds a subfolder or a Needs GT marker for, from its
+    // one listing; empty while the study has no folder
+    async status() {
+      const folder = await where();
+      return folder ? held(reader, folder) : new Map();
     },
-    // whether the image has curated ground truth, from the curated folder's listing alone (req/shell/ground-truth/view)
-    async hasCurated(img) {
-      const f = await gt();
-      return !!f.curated && (await reader.all(f.curated)).some((x) => x.folder && x.name === subfolderName(img.name, img.sha256));
+    // the study file's marks, {<image's SHA-256>: {gt, official}}, as read in the minute
+    async marks() { return (await studyFile())?.marks || {}; },
+    // the image's extractions as the list shows them (truth_folders.js rows): the study file read afresh, for its marks follow the
+    // latest, then two listings and no extraction read. member: whether the
+    // user may read the study's root, which the list's names and unmarked rows follow
+    async list(img, { member }) {
+      const file = await studyFile({ fresh: true }), folder = folderOf(file);
+      if (!folder) return [];
+      return rows({ files: await files(reader, folder, img), marks: marksOf(file?.marks, img.sha256), email: account.email(), member });
     },
-    // the tagger's own submission for the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
+    // the user's own extraction of the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
     // file read, for an image from the remote store only (req/shell/ground-truth/draft-offer)
     async mine() {
       const im = image(), email = account.email(), folder = im && email && remote.owns(im.source) && im.sha256 ? await where() : null;
       return folder ? own(reader, folder, im, email) : null;
     },
-    // a submission's file, read now and parsed: the one download
-    async readMine(id) { return JSON.parse(await reader.text(id)); },
-    // the image's curated ground truth, {name, doc}, or null, its files read now (req/shell/ground-truth/view)
-    async curated(img) { const f = await gt(); return f.curated ? current(reader, f.curated, img) : null; },
-    // why Submit is off for the image open, "" when it is on. A sign-in that ran out, or a store that did not answer, is no
+    // an extraction's file, read now and parsed: the one download
+    async read(id) { return JSON.parse(await reader.text(id)); },
+    // why Save is off for the image open, "" when it is on. A sign-in that ran out, or a store that did not answer, is no
     // reason: the save is tried and, failing, waits for the next click (req/shell/annotate/survives)
     blocked() {
       const im = image();
@@ -88,13 +90,14 @@ export function truthTagger({ account, remote, place, image, on, may }) {
       if (access && access !== "write" && access !== "unknown") return SAY[access];
       return "";
     },
-    // the study's document written to the submissions folder as this user's ground truth for the image open, or for im, an image
-    // {name, sha256, source} a save waiting on this device is for
-    async submit(doc, im = image()) {
+    // the study's document written to the extractions folder as this user's extraction of the image open, or for im, an image
+    // {name, sha256, source} a save waiting on this device is for; base the id of the extraction it was edited from, which the
+    // file records (req/shell/extractions/list)
+    async save(doc, im = image(), base = null) {
       const email = account.email();
-      const full = { ...doc, created: new Date().toISOString(), tagger: email,
+      const full = { ...doc, created: new Date().toISOString(), tagger: email, ...(base ? { base } : {}),
         image: { ...(doc.image && typeof doc.image === "object" ? doc.image : {}), name: im.name, sha256: im.sha256, ...remote.cite(im.source) } };
-      await submit({ reader, writer, folder: await where(), image: { name: im.name, sha256: im.sha256 }, email, doc: full });
+      await save({ reader, writer, folder: await where(), image: { name: im.name, sha256: im.sha256 }, email, doc: full });
       return full;
     },
   };

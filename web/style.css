@@ -592,9 +592,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 @media (prefers-reduced-motion: reduce) { #busy.scan #scan-light { animation-duration: 8s; } }
 
 /* the remote files dialog */
-#remote-dlg, #setup-dlg, #switch-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#remote-dlg, #setup-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#remote-dlg::backdrop, #setup-dlg::backdrop, #switch-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
+#remote-dlg::backdrop, #setup-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
 .dlg-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .dlg-row.end { justify-content: space-between; } .dlg-row .grow { flex: 1; }
 #remote-link { flex: 1; min-width: 0; }
@@ -703,7 +703,7 @@ kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 
 /* the version history popup, and the bubble that points at the version after an update */
 #history-dlg { width: min(560px, calc(100vw - 32px)); }
-#setup-dlg, #switch-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2, #switch-dlg h2 { margin: 0 0 10px; }
+#setup-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2 { margin: 0 0 10px; }
 #history-dlg h2 { margin: 0 0 10px; }
 #usage-dlg h2 { margin: 0 0 10px; }
 /* one size whatever the tab: a longer tab scrolls within it (req/shell/resources-dialog) */
@@ -1027,17 +1027,10 @@ html:not(.offline) #welcome-offline { display: none; }
 .gt-access[hidden] { display: none; }
 .gt-access[data-access="signedout"], .gt-access[data-access="nosave"], .gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
-/* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
-#folder-items .tag.pending { color: var(--accent); }
-.curate-list { list-style: none; margin: 8px 0; padding: 0; min-width: 360px; }
-.curate-list li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.curate-list .who { font-weight: 600; }
-.curate-list .grow { flex: 1; }
-/* an image's ground truth in the remote files dialog's rows (req/shell/ground-truth/pending) */
+/* an image's extractions in the remote files dialog's rows (shell/extractions/marks-shown) */
 #remote-list .gt-tag:empty, #recent .gt-tag:empty { display: none; }
 #remote-list .gt-tag, #recent .gt-tag { font-size: 10.5px; padding: 0 5px; border-radius: 8px; border: 1px solid currentColor; color: var(--yes); }
-#remote-list .gt-tag[data-state="pending"], #recent .gt-tag[data-state="pending"] { color: var(--accent); }
-#remote-list .gt-tag[data-state="rejected"], #recent .gt-tag[data-state="rejected"] { color: var(--warn); }
+#remote-list .gt-tag[data-state="saved"], #recent .gt-tag[data-state="saved"] { color: var(--accent); }
 #remote-list .gt-tag[data-state="wanted"], #recent .gt-tag[data-state="wanted"] { color: var(--warn); border-style: dashed; }
 
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
@@ -1137,6 +1130,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-choices > button, #annotate-edit, #annotate-clear { width: 100%; }
 #annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; }
 #annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
+#annotate-list .others .item { width: 100%; margin-top: 4px; }
+#annotate-list .others summary { cursor: pointer; font-size: 12px; color: var(--dim); margin: 2px 0; }
 #annotate-say { margin: 8px 0 0; }
 #annotate-edit, #annotate-clear { margin-top: 8px; }
 #gt-waiting { margin: 6px 0 0; }

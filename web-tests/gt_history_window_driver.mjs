@@ -48,7 +48,7 @@ await counted(page);
 await settle(page);
 await check(await page.isVisible("#edit-history"), "once the image has a run it is shown");
 const [saveBtn, submitBtn] = [await box(page, "#gt-save-draft"), await box(page, "#gt-submit")];
-await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Submit Ground Truth, each on one line", { saveBtn, submitBtn });
+await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Save, each on one line", { saveBtn, submitBtn });
 const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
   return { right: v.r - w.r, bottom: v.b - w.b, w: w.w, h: w.h, expectW: vars * 1.4, expectH: Math.min((vars + 24) * 2.5, v.b - v.t - 24) };

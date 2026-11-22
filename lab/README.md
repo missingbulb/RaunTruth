@@ -49,8 +49,10 @@ crops.
 ## What the lab owns
 
 - **Fetching** (`fetch.py`): the images a study's `data/sources.json` names, checked by SHA-256, and the newest
-  ground-truth file per image from the study's curated folder on Drive (the shell's layout:
-  `<image>__<sha8>/gt_<tagger>.json`), into `studies/STUDY/data/raw/`, which git never holds.
+  ground-truth file per image from the study's curated folder on Drive (the old layout:
+  `<image>__<sha8>/gt_<tagger>.json`), into `studies/STUDY/data/raw/`, which git never holds. Until the lab reads the study file's marks (`dev/requirements/study-stages-spec.md`, WP7), it reads the curated folder
+  of the old layout, which the page no longer writes: a study's new annotations are `Extractions` on Drive
+  (`req/shell/extractions/save`), marked GT in its study file.
 - **Running and scoring** (`run.py`): each version on each image with ground truth, scored by the study's `score`,
   summed over images into precision `tp / (tp + fp)` and recall `tp / (tp + fn)`; with `--write`, the study's
   metrics file (`study.json` `algorithms.metrics`) with the numbers, what they were measured on (each image's and

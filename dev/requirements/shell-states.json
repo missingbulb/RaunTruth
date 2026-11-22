@@ -84,24 +84,19 @@
             {"name": "Fold the folders", "select": "#data-open", "control": true, "req": "req/shell/data/mode"},
             {"name": "Folders", "select": "#data-body", "req": "req/shell/data/mode",
               "children": [
-                {"name": "Set up ground truth", "select": "#gt-setup", "control": true, "req": "req/shell/ground-truth/setup", "steady": "shows only while the study's root names no ground-truth folders, never in the fixture, which is set up",
+                {"name": "Set up extractions", "select": "#gt-setup", "control": true, "req": "req/shell/ground-truth/setup", "steady": "shows only while the study file names no extractions folder, never in the fixture, which is set up",
                   "rule": [
                     {"is": "hidden", "approval": "tentative"}
                   ]
                 },
-                {"name": "Ground Truth box", "select": "#gt-box", "req": "req/shell/ground-truth/summary",
+                {"name": "Extractions box", "select": "#gt-box", "req": "req/shell/ground-truth/summary",
                   "rule": [
                     {"when": {"stage": [null, "PreGT", "Published"]}, "is": "hidden", "approval": "tentative"}
                   ],
                   "children": [
-                    {"name": "Ground Truth box's title", "select": "#gt-box-title", "req": "req/shell/ground-truth/summary"},
-                    {"name": "How the study takes ground truth", "select": "#gt-mode", "req": "req/shell/ground-truth/summary"},
-                    {"name": "Ground truth counts", "select": "#gt-counts", "req": "req/shell/ground-truth/summary"},
-                    {"name": "Switch reviewed or unreviewed", "select": "#gt-switch", "control": true, "req": "req/shell/ground-truth/switch",
-                      "rule": [
-                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                      ]
-                    }
+                    {"name": "Extractions box's title", "select": "#gt-box-title", "req": "req/shell/ground-truth/summary"},
+                    {"name": "Where annotations are saved", "select": "#gt-mode", "req": "req/shell/ground-truth/summary"},
+                    {"name": "Extraction counts", "select": "#gt-counts", "req": "req/shell/ground-truth/summary"}
                   ]
                 },
                 {"name": "Folder tree", "select": "#data-tree", "req": "req/shell/data/mode"},
@@ -493,7 +488,7 @@
                             {"is": "hidden", "approval": "tentative", "about": "no path saves while the store does not answer"}
                           ]
                         },
-                        {"name": "Submit Ground Truth", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
+                        {"name": "Save", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                           "rule": [
                             {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
                             {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
@@ -714,7 +709,7 @@
             {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
           ],
           "children": [
-            {"name": "Submit GT crumb", "select": "#sb-submit", "made": "one crumb per step, by the shell", "req": "req/shell/status-bar/breadcrumbs",
+            {"name": "Save crumb", "select": "#sb-submit", "made": "one crumb per step, by the shell", "req": "req/shell/status-bar/breadcrumbs",
               "rule": [
                 {"when": {"makesTruth": [false]}, "is": "hidden"},
                 {"when": {"hasModel": [false]}, "is": "hidden"}
@@ -773,13 +768,13 @@
         {"is": "hidden"}
       ]
     },
-    {"name": "Notice", "select": "#notice", "req": "req/shell/ground-truth/submit",
+    {"name": "Notice", "select": "#notice", "req": "req/shell/extractions/save",
       "rule": [
         {"when": {"notice": [false]}, "is": "hidden", "approval": "tentative"}
       ],
       "children": [
-        {"name": "Notice's text", "select": "#notice-text", "req": "req/shell/ground-truth/submit"},
-        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/ground-truth/submit"},
+        {"name": "Notice's text", "select": "#notice-text", "req": "req/shell/extractions/save"},
+        {"name": "OK", "select": "#notice-ok", "control": true, "req": "req/shell/extractions/save"},
         {"name": "Sign out", "select": "#notice-sign-out", "control": true, "req": "req/shell/study/visibility", "steady": "shows only on a study the signed-in account cannot open",
           "rule": [
             {"is": "hidden", "approval": "tentative"}

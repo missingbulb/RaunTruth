@@ -205,7 +205,7 @@ async function markAndVote(page) {
 
 // the popup the Ground truth button opens: its text, and the file its Export button downloads
 async function popup(page) {
-  // Submit Ground Truth is the last of the tasks (req/nor/truth/tasks)
+  // Save is the last of the tasks (req/nor/truth/tasks)
   await page.click("#gt-submit");
   await check(await page.isVisible("#gt-dlg"), "the Ground truth button opens its popup");
   // a checklist of every issue, the resolved ones crossed out: what is still open
@@ -346,7 +346,7 @@ async function mask(page) {
   await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });
   await check(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
-  await check(all_ === "Load image › Run algorithm › Review all items › Submit GT | ", `with every task done and the file exported, every step is done: ${all_}`);
+  await check(all_ === "Load image › Run algorithm › Review all items › Save | ", `with every task done and the file exported, every step is done: ${all_}`);
   await page.selectOption("#algorithm", { index: 1 });
   const changed = await crumbs(page);
   await check(changed === "Load image › Run algorithm* | #find,#sb-find", `another finder makes Run algorithm the step to do again: ${changed}`);
@@ -360,7 +360,7 @@ async function mask(page) {
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
-  await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
+  await check(await page.isHidden("#gt-submit"), "a PreGT study has no Save");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
     return ["#dl-cands", "#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });
