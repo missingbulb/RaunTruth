@@ -5,6 +5,7 @@
   "visibility": "listed",
   "stage": "Develop",
   "summary": {"mask": true},
+  "results": {"measures": [{"title": "Branch segments", "count": ["edges"]}]},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [

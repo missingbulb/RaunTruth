@@ -440,6 +440,30 @@
                 {"name": "Batch's message", "select": "#batch-msg", "req": "req/setup/batch"}
               ]
             },
+            {"name": "Results", "select": "#results-box", "box": true, "req": "req/setup/results",
+              "rule": [
+                {"when": {"managing": [false]}, "is": "hidden", "req": "req/shell/data/mode"},
+                {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+              ],
+              "children": [
+                {"name": "Show results", "select": "#results-show", "control": true, "req": "req/setup/results",
+                  "rule": [
+                    {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Download the results", "select": "#results-csv", "control": true, "req": "req/setup/results", "steady": "shows only once the results are shown, which no path presses",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ]
+                },
+                {"name": "The results' table", "select": "#results-scroll", "req": "req/setup/results", "steady": "shows only once the results are shown, which no path presses",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"}
+              ]
+            },
             {"name": "Annotations", "select": "#annotate-box", "box": true, "req": "req/shell/annotate/choice",
               "rule": [
                 {"when": {"stage": [null, "Review", "Public"]}, "is": "hidden"},
@@ -511,6 +535,11 @@
                     {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
                     {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
                     {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring", "steady": "opens only on a click of the (?), which no path makes",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "The score's stamp", "select": "#algorithm-stamp", "req": "req/shell/processing/stamp", "steady": "shows only for a study whose metrics carry a stamp, which the fixture's do not",
                       "rule": [
                         {"is": "hidden", "approval": "tentative"}
                       ]

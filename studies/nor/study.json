@@ -5,6 +5,7 @@
   "visibility": "listed",
   "stage": "Develop",
   "summary": {"mask": true},
+  "results": {"measures": [{"title": "Candidates", "count": ["candidates"]}, {"title": "Added NoRs", "count": ["added"]}]},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [

@@ -72,6 +72,25 @@ await check(s.about === `How the ${first.title} algorithm works` && s.items.join
 await check(s.bold === `Above algorithm shows precision of 0.90 and recall of 0.80 ${listed.measured}` && s.last.endsWith(`(${listed.versions[first.key].note})`),
   "... ending in bold with its precision and recall, its note beside it", s);
 
+await check(await page.evaluate(() => document.querySelector("#algorithm-stamp").hidden), "a score with no stamp (Develop) shows none", await seen());
+
+// a study from Review on: its metrics carry a stamp for each version, and the score shows it (req/shell/processing/stamp)
+const STAMP = { version: first.key, dataset_sha256: "0123456789abcdef".repeat(4), frozen: "2026-11-23", commit: "c0ffee1234567890c0ffee1234567890c0ffee12" };
+await page.route("**/algorithm_metrics.json", (route) => route.fulfill({ contentType: "application/json",
+  body: JSON.stringify({ ...listed, versions: { ...listed.versions, [first.key]: { ...listed.versions[first.key], stamp: STAMP } } }) }));
+await page.reload();
+await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready") && !document.querySelector("#algorithm").disabled);
+const stamped = () => page.evaluate(() => { const el = document.querySelector("#algorithm-stamp"); return el && { shown: !el.hidden, text: el.textContent, link: el.querySelector("a")?.href ?? null, outsideFold: !document.querySelector("#algorithm-about").contains(el) }; });
+let st = await stamped();
+await check(st?.shown && st.outsideFold && st.text.includes("2026-11-23") && st.text.includes(first.key) && st.text.includes("01234567") && !st.text.includes("0123456789abcdef0123"),
+  "from Review on the chosen algorithm's score shows its version, its data set's short SHA and the freeze date", st);
+await check(st.link === `https://github.com/missingbulb/RaunTruth/commit/${STAMP.commit}`, "... and a link to the ground truth's commit on GitHub", st);
+await page.evaluate((k) => { const sel = document.querySelector("#algorithm"); sel.value = k; sel.dispatchEvent(new Event("change")); }, second.key);
+await check(!(await stamped())?.shown, "an algorithm with no stamped score shows none", await stamped());
+await page.unroute("**/algorithm_metrics.json");
+await page.reload();
+await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready") && !document.querySelector("#algorithm").disabled);
+
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded." && document.querySelector("#fx-count")?.disabled === false);
 await fromScratch(page, "#fx-count");

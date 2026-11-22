@@ -164,6 +164,17 @@
       <p id="batch-msg" class="hint" role="status"></p>
     </section>
 
+    <!-- Study Setup: the study's results over the images' official extractions (req/setup/results) -->
+    <section class="box" id="results-box" data-needs-network hidden>
+      <div class="sec-head"><h2>Results</h2></div>
+      <p class="hint">Reads each image's official extraction, only when you press Show results.</p>
+      <div class="folder-actions"><button id="results-show" type="button" class="primary" data-needs-network>Show results</button><button id="results-csv" type="button" hidden>Download CSV</button></div>
+      <div id="results-scroll" hidden>
+        <table><thead></thead><tbody data-log-as="an image's official result"></tbody><tfoot></tfoot></table>
+      </div>
+      <p id="results-msg" class="hint" role="status"></p>
+    </section>
+
     <section class="box" id="annotate-box" hidden>
       <div class="sec-head"><h2>Annotations</h2></div>
       <p id="annotate-ask" class="hint">How do you want to get annotations on this image?</p>
@@ -185,6 +196,7 @@
           <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
         </div>
         <div id="scoring-note" class="hint" hidden></div>
+        <p id="algorithm-stamp" class="hint" hidden></p>
         <details id="algorithm-about" class="fold">
           <summary>How the algorithm works</summary>
           <div id="algorithm-note" class="hint"></div>

@@ -8,6 +8,7 @@ import { dataMode } from "./data_mode.js";
 import { setupMarks } from "./setup_marks.js";
 import { setupBatch } from "./setup_batch.js";
 import { setupStage } from "./setup_stage.js";
+import { setupResults } from "./setup_results.js";
 import { sharingPanel } from "./setup_sharing.js";
 
 const { $, views, summaryMasks, st, retitle, openBytes, minimapView } = lent;
@@ -57,4 +58,6 @@ attach(sharing);
 // the marks open or close at once and the sharing is checked against what the new stage needs
 stage = setupStage({ $, reader, writer: sd, place: lent.place, changed: (to) => lent.setStage(to) });
 attach(stage);
+// the results (req/setup/results): the official extractions' numbers, read on a press
+attach(setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile }));
 attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });

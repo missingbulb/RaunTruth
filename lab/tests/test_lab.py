@@ -18,6 +18,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
 import fetch
+import freeze
 import perf
 import run
 import stage as lab_stage
@@ -348,3 +349,98 @@ def test_the_damaged_areas_reach_a_scorer_that_takes_them(acme, monkeypatch):
     monkeypatch.setattr(s.module, 'score', lambda answer, truth, damaged=(): seen.append(damaged) or dict(tp=0, fp=0, fn=0))
     run.measure(s, ['above'], transport=drive)
     assert sorted(seen, key=len) == [[], AREA]
+
+
+FROZEN_ON = '2026-11-23'
+
+
+def started_from(img, count, algorithm, code, note=None):
+    """An extraction whose history begins with a run of the algorithm, as the page's saves do."""
+    doc = json.loads(extraction(img, count))
+    doc['history'] = dict(actions=[dict(type='run', algorithm=algorithm, version=dict(site='1.0', code=code), output={}),
+                                   dict(type='delete-mark', mark='m1')])
+    doc['labels'][0]['note'] = note
+    return json.dumps(doc).encode()
+
+
+@pytest.fixture
+def reviewing(acme):
+    """The acme study in Review, its two GT files each begun by a run of `above`."""
+    s, drive = acme
+    drive.files['gtdrive-ten'] = started_from(TEN, 10, 'above', 'abcdef0123456789')
+    drive.files['gtdrive-twenty'] = started_from(TWENTY, 18, 'above', 'abcdef0123456789')
+    put_study_file(drive, stage='Review')
+    return s, drive
+
+
+def gt_dir(s, date=FROZEN_ON):
+    return os.path.join(s.dir, 'gt', date)
+
+
+def test_the_freeze_is_the_freeze_of_review_alone(acme):
+    # req/lab/freeze
+    s, drive = acme
+    for stage in ('Setup', 'Develop', 'Analyze', 'Public', None):
+        put_study_file(drive, stage=stage)
+        with pytest.raises(SystemExit, match='Review'):
+            freeze.main(['acme'], drive, today=FROZEN_ON)
+    assert not os.path.exists(os.path.join(s.dir, 'gt'))
+
+
+def test_the_freeze_commits_one_model_only_file_per_gt_mark_and_no_official_one(reviewing):
+    s, drive = reviewing
+    freeze.main(['acme'], drive, today=FROZEN_ON)
+    assert sorted(os.listdir(gt_dir(s))) == sorted([sha(TEN) + '.json', sha(TWENTY) + '.json'])
+    for name in os.listdir(gt_dir(s)):
+        text = open(os.path.join(gt_dir(s), name)).read()
+        assert not any(w in text for w in ('history', 'tagger', 'created', 'a@x', 'b@x', 'imgid-private', 'drive_id')), name
+        assert json.loads(text)['image']['sha256'] == name[:-5]
+    assert 'officialdrive-twenty' not in drive.downloads
+
+
+def test_the_freeze_publishes_the_scores_with_their_stamp_measured_on_the_committed_files(reviewing):
+    s, drive = reviewing
+    freeze.main(['acme'], drive, today=FROZEN_ON)
+    doc = json.load(open(s.metrics_path()))
+    committed = [json.load(open(os.path.join(gt_dir(s), n))) for n in sorted(os.listdir(gt_dir(s)))]
+    assert doc['dataset_sha256'] == hashlib.sha256(json.dumps(sorted(
+        [[i['image_sha256'], i['truth_sha256']] for i in doc['images']])).encode()).hexdigest()
+    assert sorted(i['truth_sha256'] for i in doc['images']) == sorted(fetch.model_sha256(c) for c in committed), \
+        'the dataset SHA names the committed files: Drive\'s copy and the repo\'s agree'
+    for key, v in doc['versions'].items():
+        assert v['stamp'] == dict(version=key, dataset_sha256=doc['dataset_sha256'], frozen=FROZEN_ON, commit=None)
+    assert doc['versions']['above']['tp'] == 28 and doc['versions']['above']['fp'] == 2
+    assert doc['frozen'] == FROZEN_ON
+    assert not any(w in json.dumps(doc) for w in ('a@x', 'b@x', 'drive'))
+
+
+def test_the_metrics_record_which_algorithm_version_each_gt_file_started_from(reviewing):
+    s, drive = reviewing
+    drive.files['gtdrive-twenty'] = extraction(TWENTY, 18)
+    freeze.main(['acme'], drive, today=FROZEN_ON)
+    started = {i['image_sha256']: i['started_from'] for i in json.load(open(s.metrics_path()))['images']}
+    assert started == {sha(TEN): dict(algorithm='above', code='abcdef0123456789'), sha(TWENTY): None}
+
+
+def test_the_freeze_refuses_to_commit_an_email_address_it_finds_in_a_file(reviewing):
+    s, drive = reviewing
+    drive.files['gtdrive-ten'] = started_from(TEN, 10, 'above', 'abcdef0123456789', note='ask who@lab.example')
+    with pytest.raises(SystemExit, match='email'):
+        freeze.main(['acme'], drive, today=FROZEN_ON)
+    assert not os.path.exists(os.path.join(s.dir, 'gt'))
+
+
+def test_the_stamp_step_names_the_commit_that_holds_the_files_and_waits_for_there_to_be_one(reviewing):
+    s, drive = reviewing
+    before = open(s.metrics_path(), 'rb').read()
+    with pytest.raises(SystemExit, match='no freeze'):
+        freeze.stamp('acme', commit_of=lambda path: 'abc')
+    freeze.main(['acme'], drive, today=FROZEN_ON)
+    with pytest.raises(SystemExit, match='not committed'):
+        freeze.stamp('acme', commit_of=lambda path: None)
+    asked = []
+    freeze.stamp('acme', commit_of=lambda path: asked.append(path) or 'c0ffee' * 6 + 'abcd')
+    doc = json.load(open(s.metrics_path()))
+    assert all(v['stamp']['commit'] == 'c0ffee' * 6 + 'abcd' for v in doc['versions'].values()) and doc['commit'] == 'c0ffee' * 6 + 'abcd'
+    assert [os.path.relpath(p, s.dir) for p in asked] == [os.path.join('gt', FROZEN_ON)]
+    assert open(s.metrics_path(), 'rb').read() != before
