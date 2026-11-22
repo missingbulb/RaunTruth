@@ -20,7 +20,7 @@ import { studies as studiesOf } from "./fakes/studies.mjs";
 // uploaded(file): each file the page creates or replaces, {name, bytes}
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
+  const EMAIL = "tester@example.com";
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -78,23 +78,21 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // the Drive fake, ROOT its folder: {id, name, parent, folder, bytes, mine, props, modified}; Drive's clock moves a
   // second each write
   const FILES = drive.files;
-  let next = 0;
-  drive.folder({ id: ROOT, name: "Study folder one", access: "public" });
-  const add = (dir, parent) => {
+  const root = w.folder("Study folder one").public(), ROOT = root.id;
+  const add = (dir, folder) => {
     for (const name of fs.readdirSync(dir).sort()) {
-      const p = path.join(dir, name), folder = fs.statSync(p).isDirectory(), id = folder ? "dmsubfolder" + String(next++).padStart(9, "0") : "dmfile" + String(next++).padStart(14, "0");
-      if (folder) { drive.folder({ id, name, parent }); add(p, id); } else drive.file({ id, name, parent, bytes: fs.readFileSync(p) });
+      const p = path.join(dir, name);
+      if (fs.statSync(p).isDirectory()) add(p, folder.folder(name)); else folder.holds({ name, bytes: fs.readFileSync(p) });
     }
   };
-  add(rootDir, ROOT);
+  add(rootDir, root);
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
   // gt: the study set up with review, its settings file in ROOT naming two ground-truth folders kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
-  const GT = { curated: "dmgtcurated000000000001", submissions: "dmgtsubmissions0000001" };
+  const GT = {};
   if (gt) {
-    for (const [id, name] of [[GT.curated, "GT curated"], [GT.submissions, "GT submissions"]]) drive.writableByAnyone(drive.folder({ id, name, parent: "elsewhere" }));
-    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT,
-      bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
+    [GT.curated, GT.submissions] = ["GT curated", "GT submissions"].map((name) => w.folder(name, { in: "elsewhere" }).writableByAnyone().id);
+    root.holds({ name: "rauntruth-study.json", bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
   }
   // the folders Drive lets the user only view
   const viewOnly = drive.viewOnly;
