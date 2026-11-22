@@ -59,7 +59,7 @@ await page.click("#batch-run");
 await finished(page, /^Done/);
 const made = runFiles();
 await check(made.length === 3, "the batch wrote three extractions", made.map((f) => f.name));
-await check(made.every((f) => f.name === "run_above__unknown.json"), "each file is named for the algorithm and the version", made.map((f) => f.name));
+await check(made.every((f) => f.name === "run_above__standin0.json"), "each file is named for the algorithm and the version", made.map((f) => f.name));
 const parents = made.map((f) => FILES.find((g) => g.id === f.parent));
 await check(names.every((n) => parents.some((p) => p.name === `${n.replace(/\.[^.]*$/, "")}__${shaOf(n).slice(0, 8)}` && p.parent === GT.extractions)), "each is in its image's subfolder of the extractions folder", parents.map((p) => p.name));
 const read = (n) => JSON.parse(made.find((f) => FILES.find((g) => g.id === f.parent).name.startsWith(n.replace(/\.[^.]*$/, "") + "__")).bytes.toString());
