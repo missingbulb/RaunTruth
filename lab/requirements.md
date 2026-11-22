@@ -19,6 +19,22 @@ under `req/lab` and cited by it, as in the shell's spec (`web-tests/test_require
   candidate no longer counts as a known non-NoR. Test: `lab/tests/test_lab.py`.
   </details>
 
+- `req/lab/freeze` One lab command commits the study's GT, model-only, to `studies/<id>/gt/<freeze date>/` and writes the official scores with their stamp.
+  <details>
+
+  Set by the owner on 2026-11-22 (WP8 of `dev/requirements/study-stages-spec.md`). `python3 lab/freeze.py <study>` is the second of the three
+  steps of entering Review (Study Setup's Freeze, this, then the sharing check) and refuses unless the study file's stage is Review. It
+  writes each GT mark's file in its model-only form (`req/lab/dataset-sha`) as `studies/<id>/gt/<freeze date>/<image SHA-256>.json`, one per
+  GT mark and none for official marks or the lab's own labels, with no `history`, `tagger`, `created` or email anywhere in the bytes (a file
+  that still holds an email address stops the freeze, nothing written). The scores are measured on those committed files alone and written to
+  the study's metrics file, whose every version carries a stamp `{version, dataset_sha256, frozen, commit}` (the page shows it from Review
+  on, `req/shell/processing/stamp`); the metrics record, for each image, the algorithm and code version the GT file's history began with, since
+  the model-only form drops that history. The commit cannot exist before the files are committed, so the stamp holds `commit: null` until
+  `lab/freeze.py <study> --stamp` writes the commit that holds the files (it refuses while they are uncommitted or changed); a session commits
+  the files, stamps, and commits the metrics. Tentative: the model-only form drops `history`, which NoR's scorer reads for rejected
+  candidates (`req/lab/dataset-sha`), so the frozen score does not count them either. Test: `lab/tests/test_lab.py`.
+  </details>
+
 - `req/lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
   <details>
 

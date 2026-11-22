@@ -1057,6 +1057,16 @@ html:not(.offline) #welcome-offline { display: none; }
 #batch-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
 #batch-official[hidden] { display: none; }
 #batch-msg, #marks-msg { overflow-wrap: anywhere; }
+/* Study Setup's Results (req/setup/results) */
+#results-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#results-csv[hidden], #results-scroll[hidden] { display: none; }
+#results-scroll { overflow-x: auto; margin: 4px 0; }
+#results-scroll table { border-collapse: collapse; font-size: 12px; width: 100%; }
+#results-scroll table th, #results-scroll table td { padding: 2px 6px; text-align: left; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+#results-scroll table td:nth-child(n+3), #results-scroll table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+#results-scroll table tfoot td { font-weight: 600; }
+#results-box.busy { opacity: .6; }
+#results-msg { overflow-wrap: anywhere; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 

@@ -2711,7 +2711,7 @@ function studyBoxes() {
   showBoxes(); summaryMasks.redraw(); gtSession.paint();
 }
 const viewers = {};
-const algorithms = algorithmChoice({ $, outline, status });
+const algorithms = algorithmChoice({ $, outline, status, repo: REPO });
 // Download Summary at the Summary box's foot: the study's summary, saved as the shell's one CSV
 const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
 // the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
@@ -2808,7 +2808,7 @@ const batchRunner = {
 // what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
 // and left bar, lent as they are
 export const lent = {
-  batchRunner, stageAllows, setStage, readStage,
+  batchRunner, stageAllows, setStage, readStage, saveFile,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
   page, views, summaryMasks, st, retitle, loadOriginal, minimapView: () => view?.minimapView(),
   // the image itself, by its id, is open

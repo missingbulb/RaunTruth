@@ -49,3 +49,10 @@ def test_the_owner_promotes_freezes_and_moves_back(answers, three):
     """setup/promote: the images with extractions newer than their GT listed before Review, the stage written into the study file,
     Freeze closing marking and data, a move back reopening them, and the main app's Save after the freeze labelled."""
     run('setup_stage_driver.mjs', answers[0], answers[1], str(three), timeout=300)
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_the_results_are_read_on_a_press_alone_and_listed_one_row_per_image(answers, three):
+    """req/setup/results: official marks seeded on two images; before the press nothing of theirs is read; after it, two rows and the totals, the
+    CSV the same rows; an image with no official mark has no row."""
+    run('setup_results_driver.mjs', answers[0], answers[1], str(three), timeout=240)

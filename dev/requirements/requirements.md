@@ -1431,6 +1431,16 @@ nobody has decided: what the page does there is not a requirement yet.
   shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
   </details>
 
+- `req/shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze date and a link to the GT commit.
+  <details>
+
+  Set by the owner on 2026-11-22 (WP8 of `dev/requirements/study-stages-spec.md`). The lab's freeze (`req/lab/freeze`) writes, for each version
+  in the study's metrics file, a stamp `{version, dataset_sha256, frozen, commit}`. Under the algorithm list the chosen algorithm's stamp
+  is shown as one line, outside the fold: the freeze date, the algorithm version, the first eight hex of the dataset SHA and, once the lab
+  has named the commit that holds the frozen ground truth, a link to it on GitHub. Metrics with no stamp (every Develop study) show no line,
+  and an algorithm whose score carries none shows none. Test: `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
   <details>
 
@@ -2193,6 +2203,21 @@ nobody has decided: what the page does there is not a requirement yet.
   grouping tag, Needs GT, and the study index is no longer written), while the stage, the sharing and the batch run stay. Moving back reopens them. The main app's Save of a
   session begun before the freeze still writes the person's extraction, and says it was saved "after the freeze, not counted". Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_stage_driver.mjs`.
+  </details>
+
+- `req/setup/results` Study Setup's Results box lists one row per image with an official mark, with totals and a CSV, reading nothing until Show results is pressed.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP8; reading each image's official extraction on that press alone is
+  approved). Nothing is read on opening Study Setup, on a mark or on a stage change. Pressing Show results reads the study file's marks and
+  then each official mark's extraction, and lists one row per image with an official mark, by image name: the image, the algorithm and the
+  first eight of its code version where a batch run made the extraction, "by hand" where a person's did, and the study's measures, the
+  columns its `study.json` names under `results.measures` (`{title, path}` for a number in the extraction's document, `{title, count}` for
+  the lengths of the lists at those paths added), the totals last (the images and each measure summed). An image with no official mark has no
+  row. Download CSV saves the same rows and totals from the page as a file, asking the network for nothing. Tentative: the measures
+  declared for NoR (candidates kept and NoRs added), vascular (branch segments) and shelves (books) count what each extraction's document
+  holds and are not the studies' final numbers; the box shows in every stage. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_results_driver.mjs`.
   </details>
 
 - `req/setup/sharing-check` Study Setup checks the study's Drive sharing against what its stage needs and lists each correction, with what to change, where and pictures; Fix changes one item's sharing only when the owner presses it and confirms.

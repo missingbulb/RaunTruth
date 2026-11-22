@@ -1,4 +1,4 @@
-"""req/shell/processing/algorithms, req/shell/processing/scoring: the study's algorithms atop its Processing box, on the fixture study in headless
+"""req/shell/processing/algorithms, req/shell/processing/scoring, req/shell/processing/stamp: the study's algorithms atop its Processing box, on the fixture study in headless
 Chromium with a stand-in worker (algorithm_choice_driver.mjs)."""
 from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
 import pytest

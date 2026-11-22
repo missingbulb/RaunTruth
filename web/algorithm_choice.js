@@ -8,14 +8,21 @@ const pr = (a) => `P ${two(a.precision)} · R ${two(a.recall)}`; // one unbr
 const measured = (a) => typeof a.precision === "number" && typeof a.recall === "number";
 const capital = (s) => s[0].toUpperCase() + s.slice(1);
 
-export function algorithmChoice({ $, outline, status }) {
+// the score's stamp from Review on (req/shell/processing/stamp), {version, dataset_sha256, frozen, commit}: what the numbers were measured on
+// and when it was frozen, with a link to the commit that holds the ground truth; null where the metrics carry none
+const stampOf = (v) => {
+  const t = v?.stamp;
+  return t && typeof t.dataset_sha256 === "string" && typeof t.frozen === "string" ? t : null;
+};
+
+export function algorithmChoice({ $, outline, status, repo }) {
   const box = $("#algorithm-pick"), sel = $("#algorithm"), q = $("#scoring-help"), scoring = $("#scoring-note"), heard = [];
   const shut = () => { scoring.hidden = true; q.setAttribute("aria-expanded", "false"); };
   q.addEventListener("click", () => { const open = scoring.hidden; scoring.hidden = !open; q.setAttribute("aria-expanded", String(open)); });
   let list = [], doc = null, ready = Promise.resolve([]);
   const chosen = () => list.find((a) => a.key === sel.value);
   function about() {
-    const a = chosen(); if (!a) return;
+    stamped(); const a = chosen(); if (!a) return;
     $("#algorithm-about summary").textContent = `How the ${a.title} algorithm works`;
     const note = $("#algorithm-note");
     note.replaceChildren(outline(a.about));
@@ -24,6 +31,17 @@ export function algorithmChoice({ $, outline, status }) {
     b.textContent = `${capital(a.title)} algorithm shows precision of ${a.precision.toFixed(2)} and recall of ${a.recall.toFixed(2)}${doc.measured ? " " + doc.measured : ""}`;
     p.append(b); if (a.note) p.append(` (${a.note})`);
     note.append(p);
+  }
+  // the chosen one's stamp beside its numbers, outside the fold
+  function stamped() {
+    const el = $("#algorithm-stamp"), t = chosen()?.stamp;
+    el.hidden = !t; el.replaceChildren();
+    if (!t) return;
+    el.append(`Frozen ${t.frozen} · algorithm version ${t.version ?? chosen().key} · data set ${t.dataset_sha256.slice(0, 8)}`);
+    if (typeof t.commit === "string" && t.commit) {
+      const link = Object.assign(document.createElement("a"), { href: `https://github.com/${repo}/commit/${t.commit}`, target: "_blank", rel: "noopener", textContent: `ground truth ${t.commit.slice(0, 8)}` });
+      el.append(" · ", link);
+    }
   }
   sel.addEventListener("change", () => { about(); for (const fn of [...heard]) fn(sel.value); });
   return {
@@ -38,7 +56,7 @@ export function algorithmChoice({ $, outline, status }) {
         .then(([own, m]) => {
           if (signal.aborted) return new Promise(() => {});
           doc = { measured: m.measured };
-          list = own.map((a) => { const v = m.versions?.[a.key]; return v ? { ...a, precision: v.precision, recall: v.recall, note: v.note } : a; });
+          list = own.map((a) => { const v = m.versions?.[a.key]; return v ? { ...a, precision: v.precision, recall: v.recall, note: v.note, stamp: stampOf(v) } : a; });
           shut(); q.hidden = !m.scoring;
           if (m.scoring) { const head = document.createElement("p"); head.textContent = "How precision and recall are scored"; scoring.replaceChildren(head, outline(m.scoring)); }
           sel.replaceChildren(...list.map((a) => new Option(`${a.icon || ""} ${a.title}${measured(a) ? ` (${pr(a)})` : ""}`.trim(), a.key)));
@@ -49,7 +67,7 @@ export function algorithmChoice({ $, outline, status }) {
     },
     // the study leaving: the list as before any study came in
     leave() {
-      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; box.hidden = true;
+      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; box.hidden = true; $("#algorithm-stamp").hidden = true;
       shut(); q.hidden = true; scoring.replaceChildren();
       $("#algorithm-about").open = false; $("#algorithm-about summary").textContent = "How the algorithm works"; $("#algorithm-note").replaceChildren();
     },

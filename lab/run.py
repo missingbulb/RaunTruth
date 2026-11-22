@@ -60,15 +60,16 @@ def committed_truth(study):
     return out
 
 
-def corpus(study, transport=None, which='all', sf=None):
+def corpus(study, transport=None, which='all', sf=None, truths=None):
     """[(image entry, truth)]: every ground-truth file whose image the study's data holds, GT marks first, each
     image with its damaged areas; which is 'all', 'drive' (the GT marks alone) or 'lab' (the study's own lab/truth/
-    alone)."""
+    alone); truths, given, is the whole ground truth in place of all of those (the freeze's committed files)."""
     sf = sf or fetch.study_file(study.id, transport)
-    found, refused = fetch.truth(study.id, sf=sf) if which != 'lab' else ([], {})
-    for path, why in refused.items():
-        print(f'ground truth {path} left out: {why}', file=sys.stderr)
-    truths = found + (committed_truth(study) if which != 'drive' else [])
+    if truths is None:
+        found, refused = fetch.truth(study.id, sf=sf) if which != 'lab' else ([], {})
+        for path, why in refused.items():
+            print(f'ground truth {path} left out: {why}', file=sys.stderr)
+        truths = found + (committed_truth(study) if which != 'drive' else [])
     # only the images some ground truth names are fetched
     areas = sf.damaged()
     imgs = {e['sha256']: dict(e, damaged=areas.get(e['sha256'], []))
@@ -117,10 +118,10 @@ def total(scores):
     return s
 
 
-def measure(study, versions=None, transport=None, which='all', sf=None):
+def measure(study, versions=None, transport=None, which='all', sf=None, truths=None):
     """{version: {settings name or None: {totals, 'images': {ground-truth file sha256: counts}}}} over the corpus, and
     the corpus."""
-    pairs = corpus(study, transport, which, sf)
+    pairs = corpus(study, transport, which, sf, truths)
     code, images, out = code_hash(study), {}, {}
     settings = getattr(study.module, 'SETTINGS', {})
     for v in versions or study.versions:
@@ -157,6 +158,15 @@ def document(study, results, pairs):
                 scoring=study.scoring, versions=versions)
 
 
+def write(study, doc):
+    """The study's metrics file, rewritten with doc: its path."""
+    path = study.metrics_path()
+    with open(path, 'w') as f:
+        json.dump(doc, f, indent=1, ensure_ascii=False)
+        f.write('\n')
+    return path
+
+
 def table(results):
     rows = ['| version | setting | tp | fp | fn | precision | recall |', '|---|---|---|---|---|---|---|']
     for v, by in results.items():
@@ -182,11 +192,7 @@ def main(argv=None):
     print(table(results))
     if a.write:
         doc = document(study, results, pairs)
-        path = study.metrics_path()
-        with open(path, 'w') as f:
-            json.dump(doc, f, indent=1, ensure_ascii=False)
-            f.write('\n')
-        print(f'wrote {os.path.relpath(path)} ({doc["measured"]})')
+        print(f'wrote {os.path.relpath(write(study, doc))} ({doc["measured"]})')
 
 
 if __name__ == '__main__':

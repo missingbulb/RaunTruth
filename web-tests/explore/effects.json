@@ -17,6 +17,8 @@
     {"family": "continue anonymously", "match": {"key": "^#welcome-anonymous$"}, "may": ["storage.*", "dialog", "html.*"], "writes": 0},
     {"family": "save draft", "match": {"key": "^#gt-save-draft$"}, "may": ["storage.*", "html.*", "dialog"], "writes": [0, 4]},
     {"family": "save an annotation", "match": {"key": "^#(gt-submit|gt-send|gt-export|gt-download)$"}, "may": ["storage.*", "html.*", "dialog", "download", "url"], "writes": "any"},
+    {"family": "download the results", "match": {"key": "^#results-csv$"}, "may": ["download"], "writes": 0},
+    {"family": "show results", "match": {"key": "^#results-show$"}, "may": ["html.*", "class.*", "open", "settings", "storage.*"], "writes": 0},
     {"family": "undo", "match": {"key": "^#gt-undo$"}, "reverts": true, "may": ["storage.*"], "writes": 0},
     {"family": "redo", "match": {"key": "^#gt-redo$"}, "may": ["storage.*"], "writes": 0},
     {"family": "previews", "match": {"key": "^#update-previews$"}, "may": ["storage.*", "html.*"], "writes": "any"},

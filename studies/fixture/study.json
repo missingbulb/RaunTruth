@@ -52,6 +52,14 @@
     "open": "Reading the image…",
     "run": "Counting…"
   },
+  "results": {
+    "measures": [
+      {
+        "title": "Pixels counted",
+        "path": "labels.0.count"
+      }
+    ]
+  },
   "groundTruth": {
     "actions": "web/gt_actions.js"
   },

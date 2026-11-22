@@ -12,6 +12,7 @@ python3 lab/perf.py STUDY snapshot|check|profile [VERSION]   # a speed-up is kep
 node lab/perf_pyodide.mjs STUDY IMAGE VERSION        # the same version's time and memory under the page's Pyodide
 python3 lab/items.py STUDY table|ablate ...          # per-item verdicts of every version; a paired bootstrap of two
 python3 lab/stage.py STUDY [--stop-if-frozen]   # the stage the study file names; exit 3 in Review and Public
+python3 lab/freeze.py STUDY [--stamp]   # in Review: commit the GT model-only to studies/STUDY/gt/<date>/ and write the stamped scores
 python3 lab/mutate.py STUDY list|sweep|one|view|marks # the mutation sweep over the trick pool (dev/tools/trick_pool)
 ```
 
@@ -63,6 +64,14 @@ crops.
 - **The stage** (`stage.py`, `req/lab/stage`): printed from the study file, or `unknown` when it names none. In Review
   and Public the study is frozen: `run.py --write` stops, and so does an unattended task that would change its
   algorithm (the NoR mutation sweep ends its run clean).
+- **The freeze** (`freeze.py`, `req/lab/freeze`): the second of the three steps of entering Review, run only while the study
+  file says Review. It writes each GT mark's file, model-only, as `studies/STUDY/gt/<freeze date>/<image SHA-256>.json`
+  (no history, tagger, creation time or email; a file still holding an email stops it), measures every version on those
+  committed files alone, and writes the metrics file with a stamp `{version, dataset_sha256, frozen, commit}` on each
+  version and, per image, the algorithm and code version the GT file's history began with. `commit` is `null` until the
+  session has committed the files and run `freeze.py STUDY --stamp`, which writes the commit that holds them; then the
+  metrics are committed too. The model-only form drops `history`, so a scorer that reads it (NoR's rejected candidates)
+  scores the frozen set as `run.py` does.
 - **Running and scoring** (`run.py`): each version on each image with ground truth, scored by the study's `score`,
   summed over images into precision `tp / (tp + fp)` and recall `tp / (tp + fn)`; with `--write`, the study's
   metrics file (`study.json` `algorithms.metrics`) with the numbers, what they were measured on (each image's and

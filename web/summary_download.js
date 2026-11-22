@@ -2,7 +2,7 @@
 // saves it as one CSV, the same table for every study. set({over, rows}) offers it, set(null) takes it back; each row is
 // {measurement, unit, value} for a single number or {measurement, unit, n, mean, sd, median, min, max} for a distribution.
 const COLUMNS = ["image", "study", "counted_over", "measurement", "unit", "value", "n", "mean", "sd", "median", "min", "max"];
-const cell = (v) => {
+export const cell = (v) => {
   if (v == null || (typeof v === "number" && !Number.isFinite(v))) return "";
   const t = typeof v === "number" ? String(Number(v.toPrecision(6))) : String(v);
   return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
