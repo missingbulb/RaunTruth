@@ -25,9 +25,9 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
-import { pw, launch, keptContext, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 
 const [site, tiffPath, shots] = process.argv.slice(2);
@@ -72,7 +72,7 @@ const server = http.createServer((q, r) => {
   if (u === "/app/offline.json") {
     const list = servedList(JSON.parse(fs.readFileSync(path.join(site, "app", "offline.json"))));
     if (!release) { r.writeHead(200, { "content-type": "application/json", ...HEADERS[u] }); return r.end(JSON.stringify(list)); }
-    list.files.push({ path: "slow.js", sha256: "0".repeat(64) });
+    list.files = [...list.files, { path: "slow.js", sha256: "0".repeat(64) }];
     r.writeHead(200, { "content-type": "application/json" });
     return r.end(JSON.stringify(list));
   }
@@ -92,15 +92,17 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
 
-// a profile of its own: a browser's private window can install nothing
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+const browser = await launch(pw), w = world(browser, origin);
+// a profile of its own, as a browser's private window can install nothing, with the site's own worker and the
+// opening popup not yet answered
+const device = w.device().kept().withWorker().welcomed(null), ctx = await device.context();
 // the page's clock, which runs as the real one does, so the test can move it past a wait on the page's own timers
 await ctx.clock.install();
 // the page asks whether the site answers every 30 s while the browser says it is online, every 5 s while offline
 // (web/offline.js)
 const pastHeartbeat = () => ctx.clock.fastForward(30000), pastOfflineRetry = () => ctx.clock.fastForward(5000);
 // the study's folder on the Drive fake: a stack, and a subfolder holding another
-const drive = googleDrive(ctx);
+const { drive } = w;
 drive.file({ id: "acmestack00000000001", name: "stack one.tif", parent: ROOT, bytes: TIFF, mimeType: "image/tiff" });
 drive.folder({ id: SUB, name: "sub", parent: ROOT });
 drive.file({ id: "acmestack00000000002", name: "stack two.tif", parent: SUB, bytes: TIFF, mimeType: "image/tiff" });
@@ -384,6 +386,6 @@ try {
   failed = true; console.error("FAILED: " + (e.stack || e));
   console.error("status: " + (await statusText().catch(() => "(no page)")));
 } finally {
-  await ctx.close(); server.close();
+  await device.close(); await browser.close(); server.close();
 }
 process.exit(failed ? 1 : 0);
