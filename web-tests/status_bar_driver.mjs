@@ -16,12 +16,12 @@ import { helpTip, anyHelp } from "./help_tip.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { tagger } from "./tagger.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { pw, launch, expecting, siteOf, NETWORK_GONE } from "./harness.mjs";
+import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
+import { world } from "./world.mjs";
 import { STEP } from "./deadlines.mjs";
 
 
@@ -57,11 +57,12 @@ const { origin, server } = await serveSite({
   "/web/answers.json": { file: answers },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
 // the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
-const site = siteOf(browser).studies;
-site.edit("fixture", (m) => (stage ? { ...m, stage } : m));
-site.editList(() => {
+w.studies.edit("fixture", (m) => (stage ? { ...m, stage } : m));
+w.studies.editList(() => {
   const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
   return [...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }];
 });
@@ -84,19 +85,14 @@ const bars = (page) => page.evaluate(() => {
 // clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
 // seed: browser keys kept before the page opens
 async function open(study, mode, clock, seed = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w)).asRole("tagger")
+    .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
+  const ctx = await device.context();
   if (clock) await ctx.clock.install();
-  await localStudy(ctx, "fixture");
-  await asTagger(ctx);
   await standInDrive(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
   // as computed), and flashed
-  await page.addInitScript(() => {
+  await ctx.addInitScript(() => {
     window.seen = {};
     addEventListener("DOMContentLoaded", () => {
       for (const id of ["sb-disk", "sb-memory", "sb-net", "sb-cpu"]) {
@@ -109,9 +105,7 @@ async function open(study, mode, clock, seed = {}) {
       }
     });
   });
-  await page.goto(origin + "/web/" + (study || ""));
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-  return { ctx, page };
+  return { ctx, page: await device.opens(study || undefined) };
 }
 // the crumbs on show, the one to do now marked *, and every element that shines
 const bar = (page) => page.evaluate(() => ({
