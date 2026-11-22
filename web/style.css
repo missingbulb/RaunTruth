@@ -141,6 +141,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #recent .where { color: var(--dim); font-size: 11px; }
 .menu .pop .item { text-align: left; border: 0; background: none; padding: 4px 2px; white-space: nowrap; }
 .menu .pop .item:not(:disabled):hover { color: var(--accent); }
+.menu .pop a.item { display: block; color: var(--text); text-decoration: none; }
+.menu .pop a.item[hidden] { display: none; }
+#setup-note { margin: var(--pad); font-size: 14px; }
 .remote-logo, .computer-logo { width: 14px; height: 12px; flex: none; }
 /* how long since an image was opened: "3h", "6d" */
 .age { flex: none; font-size: 11px; color: var(--dim); padding: 0 5px; border-radius: var(--r-chip); background: color-mix(in srgb, var(--text) 8%, transparent);

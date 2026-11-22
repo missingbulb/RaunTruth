@@ -1,6 +1,6 @@
 // Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
-// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the view the avatar's
-// Data Management item opens, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
+// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): Study Setup's
+// column (setup.js), for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
 // left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
 // it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
 // chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
@@ -650,7 +650,7 @@ export function dataMode(ctx) {
     },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },
-    // Data Management opened or left, from the avatar's menu (until Study Setup replaces it)
+    // Study Setup's page opened for someone the store lets write the root, or not
     open(on) { $("#data-col").hidden = !on; enter(on); },
     get on() { return on(); },
   };

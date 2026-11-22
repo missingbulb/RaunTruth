@@ -201,7 +201,7 @@ def test_every_element_the_tree_names_is_on_the_page():
     checked = 0
     for i, els in trees.items():
         panels = studies[i]['study']['web'].get('panels')
-        p = page_ids('web/index.html', *([f'studies/{i}/{panels}'] if panels else []))
+        p = page_ids('web/index.html', 'web/setup.html', *([f'studies/{i}/{panels}'] if panels else []))
         ids = set(p.state) | set(p.opened) | p.tags
         up = dict((e['name'], parent) for e, parent in els)
         for e, parent in els:
@@ -215,7 +215,7 @@ def test_every_element_the_tree_names_is_on_the_page():
 
 def test_every_shell_element_is_in_the_tree():
     """An element the shell's page gains is given its place in the tree, and its rules, in the same change."""
-    p = page_ids('web/index.html')
+    p = page_ids('web/index.html', 'web/setup.html')
     held = {lead(n['select']) for n, _, _ in tree()}
     left = [i for i in p.state if i not in held]
     assert len(p.state) > 100
@@ -260,7 +260,7 @@ def test_the_tree_says_which_elements_are_boxes_and_controls_as_the_page_does():
     for i, els in trees.items():
         p = Tags()
         panels = studies[i]['study']['web'].get('panels')
-        for f in ['web/index.html'] + ([f'studies/{i}/{panels}'] if panels else []):
+        for f in ['web/index.html', 'web/setup.html'] + ([f'studies/{i}/{panels}'] if panels else []):
             with open(os.path.join(ROOT, f), encoding='utf-8') as h:
                 p.feed(h.read())
         for e, _ in els:
@@ -279,7 +279,7 @@ def test_the_shell_tree_holds_only_the_shells_page():
     """req/checks/spec-layout: what a study's own panels hold is given by that study, in its states.json."""
     with open(shell_states.RULES, encoding='utf-8') as f:
         own = list(shell_states.nodes(json.load(f)['tree']))
-    p = page_ids('web/index.html')
+    p = page_ids('web/index.html', 'web/setup.html')
     ids = set(p.state) | set(p.opened) | p.tags
     assert len(own) >= 80, f'the shell tree has {len(own)} elements: the sweep is not reading it'
     up = {n['name']: parent for n, parent, _ in own}

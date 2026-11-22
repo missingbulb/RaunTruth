@@ -22,6 +22,9 @@ EXPECT = os.path.join(ROOT, 'web-tests', 'shell-states.GENERATED.json')
 # what each action leaves changed; the browser test does the same action on the page
 # an image coming in ends annotation mode: the choice of how to get annotations on it is asked again (req/shell/annotate/choice)
 ASK = {'annotating': False, 'route': 'none', 'edited': False}
+# a page opened afresh: no image, nothing chosen, no annotation mode
+FRESH = {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, 'selected': 'nothing', 'notice': False,
+         'imageFits': True, 'hasDraft': False, **ASK}
 ACTIONS = {
     'load': ('Load', {'image': 'local', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     'stack': ('Load a stack', {'image': 'local', 'stack': True, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
@@ -47,9 +50,9 @@ ACTIONS = {
     'unload': ('Unload', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     # the study's images in its Drive folder, the one a user of a study that opens none from the computer takes
     'drive': ('Load from Drive', {'image': 'original', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
-    # Data Management, from the avatar's menu (req/shell/data/mode)
-    'data': ('Open Data Management', {'managing': True}),
-    'leave': ('Leave Data Management', {'managing': False}),
+    # Study Setup, the study's other page, from the avatar's menu and back (req/setup/page): each opens its page afresh, with no image
+    'data': ('Open Study Setup', {'managing': True, **FRESH}),
+    'leave': ('Leave Study Setup', {'managing': False, **FRESH}),
     # to another study and Back to this one, which opens afresh, with no image
     'restudy': ('Away and back', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     'ok': ('OK', {'notice': False}),
