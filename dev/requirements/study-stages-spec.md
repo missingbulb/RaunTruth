@@ -4,7 +4,7 @@ The build plan for the design in [`study-stages-map.md`](study-stages-map.md) (#
 and why; this file holds the requirements to land in `requirements.md`, how each is tested, and where the code
 goes, cut into work packages a worker session can take one at a time.
 
-**Status:** every decision here is the owner's; the one question left is the cross-image results view (WP8).
+**Status:** every decision here is the owner's; none is left open.
 
 ## How a worker takes a package
 
@@ -73,6 +73,7 @@ finds test-first, fixes small gaps, and brings the owner only the calls that are
 | List the images with extractions newer than their GT: one extractions listing per GT-marked image | Study Setup | approved only on a button press, and once on promoting to Review (owner, 2026-11-22); never on open or on a mark |
 | Re-read the study file's stage just before each Save, so a save after the freeze is labelled | main app, signed in | approved (owner, 2026-11-22) |
 | Read the link-shared study file by the site's API key on load, so a signed-out visitor and the switcher's listing know the stage | main app, signed out | approved (owner, 2026-11-22) |
+| Results: read each image's official extraction, only on the Show results press | Study Setup | approved (owner, 2026-11-22) |
 
 ## Decided after the second persona reviews
 
@@ -384,7 +385,11 @@ Depends on WP6 and WP7.
 - `shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze
   date and a link to the GT commit.
   - **Test:** `algorithm_choice_driver.mjs`: metrics with a stamp render it; without one (Develop) nothing.
-- The cross-image results view: **owner's question first**.
+- `setup/results` (owner, 2026-11-22) A Results box in Study Setup: pressing Show results reads each image's official
+  extraction and lists one row per image (image, algorithm and version or "by hand", the study's measures), totals
+  last, with Download CSV. Nothing is read until the press.
+  - **Test:** `test_setup_page.py`: official marks seeded on two images; before the press the log holds no read of
+    them; after it, two rows and the totals; the CSV holds the same rows; an image with no official mark has no row.
 
 ### WP9 - folded into each package
 
