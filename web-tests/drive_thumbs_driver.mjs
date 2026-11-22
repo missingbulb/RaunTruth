@@ -12,9 +12,9 @@ import zlib from "node:zlib";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
-import { pw, launch, siteOf, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -43,16 +43,17 @@ const { origin, server } = await serveSite({
   "/studies/fixture/thumbs/index.json": () => JSON.stringify(IMAGES.map((f) => f.id)),
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
-siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+w.site.withoutGoogleClient();
 // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
-siteOf(browser).studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
+w.studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+// a device remembering the fixture's folder link
+const device = w.device().remembersDriveLink(ROOT), ctx = await device.context();
 // the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
 // held until the user has moved on
-const drive = googleDrive(ctx);
+const { drive } = w;
 drive.folder({ ...SLOW, parent: ROOT });
 drive.file({ id: "slowimage00000000001", name: "stale.tif", parent: SLOW.id, bytes: Buffer.alloc(1000), mimeType: "image/tiff" });
 for (const f of IMAGES) drive.file({ ...f, parent: ROOT, bytes: Buffer.alloc(1000), mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
@@ -86,18 +87,13 @@ await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
   try { await route.fulfill({ status: 200, contentType: "image/png", body: png(k + 1) }); } catch { /* aborted by the page */ }
   inflight--; note();
 });
-await ctx.addInitScript((link) => {
-  delete Navigator.prototype.serviceWorker;
-  localStorage.setItem("nor-drive-link", JSON.stringify(link));
-}, `https://drive.google.com/drive/folders/${ROOT}`);
 // the thumbnails the page has asked for, counted as it asks, before any request reaches the stand-in
 await ctx.addInitScript(() => {
   window.thumbsAsked = 0;
   const fetchNow = window.fetch;
   window.fetch = function (u, ...rest) { if (/\/thumbs\/[^/]+\.jpg$/.test(String(u?.url ?? u))) window.thumbsAsked++; return fetchNow.call(this, u, ...rest); };
 });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const page = await device.opens("fixture", { until: "title" });
 
 // the image rows in view, by row number, and the window the page should fetch for them
 const inView = () => page.evaluate(() => {
@@ -133,9 +129,6 @@ const open = async () => {
 };
 
 try {
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-
   // answers arrive in reverse order of asking: the later rows' first
   hold();
   // the status bar's message, each time it changes
