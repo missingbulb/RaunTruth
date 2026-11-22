@@ -9,7 +9,17 @@
 // plants: faults planted on purpose, for the explorer's own test: "throw:<selector>", a control that throws when
 // clicked; "write:<n>", the page writing a file to the study's folder on its own at the person's nth click.
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { standIn } from "../stand_in_drive.mjs";
+import { cdnFile } from "../fakes/cdn.mjs";
+
+const STUDIES = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "studies");
+// each file a study names to keep offline (web.offline of its study.json), which jsDelivr serves and the fake holds no
+// copy of: answered with an empty file of its kind, as the page keeping it offline reads nothing of it
+const offlineFiles = () => fs.readdirSync(STUDIES).flatMap((id) => {
+  try { return JSON.parse(fs.readFileSync(path.join(STUDIES, id, "study.json"), "utf8")).web?.offline || []; } catch { return []; }
+});
 
 const PLANT = ([plants, root]) => {
   for (const p of plants) {
@@ -52,6 +62,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     prepare: plants.length ? (ctx) => ctx.addInitScript(PLANT, [plants, s.ROOT]) : undefined,
   });
   const ctx = page.context();
+  for (const u of offlineFiles()) cdnFile(ctx, u, /\.m?js$/.test(u) ? "export {};" : "", /\.m?js$/.test(u) ? "text/javascript" : "application/octet-stream");
   const png = fs.readFileSync(prepared.files.png);
   // the files a person could have in the study's folder tree, the page's own made ones and the settings file left out
   const under = (id) => { for (let f = drive.get(id); f; f = drive.get(f.parent)) if (f.id === s.ROOT) return true; return false; };
