@@ -1,18 +1,19 @@
 # Pitch, playful cut
 
-**Tone:** Light and wry about the pain everyone in a lab shares (the clicking, the spreadsheet, Reviewer Two), a bouncy plucked bed, a narrator smiling. The jokes are at the problem's expense, never the viewer's.
+**Tone:** Light and wry about the pain everyone in a lab shares (the ruler, the spreadsheet, Reviewer Two), a bouncy plucked bed, a narrator smiling. The jokes are at the problem's expense, never the viewer's.
 **Voice:** `en_US-amy-medium` at length scale 1.0 (the draft; a cast voice replaces it).
 
 The scenes, what each conveys and its pictures are the [brief's](2-the-loop.md); this cut gives each moment its
 hold, camera, voice and sound. Camera and sound cues are the backticked tokens, read by the animatic; the rest is
 direction.
 
-### 1. Every node is a click
+### 1. Every node, by hand
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| one image, every node a click | both | 3 | `push@50,50` | "Here's a node. Click. And another. Click." | `bed:play-wonky` `sfx:click` `sfx:click@1.4` |
-| the scale | both | 3.5 | `pull` | "Only three hundred per image. Four hundred images. Your grad student says hi." | `sfx:clicks` |
+| measuring by hand | both | 3.5 | `push@45,45` onto the ruler | "Here's how it's done today. A ruler. On the screen. And a pencil." | `bed:play-wonky` `sfx:scribble` |
+| the pencil snaps | both | 1.8 | `shake` | "Of course." | `sfx:snap` |
+| the scale | both | 3.5 | `pull` | "Three hundred nodes an image. Four hundred images. Your grad student says hi." | `sfx:scribble` |
 
 ### 2. Today's three roads
 
@@ -34,7 +35,7 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| a draft from your papers | both | 3 | `drift` | "Claude reads your papers and drafts an algorithm. Over lunch." | `sfx:typing` |
+| a draft from your papers | both | 4 | `drift` | "Your AI software engineer reads your papers and writes an algorithm. Computer vision, not machine learning, so no ten thousand images. Done by lunch." | `sfx:typing` |
 | it is rough | both | 2.5 | `push@60,45` | "Is it good? Not yet. That's where you come in." |  |
 | approve | both | 1.4 | `push@15,55` | "Yes," | `sfx:pop` |
 | reject | both | 1.3 | `still` | "no," | `sfx:pop` |
@@ -45,7 +46,8 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| corrections become ground truth | both | 3 | `drift` | "Your corrections become ground truth. Claude takes notes, and tries again." |  |
+| corrections become ground truth | both | 3 | `drift` | "Your corrections become ground truth. It takes notes, and tries again." |  |
+| with a nudge, or on its own | both | 4 | `pan-r` | "Give it a hint, or don't. It knows its craft, and runs a lab that scores every try against your tags while you sleep." | `sfx:ticks` |
 | every version scored | both | 3 | `push@75,40` | "Every version gets a report card. Graded on your images." | `sfx:ding` |
 
 ### 6. Each image faster than the last
@@ -53,6 +55,7 @@ direction.
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
 | the next image is easier | both | 3 | `push@60,50` | "And the next image? Easier. It learned." |  |
+| the tools grow too | both | 4 | `push@70,50` | "The tagging tools learn too. Yes, no, missed one, becomes widen this node, and ease that curve." | `sfx:pop` `sfx:pop@1.6` |
 | faster each time | picture | 3 | `still` |  | `sfx:pop` `sfx:pop@1` `sfx:pop@2` |
 | you decide | both | 2.5 | `pull` | "Stop whenever you're happy. Yes, you're allowed." |  |
 

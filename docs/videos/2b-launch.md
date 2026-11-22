@@ -7,12 +7,13 @@ The scenes, what each conveys and its pictures are the [brief's](2-the-loop.md);
 hold, camera, voice and sound. Camera and sound cues are the backticked tokens, read by the animatic; the rest is
 direction.
 
-### 1. Every node is a click
+### 1. Every node, by hand
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| one image, every node a click | both | 2 | `punch@50,50` on the first click | "Three hundred nodes." | `bed:launch-pulse` `sfx:clicks` |
-| the scale | both | 2.5 | `whip` to the grid | "Four hundred images. One student. Clicking." | `sfx:thud` |
+| measuring by hand | both | 2.5 | `punch@45,45` | "State of the art. A ruler. A pencil." | `bed:launch-pulse` `sfx:scribble` |
+| the pencil snaps | picture | 1.2 | `shake` |  | `sfx:snap` |
+| the scale | both | 2.5 | `whip` to the grid | "Four hundred images. Three hundred nodes each." | `sfx:thud` |
 
 ### 2. Today's three roads
 
@@ -34,7 +35,7 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| a draft from your papers | both | 2.2 | `whip` | "Claude drafts the algorithm from your papers." | `sfx:typing` |
+| a draft from your papers | both | 3 | `whip` | "Your AI engineer writes a computer-vision algorithm from your papers. No training. No ten thousand images." | `sfx:typing` |
 | it is rough | both | 1.8 | `punch@60,45` | "Rough? Sure." |  |
 | approve | both | 1.2 | `punch@15,55` | "Approve." | `sfx:tick` |
 | reject | both | 1 | `still` | "Reject." | `sfx:tick` |
@@ -45,7 +46,8 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| corrections become ground truth | both | 2.5 | `whip` | "Your fixes become ground truth. Claude makes it better." | `sfx:whoosh` |
+| corrections become ground truth | both | 2.2 | `whip` | "Your fixes become ground truth. It gets better." | `sfx:whoosh` |
+| with a nudge, or on its own | both | 2.5 | `pan-r` | "Nudge it, or don't. It runs its own lab. Overnight." | `sfx:ticks` |
 | every version scored | both | 2.2 | `punch@75,40` | "Scored. On your images." | `sfx:hit` |
 
 ### 6. Each image faster than the last
@@ -53,6 +55,7 @@ direction.
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
 | the next image is easier | both | 2 | `whip` | "Next image? Faster." |  |
+| the tools grow too | both | 2.5 | `punch@70,50` | "The tools level up too. Yes, no, becomes widen, curve, split." | `sfx:pop` |
 | faster each time | picture | 2 | `push` |  | `sfx:riser` |
 | you decide | both | 1.8 | `punch@50,50` | "You call it done." | `sfx:hit` |
 

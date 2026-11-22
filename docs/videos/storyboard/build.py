@@ -26,14 +26,14 @@ sys.path.insert(0, str(HERE))
 import sound  # noqa: E402
 
 CUTS = [  # id, frames key, title, the scene file(s): brief and cut, or one file holding both
+    ("pitch-playful", "pitch", "Pitch · playful", ["2-the-loop.md", "2c-playful.md"]),
     ("pitch-documentary", "pitch", "Pitch · documentary", ["2-the-loop.md", "2a-documentary.md"]),
     ("pitch-launch", "pitch", "Pitch · launch", ["2-the-loop.md", "2b-launch.md"]),
-    ("pitch-playful", "pitch", "Pitch · playful", ["2-the-loop.md", "2c-playful.md"]),
     ("walkthrough", "walkthrough", "Walkthrough · documentary", ["1-full-workflow.md"]),
 ]
 SPEECH = {"RaunTruth": "Rawn Truth", "GT": "G T", "v1": "v one", "v2": "v two"}
 BY = {"both", "picture", "voice"}
-CAMERA = re.compile(r"`(push|pull|punch|whip|drift|shake|still)(?:@(\d+),(\d+))?`")
+CAMERA = re.compile(r"`(push|pull|punch|whip|drift|shake|still|pan-l|pan-r)(?:@(\d+),(\d+))?`")
 CUE = re.compile(r"`(bed|sfx):([\w-]+)(?:@([\d.]+))?`")
 CHAPTER_CARD = 2.5
 PAD = 0.3

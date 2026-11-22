@@ -181,6 +181,18 @@ def sfx(name):
     if name == "boing":
         t = t_(0.7)
         return np.sin(2 * np.pi * np.cumsum(180 + 120 * t + 40 * np.sin(2 * np.pi * 14 * t)) / SR) * np.exp(-t * 4) * 0.45
+    if name == "scribble":
+        out, at = np.zeros(int(1.8 * SR)), 0.0
+        while at < 1.6:
+            d = 0.08 + rng.random() * 0.15
+            t = t_(d)
+            put(out, bp(rng.standard_normal(len(t)), 2500, 7000) * np.sin(np.pi * t / d) * (0.4 + 0.3 * np.sin(2 * np.pi * 18 * t)), at)
+            at += d + rng.random() * 0.05
+        return out * 0.6
+    if name == "snap":
+        t = t_(0.25)
+        crack = hp(rng.standard_normal(len(t)), 1800) * np.exp(-t * 60)
+        return crack + np.sin(2 * np.pi * 2400 * t) * np.exp(-t * 90) * 0.4 + np.sin(2 * np.pi * 900 * t) * np.exp(-t * 30) * 0.2
     if name == "riser":
         return bed("launch-riser", 1.6)
     raise SystemExit(f"no sound effect named {name!r}")

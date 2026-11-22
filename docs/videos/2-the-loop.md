@@ -7,26 +7,34 @@ ground truth and building the algorithm are the same loop, and every turn of it 
 This brief holds the scenes, what each conveys and the pictures that carry it. Three cuts give the same moments their
 own narration, holds, camera and sound (see [how a scene is built](README.md#how-a-scene-is-built)):
 
-- [Documentary](2a-documentary.md): calm and lab-real, a warm bed, a narrator who sounds like a colleague.
-- [Launch](2b-launch.md): fast punch-ins on a driving beat, short lines on the downbeat.
-- [Playful](2c-playful.md): wry about the shared pain (the clicking, the spreadsheet, Reviewer Two), a bouncy bed.
+1. [Playful](2c-playful.md), the direction chosen: wry about the shared pain (the ruler, the spreadsheet, Reviewer
+   Two), a bouncy bed.
+2. [Documentary](2a-documentary.md), the runner-up: calm and lab-real, a warm bed, a narrator who sounds like a
+   colleague.
+3. [Launch](2b-launch.md): fast punch-ins on a driving beat, short lines on the downbeat.
 
-A 60-second cut for muted autoplay keeps scenes 1, 3, 4, 6 and 9 of whichever cut is chosen.
+The owner ranked them on 2026-11-22. A 60-second cut for muted autoplay keeps scenes 1, 3, 4, 6 and 9 of the playful
+cut.
+
+The videos never name the AI: it is "your AI software engineer", a role, so the pitch holds whichever agent a lab
+uses. The algorithms it writes are computer vision, not machine learning, which the pitch says outright, since it is
+what spares the lab the mountain of tagging in the third road.
 
 The UI is the design in PR 1036 (`dev/requirements/study-stages-map.md`, `study-stages-spec.md`), not today's
 page, drawn as it will look, not pixel-exact. **[UI]** is a screen capture, **[MG]** a motion graphic, **[B]**
-real-world footage or illustration, **[C]** the Claude chat.
+real-world footage or illustration, **[C]** the chat with the AI software engineer, never named as a product.
 
 ## Scenes
 
-### 1. Every node is a click
+### 1. Every node, by hand
 
-**Conveys:** counting by hand is your lab's problem, and its scale is absurd.
+**Conveys:** measuring by hand is your lab's problem, and its scale is absurd.
 
 | Moment | Picture |
 |---|---|
-| one image, every node a click | **[B]** A confocal field fills the frame; a cursor clicks node after node, a tally ticking 1, 2, 3… |
-| the scale | Zoom out: the field shrinks into a grid of 400; the tally reads 287 and keeps going. |
+| measuring by hand | **[B]** Illustration: a researcher at a monitor showing a confocal field, holding a ruler against the screen over one node, writing its length in pencil on a notepad beside the keyboard. |
+| the pencil snaps | Mid-number, the pencil tip snaps and skitters across the notepad. |
+| the scale | Pull back: the screen's image tiles into 400; the notepad becomes a stack of filled pages. |
 
 ### 2. Today's three roads
 
@@ -54,7 +62,7 @@ real-world footage or illustration, **[C]** the Claude chat.
 
 | Moment | Picture |
 |---|---|
-| a draft from your papers | **[C]** Two papers dropped into a Claude chat; it answers with `v1`. |
+| a draft from your papers | **[C]** Two papers dropped into a chat with an AI software engineer; it answers with `v1`, labelled *computer vision · no training data*. |
 | it is rough | **[UI]** `v1`'s candidates as faint outlines on the image; several plainly wrong. |
 | approve | Ground Truth Tasks shows one item, ringed on the image; **Approve**. |
 | reject | The next item slides in; **Reject**. |
@@ -67,7 +75,8 @@ real-world footage or illustration, **[C]** the Claude chat.
 
 | Moment | Picture |
 |---|---|
-| corrections become ground truth | **[C]** "Improve the finder on the new ground truth." Claude runs the lab. |
+| corrections become ground truth | **[C]** "Improve the finder on the new ground truth." The agent runs the lab. |
+| with a nudge, or on its own | Split: on the left, a one-line nudge, *"follow the fibre, not the blob"*; on the right, the lab's log running by itself overnight, version after version scored against the tags. |
 | every version scored | **[UI]** The algorithm list gains `v2`; its precision and recall bars grow past `v1`'s; *measured on 1 image*. |
 
 ### 6. Each image faster than the last
@@ -77,6 +86,7 @@ real-world footage or illustration, **[C]** the Claude chat.
 | Moment | Picture |
 |---|---|
 | the next image is easier | **[UI]** Image 2 with `v2`: fewer wrong outlines; verdicts come fast. |
+| the tools grow too | **[UI]** Two item boxes side by side. Image 1's: *Yes · No · Missed one*. Image 3's, after the tools improved: *Widen this node · Lower the curvature · Split in two*, with handles on the node. |
 | faster each time | **[MG]** Three tagging-time bars, image 1 to 3, each shorter; the loop turns once per image. *Illustrative.* |
 | you decide | `v4` on a fresh image: almost every outline right. |
 

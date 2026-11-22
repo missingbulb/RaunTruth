@@ -63,11 +63,13 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 .stage .cam { width: 100%; height: 100%; transform-origin: var(--ox, 50%) var(--oy, 50%) }
 .stage .cam.push { animation: cam-push var(--d) ease-in-out both } .stage .cam.pull { animation: cam-pull var(--d) ease-out both }
 .stage .cam.punch { animation: cam-punch var(--d) cubic-bezier(.2,.9,.2,1) both } .stage .cam.drift { animation: cam-drift var(--d) linear both }
+.stage .cam.pan-r { animation: cam-pan var(--d) ease-in-out both } .stage .cam.pan-l { animation: cam-pan var(--d) ease-in-out reverse both }
 .stage .cam.whip { animation: cam-whip .45s ease-out both } .stage .cam.shake { animation: cam-shake .5s linear both }
 @keyframes cam-push { from { transform: scale(1) } to { transform: scale(1.22) } }
 @keyframes cam-pull { from { transform: scale(1.25) } to { transform: scale(1) } }
 @keyframes cam-punch { 0% { transform: scale(1) } 18% { transform: scale(1.35) } 100% { transform: scale(1.4) } }
 @keyframes cam-drift { from { transform: scale(1.06) translateX(1.5%) } to { transform: scale(1.06) translateX(-1.5%) } }
+@keyframes cam-pan { from { transform: scale(1.15) translateX(6%) } to { transform: scale(1.15) translateX(-6%) } }
 @keyframes cam-whip { from { transform: translateX(40%) skewX(-8deg); filter: blur(6px) } to { transform: none; filter: none } }
 @keyframes cam-shake { 0%, 100% { transform: none } 20% { transform: translate(-1.5%, 1%) scale(1.03) } 40% { transform: translate(1.2%, -1%) } 60% { transform: translate(-.8%, .6%) } 80% { transform: translate(.4%, -.3%) } }
 @media (prefers-reduced-motion: reduce) { .stage .cam { animation: none !important } }
@@ -313,7 +315,7 @@ function popup(p) {
 }
 
 function chatPanel(c, x = 40, y = 30, w = 880, h = 480) {
-  let s = R(x, y, w, h, "f-sheet", 8, `style="stroke:var(--ui-line)"`) + T(x + 24, y + 34, "Claude", "f-t f-h", 15) + `<line x1="${x}" y1="${y + 50}" x2="${x + w}" y2="${y + 50}" class="f-line"/>`;
+  let s = R(x, y, w, h, "f-sheet", 8, `style="stroke:var(--ui-line)"`) + T(x + 24, y + 34, "AI software engineer", "f-t f-h", 15) + `<line x1="${x}" y1="${y + 50}" x2="${x + w}" y2="${y + 50}" class="f-line"/>`;
   const lines = wrap(c.user, Math.floor(w / 9.5) - 10);
   const bw = Math.min(w - 120, Math.max(...lines.map(l => l.length)) * 8.6 + 36), bx = x + w - 24 - bw;
   s += R(bx, y + 70, bw, 22 + lines.length * 22, "f-accsoft", 10);
@@ -321,7 +323,7 @@ function chatPanel(c, x = 40, y = 30, w = 880, h = 480) {
   let yy = y + 110 + lines.length * 22;
   (c.attach || []).forEach((a, i) => { s += R(bx + i * 0, yy + i * 34, 260, 28, "f-box", 4) + T(bx + 12, yy + 19 + i * 34, "▤ " + a, "f-t f-m", 12); });
   yy += (c.attach || []).length * 34 + 16;
-  if (!c.reply) return s + T(x + 30, yy + 14, "Claude is working…", "f-d", 14);
+  if (!c.reply) return s + T(x + 30, yy + 14, "Working…", "f-d", 14);
   s += `<g class="rise"><circle cx="${x + 38}" cy="${yy + 8}" r="10" class="f-acc"/>`;
   c.reply.forEach((l, i) => s += T(x + 60, yy + 14 + i * 26, l, "f-t", 15));
   if (c.figure) s += field(x + 60, yy + 20 + c.reply.length * 26, 220, 110, { n: 8, outlines: true }, 5);
@@ -348,6 +350,47 @@ function scene(f, video, chapterStage) {
       break;
     }
     case "chat": s = R(0, 0, W, H, "f-ui") + chatPanel(f); break;
+    case "desk": {
+      s = R(0, 0, W, H, "f-paper") + R(0, 400, W, 140, "", 0, `fill="#b99a74" fill-opacity=".55"`);
+      s += R(120, 40, 470, 320, "f-ink", 10) + R(132, 52, 446, 280, "f-scope") + R(330, 360, 50, 40, "f-ink") + R(270, 396, 170, 12, "f-ink", 4);
+      if (f.tiles) { const r = rng(3); for (let i = 0; i < 10; i++) for (let j = 0; j < 16; j++) { s += R(134 + j * 27.8, 54 + i * 27.8, 26, 26, "", 0, `fill="#0b120f"`); s += `<circle cx="${140 + j * 27.8 + r() * 14}" cy="${60 + i * 27.8 + r() * 14}" r="1.5" class="f-green"/>`; } }
+      else s += field(132, 52, 446, 280, { n: 26 }, 12);
+      if (!f.tiles) {
+        s += `<g transform="rotate(-24 360 190)"><rect x="200" y="176" width="330" height="34" rx="3" fill="#e9dfc4" fill-opacity=".72" stroke="#8a7a55"/>`;
+        for (let k = 0; k <= 30; k++) s += `<line x1="${206 + k * 10.6}" y1="176" x2="${206 + k * 10.6}" y2="${176 + (k % 5 ? 8 : 15)}" stroke="#5a4c30" stroke-width="1.2"/>`;
+        s += `</g>`;
+      }
+      const pages = f.pages || 1;
+      for (let k = pages - 1; k >= 0; k--) s += R(640 + k * 6, 300 - k * 7, 230, 180, "f-sheet", 3, `style="stroke:var(--rule)"`);
+      ["1.12 µm", "0.97 µm", "1.30 µm", "1.0"].forEach((l, i) => s += `<text x="${662}" y="${338 + i * 30}" font-size="22" font-family="cursive" class="f-ink" transform="rotate(-3 662 ${338 + i * 30})">${esc(i === 3 && f.snap ? "1.0—" : l)}</text>`);
+      s += `<g transform="rotate(38 760 440)"><rect x="730" y="${f.snap ? 300 : 320}" width="16" height="150" rx="3" fill="#f2c14e" stroke="#8a6a1a"/><path d="M730 ${f.snap ? 300 : 320} l8 -22 l8 22 z" fill="#e8d2a6" stroke="#8a6a1a"/>${f.snap ? "" : `<path d="M735 304 l3 -8 l3 8 z" class="f-ink"/>`}</g>`;
+      s += `<ellipse cx="800" cy="500" rx="48" ry="34" fill="#d7a98a"/>`;
+      s += `<path d="M30 540 q10 -130 140 -140 q120 6 140 140 z" fill="#3b4a44"/><circle cx="170" cy="335" r="58" fill="#3b4a44"/><path d="M150 282 q30 -18 60 4" fill="none" stroke="#2a3430" stroke-width="10" stroke-linecap="round"/>`;
+      if (!f.tiles) s += `<path d="M262 440 q40 -80 78 -190" fill="none" stroke="#d7a98a" stroke-width="30" stroke-linecap="round"/>`;
+      if (f.snap) s += `<g class="rise"><path d="M700 395 l9 -5 l2 10 z" class="f-ink"/><text x="640" y="250" font-size="44" class="f-acc f-h" transform="rotate(-8 640 250)">snap.</text></g>`;
+      break;
+    }
+    case "lab": {
+      s = R(0, 0, W, H, "f-ui") + chatPanel({ user: f.nudge, reply: ["On it. Running the lab."] }, 20, 20, 420, 500);
+      s += R(460, 20, 480, 500, "", 8, `fill="#101513"`) + `<text x="484" y="60" font-size="16" class="f-m" fill="#9fd8b0">lab · running by itself</text>`;
+      f.log.forEach((l, i) => s += `<g class="rise" style="animation-delay:${i * .5}s"><text x="484" y="${110 + i * 44}" font-size="17" class="f-m" fill="${/dropped/.test(l) ? "#ff8f6b" : "#e8ece9"}">${esc(l)}</text></g>`);
+      s += `<text x="484" y="${110 + f.log.length * 44}" font-size="17" class="f-m pulse" fill="#9fd8b0">▌</text>`;
+      break;
+    }
+    case "tools": {
+      s = R(0, 0, W, H, "f-paper") + T(60, 70, "The tagging tools grow too", "f-ink f-h", 28);
+      const box = (x, title, btns, handles) => {
+        let o = R(x, 100, 400, 400, "f-sheet", 8, `style="stroke:var(--rule)" stroke-width="1.5"`) + T(x + 22, 134, title, "f-d f-m", 14);
+        o += field(x + 22, 150, 356, 170, { n: 4 }, 4) + `<circle cx="${x + 200}" cy="235" r="26" class="f-ring" stroke-width="3"/>`;
+        if (handles) o += `<g class="rise"><line x1="${x + 160}" y1="235" x2="${x + 240}" y2="235" stroke="#ffc22e" stroke-width="2" stroke-dasharray="4 3"/><rect x="${x + 152}" y="227" width="16" height="16" fill="#ffc22e"/><rect x="${x + 232}" y="227" width="16" height="16" fill="#ffc22e"/><path d="M${x + 170} 270 q30 -24 60 0" fill="none" stroke="#ffc22e" stroke-width="2"/></g>`;
+        btns.forEach((b, i) => { const bx = x + 22 + (i % 2) * 182, by = 340 + Math.floor(i / 2) * 52; o += R(bx, by, 174, 42, i === 0 && !handles ? "f-acc" : "f-box", 5) + T(bx + 14, by + 27, b, i === 0 && !handles ? "f-white" : "f-t", 15); });
+        return o;
+      };
+      s += box(60, "image 1 · first tools", ["Yes", "No", "Missed one"], false);
+      s += `<g class="rise">` + box(500, "image 3 · tools improved", ["Widen this node", "Lower the curvature", "Split in two", "Yes"], true) + `</g>`;
+      s += `<path d="M470 300 l20 0 m-8 -8 l8 8 l-8 8" class="f-accs" stroke-width="3"/>`;
+      break;
+    }
     case "field":
       s = field(0, 0, W, H, { n: 90 }, 9) + `<path d="M520 250 l0 26 l7 -7 l6 13 l5 -2 l-6 -13 l10 0 z" fill="#fff" stroke="#000"/>`;
       s += R(30, 30, 210, 60, "", 6, `fill="#000" fill-opacity=".75"`) + `<text x="50" y="72" font-size="30" class="f-m" fill="#ffc22e">clicks: ${esc(f.tally)}</text>`;

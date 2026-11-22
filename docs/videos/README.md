@@ -76,7 +76,7 @@ then. The suggested route, chosen so a UI change means re-rendering, not re-shoo
 2. **Voice from the script**: a synthetic voice, re-voiced in minutes after an edit (the owner's choice, 2026-11-21).
 3. **Assemble with ffmpeg** (cuts, speed ramps, zooms, captions from the script's timings); add a small
    Remotion or Motion Canvas project only for the motion graphics if they outgrow stills.
-4. **The Claude beats** are real sessions, screen-captured and trimmed, never mocked replies.
+4. **The agent's beats** are real sessions, screen-captured and trimmed, never mocked replies, with the product's name kept off screen.
 
 A mixed alternative is to record by hand in a recorder with auto-zoom (Screen Studio, Tella), quicker for a first
 cut but re-shot on every UI change.

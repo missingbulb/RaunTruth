@@ -14,7 +14,7 @@ for each press. Camera and sound cues are the backticked tokens, read by the ani
 The UI is the design in PR 1036 (`dev/requirements/study-stages-map.md`, `study-stages-spec.md`): two apps (the
 main app and **Study Setup**), five stages (**Setup → Develop → Analyze → Review → Public**), one store of
 extractions, GT and official marks. It is drawn as the page will look, not pixel-exact. **[UI]** is a screen
-capture, **[MG]** a motion graphic, **[B]** real-world footage or illustration, **[C]** the Claude chat. A stage
+capture, **[MG]** a motion graphic, **[B]** real-world footage or illustration, **[C]** the chat with the AI software engineer, never named as a product. A stage
 ribbon (the five stages, the current one lit) sits in a corner throughout, and each chapter opens on a card.
 
 ## 0. The map
@@ -100,12 +100,12 @@ ribbon (the five stages, the current one lit) sits in a corner throughout, and e
 
 ### 3.1 The papers
 
-**Conveys:** the study's method is grounded in its literature, and Claude keeps it.
+**Conveys:** the study's method is grounded in its literature, and the agent keeps it.
 
 | Moment | By | Hold | Picture | Camera | Voice | Sound |
 |---|---|---|---|---|---|---|
-| hand over the papers | both | 3 | **[C]** Two PDFs dropped into a Claude session: "Add these to the study's literature." | `drift` | "Give Claude the papers your method rests on." |  |
-| what it keeps | both | 3.5 | Claude's reply lists what it wrote: what counts as a node, how length is measured, values to check against. | `drift` | "It writes a summary of each into the study: the definitions your algorithm must follow." | `sfx:typing` |
+| hand over the papers | both | 3 | **[C]** Two PDFs dropped into a chat with the AI software engineer: "Add these to the study's literature." | `drift` | "Give your AI software engineer the papers your method rests on." |  |
+| what it keeps | both | 3.5 | The agent's reply lists what it wrote: what counts as a node, how length is measured, values to check against. | `drift` | "It writes a summary of each into the study: the definitions your algorithm must follow." | `sfx:typing` |
 
 ### 3.2 Members
 
@@ -128,12 +128,12 @@ ribbon (the five stages, the current one lit) sits in a corner throughout, and e
 
 ### 4.1 Ask for a rough algorithm
 
-**Conveys:** the start is cheap: Claude drafts both the algorithm and the tools to correct it.
+**Conveys:** the start is cheap: the agent drafts both a computer-vision algorithm and the tools to correct it, with nothing to train.
 
 | Moment | By | Hold | Picture | Camera | Voice | Sound |
 |---|---|---|---|---|---|---|
-| the ask | both | 3 | **[C]** "Write a rough first algorithm for this study and the ground-truth tools to correct it." | `drift` | "Now ask Claude for a rough draft: an algorithm, and the tools to correct it." |  |
-| what comes back | both | 3 | Claude's plan, then a pull request: algorithm `v1`, its scorer, the ground-truth tasks. | `drift` | "It won't be good yet. It doesn't need to be." | `sfx:typing` |
+| the ask | both | 3 | **[C]** "Write a rough first algorithm for this study and the ground-truth tools to correct it." | `drift` | "Now ask for a rough draft: an algorithm, and the tools to correct it." |  |
+| what comes back | both | 4 | The agent's plan, then a pull request: algorithm `v1`, labelled *computer vision · no training data*, its scorer, the ground-truth tasks. | `drift` | "It writes computer vision, not machine learning, so there's nothing to train. It won't be good yet. It doesn't need to be." | `sfx:typing` |
 
 ### 4.2 Promote to Develop
 
@@ -179,15 +179,16 @@ ribbon (the five stages, the current one lit) sits in a corner throughout, and e
 | offline | both | 2.5 | Offline: Save shows *1 waiting to upload*; online again, it clears. | `drift` | "If the connection drops, it waits on your device." |  |
 | mark GT | both | 3 | Study Setup: the image's extractions; **Mark GT** on Dana's. | `push@18,32` onto the control | "The owner marks it as ground truth." | `sfx:tick` |
 
-### 5.4 Claude improves it
+### 5.4 The agent improves it
 
-**Conveys:** the improvement is measured on your ground truth, and the tools can improve too.
+**Conveys:** the improvement is measured on your ground truth, guided by you or not, and the tagging tools grow too.
 
 | Moment | By | Hold | Picture | Camera | Voice | Sound |
 |---|---|---|---|---|---|---|
-| the ask | both | 3 | **[C]** "Improve the algorithm on the new ground truth." | `drift` | "Ask Claude to improve the algorithm on the new ground truth." |  |
-| scored | both | 3.5 | Claude's reply: the lab scored every version; `v2` ahead; a figure of `v2` against your marks. | `drift` | "It scores every version against your marks and keeps what's better." | `sfx:typing` |
-| tools too | both | 3 | Optional: "the Reject button is too far from the image"; a tools change follows. | `drift` | "Tell it what slowed you down, and it improves the tools too." | `sfx:typing` |
+| the ask | both | 3 | **[C]** "Improve the algorithm on the new ground truth." | `drift` | "Ask your AI software engineer to improve the algorithm on the new ground truth." |  |
+| scored | both | 4 | The agent's reply: the lab scored every version; `v2` ahead; a figure of `v2` against your marks. | `drift` | "It brings its own methods, and a lab that scores every version against your marks and keeps what's better." | `sfx:typing` |
+| a nudge helps | both | 3.5 | A one-line nudge, *"follow the fibre, not the blob"*, and the lab runs again by itself. | `drift` | "Point it in a direction if you have one. If not, it finds its own." | `sfx:ticks` |
+| tools too | both | 4 | **[UI]** Image 1's item box: *Yes · No · Missed one*; after the change, image 2's: *Widen this node · Lower the curvature*, with handles on the node. | `push@18,40` onto the item box | "The tagging tools grow too. At first you answer yes or no. Next time, you widen this node, or ease that curve." | `sfx:pop` |
 | on the page | both | 3 | **[UI]** The algorithm list: `v2` and `v1` with precision and recall, *measured on 1 image*. | `push@18,32` onto the scores | "Every version shows its score, and on how many images." |  |
 
 ### 5.5 Around again

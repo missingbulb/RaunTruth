@@ -7,12 +7,13 @@ The scenes, what each conveys and its pictures are the [brief's](2-the-loop.md);
 hold, camera, voice and sound. Camera and sound cues are the backticked tokens, read by the animatic; the rest is
 direction.
 
-### 1. Every node is a click
+### 1. Every node, by hand
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| one image, every node a click | picture | 4 | `push@50,50` slow push into the field |  | `bed:doc-tense` `sfx:clicks` only the clicks, over a low drone |
-| the scale | both | 3.5 | `pull` pull back as the grid appears | "Three hundred nodes in an image. Four hundred images. And someone in your lab clicks every one." |  |
+| measuring by hand | both | 4 | `push@45,45` slow, onto the ruler | "This is how much of it is still measured." | `bed:doc-tense` `sfx:scribble` |
+| the pencil snaps | picture | 2 | `still` |  | `sfx:snap` then silence |
+| the scale | both | 3.5 | `pull` | "Three hundred nodes in an image. Four hundred images. One ruler, one pencil, one person." |  |
 
 ### 2. Today's three roads
 
@@ -34,7 +35,7 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| a draft from your papers | both | 3 | `drift` | "Claude reads your papers, and drafts a first algorithm." | `sfx:typing` |
+| a draft from your papers | both | 4 | `drift` | "Your AI software engineer reads your papers, and drafts a computer-vision algorithm. Not machine learning: there is nothing to train, and no mountain of tagged images." | `sfx:typing` |
 | it is rough | both | 2.5 | `push@60,45` | "It's rough. It's meant to be." |  |
 | approve | both | 2 | `push@15,55` onto the verdict buttons | "You correct it. Approve," | `sfx:tick` |
 | reject | both | 1.5 | `still` | "reject," | `sfx:tick` |
@@ -45,7 +46,8 @@ direction.
 
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
-| corrections become ground truth | both | 3.5 | `drift` | "Your corrections become ground truth, and Claude improves the algorithm against it." |  |
+| corrections become ground truth | both | 3.5 | `drift` | "Your corrections become ground truth, and the algorithm improves against them." |  |
+| with a nudge, or on its own | both | 4 | `pan-r` | "Point it in a direction, or let it find its own. It brings its own methods, and a lab that scores every attempt against your tags." | `sfx:ticks` |
 | every version scored | both | 3.5 | `push@75,40` onto v2's bars | "Every version is scored on your own images, and tells you on how many." | `sfx:chime` |
 
 ### 6. Each image faster than the last
@@ -53,6 +55,7 @@ direction.
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
 | the next image is easier | both | 3 | `push@60,50` | "So the next image is easier. The algorithm already gets more of it right." | `bed:doc-lift` the bed lifts |
+| the tools grow too | both | 4 | `push@70,50` | "The tagging tools improve along with it. The first pass asks yes or no. Later ones ask for the finer things: widen this node, ease this curve." | `sfx:pop` |
 | faster each time | picture | 3 | `still` |  | `sfx:ticks` |
 | you decide | both | 2.5 | `pull` | "And you decide when it's good enough." |  |
 
