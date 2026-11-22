@@ -13,7 +13,6 @@ import { standIn } from "./stand_in_drive.mjs";
 import { snapshot, differ } from "./page_snapshot.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
 const { FILES, open, role, check, done } = await standIn({ answers, studies, rootDir });
@@ -194,9 +193,9 @@ const arrows = (page, marks) => page.evaluate(([marks, ARROW, WRONG]) => {
 const unarrow = (page) => page.evaluate(() => document.querySelector("#state-arrows")?.remove());
 
 // Away to another study and back, from a path's last state (req/shell/study/switch-in-place): each study then is
-// the page a fresh load of its address shows, in the same browser, its storage kept. Back online first: offline, the
-// switch waits for the network.
-const awayAndBack = async (page, p) => {
+// the page a fresh load of its address shows, a browser started from the storage it kept. Back online first: offline,
+// the switch waits for the network. opened: how the path's page was opened
+const awayAndBack = async (page, p, opened) => {
   const where = `${p.study} · ${p.root} → ${p.actions.join(", ")}`;
   if (await page.evaluate(() => document.documentElement.classList.contains("offline"))) await ACTIONS.online(page);
   await settled(page);
@@ -216,14 +215,11 @@ const awayAndBack = async (page, p) => {
   // the fresh loads start from the storage the switched page left, not the path's seed
   const kept = await page.evaluate(() => ({ ...localStorage }));
   await page.close();
-  await page.context().addInitScript((kept) => { localStorage.clear(); for (const [k, v] of Object.entries(kept)) localStorage.setItem(k, v); }, kept);
   for (const [url, switched, label] of [[away, there, `away at ${other}`], [home, back, "back"]]) {
-    const fresh = await page.context().newPage();
-    fresh.setDefaultTimeout(STEP);
-    await fresh.goto(url);
+    const fresh = await open(p.signedIn, { ...opened, seed: kept, at: url, keepSettings: true });
     await ready(fresh); await settled(fresh);
     for (const d of differ(switched, await snapshot(fresh))) differences.push(`${where}, ${label}, not as a fresh load: ${d}`);
-    await fresh.close();
+    await fresh.context().close();
   }
 };
 
@@ -242,10 +238,11 @@ const walk = async (k, p) => {
   // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
   const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
   const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
-  const page = await open(p.signedIn, {
+  const opened = {
     id: p.study, study: { stage: p.stage, ...opens }, ...(p.role === "data" ? {} : { email: visibility.accounts?.[0] ?? OTHER }),
     seed: { ...stood.seed, "nor-role": ROLE[p.role] }, prepare: stood.prepare,
-  });
+  };
+  const page = await open(p.signedIn, opened);
   await page.waitForFunction((s) => (document.documentElement.dataset.stage ?? null) === s, p.stage);
   await ready(page);
   let before = null;
@@ -284,7 +281,7 @@ const walk = async (k, p) => {
     before = now;
   }
   index.push({ root: `${p.study} · ${p.root}`, shots });
-  if (SWITCHERS.has(k)) await awayAndBack(page, p);
+  if (SWITCHERS.has(k)) await awayAndBack(page, p, opened);
   await page.context().close();
 };
 for (const [k, p] of paths) await walk(k, p);
