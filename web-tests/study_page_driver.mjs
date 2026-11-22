@@ -274,6 +274,7 @@ try {
   const elsewhere = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await localStudy(elsewhere, "fixture");
   await elsewhere.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await signedIn(elsewhere);
   const early = await elsewhere.newPage();
   early.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error, a study chosen while another came in: " + e.message); });
   early.setDefaultTimeout(STEP);
