@@ -9,11 +9,13 @@ import { world } from "./world.mjs";
 
 export const TAGGER = "tagger@acme.example";
 
+// the tagger, as a user of the world w; each visit one whose Drive holds no settings of the site's yet, whatever an
+// earlier visit saved
+export const tagger = (w) => w.user(TAGGER).named("Acme Tagger").savedSettings(null).tags();
+
 export async function asTagger(ctx, { scopes } = {}) {
-  const w = world(ctx.browser());
-  // each visit a tagger whose Drive holds no settings of the site's yet, whatever an earlier visit saved
-  const tagger = w.user(TAGGER).named("Acme Tagger").savedSettings(null).tags();
-  if (scopes) tagger.without(...SCOPES.split(" ").filter((s) => !scopes.split(" ").includes(s)));
+  const w = world(ctx.browser()), t = tagger(w);
+  if (scopes) t.without(...SCOPES.split(" ").filter((s) => !scopes.split(" ").includes(s)));
   siteSettings(ctx).withGoogle();
-  await w.device().on(ctx).signedInAs(tagger).asRole("tagger").context();
+  await w.device().on(ctx).signedInAs(t).asRole("tagger").context();
 }
