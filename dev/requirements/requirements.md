@@ -2093,7 +2093,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5). Unchanged in behaviour, moved to
-  `/setup`: the requirements of `req/shell/data/*` are those of Study Setup's Data Management column and its
+  `/setup`: the data requirements of `req/shell` (those tagged `data/...`) are those of Study Setup's Data Management column and its
   boxes, and each now reads as they do there. Set up extractions makes the one extractions folder
   (`req/shell/ground-truth/setup`). Study Setup shows images in the shell's plain view: the study's own drawers,
   item view and steps do not show on it. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.

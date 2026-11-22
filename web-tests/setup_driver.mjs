@@ -4,6 +4,7 @@
 //   node web-tests/setup_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
+import { expecting, NETWORK_GONE } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { drive, open, check, done } = await standIn({ answers, studies, rootDir });
@@ -48,4 +49,18 @@ await check(drive.calls.length === was, "and it makes no Drive call", drive.call
 await page.evaluate(() => { window.down = false; window.dispatchEvent(new Event("online")); });
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2 && $("#setup-note").hidden);
 await check(await page.evaluate(() => !$("#data-col").hidden), "once the network is back, the page shows the study's folders");
+await page.context().close();
+
+// the network gone and back while the folders are on show: they stay on show
+page = await open(true, { setup: true });
+await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
+await expecting(NETWORK_GONE, async () => {
+  await page.context().setOffline(true);
+  await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
+  await page.context().setOffline(false);
+  await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
+  await idle(page);
+}, { maybe: true });
+const stays = await page.evaluate(() => [document.documentElement.dataset.mode, $("#data-col").hidden, $("#open-setup").hidden]);
+await check(stays[0] === "data" && !stays[1] && !stays[2], "the network gone and back, Study Setup still shows the folders and its way out", stays);
 await done(0);
