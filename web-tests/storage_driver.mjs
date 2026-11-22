@@ -11,7 +11,6 @@
 // Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/storage_driver.mjs [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,18 +19,12 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// NoR Finder's own folder, which its dialog lists
-const ROOT = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop();
-// two images in a folder; their bytes need only be a real picture, which the worker never reads
-const PNG = noisePng();
-const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acmeimage00000000002", name: "acme two.png" }];
-// a subfolder, listed after the images, holding an image named as the first one
-const SUB = { id: "acmefolder0000000002", name: "sub" }, TWIN = { id: "acmeimage00000000003", name: "acme one.png" };
 const OWN_PACKAGE = "acmepkg";
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
@@ -69,16 +62,17 @@ const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 w.studies.edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
 // the deploy with a Google key
 w.site.withoutGoogleClient();
-// the Drive fake's folder: the two images, and the subfolder holding the first one's twin
-for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-drive.folder({ ...SUB, parent: ROOT });
-drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+// NoR Finder's own folder, which its dialog lists: two images, whose bytes need only be a real picture, which the
+// worker never reads; and a subfolder, listed after the images, holding an image named as the first one
+const nor = w.studyFolder("nor"), at = { createdTime: "2026-10-01T10:00:00Z" };
+const DRIVE = ["acme one.png", "acme two.png"].map((name) => nor.holds(image.png(name), at));
+const TWIN = nor.folder("sub").holds(image.png("acme one.png"), at);
 
 // a device of its own with what a browser that has used the page keeps, opened at NoR Finder; seed: more browser keys
 // kept before the page opens; refusing: the thumbnails' cache takes nothing, as a full one, each refusal counted in
 // window.thumbsRefused
 async function start({ seed = {}, refusing = false } = {}) {
-  const device = w.device().kept().remembersDriveLink(ROOT).keeps({ ...SEED, ...seed }), ctx = await device.context();
+  const device = w.device().kept().remembersDriveLink(nor).keeps({ ...SEED, ...seed }), ctx = await device.context();
   // jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
   cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
   for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
