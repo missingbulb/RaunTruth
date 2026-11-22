@@ -32,18 +32,18 @@ const { origin, server } = await serveSite({
   "/web/version_history.json": () => history,
 });
 
-const browser = await launch(pw), w = world(browser);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
 
 // a page whose browser last saw `seen` (null: never visited)
 async function open(seen, theme = "dark") {
-  const device = await w.device({ keys: { "nor-theme": theme, ...(seen ? { "nor-seen-version": JSON.stringify(seen) } : {}) } });
-  await watchReads(device.ctx, ["version_history.json"]);
-  const page = await device.open(origin + "/web/index.html", { until: "none" });
+  const device = w.device().keeps({ "nor-theme": theme, ...(seen ? { "nor-seen-version": JSON.stringify(seen) } : {}) });
+  await watchReads(await device.context(), ["version_history.json"]);
+  const page = await device.opens(undefined, { until: "none" });
   await historyRead(page);
-  return { ctx: device.ctx, page };
+  return { ctx: await device.context(), page };
 }
 // the page loaded, and done with the version history: it reads the history, when it does, as it shows its version
 const historyRead = async (page) => {
