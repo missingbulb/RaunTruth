@@ -7,33 +7,29 @@
 // again. A failure where the details fail too starts no wait.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_throttle_driver.mjs [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const ROOT = "throttlefolder000001";
-const PNG = noisePng();
-const FILES = [{ id: "throttleimage0000001", name: "a.png" }, { id: "throttleimage0000002", name: "b.png" }, { id: "throttleimage0000003", name: "c.tif" }];
+// the same PNG under each name, c.tif's too
+const PNG = image.png("a.png"), FILES = ["a.png", "b.png", "c.tif"];
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key and a folder of three images on Drive
 w.site.withoutGoogleClient();
-drive.folder({ id: ROOT, name: "Throttled", access: "public" });
-for (const f of FILES) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+const throttled = w.folder("Throttled").public();
+for (const name of FILES) throttled.holds({ ...PNG, name }, { createdTime: "2026-10-01T10:00:00Z" });
 // a device of its own remembering the folder's link, opened at the page on a clock the test moves; time: the clock's
 // start; keys: kept before the page opens
 async function start({ time, keys = {} } = {}) {
-  const device = w.device().kept().remembersDriveLink(ROOT).keeps(keys);
+  const device = w.device().kept().remembersDriveLink(throttled).keeps(keys);
   await (await device.context()).clock.install(time === undefined ? {} : { time });
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }
