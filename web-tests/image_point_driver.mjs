@@ -7,11 +7,10 @@
 //   node web-tests/image_point_driver.mjs ANSWERS IMAGE.png STUDIES
 import { EARLY } from "./early_messages.mjs";
 
-import { localStudy } from "./local_study.mjs";
 import { pw, launch, check } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 
@@ -28,17 +27,12 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
+w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
 // a small window, so the fixture's small image overflows the view once zoomed in
-const ctx = await browser.newContext({ viewport: { width: 900, height: 640 } });
-await localStudy(ctx, "fixture");
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+const page = await w.device().with({ viewport: { width: 900, height: 640 } }).opens("fixture");
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
 
