@@ -10,25 +10,23 @@
 //   node web-tests/drive_renewal_driver.mjs
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { pw, launch, googleOf, expecting, siteOf, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { ENGINE } from "./engine.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OLD = "old-token", NEW = "renewed-token", PRIVATE = "privatefolder0000001";
-const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-const browser = await launch(pw);
-// the deploy with a Google key
-siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in-key", GOOGLE_CLIENT_ID: "123456-stand.apps.googleusercontent.com" };
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
 let failed = false;
 
 // the sign-in fake's window answers with the renewed token; the Drive fake holds the private folder, which only the
 // user's token reads
-const { drive, signIn: google } = googleOf(browser);
-google.account = { sub: "1002", name: "Tester", email: "tester@example.com", picture: null };
+const { drive, google } = w;
+const tester = w.user("tester@example.com").named("Tester");
 google.nextToken = NEW;
 // Google's window answering only once the page's read of Drive has come back, for a renewal while the read goes on
 const answerAfterRead = () => {
@@ -41,16 +39,12 @@ drive.file({ id: "privateimage00000001", name: "private.png", parent: PRIVATE, b
 // a signed-in page whose token lasts `left` ms more (negative: ran out that long ago); reads(): the bearer of each
 // read of the private folder; asked(): what Google's window was asked since it opened
 async function session(left) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  const who = google.signedIn({ email: "tester@example.com", name: "Tester", scopes: SCOPES, token: OLD, until: Date.now() + left });
+  const device = w.device().signedInAs(tester, { tokenLeft: left, token: OLD }), ctx = await device.context();
   const calls = drive.calls.length, asks = google.asked.length;
   const listings = () => drive.calls.slice(calls).filter((c) => c.kind === "list" && c.parent === PRIVATE);
   const reads = () => listings().map((c) => c.token);
   const asked = () => google.asked.slice(asks);
-  await ctx.addInitScript(({ who, folder }) => {
-    delete Navigator.prototype.serviceWorker;
-    localStorage.setItem("nor-google-sign-in", JSON.stringify(who));
-    localStorage.setItem("nor-welcome", JSON.stringify({ choice: "google", remember: true }));
+  await ctx.addInitScript((folder) => {
     // a control of the test's own that reads Drive in its click, as the page's own Drive controls do
     addEventListener("DOMContentLoaded", () => {
       const b = Object.assign(document.createElement("button"), { id: "test-read", textContent: "read" });
@@ -58,11 +52,8 @@ async function session(left) {
       b.onclick = () => import(location.origin + "/web/drive.js").then(({ remote }) => remote.list(folder, ".png")).then((l) => (b.dataset.got = l.map((f) => f.name).join()), (e) => (b.dataset.got = "error: " + e.message));
       document.body.append(b);
     });
-  }, { who, folder: PRIVATE });
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/viewer");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
+  }, PRIVATE);
+  const page = await device.opens("viewer", { until: "title" });
   page.asked = asked;
   return { ctx, page, reads, listings };
 }
