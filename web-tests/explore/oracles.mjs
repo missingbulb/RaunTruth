@@ -122,7 +122,7 @@ export const ORACLES = {
   },
   // a button that answers a click with nothing a person can see
   answers(s) {
-    if (s.action.kind !== "click" || !s.control || s.control.tag !== "button" || !nothingChanged(s)) return [];
+    if (s.action.kind !== "click" || !s.control || s.control.tag !== "button" || s.control.selected === "true" || !nothingChanged(s)) return [];
     return [{ class: "gap", sig: `dead ${s.action.key}`, what: `${where(s.action)} changed nothing a person can see` }];
   },
 };
