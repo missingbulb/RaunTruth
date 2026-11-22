@@ -14,10 +14,10 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { pw, launch, googleOf, siteOf, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,31 +25,25 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GSI = "https://accounts.google.com/gsi/client";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-const browser = await launch(pw);
-// the deploy with a Google key and client
-const site = siteOf(browser).settings;
-site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "acme-client.apps.googleusercontent.com" };
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
 // the sign-in fake: what Google's window answers, and how often the page loaded Google's script
-const { signIn: google } = googleOf(browser);
+const google = w.google;
+const ada = w.user("ada@acme.example").named("Ada Lovelace");
 let failed = false;
 // whether the page asked for Google's script: it appends the script's element in the handler that wants it, so the
 // element is there once the action that would load it returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
 
-// a device: its own browser storage; offline, the browser says so
-async function device({ offline = false, seed = {} } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript(([offline, seed]) => {
-    delete Navigator.prototype.serviceWorker;
-    if (offline) { window.netDown = sessionStorage.getItem("net") !== "up"; Object.defineProperty(Navigator.prototype, "onLine", { get: () => !window.netDown }); }
-    if (!localStorage.getItem("primed")) { localStorage.setItem("primed", "1"); for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }
-  }, [offline, seed]);
-  const page = await ctx.newPage();
-  page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(STEP);
+// a visit on a device, one never welcomed unless it says; offline, the browser says so; open(): visiting again
+async function device({ offline = false, on = w.device().welcomed(null) } = {}) {
+  const ctx = await on.context();
+  if (offline) await ctx.addInitScript(() => { window.netDown = sessionStorage.getItem("net") !== "up"; Object.defineProperty(Navigator.prototype, "onLine", { get: () => !window.netDown }); });
+  // the device opens the site on this tab, heard from the start
+  (await ctx.newPage()).on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
   // the popup and the tip are decided as the shell's module runs, before the study's title is shown
+  const page = await on.opens(undefined, { until: "title" });
   const open = async () => { await page.goto(origin + "/web/index.html"); await page.waitForFunction(() => document.querySelector("#title").textContent); };
-  await open();
   return { ctx, page, open };
 }
 const popup = (page) => page.evaluate(() => { const d = document.querySelector("#welcome-dlg"); return !!d && d.open && d.matches(":modal"); });
@@ -190,8 +184,7 @@ try {
   check(!(await popup(c.page)), "and offline, Continue anonymously works");
 
   // signed in, not remembered, opened offline: no popup, still signed in, the changes waiting for Drive kept
-  const ada = { user: { name: "Ada Lovelace", email: "ada@acme.example", picture: null }, token: "tok", until: Date.now() - 1, changed: ["nor-theme"] };
-  const e = await device({ offline: true, seed: { "nor-google-sign-in": JSON.stringify(ada), "nor-welcome": JSON.stringify({ choice: "google", remember: false }) } });
+  const e = await device({ offline: true, on: w.device().signedInAs(ada, { tokenLeft: -1, unsaved: ["nor-theme"] }).welcomed("google", { remembered: false }) });
   check(!(await popup(e.page)) && await signedIn(e.page), "signed in and offline, the page opens with no popup, still signed in");
   check(await e.page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in"))?.changed?.includes("nor-theme")), "and the settings waiting for Google Drive stay waiting");
   await e.page.evaluate(() => { sessionStorage.setItem("net", "up"); window.netDown = false; dispatchEvent(new Event("online")); });
@@ -242,7 +235,7 @@ try {
     "trying again as the first try fails signs in too" + (again ? "" : ": its guide did not open"));
 
   // the tip follows the avatar when the window is resized
-  const g = await device({ seed: { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) } });
+  const g = await device({ on: w.device().welcomed("anonymous") });
   await g.page.setViewportSize({ width: 700, height: 800 });
   // the tip moves with the avatar once the page has laid the narrower window out
   await orMissed(g.page.waitForFunction(() => {
@@ -253,8 +246,7 @@ try {
   check(moved && moved.inside && moved.under && moved.arrow, "the tip follows the avatar when the window narrows: " + JSON.stringify(moved));
 
   // a remembered anonymous choice beside a signed-in record (another tab signed in): the popup asks
-  google.signedIn({ token: ada.token, email: ada.user.email, name: ada.user.name });
-  const h = await device({ seed: { "nor-google-sign-in": JSON.stringify({ ...ada, until: Date.now() + 3600e3, changed: [] }), "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) } });
+  const h = await device({ on: w.device().signedInAs(ada, { unsaved: [] }).welcomed("anonymous") });
   check(await popup(h.page), "a remembered anonymous choice with someone signed in asks again");
 
   // two tabs: signing out in one is not undone by the other
@@ -272,7 +264,7 @@ try {
   check(await h2.evaluate(() => localStorage.getItem("nor-google-sign-in")) === null, "and a change in the other tab does not sign the user back in");
 
   // no Google client
-  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
+  w.site.withoutGoogleClient();
   const d = await device();
   check(!(await popup(d.page)) && !(await signInTip(d.page)), "with no Google client there is no popup and no tip");
 } catch (e) {
