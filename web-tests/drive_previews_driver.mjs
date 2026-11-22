@@ -2,12 +2,13 @@
 // IMAGES, its rauntruth-previews.tiff among them, each file with its SHA-256 where a request's fields ask, as
 // Drive gives it. Checks req/shell/drive/previews: the file is not listed and is downloaded once; the images it covers show their
 // preview and what they hold with no read of their own, a stack turning while the pointer is over its row; one
-// it lacks, or one changed since it was made, is read as without it; a reload reads the kept copy, and a new
-// file on Drive is downloaded again; Manage storage counts it with its study's thumbnails. Drive's own small picture
+// it lacks, or one changed since it was made, is read as without it; a page opened with the copy kept reads it, and
+// a new file on Drive is downloaded again; Manage storage counts it with its study's thumbnails. Drive's own small picture
 // (req/shell/drive/dialog) shows for every photo, the file's picture of one ignored, and never for a TIFF, which may be a stack.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_previews_driver.mjs IMAGES [SHOTS]
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
@@ -24,37 +25,47 @@ const [images, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const ROOT = "previewfolder0000001", PREVIEWS = "rauntruth-previews.tiff";
-let FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
-const file = (name) => FILES.find((f) => f.name === name);
+const FILES = fs.readdirSync(images).sort().map((name, k) => ({ id: "previewfile" + String(k).padStart(9, "0"), name, bytes: fs.readFileSync(path.join(images, name)) }));
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-// the deploy with a Google key
-siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-// the Drive fake's folder IMAGES, its files the test may change; reads(): every read of a file's bytes since the test
-// cleared them, by name, "whole" or "piece"; driveThumbs: Drive's own small pictures asked for, by file name
-const drive = googleDrive(ctx);
-drive.folder({ id: ROOT, name: "Previews test", access: "public" });
-FILES = FILES.map((f) => drive.file({ ...f, parent: ROOT, createdTime: "2026-10-01T10:00:00Z" }));
-let readsFrom = 0;
-const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ name: drive.get(c.id)?.name, how: c.range ? "piece" : "whole" }));
+// a context with the deploy's Google key and IMAGES on Drive, opened at the page; previews: a copy of a folder's
+// previews file kept on this device before the page opens, {url, headers, bytes} as Cache Storage holds it
+async function start(previews) {
+  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+  const drive = googleDrive(ctx);
+  drive.folder({ id: ROOT, name: "Previews test", access: "public" });
+  const files = FILES.map((f) => drive.file({ ...f, parent: ROOT, createdTime: "2026-10-01T10:00:00Z" }));
+  studies(ctx).edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
+  await ctx.addInitScript((link) => {
+    delete Navigator.prototype.serviceWorker;
+    if (sessionStorage.getItem("primed")) return;
+    sessionStorage.setItem("primed", "1");
+    localStorage.setItem("nor-drive-link", JSON.stringify(link));
+  }, `https://drive.google.com/drive/folders/${ROOT}`);
+  if (previews) await ctx.addInitScript(({ url, headers, bytes }) => {
+    window.seeded = caches.open("nor-previews-v1").then((c) => c.put(url, new Response(Uint8Array.from(atob(bytes), (ch) => ch.charCodeAt(0)), { headers })));
+  }, previews);
+  const page = await ctx.newPage();
+  page.setDefaultTimeout(STEP);
+  await page.goto(origin + "/web/");
+  await page.waitForFunction(() => window.$ && $("#title").textContent);
+  if (previews) await page.evaluate(() => window.seeded);
+  return { ctx, page, drive, file: (name) => files.find((f) => f.name === name), readsFrom: 0 };
+}
+const main = await start();
+const { ctx, page, drive } = main;
+// reads(): every read of a file's bytes since the test cleared them, by name, "whole" or "piece"; driveThumbs: Drive's
+// own small pictures asked for, by file name
+const reads = (s = main) => s.drive.calls.slice(s.readsFrom).filter((c) => c.kind === "download").map((c) => ({ name: s.drive.get(c.id)?.name, how: c.range ? "piece" : "whole" }));
 const driveThumbs = drive.thumbs;
-studies(ctx).edit("viewer", (own) => ({ ...own, files: { ...own.files, accept: own.files.accept + ",.jpg" } }));
-await ctx.addInitScript((link) => {
-  delete Navigator.prototype.serviceWorker;
-  if (sessionStorage.getItem("primed")) return;
-  sessionStorage.setItem("primed", "1");
-  localStorage.setItem("nor-drive-link", JSON.stringify(link));
-}, `https://drive.google.com/drive/folders/${ROOT}`);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
 
 // the page's handlers for what was just done have all run: a read it would start has started
 // every TIFF row says what it holds, the page says its thumbnails are in (the status bar's "Thumbnails n of m" gone), and no
 // read is on the way once the page has run its handlers; 10 s at most, the
 // checks after it saying what is missing
-const quiet = async () => {
+const quiet = async ({ page, drive } = main) => {
   const done = await untilHeard(async () => {
     await orMissed(page.waitForFunction(() => !/^Thumbnails /.test($("#status").textContent)
       && [...document.querySelectorAll("#remote-list .item")].every((b) => !/\.tiff?$/i.test(b.querySelector(".name").textContent) || b.querySelector(".shape").textContent),
@@ -62,22 +73,20 @@ const quiet = async () => {
     await framesOf(page);
     return !drive.inflight;
   }, () => orMissed(page.waitForEvent("requestfinished", { timeout: 10000 })), { timeout: 10000 });
-  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows: await rows() }));
+  if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ inflight: drive.inflight, rows: await rows(page) }));
 };
-const open = async () => {
-  await pressDrive(page);
-  await page.waitForFunction((n) => document.querySelectorAll("#remote-list .item").length === n, FILES.length - 1);
-  await quiet();
+const open = async (s = main) => {
+  await pressDrive(s.page);
+  await s.page.waitForFunction((n) => document.querySelectorAll("#remote-list .item").length === n, FILES.length - 1);
+  await quiet(s);
 };
 // each row: its name, what it holds and whether it shows a picture
-const rows = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].map((b) => ({
+const rows = (p = page) => p.evaluate(() => [...document.querySelectorAll("#remote-list .item")].map((b) => ({
   name: b.querySelector(".name").textContent, shape: b.querySelector(".shape").textContent, pic: !!b.querySelector(".pic img, .pic canvas") })));
 const row = (all, name) => all.find((r) => r.name === name) || {};
-const readsOf = (name) => reads().filter((r) => r.name === name).map((r) => r.how).join();
+const readsOf = (name, s = main) => reads(s).filter((r) => r.name === name).map((r) => r.how).join();
 
 try {
-  await page.goto(origin + "/web/");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
   await open();
   let all = await rows();
   check(!all.some((r) => r.name === PREVIEWS) && all.length === FILES.length - 1, `the previews file is not listed: ${all.map((r) => r.name)}`);
@@ -118,20 +127,33 @@ try {
   check((await frame()) === null, "and leaving it shows its still again");
   check(!readsOf("b stack.tif"), "turning reads nothing");
 
-  // a reload reads the kept copy; a new previews file on Drive is downloaded again
-  readsFrom = drive.calls.length;
-  await page.reload(); await page.waitForFunction(() => window.$ && $("#title").textContent);
-  await open();
-  check(!readsOf(PREVIEWS) && row(await rows(), "b stack.tif").pic, `after a reload it comes from this device: ${readsOf(PREVIEWS) || "no read"}`);
-  const pv = file(PREVIEWS); pv.bytes = Buffer.concat([pv.bytes, Buffer.from([0])]);
   await page.click("#remote-dlg button[value=close]");
-  readsFrom = drive.calls.length;
-  await open();
-  // the new file read and its pictures drawn on the rows it covers
-  await orMissed(page.waitForFunction(() => [...document.querySelectorAll("#remote-list .item")].find((b) => b.querySelector(".name").textContent === "a flat.tif")?.querySelector(".pic img, .pic canvas"),
-    null, { timeout: 5000 }));
-  check(readsOf(PREVIEWS) === "whole" && row(await rows(), "a flat.tif").pic, `changed on Drive, it is downloaded again: ${readsOf(PREVIEWS)}`);
-  await page.click("#remote-dlg button[value=close]");
+
+  // the copy kept on this device; a page opened with it reads it, and a new previews file on Drive is downloaded again
+  const kept = await page.evaluate(async () => {
+    const c = await caches.open("nor-previews-v1"), [q] = await c.keys(), r = q && await c.match(q);
+    if (!r) return null;
+    const b = new Uint8Array(await r.arrayBuffer());
+    return { url: q.url, headers: Object.fromEntries(r.headers), bytes: btoa(Array.from(b, (x) => String.fromCharCode(x)).join("")) };
+  });
+  const pvBytes = main.file(PREVIEWS).bytes;
+  check(kept && kept.url.endsWith("/drive-previews/" + ROOT) && Buffer.from(kept.bytes, "base64").equals(pvBytes)
+    && kept.headers["x-nor-sha256"] === createHash("sha256").update(pvBytes).digest("hex"),
+    `the previews file is kept on this device, by its folder, with its SHA-256: ${kept?.url}, ${JSON.stringify(kept?.headers)}`);
+  {
+    const seeded = await start(kept);
+    await open(seeded);
+    check(!readsOf(PREVIEWS, seeded) && row(await rows(seeded.page), "b stack.tif").pic, `a page opened with it kept reads it from this device: ${readsOf(PREVIEWS, seeded) || "no read"}`);
+    const pv = seeded.file(PREVIEWS); pv.bytes = Buffer.concat([pv.bytes, Buffer.from([0])]);
+    await seeded.page.click("#remote-dlg button[value=close]");
+    seeded.readsFrom = seeded.drive.calls.length;
+    await open(seeded);
+    // the new file read and its pictures drawn on the rows it covers
+    await orMissed(seeded.page.waitForFunction(() => [...document.querySelectorAll("#remote-list .item")].find((b) => b.querySelector(".name").textContent === "a flat.tif")?.querySelector(".pic img, .pic canvas"),
+      null, { timeout: 5000 }));
+    check(readsOf(PREVIEWS, seeded) === "whole" && row(await rows(seeded.page), "a flat.tif").pic, `changed on Drive, it is downloaded again: ${readsOf(PREVIEWS, seeded)}`);
+    await seeded.ctx.close();
+  }
 
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));

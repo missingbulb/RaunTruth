@@ -259,7 +259,7 @@ try {
 
   // two tabs: signing out in one is not undone by the other
   await h.page.keyboard.press("Escape");
-  const h2 = await h.ctx.newPage();
+  const h2 = await h.ctx.newPage(); // visits again on purpose (another tab is the subject): signing out in one tab reaches the other
   await h2.goto(origin + "/web/index.html"); await h2.waitForFunction(() => document.querySelector("#title").textContent);
   await h2.keyboard.press("Escape");
   await h.page.click("#user-menu summary");

@@ -69,34 +69,46 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((d) => JSON.parse(fs.readFileSync(path.join(repo, "studies", d, "study.json")))).filter((m) => m.visibility === "listed")
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-// NoR Finder with a package of its own, which no other study names
-studiesOf(ctx).edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
-// the deploy with a Google key
-siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-// the Drive fake's folder: the two images, and the subfolder holding the first one's twin
-const drive = googleDrive(ctx);
-for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-drive.folder({ ...SUB, parent: ROOT });
-drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-// how often each image was downloaded from Drive
-const downloads = new Proxy({}, { get: (_, id) => drive.calls.filter((c) => c.kind === "download" && c.id === id).length });
-// jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
-cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
-for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
-await ctx.addInitScript((seed) => {
-  delete Navigator.prototype.serviceWorker;
-  if (sessionStorage.getItem("primed")) return;
-  sessionStorage.setItem("primed", "1");
-  for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-}, SEED);
-const page = await ctx.newPage();
-page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-page.setDefaultTimeout(STEP);
-const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
-try {
+// a context with what a browser that has used the page keeps, opened at NoR Finder; seed: more browser keys kept
+// before the page opens; refusing: the thumbnails' cache takes nothing, as a full one, each refusal counted in
+// window.thumbsRefused
+async function start({ seed = {}, refusing = false } = {}) {
+  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+  // NoR Finder with a package of its own, which no other study names
+  studiesOf(ctx).edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
+  // the deploy with a Google key
+  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+  // the Drive fake's folder: the two images, and the subfolder holding the first one's twin
+  const drive = googleDrive(ctx);
+  for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+  drive.folder({ ...SUB, parent: ROOT });
+  drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+  // jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
+  cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
+  for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
+  await ctx.addInitScript((seed) => {
+    delete Navigator.prototype.serviceWorker;
+    if (sessionStorage.getItem("primed")) return;
+    sessionStorage.setItem("primed", "1");
+    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
+  }, { ...SEED, ...seed });
+  if (refusing) await ctx.addInitScript(() => {
+    const open = CacheStorage.prototype.open;
+    window.thumbsRefused = 0;
+    CacheStorage.prototype.open = function (name) { return name === "nor-thumbs-v1" ? (window.thumbsRefused++, Promise.reject(new Error("no room"))) : open.call(this, name); };
+  });
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
+  page.setDefaultTimeout(STEP);
   await page.goto(origin + "/web/index.html?study=nor");
   await page.waitForFunction(() => $("#title").textContent);
+  return { ctx, page, drive };
+}
+const { ctx, page, drive } = await start();
+// how often each image was downloaded from Drive
+const downloads = new Proxy({}, { get: (_, id) => drive.calls.filter((c) => c.kind === "download" && c.id === id).length });
+const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
+try {
   // what the service worker keeps, as it keeps it: the body, stamped with when it was kept: Python itself, a
   // package two studies use and two only NoR Finder does; and two images kept from Drive, one in NoR Finder
   await page.evaluate(async ({ core, shared, own }) => {
@@ -239,14 +251,14 @@ try {
   const row = await page.textContent("#remote-dlg .dlg-row.end");
   check(!inDialog.length && !/thumbnails|auto-save|\d (KB|MB|GB)/i.test(row), `the Drive dialog holds no Show thumbnails, Auto-save images or storage size: ${inDialog} ${row}`);
   // Auto-save images, in Settings, on at first
-  const autosave = async (on) => {
-    await page.click("#user-menu summary"); await page.click("#open-settings");
-    await page.waitForFunction(() => $("#settings-dlg").open);
+  const autosave = async (on, p = page) => {
+    await p.click("#user-menu summary"); await p.click("#open-settings");
+    await p.waitForFunction(() => $("#settings-dlg").open);
     const box = 'input[name="nor-drive-autosave"]';
-    const was = await page.$eval(`#settings-dlg ${box}`, (c) => [c.checked, c.closest("label").textContent]);
-    check(!(await page.$('#settings-dlg input[name="device-only"][value="nor-drive-autosave"]')), "Auto-save images is not listed again among the settings kept on this device only");
-    if (on !== undefined) await page.setChecked(`#settings-dlg ${box}`, on);
-    await page.click("#settings-save");
+    const was = await p.$eval(`#settings-dlg ${box}`, (c) => [c.checked, c.closest("label").textContent]);
+    check(!(await p.$('#settings-dlg input[name="device-only"][value="nor-drive-autosave"]')), "Auto-save images is not listed again among the settings kept on this device only");
+    if (on !== undefined) await p.setChecked(`#settings-dlg ${box}`, on);
+    await p.click("#settings-save");
     return was;
   };
   await page.click("#remote-dlg button[value=close]");
@@ -274,8 +286,13 @@ try {
 
   await page.click("#remote-dlg button[value=close]");
   await autosave(false);
-  await page.reload(); await page.waitForFunction(() => $("#title").textContent);
-  check(!(await autosave())[0], "unticking Auto-save images in Settings is remembered");
+  const autosaved = await page.evaluate(() => localStorage.getItem("nor-drive-autosave"));
+  check(autosaved === JSON.stringify("off"), `unticking Auto-save images in Settings keeps it off: ${autosaved}`);
+  {
+    const seeded = await start({ seed: { "nor-drive-autosave": autosaved } });
+    check(!(await autosave(undefined, seeded.page))[0], "a page opened with it kept off shows it unticked in Settings");
+    await seeded.ctx.close();
+  }
   await drive();
   await openRow(2);
   // opening: the page decides whether to keep an image before it starts opening it
@@ -328,43 +345,38 @@ try {
   const back = await inStudy("nor");
   check(back === 3, `back in the study, its own are listed again: ${back}`);
 
-  // thumbnails kept in the settings' storage by an earlier page move to the cache when the page opens; while the cache
-  // takes none, a browser the test seeds through this tab's session, they stay where they were
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem("test-thumbs-cache-refuses")) return;
-    const open = CacheStorage.prototype.open;
-    window.thumbsRefused = 0;
-    CacheStorage.prototype.open = function (name) { return name === "nor-thumbs-v1" ? (window.thumbsRefused++, Promise.reject(new Error("no room"))) : open.call(this, name); };
-  });
+  // thumbnails kept in the settings' storage by an earlier page move to the cache when a page opens; while the cache
+  // takes none, they stay where they were
   const LEGACY = ["L1", "L2", "L3"];
-  await page.evaluate(({ pic, ids }) => {
-    for (const id of ids) localStorage.setItem("nor-drive-thumb:" + id, JSON.stringify(pic));
-    localStorage.setItem("nor-drive-thumb:L4", JSON.stringify("not a picture"));
-    localStorage.setItem("nor-drive-thumbs-saved", JSON.stringify(ids));
-    localStorage.setItem("nor-drive-thumb-names", JSON.stringify({ L1: "legacy 1.tif" }));
-    sessionStorage.setItem("test-thumbs-cache-refuses", "1");
-  }, { pic: PIC, ids: LEGACY });
-  const legacyKeys = () => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort());
-  // the page says each thumbnail the cache would not take, and that what it keeps cannot be counted meanwhile
-  // the page left for one whose cache takes them before the case ends, so a count it was still making is said within it
+  const legacy = {
+    ...Object.fromEntries(LEGACY.map((id) => ["nor-drive-thumb:" + id, JSON.stringify(PIC)])),
+    "nor-drive-thumb:L4": JSON.stringify("not a picture"),
+    "nor-drive-thumbs-saved": JSON.stringify(LEGACY),
+    "nor-drive-thumb-names": JSON.stringify({ L1: "legacy 1.tif" }),
+  };
+  const legacyKeys = (p) => p.evaluate(() => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs").sort().map((k) => [k, localStorage.getItem(k)])));
+  // the page says each thumbnail the cache would not take, and that what it keeps cannot be counted meanwhile; its
+  // context closes before the case ends, so a count it was still making is said within it
+  let stayed;
   await expecting(/no room/, async () => {
-    await page.reload();
-    await until(page, (n) => window.thumbsRefused >= n, LEGACY.length);
-    const stayed = await legacyKeys();
-    check(LEGACY.every((id) => stayed.includes("nor-drive-thumb:" + id)) && stayed.includes("nor-drive-thumb-names"), `thumbnails the cache would not take stay in the settings' storage: ${stayed}`);
-    await page.evaluate(() => sessionStorage.removeItem("test-thumbs-cache-refuses"));
-    await page.reload();
+    const refused = await start({ seed: legacy, refusing: true });
+    await until(refused.page, (n) => window.thumbsRefused >= n, LEGACY.length);
+    stayed = await legacyKeys(refused.page);
+    check(LEGACY.every((id) => ("nor-drive-thumb:" + id) in stayed) && "nor-drive-thumb-names" in stayed, `thumbnails the cache would not take stay in the settings' storage: ${Object.keys(stayed)}`);
+    await refused.ctx.close();
   });
-  await orMissed(until(page, async (ids) => {
+  const taken = await start({ seed: stayed });
+  await orMissed(until(taken.page, async (ids) => {
     const c = await caches.open("nor-thumbs-v1");
     for (const id of ids) if (!(await c.match(new URL("drive-thumb/" + id, location.href).href))) return false;
     return !Object.keys(localStorage).some((k) => k.startsWith("nor-drive-thumb") && k !== "nor-drive-thumbs");
   }, LEGACY));
-  const moved = await page.evaluate(async () => {
+  const moved = await taken.page.evaluate(async () => {
     const c = await caches.open("nor-thumbs-v1"), of = (id) => c.match(new URL("drive-thumb/" + id, location.href).href);
     return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };
   });
-  const legacyLeft = await legacyKeys();
+  const legacyLeft = Object.keys(await legacyKeys(taken.page));
+  await taken.ctx.close();
   check(!legacyLeft.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}, left ${legacyLeft}`);
   check(!moved.junk, "what was kept there and is no picture is dropped, never moved");
 } catch (e) {

@@ -124,8 +124,9 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // scopes: what the signed-in user's token may do, in place of SCOPES; email: who is signed in, in place of the
   // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
   // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
-  // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false } = {}) {
+  // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept;
+  // at: an address opened in place of the study's own, its caller waiting for what it shows
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) google.settings.length = 0;
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: scale });
@@ -144,8 +145,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; console.error("page error: " + e.message); await done(1); });
     page.setDefaultTimeout(STEP);
-    await page.goto(origin + "/web/" + id);
-    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+    await page.goto(at ?? origin + "/web/" + id);
+    if (!at) await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     return page;
   }
 

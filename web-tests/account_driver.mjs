@@ -3,7 +3,7 @@
 // in asks Google for the user's name, email and picture and the app's own Drive folder, nothing else of their
 // Drive; the first sign-in starts the user's settings file from this device's settings that follow the user, not
 // the ones that stay; a change is saved; a second device signing in takes the file's settings, the theme at once,
-// and keeps its own left bar; a reload within the hour syncs with no click; once the token has run out a click
+// and keeps its own left bar; a page opened within the hour syncs with no click; once the token has run out a click
 // that needs nothing from Google opens nothing, while changing a setting or opening Load's dropdown renews it in
 // that click, silently, and syncs; signing out
 // keeps this device's settings and saves nothing more; a site with no Google client offers no sign-in; and the
@@ -197,7 +197,7 @@ try {
   settings().body = JSON.stringify({ ...file(), "nor-motion": "false" });
 
   // device B: its own theme and left bar
-  const b = await device({ ...answered, "nor-tips-closed": JSON.stringify(["sign-in"]), "nor-theme": "dark", "nor-bars-v1": JSON.stringify({ left: 400 }) });
+  let b = await device({ ...answered, "nor-tips-closed": JSON.stringify(["sign-in"]), "nor-theme": "dark", "nor-bars-v1": JSON.stringify({ left: 400 }) });
   check(await b.page.evaluate(() => document.documentElement.dataset.theme) === "dark", "a second device starts in its own theme");
   await signInVia(b.page);
   check(await shows(b.page, () => document.documentElement.dataset.theme === "light"), "signing in there brings the user's theme at once");
@@ -207,12 +207,17 @@ try {
   check(await local(b.page, "nor-bars-v1") === JSON.stringify({ left: 400 }), "and leaves this device's left bar alone");
   check(file()["nor-theme"] === "light", "bringing the file's settings does not overwrite the file");
 
-  // another device changes the file; a reload within the hour takes it with no click
-  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" });
   const asks = await b.page.evaluate(() => window.tokenClient.asked.length);
-  await b.page.reload();
-  await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden);
-  check(await shows(b.page, () => document.documentElement.dataset.theme === "dark"), "a reload within the hour stays signed in and syncs with no click");
+  const kept = await b.page.evaluate(() => ({ ...localStorage }));
+  const me = JSON.parse(kept["nor-google-sign-in"] || "null");
+  check(me?.user?.email === "ada@acme.example" && !!me.token && me.until > Date.now() + 50 * 60000,
+    "signing in keeps the user and Google's token for the hour", me && { ...me, token: !!me.token });
+  await b.ctx.close();
+  // another device changes the file; a page opened within the hour from what this device keeps takes it with no click
+  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" });
+  b = await device(kept);
+  check(await shows(b.page, () => !document.querySelector("#sign-out").hidden), "a page opened within the hour stays signed in");
+  check(await shows(b.page, () => document.documentElement.dataset.theme === "dark"), "and syncs with no click");
   check(await b.page.evaluate(() => !window.tokenClient || window.tokenClient.asked.length === 0) && asks === 1, "and asks Google for no new token");
 
   // the hour is up: Google asks again only in a click that needs it, silently, for the same user
@@ -277,9 +282,14 @@ try {
   // signed out, a change starts no save, now or later: the sign-in record it would be kept in stays gone
   await b.page.click("#theme");
   check(file()["nor-theme"] === "dark" && await local(b.page, "nor-google-sign-in") === null, "a change after signing out is not saved to the user's file");
-  await b.page.reload();
-  await b.page.waitForFunction(() => document.querySelector("#title").textContent);
-  check(await b.page.isHidden("#sign-out"), "a reload after signing out stays signed out");
+  {
+    const left = await b.page.evaluate(() => ({ ...localStorage }));
+    await b.ctx.close();
+    const after = await device(left);
+    check(await after.page.isHidden("#sign-out") && await after.page.textContent("#who-where") === "On this device, not signed in",
+      "a page opened after signing out stays signed out");
+    await after.ctx.close();
+  }
 
   // a site with no Google client
   site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };

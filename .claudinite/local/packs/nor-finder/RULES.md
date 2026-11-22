@@ -41,6 +41,11 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   never `web/` or a study's `web/`: the production code is written for the live site alone.
   (tests-bend-test-surface)
 
+- **Testing that the page keeps something** (a setting, a draft, a cache) - assert what the action
+  stored, and apart, open a fresh context with that storage seeded; never reload or open another tab
+  between them, unless visiting again is the case itself, said on its line (`second-visit-in-test`).
+  (test-the-boundaries)
+
 - **Faking something in the tests** - fake a system the page reaches beyond its own code (an API, a CDN, a sign-in,
   the deploy, a process) once, in `web-tests/fakes/`, active in every test, at the seam nearest that system, replacing
   only its own part, with knobs a test sets; fake the repo's own code rarely, and put each new fake to the owner as

@@ -109,8 +109,11 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   await check(await stored(page) === seen, "until it is closed, the version seen stays the old one");
   await page.click("#whats-new-x");
   await check(!(await bubble(page)) && await stored(page) === VERSION, "the x closes it and remembers this version");
-  await page.reload(); await historyRead(page);
-  await check(!(await bubble(page)), "so it does not come back");
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open(VERSION);
+  await check(!(await bubble(page)), "so a page that remembers this version shows no bubble");
   await ctx.close();
 }
 

@@ -4,7 +4,7 @@
 // opens from this device once its SHA-256 matches Drive's (the listing's, or the file's details for a link); one
 // changed on Drive is downloaded again and kept in place of the old; with no SHA-256 from Drive it is downloaded,
 // and with none to be had it does not open from this device. Then req/shell/load/recents-tip: opening a kept image from the dialog shows
-// a tip at the image selector; its × closes it for good, after a reload too, and opening the selector does too.
+// a tip at the image selector; its × closes it for good, a page opened with it closed too, and opening the selector does too.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_cache_driver.mjs [SHOTS]
 import { noisePng } from "./png_fixture.mjs";
@@ -30,33 +30,40 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-// the deploy with a Google key
-siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-const drive = googleDrive(ctx);
-drive.folder({ id: ROOT, name: "Cache", access: "public" });
-// a.png on Drive, whose bytes the test changes
-const FILE = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+// a context with the deploy's Google key and a.png on Drive; seed: browser keys kept before the page opens
+async function open(seed = {}) {
+  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+  const drive = googleDrive(ctx);
+  drive.folder({ id: ROOT, name: "Cache", access: "public" });
+  // a.png on Drive, whose bytes the test changes
+  const file = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+  await ctx.addInitScript((link) => {
+    delete Navigator.prototype.serviceWorker;
+    if (sessionStorage.getItem("primed")) return;
+    sessionStorage.setItem("primed", "1");
+    localStorage.setItem("nor-drive-link", JSON.stringify(link));
+  }, FOLDER);
+  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
+  const page = await ctx.newPage();
+  page.setDefaultTimeout(STEP);
+  await page.goto(origin + "/web/");
+  await page.waitForFunction(() => window.$ && $("#title").textContent);
+  return { ctx, drive, file, page };
+}
+const { ctx, drive, file: FILE, page } = await open();
 // every request the page made of Drive since the test last cleared them, by kind: list, details or download
 const calls = drive.calls, kinds = () => calls.map((c) => c.kind);
-await ctx.addInitScript((link) => {
-  delete Navigator.prototype.serviceWorker;
-  if (sessionStorage.getItem("primed")) return;
-  sessionStorage.setItem("primed", "1");
-  localStorage.setItem("nor-drive-link", JSON.stringify(link));
-}, FOLDER);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
 
 const downloads = () => kinds().filter((c) => c === "download").length;
 // opens a.png from the Drive dialog, or from the recents, and waits until the page holds it
-const fromDialog = async () => {
-  await pressDrive(page);
-  if (await page.inputValue("#remote-link") !== FOLDER) { await page.fill("#remote-link", FOLDER); await page.click("#remote-go"); }
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 1);
-  await page.evaluate(() => { st.fileName = ""; st.sha = ""; });
-  await page.dblclick("#remote-list .item");
-  await page.waitForFunction(() => st.fileName === "a.png");
+const fromDialog = async (p = page) => {
+  await pressDrive(p);
+  if (await p.inputValue("#remote-link") !== FOLDER) { await p.fill("#remote-link", FOLDER); await p.click("#remote-go"); }
+  await p.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 1);
+  await p.evaluate(() => { st.fileName = ""; st.sha = ""; });
+  await p.dblclick("#remote-list .item");
+  await p.waitForFunction(() => st.fileName === "a.png");
 };
 const fromLink = async () => {
   await pressDrive(page);
@@ -78,13 +85,10 @@ const keptSha = () => page.evaluate(async () => {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
 });
 // the open gone as far as it goes with no Python: its SHA-256 taken, the image queued for Python
-const settle = () => page.waitForFunction(() => !!st.sha);
-const tip = () => page.evaluate(() => { const t = document.querySelector(".tip-bubble[data-tip]"); return t && !t.hidden ? t.dataset.tip : null; });
+const settle = (p = page) => p.waitForFunction(() => !!st.sha);
+const tip = (p = page) => p.evaluate(() => { const t = document.querySelector(".tip-bubble[data-tip]"); return t && !t.hidden ? t.dataset.tip : null; });
 
 try {
-  await page.goto(origin + "/web/");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-
   await fromDialog();
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 1);
   check(downloads() === 1 && (await tip()) === null, "a first open downloads the image, and shows no tip");
@@ -155,9 +159,14 @@ try {
   check((await tip()) === null && (await page.evaluate(() => JSON.parse(localStorage.getItem("nor-tips-closed")))).includes("recent-files"), "the tip's × closes it, and its id is kept");
   await fromDialog(); await settle();
   check((await tip()) === null, "a closed tip does not show again");
-  await page.reload(); await page.waitForFunction(() => window.$ && $("#title").textContent);
-  await fromDialog(); await settle();
-  check((await tip()) === null, "nor after a reload");
+  {
+    const seeded = await open({ "nor-tips-closed": JSON.stringify(["recent-files"]) });
+    await fromDialog(seeded.page); await settle(seeded.page);
+    await fromDialog(seeded.page); await settle(seeded.page);
+    check(seeded.drive.calls.filter((c) => c.kind === "download").length === 1 && (await tip(seeded.page)) === null,
+      "a page opened with the tip closed opens a kept image with no tip");
+    await seeded.ctx.close();
+  }
 
   // opening the selector closes it too
   await page.evaluate(() => localStorage.removeItem("nor-tips-closed"));
