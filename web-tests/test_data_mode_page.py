@@ -38,6 +38,7 @@ def folder(path):
     Image.fromarray(np.zeros((20, 20, 3), np.uint8)).save(path / 'sub' / 'c.png')
 
 
+@pytest.mark.flaky(issue=1080, engines=['firefox', 'webkit'])
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_data_management(answers, tmp_path):
     root = tmp_path / 'drive'

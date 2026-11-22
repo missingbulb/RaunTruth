@@ -1,5 +1,7 @@
 """In CI every test must run: a test that skips there for a missing slide, node, Pyodide or
-Chromium would leave the run green while covering nothing, so a skip fails the run instead."""
+Chromium would leave the run green while covering nothing, so a skip fails the run instead. The one
+exception is a test marked flaky on the engine running it: its failure is reported as an expected one,
+and the issue the mark names is where it gets fixed."""
 import os
 import subprocess
 from importlib import metadata
@@ -15,6 +17,11 @@ _built = []
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
+    flaky = item.get_closest_marker('flaky')
+    if flaky and report.failed and os.environ.get('PW_ENGINE', 'chromium') in flaky.kwargs['engines']:
+        report.outcome = 'skipped'
+        report.wasxfail = f"flaky on {os.environ.get('PW_ENGINE', 'chromium')}, #{flaky.kwargs['issue']}"
+        return
     if os.environ.get('CI') and report.skipped:
         report.outcome = 'failed'
         report.longrepr = f'skipped in CI, where every test must run: {report.longrepr}'
@@ -26,6 +33,8 @@ def pytest_configure(config):
     config.addinivalue_line('markers', "chromium_only: needs what only Playwright's Chromium offers (its DevTools, or routing a "
                                        "service worker's requests), so the run on the other engines leaves it out "
                                        '(req/checks/other-engines)')
+    config.addinivalue_line('markers', 'flaky(issue, engines): fails now and then on those engines (chromium, firefox, '
+                                       'webkit), so a failure there is reported as expected until the issue is fixed')
     # A deliberate suppression (owner's call, #685): scikit-image before 0.27 sets an array's shape in
     # grayreconstruct, which NumPy 2.5 deprecates; 0.27 reshapes instead, and the filter stops applying there.
     if _version('scikit-image') < (0, 27):

@@ -2,7 +2,7 @@
 // apart and supports, from a table of user-agent strings; then drives the page (web/) in a headless browser, with a worker
 // that never answers: no icon in a supported browser; in an unsupported one a warning icon in the status bar saying
 // why, which opens a new GitHub issue on the bug-report form filled in with the browser, the page's state and the
-// last five actions; Report a problem in the avatar's menu opening the same; the actions kept across a reload,
+// last five actions; Report a problem in the avatar's menu opening the same; the actions kept on this device,
 // listed in Settings and cleared there; an error the page meets kept apart from the actions; and no image's name
 // reaching the log or the report. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/problem_report_driver.mjs
@@ -64,17 +64,18 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 
 // a page in a browser saying it is `ua` (the engine's own when null), with one image from Drive among the recents;
-// window.open records the address it is given
-async function open(ua) {
+// window.open records the address it is given; seed: browser keys kept before the page opens
+async function open(ua, seed = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...(ua && { userAgent: ua }) });
-  await ctx.addInitScript((secret) => {
+  await ctx.addInitScript(([secret, seed]) => {
     delete Navigator.prototype.serviceWorker;
     window.open = (url) => { window.opened = url; return null; };
     if (sessionStorage.getItem("primed")) return;
     sessionStorage.setItem("primed", "1");
     localStorage.setItem("nor-welcome", JSON.stringify("anonymous"));
     localStorage.setItem("nor-drive-recent", JSON.stringify([{ id: "d1", name: secret, path: ["Lab"], study: "fixture" }]));
-  }, SECRET);
+    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
+  }, [SECRET, seed]);
   // whether the page supports this browser waits on browsers.json, which a supported one shows nothing of
   await watchReads(ctx, ["browsers.json"]);
   const page = await ctx.newPage();
@@ -106,7 +107,7 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
 
 // ---- an unsupported browser: the icon, and the report it opens ----
 {
-  const { ctx, page } = await open(UA.opera);
+  let { ctx, page } = await open(UA.opera);
   const icon = await reportIcon(page);
   await check(icon.shown && icon.right && icon.warns && icon.label === "Unsupported browser" && /Opera is not one the page supports/.test(icon.title) && /report a problem/i.test(icon.title),
     `in Opera the same icon is a warning sign, saying why: "${icon.title}"`);
@@ -140,13 +141,14 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await check(log.length >= 7 && log.some((e) => /Opened the study “Fixture”/.test(e.text)), `the page keeps the log on this device (${log.length} entries)`);
   await check(!JSON.stringify(log).includes(SECRET) && !JSON.stringify(q).includes(SECRET), "no image's name is in the log or the report");
 
-  // across a reload, from the avatar's menu
-  await page.reload(); await page.waitForFunction(() => $("#sb-version").textContent); await readsDone(page);
+  // a page opened with that log kept, from the avatar's menu
+  await ctx.close();
+  ({ ctx, page } = await open(UA.opera, { "nor-actions": JSON.stringify(log) }));
   await page.click("#user-menu summary");
   await page.click("#report-problem");
   const again = await issue(page);
   await check(again.title === "Unsupported browser: " && /Clicked “Report a problem…”$/.test(again.actions.split("\n").at(-1)) && /Clicked “Unsupported browser”/.test(again.actions),
-    "after a reload the actions are still there, and Report a problem in the avatar's menu opens the same report");
+    "a page opened with the log kept still has the actions, and Report a problem in the avatar's menu opens the same report");
 
   // listed in Settings, kept on this device only, and cleared there
   await page.click("#user-menu summary");

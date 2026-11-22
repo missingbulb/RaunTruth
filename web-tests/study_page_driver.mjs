@@ -271,7 +271,10 @@ try {
   // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
   const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
   slow[MODULE] = holding(); slow[CHOSEN] = holding();
-  const early = await ctx.newPage();
+  const elsewhere = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await localStudy(elsewhere, "fixture");
+  await elsewhere.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  const early = await elsewhere.newPage();
   early.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error, a study chosen while another came in: " + e.message); });
   early.setDefaultTimeout(STEP);
   await early.goto(origin + "/web/fixture");
@@ -293,7 +296,7 @@ try {
   console.log("chosen while another came in: " + JSON.stringify(chosen));
   if (!swapped || chosen.path !== "/web/" || chosen.fixture) problems.push("a study chosen while another was coming in is not the one on show, alone: " + JSON.stringify(chosen));
   if (chosen.errors.length) problems.push("a study chosen while another was coming in made the page say: " + chosen.errors.join(" | "));
-  await early.close();
+  await elsewhere.close();
   delete slow[MODULE]; delete slow[CHOSEN];
 
   // the real worker: the fixture's own Python in Pyodide, answering the page

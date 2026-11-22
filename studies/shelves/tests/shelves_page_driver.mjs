@@ -6,7 +6,7 @@
 // req/shelves/truth/task (one book at a time in the order the books stand, Back and Next, a book picked on the photo
 // whatever its verdict, its title ready to retype, a book marked not a book or deleted gone from the photo, a corner dragged past the photo, a book flipped, books added and
 // deleted from the right-click menu, a missed book drawn, what is approved cut out of the photo, Submit's export, the
-// draft kept and loaded after a reload, every change one GT action in the shell's log), req/shelves/truth/keys (the verdicts from the
+// draft kept and loaded in a page opened afresh, every change one GT action in the shell's log), req/shelves/truth/keys (the verdicts from the
 // keyboard), req/shell/image/toolbar (no ruler or grid on a photo) and
 // req/shell/waiting/visible (the light sweeping the photo while the study works). The real
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
@@ -25,6 +25,7 @@ import { until, orMissed } from "../../../web-tests/page_until.mjs";
 import { pw, launch, expecting, check, siteOf } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
+import { storedDrafts, seedDrafts } from "../../../web-tests/device_storage.mjs";
 
 const repo = path.resolve(import.meta.dirname, "..", "..", ".."), [studies] = process.argv.slice(2);
 const W = 400, H = 300;
@@ -92,13 +93,15 @@ async function load(page, name = "shelf.png", png = PNG) {
   await page.waitForFunction(() => $("#bs-find")?.disabled === false);
   await page.evaluate(() => { $("#notice").hidden = true; });
 }
-async function open(role, seed = {}, finder = {}) {
+// drafts: the ground-truth drafts the device keeps before the page opens
+async function open(role, seed = {}, finder = {}, drafts = []) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   await keepStudyKeyListeners(ctx);
   await asTagger(ctx);
   await prepare(ctx, finder);
   // someone only viewing what the finder finds: the study as a published one shows it, which has no annotating to start
   if (role === "viewer") studiesOf(ctx).edit("shelves", (m) => ({ ...m, stage: "Public" }));
+  await seedDrafts(ctx, drafts);
   await ctx.addInitScript(([role, seed]) => {
     delete Navigator.prototype.serviceWorker;
     for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
@@ -574,14 +577,17 @@ try {
   const typedOnce = gt.doc.history.actions.filter((a) => (a.text ?? a.fields?.title)?.startsWith("הארי"));
   check(typedOnce.length === 1 && typedOnce[0].type === "approve", "the Hebrew title filled in and marked right is one GT action, whatever the keys it took", typedOnce);
   check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
-  // Save Draft, the page reloaded, the photo opened again: Load draft brings every book back, without finding again
+  // Save Draft stores the photo's draft on the device; a page opened with it there, the photo opened: Load draft brings
+  // every book back, without finding again
   await page.click("#gt-close");
   await page.click("#gt-save-draft");
   await until(page, () => $("#gt-unsaved").hidden);
-  await page.reload();
-  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
-  await load(page);
-  await fromScratch(page, "#bs-find");
+  const drafts = await storedDrafts(page), { history: filed, ...doc } = gt.doc;
+  check(drafts.length === 1 && drafts[0].study === "shelves" && drafts[0].name === "shelf.png" && JSON.stringify(drafts[0].model) === JSON.stringify(doc)
+    && JSON.stringify(drafts[0].log) === JSON.stringify(filed.actions),
+    "Save Draft stores the photo's draft on the device: the books and the log of the file Submit made", drafts.map((d) => [d.study, d.name, d.log.length]));
+  await page.context().close();
+  page = await open("tagger", KEPT, {}, drafts);
   await until(page, () => !$("#gt-load-draft").hidden);
   check((await books(page)).length === 0, "and no book is shown before it is loaded: Find books has not run");
   await page.click("#gt-load-draft");
@@ -628,11 +634,9 @@ try {
   const old = { books: [{ corners: BOOKS[1].corners, view: "spine", text: "Old title", confidence: .9, reader: "tesseract", turn: 3, turnSet: false, typed: true, source: "found", verdict: "right",
     proposed: { corners: BOOKS[1].corners, text: "Title 260x40" } }, { corners: BOOKS[0].corners, view: "spine", text: "Title 240x35", reader: "tesseract", turn: 3, source: "found", verdict: null,
     proposed: { corners: BOOKS[0].corners, text: "Title 240x35" } }], noneMissed: false, open: 0 };
-  await page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify(v)), [key, old]);
-  await page.reload();
-  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
-  await load(page);
-  await fromScratch(page, "#bs-find");
+  await page.context().close();
+  page = await open("tagger", { ...KEPT, [key]: JSON.stringify(old) });
+  check(await page.evaluate(() => $("#gt-load-legacy").hidden), "a draft kept before Edit History is not offered before Find books has run");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && !$("#gt-load-legacy").hidden);
   const earlier = await page.evaluate(() => ({ text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));

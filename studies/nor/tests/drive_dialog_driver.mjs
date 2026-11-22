@@ -15,8 +15,8 @@ import path from "node:path";
 
 import { cutShort } from "../../../web-tests/page_errors.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
-import { googleDrive } from "../../../web-tests/fakes/google_drive.mjs";
+import { until } from "../../../web-tests/page_until.mjs";
+import { pw, launch, siteOf, googleOf } from "../../../web-tests/harness.mjs";
 
 const [shot, thumbs, ...images] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -43,9 +43,8 @@ siteOf(browser).studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/"
 // the deploy with a Google key
 siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
 const done = async (code, why) => { if (why) console.error(why); await browser.close(); server.close(); process.exit(code); };
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-// the Drive fake's folder: a subfolder holding the first image too, the lab's images and one it lacks
-const drive = googleDrive(ctx);
+// the browser's Drive, every context's: a subfolder holding the first image too, the lab's images and one it lacks
+const { drive } = googleOf(browser);
 drive.folder({ id: ROOT, name: "Slides", access: "public" });
 drive.folder({ id: SUB, name: "More slides", parent: ROOT });
 for (const [k, f] of [...files, stranger].entries()) drive.file({ ...f, parent: ROOT, also: k ? undefined : [SUB], mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
@@ -54,11 +53,24 @@ const asked = (id) => { const c = drive.calls.filter((x) => x.kind === "download
 // resolves once the whole file is asked for, or rejects after ms
 const askedWhole = (id, ms) => asked(id).whole ? Promise.resolve() : Promise.race([drive.next((c) => c.kind === "download" && c.id === id && !c.range),
   new Promise((ok, no) => setTimeout(no, ms))]); // bounds a hang: a page that never asks fails, not hangs
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
-page.setDefaultTimeout(15000);
-await page.goto(origin + "/web/index.html?study=nor");
+// a context opened at NoR Finder; seed: browser keys kept before the page opens; thumbs: thumbnails kept in the
+// browser, [{url, headers, bytes}] as Cache Storage holds them
+async function start({ seed = {}, thumbs = [] } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await ctx.addInitScript(({ seed, thumbs }) => {
+    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
+    window.seeded = caches.open("nor-thumbs-v1").then((c) => Promise.all(thumbs.map(({ url, headers, bytes }) =>
+      c.put(url, new Response(Uint8Array.from(atob(bytes), (ch) => ch.charCodeAt(0)), { headers })))));
+  }, { seed, thumbs });
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
+  page.setDefaultTimeout(15000);
+  await page.goto(origin + "/web/index.html?study=nor");
+  await page.evaluate(() => window.seeded);
+  return page;
+}
+const page = await start();
 await page.click("#load-remote");
 await page.waitForSelector("#remote-list .item");
 const rows = await page.$$eval("#remote-list .item", (b) => b.map((e) => e.querySelector(".name").textContent));
@@ -104,16 +116,19 @@ console.log("select, double click and Open all work");
 
 // an opened image keeps its thumbnail in the browser, shown next time without a download
 await page.evaluate((id) => { st.W = 8; st.H = 8; const v = (k) => Uint8Array.from({ length: 64 }, (_, i) => (i * k) % 256); st.img = { planes: Uint8Array.from([...v(3), ...v(5), ...v(7)]), n: 3 }; shellForTests.saveThumb(id); }, stranger.id);
+await until(page, async (url) => !!(await (await caches.open("nor-thumbs-v1")).match(url)), `${origin}/web/drive-thumb/${stranger.id}`);
+const kept = await page.evaluate(async () => {
+  const c = await caches.open("nor-thumbs-v1");
+  return Promise.all((await c.keys()).map(async (q) => {
+    const r = await c.match(q), b = new Uint8Array(await r.arrayBuffer());
+    return { url: q.url, headers: Object.fromEntries(r.headers), bytes: btoa(Array.from(b, (x) => String.fromCharCode(x)).join("")) };
+  }));
+});
+console.log("thumbnails kept:", kept.map((t) => t.url.split("/").pop()).join(" | "));
+if (!kept.some((t) => t.url.endsWith(stranger.id) && /jpeg/.test(t.headers["content-type"]))) await done(1, "the saved thumbnail was not kept in the browser");
 
 // with Show thumbnails off in Settings, nothing is downloaded
-const fresh = await ctx.newPage();
-fresh.on("pageerror", (e) => { if (!cutShort(e)) done(1, "page error: " + e.message); });
-await fresh.goto(origin + "/web/index.html?study=nor");
-await fresh.click("#load-remote");
-await fresh.waitForSelector("#remote-list .item");
-await fresh.waitForSelector("#remote-list .item:last-child .pic img");
-await fresh.evaluate(() => localStorage.setItem("nor-drive-thumbs", JSON.stringify("off")));
-await fresh.reload();
+const fresh = await start({ seed: { "nor-drive-thumbs": JSON.stringify("off") }, thumbs: kept });
 const before = thumbsServed;
 let thumbsAsked = 0;
 fresh.on("request", (q) => { if (/\/ready-thumbs\/.*\.jpg$/.test(q.url())) thumbsAsked++; });

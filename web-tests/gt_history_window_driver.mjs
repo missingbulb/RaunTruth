@@ -16,7 +16,7 @@ const drive = await standIn({ answers, studies, rootDir });
 const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sha = createHash("sha256").update(png.bytes).digest("hex");
-const { tagger, reopen, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
+const { tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 
 const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list > li")].map((li) => ({ cls: li.className, text: li.querySelector(".what")?.textContent ?? li.textContent, when: li.querySelector(".when")?.textContent ?? "", go: li.dataset.go ?? null })));
 const real = (rows) => rows.filter((r) => !/\b(day|spacer)\b/.test(r.cls));
@@ -24,17 +24,10 @@ const click = (page, text) => page.evaluate((t) => { [...document.querySelectorA
 const box = (page, sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
 const settle = (page) => until(page, () => !document.activeViewTransition);
 
-// a draft written to this device's IndexedDB as the page would have: the log in force, the study's document of its replay
-// (or the one given) and when it was saved
-async function seed(page, actions, doc) {
-  const record = { study: "fixture", sha256: sha, name: png.name, saved: new Date().toISOString(), log: actions,
-    model: doc ?? fixture.document(replay(fixture, actions).model), replay: "verified" };
-  await page.evaluate((rec) => new Promise((ok, bad) => {
-    const q = indexedDB.open("gt-drafts", 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("drafts", { keyPath: ["study", "sha256"] });
-    q.onsuccess = () => { const t = q.result.transaction("drafts", "readwrite"); t.objectStore("drafts").put(rec); t.oncomplete = () => { q.result.close(); ok(); }; t.onerror = () => bad(t.error); };
-  }), record);
-}
+// a draft record as the page would write it: the log in force, the study's document of its replay (or the one given) and
+// when it was saved
+const draft = (actions, doc) => ({ study: "fixture", sha256: sha, name: png.name, saved: new Date().toISOString(), log: actions,
+  model: doc ?? fixture.document(replay(fixture, actions).model), replay: "verified" });
 const yesterday = (h, m, s = 0) => { const d = new Date(); d.setDate(d.getDate() - 1); d.setHours(h, m, s, 0); return d.toISOString(); };
 const head = (at) => [{ type: "open", at, image: { name: png.name, sha256: sha, width: 80, height: 60 }, study: "fixture" },
   { type: "run", at, algorithm: { key: "fixture", params: { threshold: 128 } }, output: { threshold: 128, count: 400, spots: [[27, 27], [60, 37]] } }];
@@ -122,11 +115,8 @@ await check(rows.filter((r) => /undone/.test(r.cls) && /^Moved mark/.test(r.text
 await page.context().close();
 
 // a draft from yesterday: a day rule, and a fold's span of time
-page = await open(true);
-await tagger(page);
 const old = [...head(yesterday(12, 0)), ...[0, 5, 10, 20].map((m, k) => ({ type: "move-mark", at: yesterday(12, m + 1), mark: "m1", to: [30 + k, 30] })), { type: "check", at: yesterday(12, 40), on: true }];
-await seed(page, old);
-await reopen(page);
+page = await openKept({ drafts: [draft(old)] });
 await loaded(page);
 rows = await rowsOf(page);
 const fold = rows.find((r) => /Moved 4 marks/.test(r.text));
@@ -138,12 +128,9 @@ await check(rows[0].text.startsWith("Added mark") && rows[1].text === "Yesterday
 await page.context().close();
 
 // a long draft: only the rows in view are drawn, the current one pinned to the edge of the list
-page = await open(true);
-await tagger(page);
 const long = [...head(yesterday(8, 0))];
 for (let k = 0; k < 1500; k++) long.push(k % 2 ? { type: "check", at: yesterday(9, Math.floor(k / 60), k % 60), on: k % 4 === 1 } : { type: "move-mark", at: yesterday(9, Math.floor(k / 60), k % 60), mark: "m1", to: [20 + (k % 50), 20] });
-await seed(page, long);
-await reopen(page);
+page = await openKept({ drafts: [draft(long)] });
 await loaded(page);
 const drawn = () => page.evaluate(() => ({ li: document.querySelectorAll("#eh-list > li").length, here: !!document.querySelector("#eh-list > li.here"), top: document.querySelector("#eh-list").scrollTop }));
 let d = await drawn();
@@ -202,10 +189,12 @@ page = await open(true);
 await tagger(page);
 await counted(page);
 await page.click("#gt-history-on");
-await check(await page.isHidden("#edit-history"), "Show Edit History unticked hides the window");
-await reopen(page);
+const off = await page.evaluate(() => localStorage.getItem("nor-gt-history"));
+await check(await page.isHidden("#edit-history") && off === '"off"', "Show Edit History unticked hides the window, and is kept in the browser", off);
+await page.context().close();
+page = await openKept({ seed: { "nor-gt-history": off } });
 await page.evaluate(() => $("#fx-count").click()); await until(page, () => !!window.fixture.model());
-await check(await page.isHidden("#edit-history") && !(await page.isChecked("#gt-history-on")), "and that is remembered across a reload");
+await check(await page.isHidden("#edit-history") && !(await page.isChecked("#gt-history-on")), "a page opened with it kept off opens with the window hidden and the box unticked");
 await page.click("#gt-history-on");
 await check(await page.isVisible("#edit-history"), "ticked again, the window shows");
 await page.click("#eh-close");
@@ -229,23 +218,17 @@ await check(asked.includes(png.name) && /algorithm/.test(asked) && (await record
 await page.context().close();
 
 // a later run that leaves an action's item behind greys the action
-page = await open(true);
-await tagger(page);
 const carried = [...head(yesterday(12, 0)), { type: "move-mark", at: yesterday(12, 1), mark: "m2", to: [61, 38] },
   { type: "run", at: yesterday(12, 2), algorithm: { key: "fixture", params: { threshold: 200 } }, output: { threshold: 200, count: 150, spots: [[27, 27]] } }];
-await seed(page, carried);
-await reopen(page);
+page = await openKept({ drafts: [draft(carried)] });
 await loaded(page);
 rows = real(await rowsOf(page));
 await check(rows.some((r) => /skipped/.test(r.cls) && /Moved mark m2 \(didn't carry over\)/.test(r.text)) && (await model(page)).marks.length === 1, "an action a later run could not carry over is greyed", rows);
 await page.context().close();
 
 // a draft whose history does not replay to its model: the stored model wins, the earlier rows are greyed
-page = await open(true);
-await tagger(page);
 const log = [...head(yesterday(12, 0)), { type: "move-mark", at: yesterday(12, 1), mark: "m1", to: [30, 30] }];
-await seed(page, log, { labels: [{ threshold: 99, count: 7 }], marks: [{ id: "m1", x: 1, y: 2 }], checked: true });
-await reopen(page);
+page = await openKept({ drafts: [draft(log, { labels: [{ threshold: 99, count: 7 }], marks: [{ id: "m1", x: 1, y: 2 }], checked: true })] });
 await loaded(page);
 await until(page, () => /did not replay/.test($("#status").textContent));
 rows = await rowsOf(page);

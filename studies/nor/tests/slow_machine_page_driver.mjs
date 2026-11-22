@@ -77,13 +77,15 @@ const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(s
 // algorithm list, fetched without the page waiting on it, can be ready before it
 const started = (page) => page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false
   && document.querySelector("#status").textContent === "Ready. Load an image.");
-async function open(gb) {
+// seed: browser keys kept before the page opens
+async function open(gb, seed = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   await asTagger(ctx);
   await ctx.addInitScript((gb) => {
     delete Navigator.prototype.serviceWorker;
     Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true });
   }, gb);
+  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
   await standInDrive(ctx);
   const page = await ctx.newPage();
   page.setDefaultTimeout(STEP);
@@ -153,8 +155,13 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await shot(page, "memory_popup");
   await shot(page, "memory_popup_box", "#memory-dlg");
   await page.check("#memory-off"); await page.click("#memory-dlg button.primary");
-  await page.reload(); await started(page);
-  await check(!(await page.evaluate(() => $("#memory-dlg").open)), "after Don't show this again, it does not come back");
+  const kept = await page.evaluate(() => localStorage.getItem("nor-memory-tip-off"));
+  await check(kept === "true", `Don't show this again is kept: ${kept}`);
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open(2, { "nor-memory-tip-off": "true" });
+  await check(!(await page.evaluate(() => $("#memory-dlg").open)), "a page opened with the popup turned off does not show it");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");
   // the stand-in's third run answers out of memory, which the page warns of

@@ -138,9 +138,10 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
   // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept;
   // viewport: the window's size; name: the signed-in user's; until: when their token runs out, in place of an hour
-  // on; welcome: the welcome popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study
+  // on; welcome: the welcome popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study;
+  // at: an address opened in place of the study's own, its caller waiting for what it shows
   async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
-    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false, setup = false } = {}) {
+    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false, setup = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) google.settings.length = 0;
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: scale });
@@ -159,8 +160,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
     page.setDefaultTimeout(STEP);
-    await page.goto(origin + (setup ? "/web/setup?study=" + id : "/web/" + id));
-    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+    await page.goto(at ?? origin + (setup ? "/web/setup?study=" + id : "/web/" + id));
+    if (!at) await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     return page;
   }
 

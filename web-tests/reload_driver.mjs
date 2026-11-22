@@ -27,7 +27,7 @@ try {
   check(off.length >= 8, `the page's markup starts ${off.length} controls off`, off.map((c) => c.name));
   // each of them on, as the page turns each on in its time
   await page.evaluate((CONTROLS) => { for (const e of document.querySelectorAll(CONTROLS)) e.disabled = false; }, CONTROLS);
-  await page.reload();
+  await page.reload(); // visits again on purpose (a reload is the subject): a browser restores form controls on a reload alone
   const again = await handed();
   check(again.length === first.length, "a reload hands the page the same controls", [first.length, again.length]);
   const on = first.filter((c, i) => c.off && !again[i]?.off).map((c) => c.name);

@@ -1,7 +1,7 @@
 // Drives shell.gt.legacy (req/shell/ground-truth/legacy) in headless Chromium on the fixture study, against the stand-in Google of
 // stand_in_drive.mjs, annotating: an old store of the study's own is offered once its run is in the log, is never
-// loaded unasked, loads as a base counted as unsaved, is forgotten only when a draft has kept it, and is offered again at the
-// next visit until then. Exits 1 on a failed check, 2 when it cannot run.
+// loaded unasked, loads as a base counted as unsaved, is forgotten only when a draft has kept it, and is offered again in a page
+// opened afresh until then. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_legacy_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
 import { until } from "./page_until.mjs";
@@ -11,7 +11,7 @@ const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
 const { GT, FILES, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
-const { tagger, reopen, marks, label, records, ask } = kit({ drive, png });
+const { tagger, openKept, marks, label, records, ask } = kit({ drive, png });
 
 const KEY = `fx-legacy:${png.name}`;
 const OLD = { edits: 3, model: { labels: [{ threshold: 5, count: 3 }], marks: [{ id: "m1", x: 11, y: 12 }, { id: "m2", x: 30, y: 31 }, { id: "m9", x: 5, y: 5 }], checked: true } };
@@ -19,7 +19,7 @@ const offers = (page) => page.evaluate(() => ({ box: !$("#gt-offers").hidden, le
   text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));
 const kept = (page) => page.evaluate((k) => localStorage.getItem(k) !== null, KEY);
 
-const page = await open(true);
+let page = await open(true);
 await tagger(page);
 await page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify(v)), [KEY, OLD]);
 
@@ -50,8 +50,12 @@ await until(page, () => /History cleared/.test($("#status").textContent));
 await check(/back to the earlier edits/.test(await page.textContent("#status")) && (await page.evaluate(() => window.fixture.model().marks.length)) === 3,
   "Clear all history goes back to the earlier edits, not to the algorithm's output, and says so", await page.textContent("#status"));
 
-// closing the page before it is saved loses nothing: it is offered again at the next visit
-await reopen(page);
+// closing the page before it is saved loses nothing: the old store is as it was, and a page opened on it offers it again
+const left = await page.evaluate((k) => localStorage.getItem(k), KEY);
+await check(left === JSON.stringify(OLD), "the old store is kept as it was until a draft holds it", left);
+const drafts = await records(page);
+await page.context().close();
+page = await openKept({ drafts, seed: { [KEY]: left } });
 await page.click("#fx-count");
 await until(page, () => !!window.fixture.model());
 await until(page, () => !$("#gt-offers").hidden);
@@ -68,8 +72,9 @@ const recs = await records(page);
 await check(!(await kept(page)) && !o.box && recs.length === 1 && recs[0].log.at(-1).type === "base" && recs[0].model.marks.length === 3,
   "Save Draft keeps the base and only then forgets the old store", { kept: await kept(page), o, log: recs[0]?.log.map((a) => a.type) });
 
-// a new visit: nothing of the old store is offered, the draft is, and it brings the base back with its replay verified
-await reopen(page);
+// a page opened on what the device keeps now: nothing of the old store is offered, the draft is, and it brings the base back with its replay verified
+await page.context().close();
+page = await openKept({ drafts: recs });
 await page.click("#fx-count");
 await until(page, () => !!window.fixture.model());
 await until(page, () => !$("#gt-offers").hidden);

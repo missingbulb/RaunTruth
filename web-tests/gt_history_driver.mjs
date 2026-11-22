@@ -18,7 +18,7 @@ const { FILES, GT, studyFile, open, dataManagement, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
-const { ready, tagger, reopen, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
+const { ready, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 const unloadAsks = (page) => page.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); dispatchEvent(e); return e.defaultPrevented; });
 const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
@@ -30,7 +30,7 @@ const submit = async (page) => {
   return msg;
 };
 
-// nothing is saved before Save Draft: two actions made, no record, and after a reload no offer
+// nothing is saved before Save Draft: two actions made, no record, and a page opened on what the device keeps offers nothing
 let page = await open(true);
 await tagger(page);
 await check(await page.evaluate(() => !document.querySelector("#gt-continue, .gt-clear-slot, .gt-clear")), "a study with GT actions has no Continue GT tagging and no Clear progress: the draft is Load draft, the clearing Clear all history");
@@ -41,9 +41,11 @@ let l = await label(page);
 let asked = null;
 await check(!l.hidden && l.text === "· 2 unsaved", "the two actions are counted beside Undo", l);
 await check(await unloadAsks(page), "leaving the page with unsaved actions asks first");
-await reopen(page);
+let recs = await records(page);
+await page.context().close();
+page = await openKept({ drafts: recs });
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await check(await page.isHidden("#gt-offers") && (await model(page)) === null, "after a reload nothing was kept: no offer, nothing counted, and the shell says its look for a draft has ended");
+await check(await page.isHidden("#gt-offers") && (await model(page)) === null, "a page opened on what the device keeps finds nothing kept: no offer, nothing counted, and the shell says its look for a draft has ended");
 
 // Save Draft keeps the log and the model on this device
 await counted(page);
@@ -53,14 +55,15 @@ await page.click("#gt-save-draft");
 await until(page, () => $("#gt-unsaved").hidden);
 l = await label(page);
 await check(l.hidden && !(await unloadAsks(page)) && await page.isDisabled("#gt-save-draft"), "Save Draft clears the unsaved count and the guard against leaving", l);
-let recs = await records(page);
+recs = await records(page);
 await check(recs.length === 1 && recs[0].study === "fixture" && recs[0].sha256.length === 64 && recs[0].log[0].type === "open" && recs[0].log[1].type === "run"
   && typeof recs[0].log[1].output.deflate === "string" && recs[0].log.filter((a) => a.type === "move-mark").length === 2 && recs[0].model.marks.length === 2,
   "one record per study and image holds the open, the run with its output deflated and the two moves", recs.map((r) => ({ ...r, log: r.log.map((a) => a.type) })));
 const savedAt = recs[0].saved;
 
-// Load draft: offered with when and how many, nothing loaded unasked, and no step of the study run again
-await reopen(page);
+// Load draft, on a page opened with that record kept: offered with when and how many, nothing loaded unasked, and no step of the study run again
+await page.context().close();
+page = await openKept({ drafts: recs });
 await until(page, () => !$("#gt-offers").hidden);
 const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-offers").nextElementSibling.id }));
 await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above the tasks, with when it was saved and how many actions", offer);
@@ -108,7 +111,9 @@ l = await label(page);
 await check(l.text === "· 1 unsaved", "a drag dropped is exactly one action", l);
 
 // Load draft over unsaved actions asks first, and dismissing keeps the model
-await reopen(page);
+recs = await records(page);
+await page.context().close();
+page = await openKept({ drafts: recs });
 await counted(page);
 await moved(page, "m1", 12, 12);
 await until(page, () => !$("#gt-offers").hidden);

@@ -82,8 +82,9 @@ const bars = (page) => page.evaluate(() => {
     return [a.id, b.id, getComputedStyle(a).borderRightWidth === "1px" || getComputedStyle(b).borderLeftWidth === "1px", !(four(a) && four(b))]; });
 });
 
-// clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does
-async function open(study, mode, clock) {
+// clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
+// seed: browser keys kept before the page opens
+async function open(study, mode, clock, seed = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
   if (clock) await ctx.clock.install();
   await localStudy(ctx, "fixture");
@@ -91,6 +92,7 @@ async function open(study, mode, clock) {
   await standInDrive(ctx);
   await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
   if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
+  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
   const page = await ctx.newPage();
   page.setDefaultTimeout(STEP);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
@@ -386,12 +388,10 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(still.shine === "none" && still.gt === "0s", "nothing shines or fades", still);
   await check(still.sweep === "none" && still.halo === "none", "a button that would shine looks plain: no light frozen on it, no halo", still);
   {
-    const again = await ctx.newPage();
-    await again.goto(page.url());
-    await again.waitForFunction(() => document.querySelector("#title").textContent);
-    const kept = await again.evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
-    await check(!kept.box && kept.motion === "off", "the next visit opens with the animations still off", kept);
-    await again.close();
+    const seeded = await open("fixture", undefined, false, { "nor-motion": "false" });
+    const kept = await seeded.page.evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
+    await check(!kept.box && kept.motion === "off", "a page opened with the animations turned off opens with them off", kept);
+    await seeded.ctx.close();
   }
   await check(still.spin === "spin" && still.working === "spin", "but a spinner still turns", still);
   await page.waitForFunction(() => !document.querySelector("#sb-net").classList.contains("spike"), null, { timeout: 6000 });

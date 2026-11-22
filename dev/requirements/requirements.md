@@ -80,7 +80,9 @@ nobody has decided: what the page does there is not a requirement yet.
   the token on this device and leaves its settings as they are. A visitor who never signs in is asked
   once on opening the page (`req/shell/account/welcome`) and loads no script or account detail from Google for it; the one
   thing the page reads from Google signed out is the study's link-shared study file, by the site's key, for the study's stage
-  (`req/shell/study/stage`; approved by the owner on 2026-11-22). Test: `web-tests/test_account_page.py`,
+  (`req/shell/study/stage`; approved by the owner on 2026-11-22). Set by the owner on 2026-11-22: two tabs signed in at
+  once, each changing settings, are not a requirement, and no test covers them; a change made in one may be lost to the
+  other's sync. Test: `web-tests/test_account_page.py`,
   `web-tests/test_site_config.py`.
   </details>
 
