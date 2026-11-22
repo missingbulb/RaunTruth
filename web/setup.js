@@ -5,11 +5,26 @@
 "use strict";
 import { attach, lent } from "./shell.js";
 import { dataMode } from "./data_mode.js";
+import { setupMarks } from "./setup_marks.js";
+import { setupBatch } from "./setup_batch.js";
 
 const { $, views, summaryMasks, st, retitle, openBytes, minimapView } = lent;
 
-attach(dataMode({
+// the marks and the batch run (req/setup/marks, req/setup/batch): their boxes, told what Data Management has chosen
+const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
+let data;
+const marked = { marked: () => data.marked() };
+const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked });
+const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status });
+const setup = {
+  chose(kind, info) { marks.chose(kind, info); batch.chose(kind, info); },
+  busy: () => batch.busy(),
+  leave() { marks.leave(); batch.leave(); },
+};
+
+attach(data = dataMode({
   ...lent,
+  setup,
   // the areas (req/shell/data/damaged, req/shell/data/area-of-interest): a lasso over the image, done(points) once drawn; the
   // image's areas, shown at once on the original open
   lasso: (done, hint) => summaryMasks.lassoFor(done, hint),

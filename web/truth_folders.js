@@ -101,3 +101,12 @@ export async function save({ reader, writer, folder, image, email, doc }) {
   const there = (await reader.all(sub)).find((f) => !f.folder && f.name === name);
   return there ? writer.replace(there.id, blob, { keepForever: true }) : writer.create(sub, name, blob);
 }
+
+// the batch run's document written as its extraction of the image in folder, the file runFile(algorithm, version) names, replacing
+// a file of that name; the file's id
+export async function saveRun({ reader, writer, folder, image, algorithm, version, doc }) {
+  const sub = await ensure(reader, writer, folder, image), name = runFile(algorithm, version);
+  const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
+  const there = (await reader.all(sub)).find((f) => !f.folder && f.name === name);
+  return there ? writer.replace(there.id, blob) : writer.create(sub, name, blob);
+}

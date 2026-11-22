@@ -286,16 +286,20 @@ Depends on WP4. The largest package; may be split into 5a (the page and what mov
 - `setup/marks` The owner marks an extraction GT or official; the study file records the extraction's file id,
   and the mark follows that file's latest content; one GT mark and one official mark per image; "mark all of this
   batch official".
-  - **Test:** `test_setup_page.py`: mark y's extraction GT: the index JSON (read from the fake) holds
-    `{sha256, file}` for the image; y saves again: the mark still names the file and the main app shows y's new
-    model as GT; marking another GT for the image replaces the first; "mark all of this batch" marks each image the
-    batch reached.
-  - **Build:** `web/study_root.js` `writeIndex` gains `marks`.
+  - **Test:** `test_setup_page.py` with `setup_marks_driver.mjs`: mark y's extraction GT: the study file (read from
+    the fake) holds `marks[<image sha256>] = {gt: {file, by}}`, the format the main app already reads (`marksOf`);
+    y saves again: the mark still names the file and the main app shows y's new model as GT; marking another GT for
+    the image replaces the first. "Mark all of this batch" is tested with the batch (`setup_batch_driver.mjs`).
+  - **Build:** `web/study_root.js` `writeMarks` (one write, merged into the marks the root holds now);
+    `web/setup_marks.js` is the image's extractions box.
 - `setup/batch` The owner runs a chosen algorithm over chosen images; each image gets an extraction at that
   version and parameters; images already done are skipped; a token running out holds it until the next click.
   - **Test:** stand-in Python worker answering from `answers.json`; batch over 3 images writes 3 files; rerun
     writes none; expire after 1, click, the other 2 follow.
-  - **Build:** reuses the main app's runner module; Study Setup imports the study's algorithm code for the batch only.
+  - **Build:** the shell's `batchRunner` (`web/shell.js`) opens each image and presses the study's first step, as the
+    main app's user does, then takes the log's document; `web/setup_batch.js` does the choosing, skipping, writing
+    and holding. The study's own panels are mounted on Study Setup, hidden, so no second runner and no study code
+    is imported for it.
 - `setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each
   item's Drive sharing dialog.
   - **Test:** fake permissions seeded on the extractions folder and the root; rows asserted; links point at

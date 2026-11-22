@@ -127,6 +127,24 @@
       <p id="tags-msg" class="hint" role="status"></p>
     </section>
 
+    <!-- Study Setup: the image's extractions and their marks (req/setup/marks) -->
+    <section class="box" id="marks-box" data-needs-network hidden>
+      <div class="sec-head"><h2>Extractions</h2></div>
+      <p id="marks-for" class="hint"></p>
+      <div id="marks-list" role="list" data-log-as="an extraction of the image, to mark"></div>
+      <p id="marks-msg" class="hint" role="status"></p>
+    </section>
+
+    <!-- Study Setup: a batch run over the folder's images (req/setup/batch) -->
+    <section class="box" id="batch-box" data-needs-network hidden>
+      <div class="sec-head"><h2>Batch run</h2></div>
+      <p id="batch-for" class="hint"></p>
+      <label class="study-row"><span>Algorithm</span><select id="batch-algorithm" data-log-as="the algorithm a batch runs"></select></label>
+      <div class="folder-actions"><button id="batch-all" type="button" data-needs-network>Choose all</button><button id="batch-run" type="button" class="primary" data-needs-network disabled>Run</button></div>
+      <div class="folder-actions"><button id="batch-official" type="button" data-needs-network hidden>Mark this batch official</button></div>
+      <p id="batch-msg" class="hint" role="status"></p>
+    </section>
+
     <section class="box" id="annotate-box" hidden>
       <div class="sec-head"><h2>Annotations</h2></div>
       <p id="annotate-ask" class="hint">How do you want to get annotations on this image?</p>

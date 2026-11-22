@@ -468,7 +468,7 @@ export function dataMode(ctx) {
     return imagesOf(n).map((f) => {
       const entry = pv?.entry(f.name, f.sha) || null, g = (f.sha && gts.get(tf.subfolderName(f.name, f.sha))) || {};
       return { f, entry, shown: !!entry || (!isTiff(f.name) && !!f.preview), stale: !entry && isTiff(f.name) && !!pv?.index.images.some((e) => e.name === f.name),
-        extracted: !!g.held, truth: !!tf.marksOf(marks, f.sha).gt?.file, marker: g.needed || null };
+        extracted: !!g.held, truth: !!tf.marksOf(marks, f.sha).gt?.file, official: !!tf.marksOf(marks, f.sha).official?.file, marker: g.needed || null };
     });
   }
   // a TIFF that Update previews makes a preview for
@@ -483,6 +483,8 @@ export function dataMode(ctx) {
   }
 
   async function chooseFolder(n) {
+    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
+    ctx.setup?.chose(null);
     chosen = { kind: "folder", id: n.id }; root.dataset.sel = "folder"; ctx.relabel();
     drawTree(); ctx.showFolder(true);
     $("#folder-name").textContent = n.name; $("#folder-title").textContent = n.name;
@@ -506,6 +508,7 @@ export function dataMode(ctx) {
     $("#update-previews").disabled = !todo || n.access !== "write";
     $("#update-previews").title = !todo ? `Every TIFF has an up-to-date preview; ${remote.label} pictures the photos` : n.access !== "write" ? ACCESS[n.access || "unknown"][1] : `Make the ${todo} missing or out-of-date previews`;
     drawItems(n, all, pv);
+    ctx.setup?.chose("folder", { id: n.id, name: n.name, images: all.map((s) => ({ id: s.f.id, name: s.f.name, sha: s.f.sha, folder: n.id })) });
   }
 
   // the folder's images in the main area, a grid of previews or a list
@@ -517,9 +520,10 @@ export function dataMode(ctx) {
       if (k < 60) cell.style.viewTransitionName = "cell-" + k;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
       cell.innerHTML = `<span class="pic"></span><span class="name">${esc(s.f.name)}</span><span class="meta">${esc(s.f.size == null ? "" : sizeText(s.f.size))}</span>` +
-        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Extraction</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}</span>` +
-        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>`;
-      cell.onclick = (e) => { if (!e.target.closest(".mark-gt")) chooseImage(n, s.f); };
+        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Extraction</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
+        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>` +
+        `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Choose ${esc(s.f.name)} for a batch run" title="Choose it for a batch run">`;
+      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f); };
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
@@ -587,6 +591,8 @@ export function dataMode(ctx) {
 
   // ---------- an image: its preview first ----------
   async function chooseImage(n, f) {
+    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
+    ctx.setup?.chose("image", { id: f.id, name: f.name, sha: f.sha, folder: n.id });
     chosen = { kind: "image", id: f.id, folder: n.id }; root.dataset.sel = "image"; ctx.relabel();
     drawTree(); ctx.showFolder(false);
     const pv = await previewsOf(n), e = pv?.entry(f.name, f.sha), source = remote.source(f.id, { name: f.name, folder: n.id });
@@ -642,11 +648,20 @@ export function dataMode(ctx) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
       if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(chosen?.kind === "folder"); return; }
       epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
+      ctx.setup?.leave();
       if (on()) enter(false);
       asStarted(); delete root.dataset.tree;
       roots = []; unlisted = []; tagsDoc = { images: {}, folders: {} }; look = { group: null, hide: [] }; gt = { extractions: null }; gtNodes = []; marks = {};
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
       $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true; $("#tags-box").hidden = true; $("#study-set").hidden = true;
+    },
+    // the study file's marks written (req/setup/marks): read again, the folder on show drawn with them
+    async marked() {
+      const s = await place.settings().catch(() => null);
+      if (s) marks = s.marks || {};
+      const n = chosen && nodes.get(chosen.kind === "folder" ? chosen.id : chosen.folder);
+      truthStatus();
+      if (chosen?.kind === "folder" && n) relist(n);
     },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },

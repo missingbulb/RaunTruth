@@ -761,6 +761,16 @@ function call(action, args, echo) {
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
 
+// Python started, and its code version known: the ones waiting on it, {ok, bad}
+const started = [];
+function pythonReady() {
+  if (st.ready) return Promise.resolve();
+  if (!st.worker) { $("#spin").classList.add("on"); pythonWorker(); }
+  return new Promise((ok, bad) => started.push({ ok, bad }));
+}
+// the run a batch waits on, ended by this when Python answers it with an error
+let runFailed = null;
+
 // ---------- the low-memory popup: on a computer with little memory, and whenever the page runs out of it ----------
 const OUT_OF_MEMORY = /MemoryError|out of memory|Memory\.grow|allocation failed|Maximum memory|OOM/i;
 function memoryTip(ranOut) {
@@ -804,11 +814,14 @@ function handle(m) {
     // the request that failed is over: its button can be pressed again
     study.error?.();
     if (!st.ready) { st.failed = true; $("#spin").classList.remove("on"); }
+    for (const w of started.splice(0)) w.bad(new Error(m.text));
+    runFailed?.(new Error(m.text));
     // what being offline stops is said plainly: the online icon already says why (req/shell/offline/default)
     if (m.offline) status(m.text); else status("Error: " + m.text, true);
     if (OUT_OF_MEMORY.test(m.text)) memoryTip(true);
   } else if (m.type === "ready") {
     st.ready = true; st.readyInfo = m.info; studyCode = m.code ?? null; $("#spin").classList.remove("on");
+    for (const w of started.splice(0)) w.ok();
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
     study.result?.(m.action, m.meta, m.bytes, m.echo);
@@ -2706,9 +2719,44 @@ const offlineCopy = offline({ $, esc, sizeText, remote, throttled, throttle, sto
     for (const q of c ? await c.keys() : []) { const s = (await c.match(q))?.headers.get(IMAGE_STUDY); if (s) out.add(s); }
     return out;
   } });
+// What a batch run asks of the page (req/setup/batch): the study's first step run on one image as the main app runs it, and the
+// document that makes, as a person's extraction would be, with no person's name on it. The rest of a batch is Study Setup's.
+const batchRunner = {
+  // whether the study can be run over its images: it keeps GT actions and has a first step to press
+  get able() { return !!manifest && gtSession.on() && !!manifest.phases?.[0]?.button; },
+  // the study's algorithms, once listed
+  list: async () => { await algorithms.api.ready; return algorithms.api.list; },
+  // Python started, and the study's code version as a run records it, null where Python did not tell
+  async version() { await pythonReady(); return studyCode; },
+  // the document of the study's first step run on the image `source` names, with algorithm chosen; signal ends the wait
+  async run(source, algorithm, signal) {
+    const step = manifest.phases[0], button = $(step.button);
+    let name = source.name, bytes;
+    const kept = await savedImage(source.id);
+    if (kept) ({ name, bytes } = kept);
+    else {
+      if (throttled()) throw new Error(remote.words.throttled);
+      try { ({ name, bytes } = await remote.file(source.id, source.name)); } catch (e) { if (e.throttled) throttle(); throw e; }
+    }
+    algorithms.api.choose(algorithm);
+    await openBytes(name, bytes, source);
+    if (page.get("image")?.source !== source) throw new Error(`${name} was not opened, so ${step.name} did not run on it.`);
+    if (button.disabled) throw new Error(`${step.name} is not available on ${name}.`);
+    const stop = new AbortController();
+    const ended = new Promise((ok, bad) => {
+      gtSession.api.on((_, why) => { if (why === "run") ok(); }, stop.signal);
+      runFailed = bad;
+      signal?.addEventListener("abort", () => bad(new Error("The batch was stopped.")), { once: true });
+    });
+    button.click();
+    try { await ended; } finally { stop.abort(); runFailed = null; }
+    return { ...(await gtSession.fileDoc()), created: new Date().toISOString(), image: { name, sha256: st.sha, ...remote.cite(source) } };
+  },
+};
 // what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
 // and left bar, lent as they are
 export const lent = {
+  batchRunner,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
   page, views, summaryMasks, st, retitle, loadOriginal, minimapView: () => view?.minimapView(),
   // the image itself, by its id, is open
