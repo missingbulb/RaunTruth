@@ -44,7 +44,7 @@ import { truthHistory } from "./truth_history.js";
 import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
 import { groupsOf, isHidden } from "./tags.js";
-import { subfolderName } from "./truth_folders.js";
+import { subfolderName, marksOf } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
 import { storedPart } from "./vsi.js";
@@ -84,6 +84,8 @@ const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 const GT_DRAFT = "gt-draft|";
 // the saves the store did not take, waiting on this device for the next click online (req/shell/annotate/survives)
 const OUTBOX = "nor-gt-outbox";
+// the images this device saved an extraction of, {study: [SHA-256]}, for the Load dialog to say which are yours (req/shell/extractions/marks-shown)
+const GT_SAVED = "nor-gt-saved";
 // {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
 const HOLDS = "nor-drive-holds";
 const TIPS = "nor-tips-closed"; // [tip id]: the tips the user closed, never shown again
@@ -150,7 +152,6 @@ $("#remote-title").textContent = `Load from ${remote.label}`;
 $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
 
-// the tagger's side of the study's ground-truth folders: the line in its ground-truth box and Submit
 // the study on show's root in the remote store: its settings, the folders Load browses, the roles the store gives
 const place = studyPlace(remote, () => manifest);
 // what the store lets the signed-in user write in the study on show (req/shell/data/roles), read as the study comes in
@@ -201,6 +202,8 @@ function restoreLoaded() {
   for (const el of out) { inView.unobserve(el); inView.observe(el); }
 }
 let study = {}, view = null, manifest = null, base = "";
+// the study's Python as one hash, as the worker said when the study came up; null where it could not tell
+let studyCode = null;
 
 // ---------- status ----------
 // said: the last thing the page said, {text, err}; loading: what the remote files dialog's thumbnails say while they
@@ -511,6 +514,8 @@ const stageAnnotates = () => manifest.stage === "GT" || manifest.stage === "Post
 let annotating = false, route = null, resume = null;
 // the annotation of the store shown read-only, {label, doc, counts}, or null, and what the store's list of them held when last asked
 let viewing = null, driveList = null;
+// the extraction the annotation being made was edited from, its file's id, which Save records (req/shell/extractions/list)
+let editBase = null;
 const makesTruth = () => !!manifest && stageAnnotates() && annotating;
 // whether the store lets this user save ground truth to the study, as far as last read
 const maySave = () => signIn.signedIn() && storeRoles.tagger;
@@ -559,13 +564,13 @@ const views = {
 };
 $("#switch").onclick = () => views.show(views.now === "image" ? "items" : "image");
 // The study's steps, in order, in one state that the breadcrumbs and the shining buttons are drawn from:
-// [{key, name, button, done, info, at}]. Load image and Submit GT are the shell's, the study's own come from its
+// [{key, name, button, done, info, at}]. Load image and Save are the shell's, the study's own come from its
 // study.json; the step to do now is the first not done.
 let steps = [], shone = [];
 const stepsWatch = new MutationObserver(() => drawSteps());
 function makeSteps() {
   steps = [{ key: "load", name: "Load image", button: loadButton() }, ...manifest.phases,
-    ...(makesTruth() ? [{ key: "submit", name: "Submit GT", button: "#gt-submit" }] : [])]
+    ...(makesTruth() ? [{ key: "submit", name: "Save", button: "#gt-submit" }] : [])]
     .map((p) => ({ ...p, done: false, info: "", at: null }));
   // a step's button shines only while it can be pressed
   stepsWatch.disconnect();
@@ -777,7 +782,7 @@ function handle(m) {
     if (m.offline) status(m.text); else status("Error: " + m.text, true);
     if (OUT_OF_MEMORY.test(m.text)) memoryTip(true);
   } else if (m.type === "ready") {
-    st.ready = true; st.readyInfo = m.info; $("#spin").classList.remove("on");
+    st.ready = true; st.readyInfo = m.info; studyCode = m.code ?? null; $("#spin").classList.remove("on");
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
     study.result?.(m.action, m.meta, m.bytes, m.echo);
@@ -805,7 +810,7 @@ function imageOpened(m) {
   study.opened?.(m.meta);
   // annotation mode lasts as long as the image: this one is in it only when the choice that entered it brought it here
   const resumed = resume; resume = null;
-  if (!resumed) { annotating = false; route = null; }
+  if (!resumed) { annotating = false; route = null; editBase = null; }
   viewing = null; driveList = null; driveRows = new Map(); listing++;
   if (resumed) tasks.tagging(true);
   showBoxes();
@@ -879,7 +884,7 @@ async function openNow(name, bytes, source) {
   await work.during(studyIn.catch(() => {}), "waiting for the study");
   if (st.img && !gtSession.leaving("open another image")) return;
   // another image asks again how to get annotations: the study comes in afresh, out of annotation mode
-  if (annotating && !resume) { annotating = false; route = null; viewing = null; await restudy(false); }
+  if (annotating && !resume) { annotating = false; route = null; viewing = null; editBase = null; await restudy(false); }
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
   for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
@@ -961,7 +966,7 @@ $("#unload").onclick = () => {
 };
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
-  if (!again) { annotating = false; route = null; resume = null; }
+  if (!again) { annotating = false; route = null; resume = null; editBase = null; }
   return swapping = swapping.then(async () => {
     // no study came in before this turn: there is none to mount again
     if (!manifest) return;
@@ -1026,17 +1031,17 @@ function noteSha(id, sha) {
   const all = readJSON(RECENT, []), r = all.find((x) => x.id === id && x.study === manifest.id);
   if (r && r.sha !== sha) { r.sha = sha; writeJSON(RECENT, all); }
 }
-// the recents' ground-truth tags, as the remote files dialog's (req/shell/ground-truth/pending); an image whose SHA-256
+// the recents' extraction tags, as the remote files dialog's (req/shell/extractions/marks-shown); an image whose SHA-256
 // this device never learned carries none
 async function markRecentTruth() {
   if (offlineCopy.offline() || !fromRemote()) return;
   const shas = Object.fromEntries(Object.values(readJSON(LISTINGS)).flatMap((l) => l.items || []).filter((f) => f.sha).map((f) => [f.id, f.sha]));
   for (const r of recentHere(readJSON(RECENT, []))) if (r.sha) shas[r.id] = r.sha;
-  let map;
-  try { map = await truth.status(storeRoles.tagger || storeRoles.manager); } catch (e) { console.warn("ground truth status not read:", e); return; }
+  let map, marks;
+  try { [map, marks] = await Promise.all([truth.status(), truth.marks()]); } catch (e) { console.warn("extractions not read:", e); return; }
   for (const r of recentAll()) {
     if (r.local || !shas[r.id]) continue;
-    putTruthTag($("#recent").querySelector(`.recent[data-id="${r.id}"]:not([data-local]) .gt-tag`), map.get(subfolderName(r.name, shas[r.id])));
+    putTruthTag($("#recent").querySelector(`.recent[data-id="${r.id}"]:not([data-local]) .gt-tag`), standing(map, marks, r.name, shas[r.id]));
   }
 }
 // the browser's references to files from this computer, by id, in IndexedDB: what a page cannot keep anywhere else
@@ -1091,10 +1096,27 @@ function ago(at) {
   const h = (Date.now() - at) / 3600000, d = h / 24;
   return h < 1 ? "<1h" : h < 24 ? `${Math.floor(h)}h` : d < 30 ? `${Math.floor(d)}d` : d < 365 ? `${Math.floor(d / 30)}mo` : `${Math.floor(d / 365)}y`;
 }
-// an image's ground-truth tag, [text, title, state], from its entry in truth.status's map; none without one
-const truthTag = (g) => (!g ? [] : g.pending ? ["GT pending", "A tagger submitted ground truth for it, not curated yet", "pending"]
-  : g.curated ? ["GT", "It has curated ground truth", "curated"] : g.rejected ? ["GT rejected", "Its submitted ground truth was rejected", "rejected"]
-  : g.needed ? ["GT wanted", "A study manager marked it as needing ground truth", "wanted"] : []);
+// what the study's extractions say of an image, {needed, marks: {gt, official}, saved}, or null where they say nothing: from the
+// extractions folder's listing, the study file's marks and this device's record of what it saved
+const savedHere = () => { const l = readJSON(GT_SAVED, {})[manifest?.id]; return new Set(Array.isArray(l) ? l : []); };
+const noteSaved = (sha) => {
+  const all = readJSON(GT_SAVED, {}), l = new Set(Array.isArray(all[manifest.id]) ? all[manifest.id] : []);
+  if (!l.has(sha)) writeJSON(GT_SAVED, { ...all, [manifest.id]: [...l, sha] });
+};
+function standing(map, marks, name, sha) {
+  const g = { needed: map.get(subfolderName(name, sha))?.needed || null, marks: marksOf(marks, sha), saved: savedHere().has(sha) };
+  return g.needed || g.saved || g.marks.gt || g.marks.official ? g : null;
+}
+// an image's tag, [text, title, state], from its standing: yours (saved, GT, official), what another's marked, else GT wanted
+function truthTag(g) {
+  if (!g) return [];
+  const me = signIn.email()?.toLowerCase(), ours = (m) => !!m?.file && !!me && m.by?.toLowerCase() === me, theirs = (m) => !!m?.file && !ours(m);
+  const mine = ours(g.marks.official) ? "official" : ours(g.marks.gt) ? "GT" : g.saved ? "saved" : null;
+  const others = [["gt", "GT"], ["official", "official"]].filter(([k]) => theirs(g.marks[k])).map(([, t]) => t);
+  const parts = [...(mine ? [`yours: ${mine}`] : []), ...others.map((t) => `${t} marked`)];
+  if (parts.length) return [parts.join(" · "), "What the study's extractions of this image say, yours first", mine === "saved" && !others.length ? "saved" : "marked"];
+  return g.needed ? ["GT wanted", "A study manager marked it as needing ground truth", "wanted"] : [];
+}
 const putTruthTag = (tag, g) => {
   const [text, title, state] = truthTag(g);
   if (tag && text) Object.assign(tag, { textContent: text, title }).dataset.state = state;
@@ -1324,16 +1346,23 @@ function remoteDialog() {
     }
     if (!off) markTruth(items, asked);
   };
-  // which images have ground truth, and to a tagger or study manager which have it pending (req/shell/ground-truth/pending)
+  // which images have an extraction of yours saved, or marked GT or official, and which another's marked; one line of the popup counts them
   const markTruth = async (items, asked) => {
-    let map;
-    try { map = await truth.status(storeRoles.tagger || storeRoles.manager); } catch (e) { console.warn("ground truth status not read:", e); return; }
+    let map, marks;
+    try { [map, marks] = await Promise.all([truth.status(), truth.marks()]); } catch (e) { console.warn("extractions not read:", e); return; }
     if (asked !== listing) return;
+    const count = { saved: 0, gt: 0, official: 0, other: 0 };
     for (const f of items) {
-      const g = !f.folder && f.sha && map.get(subfolderName(f.name, f.sha)), tag = $("#remote-list").querySelector(`.item[data-id="${f.id}"] .gt-tag`);
+      const g = !f.folder && f.sha && standing(map, marks, f.name, f.sha), tag = $("#remote-list").querySelector(`.item[data-id="${f.id}"] .gt-tag`);
       if (!g || !tag) continue;
       putTruthTag(tag, g);
+      const me = signIn.email()?.toLowerCase(), ours = (m) => !!m?.file && !!me && m.by?.toLowerCase() === me;
+      if (ours(g.marks.official)) count.official++; else if (ours(g.marks.gt)) count.gt++; else if (g.saved) count.saved++;
+      if ([g.marks.gt, g.marks.official].some((m) => m?.file && !ours(m))) count.other++;
     }
+    const line = [count.saved && `${count.saved} saved`, count.gt && `${count.gt} GT`, count.official && `${count.official} official`].filter(Boolean).join(", ");
+    const says = [line && `Yours: ${line}.`, count.other && `${count.other} with another's marked.`].filter(Boolean).join(" ");
+    if (says && items.length) msg(says);
   };
   // the study's own folders to choose from, by name (req/shell/drive/dialog)
   const showRoots = async () => {
@@ -1669,7 +1698,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Ground truth waiting to be saved to ${remote.label}`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1915,24 +1944,18 @@ function showingTruth(on) {
   if (on) views.show("image");
   $("#switch").hidden = !itemsView();
 }
-// The annotations of the image open that the store holds (req/shell/annotate/choice): the study's curated ground truth and the
-// user's own submission, the two the page can load as it stands; the extraction store (shell/extractions/list) replaces this
-// listing. Each row: {key, label, detail, read() -> {doc, label}}.
+// Whether the user may read the study's root, as the studies' list last said: the list shows who made each extraction to them, and to
+// someone who is not one only the marked, by algorithm version or by hand (req/shell/extractions/outsiders). Not known counts as not.
+const isMember = () => !!manifest && signIn.signedIn() && !!memberIds?.includes(manifest.id);
+// The extractions of the image open that the store holds (req/shell/extractions/list), mine, then the marked, then the others, each
+// {key, label, detail, group, read() -> {doc, label}}.
 async function storeAnnotations() {
-  const img = { name: st.fileName, sha256: st.sha }, rows = [];
-  if (!remote.owns(st.source) || !st.sha) return rows;
-  if (await truth.hasCurated(img)) {
-    rows.push({ key: "curated", label: "Curated ground truth", detail: "", read: async () => {
-      const got = await truth.curated(img);
-      if (!got) throw new Error("its curated ground truth holds no file the page can read");
-      const d = got.doc, when = d.created ? new Date(d.created).toLocaleString() : "an unknown time";
-      return { doc: d, label: `ground truth by ${d.tagger || "a tagger"}, made ${when}${d.accepted?.by ? `, accepted by ${d.accepted.by}` : ""}` };
-    } });
-  }
-  const mine = signIn.signedIn() ? await truth.mine() : null;
-  if (mine) rows.push({ key: "mine", label: "Your submission", detail: mine.modified ? new Date(mine.modified).toLocaleString() : "",
-    read: async () => ({ doc: await truth.readMine(mine.id), label: "your submission" }) });
-  return rows;
+  const img = { name: st.fileName, sha256: st.sha };
+  if (!remote.owns(st.source) || !st.sha) return [];
+  if (signIn.signedIn()) await listedReady;
+  const listed = await truth.list(img, { member: isMember() });
+  return listed.map((r) => ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
+    read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your annotation" : `the annotation ${r.label}` }) }));
 }
 let driveRows = new Map(), listing = 0;
 async function listAnnotations() {
@@ -1959,7 +1982,7 @@ async function viewAnnotation(key) {
   if (mine !== listing || annotating || !st.img) return;
   const { history: _, ...plain } = got.doc;
   const counts = study.showTruth ? study.showTruth(plain) : "";
-  viewing = { label: got.label, doc: got.doc, counts };
+  viewing = { label: got.label, doc: got.doc, id: got.id, counts };
   showingTruth(true); showBoxes(); drawAnnotate();
   log.add(`Loaded ${got.label}, read-only`);
 }
@@ -1975,7 +1998,7 @@ const choice = annotateChoice({ $, remote,
   local: () => enterAnnotating("local", () => gtSession.loadDraft()),
   drive: () => { signIn.renew(); listAnnotations(); },
   pick: (key) => viewAnnotation(key),
-  edit: () => { const v = viewing; if (v) enterAnnotating("drive", () => gtSession.loadDocument(v.doc, "Annotation")); },
+  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("drive", () => gtSession.loadDocument(v.doc, "Annotation")); } },
   clear: () => clearAnnotations() });
 // the boxes that follow whether an image is open
 page.watch("image", () => { showBoxes(); drawAnnotate(); });
@@ -1994,12 +2017,12 @@ async function clearAnnotations() {
   const n = gtSession.unsaved();
   if (!confirm(`Clear all annotations from ${st.fileName}? ${n ? `Your ${n} unsaved action${n === 1 ? "" : "s"} will be lost. ` : ""}This device's draft of it is discarded; ${remote.label} is not touched.`)) return;
   try { await gtSession.discard(); } catch (e) { return notice(`The draft could not be cleared: ${e?.message || e}`); }
-  annotating = false; route = null; viewing = null; driveList = null;
+  annotating = false; route = null; viewing = null; driveList = null; editBase = null;
   log.add("Cleared all annotations from the image");
   restudy();
 }
 
-// Saves that could not reach the store, kept on this device until a click finds it back: [{study, sha256, name, source, doc}]
+// Saves that could not reach the store, kept on this device until a click finds it back: [{study, sha256, name, source, doc, base}]
 // (req/shell/annotate/survives)
 const outbox = () => { const l = readJSON(OUTBOX, []); return Array.isArray(l) ? l : []; };
 const unsentCount = () => outbox().length;
@@ -2019,17 +2042,18 @@ async function sendWaiting() {
   sending = true;
   try {
     for (const w of outbox().filter((x) => x.study === manifest.id)) {
-      try { await truth.submit(w.doc, { name: w.name, sha256: w.sha256, source: w.source }); } catch (e) { console.warn("a waiting save did not go:", e); break; }
+      try { await truth.save(w.doc, { name: w.name, sha256: w.sha256, source: w.source }, w.base); } catch (e) { console.warn("a waiting save did not go:", e); break; }
+      noteSaved(w.sha256);
       writeJSON(OUTBOX, outbox().filter((x) => !(x.study === w.study && x.sha256 === w.sha256)));
       drawWaiting();
-      log.add(`Sent the waiting ground truth of ${w.name}`);
+      log.add(`Saved the waiting annotation of ${w.name}`);
     }
   } finally { sending = false; }
 }
 document.addEventListener("click", () => { sendWaiting(); });
 
-// The ground-truth dialog (req/shell/ground-truth/submit): a checklist of what is still open, the file to export,
-// and Submit, which writes it to the study's submissions folder. gt: {doc, count, file, items: [{level, ok, text}],
+// The Save dialog (req/shell/extractions/save): a checklist of what is still open, the file to export, and Save, which writes
+// the person's extraction of the image to the study's extractions folder, replacing their own. gt: {doc, count, file, items: [{level, ok, text}],
 // empty}, count how many of its marks the document holds, nothing to send at 0.
 function submitTruth(gt) {
   if (!makesTruth()) return;
@@ -2044,37 +2068,38 @@ function submitTruth(gt) {
   // someone the store lets save nothing downloads their work instead (req/shell/annotate/no-save)
   send.hidden = !maySave();
   send.disabled = !n || !!why() || !maySave(); send.title = why();
-  // the blue button is the next step: Submit when it can, else the export; Close once either is done
+  // the blue button is the next step: Save when it can, else the export; Close once either is done
   const next = (b) => { for (const id of ["#gt-export", "#gt-send", "#gt-close"]) $(id).classList.toggle("primary", $(id) === b); };
   next(send.disabled ? $("#gt-export") : send);
-  // a study with GT actions submits the model's document with its history
+  // a study with GT actions saves the model's document with its history
   const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
   $("#gt-export").onclick = async () => {
     saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
     $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
-    if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not submitted`); next($("#gt-close")); }
+    if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not saved`); next($("#gt-close")); }
   };
   send.onclick = async () => {
-    send.disabled = true; $("#gt-msg").textContent = "Submitting…";
+    send.disabled = true; $("#gt-msg").textContent = "Saving…";
     const doc = await docOf(), image = { name: st.fileName, sha256: st.sha, source: st.source };
     try {
-      await truth.submit(doc, image);
+      await truth.save(doc, image, editBase);
+      noteSaved(image.sha256);
       if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-      $("#gt-msg").textContent = `Submitted to the study's submissions folder, as your ground truth for ${st.fileName}.`;
-      step("submit", true, `Submitted the ground truth of ${st.fileName}`);
-      log.add("Submitted ground truth");
+      $("#gt-msg").textContent = `Saved to the study's extractions folder, as your annotation of ${st.fileName}.`;
+      step("submit", true, `Saved the annotation of ${st.fileName}`);
+      log.add("Saved the annotation");
       next($("#gt-close"));
     } catch (e) {
       // the store refusing is final; a sign-in run out, or no network, is not: the save waits on this device for the next click
       if (!e.status) {
-        queueSave({ study: manifest.id, ...image, doc });
+        queueSave({ study: manifest.id, ...image, doc, base: editBase });
         if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-        $("#gt-msg").textContent = `${remote.label} could not be reached, so the ground truth of ${st.fileName} waits on this device and goes with your next click online.`;
-        step("submit", true, `The ground truth of ${st.fileName} waits to be sent`);
-        log.add("Ground truth waits to be sent");
+        $("#gt-msg").textContent = `${remote.label} could not be reached, so the annotation of ${st.fileName} waits on this device and goes with your next click online.`;
+        step("submit", true, `The annotation of ${st.fileName} waits to be saved`);
+        log.add("The annotation waits to be saved");
         return next($("#gt-close"));
       }
-      $("#gt-msg").textContent = `It was not submitted: ${e.message || e}. Export the file to keep a copy.`;
+      $("#gt-msg").textContent = `It was not saved: ${e.message || e}. Export the file to keep a copy.`;
       send.disabled = false;
     }
   };
@@ -2485,7 +2510,7 @@ function swap() {
   swapping = swapping.then(async () => {
     const id = studyOf(location);
     if (id === manifest?.id) return;
-    annotating = false; route = null; resume = null; dataOn = false;
+    annotating = false; route = null; resume = null; editBase = null; dataOn = false;
     dropImage();
     leaveStudy();
     try {
@@ -2601,8 +2626,8 @@ const gtDrafts = truthDrafts();
 const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth, viewer: () => view, remoteLabel: () => remote.label, readJSON, writeJSON,
   image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
   // offline there is nothing to ask the store
-  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.readMine(id),
-  drawn: () => drawAnnotate() });
+  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.read(id),
+  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {

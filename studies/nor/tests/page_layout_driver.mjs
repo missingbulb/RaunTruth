@@ -1,7 +1,7 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
 // of real results written by tests/test_memory.py, and checks that no image is drawn out of its own
 // proportions when the side bar is narrow: the minimap, the image and the
-// selected card; and where the selected card and Submit Ground Truth sit, with no right bar. Prints what it
+// selected card; and where the selected card and Save sit, with no right bar. Prints what it
 // measured; exits 1 on a skewed image or a misplaced part, 2 when it cannot run.
 //   node tests/page_layout_driver.mjs ANSWERS IMAGE
 import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
@@ -89,7 +89,7 @@ for (const width of [1000, 1600]) {
   if (Math.abs(layout.sel.r - layout.view.r) > 40 || Math.abs(layout.sel.t - layout.view.t) > 40) await fail("the selected card is not at the image's top right corner", layout);
   if (layout.mm && layout.mm.r > layout.sel.l) await fail("the minimap and the selected card overlap", layout);
   if (!layout.stepIn || layout.prev.b > layout.crop.b + 1 || layout.prev.t < layout.crop.t || layout.next.l < layout.prev.r - 1) await fail("previous and next do not hover side by side over the bottom of the selected crop", layout);
-  if (layout.gt !== "Submit Ground Truth" || layout.gtShown) await fail("Submit Ground Truth shows in the image view", layout);
+  if (layout.gt !== "Save" || layout.gtShown) await fail("Save shows in the image view", layout);
   if (layout.right) await fail("the right bar is still there", layout);
   if (process.env.SHOTS) { await page.evaluate(() => { $("#notice").hidden = true; }); await page.mouse.move(5, 5); await page.screenshot({ path: `${process.env.SHOTS}/${width}_image.png` }); }
   {

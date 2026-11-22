@@ -43,9 +43,9 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## The tasks
 
-- **Tasks in the order the work is done, Submit last.** Review what the algorithm accepted,
-  then what it rejected, then look for what it missed, then submit. The submit button is the
-  last task, not a toolbar button.
+- **Tasks in the order the work is done, Save last.** Review what the algorithm accepted,
+  then what it rejected, then look for what it missed, then save. The Save button, which writes the
+  person's extraction (`req/shell/extractions/save`), is the last task, not a toolbar button.
 - **One row per task, saying only what is not already said.** "13/47 Finalists": the count once,
   done over total, no "Review the …" (the whole box is the review), no second count anywhere.
   No radio buttons or circles: a done task gets a check, the others nothing.
@@ -65,7 +65,7 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
   rejection the person overturns needs its measurements set before it is approved. A correction
   shows only its undo ("Reset measurements"), never a label saying it was made.
 - **A verdict moves on by itself**: to the walk's next item not done, and once none is left to
-  Submit. A verdict or a Skip slides the next item in over the last
+  Save. A verdict or a Skip slides the next item in over the last
   (none under reduced motion). Pan the image to the item only when it is out of the middle of the
   view.
 

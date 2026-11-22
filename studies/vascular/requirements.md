@@ -100,7 +100,7 @@ owner's decisions on the stacks and the vessel model, are
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
   <details>
 
-  Submit Ground Truth (`req/shell/ground-truth/submit`), the last of the Ground Truth Tasks
+  Save (`req/shell/extractions/save`), the last of the Ground Truth Tasks
   (`req/vascular/truth/tasks`), exports the corrected `vessel-model/2` file, `status` corrected and
   labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
@@ -294,7 +294,7 @@ owner's decisions on the stacks and the vessel model, are
   Set by the owner on 2026-11-07, replacing the three steps per area (Lines, Missed vessels, Junctions) set earlier
   that day, which replaced the vessel-by-vessel tasks of 2026-11-04. The tasks are the stack's areas
   (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
-  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Submit Ground Truth last.
+  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Save last.
   Execute, while the user annotates (`req/shell/annotate/choice`), opens the walk on its first area not done
   (`req/shell/ground-truth/tagging`); the whole stack, as the Show menu sets it, is what the page shows outside annotation mode.
 

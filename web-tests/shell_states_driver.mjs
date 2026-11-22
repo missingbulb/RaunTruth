@@ -19,7 +19,7 @@ import { read } from "./page_elements.mjs";
 import { fromScratch } from "./annotating.mjs";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
-const { FILES, GT, drive, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
+const { FILES, GT, drive, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 const [part, parts] = shard.split("/").map(Number);
 const paths = [...every.entries()].filter(([k]) => k % parts === part);
@@ -28,7 +28,7 @@ const paths = [...every.entries()].filter(([k]) => k % parts === part);
 const SWITCHERS = new Set([...new Map(every.map((p, k) => [`${p.study} ${p.root}`, k]).reverse()).values()]);
 // the files each study's paths load, where ANSWERS names its own
 const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
-// who is signed in, but for the study's owner, whom Drive lets write its root: someone who may save to its submissions alone
+// who is signed in, but for the study's owner, whom Drive lets write its root: someone who may save to its extractions folder alone
 const OTHER = "someone@example.com";
 
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
@@ -95,17 +95,18 @@ const ACTIONS = {
     await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
     await page.waitForFunction(() => document.querySelector("#busy").hidden);
   },
-  // the image's curated annotation on Drive, read-only
+  // the image's extraction marked GT on Drive, read-only
   async viewdrive(page) {
     const { name, sha } = await page.evaluate(() => ({ name: st.fileName, sha: st.sha }));
     const sub = `${name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
-    if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.curated)) {
-      const f = drive.folder({ name: sub, parent: GT.curated });
-      drive.file({ name: "gt_owner@acme.example.json", parent: f.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
+    if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.extractions)) {
+      const f = drive.folder({ name: sub, parent: GT.extractions });
+      const file = drive.file({ name: "x_owner@acme.example.json", parent: f.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
         labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
+      studyFile({ marks: { [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
     }
     await page.click("#annotate-drive");
-    await page.click('#annotate-list button[data-key="curated"]');
+    await page.click("#annotate-list button[data-key]");
     await page.waitForFunction(() => /^Showing/.test(document.querySelector("#annotate-say").textContent.trim()));
   },
   async edit(page) {
@@ -250,8 +251,8 @@ const walk = async (k, p) => {
   // what the study's states.json says stands in for what its page reaches off the site, and the keys that choose it
   const { standIn: own } = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "studies", p.study, "states.json"), "utf8"));
   const stood = own ? await import(path.join(import.meta.dirname, "..", "studies", p.study, own)) : {};
-  // signed in, but the store lets them only view the submissions folder
-  if (p.signedIn && !p.maySave) viewOnly.add(GT.submissions); else viewOnly.delete(GT.submissions);
+  // signed in, but the store lets them only view the extractions folder
+  if (p.signedIn && !p.maySave) viewOnly.add(GT.extractions); else viewOnly.delete(GT.extractions);
   const page = await open(p.signedIn, {
     id: p.study, study: { stage: p.stage, ...opens }, ...(/owner/.test(p.root) ? {} : { email: OTHER }),
     // signed out, the switcher offers the released studies and those with no root alone (shell/study/members): NoR Finder is listed as one with none, for the switch away and back

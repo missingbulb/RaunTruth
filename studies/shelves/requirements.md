@@ -220,7 +220,7 @@ read for a title matcher; matching the titles is not part of it.
   reader read, and Right or Not a book under it, with Back and Skip on its row; its corners drag on the photo,
   and the picture and the reading follow them. Then Missed books: a book is added from the photo's right-click
   menu, or drawn with Draw a book, four clicks on the photo, its corners, and is read and reviewed as the others;
-  None missed ends the task. Submit ground truth is last, and saves `<image>_books_gt.json`, each book with where
+  None missed ends the task. Save is last, and writes `<image>_books_gt.json`, each book with where
   it came from (found or missed), its verdict, its corners, its turn and text, and for a found one what the
   finder and the reader proposed. Summary is not shown while ground truth is made.
 

@@ -66,25 +66,25 @@ const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /Submitted|not submitted/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /Saved|not saved/.test($("#gt-msg").textContent));
   await page.click("#gt-close");
 };
 const offer = (page) => page.evaluate(() => ({ shown: !$("#gt-load-submission").hidden && !$("#gt-offers").hidden, text: $("#gt-load-submission").textContent.trim(), draft: !$("#gt-load-draft").hidden,
   above: $("#gt-offers").nextElementSibling?.id }));
-const submitted = () => FILES.find((f) => f.parent === FILES.find((g) => g.folder && g.name === sub && g.parent === GT.submissions)?.id);
+const submitted = () => FILES.find((f) => f.parent === FILES.find((g) => g.folder && g.name === sub && g.parent === GT.extractions)?.id);
 const rows = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list li")].map((li) => ({ text: li.textContent.trim(), cls: li.className })));
 const undoAll = async (page) => { while (!(await page.isDisabled("#gt-undo"))) await page.click("#gt-undo"); };
 
 // device A submits two moves; nothing was there to offer
 let page = await open(true);
 let seen = await tagger(page);
-await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions]), "with nothing submitted yet there is no offer, and the image's opening listed the submissions folder alone: it has no subfolder of the image's", { lists: seen.lists });
+await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.extractions]), "with nothing submitted yet there is no offer, and the image's opening listed the extractions folder alone: it has no subfolder of the image's", { lists: seen.lists });
 await counted(page);
 await moved(page, "m1", 20, 14); await moved(page, "m2", -16, 10);
 const edited = await marks(page);
 await submit(page);
 const file = submitted();
-await check(!!file && file.name === "gt_tester@example.com.json", "the tagger's file is in the image's subfolder of the submissions folder", file?.name);
+await check(!!file && file.name === "x_tester@example.com.json", "the person's file is in the image's subfolder of the extractions folder", file?.name);
 await check(!(await offer(page)).shown, "a submission made in this visit withdraws its offer");
 await page.context().close();
 const original = JSON.parse(file.bytes.toString());
@@ -92,12 +92,12 @@ const original = JSON.parse(file.bytes.toString());
 // device B: another browser holds no draft of the image, but the submission is offered, from two listings
 page = await open(true);
 seen = await tagger(page);
-const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.submissions);
+const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.extractions);
 let o = await offer(page);
-await check(o.shown && !o.draft && o.above === "gt-list" && /^Load your submission · submitted \d{1,2} [A-Z][a-z]{2}, \d\d:\d\d$/.test(o.text),
+await check(o.shown && !o.draft && o.above === "gt-list" && /^Load your extraction · saved \d{1,2} [A-Z][a-z]{2}, \d\d:\d\d$/.test(o.text),
   "another device is offered the tagger's own submission above Start GT tagging, with when it was submitted, and no draft of its own", o);
-await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0,
-  "the image's opening made two listings, the submissions folder then the image's subfolder, and downloaded no file", seen);
+await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.extractions, subFolder.id]) && seen.reads.length === 0,
+  "the image's opening made two listings, the extractions folder then the image's subfolder, and downloaded no file", seen);
 await check((await model(page)) === null && !(await page.evaluate(() => $("#tasks-box").classList.contains("folded"))), "nothing is loaded unasked, and the box is open with the image");
 seen.lists.length = 0; seen.reads.length = 0;
 await page.click("#gt-load-submission");
@@ -105,7 +105,7 @@ await until(page, () => !!window.fixture.model());
 await check((await marks(page)) === edited && JSON.stringify(seen.reads) === JSON.stringify([file.id]) && seen.lists.length === 0,
   "the click downloads the one file, lists nothing, and brings the submitted moves back", seen);
 const status = await page.textContent("#status");
-await check(/submission loaded: replay verified/.test(status) && (await offer(page)).shown === false, "the replay is verified, said on the status line, and the loaded submission is no longer offered", status);
+await check(/extraction loaded: replay verified/.test(status) && (await offer(page)).shown === false, "the replay is verified, said on the status line, and the loaded submission is no longer offered", status);
 await check((await label(page)).hidden, "what Drive holds is not unsaved");
 await page.click("#gt-undo"); await page.click("#gt-undo");
 await check(await page.isDisabled("#gt-undo") && (await marks(page)) !== edited, "Undo works down to the algorithm's run");
@@ -118,7 +118,7 @@ seen.lists.length = 0; seen.reads.length = 0;
 await openImage(page, seen);
 await fromScratch(page, "#fx-count");
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0 && (await offer(page)).shown, "opened again, the image is listed twice again: nothing is cached", seen);
+await check(JSON.stringify(listed(seen)) === JSON.stringify([GT.extractions, subFolder.id]) && seen.reads.length === 0 && (await offer(page)).shown, "opened again, the image is listed twice again: nothing is cached", seen);
 // loading over actions not yet made saved asks first
 await counted(page);
 await moved(page, "m1", 12, 12);
@@ -173,9 +173,9 @@ await page.context().close();
 file.name = "gt_someone@else.org.json"; file.bytes = Buffer.from(JSON.stringify(original));
 page = await open(true);
 seen = await tagger(page);
-await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.submissions, subFolder.id]) && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
+await check(!(await offer(page)).shown && JSON.stringify(listed(seen)) === JSON.stringify([GT.extractions, subFolder.id]) && seen.reads.length === 0, "another tagger's file is not the tagger's: no offer, and still no file read", { lists: seen.lists, reads: seen.reads });
 await page.context().close();
-file.name = "gt_tester@example.com.json";
+file.name = "x_tester@example.com.json";
 page = await open(true);
 seen = watch(page);
 await page.click("#load-remote");
@@ -186,6 +186,6 @@ seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await check(!seen.lists.includes(GT.submissions) && !seen.lists.includes(subFolder.id) && !(await offer(page)).shown, "outside annotation mode the submissions folder is not listed at all", seen.lists);
+await check(!seen.lists.includes(GT.extractions) && !seen.lists.includes(subFolder.id) && !(await offer(page)).shown, "outside annotation mode the extractions folder is not listed at all", seen.lists);
 await page.context().close();
 await done(0);

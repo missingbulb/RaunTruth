@@ -1,7 +1,7 @@
-"""req/shell/ground-truth/folders, req/shell/ground-truth/layout, req/shell/ground-truth/submit,
-req/shell/ground-truth/pending, req/shell/ground-truth/curate, req/shell/data/folder (Needs GT): the study's ground-truth folders (web/truth_folders.js,
-under Node by truth_folders_driver.mjs against an in-memory Drive). The in-memory Drive stands in for Google's, so
-these cases cannot catch Drive refusing a write the page sends; the page tests against the stand-in Drive do."""
+"""req/shell/extractions/file, req/shell/extractions/save, req/shell/extractions/list, req/shell/extractions/outsiders, req/shell/data/folder (Needs GT):
+the study's extractions folder (web/truth_folders.js, under Node by truth_folders_driver.mjs against an in-memory Drive). The
+in-memory Drive stands in for Google's, so these cases cannot catch Drive refusing a write the page sends; the page tests against
+the stand-in Drive do."""
 import json
 import os
 import shutil
@@ -23,76 +23,66 @@ def out():
     return json.loads(r.stdout)
 
 
-def test_an_image_has_a_subfolder_and_a_tagger_a_file(out):
-    # the image's stem with its SHA's first 8 hex; the tagger's email, lower-cased
-    assert out['names'] == {'sub': 'slide3_s2__a1b2c3d4', 'file': 'gt_jane@lab.org.json'}
+def test_an_image_has_a_subfolder_and_a_person_or_a_run_a_file(out):
+    # the image's stem with its SHA's first 8 hex; the person's email, lower-cased; a run's algorithm and version
+    assert out['names'] == {'sub': 'slide3_s2__a1b2c3d4', 'file': 'x_jane@lab.org.json', 'run': 'run_count__1.2.3.json'}
 
 
-def test_a_study_names_two_folders_or_one_twice(out):
-    f = out['folders']
-    assert f['two'] == {'submissions': 'SUBMISSIONS0001', 'curated': 'CURATED0000001', 'same': False}
-    assert f['one'] == {'submissions': 'SAMEFOLDER0001', 'curated': 'SAMEFOLDER0001', 'same': True}
-    # a folder not named yet stays unknown, never a guess
-    assert f['none'] == {'submissions': None, 'curated': None, 'same': False}
+def test_a_study_names_one_extractions_folder_never_a_guess(out):
+    assert out['folder'] == {'named': 'EXTRACTIONS01', 'none': None, 'unset': None}
 
 
-def test_submitting_again_replaces_only_the_taggers_own_file_and_keeps_the_old_version(out):
-    s = out['submit']
+def test_saving_again_replaces_only_the_persons_own_file_and_keeps_the_old_version(out):
+    s = out['save']
     assert s['subfolders'] == 1
-    # each submission also stamps the image's subfolder with when it landed (req/shell/ground-truth/pending)
-    stamp = ['mark', 'slide3_s2__a1b2c3d4']
-    assert s['writes'] == [['folder', 'slide3_s2__a1b2c3d4'], ['create', 'gt_jane@lab.org.json'], stamp,
-                           ['replace', 'gt_jane@lab.org.json', True], stamp, ['create', 'gt_bob@lab.org.json'], stamp]
-    assert s['current'] == {'tagger': 'bob@lab.org', 'labels': 3, 'file': 'gt_bob@lab.org.json'}
+    # no stamp on the subfolder, no second call: the file is all Save writes
+    assert s['writes'] == [['folder', 'slide3_s2__a1b2c3d4'], ['create', 'x_jane@lab.org.json'],
+                           ['replace', 'x_jane@lab.org.json', True], ['create', 'x_bob@lab.org.json']]
+    assert s['files'] == [['x_jane@lab.org.json', 'jane@lab.org', None], ['x_bob@lab.org.json', 'bob@lab.org', None]]
+    assert s['janeBody'] == 2
 
 
-def test_a_reader_takes_the_newest_created_that_is_not_rejected(out):
-    # the newest is rejected, and the oldest was added to Drive last: the file's own time decides
-    assert out['reader'] == {'tagger': 'mid@x.org', 'none': None}
+def test_a_listing_passes_over_what_is_no_extraction_and_reads_a_runs_name(out):
+    listing = out['listing']
+    assert listing['names'] == ['x_new@x.org.json', 'run_find_nodes__0.11121.154+ab12.json']
+    assert listing['run'] == {'algorithm': 'find_nodes', 'version': '0.11121.154+ab12'} and listing['by'] == 'new@x.org'
+    assert listing['other'] == []
 
 
-def test_pending_is_a_submission_newer_than_its_last_acceptance_or_rejection(out):
-    p = out['pending']
-    # read from the two folders' listings alone: no image subfolder listed, no file read
-    assert p['listed'] == ['C', 'S']
-    assert p['a'] == {'curated': False, 'pending': True, 'rejected': False}
-    # accepted after it was submitted: not pending
-    assert p['b'] == {'curated': True, 'pending': False, 'rejected': False}
-    assert p['c'] == {'curated': False, 'pending': False, 'rejected': True}
-    # submitted again after the acceptance: pending again
-    assert p['bAgain'] == {'curated': True, 'pending': True, 'rejected': False}
-    # one folder for both: what lands is curated, nothing pending
-    assert p['sameA'] == {'curated': True, 'pending': False, 'rejected': False}
-    assert p['missing'] is None
+def test_a_persons_own_extraction_is_found_from_two_listings_and_nothing_is_read(out):
+    o = out['own']
+    # another person's file is not theirs; an image with no subfolder has none
+    assert o['nobody'] is None
+    assert o['mine'] == {'name': 'x_jane@lab.org.json', 'hasId': True, 'hasTime': True}
+    # the extractions folder, then the image's subfolder
+    assert o['listed'] == ['EXT', o['subId']]
+    assert o['reads'] == []
 
 
-def test_accepting_copies_into_curated_and_rejecting_marks_the_submission(out):
-    c = out['curate']
-    assert c['name'] == 'gt_jane@lab.org.json'
-    assert c['accepted'] == {'by': 'dm@lab.org', 'from': 64}
-    assert c['rejected'] is True and c['reason'] == 'test run'
+def test_the_list_is_mine_then_marked_then_others_and_a_member_sees_who_made_each(out):
+    assert out['list']['member'] == [['Yours', 'mine', []], ['yael@lab.org · GT', 'marked', ['gt']], ['count 1.2 · official', 'marked', ['official']],
+                                     ['dan@lab.org', 'other', []], ['count 1.3', 'other', []]]
+    assert out['list']['mineMarked'] == [['Yours · GT', 'mine', ['gt']]]
 
 
-def test_needing_ground_truth_is_a_marker_in_curated_named_as_the_images_subfolder(out):
+def test_someone_who_is_not_a_member_is_listed_only_the_marked_with_no_persons_name(out):
+    marked = [['by hand · GT', 'marked', ['gt']], ['count 1.2 · official', 'marked', ['official']]]
+    assert out['list']['outsider'] == marked and out['list']['signedInNonMember'] == marked
+    assert '@' not in out['list']['outsiderNames'] and 'lab.org' not in out['list']['outsiderNames']
+    # a mark that names no file the image holds lists nothing
+    assert out['list']['staleMark'] == []
+    assert out['list']['marksOf'] == [{'gt': {'file': 'B'}}, {}, {}]
+
+
+def test_needing_ground_truth_is_a_marker_in_the_extractions_folder_named_as_the_images_subfolder(out):
     n = out['needed']
     assert n['name'] == 'a__11111111.needs_gt'
     assert n['writes'] == [['create', 'a__11111111.needs_gt'], ['create', 'b__22222222.needs_gt'], ['create', 'dup__33333333.needs_gt']]
-    # nothing written anywhere but the curated folder
-    assert n['parents'] == ['C']
-    # read from the listings status already makes, no other
-    assert n['listed'] == ['C', 'S']
-    assert n['a'] == {'curated': False, 'pending': False, 'rejected': False, 'needed': n['aId']} and n['aId']
-    # its ground truth landed: still curated, the marker still named
-    assert n['b'] == {'curated': True, 'pending': False, 'rejected': False, 'needed': n['bId']}
+    # nothing written anywhere but the extractions folder, read from the one listing of it
+    assert n['parents'] == ['EXT']
+    assert n['listed'] == ['EXT']
+    assert n['a'] == {'needed': n['aId']} and n['aId']
+    # its subfolder is there: still held, the marker still named
+    assert n['b'] == {'held': True, 'needed': n['bId']}
     # two images of one name: only the one marked
-    assert n['d1']['needed'] == n['d1Id'] and n['d2'] is None
-
-
-def test_the_taggers_own_submission_is_found_from_two_listings_and_nothing_is_read(out):
-    o = out['own']
-    # another tagger's file, and a file that is not ground truth, are not the tagger's; an image with no subfolder has none
-    assert o['nobody'] is None and o['elsewhere'] is None
-    assert o['mine'] == {'name': 'gt_jane@lab.org.json', 'rejected': True, 'hasId': True, 'hasTime': True}
-    # the submissions folder, then the image's subfolder
-    assert o['listed'] == ['S', o['subId']]
-    assert o['reads'] == []
+    assert n['d1'] == {'needed': n['d1Id']} and n['d2'] is None

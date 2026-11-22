@@ -242,4 +242,16 @@ const counting = () => { const c = { runs: 0 }; return { c, study: { ...fx, run:
     afterRun: ta.leftOut(fx, aRun.actions, 1), onBase: ta.leftOut(fx, acts, 1), outOfRange: ta.leftOut(fx, acts, 9) };
 }
 
+// 18. a run records the version that made it (req/shell/extractions/file): the site's and the study's code hash, as handed in; a run
+// from a file written before has none, and says so: never a guessed one
+{
+  const log = ta.actionLog(fx); log.open({ name: "a.png" }, "fixture");
+  log.ran({ ...runOf(TWO), version: { site: "0.11121.154", code: "c0de".repeat(16) } });
+  const old = fresh(), stored = fx.document(old.model);
+  const checked = await ta.check(fx, await ta.unpack(await ta.pack(log.actions)), fx.document(log.model));
+  out.version = { recorded: log.actions[1].version, label: ta.versionLabel(log.actions[1]), kept: checked.actions[1].version,
+    old: old.actions[1].version ?? null, oldLabel: ta.versionLabel(old.actions[1]), notARun: ta.versionLabel(old.actions[0]),
+    oldLoads: (await ta.check(fx, old.actions, stored)).replay };
+}
+
 console.log(JSON.stringify(out));

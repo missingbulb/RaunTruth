@@ -2,9 +2,9 @@
 // ANSWERS (tests/test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
 // on its row in the switcher, whose popup lists the stages; breadcrumbs of the steps done and the one to do now, which shines with its button and
 // nothing else does; a popup on each crumb saying what was done; the shining crumb bringing its button into view
-// and pressing it; a new image starting over; a PreGT study with no Submit GT step;
+// and pressing it; a new image starting over; a PreGT study with no Save step;
 // the second view's switch reading Tasks with what is left while the study makes ground truth, Items otherwise;
-// a Published study with no Submit GT step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
+// a Published study with no Save step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
 // numbers, each opening its own tab of one dialog, each rolling its changed characters to a new value, the CPU and
 // the network flashing on a sharp rise and rolling nothing when reduced motion is asked for; a separator between every two items; no question-mark pointer; the four folded into one icon at first, unfolded by hovering it but not by going offline,
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
@@ -168,7 +168,7 @@ const switchIs = async (page, want, on, what) => {
 const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => document.querySelector("#fx-count")?.disabled === false); await annotateIfAsked(page, "#fx-count"); };
 const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
-// ---- a GT study: Load image, its Count, Submit GT; the resources block always open, as it was before it could fold ----
+// ---- a GT study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
 {
   const { ctx, page } = await open("fixture", "open");
   await stageIs(page, "GT");
@@ -260,7 +260,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
   await orMissed(page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }));
   await check(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
-  await steps(page, ["Load image", "Count", "Submit GT*"], ["#gt-submit", "#sb-submit"]);
+  await steps(page, ["Load image", "Count", "Save*"], ["#gt-submit", "#sb-submit"]);
   await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
@@ -271,8 +271,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
       filled: +part.style.getPropertyValue("--done"), submit: !s.disabled, state: s.dataset.state || "" };
   });
   const l0 = await list();
-  await check(l0.rows.join() === "0/1 Count checked,Submit Ground Truth" && l0.last && l0.submit && l0.state === "todo",
-    "the study's task is a row, 0 of 1 done, and Submit Ground Truth, on, is the last", l0);
+  await check(l0.rows.join() === "0/1 Count checked,Save" && l0.last && l0.submit && l0.state === "todo",
+    "the study's task is a row, 0 of 1 done, and Save, on, is the last", l0);
   await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
   await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
@@ -281,17 +281,17 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
   await shot(page, "2-submit");
-  // the shining Submit GT crumb presses the shell's Submit, its box unfolded
+  // the shining Save crumb presses the shell's Submit, its box unfolded
   await page.evaluate(() => document.querySelector("#tasks-box").classList.add("folded"));
   await page.click("#sb-submit");
   await page.waitForFunction(() => document.querySelector("#gt-dlg").open);
-  await check(await page.evaluate(() => !document.querySelector("#tasks-box").classList.contains("folded")), "the Submit GT crumb unfolds the tasks and presses Submit");
+  await check(await page.evaluate(() => !document.querySelector("#tasks-box").classList.contains("folded")), "the Save crumb unfolds the tasks and presses Submit");
   const download = page.waitForEvent("download");
   await page.click("#gt-export");
   await download;
   await page.click("#gt-close");
-  await steps(page, ["Load image", "Count", "Submit GT"], []);
-  await check(/squares_gt\.json/.test(await tip(page, "Submit GT")), "Submit GT says what was exported");
+  await steps(page, ["Load image", "Count", "Save"], []);
+  await check(/squares_gt\.json/.test(await tip(page, "Save")), "Save says what was exported");
   await shot(page, "3-done");
   // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
   page.once("dialog", (d) => d.accept());
@@ -615,7 +615,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.waitForFunction(() => !document.querySelector("#switch").classList.contains("working"));
   await check(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
     "pressing it shows the item view, its card what was found");
-  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Submit Ground Truth");
+  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Save");
   await ctx.close();
   stage = null;
 }

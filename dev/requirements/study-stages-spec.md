@@ -258,7 +258,7 @@ Depends on WP3.
 - `shell/extractions/marks-shown` Load study images shows, per image, whether my extraction is saved, GT or
   official, and whether another's was marked.
   - **Test:** `test_study_index_page.py`: index seeded with marks; row texts asserted.
-- Removed: `req/shell/ground-truth/curate`, `pending`, `submit`, `tagger-access` (folded into WP3), and the curated
+- Removed: `shell/ground-truth/curate`, `pending`, `submit`, `tagger-access` (folded into WP3), and the curated
   and submissions folders in `layout`/`folders`; `history-carry`, `save-draft`, `draft-offer`, `history-file` are
   rewritten to say "extraction". `test_gt_drive_page.py` loses its curate cases and gains none (they move to WP5).
 

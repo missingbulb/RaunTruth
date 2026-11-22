@@ -35,8 +35,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
   s.writers.clear();
   for (const w of d.writers || []) s.writers.add(w);
   if (d.gt !== false) {
-    if (d.submissionsWriters) drive.writers.set(s.GT.submissions, new Set(d.submissionsWriters));
-    if (d.curatedWriters) drive.writers.set(s.GT.curated, new Set(d.curatedWriters));
+    if (d.extractionsWriters) drive.writers.set(s.GT.extractions, new Set(d.extractionsWriters));
   }
   // the study's settings file, as the page makes it when the study is set up: the site's own, which it may replace
   for (const f of drive.files) if (/^rauntruth-/.test(f.name)) f.mine = true;

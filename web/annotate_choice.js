@@ -14,7 +14,7 @@ export function annotateChoice({ $, remote, scratch, local, drive, pick, edit, c
   $("#annotate-list").addEventListener("click", (e) => { const b = e.target.closest("button[data-key]"); if (b && !b.disabled) pick(b.dataset.key); });
   const text = (tag, t, cls) => Object.assign(document.createElement(tag), { textContent: t, ...(cls ? { className: cls } : {}) });
   return {
-    // v: {shown, annotating, route, draft: {saved, count} | null, list: null | {busy} | {failed} | {rows: [{key, label, detail}]},
+    // v: {shown, annotating, route, draft: {saved, count} | null, list: null | {busy} | {failed} | {rows: [{key, label, detail, group}]},
     // viewing: the line saying which annotation is shown read-only, or null}
     draw(v) {
       $("#annotate-box").hidden = !v.shown;
@@ -25,13 +25,18 @@ export function annotateChoice({ $, remote, scratch, local, drive, pick, edit, c
       const list = $("#annotate-list"), l = v.annotating ? null : v.list;
       list.hidden = !l;
       if (l) {
+        const button = (r) => {
+          const b = text("button", r.label, "item"); b.type = "button"; b.dataset.key = r.key;
+          if (r.detail) b.append(text("span", r.detail, "dim"));
+          return b;
+        };
+        // mine, then the marked, then the others folded away (req/shell/extractions/list)
+        const others = l.rows?.filter((r) => r.group === "other") || [], shown = l.rows?.filter((r) => r.group !== "other") || [];
+        const fold = Object.assign(document.createElement("details"), { className: "others" });
+        fold.append(text("summary", `Others (${others.length})`), ...others.map(button));
         list.replaceChildren(...(l.busy ? [text("p", "Looking for annotations of this image…", "hint")]
           : l.failed ? [text("p", l.failed, "hint")]
-            : l.rows.length ? l.rows.map((r) => {
-              const b = text("button", r.label, "item"); b.type = "button"; b.dataset.key = r.key;
-              if (r.detail) b.append(text("span", r.detail, "dim"));
-              return b;
-            }) : [text("p", `No annotation of this image on ${remote.short} yet.`, "hint")]));
+            : l.rows.length ? [...shown.map(button), ...(others.length ? [fold] : [])] : [text("p", `No annotation of this image on ${remote.short} yet.`, "hint")]));
       } else list.replaceChildren();
       const say = v.annotating ? v.route : v.viewing;
       $("#annotate-say").hidden = !say; $("#annotate-say").textContent = say || "";

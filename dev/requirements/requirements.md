@@ -120,13 +120,11 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/ground-truth/view`), offering **Edit this annotation**, which enters annotation mode with it as the base;
   and **Start annotating from scratch**, which enters annotation mode and is the only way that shows the algorithm
   runner (Processing). Annotation mode is the page an annotator had, for the one image: the study opens
-  afresh on it, Ground Truth Tasks, Undo, Redo, Save Draft, Submit and every annotation tool show, the study's
+  afresh on it, Ground Truth Tasks, Undo, Redo, Save Draft, Save and every annotation tool show, the study's
   postprocessing shows, and the walk of the tasks is open from the first model on, with no Start GT tagging or Stop
   tagging (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode.
   Loading another image leaves the mode and asks again, so does Unload, and the mode is not kept across a reload.
-  Tentative: until the extraction store (WP4 of `dev/requirements/study-stages-spec.md`) lands, the list holds the
-  study's curated ground truth and the user's own submission, the two the page can load, and nothing else is called
-  for to list them but the two listings of `req/shell/ground-truth/draft-offer`. Tentative: a study whose stage does
+  The list is that of `req/shell/extractions/list`. Tentative: a study whose stage does
   not annotate (PreGT, Published) asks nothing, and Processing shows as before. Tentative: Data Management, until
   Study Setup replaces it, is entered from an item of the avatar's menu that Drive's sharing offers those who may
   write the study's root, and left by the same item (`req/shell/data/mode`). Test:
@@ -138,7 +136,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-21. In annotation mode a button in the Annotations box asks first, naming the actions not
   yet saved that are lost, and on a yes forgets this device's draft of the image and opens the study afresh on the
-  same image outside annotation mode, the choice asked again. Drive is not touched, whatever was submitted there
+  same image outside annotation mode, the choice asked again. Drive is not touched, whatever was saved there
   staying. Cancel changes nothing. The Edit History window's own Clear all history stays as it was
   (`req/shell/ground-truth/clear`). Test: `web-tests/test_annotate_mode_page.py`.
   </details>
@@ -148,12 +146,12 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-21, and moved from the removed tagger-access requirement (set by the owner on
   2026-11-05, changed on 2026-11-07). Whether the user may save to the study is what Drive's sharing gives them: signed
-  in and able to add to the study's submissions folder. Someone who may not sees every choice and every tool of the
-  mode, but Submit Ground Truth does not show and a Download button does, in the same row, taking the same popup of the
+  in and able to add to the study's extractions folder. Someone who may not sees every choice and every tool of the
+  mode, but Save does not show and a Download button does, in the same row, taking the same popup of the
   checklist and the file, which holds the Export alone; and at the top of the Ground Truth Tasks box a line says to
   sign in (signed out), or to ask the study owner for access (signed in without it); for a sign-in without the
   per-file permission, to sign out and in again ticking its box (`req/shell/data/drive-access`); for a study that has
-  set up no submissions folder, the same. Someone who may save is told nothing, the line taking no room. A sign-in that
+  set up no extractions folder, the same. Someone who may save is told nothing, the line taking no room. A sign-in that
   ran out, or a store that did not answer, is not a reason to take Save away (`req/shell/annotate/survives`). Test:
   `web-tests/test_annotate_mode_page.py`, `web-tests/test_gt_drive_page.py`.
   </details>
@@ -162,12 +160,11 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-21. Neither Google's token running out (it lasts an hour, `req/shell/account/sign-in`) nor
-  the network going leaves annotation mode or drops the actions made: the mode and Undo's count stay. Submit's popup,
+  the network going leaves annotation mode or drops the actions made: the mode and Undo's count stay. Save's popup,
   when the store cannot be reached or no live token is held, says so, keeps the ground truth on this device (a draft
   saved, an upload waiting) and counts, beneath Save, how many images are waiting to upload. The waiting uploads go with
   the next click of the user, online, which renews the token as `req/shell/drive/renewal` has it; a refusal by the
-  store itself is final and is said, as before. Tentative: for now Save is `req/shell/ground-truth/submit`, writing the
-  one submission of the image; the extraction store replaces what it writes. Test:
+  store itself is final and is said, as before (`req/shell/extractions/save`). Test:
   `web-tests/test_annotate_mode_page.py`.
   </details>
 
@@ -359,8 +356,8 @@ nobody has decided: what the page does there is not a requirement yet.
   top line (`req/shell/load/selector`), gives way to Load Original, which opens the image itself from the copy kept on this device when it has one,
   else from Drive. A preview that cannot be read (a damaged previews file) shows as no preview, and the image,
   chosen, opens itself instead. A study owner can mark an image as needing ground truth (Needs GT), once the study's ground
-  truth is set up: the page creates an empty `<stem>__<sha8>.needs_gt`, named as the image's ground-truth subfolder
-  (`req/shell/ground-truth/layout`), in the curated folder, the one `GT` folder when submissions need no review,
+  truth is set up (`req/shell/ground-truth/setup`): the page creates an empty `<stem>__<sha8>.needs_gt`, named as the image's ground-truth subfolder
+  (`req/shell/ground-truth/layout`), in the extractions folder,
   never in the data folder (set by the owner on 2026-11-10); unmarking trashes only a marker the page made. Two
   images of one name are marked apart. Once the image has ground truth the marker stays and is no longer shown. Test:
   `web-tests/test_data_mode_page.py`, `web-tests/test_previews_writer.py`.
@@ -373,9 +370,9 @@ nobody has decided: what the page does there is not a requirement yet.
   Google Drive root folder, the only folder the repo names; who may read it is Drive's sharing of it, members only
   until the owner shares it by link (`req/shell/study/members`). The
   folders under it are named by the root's study file (`req/shell/ground-truth/setup`), and until it has
-  one, by name: `Data`, its images, and `GT curated`, `GT submissions` or a single `GT`. Signed in, opening a
+  one, by name: `Data`, its images, and `Extractions`. Signed in, opening a
   GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Data Management is offered) and
-  to the submissions folder (they may save, `req/shell/annotate/no-save`); each is offered only where Drive says so. Nobody is
+  to the extractions folder (they may save, `req/shell/annotate/no-save`); each is offered only where Drive says so. Nobody is
   listed in the repo, and what anyone can change is still what Drive lets them. Changed by the owner on 2026-11-21: who
   may read the root decides who sees the study at all (`req/shell/study/members`). Tests:
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
@@ -592,6 +589,75 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_throttle_page.py`, and, of telling throttling from another failure, `web-tests/test_drive_reads.py`.
   </details>
 
+- `req/shell/extractions/file` An extraction is one file about one image, by its SHA-256: the model, the runs that made it with the version of each, and the manual actions, who made it and when.
+  <details>
+
+  Set by the owner on 2026-11-21 (WP4 of `dev/requirements/study-stages-spec.md`). Every annotation of an image, a person's
+  or a batch run's, is the same kind of file in one store: the study's model as its `document` gives it, one more key,
+  `history` (`req/shell/ground-truth/history-file`), holding the actions in force, and `tagger`, `created` and `image`
+  (its name and SHA-256). A `run` action records `version`, `{site, code}`: the site's version string and a hash of the
+  study's Python as the release's offline list names its files (the worker reads it from the list it already fetches, so no
+  call is added; where the page has no list the hash is null). A file written before has no `version`: it loads
+  as before, its run's version is unknown, and none is guessed. Tests: `web-tests/test_truth_actions.py`,
+  `web-tests/test_python_files.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/extractions/list` Loading an image lists every extraction of it, labelled: mine, then marked (GT, official), then others folded; another's opens read-only with Edit this annotation.
+  <details>
+
+  Set by the owner on 2026-11-21. Load annotation from Drive (`req/shell/annotate/choice`) lists, from the
+  extractions folder's listing and the image's subfolder's, two in all and no file read, every extraction of the image:
+  the user's own first ("Yours"), then those the study file marks GT or official (`req/shell/study/one-file`, a mark
+  names its extraction by file id and follows that file's latest content), then the others, folded under "Others". A
+  member (whoever Drive lets read the study's root, `req/shell/study/members`) sees who made each, by email, or the
+  algorithm and version that ran, from its file's name; the mark is added to the label ("yael@lab.org · GT"). The click
+  on a row reads that one file and shows it read-only; **Edit this annotation** enters annotation mode on it, and the
+  next Save writes the user's own extraction with `base`, the id of the file it was edited from, leaving that file
+  unchanged. Tests: `web-tests/test_annotate_mode_page.py`, `web-tests/test_extractions_page.py`,
+  `web-tests/test_truth_folders.py`.
+  </details>
+
+- `req/shell/extractions/marks-shown` Load study images shows, per image, whether your extraction is saved, GT or official, and whether another's was marked.
+  <details>
+
+  Set by the owner on 2026-11-21. Each image's row in the Drive dialog and the image selector's recents carries a tag
+  read from the study file's marks (`req/shell/study/one-file`) and this device's record of the images it saved:
+  "yours: saved", "yours: GT" or "yours: official" (a mark whose extraction is the user's own), and "GT marked" or
+  "official marked" for a mark on another's extraction, joined by " · "; an image none of them touch keeps "GT wanted"
+  where its Needs GT marker is (`req/shell/data/folder`). One line of the dialog counts them: "Yours: 2 saved, 1 GT. 1
+  with another's marked." Tentative: "saved" is known from this device's record, not from Drive, which would take a
+  listing of every image's subfolder; an extraction saved from another device shows as saved here once it is saved or
+  marked here. Tests: `web-tests/test_study_index_page.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no person's name.
+  <details>
+
+  Set by the owner on 2026-11-21. Signed out, or signed in with an account that cannot read the study's root, the
+  list of an image's extractions (`req/shell/extractions/list`) holds the marked extractions alone, each labelled by
+  the algorithm and version that ran or "by hand", with the mark ("by hand · GT"), and no email anywhere in it or in the
+  line that follows a click. Tentative: this is what the list shows; the folder's files are named for their authors, so
+  what Drive's link sharing of the folder lets a visitor read is the owner's to weigh (`setup/sharing-check`). Tests:
+  `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
+  </details>
+
+- `req/shell/extractions/save` Save writes the person's one extraction for the image to the study's extractions folder, replacing their own and keeping Drive's old revision; a count says how many images wait to upload.
+  <details>
+
+  Set by the owner on 2026-11-21, in place of Submit. Save (the left bar's task row and its popup, which also holds
+  the checklist and Export file) writes the user's extraction of the image, `x_<email>.json`, into the image's
+  subfolder `<stem>__<first 8 hex of its SHA-256>` of the study's one `Extractions` folder (named by the study file,
+  made by Set up extractions in Data Management and shared by link to view), making the subfolder when it lacks one.
+  Saving again replaces the user's own file, keeping Drive's earlier revision (`keepRevisionForever`), and writes
+  nothing else. Only an image opened from Drive can be saved, and Save is not shown to someone Drive lets write nothing
+  there (`req/shell/annotate/no-save`). A save the store did not take waits on this device and goes with the next click
+  online, counted beneath Save ("2 images waiting to upload"), keyed on no HTTP status: the store refusing is final
+  (`req/shell/annotate/survives`). Saving also keeps the draft (`req/shell/ground-truth/save-draft`). Approved by the
+  owner (study-stages-spec.md, approvals): the write of the person's extraction is the one call Save makes beyond the
+  listings. Tests: `web-tests/test_gt_drive_page.py`, `web-tests/test_annotate_mode_page.py`,
+  `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
+  </details>
+
 - `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
   <details>
 
@@ -611,27 +677,14 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
-  Set by the owner on 2026-11-05, as Clear progress, beside Submit Ground Truth: a tagger's progress on an image is kept in
+  Set by the owner on 2026-11-05, as Clear progress, beside Save: a tagger's progress on an image is kept in
   the browser so they can come back to it, and clearing forgets only the open image's. Changed by the owner on 2026-11-17:
   every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`), so it is Clear all history…, at
   the foot of the Edit History window, and there is no Clear progress. It asks first, naming the image, then forgets this
   image's draft on this device and returns the model to the algorithm's output, or to the base the log stands on when a
   run is not its root (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the
-  status line say which; other images keep theirs and anything submitted stays in Drive. Test:
+  status line say which; other images keep theirs and anything saved stays in Drive. Test:
   `web-tests/test_gt_history_page.py`.
-  </details>
-
-- `req/shell/ground-truth/curate` A study owner accepts or rejects each pending submission into the curated folder.
-  <details>
-
-  Set by the owner on 2026-11-05. In Data Management, an image with pending ground truth
-  (`req/shell/ground-truth/pending`) lists its submissions, one per tagger. Accept copies the submission
-  into the image's subfolder in the curated folder under the same name, the copy recording the
-  submission's SHA-256 and who accepted it and when; Reject leaves the file in Submissions marked
-  rejected, with an optional reason the tagger sees. Tentative: the rejected mark and its reason are the
-  file's public Drive properties, so a reader that is not signed in can see them. Tentative: a study whose
-  two folders are the same has no review, so it offers neither button. Test:
-  `web-tests/test_gt_drive_page.py`.
   </details>
 
 - `req/shell/ground-truth/draft` A tagger's draft of the image open is their GT actions kept on this device, saved by Save Draft and offered by Load draft.
@@ -657,26 +710,26 @@ nobody has decided: what the page does there is not a requirement yet.
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
   asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
-  `pending` from the image's opening and `done` once the looks for its draft, and for a tagger's own submission, have ended, for tests to wait on. Tentative: the button stays while the
+  `pending` from the image's opening and `done` once the looks for its draft, and for the person's own extraction, have ended, for tests to wait on. Tentative: the button stays while the
   draft on the device is not the one loaded. Approved by the owner on 2026-11-16: for an annotator, on an image
-  from the remote store, the offer also names their own submission there ("Load your submission · submitted 12 Nov,
-  14:08"), found from two listings as the image opens (the submissions folder, then the image's subfolder, when it has one), the
+  from the remote store, the offer also names their own extraction there ("Load your extraction · saved 12 Nov,
+  14:08"), found from two listings as the image opens (the extractions folder, then the image's subfolder, when it has one), the
   file read only on that click, checked as a draft is, and one from before the log loaded as a base with no history.
   Nothing is cached, and no other call is made. Set by the owner on 2026-11-17: those two listings, and the one download
   on the click, are the only calls this adds. Tentative: both offers show when the device holds a draft too, and
-  a submission made or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
+  an extraction saved or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
   `web-tests/test_gt_resume_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
-- `req/shell/ground-truth/folders` A study's ground truth lives in a submissions folder and a curated folder under its root; one folder for both is free submission.
+- `req/shell/ground-truth/folders` A study's annotations live in one Extractions folder under its root, read by anyone and written by those Drive lets.
   <details>
 
-  Set by the owner on 2026-11-05; under the study's root since 2026-11-07. Taggers write to submissions;
-  only study owners write to curated; viewers, the file dialog and the study's lab read curated. Ground
-  truth is never sent to GitHub. When one folder serves as both, every submission is curated as it lands and
-  nothing is pending. Who may write is what Drive's sharing of each folder allows. Tentative: Data Management
-  tells a study with one folder for both that whatever a tagger submits is used at once. Tests:
-  `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
+  Set by the owner on 2026-11-05 as a submissions folder and a curated folder; replaced on 2026-11-21 by one store
+  (`req/shell/extractions/file`): the folder the study file names by id (`extractions`), found by name `Extractions` while
+  it names none. Who may write it is what Drive's sharing of it allows; viewers, the file dialog and the study's lab read
+  it, so it is shared by link to view. There is no submitted and no curated copy and no accept or reject in the main app: an
+  extraction becomes ground truth or official when the owner marks it (`req/shell/study/one-file`), in Study Setup.
+  Ground truth is never sent to GitHub. Tests: `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/ground-truth/history` A tagger's ground truth is an ordered log of GT actions, undone and redone one at a time down to the algorithm's run.
@@ -733,10 +786,10 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
-- `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
+- `req/shell/ground-truth/history-file` The saved file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
   <details>
 
-  Set by the owner on 2026-11-17. Submit and Export write the study's document of the model and add
+  Set by the owner on 2026-11-17. Save and Export write the study's document of the model and add
   `history: {format: "rauntruth-gt-history/1", replay, actions}`: the actions still in force, in order, each with its
   time, the runs with their outputs deflated; what was undone is not written. A reader that knows only the study's own
   fields is not disturbed, and the shell takes `history` off before it hands a file to a study. A file without
@@ -756,16 +809,15 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_truth_actions.py`.
   </details>
 
-- `req/shell/ground-truth/layout` Both folders hold one subfolder per image and one file per tagger in it, and a reader takes the newest that is not rejected.
+- `req/shell/ground-truth/layout` The folder holds one subfolder per image and one file per author in it.
   <details>
 
-  Set by the owner on 2026-11-05. An image's subfolder is named `<image name>__<first 8 hex of its
-  SHA-256>`; in it, each tagger's file is `gt_<email>.json`. The file carries the image's full SHA-256,
-  its Drive id, who made it and `created`, the time it was made. Submitting again replaces the tagger's
-  own file, keeping Drive's earlier version forever (`keepRevisionForever`). A reader (the file dialog,
-  a viewer, the lab) takes, in an image's subfolder, the file with the latest `created` that is not
-  marked rejected. Only an image opened from Google Drive can be submitted; for one opened from the
-  computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-05, changed on 2026-11-21. An image's subfolder is named `<image name>__<first 8 hex of its
+  SHA-256>`; in it, a person's file is `x_<email>.json` and a batch run's `run_<algorithm key>__<version>.json`. The file
+  carries the image's full SHA-256, who made it and `created`, the time it was made. Saving again replaces the person's
+  own file, keeping Drive's earlier revision forever. Only an image opened from Google Drive can be saved; for one
+  opened from the computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`,
+  `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/ground-truth/legacy` What a study kept of a tagger's edits before it kept GT actions is offered once, as a base, and never loaded unasked.
@@ -777,7 +829,7 @@ nobody has decided: what the page does there is not a requirement yet.
   withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
   beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
   when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
-  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
+  once Save Draft or Save has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
   A study whose old store means something only on the run's items (the NoR Finder's votes, kept by a candidate's place) hands
   over `actions` in place of `model` and `count`: the GT actions the store implies. The click then records each on the model as
   it stands, stamped then, as the tagger's own: nothing is replaced, so nothing is asked; each is a row of Edit History, undone
@@ -786,28 +838,12 @@ nobody has decided: what the page does there is not a requirement yet.
   shell's states, the studies that keep an old store being offered it by their own code. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/pending` Those who may save and study owners see which images have ground truth, and which have it pending, in two listings.
-  <details>
-
-  Set by the owner on 2026-11-05; its calls set by the owner on 2026-11-07. The Drive dialog, the image
-  selector's recent images (set by the owner on 2026-11-10; one whose SHA-256 this device never learned carries
-  none) and Data Management mark an image as having ground truth when the curated folder holds its subfolder: one listing
-  of curated, no file in it read. To someone who may save and to a study owner they also mark it pending, or
-  rejected, from one listing of submissions: each image subfolder there carries, as public properties, when
-  its newest submission landed and when it was last accepted or rejected, which Submit, Accept and Reject
-  stamp on it. Pending: submitted after the last acceptance and the last rejection. Nothing is cached. From the same listing
-  of curated, an image without ground truth whose `.needs_gt` marker is there (`req/shell/data/folder`) is tagged
-  GT wanted in the Drive dialog and the recent images (set by the owner on 2026-11-10). Data
-  Management's summary counts the folder's images with ground truth, pending, and marked as needing it. A viewer sees only curated ground
-  truth. Tests: `web-tests/test_truth_folders.py`, `web-tests/test_gt_drive_page.py`.
-  </details>
-
-- `req/shell/ground-truth/save-draft` Save Draft, beside Submit Ground Truth, keeps the tagger's work on this device; until it is pressed nothing is saved.
+- `req/shell/ground-truth/save-draft` Save Draft, beside Save, keeps the tagger's work on this device; until it is pressed nothing is saved.
   <details>
 
   Set by the owner on 2026-11-17. The log and its model live in the page while the tagger works, so they can try
   things without touching what is saved. Save Draft writes the log and the model to this device (IndexedDB database
-  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Submit saves the draft too. Actions
+  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Save saves the draft too. Actions
   not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
   said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
@@ -819,61 +855,28 @@ nobody has decided: what the page does there is not a requirement yet.
   The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's study file.
+- `req/shell/ground-truth/setup` Set up extractions, in Data Management, makes the study's Extractions folder and names it in the root's study file.
   <details>
 
-  Set by the owner on 2026-11-07. For a study owner of a GT or PostGT study, Data Management offers Set up
-  ground truth. It asks whether submissions need review: yes makes `GT curated` and `GT submissions` in the
-  root, no makes one `GT` for both. It shares the curated folder with anyone with the link to view, then
-  writes `rauntruth-study.json` in the root, the one study file (`req/shell/study/one-file`), naming the data folder
-  and the ground-truth folders by id, who set it up and when. Without the page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites the file; it never makes a second
-  folder of a name. Google's own words show when it refuses. Changed by the owner on 2026-11-07: it sits
-  at the top of Data Management's column, highlighted while the root has no ground-truth folders; choosing
-  an answer closes the dialog once the folders are made; once the study file names the folders it is no
-  longer offered; switching between reviewed and unreviewed is the Ground Truth box's
-  (`req/shell/ground-truth/switch`). Tests: `web-tests/test_study_root.py`,
+  Set by the owner on 2026-11-07, changed on 2026-11-21 (one store, `req/shell/extractions/file`). For a study owner of a GT
+  or PostGT study, Data Management offers Set up extractions, which asks to confirm and then makes `Extractions` in the root,
+  shares it with anyone with the link to view, and writes `rauntruth-study.json` in the root, the one study file
+  (`req/shell/study/one-file`), naming the data folder and the extractions folder by id, who set it up and when. Without the
+  page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites
+  the file; it never makes a second folder of a name. Google's own words show when it refuses. It sits at the top of Data
+  Management's column, highlighted while the root has no such folder, and is no longer offered once the study file names
+  it. There is no review of submissions to choose: nothing is submitted. Tests: `web-tests/test_study_root.py`,
   `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/ground-truth/submit` Submit writes the tagger's ground truth into the study's submissions folder.
+- `req/shell/ground-truth/summary` An Extractions box in Data Management says where annotations are saved and how many images have one.
   <details>
 
-  Set by the owner on 2026-11-05. Submit Ground Truth (`req/shell/ground-truth/tasks`) opens a popup with the study's checklist of
-  what is left to do, an Export file button that downloads the file, and a Submit button that writes it to
-  the image's subfolder in the submissions folder (`req/shell/ground-truth/layout`), creating the
-  subfolder when it lacks one. The popup says when the file landed, or why it did not, the export still
-  there to keep a copy. Submit is off, saying why, for an image opened from the computer and where Drive lets the user
-  write nothing there, which does not show it at all (`req/shell/annotate/no-save`); a store that does not answer keeps
-  the file on the device for the next click (`req/shell/annotate/survives`). Set by the owner on 2026-11-17: for a study
-  with GT actions the file is the model's document with its `history` (`req/shell/ground-truth/history-file`), and
-  Submit saves the draft.
-  Tests: `studies/nor/tests/test_ground_truth_page.py`, `web-tests/test_gt_drive_page.py`.
-  </details>
-
-- `req/shell/ground-truth/summary` A Ground Truth box in Data Management says how the study takes ground truth and how many images have it.
-  <details>
-
-  Set by the owner on 2026-11-07. In a GT or PostGT study whose root has ground-truth folders, a Ground Truth box sits
-  above the folder tree in Data Management. It says whether submissions are reviewed into GT curated or
-  land in one GT folder, and counts, from the folders' listings alone (`req/shell/ground-truth/pending`),
-  the images with ground truth, those pending review and those rejected. It reads again whenever a folder
-  is chosen or a submission accepted or rejected. Test: `web-tests/test_gt_drive_page.py`.
-  </details>
-
-- `req/shell/ground-truth/switch` The Ground Truth box switches a set-up study between reviewed and unreviewed, moving no file.
-  <details>
-
-  Set by the owner on 2026-11-07. The Ground Truth box (`req/shell/ground-truth/summary`) offers Switch to
-  unreviewed… or Switch to reviewed…, and a confirmation says what follows before anything runs. Neither
-  moves, copies or deletes a file. Reviewed to unreviewed waits while any submission is pending review,
-  saying how many; then GT curated serves as the one folder, so everything accepted stays the study's
-  ground truth, and GT submissions, its rejected files included, is left as it is and no longer used; the
-  confirmation says taggers need edit access to GT curated, which only Drive's sharing gives. Unreviewed
-  to reviewed makes the one GT folder the curated one, so everything submitted so far counts as accepted,
-  and makes GT submissions (or finds it by name: never a second folder of a name); the confirmation says
-  to give taggers edit access to it and take theirs off GT curated. The study file keeps who set it up
-  and records the mode before, who switched and when. Tests: `web-tests/test_study_root.py`,
-  `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-07, changed on 2026-11-21. In a GT or PostGT study whose study file names an extractions
+  folder, an Extractions box sits above the folder tree in Data Management. It says everyone's saved annotations of the
+  study's images are kept there, one file per person for each image, and counts, from the folder's one listing, the images
+  with an extraction and, from the study file's marks, those with a GT mark. A chosen folder's summary counts the same.
+  It reads again whenever a folder is chosen. Test: `web-tests/test_gt_drive_page.py`.
   </details>
 
 - `req/shell/ground-truth/tagging` Annotating is the walk of the tasks: it opens with annotation mode, with no Start or Stop.
@@ -894,40 +897,39 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shell/ground-truth/tasks` The shell lists the study's ground-truth tasks in Ground Truth Tasks, Submit Ground Truth last; how a task is worked through is the study's.
+- `req/shell/ground-truth/tasks` The shell lists the study's ground-truth tasks in Ground Truth Tasks, Save last; how a task is worked through is the study's.
   <details>
 
   Set by the owner on 2026-11-07. The study names its tasks in order (a name, and a tooltip saying what the
   task is) and how far each has got, done of all; the shell draws them in its Ground Truth Tasks box
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
-  last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
+  last the shell's Save row, which opens the save popup (`req/shell/extractions/save`) with
   the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
-  the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
-  ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
+  the tagger tags (`req/shell/ground-truth/tagging`). The study says when Save can be pressed and, where it knows, whether its
+  ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Save
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's
   missed books) shows its count alone, "1 Missed books", and its check once the study says it is done. A row may say
   no count at all, its bar part still filled as far as the study says (Vascular Measurements' areas, owner, 2026-11-07). One task at a time is
   the open one, its name in bold: the study puts what it needs under its row and beside its name (its item,
   Back and Skip, an area's check), and hears when the user clicks a task's name. The walk through the tasks
   stays each study's own (owner: a change of heart on how one study does its tasks must not move the others;
-  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
-  the shell's Submit. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
+  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Save crumb (`req/shell/status-bar/breadcrumbs`) presses
+  the shell's Save. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
   `studies/nor/tests/test_truth_tasks_page.py`, the vascular study's vessel tasks test.
   </details>
 
-- `req/shell/ground-truth/view` Anyone can load an image's curated ground truth and see only its final results.
+- `req/shell/ground-truth/view` Anyone can load an image's marked extraction and see only its final results.
   <details>
 
   Set by the owner on 2026-11-05; its calls set by the owner on 2026-11-07; moved into the Annotations box on
-  2026-11-21 (`req/shell/annotate/choice`). Once an image from Drive is open, the curated folder's listing says whether
-  it has ground truth, and if so Load annotation from Drive lists it, with no sign-in. Only the click on it reads the
-  image's subfolder and its newest file, then shows its final results on the image, with no algorithm run: none of
-  the tagging tasks' marks (no blacked-out areas, no rejected candidates, no work areas). A line follows: whose
-  file, when it was made, who accepted it and its counts. Changed by the owner on 2026-11-16, an image shows its
-  ground truth or the algorithm's results, never both: once an annotation is loaded, Processing is not shown, nor the
-  Items view and its switch, until another image opens. Test: `web-tests/test_gt_drive_page.py`,
-  `web-tests/test_annotate_mode_page.py`.
+  2026-11-21 (`req/shell/annotate/choice`), and onto the extraction list the same day (`req/shell/extractions/list`). Once
+  an image from Drive is open, Load annotation from Drive lists its extractions with no sign-in, and the click on one reads
+  that file alone and shows its final results on the image, with no algorithm run: none of the tagging tasks' marks (no
+  blacked-out areas, no rejected candidates, no work areas). A line follows: whose file or which version, when it was made
+  and its counts. Changed by the owner on 2026-11-16, an image shows its annotation or the algorithm's results, never
+  both: once an annotation is loaded, Processing is not shown, nor the Items view and its switch, until another image
+  opens. Test: `web-tests/test_gt_drive_page.py`, `web-tests/test_annotate_mode_page.py`.
   </details>
 
 - `req/shell/header` A header with the logo, the study switcher and a dark/light switch (remembered).
@@ -1671,14 +1673,13 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
-  Run algorithm and Review all items), then Submit GT while the study makes ground truth for the user: a
+  Run algorithm and Review all items), then Save while the study makes ground truth for the user: a
   user annotating in a GT or PostGT study (`req/shell/annotate/choice`). The status bar shows
   the steps done, then the first one not done, which shines blue, and with it the button that does
-  that step (the `button` the step names; Load for Load image, the ground-truth button for Submit
-  GT); later steps do not show yet, and once every step is done none shines. Load image is done
-  once an image is open, Submit GT once its issue is opened (for a local image, once its file is
+  that step (the `button` the step names; Load for Load image, the ground-truth button for Save); later steps do not show yet, and once every step is done none shines. Load image is done
+  once an image is open, Save once the extraction is saved or waits to be (for a local image, once its file is
   exported); the study says when its own steps are done (NoR: Run algorithm while the image was
-  searched with the finder and settings now chosen, Review all items while the Submit Ground Truth
+  searched with the finder and settings now chosen, Review all items while the Save
   button (`req/nor/downloads`) says the ground truth is complete: some vote cast, every added NoR and every
   finalist decided; corrected by the owner on 2026-10-31, so the filters rejecting every finalist
   never moves the step on while the button still says what is missing). Opening another image, or switching study (`req/shell/study/switch-in-place`), starts over. Hovering a crumb says what was done in that step
@@ -1879,10 +1880,10 @@ nobody has decided: what the page does there is not a requirement yet.
   Hovering a label opens a popup beside the switcher listing the four stages in order with what each means, that study's own highlighted and the
   ones before it crossed out, and what the study needs to move on to the next.
   PreGT: the study's tools work but cannot make ground truth yet, so it offers no export: its
-  Submit Ground Truth (`req/shell/ground-truth/tasks`) is not shown and it has no Submit GT step. GT: the same,
-  with the ground truth exported and submitted (`req/shell/ground-truth/submit`). PostGT: GT with batch actions on top (none
+  Save (`req/shell/ground-truth/tasks`) is not shown and it has no Save step. GT: the same,
+  with the ground truth exported and saved (`req/shell/extractions/save`). PostGT: GT with batch actions on top (none
   yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
-  shows what it finds, so it makes no ground truth (no Submit GT, as in PreGT) and
+  shows what it finds, so it makes no ground truth (no Save, as in PreGT) and
   drops the steps that serve making it: the study's
   postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
   NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
