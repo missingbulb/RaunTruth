@@ -21,7 +21,6 @@ import { world, DRIVE_FILE } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 
 const [answers, image] = process.argv.slice(2);
-const DRIVE_ID = "FAKEDRIVEID1234567890ab";
 
 const STAND_IN = `
 const A = await (await fetch("answers/answers.json")).json();
@@ -50,9 +49,8 @@ w.site.withGoogle();
 const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
-const bytes = fs.readFileSync(image);
-// the image on the Drive fake, in the study's own folder
-w.drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", bytes, parent: w.drive.rootOf("nor").id });
+// the image on Drive, in the study's own folder
+const DRIVE_ID = w.studyFolder("nor").holds({ name: "corner.tif", mimeType: "image/tiff", bytes: fs.readFileSync(image) }).id;
 
 // stage: the study's as served, in place of the committed one
 async function open(drive, stage) {
