@@ -35,6 +35,16 @@ def test_hmax_above_matches_h_maxima():
     assert paths == {True, False}   # both branches ran
 
 
+def test_hmax_above_with_no_depth_asked_is_the_regional_maxima():
+    """A flat or dark image has a zero threshold, and so a zero valley depth: h_maxima refuses it as ambiguous,
+    where the answer is every regional maximum above the threshold."""
+    from skimage.morphology import local_maxima
+    img = np.zeros((20, 20)); img[5:8, 5:8] = 1.0; img[12, 14] = 0.5
+    got = nor3.hmax_above(img, 0.0, 0.0)
+    assert np.array_equal(got, local_maxima(img, connectivity=1).astype(bool) & (img > 0.0)) and got.sum() == 10
+    assert not nor3.hmax_above(np.zeros((20, 20)), 0.0, 0.0).any()
+
+
 def test_grow_matches_iterated_dilation():
     rng = np.random.default_rng(2)
     for _ in range(2000):
