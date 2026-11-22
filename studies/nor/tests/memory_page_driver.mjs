@@ -12,7 +12,7 @@ import path from "node:path";
 import { ENGINE } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { detached, grown } from "./detached_nodes.mjs";
 
 const [answers, image] = process.argv.slice(2);
@@ -52,13 +52,11 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 // drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps
 const browser = await launch(pw, ENGINE === "chromium" ? { args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : {});
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
-const ctx = await browser.newContext();
-// the cache of third-party files, which the stand-in never needs, is off
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+// a device whose welcome popup is not answered yet
+const device = world(browser, origin).device().welcomed(null), ctx = await device.context();
 await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fail("page error: " + e.message));
-page.setDefaultTimeout(STEP);
 const cdp = await ctx.newCDPSession(page);
 await cdp.send("Performance.enable");
 if (process.env.THROTTLE) await cdp.send("Emulation.setCPUThrottlingRate", { rate: +process.env.THROTTLE });
@@ -157,8 +155,7 @@ const LIMITS = { heap: 24 * KB, buffers: 64 * KB, nodes: 0, listeners: 0 };
 const EVERY = 2, SLOPED = ["heap", "buffers", "listeners"];
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 
-await page.goto(origin + "/web/?study=nor");
-await page.waitForFunction(() => $("#status").textContent.startsWith("Ready"));
+await device.opens("nor");
 await open(); await find();
 // a reading first, kept by none: the first one's own reads make what the page holds for them from then on (the DOM's
 // interfaces, the shapes of what they return), which would otherwise be in the first base
