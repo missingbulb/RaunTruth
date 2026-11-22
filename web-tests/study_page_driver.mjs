@@ -1,5 +1,5 @@
 // Drives the page (web/) in headless Chromium on the fixture study, with a stand-in worker answering from
-// ANSWERS (what the fixture's own Python answers, written by tests/test_study_runs.py), and checks that the
+// ANSWERS (what the fixture's own Python answers, written by test_study_runs.py), and checks that the
 // shell runs the study the address names: its title, panels, channel and Python calls, its drawing on the
 // image, and none of another study's panels; that a study's path opens it and an old ?study= address is
 // rewritten to that path; that the bare address opens the Image Viewer, whose empty right bar gives its

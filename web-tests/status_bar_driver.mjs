@@ -1,5 +1,5 @@
 // Drives the page (web/) in headless Chromium on the fixture study, with a stand-in worker answering from
-// ANSWERS (tests/test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
+// ANSWERS (test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
 // on its row in the switcher, whose popup lists the stages; breadcrumbs of the steps done and the one to do now, which shines with its button and
 // nothing else does; a popup on each crumb saying what was done; the shining crumb bringing its button into view
 // and pressing it; a new image starting over; a PreGT study with no Submit GT step;

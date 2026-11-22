@@ -2,7 +2,7 @@
 // directory on disk, and its subdirectories as subfolders) shared with anyone with the link, read by the site's key and
 // the signed-in user's token alike; the site approved for ROOT alone, and for the folders and files the page makes; the
 // fixture study given ROOT as its root; a stand-in worker answering ANSWERS
-// (tests/test_study_runs.py), which keeps the last file it was handed as self.lastOpen (the page reads and shows
+// (test_study_runs.py), which keeps the last file it was handed as self.lastOpen (the page reads and shows
 // images itself), and answers the calls of a study ANSWERS' live names from that study's own Python (study_calls.py). Exits 2 when it cannot run.
 import { EARLY } from "./early_messages.mjs";
 import { spawn } from "node:child_process";
