@@ -16,18 +16,15 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { ENGINE, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
-import { pw, keptContext, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { studies as studiesOf } from "./fakes/studies.mjs";
-import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const ROOT = "linefolder0000000001", SUB = "linesubfolder0000001";
-const FOLDER = `https://drive.google.com/drive/folders/${ROOT}`;
 const PNG = noisePng();
 // the folder on Drive: kept.png, opened 30 minutes ago and kept on this device; far.png, opened 6 days ago and not
 // kept; never.png, never opened; and a subfolder the dialog never lists
@@ -60,19 +57,21 @@ const { origin, server } = await serveSite({
 });
 
 let failed = false;
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+const browser = await launch(pw), w = world(browser, origin);
 // the fixture's Drive root
-studiesOf(ctx).edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
+w.studies.rootedAt("fixture", ROOT);
 // the deploy with a Google key
-siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
+w.site.withoutGoogleClient();
 // the Drive fake's folder, and another folder elsewhere, empty; calls(): the page's lists and downloads since the
 // test cleared them
-const drive = googleDrive(ctx);
+const { drive } = w;
 drive.folder({ id: ROOT, name: "Slides", access: "public" });
 drive.folder({ id: SUB, name: "Sub", parent: ROOT });
 drive.folder({ id: "lineotherfolder00001", name: "Other", access: "public" });
 for (const f of FILES) drive.file({ ...f, parent: ROOT, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
 let callsFrom = 0;
+// a device of its own remembering the folder's link and the images opened lately
+const device = w.device().kept().remembersDriveLink(ROOT).keeps({ "nor-drive-recent": JSON.stringify(RECENT) }), ctx = await device.context();
 const calls = () => drive.calls.slice(callsFrom).map((c) => c.kind).filter((k) => k === "list" || k === "download");
 // the browser's own file picker, where the browser has one, stands in as one handing over picked.png, a file of the
 // page's private storage, so the reference the page keeps to it is a real one; picks counts the times it was shown
@@ -86,15 +85,7 @@ await ctx.addInitScript((png) => {
     return [h];
   };
 }, PNG.toString("base64"));
-await ctx.addInitScript(([link, recent]) => {
-  delete Navigator.prototype.serviceWorker;
-  if (sessionStorage.getItem("primed")) return;
-  sessionStorage.setItem("primed", "1");
-  localStorage.setItem("nor-drive-link", JSON.stringify(link));
-  localStorage.setItem("nor-drive-recent", JSON.stringify(recent));
-}, [FOLDER, RECENT]);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const page = await device.opens();
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);
 const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, sel);
@@ -108,9 +99,7 @@ const listed = () => page.$$eval("#remote-list .item", (bs) => bs.map((b) => ({ 
 
 try {
   // ---- req/shell/load/from: the Image Viewer opens from this computer and from Drive ----
-  await page.goto(origin + "/web/index.html");
   await mounted("Image Viewer");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   check(await shown("#image-menu") && (await shown("#load-main")) && (await shown("#load-remote")) && !(await shown("#load-menu")),
     "the Image Viewer offers the image selector, the computer's button and Drive's button");
   check(await page.$("#load-main svg.computer-logo"), "the computer's button bears a computer");
@@ -288,5 +277,5 @@ try {
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
-await ctx.close(); server.close();
+await device.close(); await browser.close(); server.close();
 process.exitCode = failed ? 1 : 0;
