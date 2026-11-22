@@ -12,9 +12,9 @@ import path from "node:path";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { until, orMissed, untilHeard } from "./page_until.mjs";
-import { pw, launch, siteOf, googleOf, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -55,32 +55,21 @@ for (const f of FILES) f.bytes = f.bytes || MORE;
 const ROOT = "shapefolder000000001";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
-siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
+w.site.withoutGoogleClient();
 let failed = false;
 // the browser's Drive, every context's, with the folder of TIFFs; reads(): every read of a file's bytes since the
 // test cleared them, its row and the Range asked for ("" for the whole file)
-const { drive } = googleOf(browser);
+const { drive } = w;
 drive.folder({ id: ROOT, name: "Shapes", access: "public" });
 for (const f of FILES) drive.file({ id: f.id, name: f.name, parent: ROOT, bytes: f.bytes, mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
 let readsFrom = 0;
 const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ k: FILES.findIndex((f) => f.id === c.id), range: c.range || "" }));
-// a context opened at the page; seed: browser keys kept before the page opens
-async function start(seed = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript((link) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    localStorage.setItem("nor-drive-link", JSON.stringify(link));
-  }, `https://drive.google.com/drive/folders/${ROOT}`);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-  return { ctx, page };
+// a device remembering the folder's link, opened at the page; keys: kept before the page opens
+async function start(keys = {}) {
+  const device = w.device().remembersDriveLink(ROOT).keeps(keys);
+  return { device, page: await device.opens(undefined, { until: "title" }) };
 }
 const { page } = await start();
 
@@ -145,7 +134,7 @@ try {
     await open(seeded.page);
     b = await badges(seeded.page);
     check(reads().length === 0 && window.every((k) => b[k] === FILES[k].want), `a page opened with them kept shows the badges with no read: ${reads().length} reads`);
-    await seeded.ctx.close();
+    await seeded.device.close();
     readsFrom = drive.calls.length;
   }
 
