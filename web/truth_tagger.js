@@ -13,7 +13,7 @@ const SAY = {
   unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
   unknown: "Your sign-in ran out. Sign in again to save.",
 };
-export const LOCAL_GT = (remote) => `An annotation can be saved only for an image from ${remote.label}, not one from this computer.`;
+export const LOCAL_GT = (remote) => `Only an image from ${remote.label} can be saved, not local files.`;
 
 // account: the sign-in; remote: the remote store; place: the study's place in it (study_root.js studyPlace); image() the image open, {name, sha256, source} or null; on() whether the user makes ground truth now;
 // may() whether the store lets this user save to the study's extractions folder, as far as last read
