@@ -108,7 +108,7 @@ folders it shows you. The settings file holds only the settings listed in the av
 <ul>
   <li><b>Accessed and used:</b> your name, email address and picture are shown in the avatar menu.
     Your settings file is read when you sign in and on later visits, and replaced when you change a
-    setting. When you save an annotation, your email address names your file and is written into it.
+    setting. When you save an annotation, your email address is written into your file, which is named by a hash of it.
     In the study folders you chose, the site reads which ones you may add files to, and adds the files you
     ask it to. A folder a study's owner adds by its link is checked, with the site's own key, for whether anyone with
     its link can open it. A folder you open in the Google Drive dialog is listed (its files' names, sizes and dates), and an image
@@ -133,12 +133,12 @@ Google's sign-in window) and choose Delete hidden app data. To withdraw the site
 
 <h2>Annotations</h2>
 <p>Save writes your annotation of an image into the study's Extractions folder in Google Drive, as one file per
-image named with your email address, holding your marks, your email address, when you made it and its history: each
+image named by a hash of your email address, holding your marks, your email address, when you made it and its history: each
 correction you kept, in order, with the time you made it, and what the algorithm proposed. Corrections you undid are
 not written. Saving again replaces your own file, and Drive keeps its earlier versions. The study's owner may mark a
 file as the image's ground truth or as official; the study's algorithms are scored on the files marked ground truth.
 Setting up the study's extractions shares the Extractions folder with anyone with its link, so anyone with that link
-can read every file in it, your email address included, and Google Drive shows each file's owner, your name and email
+can read every file in it, your email address inside it included, and Google Drive shows each file's owner, your name and email
 address, to anyone who can see it. The page itself lists, to someone who is not a member of the study, only the marked
 files and no one's name. Your file stays there under your Google account. To remove it, delete it in Google Drive or
 ask the study's owner.</p>

@@ -10,6 +10,7 @@ import { fromScratch } from "./annotating.mjs";
 import { standIn } from "./stand_in_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true });
@@ -125,7 +126,7 @@ await check(/^Saved/.test(msg), "Save says the file landed", msg);
 const folder = FILES.find((f) => f.folder && f.name === sub);
 await check(!!folder && folder.parent === EXT, "Save makes the image's subfolder in the extractions folder", sub);
 const file = FILES.find((f) => f.parent === folder.id);
-await check(file?.name === "x_tester@example.com.json", "the person's file is named for their email", file?.name);
+await check(file?.name === await personFile("tester@example.com"), "the person's file is named for their email's hash", file?.name);
 const gtDoc = JSON.parse(file.bytes.toString());
 await check(gtDoc.tagger === "tester@example.com" && !Number.isNaN(Date.parse(gtDoc.created)) && gtDoc.image.sha256 === createHash("sha256").update(png.bytes).digest("hex") && gtDoc.labels.length === 1,
   "the file names who made it, when it was made and the image's SHA-256, and holds the study's marks", gtDoc);

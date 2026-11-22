@@ -11,6 +11,7 @@ import { standIn } from "./stand_in_drive.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { fromScratch } from "./annotating.mjs";
+import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, second] = process.argv.slice(2);
 const { drive, GT, studyFile, writes, keptForever, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
@@ -22,8 +23,8 @@ const sub = drive.folder({ mine: true, name: subName(image), parent: GT.extracti
 const doc = (who, marks) => JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: shaOf(image) },
   labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true });
 // the user's own extraction of IMAGE, another person's and a batch run's
-const mine = drive.file({ mine: true, name: `x_${ME}.json`, parent: sub, bytes: Buffer.from(doc(ME, [[20, 20]])) });
-const yael = drive.file({ name: `x_${YAEL}.json`, parent: sub, bytes: Buffer.from(doc(YAEL, [[12, 12], [55, 35]])) });
+const mine = drive.file({ mine: true, name: await personFile(ME), parent: sub, bytes: Buffer.from(doc(ME, [[20, 20]])) });
+const yael = drive.file({ name: await personFile(YAEL), parent: sub, bytes: Buffer.from(doc(YAEL, [[12, 12], [55, 35]])) });
 const batch = drive.file({ name: "run_count__0.1.2.json", parent: sub, bytes: Buffer.from(doc(null, [[30, 30]])) });
 const yaelBytes = Buffer.from(yael.bytes);
 studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL } } } });
@@ -47,8 +48,8 @@ let page = await open(true, { email: ME, prepare: standInDrive });
 await opened(page, image);
 await page.click("#annotate-drive");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 3);
-await check(JSON.stringify(await rows(page)) === JSON.stringify(["Yours", `${YAEL} · GT`, "Others (1)"]),
-  "the list holds mine, then the marked with who made it and its mark, then the others folded", await rows(page));
+await check(JSON.stringify(await rows(page)) === JSON.stringify(["Yours", "by hand · GT", "Others (1)"]),
+  "the list holds mine, then the marked by how it was made and its mark, naming no one, then the others folded", await rows(page));
 await page.click("#annotate-list .others summary");
 const run = await page.evaluate(() => document.querySelector("#annotate-list .others button[data-key]").textContent);
 await check(/^count 0\.1\.2/.test(run), "a batch run is named by its algorithm and version", run);
@@ -79,7 +80,7 @@ const marksNow = await page.evaluate(() => window.fixture.model().marks.length);
 await check(/^Saved/.test(await saved(page)), "and again");
 const folder = drive.files.find((f) => f.folder && f.name === subName(second) && f.parent === GT.extractions);
 const files = drive.files.filter((f) => f.parent === folder?.id);
-await check(files.length === 1 && files[0].name === `x_${ME}.json`, "one file `x_<email>.json` in the image's subfolder `<stem>__<sha8>`", files.map((f) => f.name));
+await check(files.length === 1 && files[0].name === await personFile(ME), "one file `x_<the email's hash>.json` in the image's subfolder `<stem>__<sha8>`", files.map((f) => f.name));
 await check(files[0].revisions.length + 1 === 2 && keptForever.includes(files[0].name) && bodyOf(files[0]).marks.length === marksNow,
   "saved twice, it has two revisions, the old one kept, and holds the later", { revisions: files[0].revisions.length + 1 });
 await check(JSON.stringify(writes.slice(before).map(([w]) => w)) === JSON.stringify(["folder", "create", "replace"]), "and Save wrote the subfolder, the file and its replacement, nothing else", writes.slice(before));

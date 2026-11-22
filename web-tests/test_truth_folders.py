@@ -24,8 +24,9 @@ def out():
 
 
 def test_an_image_has_a_subfolder_and_a_person_or_a_run_a_file(out):
-    # the image's stem with its SHA's first 8 hex; the person's email, lower-cased; a run's algorithm and version
-    assert out['names'] == {'sub': 'slide3_s2__a1b2c3d4', 'file': 'x_jane@lab.org.json', 'run': 'run_count__1.2.3.json'}
+    # the image's stem with its SHA's first 8 hex; the first 16 hex of the SHA-256 of the person's lower-cased email, so a
+    # listing of the link-shared folder names no one; a run's algorithm and version
+    assert out['names'] == {'sub': 'slide3_s2__a1b2c3d4', 'file': 'x_f0ef16d2c36001ad.json', 'run': 'run_count__1.2.3.json'}
 
 
 def test_a_study_names_one_extractions_folder_never_a_guess(out):
@@ -36,16 +37,16 @@ def test_saving_again_replaces_only_the_persons_own_file_and_keeps_the_old_versi
     s = out['save']
     assert s['subfolders'] == 1
     # no stamp on the subfolder, no second call: the file is all Save writes
-    assert s['writes'] == [['folder', 'slide3_s2__a1b2c3d4'], ['create', 'x_jane@lab.org.json'],
-                           ['replace', 'x_jane@lab.org.json', True], ['create', 'x_bob@lab.org.json']]
-    assert s['files'] == [['x_jane@lab.org.json', 'jane@lab.org', None], ['x_bob@lab.org.json', 'bob@lab.org', None]]
+    assert s['writes'] == [['folder', 'slide3_s2__a1b2c3d4'], ['create', 'x_f0ef16d2c36001ad.json'],
+                           ['replace', 'x_f0ef16d2c36001ad.json', True], ['create', 'x_bd86fb7bd2ecc74e.json']]
+    assert s['files'] == [['x_f0ef16d2c36001ad.json', 'f0ef16d2c36001ad', None], ['x_bd86fb7bd2ecc74e.json', 'bd86fb7bd2ecc74e', None]]
     assert s['janeBody'] == 2
 
 
 def test_a_listing_passes_over_what_is_no_extraction_and_reads_a_runs_name(out):
     listing = out['listing']
-    assert listing['names'] == ['x_new@x.org.json', 'run_find_nodes__0.11121.154+ab12.json']
-    assert listing['run'] == {'algorithm': 'find_nodes', 'version': '0.11121.154+ab12'} and listing['by'] == 'new@x.org'
+    assert listing['names'] == ['x_8ec849bf2a1b1af2.json', 'run_find_nodes__0.11121.154+ab12.json']
+    assert listing['run'] == {'algorithm': 'find_nodes', 'version': '0.11121.154+ab12'} and listing['by'] == '8ec849bf2a1b1af2'
     assert listing['other'] == []
 
 
@@ -53,15 +54,17 @@ def test_a_persons_own_extraction_is_found_from_two_listings_and_nothing_is_read
     o = out['own']
     # another person's file is not theirs; an image with no subfolder has none
     assert o['nobody'] is None
-    assert o['mine'] == {'name': 'x_jane@lab.org.json', 'hasId': True, 'hasTime': True}
+    assert o['mine'] == {'name': 'x_f0ef16d2c36001ad.json', 'hasId': True, 'hasTime': True}
     # the extractions folder, then the image's subfolder
     assert o['listed'] == ['EXT', o['subId']]
     assert o['reads'] == []
 
 
-def test_the_list_is_mine_then_marked_then_others_and_a_member_sees_who_made_each(out):
-    assert out['list']['member'] == [['Yours', 'mine', []], ['yael@lab.org · GT', 'marked', ['gt']], ['count 1.2 · official', 'marked', ['official']],
-                                     ['dan@lab.org', 'other', []], ['count 1.3', 'other', []]]
+def test_the_list_is_mine_then_marked_then_others_and_names_no_one(out):
+    # who made another's shows once it is opened, from the file itself; the list has only its name's hash
+    assert out['list']['member'] == [['Yours', 'mine', []], ['by hand · GT', 'marked', ['gt']], ['count 1.2 · official', 'marked', ['official']],
+                                     ['by hand', 'other', []], ['count 1.3', 'other', []]]
+    assert '@' not in out['list']['memberNames']
     assert out['list']['mineMarked'] == [['Yours · GT', 'mine', ['gt']]]
 
 
