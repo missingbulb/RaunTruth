@@ -26,8 +26,10 @@ try {
   check(true, "and the settings another device of theirs left on Drive are the ones it takes");
   await hers.close();
 
-  const narrow = w.device().signedInAs(ada, { scopes: "openid email" });
-  const held = await (await narrow.opens("fixture", { until: "title" })).evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")).scopes);
+  // the token the device was signed in with, the first Google knew of after the ones before it
+  const known = new Set(w.google.tokens.keys()), narrow = w.device().signedInAs(ada, { scopes: "openid email" });
+  await narrow.opens("fixture", { until: "title" });
+  const held = [...w.google.tokens].find(([t]) => !known.has(t))?.[1].scopes;
   check(held === "openid email", "a device signed in with fewer scopes keeps a token that may do only those", held);
   await narrow.close();
 
