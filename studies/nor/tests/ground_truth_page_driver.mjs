@@ -12,20 +12,15 @@
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import path from "node:path";
 
-import { asTagger, TAGGER } from "../../../web-tests/tagger.mjs";
-import { signIn, SCOPES } from "../../../web-tests/fakes/google_sign_in.mjs";
-const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
-import { localStudy } from "../../../web-tests/local_study.mjs";
-import { pw, launch, googleOf, siteOf } from "../../../web-tests/harness.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
+import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
+import { world, DRIVE_FILE } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const [answers, image] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const DRIVE_ID = "FAKEDRIVEID1234567890ab";
 
 const STAND_IN = `
@@ -45,34 +40,31 @@ onmessage = async ({ data: m }) => {
   }
 };`;
 
-let stage = null; // the study's stage as served; null: as committed
 const { origin, server } = await serveSite({
   "/web/worker.js": () => EARLY + STAND_IN,
   "/web/answers/": { dir: answers },
 });
 
-const browser = await launch(pw);
-siteOf(browser).studies.edit("nor", (m) => (stage ? { ...m, stage } : m));
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
+const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const bytes = fs.readFileSync(image);
 // the image on the Drive fake, in the study's own folder
-googleOf(browser).drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", bytes,
-  parent: JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop() });
+w.drive.file({ id: DRIVE_ID, name: "corner.tif", mimeType: "image/tiff", bytes, parent: w.drive.rootOf("nor").id });
 
-async function open(drive) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-  if (drive) {
-    // Google's window answers as the tagger, the per-file box left unticked
-    Object.assign(signIn(ctx), { withhold: [DRIVE_FILE], account: { ...signIn(ctx).account, email: TAGGER, name: "Acme Tagger" } });
-    await asTagger(ctx, { scopes: SCOPES.split(" ").filter((s) => s !== DRIVE_FILE).join(" ") });
-  } else await asTagger(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+// stage: the study's as served, in place of the committed one
+async function open(drive, stage) {
+  // Google's window answers as the tagger, the per-file box left unticked
+  if (drive) tagger.without(DRIVE_FILE);
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).asRole("tagger").with({ acceptDownloads: true });
+  const studies = studiesOf(await device.context());
+  if (stage) studies.atStage("nor", stage);
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
-  if (!drive) await localStudy(ctx, "nor");
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
+  if (!drive) studies.fromThisComputer("nor");
+  const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   if (drive) {
     await page.click("#load-remote");
@@ -81,7 +73,7 @@ async function open(drive) {
     await page.setInputFiles("#file", image);
   }
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  return { ctx, page };
+  return { device, page };
 }
 
 // the status bar's steps, the one to do now marked *, and what shines
@@ -288,7 +280,7 @@ async function mask(page) {
 
 // ---- an image from this computer ----
 {
-  const { ctx, page } = await open(false);
+  const { device, page } = await open(false);
   const warn = await page.isVisible("#notice") && (await page.textContent("#notice-text"));
   await check(warn && /local files/.test(warn) && warn.split(/\s+/).length <= 15, `a local image warns its ground truth cannot be sent: "${warn}"`);
   const where = await page.evaluate(() => { const n = $("#notice").getBoundingClientRect(), v = $("#view").getBoundingClientRect(); return { top: n.top - v.top, centre: (n.left + n.right) / 2 - (v.left + v.right) / 2 }; });
@@ -349,13 +341,12 @@ async function mask(page) {
   await page.selectOption("#algorithm", { index: 1 });
   const changed = await crumbs(page);
   await check(changed === "Load image › Run algorithm* | #find,#sb-find", `another finder makes Run algorithm the step to do again: ${changed}`);
-  await ctx.close();
+  await device.close();
 }
 
 // ---- a PreGT study: the summary, its mask and CSVs ----
 {
-  stage = "PreGT";
-  const { ctx, page } = await open(false);
+  const { device, page } = await open(false, "PreGT");
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
@@ -387,13 +378,12 @@ async function mask(page) {
   await check(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");
   const ns = (await csvRows(page, "#dl-cands")).map((r) => r.split(",")[0]);
   await check(ns.length === all.length && new Set(ns).size === ns.length && ns.every((n) => all.includes(n)), "the Candidates CSV names each candidate by its number");
-  await ctx.close();
-  stage = null;
+  await device.close();
 }
 
 // ---- an image from Google Drive ----
 {
-  const { ctx, page } = await open(true);
+  const { device, page } = await open(true);
   await check(await page.isHidden("#notice"), "a Drive image shows no warning");
   await markAndVote(page);
   const { said, name, gt, after } = await download(page);
@@ -402,6 +392,6 @@ async function mask(page) {
   await check(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
   await check(send.off && /No permission/.test(send.why) && /sign out/i.test(send.why), `with no per-file permission, Submit is off and says to sign in again ticking its box: "${send.why}"`);
-  await ctx.close();
+  await device.close();
 }
 await done(0);
