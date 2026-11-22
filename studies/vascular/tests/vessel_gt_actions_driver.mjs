@@ -1,7 +1,7 @@
 // Drives the vascular study's GT actions in a GT stage (req/vascular/model/correct, req/vascular/model/ground-truth) in headless
 // Chromium against a stand-in worker (stand_in.mjs), as a Ground Truth Tagger: a point dragged is one action at its drop and none
-// while it moves or when Escape cancels it; Undo and Redo are the shell's; the file keeps the ids and has no clock; Save Draft, a
-// reload and Load draft bring the model back without Execute; and the edits kept in this browser before Edit History are offered
+// while it moves or when Escape cancels it; Undo and Redo are the shell's; the file keeps the ids and has no clock; Save Draft, and
+// Load draft in a page opened afresh, bring the model back without Execute; and the edits kept in this browser before Edit History are offered
 // once as a base. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_gt_actions_driver.mjs STUDIES
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,7 @@ import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
+import { storedDrafts, seedDrafts, seedKeys } from "../../../web-tests/device_storage.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
@@ -27,12 +28,20 @@ const site = await serve(studies, model);
 const browser = await launch(pw);
 atStage(browser, "GT");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+let ctx, page;
+// a page of a context of its own, ready; drafts, keys: what the device keeps before it opens
+async function open({ drafts = [], keys = {} } = {}) {
+  ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
+  await asTagger(ctx);
+  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+  await standInDrive(ctx);
+  await seedDrafts(ctx, drafts);
+  await seedKeys(ctx, keys);
+  page = await ctx.newPage();
+  page.setDefaultTimeout(STEP);
+  await page.goto(site.origin + "/web/vascular");
+  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+}
 
 const doc = () => page.evaluate(() => window.vascular.model().model);
 // the actions made, none of them saved yet: the count beside Undo
@@ -44,8 +53,7 @@ const execute = async () => { await page.click("#vm-run"); await page.waitForFun
 const opened = async () => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); await page.evaluate(() => { $("#notice").hidden = true; }); };
 
 try {
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  await open();
   await opened();
   await execute();
   await page.click("#gt-start");
@@ -123,15 +131,18 @@ try {
     "the file carries each segment's and curve point's id, and no clock and no count of corrections");
   check(out.history.replay === "verified" && move?.node === node.id && move.to.x === after.x, `its history replays to it, and names the point by its id: ${JSON.stringify(move && { node: move.node })}`);
 
-  // Save Draft, a reload and Load draft: the model is back and nothing runs
+  // Save Draft stores the stack's draft on the device; a page opened with it there: Load draft brings the model back and nothing runs
   await page.click("#gt-save-draft");
   await until(page, () => $("#gt-unsaved").hidden);
   const saved = JSON.stringify(await doc());
-  await page.reload();
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  const drafts = await storedDrafts(page), { history: filed, ...file } = out;
+  check(drafts.length === 1 && drafts[0].study === "vascular" && drafts[0].name === stack.name && JSON.stringify(drafts[0].model) === JSON.stringify(file)
+    && JSON.stringify(drafts[0].log) === JSON.stringify(filed.actions), `Save Draft stores the stack's draft on the device: the model and the log of the file: ${JSON.stringify(drafts.map((d) => [d.study, d.name, d.log.length]))}`);
+  await ctx.close();
+  await open({ drafts });
   await opened();
   await page.waitForFunction(() => !$("#gt-offers").hidden);
-  check(await page.evaluate(() => !!window.vascular.model().model === false && !$("#gt-load-draft").hidden), "after the reload the draft is offered and no model is shown: Execute has not run");
+  check(await page.evaluate(() => !!window.vascular.model().model === false && !$("#gt-load-draft").hidden), "a page opened with the draft there offers it and shows no model: Execute has not run");
   await page.click("#gt-load-draft");
   await page.waitForFunction(() => !!window.vascular.model().model);
   check(JSON.stringify(await doc()) === saved && (await page.textContent("#status")).includes("verified") && await page.evaluate(() => !$("#vm-review").hidden), "Load draft brings the model back with its replay verified, and no Execute");
@@ -142,9 +153,8 @@ try {
   const key = oldKey(meta);
   const candidate = run.edges.findIndex((e) => e.state === "candidate");
   const earlier = { ...run, edges: run.edges.map((e, k) => (k === candidate ? { ...e, state: "accepted" } : e)) };
-  await page.evaluate(([k, v]) => localStorage.setItem(k, JSON.stringify(v)), [key, { edits: 2, model: earlier }]);
-  await page.reload();
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  await ctx.close();
+  await open({ drafts, keys: { [key]: JSON.stringify({ edits: 2, model: earlier }) } });
   await opened();
   await execute();
   await page.waitForFunction(() => !$("#gt-load-legacy").hidden);
