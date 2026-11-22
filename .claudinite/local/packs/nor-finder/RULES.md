@@ -51,6 +51,11 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   only its own part, with knobs a test sets; fake the repo's own code rarely, and put each new fake to the owner as
   its own approval question first. (fakes-for-outside-systems)
 
+- **Setting up what a test needs** (users and what Google lets them do, their Drive, the deploy, the
+  studies, a device and what it keeps) - say it through `web-tests/world.mjs`, adding a missing intent
+  there or on its fake, never by reaching into a fake's state or writing the page's records by hand.
+  (world-set-up)
+
 - **A test case that makes the page warn or err** - declare it around that case with the harness's `expecting()`,
   by a loose pattern of a word or two, never the whole message; any other one fails the run, and is a bug to fix now.
   (expected-warnings-per-case)
