@@ -13,11 +13,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -30,28 +28,17 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
-// a context with the deploy's Google key and a.png on Drive; seed: browser keys kept before the page opens
-async function open(seed = {}) {
-  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-  const drive = googleDrive(ctx);
-  drive.folder({ id: ROOT, name: "Cache", access: "public" });
-  // a.png on Drive, whose bytes the test changes
-  const file = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-  await ctx.addInitScript((link) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    localStorage.setItem("nor-drive-link", JSON.stringify(link));
-  }, FOLDER);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-  return { ctx, drive, file, page };
+const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
+// the deploy's Google key, and a.png on Drive, whose bytes the test changes
+w.site.withoutGoogleClient();
+drive.folder({ id: ROOT, name: "Cache", access: "public" });
+const FILE = drive.file({ id: "cacheimage0000000001", name: "a.png", parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+// a device of its own, remembering the folder's link; keys: kept before the page opens
+async function open(keys = {}) {
+  const device = w.device().kept().remembersDriveLink(ROOT).keeps(keys);
+  return { device, page: await device.opens(undefined, { until: "title" }) };
 }
-const { ctx, drive, file: FILE, page } = await open();
+const { device, page } = await open();
 // every request the page made of Drive since the test last cleared them, by kind: list, details or download
 const calls = drive.calls, kinds = () => calls.map((c) => c.kind);
 
@@ -160,12 +147,12 @@ try {
   await fromDialog(); await settle();
   check((await tip()) === null, "a closed tip does not show again");
   {
+    calls.length = 0;
     const seeded = await open({ "nor-tips-closed": JSON.stringify(["recent-files"]) });
     await fromDialog(seeded.page); await settle(seeded.page);
     await fromDialog(seeded.page); await settle(seeded.page);
-    check(seeded.drive.calls.filter((c) => c.kind === "download").length === 1 && (await tip(seeded.page)) === null,
-      "a page opened with the tip closed opens a kept image with no tip");
-    await seeded.ctx.close();
+    check(downloads() === 1 && (await tip(seeded.page)) === null, "a page opened with the tip closed opens a kept image with no tip");
+    await seeded.device.close();
   }
 
   // opening the selector closes it too
@@ -181,5 +168,5 @@ try {
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
-await ctx.close(); server.close();
+await device.close(); await browser.close(); server.close();
 process.exitCode = failed ? 1 : 0;
