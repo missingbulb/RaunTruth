@@ -4,18 +4,12 @@
 // alone, neither a kind it cannot open.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_accept_driver.mjs
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import path from "node:path";
-
 import { pressDrive } from "./drive_open.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-// Bookshelf Reader's own folder, which its dialog lists, the one the Image Viewer is handed too
-const FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "shelves", "study.json"), "utf8")).root.split("/").pop();
 const NAMES = ["a.jpg", "b.JPEG", "c.webp", "d.bmp", "e.png", "f.tif", "g.heic", "h.pdf"];
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
@@ -23,11 +17,12 @@ const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
 w.site.withoutGoogleClient();
 let failed = false;
-const folder = `https://drive.google.com/drive/folders/${FOLDER}`;
-// the Drive fake's folder: a subfolder, and a file of each kind, none of whose bytes is read
-const { drive } = w;
-drive.folder({ id: "acmesub", name: "sub", parent: FOLDER });
-NAMES.forEach((name, k) => drive.file({ id: "acmefile" + k, name, parent: FOLDER, bytes: Buffer.alloc(100), mimeType: "application/octet-stream" }));
+// Bookshelf Reader's own folder, which its dialog lists, the one the Image Viewer is handed too: a subfolder, and a
+// file of each kind, none of whose bytes is read
+const shelf = w.studyFolder("shelves");
+const folder = `https://drive.google.com/drive/folders/${shelf.id}`;
+shelf.folder("sub");
+for (const name of NAMES) shelf.holds(image.bytes(name, 100, "application/octet-stream"));
 
 // what the dialog lists for the folder in the study at this address; paste: the folder's link, where the dialog takes one
 async function listed(id, paste) {
