@@ -6,37 +6,24 @@
 // and fetches what the rows in view still lack.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_thumbs_driver.mjs [SHOTS]
-import { fileURLToPath } from "node:url";
 import path from "node:path";
-import zlib from "node:zlib";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { frames as framesOf } from "./page_frames.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
 const N = 60, AHEAD = 10;
-// the fixture study's own folder, which its dialog lists
-const ROOT = "fixturefolder00000001", SLOW = { id: "thumbfolder000000002", name: "slow" };
-const IMAGES = Array.from({ length: N }, (_, k) => ({ id: "thumbimage" + String(k).padStart(10, "0"), name: `img ${String(k).padStart(2, "0")}.tif` }));
 // a grey PNG w pixels wide
-function png(w) {
-  const chunk = (type, data) => {
-    const t = Buffer.concat([Buffer.from(type), data]), n = Buffer.alloc(4), c = Buffer.alloc(4);
-    n.writeUInt32BE(data.length); c.writeUInt32BE(zlib.crc32(t));
-    return Buffer.concat([n, t, c]);
-  };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(4, 4); ihdr[8] = 8; ihdr[9] = 0;
-  const rows = Buffer.concat(Array.from({ length: 4 }, () => Buffer.concat([Buffer.from([0]), Buffer.alloc(w, 128)])));
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
-}
+const png = (w) => image.greyPng("thumb.png", { width: w, height: 4, value: 128 }).bytes;
+// the images the fixture's folder holds, each its Drive record, filled once the folder holds them
+const IMAGES = [];
 
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
@@ -49,16 +36,16 @@ w.site.withoutGoogleClient();
 // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
 w.studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
 let failed = false;
-// a device remembering the fixture's folder link
-const device = w.device().remembersDriveLink(ROOT), ctx = await device.context();
+// the fixture study's own folder, which its dialog lists, and a device remembering its link
+const fixture = w.studyFolder("fixture");
+const device = w.device().remembersDriveLink(fixture), ctx = await device.context();
 // the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
 // held until the user has moved on
-const { drive } = w;
-drive.folder({ ...SLOW, parent: ROOT });
-drive.file({ id: "slowimage00000000001", name: "stale.tif", parent: SLOW.id, bytes: Buffer.alloc(1000), mimeType: "image/tiff" });
-for (const f of IMAGES) drive.file({ ...f, parent: ROOT, bytes: Buffer.alloc(1000), mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
+const { drive } = w, slow = fixture.folder("slow");
+slow.holds(image.bytes("stale.tif", 1000));
+for (let k = 0; k < N; k++) IMAGES.push(fixture.holds(image.bytes(`img ${String(k).padStart(2, "0")}.tif`, 1000), { createdTime: "2026-10-01T10:00:00Z" }));
 const slowListing = holding();
-drive.hold = (c) => (c.kind === "list" && c.parent === SLOW.id ? slowListing.hold() : null);
+drive.hold = (c) => (c.kind === "list" && c.parent === slow.id ? slowListing.hold() : null);
 // each thumbnail's request, in order, and how many are still unanswered (answered or aborted by the page leaves
 // them)
 const asked = [];
@@ -75,7 +62,7 @@ const letGo = (rows = [...gates.keys()]) => {
 // resolves at the next request or answer
 let moved, next = new Promise((ok) => { moved = ok; });
 const note = () => { moved(); next = new Promise((ok) => { moved = ok; }); };
-const slowListed = drive.next((c) => c.kind === "list" && c.parent === SLOW.id);
+const slowListed = drive.next((c) => c.kind === "list" && c.parent === slow.id);
 // a bound on waiting for the stand-in, so a page that never asks fails its check rather than hanging
 const atMost = (ms) => new Promise((ok) => setTimeout(ok, ms)); // bounds a hang: a page that never asks fails its check
 await ctx.route(`${origin}/studies/fixture/thumbs/*.jpg`, async (route) => {
