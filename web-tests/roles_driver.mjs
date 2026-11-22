@@ -162,7 +162,7 @@ await check(!s.hint && asked() === 1, "and opening the menu brings the roles Dri
 await page.context().close();
 
 // a site with no Google client signs no one in, so no one there may tag ground truth
-page = await open(false, { prepare: (ctx) => { siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" }; } });
+page = await open(false, { prepare: (ctx) => siteSettings(ctx).withoutGoogleClient() });
 s = await seen(page);
 await check(s.list.join() === "Viewer" && s.role === "Viewer", "with no sign-in on the site, Viewer alone is offered", s);
 await done(0);
