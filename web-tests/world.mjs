@@ -45,9 +45,11 @@ export function foldersOn(drive) {
       writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
       writableByAnyone() { drive.writableByAnyone(record); return f; },
       folder: (name, options = {}) => on.folder(name, { ...options, in: record }),
-      // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; the fake's record
-      holds({ name, mimeType, bytes }, { id, createdTime } = {}) {
-        return drive.file({ name, mimeType, bytes, parent: record.id, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}) });
+      // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; alsoIn: other
+      // folders it is in too, as Drive lets a file sit in several; the fake's record
+      holds({ name, mimeType, bytes }, { id, createdTime, alsoIn = [] } = {}) {
+        return drive.file({ name, mimeType, bytes, parent: record.id, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}),
+          ...(alsoIn.length ? { also: alsoIn.map((g) => g.id ?? g) } : {}) });
       },
     };
     return f;

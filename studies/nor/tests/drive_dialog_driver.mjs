@@ -44,8 +44,8 @@ const done = async (code, why) => { if (why) console.error(why); await browser.c
 const { drive } = w;
 const slides = w.folder("Slides").public(), more = slides.folder("More slides"), at = { createdTime: "2026-10-01T10:00:00Z" };
 w.studies.rootedAt("nor", slides);
-const files = images.map((p, k) => slides.holds({ name: path.basename(p), mimeType: "image/tiff", bytes: fs.readFileSync(p) }, { id: `dialogfile${String(k).padStart(10, "0")}`, ...at }));
-files[0].also = [more.id];
+const files = images.map((p, k) => slides.holds({ name: path.basename(p), mimeType: "image/tiff", bytes: fs.readFileSync(p) },
+  { id: `dialogfile${String(k).padStart(10, "0")}`, ...at, ...(k ? {} : { alsoIn: [more] }) }));
 const stranger = slides.holds({ name: "Not in the lab's list.tif", mimeType: "image/tiff", bytes: files[0].bytes }, at);
 // what the page took from Drive: per file, how often the whole file and how often a piece of it
 const asked = (id) => { const c = drive.calls.filter((x) => x.kind === "download" && x.id === id); return { whole: c.filter((x) => !x.range).length, pieces: c.filter((x) => x.range).length }; };
