@@ -68,6 +68,8 @@ finds test-first, fixes small gaps, and brings the owner only the calls that are
 | Change one item's sharing, only when the owner presses that correction's Fix button | Study Setup | approved (owner, 2026-11-21); never otherwise |
 | Fake Drive: per-account read sharing, the batch endpoint, revisions, permissions listing and changing | tests | approved (changing comes with the sharing fix above) |
 | Lab reads the study file by link | lab | covered: the lab reads link-shared files today, no sign-in |
+| Re-read the study file on each "Load annotation from Drive" click, so marks are current | main app | approved (owner, 2026-11-22) |
+| Extraction files named by a hash of the email, not the email | main app | decided (owner, 2026-11-22) |
 
 ## Decided after the second persona reviews
 
@@ -244,7 +246,7 @@ Depends on WP3.
 - `shell/extractions/save` Save writes the person's one extraction for the image to the study's extractions
   folder, replacing their own and keeping Drive's old revision; a count says how many images wait to upload.
   - **Test:** `web-tests/test_extractions_page.py` with `extractions_driver.mjs`: Save twice on one image: one
-    file `<stem>__<sha8>/x_<email>.json`, two revisions; two images saved offline: "2 waiting"; online and a click:
+    file `<stem>__<sha8>/x_<key>.json` (key: a hash of the email), two revisions; two images saved offline: "2 waiting"; online and a click:
     0. `test_truth_folders.py` (Node) covers naming and replace.
   - **Build:** `web/truth_folders.js` loses `accept`/`reject`/`status`'s curated branch; `submit` becomes `save`
     into one `extractions` folder; the `submitTruth` dialog in `web/shell.js` (around 1943) becomes Save.

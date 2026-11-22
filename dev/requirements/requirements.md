@@ -607,8 +607,9 @@ nobody has decided: what the page does there is not a requirement yet.
   extractions folder's listing and the image's subfolder's, two in all and no file read, every extraction of the image:
   the user's own first ("Yours"), then those the study file marks GT or official (`req/shell/study/one-file`, a mark
   names its extraction by file id and follows that file's latest content), then the others, folded under "Others". A
-  member (whoever Drive lets read the study's root, `req/shell/study/members`) sees who made each, by email, or the
-  algorithm and version that ran, from its file's name; the mark is added to the label ("yael@lab.org · GT"). The click
+  member (whoever Drive lets read the study's root, `req/shell/study/members`) sees each labelled "by hand" or by the
+  algorithm and version that ran, from its file's name, never by a person, since the name holds only a hash; the mark is
+  added to the label ("by hand · GT"). The click
   on a row reads that one file and shows it read-only; **Edit this annotation** enters annotation mode on it, and the
   next Save writes the user's own extraction with `base`, the id of the file it was edited from, leaving that file
   unchanged. Tests: `web-tests/test_annotate_mode_page.py`, `web-tests/test_extractions_page.py`,
@@ -634,8 +635,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-21. Signed out, or signed in with an account that cannot read the study's root, the
   list of an image's extractions (`req/shell/extractions/list`) holds the marked extractions alone, each labelled by
   the algorithm and version that ran or "by hand", with the mark ("by hand · GT"), and no email anywhere in it or in the
-  line that follows a click. Tentative: this is what the list shows; the folder's files are named for their authors, so
-  what Drive's link sharing of the folder lets a visitor read is the owner's to weigh (`setup/sharing-check`). Tests:
+  line that follows a click. Files are named by a hash of their author's email (owner, 2026-11-22), so listing the
+  link-shared folder names no one; the email stays inside each file, which anyone with the folder's link can open. Tests:
   `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
@@ -643,7 +644,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-21, in place of Submit. Save (the left bar's task row and its popup, which also holds
-  the checklist and Export file) writes the user's extraction of the image, `x_<email>.json`, into the image's
+  the checklist and Export file) writes the user's extraction of the image, `x_<key>.json`, into the image's
   subfolder `<stem>__<first 8 hex of its SHA-256>` of the study's one `Extractions` folder (named by the study file,
   made by Set up extractions in Data Management and shared by link to view), making the subfolder when it lacks one.
   Saving again replaces the user's own file, keeping Drive's earlier revision (`keepRevisionForever`), and writes
@@ -811,7 +812,8 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-05, changed on 2026-11-21. An image's subfolder is named `<image name>__<first 8 hex of its
-  SHA-256>`; in it, a person's file is `x_<email>.json` and a batch run's `run_<algorithm key>__<version>.json`. The file
+  SHA-256>`; in it, a person's file is `x_<key>.json`, the key the first 16 hex of the SHA-256 of their lower-cased email (set by the
+  owner on 2026-11-22, so a listing names no one), and a batch run's `run_<algorithm key>__<version>.json`. The file
   carries the image's full SHA-256, who made it and `created`, the time it was made. Saving again replaces the person's
   own file, keeping Drive's earlier revision forever. Only an image opened from Google Drive can be saved; for one
   opened from the computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`,

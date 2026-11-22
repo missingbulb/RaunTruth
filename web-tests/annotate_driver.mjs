@@ -11,6 +11,7 @@ import { standIn } from "./stand_in_drive.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
+import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, second] = process.argv.slice(2);
 const { google, drive, ROOT, GT, studyFile, writes, viewOnly, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
@@ -19,10 +20,10 @@ const OTHER = "someone@example.com", OWNER = "owner@acme.example";
 // the owner's extraction of IMAGE on Drive, marked GT in the study file, and the user's own, as the page's own saves are made
 const bytes = fs.readFileSync(image), sha = createHash("sha256").update(bytes).digest("hex");
 const sub = drive.folder({ mine: true, name: `${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, parent: GT.extractions }).id;
-const seed = (who, marks, mine = false) => drive.file({ mine, name: `x_${who}.json`, parent: sub,
+const seed = async (who, marks, mine = false) => drive.file({ mine, name: await personFile(who), parent: sub,
   bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: sha },
     labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true })) });
-const ownersFile = seed(OWNER, [[12, 12], [55, 35]]), mineFile = seed(OTHER, [[20, 20]], true);
+const ownersFile = await seed(OWNER, [[12, 12], [55, 35]]), mineFile = await seed(OTHER, [[20, 20]], true);
 studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 
 const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);

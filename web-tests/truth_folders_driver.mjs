@@ -30,11 +30,12 @@ function memoryDrive() {
 }
 
 const out = {};
+const JANE = await tf.personFile("jane@lab.org"), key = tf.personKey;
 const doc = (who, created, n = 1) => ({ format: "norfinder-ground-truth/2", created, tagger: who,
   image: { name: "slide3_s2.tif", sha256: "a1b2c3d4" + "0".repeat(56) }, labels: Array(n).fill({ label: 1 }) });
 const IMG = { name: "slide3_s2.tif", sha256: "a1b2c3d4" + "0".repeat(56) };
 
-out.names = { sub: tf.subfolderName(IMG.name, IMG.sha256), file: tf.personFile("Jane@Lab.org"), run: tf.runFile("count", "1.2.3") };
+out.names = { sub: tf.subfolderName(IMG.name, IMG.sha256), file: await tf.personFile("Jane@Lab.org"), run: tf.runFile("count", "1.2.3") };
 out.folder = { named: tf.folderOf({ extractions: "EXTRACTIONS01", curated: "OLD" }), none: tf.folderOf(null), unset: tf.folderOf({ data: "D" }) };
 
 // saving: the subfolder made once, the person's own file replaced keeping the old version, another person's file beside it
@@ -46,13 +47,13 @@ out.folder = { named: tf.folderOf({ extractions: "EXTRACTIONS01", curated: "OLD"
   await put("bob@lab.org", "2026-11-05T12:00:00Z", 3);
   const listed = await tf.files(d.reader, "EXT", IMG);
   out.save = { writes: d.writes, subfolders: d.files.filter((f) => f.folder).length, files: listed.map((f) => [f.name, f.by, f.run]),
-    janeBody: JSON.parse(d.files.find((f) => f.name === "x_jane@lab.org.json").body).labels.length };
+    janeBody: JSON.parse(d.files.find((f) => f.name === JANE).body).labels.length };
 }
 
 // a listing passes over what is no extraction, and reads a batch run's name as its algorithm and version
 {
   const d = memoryDrive(), sub = d.add({ parent: "EXT", name: tf.subfolderName(IMG.name, IMG.sha256), folder: true });
-  d.add({ parent: sub.id, name: "x_new@x.org.json", body: "{}" });
+  d.add({ parent: sub.id, name: await tf.personFile("new@x.org"), body: "{}" });
   d.add({ parent: sub.id, name: tf.runFile("find_nodes", "0.11121.154+ab12"), body: "{}" });
   d.add({ parent: sub.id, name: "gt_old@x.org.json", body: "{}" });
   d.add({ parent: sub.id, name: "notes.txt", body: "not an extraction" });
@@ -67,10 +68,10 @@ out.folder = { named: tf.folderOf({ extractions: "EXTRACTIONS01", curated: "OLD"
   const d = memoryDrive(), reads = [], text = d.reader.text;
   d.reader.text = async (id) => (reads.push(id), text(id));
   const sub = d.add({ parent: "EXT", name: tf.subfolderName(IMG.name, IMG.sha256), folder: true });
-  d.add({ parent: sub.id, name: "x_bob@lab.org.json", body: "{}" });
+  d.add({ parent: sub.id, name: await tf.personFile("bob@lab.org"), body: "{}" });
   d.lists.length = 0;
   const nobody = await tf.own(d.reader, "EXT", IMG, "jane@lab.org");
-  d.add({ parent: sub.id, name: "x_jane@lab.org.json", body: "{}" });
+  d.add({ parent: sub.id, name: JANE, body: "{}" });
   d.lists.length = 0;
   const mine = await tf.own(d.reader, "EXT", IMG, "Jane@Lab.org");
   const listed = [...d.lists];
@@ -79,17 +80,18 @@ out.folder = { named: tf.folderOf({ extractions: "EXTRACTIONS01", curated: "OLD"
 
 // the list: mine, then marked, then the others, each labelled; a member sees who made each, an outsider only the marked
 {
-  const f = (id, by, run) => ({ id, name: by ? tf.personFile(by) : tf.runFile(run[0], run[1]), modified: `2026-11-05T10:0${id.length}:00Z`, by, run: run ? { algorithm: run[0], version: run[1] } : null });
-  const files = [f("A", "jane@lab.org"), f("B", "yael@lab.org"), f("C", null, ["count", "1.2"]), f("D", "dan@lab.org"), f("E", null, ["count", "1.3"])];
+  const f = (id, by, run) => ({ id, name: by ? "x_" + by + ".json" : tf.runFile(run[0], run[1]), modified: `2026-11-05T10:0${id.length}:00Z`, by, run: run ? { algorithm: run[0], version: run[1] } : null });
+  const files = [f("A", await key("jane@lab.org")), f("B", await key("yael@lab.org")), f("C", null, ["count", "1.2"]), f("D", await key("dan@lab.org")), f("E", null, ["count", "1.3"])];
   const marks = { gt: { file: "B" }, official: { file: "C" } };
   const view = (r) => r.map((x) => [x.label, x.group, x.marks]);
   out.list = {
-    member: view(tf.rows({ files, marks, email: "Jane@lab.org", member: true })),
-    outsider: view(tf.rows({ files, marks, email: null, member: false })),
-    outsiderNames: JSON.stringify(tf.rows({ files, marks, email: null, member: false })),
-    signedInNonMember: view(tf.rows({ files, marks, email: "dan@lab.org", member: false })),
-    mineMarked: view(tf.rows({ files, marks: { gt: { file: "A" } }, email: "jane@lab.org", member: true })).slice(0, 1),
-    staleMark: view(tf.rows({ files, marks: { gt: { file: "gone" } }, email: null, member: false })),
+    member: view(tf.rows({ files, marks, key: await key("Jane@lab.org"), member: true })),
+    memberNames: JSON.stringify(tf.rows({ files, marks, key: await key("Jane@lab.org"), member: true })),
+    outsider: view(tf.rows({ files, marks, key: null, member: false })),
+    outsiderNames: JSON.stringify(tf.rows({ files, marks, key: null, member: false })),
+    signedInNonMember: view(tf.rows({ files, marks, key: await key("dan@lab.org"), member: false })),
+    mineMarked: view(tf.rows({ files, marks: { gt: { file: "A" } }, key: await key("jane@lab.org"), member: true })).slice(0, 1),
+    staleMark: view(tf.rows({ files, marks: { gt: { file: "gone" } }, key: null, member: false })),
     marksOf: [tf.marksOf({ abc: { gt: { file: "B" } } }, "abc"), tf.marksOf({}, "abc"), tf.marksOf(null, "abc")],
   };
 }

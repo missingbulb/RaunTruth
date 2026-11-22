@@ -12,10 +12,16 @@ export const subfolderName = (name, sha) => `${stem(name)}__${sha.slice(0, 8)}`;
 // the empty file in the extractions folder marking the image as needing ground truth
 const NEEDED = ".needs_gt";
 export const neededName = (name, sha) => subfolderName(name, sha) + NEEDED;
+// a person's key: the first 16 hex of the SHA-256 of their lower-cased email, so a listing of the link-shared folder names
+// no one (the email stays inside the file)
+export async function personKey(email) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email.toLowerCase()));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
 // a person's file in the image's subfolder, and a batch run's: the algorithm's key and the version that ran it
-export const personFile = (email) => `x_${email.toLowerCase()}.json`;
+export const personFile = async (email) => `x_${await personKey(email)}.json`;
 export const runFile = (algorithm, version) => `run_${algorithm}__${version}.json`;
-const PERSON = /^x_(.+)\.json$/, RUN = /^run_(.+?)__(.+)\.json$/;
+const PERSON = /^x_([0-9a-f]{16})\.json$/, RUN = /^run_(.+?)__(.+)\.json$/;
 
 // the folder the study's extractions are in, from its root's study file (study_root.js read), null while it has none
 export const folderOf = (settings) => settings?.extractions || null;
@@ -24,7 +30,7 @@ async function subfolder(reader, folder, image) {
   const name = subfolderName(image.name, image.sha256);
   return (await reader.all(folder)).find((f) => f.folder && f.name === name) || null;
 }
-// an extraction file as the listing gives it, {id, name, modified, by, run}: by the person's email, or null for a batch run's;
+// an extraction file as the listing gives it, {id, name, modified, by, run}: by the person's key (personKey), or null for a batch run's;
 // run {algorithm, version} for a batch run's, else null. A file that is neither is passed over.
 const entry = (f) => {
   const p = PERSON.exec(f.name), r = RUN.exec(f.name);
@@ -40,21 +46,21 @@ export async function files(reader, folder, image) {
 
 // the person's own extraction of the image, as files() lists it, or null
 export async function own(reader, folder, image, email) {
-  const mine = personFile(email);
+  const mine = await personFile(email);
   return (await files(reader, folder, image)).find((f) => f.name === mine) || null;
 }
 
-// An image's extractions as the list shows them, [{id, modified, label, group, marks}], never the file name, which holds the author's email, mine first, then the marked
+// An image's extractions as the list shows them, [{id, modified, label, group, marks}], mine first, then the marked
 // (GT before official), then the others, which the list folds. files: files(); marks: the study file's marks for the image,
-// {gt: {file}, official: {file}} (marksOf); email: who looks, or null; member: whether they may read the study's root.
-// A member sees who made each; someone who is not one is listed only the marked, by algorithm version or "by hand", and
-// no person's name.
-export function rows({ files, marks, email, member }) {
-  const me = email ? email.toLowerCase() : null, tags = (f) => ["gt", "official"].filter((k) => marks?.[k]?.file === f.id);
+// {gt: {file}, official: {file}} (marksOf); key: who looks (personKey), or null; member: whether they may read the study's
+// root. Each is labelled by algorithm version or "by hand", never by a person; someone who is not a member is listed only
+// the marked.
+export function rows({ files, marks, key, member }) {
+  const me = key || null, tags = (f) => ["gt", "official"].filter((k) => marks?.[k]?.file === f.id);
   const how = (f) => (f.run ? `${f.run.algorithm} ${f.run.version}` : "by hand");
   const out = files.map((f) => {
     const t = tags(f), mine = !!me && f.by === me;
-    const words = [mine ? "Yours" : member ? (f.by || how(f)) : how(f), ...t.map((k) => (k === "gt" ? "GT" : "official"))];
+    const words = [mine ? "Yours" : how(f), ...t.map((k) => (k === "gt" ? "GT" : "official"))];
     return { id: f.id, modified: f.modified, mine, marks: t, label: words.join(" · "), group: mine ? "mine" : t.length ? "marked" : "other" };
   });
   const order = { mine: 0, marked: 1, other: 2 };
@@ -90,7 +96,7 @@ async function ensure(reader, writer, folder, image) {
 // the person's document written as their one extraction of the image in folder, replacing their own and keeping Drive's old
 // revision; the file's id
 export async function save({ reader, writer, folder, image, email, doc }) {
-  const sub = await ensure(reader, writer, folder, image), name = personFile(email);
+  const sub = await ensure(reader, writer, folder, image), name = await personFile(email);
   const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
   const there = (await reader.all(sub)).find((f) => !f.folder && f.name === name);
   return there ? writer.replace(there.id, blob, { keepForever: true }) : writer.create(sub, name, blob);
