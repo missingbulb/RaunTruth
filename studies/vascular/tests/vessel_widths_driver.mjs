@@ -10,13 +10,13 @@
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { writeTiff } from "../../../web/tiff_file.js";
 
 import { serve, atStage, taggersDevice, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
+import { image } from "../../../web-tests/images.mjs";
 import { orMissed } from "../../../web-tests/page_until.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
@@ -29,20 +29,14 @@ const [studies, shots] = process.argv.slice(2);
 const UM = 0.55, SIDE = 1300, Z = 6, FOCUS = 2;
 const VESSELS = [{ y: 40, true: 5, r: 1.5 }, { y: 90, true: 4, r: 2 }, { y: 140, true: 3, r: null }];
 const X0 = 20, X1 = 150, STRIPES = { x0: 158, x1: 176, y0: 8, y1: 26 };
-function stack() {
-  const n = SIDE * SIDE, planes = [];
-  for (let z = 0; z < Z; z++) {
-    const p = new Uint8Array(n).fill(12), near = Math.abs(z - FOCUS) <= 1;
-    for (let y = 0; y < SIDE; y++) for (let x = 0; x < SIDE; x++) {
-      const ux = (x + .5) * UM, uy = (y + .5) * UM;
-      if (ux >= X0 && ux <= X1) for (const v of VESSELS) if (Math.abs(uy - v.y) <= v.true / 2) p[y * SIDE + x] = near ? 220 : 60;
-      if (ux >= STRIPES.x0 && ux <= STRIPES.x1 && uy >= STRIPES.y0 && uy <= STRIPES.y1 && x % 2 === 0) p[y * SIDE + x] = 240;
-    }
-    planes.push(p);
-  }
-  const res = [1e6, Math.round(UM * 1e6)];
-  return Buffer.from(writeTiff({ w: SIDE, h: SIDE, bps: 1, planes, xres: res, yres: res, description: `ImageJ=1.54f\nimages=${Z}\nslices=${Z}\nunit=micron\n` }));
-}
+const stack = (name) => image.tiff(name, { width: SIDE, height: SIDE, planes: Z, bps: 1, resolution: Array(2).fill([1e6, Math.round(UM * 1e6)]),
+  description: `ImageJ=1.54f\nimages=${Z}\nslices=${Z}\nunit=micron\n`,
+  value(z, x, y) {
+    const ux = (x + .5) * UM, uy = (y + .5) * UM;
+    if (ux >= STRIPES.x0 && ux <= STRIPES.x1 && uy >= STRIPES.y0 && uy <= STRIPES.y1 && x % 2 === 0) return 240;
+    if (ux >= X0 && ux <= X1 && VESSELS.some((v) => Math.abs(uy - v.y) <= v.true / 2)) return Math.abs(z - FOCUS) <= 1 ? 220 : 60;
+    return 12;
+  } });
 // the model the stand-in's Execute answers with: the three vessels as edges through a curve point each
 const model = {
   format: "vessel-model/2", status: "draft", source: "acme-widths.tif", slices: Z, size_px: [SIDE, SIDE], um_per_px: UM, z_step_um: 1,
@@ -78,7 +72,7 @@ const screen = (x, y, w) => [cx + w.rect[0] + (x - w.box.x0) / (w.box.x1 - w.box
 try {
   page = await device.opens("vascular");
   page.setDefaultTimeout(15000);
-  await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: stack() });
+  await openFromDrive(page, stack(model.source));
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#vm-run");
