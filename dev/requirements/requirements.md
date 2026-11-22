@@ -105,7 +105,9 @@ nobody has decided: what the page does there is not a requirement yet.
   file yet, this device's start it. While it has a token,
   each change to a setting that follows the user saves the whole file. Sign out forgets the user and
   the token on this device and leaves its settings as they are. A visitor who never signs in is asked
-  once on opening the page (`req/shell/account/welcome`) and loads nothing from Google for it. Test: `web-tests/test_account_page.py`,
+  once on opening the page (`req/shell/account/welcome`) and loads nothing from Google for it. Set by the owner on
+  2026-11-22: two tabs signed in at once, each changing settings, are not a requirement, and no test covers them; a
+  change made in one may be lost to the other's sync. Test: `web-tests/test_account_page.py`,
   `web-tests/test_site_config.py`.
   </details>
 
