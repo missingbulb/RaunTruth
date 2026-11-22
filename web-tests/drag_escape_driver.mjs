@@ -8,10 +8,9 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { localStudy } from "./local_study.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -30,22 +29,18 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-await localStudy(ctx, "fixture");
+w.studies.fromThisComputer("fixture");
+const device = w.device();
 // every Escape the page itself hears, after the drag's own wrapper has had its say
-await ctx.addInitScript(() => {
-  delete Navigator.prototype.serviceWorker;
+await (await device.context()).addInitScript(() => {
   window.heardEscape = 0;
   addEventListener("keydown", (e) => { if (e.key === "Escape") heardEscape++; });
 });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+const page = await device.opens("fixture");
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
 
