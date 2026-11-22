@@ -1,7 +1,7 @@
 {
  "about": "The owner coming back after their token ran out: the page holds a sign-in whose token Google no longer takes, and the token runs out again during the walk.",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": {
   "email": "owner@acme.example",
   "name": "Acme Owner"

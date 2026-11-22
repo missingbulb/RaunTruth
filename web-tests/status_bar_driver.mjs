@@ -2,9 +2,9 @@
 // ANSWERS (tests/test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
 // on its row in the switcher, whose popup lists the stages; breadcrumbs of the steps done and the one to do now, which shines with its button and
 // nothing else does; a popup on each crumb saying what was done; the shining crumb bringing its button into view
-// and pressing it; a new image starting over; a PreGT study with no Save step;
+// and pressing it; a new image starting over; a Review study with no Save step;
 // the second view's switch reading Tasks with what is left while the study makes ground truth, Items otherwise;
-// a Published study with no Save step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
+// a Public study with no Save step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
 // numbers, each opening its own tab of one dialog, each rolling its changed characters to a new value, the CPU and
 // the network flashing on a sharp rise and rolling nothing when reduced motion is asked for; a separator between every two items; no question-mark pointer; the four folded into one icon at first, unfolded by hovering it but not by going offline,
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
@@ -148,7 +148,7 @@ const hoverStage = async (page, id) => {
   if (!(await page.evaluate(() => document.querySelector("#study-menu").open))) await page.click("#study-menu summary");
   await page.hover(`#study-list a[data-id="${id}"] .stage-tag`);
   await page.waitForFunction(() => document.querySelector("#stage-pop").matches(":popover-open"));
-  return page.evaluate(() => [...document.querySelectorAll("#stage-pop li")].map((li) => ({
+  return page.evaluate(() => [...document.querySelectorAll("#stage-list li")].map((li) => ({
     name: li.querySelector(".name").textContent, now: li.classList.contains("now"), crossed: getComputedStyle(li.querySelector(".name")).textDecorationLine,
   })));
 };
@@ -168,20 +168,20 @@ const switchIs = async (page, want, on, what) => {
 const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => document.querySelector("#fx-count")?.disabled === false); await annotateIfAsked(page, "#fx-count"); };
 const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
-// ---- a GT study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
+// ---- a Develop study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
 {
   const { ctx, page } = await open("fixture", "open");
-  await stageIs(page, "GT");
+  await stageIs(page, "Develop");
   // hovering the stage lists the stages, its own highlighted and the ones before it crossed out
   const stages = await hoverStage(page, "fixture");
-  await check(stages.map((x) => x.name).join() === "PreGT,GT,PostGT,Published" && stages[1].now && stages.filter((x) => x.now).length === 1,
-    "the stage's popup lists PreGT, GT, PostGT and Published, GT highlighted", stages);
+  await check(stages.map((x) => x.name).join() === "Setup,Develop,Analyze,Review,Public" && stages[1].now && stages.filter((x) => x.now).length === 1,
+    "the stage's popup lists Setup, Develop, Analyze, Review and Public, Develop highlighted", stages);
   await check(stages[0].crossed === "line-through" && stages.slice(1).every((x) => x.crossed === "none"), "the stage before it is crossed out", stages);
   await check(/next|move on/i.test(await page.textContent("#stage-pop")), "and says what moves the study on", await page.textContent("#stage-pop"));
   const beside = await page.evaluate(() => document.querySelector("#stage-pop").getBoundingClientRect().left - document.querySelector("#study-menu .pop").getBoundingClientRect().right);
   await check(beside >= 0, "and opens beside the switcher, not over it", beside);
   if (shots) await page.screenshot({ path: path.join(shots, "0-stages.png") });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"));
   await page.keyboard.press("Escape");
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
@@ -591,17 +591,17 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await ctx.close();
 }
 
-// ---- the same study as PreGT: no ground truth to export ----
+// ---- the same study as Review: no ground truth to export ----
 {
-  stage = "PreGT";
+  stage = "Review";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "PreGT");
+  await stageIs(page, "Review");
   // another study's label speaks of that study
   const other = await hoverStage(page, "nor");
-  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a PreGT study, hovering NoR Finder's label highlights GT, its own", other);
+  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a Review study, hovering NoR Finder's label highlights Develop, its own", other);
   // with animations off, leaving it closes it all the same
   const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   const closed = await orMissed(page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: STEP }));
   await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
@@ -610,7 +610,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await switchIs(page, "Items", false, "the shell keeps the switch off until the study has counted its items");
   await count(page);
   await steps(page, ["Load image", "Count"], []);
-  await switchIs(page, "Items 1", true, "a PreGT study's item view shows what was found, how many");
+  await switchIs(page, "Items 1", true, "a Review study's item view shows what was found, how many");
   await page.click("#switch");
   await page.waitForFunction(() => !document.querySelector("#switch").classList.contains("working"));
   await check(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
@@ -620,11 +620,11 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   stage = null;
 }
 
-// ---- the same study as Published: it only shows what it finds ----
+// ---- the same study as Public: it only shows what it finds ----
 {
-  stage = "Published";
+  stage = "Public";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "Published");
+  await stageIs(page, "Public");
   await loadImage(page); await count(page);
   await steps(page, ["Load image", "Count"], []);
   await switchIs(page, "Items 1", true, "its item view shows what was found, how many");
@@ -642,7 +642,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   // switching study in place: its stage and steps come with it, and it starts with no image open
   await page.click("#study-menu summary");
   await page.click("#study-list a >> text=NoR Finder");
-  await page.waitForFunction(() => document.documentElement.dataset.stage === "GT");
+  await page.waitForFunction(() => document.documentElement.dataset.stage === "Develop");
   // NoR Finder loads from Drive (req/shell/load/from): with no image opened there yet, Drive's button is the step's
   await steps(page, ["Load image*"], ["#load-remote", "#sb-load"]);
   await ctx.close();

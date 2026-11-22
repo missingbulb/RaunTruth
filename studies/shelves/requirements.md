@@ -50,7 +50,7 @@ read for a title matcher; matching the titles is not part of it.
   one is certainly wrong, and two stacked one over the other that overlap each other alone, by a large share, are one
   book's two halves, boxed as one. A line across the shelf that the edges between books run on across is lettering
   or a light's edge over the books, not a shelf's board, and cuts no book. Set by the owner on 2026-11-10, while
-  the study is in its GT stage Find books favours finding every book over boxing nothing wrong: a wrong box costs the
+  the study is in Develop Find books favours finding every book over boxing nothing wrong: a wrong box costs the
   tagger one click to drop, a missed book a box drawn by hand. Versions are compared by F2, recall weighted twice
   precision (Claude's default for the weighting and the stage; not yet confirmed by the owner). Set by the owner on
   2026-11-18 (#1011), the algorithm is both the boxing and the reading of the titles: Find books is one run of the

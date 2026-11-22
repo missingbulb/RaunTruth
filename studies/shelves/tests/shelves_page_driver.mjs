@@ -98,7 +98,7 @@ async function open(role, seed = {}, finder = {}) {
   await asTagger(ctx);
   await prepare(ctx, finder);
   // someone only viewing what the finder finds: the study as a published one shows it, which has no annotating to start
-  if (role === "viewer") studiesOf(ctx).edit("shelves", (m) => ({ ...m, stage: "Published" }));
+  if (role === "viewer") studiesOf(ctx).edit("shelves", (m) => ({ ...m, stage: "Public" }));
   await ctx.addInitScript(([role, seed]) => {
     delete Navigator.prototype.serviceWorker;
     for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);

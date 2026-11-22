@@ -76,7 +76,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   if (studies) site.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
   // inList: the list of studies names ROOT as each rooted study's root, so that Drive's sharing of it decides who is a member (shell/study/members)
   // (the fixture, which the build leaves out of the list as unlisted, is put in it rooted)
-  if (inList) site.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "GT", root: ROOT }])] : list));
+  if (inList) site.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "Develop", root: ROOT }])] : list));
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));

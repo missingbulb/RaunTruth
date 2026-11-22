@@ -26,7 +26,7 @@ model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK
 const site = await serve(studies, model);
 
 const browser = await launch(pw);
-atStage(browser, "GT");
+atStage(browser, "Develop");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);

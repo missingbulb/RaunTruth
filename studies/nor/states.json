@@ -86,11 +86,11 @@
     }
   },
   "roots": {
-    "GT, signed out": {"stage": "GT", "signedIn": false},
-    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true}
+    "Develop, signed out": {"stage": "Develop", "signedIn": false},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, signed out", "actions": ["load", "scratch", "count"]},
-    {"root": "GT, Annotator", "actions": ["load", "scratch", "count"]}
+    {"root": "Develop, signed out", "actions": ["load", "scratch", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]}
   ]
 }

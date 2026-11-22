@@ -4,7 +4,7 @@
 "use strict";
 
 // the stages that list a study for everyone, signed in or not
-const RELEASED = ["Published", "Public"];
+const RELEASED = ["Public"];
 export const released = (stage) => RELEASED.includes(stage);
 
 // The ids of the studies whose root the signed-in user can read, asked of the store in one batch request.

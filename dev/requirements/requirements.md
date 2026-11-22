@@ -112,7 +112,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-21, in place of the role menu (the header has none: one page for everyone, to which
   what Drive's sharing lets a person do only adds) and of Start GT tagging. In a study whose stage lets its users
-  annotate (GT and PostGT; the five stages of `req/shell/study/stage` replace this), once an image has loaded an
+  annotate (Setup, Develop and Analyze; `req/shell/study/stage`), once an image has loaded an
   Annotations box in the left bar asks, for that image, how to get annotations on it: **Continue local annotation
   work**, offered only when this device holds a draft of the image (`req/shell/ground-truth/save-draft`) and entering
   annotation mode with it loaded; **Load annotation from Drive**, which lists the image's annotations on Drive and,
@@ -125,7 +125,7 @@ nobody has decided: what the page does there is not a requirement yet.
   tagging (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode.
   Loading another image leaves the mode and asks again, so does Unload, and the mode is not kept across a reload.
   The list is that of `req/shell/extractions/list`. Tentative: a study whose stage does
-  not annotate (PreGT, Published) asks nothing, and Processing shows as before. Test:
+  not annotate (Review, Public) asks nothing, and Processing shows as before. Test:
   `web-tests/test_annotate_mode_page.py`.
   </details>
 
@@ -368,8 +368,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Google Drive root folder, the only folder the repo names; who may read it is Drive's sharing of it, members only
   until the owner shares it by link (`req/shell/study/members`). The
   folders under it are named by the root's study file (`req/shell/ground-truth/setup`), and until it has
-  one, by name: `Data`, its images, and `Extractions`. Signed in, opening a
-  GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Study Setup is offered) and
+  one, by name: `Data`, its images, and `Extractions`. Signed in, opening
+  a study asks Drive, with the user's token, whether they may write to the root (Study Setup is offered) and
   to the extractions folder (they may save, `req/shell/annotate/no-save`); each is offered only where Drive says so. Nobody is
   listed in the repo, and what anyone can change is still what Drive lets them. Changed by the owner on 2026-11-21: who
   may read the root decides who sees the study at all (`req/shell/study/members`). Tests:
@@ -858,8 +858,8 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/setup` Set up extractions, in Data Management, makes the study's Extractions folder and names it in the root's study file.
   <details>
 
-  Set by the owner on 2026-11-07, changed on 2026-11-21 (one store, `req/shell/extractions/file`). For a study owner of a GT
-  or PostGT study, Data Management offers Set up extractions, which asks to confirm and then makes `Extractions` in the root,
+  Set by the owner on 2026-11-07, changed on 2026-11-21 (one store, `req/shell/extractions/file`). For a study owner of a study in Setup, Develop
+  or Analyze, Data Management offers Set up extractions, which asks to confirm and then makes `Extractions` in the root,
   shares it with anyone with the link to view, and writes `rauntruth-study.json` in the root, the one study file
   (`req/shell/study/one-file`), naming the data folder and the extractions folder by id, who set it up and when. Without the
   page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites
@@ -872,7 +872,7 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/summary` An Extractions box in Data Management says where annotations are saved and how many images have one.
   <details>
 
-  Set by the owner on 2026-11-07, changed on 2026-11-21. In a GT or PostGT study whose study file names an extractions
+  Set by the owner on 2026-11-07, changed on 2026-11-21. In a study in Setup, Develop or Analyze whose study file names an extractions
   folder, an Extractions box sits above the folder tree in Data Management. It says everyone's saved annotations of the
   study's images are kept there, one file per person for each image, and counts, from the folder's one listing, the images
   with an extraction and, from the study file's marks, those with a GT mark. A chosen folder's summary counts the same.
@@ -1674,7 +1674,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
   Run algorithm and Review all items), then Save while the study makes ground truth for the user: a
-  user annotating in a GT or PostGT study (`req/shell/annotate/choice`). The status bar shows
+  user annotating in a Setup, Develop or Analyze study (`req/shell/annotate/choice`). The status bar shows
   the steps done, then the first one not done, which shines blue, and with it the button that does
   that step (the `button` the step names; Load for Load image, the ground-truth button for Save); later steps do not show yet, and once every step is done none shines. Load image is done
   once an image is open, Save once the extraction is saved or waits to be (for a local image, once its file is
@@ -1831,7 +1831,7 @@ nobody has decided: what the page does there is not a requirement yet.
   parent does not, so the folders visitors and the lab need are each shared by link on top); whoever can read the root is
   a member, and membership, not the stage, decides who sees a study. Signed in, the page asks Drive which of the listed
   studies' roots the account can read, all of them in one batch request per load, and the switcher lists those and the
-  released ones (stage `Published` in `study.json`, or `Public` in the study file); a study with no root is listed to all.
+  released ones (stage `Public`, in `study.json`); a study with no root is listed to all.
   Signed out, it lists the released ones and asks Drive nothing. While the token has run out or Drive does not answer, the
   list Drive last gave this user stays, with the line "as Drive last said" under it, until they sign out. The root's
   readers are Drive's: the repo lists no one. Test: `web-tests/test_study_members_page.py`.
@@ -1867,26 +1867,42 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-21. The owner shares the root by link when the study enters Review, so reviewers need no
   Google account: the study opens at its address, whose root the site's key can then read, and the switcher does not
-  list it to anyone signed out. Until the stages arrive, `Review` in the study file marks it. Test:
+  list it to anyone signed out: its stage in the study file is Review (`req/shell/study/stage`). Test:
   `web-tests/test_study_members_page.py`.
   </details>
 
-- `req/shell/study/stage` A study declares its stage: PreGT, GT, PostGT or Published.
+- `req/shell/study/stage` A study's stage, Setup, Develop, Analyze, Review or Public, is kept in its study file and set by the owner in Study Setup; it opens and closes actions as the table in the map says.
   <details>
 
-  Every `study.json` names its `stage`, `null` for a tool that makes no ground truth and has no stage, and the header's
-  switcher (`req/shell/header`) shows each study's at the end of its row as a small label, in 10 px type, the stage's name bordered in its colour: red for PreGT, yellow for GT, green for PostGT,
-  green and filled for Published. Set by the owner on 2026-11-04.
-  Hovering a label opens a popup beside the switcher listing the four stages in order with what each means, that study's own highlighted and the
-  ones before it crossed out, and what the study needs to move on to the next.
-  PreGT: the study's tools work but cannot make ground truth yet, so it offers no export: its
-  Save (`req/shell/ground-truth/tasks`) is not shown and it has no Save step. GT: the same,
-  with the ground truth exported and saved (`req/shell/extractions/save`). PostGT: GT with batch actions on top (none
-  yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
-  shows what it finds, so it makes no ground truth (no Save, as in PreGT) and
-  drops the steps that serve making it: the study's
-  postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
-  NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-map.md`, `dev/requirements/study-stages-spec.md`, WP6), in place of PreGT, GT,
+  PostGT and Published. The stage is a key of the study file (`req/shell/study/one-file`), read, for someone signed in (a visitor who never signs in loads nothing from Google, and has `study.json`'s stage), when the study comes in, when the user signs in
+  or out and when the user saves; `study.json`'s `stage` is the one the study has until its file names one of the five (every study but the Image
+  Viewer starts in Develop), and `null` for a study outside the model, the Image Viewer, which has no stage and so no annotating, marking, batch run
+  or data to close. The one table of what each stage opens is `web/stages.js`, read through `stageAllows(action)` by the shell, Study Setup and
+  Data Management: Study Setup's data (open in Setup, Develop and Analyze, closed in Review and Public), viewing and running the algorithm
+  (every stage; who may is Drive's sharing), running on one's own images (every stage), Start Annotating (open in Setup, for trial, Develop and
+  Analyze, closed in Review and Public), marking an extraction GT or official (Develop and Analyze), a batch run (every stage; in Review and Public
+  it counts once marked) and the numbers shown (none in Setup). `web-tests/stage_table.json` transcribes those rows of the map's table, and a
+  test holds it to the map and to `stages.js`. The header's switcher (`req/shell/header`) shows each study's stage at the end of its row as a small
+  label, in 10 px type, the stage's name bordered in its colour: red for Setup, yellow for Develop, green for Analyze, blue for Review, green and
+  filled for Public. A study listed to everyone while signed out is one whose `study.json` says Public; the page cannot read each study file
+  for that. Where Study Setup promotes or moves the study back the page takes the new stage at once. Public drops the steps that serve making ground truth
+  (the study's postprocessing is not shown). The popup is `shell/study/stage-popup`. Test: `web-tests/test_study_contract.py`,
+  `web-tests/test_status_bar_page.py`, `web-tests/test_stage_table.py`, `web-tests/test_stage_table_page.py`.
+  </details>
+
+- `req/shell/study/stage-popup` Hovering a study's stage label lists the five stages, what each means and what moves a study on; for the study on show it also gives the gate's conditions as the page measures them and one line for each action open to this user.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). The popup opens beside the switcher while a label is hovered,
+  listing the five stages in order with what each means, the hovered study's highlighted and the ones before it crossed out, and what the study needs
+  to move on. For the study on show, below them: the gate's conditions the page can measure, from the study file's index and marks (in Develop, "n of
+  m images have a GT mark"; in Analyze, how many have an official mark; in Setup, how many images the index lists), and one line for each action
+  open to this user in this stage: viewing and running the algorithm, running on their own images, for someone the store lets save "Annotate: 12
+  images still need it" (the images in the study's index, hidden ones left out for those who may not manage it, that carry no GT mark), and for
+  someone who may write the root the Study Setup actions the stage opens. Someone who may not save has no Annotate line, nor has anyone in a stage that
+  closes annotating. Tentative: the gate's wording for each stage, which the page can measure only in part (the owner's judgement is the real gate).
+  Test: `web-tests/test_stage_popup_page.py`.
   </details>
 
 - `req/shell/study/switch-in-place` Switching study happens in place: no reload, and the new study starts as a fresh load of its address shows it.
@@ -2057,7 +2073,7 @@ nobody has decided: what the page does there is not a requirement yet.
   null until it has any; Vascular: its junctions and vessels) and hears which view is shown (`views.on(fn)`).
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
   while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
-  (annotating in a GT or PostGT study, `req/shell/annotate/choice`) there is no item view and no switch:
+  (annotating in a Setup, Develop or Analyze study, `req/shell/annotate/choice`) there is no item view and no switch:
   the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
   owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
   the shell's `data-shelved` mark.
@@ -2159,6 +2175,22 @@ nobody has decided: what the page does there is not a requirement yet.
   extractions folder. Test: `web-tests/test_setup_sharing_page.py`, `web-tests/test_setup_sharing_rules.py`.
   </details>
 
+- `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Study Setup's Stage box shows the study's stage and what it
+  means, a button to promote to the next stage and one to move back to the one before; only the owner (whoever may write the root) reaches it, and
+  nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
+  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review the box lists each
+  image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first.
+  Promoting to Review asks first, in a dialog that says marking and data close, what people save afterwards is kept but not counted, and lists
+  those images again; Freeze writes Review and Cancel writes nothing. From Review on the GT and official buttons are gone from an image's
+  extractions and every control that changes the study's data is gone (folders, set-up of extractions, previews, tags, descriptions, areas, hide rules, the
+  grouping tag, Needs GT, and the study index is no longer written), while the stage, the sharing and the batch run stay. Moving back reopens them. The main app's Save of a
+  session begun before the freeze still writes the person's extraction, and says it was saved "after the freeze, not counted". Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_stage_driver.mjs`.
+  </details>
+
 - `req/setup/sharing-check` Study Setup checks the study's Drive sharing against what its stage needs and lists each correction, with what to change, where and pictures; Fix changes one item's sharing only when the owner presses it and confirms.
   <details>
 
@@ -2167,7 +2199,7 @@ nobody has decided: what the page does there is not a requirement yet.
   again button. What a stage needs: before Review (Setup, Develop, Analyze) the root is shared with named people only,
   never by link; from Review on it is shared by link; in every stage `Data`, `Previews`, the extractions folder and the
   study file are readable by link; while people annotate (Setup, Develop, Analyze) at least one person may write the
-  extractions folder. A study whose file names none of the five stages is in Develop until the stages are built.
+  extractions folder. A study whose file names none of the five stages is in the one its `study.json` names (`req/shell/study/stage`).
   Each correction names the item, what to change, a link to that item's sharing dialog and a picture of Drive's own
   dialog; one the site can make has a **Fix** button, which asks to confirm what will change, makes that one change
   and checks again; Cancel writes nothing. Nothing else changes sharing: not opening the page, not a promotion, not

@@ -2,7 +2,7 @@
   "about": "The shell's elements, as a tree, and what each shows in every state the paths below reach (req/checks/shell-states). An element says only how it differs from its parent: its rule is a list of cases, the first whose `when` matches the state deciding, and an element with no rule shows as its parent does. A case is `owner` (the spec says so) unless it says `tentative` (Claude's call, not approved) or `undecided` (nobody has decided: not checked). The paths below open the study `study` names, the shell's test study, with its states.json grafted in; each other study's states.json may add paths of its own, opening it. dev/tools/build/shell_states.py turns this file, and every study's states.json, into the matrix and the browser test's expectations.",
   "study": "fixture",
   "vars": {
-    "stage": [null, "PreGT", "GT", "PostGT", "Published"],
+    "stage": [null, "Setup", "Develop", "Analyze", "Review", "Public"],
     "signedIn": [false, true],
     "image": ["none", "local", "preview", "original"],
     "counted": [false, true],
@@ -28,36 +28,42 @@
     "edited": [false, true]
   },
   "roots": {
-    "GT, signed out": {"stage": "GT", "signedIn": false},
-    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true},
-    "GT, may not save": {"stage": "GT", "signedIn": true},
-    "PostGT, Annotator": {"stage": "PostGT", "signedIn": true, "maySave": true},
-    "PreGT, signed out": {"stage": "PreGT", "signedIn": false},
-    "PreGT, Annotator": {"stage": "PreGT", "signedIn": true, "maySave": true},
-    "Published, signed in": {"stage": "Published", "signedIn": true, "maySave": true},
-    "GT, Study owner": {"stage": "GT", "signedIn": true, "maySave": true},
-    "PreGT, Study owner": {"stage": "PreGT", "signedIn": true, "maySave": true}
+    "Develop, signed out": {"stage": "Develop", "signedIn": false},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true},
+    "Develop, may not save": {"stage": "Develop", "signedIn": true},
+    "Setup, Annotator": {"stage": "Setup", "signedIn": true, "maySave": true},
+    "Analyze, Annotator": {"stage": "Analyze", "signedIn": true, "maySave": true},
+    "Review, signed out": {"stage": "Review", "signedIn": false},
+    "Review, Annotator": {"stage": "Review", "signedIn": true, "maySave": true},
+    "Public, signed in": {"stage": "Public", "signedIn": true, "maySave": true},
+    "Develop, Study owner": {"stage": "Develop", "signedIn": true, "maySave": true},
+    "Setup, Study owner": {"stage": "Setup", "signedIn": true, "maySave": true},
+    "Public, Study owner": {"stage": "Public", "signedIn": true, "maySave": true},
+    "Review, Study owner": {"stage": "Review", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, signed out", "actions": ["load", "scratch", "count"]},
-    {"root": "GT, may not save", "actions": ["load", "scratch", "count"]},
-    {"root": "GT, Annotator", "actions": ["load", "scratch", "count", "draft", "unload", "load", "local"]},
-    {"root": "GT, Annotator", "actions": ["drive", "viewdrive", "edit"]},
-    {"root": "PostGT, Annotator", "actions": ["load", "scratch", "count"]},
-    {"root": "PreGT, signed out", "actions": ["load", "count"]},
-    {"root": "PreGT, Annotator", "actions": ["load", "count", "items"]},
-    {"root": "Published, signed in", "actions": ["load", "count", "items"]},
-    {"root": "GT, Annotator", "actions": ["load", "offline", "online"]},
-    {"root": "GT, Study owner", "actions": ["data", "folder", "preview", "original", "offline"]},
-    {"root": "GT, Study owner", "actions": ["data", "folder", "offline", "online"]},
-    {"root": "GT, Study owner", "actions": ["data", "folder", "zpreview", "original"]},
-    {"root": "PreGT, Study owner", "actions": ["data", "folder"]},
-    {"root": "GT, Annotator", "actions": ["load", "scratch", "ok", "count", "unload"]},
-    {"root": "GT, Annotator", "actions": ["load", "scratch", "count", "restudy"]},
-    {"root": "GT, Annotator", "actions": ["drive", "scratch", "count"]},
-    {"root": "GT, Study owner", "actions": ["data", "leave", "load", "data"]},
-    {"root": "GT, Annotator", "actions": ["load", "zoom"]},
-    {"root": "GT, Annotator", "actions": ["large"]}
+    {"root": "Develop, signed out", "actions": ["load", "scratch", "count"]},
+    {"root": "Develop, may not save", "actions": ["load", "scratch", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count", "draft", "unload", "load", "local"]},
+    {"root": "Develop, Annotator", "actions": ["drive", "viewdrive", "edit"]},
+    {"root": "Setup, Annotator", "actions": ["load", "scratch", "count"]},
+    {"root": "Analyze, Annotator", "actions": ["load", "scratch", "count"]},
+    {"root": "Review, signed out", "actions": ["load", "count"]},
+    {"root": "Review, Annotator", "actions": ["load", "count", "items"]},
+    {"root": "Public, signed in", "actions": ["load", "count", "items"]},
+    {"root": "Develop, Annotator", "actions": ["load", "offline", "online"]},
+    {"root": "Develop, Study owner", "actions": ["data", "folder", "preview", "original", "offline"]},
+    {"root": "Develop, Study owner", "actions": ["data", "folder", "offline", "online"]},
+    {"root": "Develop, Study owner", "actions": ["data", "folder", "zpreview", "original"]},
+    {"root": "Review, Study owner", "actions": ["data", "folder"]},
+    {"root": "Setup, Study owner", "actions": ["data", "folder"]},
+    {"root": "Public, Study owner", "actions": ["data", "folder"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "ok", "count", "unload"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count", "restudy"]},
+    {"root": "Develop, Annotator", "actions": ["drive", "scratch", "count"]},
+    {"root": "Develop, Study owner", "actions": ["data", "leave", "load", "data"]},
+    {"root": "Develop, Annotator", "actions": ["load", "zoom"]},
+    {"root": "Develop, Annotator", "actions": ["large"]}
   ],
   "tree": [
     {"name": "Header", "select": "header", "req": "req/shell/header", "steady": "always shown",
@@ -91,12 +97,44 @@
                 },
                 {"name": "Extractions box", "select": "#gt-box", "req": "req/shell/ground-truth/summary",
                   "rule": [
-                    {"when": {"stage": [null, "PreGT", "Published"]}, "is": "hidden", "approval": "tentative"}
+                    {"when": {"stage": [null]}, "is": "hidden", "approval": "tentative", "unwalked": "a study with no stage, the Image Viewer, has no Study Setup walked"}
                   ],
                   "children": [
                     {"name": "Extractions box's title", "select": "#gt-box-title", "req": "req/shell/ground-truth/summary"},
                     {"name": "Where annotations are saved", "select": "#gt-mode", "req": "req/shell/ground-truth/summary"},
                     {"name": "Extraction counts", "select": "#gt-counts", "req": "req/shell/ground-truth/summary"}
+                  ]
+                },
+                {"name": "Stage", "select": "#stage-box", "req": "req/setup/promote",
+                  "rule": [
+                    {"when": {"stage": [null]}, "is": "hidden", "approval": "tentative", "unwalked": "a study with no stage, the Image Viewer, has no Study Setup walked"}
+                  ],
+                  "children": [
+                    {"name": "Stage's title", "select": "#stage-box-title", "req": "req/setup/promote"},
+                    {"name": "The stage", "select": "#stage-now", "req": "req/setup/promote"},
+                    {"name": "What the stage is", "select": "#stage-what", "req": "req/setup/promote"},
+                    {"name": "Promote", "select": "#stage-up", "control": true, "req": "req/setup/promote",
+                      "rule": [
+                        {"when": {"stage": ["Public"]}, "is": "hidden", "approval": "tentative"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Move back", "select": "#stage-back", "control": true, "req": "req/setup/promote",
+                      "rule": [
+                        {"when": {"stage": ["Setup"]}, "is": "hidden", "approval": "tentative"},
+                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                      ]
+                    },
+                    {"name": "Newer than their GT", "select": "#stage-newer-box", "req": "req/setup/promote", "unwalked": "shows only while an image has an extraction newer than its GT mark, and the walked study marks none",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ],
+                      "children": [
+                        {"name": "Newer's title", "select": "#stage-newer-title", "req": "req/setup/promote"},
+                        {"name": "The images", "select": "#stage-newer", "req": "req/setup/promote"}
+                      ]
+                    },
+                    {"name": "Stage's message", "select": "#stage-msg", "req": "req/setup/promote"}
                   ]
                 },
                 {"name": "Sharing", "select": "#sharing-box", "req": "req/setup/sharing-check",
@@ -124,6 +162,9 @@
                   ]
                 },
                 {"name": "Add a folder", "select": "#data-add-row", "req": "req/shell/data/folders",
+                  "rule": [
+                    {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/setup/promote"}
+                  ],
                   "children": [
                     {"name": "Folder link to add", "select": "#data-add-link", "control": true, "req": "req/shell/data/folders",
                       "rule": [
@@ -140,6 +181,9 @@
                 {"name": "Tree's message", "select": "#data-msg", "req": "req/shell/data/mode"},
                 {"name": "Study index's line", "select": "#data-index", "req": "req/shell/data/index"},
                 {"name": "Study images", "select": "#study-set", "req": "req/shell/data/hidden",
+                  "rule": [
+                    {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/setup/promote"}
+                  ],
                   "children": [
                     {"name": "Study images' title", "select": "#study-set-title", "req": "req/shell/data/hidden"},
                     {"name": "Group Load by", "select": "#study-group", "control": true, "req": "req/shell/load/study-images",
@@ -270,6 +314,7 @@
                 {"name": "Folder's sums", "select": "#folder-summary", "req": "req/shell/data/folder"},
                 {"name": "Update previews", "select": "#update-previews", "control": true, "req": "req/shell/data/update-previews",
                   "rule": [
+                    {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/setup/promote"},
                     {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"}
                   ]
                 },
@@ -287,11 +332,13 @@
                 {"name": "Tags' list", "select": "#tags-list", "req": "req/shell/data/tags"},
                 {"name": "Tag to add", "select": "#tags-add", "control": true, "req": "req/shell/data/tags",
                   "rule": [
+                    {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/setup/promote"},
                     {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
                   ]
                 },
                 {"name": "Add tag", "select": "#tags-add-go", "control": true, "req": "req/shell/data/tags",
                   "rule": [
+                    {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/setup/promote"},
                     {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
                   ]
                 },
@@ -388,7 +435,7 @@
             },
             {"name": "Annotations", "select": "#annotate-box", "box": true, "req": "req/shell/annotate/choice",
               "rule": [
-                {"when": {"stage": [null, "PreGT", "Published"]}, "is": "hidden"},
+                {"when": {"stage": [null, "Review", "Public"]}, "is": "hidden"},
                 {"when": {"image": ["none"]}, "is": "hidden"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
               ],
@@ -447,7 +494,7 @@
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"stage": ["GT", "PostGT"], "image": ["local", "preview", "original"], "route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
+                {"when": {"stage": ["Setup", "Develop", "Analyze"], "image": ["local", "preview", "original"], "route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
                 {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"},
                 {"when": {"counted": [true]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],

@@ -42,3 +42,10 @@ def test_the_owner_marks_extractions_gt_and_official(answers, three):
 def test_a_batch_run_makes_an_extraction_per_image(answers, three):
     """setup/batch: one extraction per chosen image, none again on a rerun, held when the token runs out, marked official."""
     run('setup_batch_driver.mjs', answers[0], answers[1], str(three), timeout=240)
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_the_owner_promotes_freezes_and_moves_back(answers, three):
+    """setup/promote: the images with extractions newer than their GT listed before Review, the stage written into the study file,
+    Freeze closing marking and data, a move back reopening them, and the main app's Save after the freeze labelled."""
+    run('setup_stage_driver.mjs', answers[0], answers[1], str(three), timeout=300)

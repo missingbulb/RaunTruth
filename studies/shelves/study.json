@@ -3,7 +3,7 @@
   "title": "Bookshelf Reader",
   "description": "Each book on a photo of bookshelves boxed and its title read, in Hebrew and English.",
   "visibility": "listed",
-  "stage": "GT",
+  "stage": "Develop",
   "summary": {"mask": true},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",

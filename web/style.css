@@ -74,6 +74,7 @@ h1 { font-size: 16px; font-weight: 600; margin: 0; }
 .stage-tag[data-light=red] { --stage: var(--no); }
 .stage-tag[data-light=yellow] { --stage: #f5c400; }
 .stage-tag[data-light=green] { --stage: var(--yes); }
+.stage-tag[data-light=blue] { --stage: var(--accent); }
 .stage-tag[data-light=all] { --stage: var(--yes); background: color-mix(in srgb, var(--yes) 18%, transparent); }
 #study-list a.active { background: color-mix(in srgb, var(--text) 8%, var(--panel)); }
 #study-list a.active .name { border-bottom-color: transparent; }
@@ -327,7 +328,7 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 /* each view shows only its own tools */
 #view[data-view=image] .for-items, #view[data-view=items] .for-image { display: none; }
 /* a published study shows what it finds: the steps that serve making ground truth go */
-[data-stage=Published] .unpublished { display: none !important; }
+[data-stage=Public] .unpublished { display: none !important; }
 /* nothing that makes ground truth but while the user annotates (req/shell/annotate/choice) */
 :root:not([data-annotating]) .unpublished { display: none !important; }
 #switch .count { opacity: .7; font-weight: 400; }
@@ -509,6 +510,7 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list .dot[data-light=red] { background: var(--no); }
 #stage-list .dot[data-light=yellow] { background: #f5c400; }
 #stage-list .dot[data-light=green] { background: var(--yes); }
+#stage-list .dot[data-light=blue] { background: var(--accent); }
 #stage-list .dot[data-light=all] { background: var(--yes); box-shadow: 0 0 0 2px color-mix(in srgb, var(--yes) 40%, transparent); }
 /* the stages, beside the switcher at the hovered label's row */
 #stage-pop { position: fixed; inset: auto; margin: 0; width: min(360px, calc(100vw - 16px)); padding: 12px 14px;
@@ -523,6 +525,10 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list li.now { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #stage-list li.now .dot { opacity: 1; }
 #stage-next { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+#stage-gates, #stage-actions { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; }
+#stage-gates li { color: var(--dim); padding: 1px 0; }
+#stage-actions li { padding: 1px 0; }
+#stage-actions:not(:empty) { border-top: 1px solid var(--line); padding-top: 6px; }
 /* the steps done, each followed by a chevron, and the one to do now shining: clicking it leads to its button */
 #sb-steps { display: flex; align-items: center; gap: 4px; min-width: 0; }
 #sb-steps:empty { display: none; }
@@ -993,6 +999,12 @@ html:not(.offline) #welcome-offline { display: none; }
 #study-set { padding: 8px 4px 0; border-top: 1px solid var(--line); margin-top: 8px; font-size: 13px; }
 #study-set h3 { font-size: 12px; margin: 0 0 6px; color: var(--dim); font-weight: 600; }
 .study-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+/* Study Setup's stage box, and what the stage closes of the data (req/setup/promote, req/shell/study/stage): from Review on the controls that change it are gone */
+#stage-box { flex: none; border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
+#stage-box h2 { font-size: 14px; margin: 0; } #stage-box h3 { font-size: 12px; margin: 8px 0 4px; color: var(--dim); font-weight: 600; }
+#stage-box.busy { opacity: .6; }
+#stage-newer, #stage-freeze-newer { margin: 4px 0; padding-left: 18px; overflow-wrap: anywhere; }
+:root[data-frozen] :is(#gt-setup, #data-add-row, .unlist, #data-unlisted, #study-set, #tags-box .tags-add-row, #tags-box .untag, #tags-desc-row, #areas, .mark-gt, #update-previews) { display: none !important; }
 /* Study Setup's sharing check: each correction with its link and picture, then People */
 #sharing-box { flex: none; border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
 .sharing-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }

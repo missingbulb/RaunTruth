@@ -8,7 +8,7 @@ page must do is `req/shelves` in [its requirements](../requirements.md).
 ## Map
 
 ```
-study.json               the study's contract with the shell and the lab (lab/README.md); stage GT; its `services`
+study.json               the study's contract with the shell and the lab (lab/README.md); stage Develop; its `services`
 algorithm/               the study's algorithm, the only Python the page loads; the lab runs the same files
   shelves.py             the entry: read (HEIC through pillow-heif), VERSIONS (r9, r8, r5, each one go: boxes, then
                          titles), STAGES (straighten and label, for the tagger's readers), score, SCORING, NOTES

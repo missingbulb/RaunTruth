@@ -7,18 +7,22 @@ import { attach, lent } from "./shell.js";
 import { dataMode } from "./data_mode.js";
 import { setupMarks } from "./setup_marks.js";
 import { setupBatch } from "./setup_batch.js";
+import { setupStage } from "./setup_stage.js";
+import { sharingPanel } from "./setup_sharing.js";
 
 const { $, views, summaryMasks, st, retitle, openBytes, minimapView } = lent;
 
 // the marks and the batch run (req/setup/marks, req/setup/batch): their boxes, told what Data Management has chosen
 const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
-let data;
+let data, stage;
 const marked = { marked: () => data.marked() };
-const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked });
+const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked, allows: lent.stageAllows });
 const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status });
 const setup = {
   chose(kind, info) { marks.chose(kind, info); batch.chose(kind, info); },
   busy: () => batch.busy(),
+  // the study file's index or marks were written: what the stage box lists of them is read again
+  indexed: () => stage?.stageChanged(),
   leave() { marks.leave(); batch.leave(); },
 };
 
@@ -46,5 +50,11 @@ attach(data = dataMode({
 
 // Study Setup's sharing (req/setup/sharing-check, req/setup/people): what the study's stage needs of its Drive sharing, and who holds which
 // of the three shares
-import { sharingPanel } from "./setup_sharing.js";
-attach(sharingPanel(lent));
+const sharing = sharingPanel(lent);
+attach(sharing);
+
+// the stage (req/setup/promote): promoted and moved back here, and once it is written the page's own stage follows, so that the data and
+// the marks open or close at once and the sharing is checked against what the new stage needs
+stage = setupStage({ $, reader, writer: sd, place: lent.place, changed: (to) => lent.setStage(to) });
+attach(stage);
+attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });

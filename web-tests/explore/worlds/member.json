@@ -1,7 +1,7 @@
 {
  "about": "A member of a private study: its folder shared with the members alone, this one signed in and reading.",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": {
   "email": "member@acme.example",
   "name": "Acme Member"

@@ -42,7 +42,7 @@ OFFLINE_NOT = ('setup.html', 'setup.js', 'data_mode.js', 'previews_writer.js')
 # the app's own addresses, which no study may take
 RESERVED = ('setup',)
 # what only Study Setup's sharing check loads (req/setup/sharing-check): left out of that list too
-OFFLINE_NOT += ('setup_sharing.js', 'sharing-link.svg', 'sharing-named.svg', 'sharing-editor.svg')
+OFFLINE_NOT += ('setup_stage.js', 'setup_sharing.js', 'sharing-link.svg', 'sharing-named.svg', 'sharing-editor.svg')
 
 
 def wheels():

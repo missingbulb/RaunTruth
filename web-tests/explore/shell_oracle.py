@@ -29,7 +29,7 @@ def known(s):
     """The vars read, the study's own facts, and what the rules derive from them where every part is known."""
     d = dict(s)
     if 'annotating' in d and 'stage' in d:
-        d['makesTruth'] = d['annotating'] and d['stage'] in ('GT', 'PostGT')
+        d['makesTruth'] = d['annotating'] and d['stage'] in ('Setup', 'Develop', 'Analyze')
     return d
 
 

@@ -68,7 +68,7 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   image's file (`open`) and runs each action (by its name).
 - `generated` — optional, files under `web/` the site's build writes from the study's own scripts (output path:
   script), for what the page needs before any Python (Vascular's algorithm list).
-- `groundTruth` — for a GT or PostGT study: its `button`, its `actions` (the module of pure functions that keeps its
+- `groundTruth` — for a study where annotating is open (Setup, Develop, Analyze): its `button`, its `actions` (the module of pure functions that keeps its
   ground truth as GT actions: `start`, `run`, `describe`, `where`, `document`, `load`) and optionally its `ring`
   colour. Its folders are made by Study Setup's Set up extractions, under the root; the layout and the reader's
   rule are `web/truth_folders.js`'s. Every study records what its tagger does through `shell.gt` (`act`, `ran`, `model`,

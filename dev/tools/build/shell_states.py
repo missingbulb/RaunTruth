@@ -75,7 +75,7 @@ MARK = {'shown': '●', 'disabled': '◐', 'held': '⊖', 'folded': '▸', 'hidd
 def derived(s):
     """What the rules may name besides the vars: the study makes ground truth for this user, and the image carries a model:
     the algorithm's run, or an annotation loaded; always for a study that keeps no GT actions (req/shell/annotate/choice)."""
-    return {**s, 'makesTruth': s['annotating'] and s['stage'] in ('GT', 'PostGT'),
+    return {**s, 'makesTruth': s['annotating'] and s['stage'] in ANNOTATING,
             'hasModel': not s['keepsLog'] or s['counted'] or s['route'] in ('local', 'drive')}
 
 
@@ -137,6 +137,8 @@ def walk(study, roots, paths):
     return out
 
 
+# the stages whose users may annotate: those the stage table opens annotating in (web/stages.js)
+ANNOTATING = ('Setup', 'Develop', 'Analyze')
 DEFAULT = -1  # an element's own state when none of its cases matches: as its parent shows
 
 

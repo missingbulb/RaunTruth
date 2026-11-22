@@ -1,7 +1,7 @@
 {
  "about": "An annotator whose network comes and goes: the offline and online events weighted up.",
  "study": "fixture",
- "stage": "GT",
+ "stage": "Develop",
  "user": {
   "email": "annotator@acme.example",
   "name": "Acme Annotator"

@@ -75,7 +75,7 @@ const ring = (id) => page.evaluate((id) => { const b = $(`#key-${id}`), cs = get
 const row = async (key) => (await legend(page)).find((r) => r.key === key);
 
 try {
-  await begin("Published");
+  await begin("Public");
   let s0, keys;
   // 2 held hides the lines over the stack, its row filled; let go, they are back; clicking its row keeps them hidden
   const m0 = await mode();
@@ -160,7 +160,7 @@ try {
   check(half2 === "widths" && half2again === "widths" && (await mode()) === "overlay", `each half of the legend's 3D | 2D shows its own view: ${half2} ${half2again} → ${await mode()}`);
 
   await ctx.close();
-  await begin("GT");
+  await begin("Develop");
   await page.waitForFunction(() => window.vascular.tasks().key);
   // annotating, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off
   keys = await legendKeys(page);

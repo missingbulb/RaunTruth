@@ -112,11 +112,11 @@
     }
   },
   "roots": {
-    "Published, signed out": {"stage": "Published", "signedIn": false},
-    "GT, Annotator": {"stage": "GT", "signedIn": true, "maySave": true}
+    "Public, signed out": {"stage": "Public", "signedIn": false},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "Published, signed out", "actions": ["load", "stack", "count", "items", "image"]},
-    {"root": "GT, Annotator", "actions": ["stack", "scratch", "count"]}
+    {"root": "Public, signed out", "actions": ["load", "stack", "count", "items", "image"]},
+    {"root": "Develop, Annotator", "actions": ["stack", "scratch", "count"]}
   ]
 }
