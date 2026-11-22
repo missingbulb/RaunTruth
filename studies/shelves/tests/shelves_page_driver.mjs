@@ -15,15 +15,16 @@ import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until, orMissed } from "../../../web-tests/page_until.mjs";
-import { pw, launch, expecting, check, siteOf } from "../../../web-tests/harness.mjs";
+import { pw, launch, expecting, check } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
-import { storedDrafts, seedDrafts } from "../../../web-tests/device_storage.mjs";
+import { storedDrafts } from "../../../web-tests/device_storage.mjs";
 
 const repo = path.resolve(import.meta.dirname, "..", "..", ".."), [studies] = process.argv.slice(2);
 const W = 400, H = 300;
@@ -80,9 +81,11 @@ const { origin, server } = await serveSite({
   "/web/vendor/wheels.json": "[]",
   "/web/studies.json": { file: studies },
 });
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-siteOf(browser).studies.edit("shelves", (m) => ({ ...m, visibility: { accounts: ["tagger@acme.example"] } }));
+w.studies.shownTo("shelves", TAGGER);
+w.site.withGoogle();
+const tagger = w.user(TAGGER).named("Acme Tagger").tags("shelves");
 let failed = false;
 
 const PNG = noisePng(W, H);
@@ -91,17 +94,13 @@ async function load(page, name = "shelf.png", png = PNG) {
   await page.waitForFunction(() => !$("#bs-find").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
 }
-// drafts: the ground-truth drafts the device keeps before the page opens
+// the tagger's device in that role; seed: browser keys and drafts: the ground-truth drafts it keeps before the page opens
 async function open(role, seed = {}, finder = {}, drafts = []) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).asRole(role).keeps(seed).keepsDrafts(drafts).with({ acceptDownloads: true });
+  const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
-  await asTagger(ctx);
   await prepare(ctx, finder);
-  await seedDrafts(ctx, drafts);
-  await ctx.addInitScript(([role, seed]) => {
-    delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-  }, [role, seed]);
   // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
   await ctx.addInitScript(() => {
     const W = window.Worker; window.pyCalls = []; window.pyStarted = 0; window.pyEnded = 0;
@@ -112,11 +111,9 @@ async function open(role, seed = {}, finder = {}, drafts = []) {
     };
   });
   const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
   // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
   page.on("dialog", (d) => d.accept());
-  await page.goto(origin + "/web/shelves");
-  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
+  await device.opens("shelves");
   await load(page);
   const found = await page.evaluate(() => $("#bs-found").textContent);
   check(found === "", "before Find books, the box says nothing of books not found yet", found);
