@@ -5,7 +5,6 @@
 // thumbnails is off; opening the stack saves a 3D thumbnail at once, opening the flat image does not.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_shapes_driver.mjs [SHOTS]
-import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -15,44 +14,25 @@ import { until, orMissed, untilHeard } from "./page_until.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HEAD = 65536, AHEAD = 10;
 
-// a little-endian 16-bit TIFF of `planes` W×H planes, as ImageJ writes one: the first IFD, its description, then
-// the planes back to back; value(k, x, y) gives plane k's pixels
-function tiff(W, H, planes, desc, value) {
-  const tags = [[256, 4, W], [257, 4, H], [258, 3, 16], [259, 3, 1], [262, 3, 1], [270, 2, 0], [273, 4, 0], [277, 3, 1], [278, 4, H], [279, 4, W * H * 2]];
-  if (desc == null) tags.splice(5, 1);
-  const ifd = 8, text = desc == null ? Buffer.alloc(0) : Buffer.from(desc + "\0", "latin1");
-  const at = ifd + 2 + tags.length * 12 + 4, data = at + text.length + (text.length % 2);
-  const out = Buffer.alloc(data + planes * W * H * 2);
-  out.write("II", 0, "latin1"); out.writeUInt16LE(42, 2); out.writeUInt32LE(ifd, 4); out.writeUInt16LE(tags.length, ifd);
-  tags.forEach(([tag, type, v], i) => {
-    const e = ifd + 2 + i * 12;
-    out.writeUInt16LE(tag, e); out.writeUInt16LE(type, e + 2);
-    if (tag === 270) { out.writeUInt32LE(text.length, e + 4); out.writeUInt32LE(at, e + 8); }
-    else { out.writeUInt32LE(1, e + 4); out.writeUInt32LE(tag === 273 ? data : v, e + 8); }
-  });
-  text.copy(out, at);
-  for (let k = 0; k < planes; k++) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) out.writeUInt16LE(value(k, x, y), data + 2 * ((k * H + y) * W + x));
-  return out;
-}
 // a tube crossing the stack on a slant, so a 3D view of it differs from any one slice
 const tube = (k, x, y) => ((x - 60 - 16 * k) ** 2 + (y - 128) ** 2 < 400 ? 3000 : 100);
+// each 256x256, its IFD first as the head a reader of the first 64 KB has; want: what its row says it holds
+const tiff = (name, planes, description, value) => image.tiff(name, { width: 256, planes, description, value, headFirst: true });
+const MORE = tiff("d more.tif", 5, "ImageJ=1.54f\nimages=5\nslices=5\n", tube);
 const FILES = [
-  { id: "shapeflat00000000001", name: "a flat.tif", bytes: tiff(256, 256, 3, "ImageJ=1.54f\nimages=3\nchannels=3\nmode=composite\n", (k, x) => 100 + k * x), want: "2D · 3 channels" },
-  { id: "shapeplain0000000001", name: "b plain.tif", bytes: tiff(256, 256, 1, null, () => 500), want: "" },
-  { id: "shapestack0000000001", name: "c stack.tif", bytes: tiff(256, 256, 8, "ImageJ=1.54f\nimages=8\nslices=8\nunit=micron\nspacing=4\n", tube), want: "3D · 8 slices" },
+  { image: tiff("a flat.tif", 3, "ImageJ=1.54f\nimages=3\nchannels=3\nmode=composite\n", (k, x) => 100 + k * x), want: "2D · 3 channels" },
+  { image: tiff("b plain.tif", 1, null, () => 500), want: "" },
+  { image: tiff("c stack.tif", 8, "ImageJ=1.54f\nimages=8\nslices=8\nunit=micron\nspacing=4\n", tube), want: "3D · 8 slices" },
   // two channels, interleaved slice by slice as ImageJ stores a hyperstack: the tube, and a square in the other
-  { id: "shapetwo00000000001", name: "c two.tif", want: "3D · 4 slices · 2 channels",
-    bytes: tiff(256, 256, 8, "ImageJ=1.54f\nimages=8\nchannels=2\nslices=4\nhyperstack=true\n", (k, x, y) => (k % 2 ? (Math.abs(x - 190) < 30 && Math.abs(y - 60) < 30 ? 3000 : 100) : tube(k >> 1, x, y))) },
-  ...Array.from({ length: 30 }, (_, k) => ({ id: "shapemore" + String(k).padStart(11, "0"), name: `d more ${String(k).padStart(2, "0")}.tif`, bytes: null, want: "3D · 5 slices" })),
+  { want: "3D · 4 slices · 2 channels",
+    image: tiff("c two.tif", 8, "ImageJ=1.54f\nimages=8\nchannels=2\nslices=4\nhyperstack=true\n", (k, x, y) => (k % 2 ? (Math.abs(x - 190) < 30 && Math.abs(y - 60) < 30 ? 3000 : 100) : tube(k >> 1, x, y))) },
+  ...Array.from({ length: 30 }, (_, k) => ({ image: { ...MORE, name: `d more ${String(k).padStart(2, "0")}.tif` }, want: "3D · 5 slices" })),
 ];
-const MORE = tiff(256, 256, 5, "ImageJ=1.54f\nimages=5\nslices=5\n", tube);
-for (const f of FILES) f.bytes = f.bytes || MORE;
-const ROOT = "shapefolder000000001";
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin);
@@ -61,14 +41,13 @@ w.site.withoutGoogleClient();
 let failed = false;
 // the browser's Drive, every context's, with the folder of TIFFs; reads(): every read of a file's bytes since the
 // test cleared them, its row and the Range asked for ("" for the whole file)
-const { drive } = w;
-drive.folder({ id: ROOT, name: "Shapes", access: "public" });
-for (const f of FILES) drive.file({ id: f.id, name: f.name, parent: ROOT, bytes: f.bytes, mimeType: "image/tiff", createdTime: "2026-10-01T10:00:00Z" });
+const { drive } = w, shapes = w.folder("Shapes").public();
+for (const f of FILES) f.id = shapes.holds(f.image, { createdTime: "2026-10-01T10:00:00Z" }).id;
 let readsFrom = 0;
 const reads = () => drive.calls.slice(readsFrom).filter((c) => c.kind === "download").map((c) => ({ k: FILES.findIndex((f) => f.id === c.id), range: c.range || "" }));
 // a device remembering the folder's link, opened at the page; keys: kept before the page opens
 async function start(keys = {}) {
-  const device = w.device().remembersDriveLink(ROOT).keeps(keys);
+  const device = w.device().remembersDriveLink(shapes).keeps(keys);
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }
 const { page } = await start();
