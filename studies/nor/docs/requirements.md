@@ -249,30 +249,29 @@ test re-scores a finder on a real image; the tests run every finder on a drawn i
 (`tests/synthetic_nor.py`) for what the code does, not how well. Until submissions
 cover it, the reference slide is scored on Claude's labels, not the owner's (`lab/STATE.md`).
 
-## R10 — Ground truth is read from the study's curated Drive folder, never kept in git
+## R10 — Ground truth is read from the GT marks of the study's study file, never kept in git
 
 Set by the owner on 2026-10-03; its source moved from GitHub to Drive on 2026-11-05.
 
-- **Curated on Drive, read when scored.** The page's taggers submitted to the study's submissions folder and a
-  study owner curated into its curated folder, both under the study's root; the page now saves every annotation as an
-  extraction in one `Extractions` folder and the owner marks one GT (`req/shell/ground-truth/folders`), which the lab
-  does not read yet (`lab/README.md`). Set by the owner on 2026-11-07: there is no fetch step. Scoring
-  (the shared lab's `lab/fetch.py`, which `lab/run.py` runs) lists the root with no key, takes the curated folder from
-  its study file (`rauntruth-study.json`), else the one named `GT curated` or `GT`, and downloads an
-  image's newest curated file, by its own `created`, the first time it scores that image, then keeps it under
-  `data/raw/truth/`, never git. It checks each (an image SHA-256 and a `created` time) and says why it skips
-  one it cannot use. **A listing that returns 50 entries stops it with an error**: the keyless listing may stop at 50, and
-  a cut-short set silently changes every score. The tests read only what is already on disk.
+- **Marked on Drive, read when scored.** The page saves every annotation as an extraction in one `Extractions` folder
+  and the study owner marks one per image GT in the study file (`req/shell/ground-truth/folders`). Set by the owner on
+  2026-11-22: the lab reads those marks (`req/lab/gt-marks`). Scoring (the shared lab's `lab/fetch.py`, which
+  `lab/run.py` runs) reads the study file by link from the id in `RAUNTRUTH_STUDY_NOR`, lists no folder, and downloads
+  each GT mark's extraction file afresh, so a mark follows the file's latest content, in its model-only form (no
+  history, tagger or creation time), then keeps it under `data/raw/truth/`, never git. It leaves out, with its reason,
+  a mark whose file names another image. Official marks are never scored. The tests read only what is already on disk.
+  The scorer reads the model alone, so a candidate the tagger rejected, known before only from the file's `history`,
+  is no longer known to it (an open call of the owner's, `lab/requirements.md` `req/lab/dataset-sha`).
 - **No study data in tests.** Set by the owner on 2026-11-07: no test downloads an image or ground truth, in CI
   or anywhere; a test needing a NoR image draws one (`tests/synthetic_nor.py`).
-- **Images stay on Drive.** A ground-truth file names its image by Drive id and SHA-256; scoring downloads
-  each image into `data/raw/` the first time it needs it, and checks it (R6). No image enters git.
-- **A set changed is a baseline to re-record.** A changed curated set changes the dataset SHA (R11), so
+- **Images stay on Drive.** A ground-truth file names its image by SHA-256 and the study file gives the hash its Drive id; scoring downloads
+  each image into `data/raw/` the first time it needs it, and checks it (R6). No image, and no Drive id, enters git.
+- **A set changed is a baseline to re-record.** A changed GT set changes the dataset SHA (R11), so
   the metrics (R11) are measured on it again; the finders are then improved following the pack's `improve-on-ground-truth` skill, and losses
   stay the owner's to accept (R9).
-- **Newer and human beats older and Claude's.** For one image the curated file is the one reference;
+- **Newer and human beats older and Claude's.** For one image the GT-marked file is the one reference;
   it wins over the lab's own labels at the same spot. (The shared lab scores each ground-truth file on its
-  own and does not merge them yet; `lab/run.py --truth drive` scores on the curated files alone.)
+  own and does not merge them yet; `lab/run.py --truth drive` scores on the GT marks alone.)
 - **The ground truth is right, whatever made it.** Set by the owner on 2026-11-18: the scorer reads an element's
   state (a NoR, not a NoR, undecided) and never its origin, so an added NoR and an approved candidate score alike.
   How an answer is scored against it is [`scoring.md`](scoring.md).
