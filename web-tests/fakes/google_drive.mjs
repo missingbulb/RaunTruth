@@ -240,7 +240,7 @@ export function driveAnswers(drive, google) {
       if (!who) return notFound();
       return json(200, { id: f.id, capabilities: { canAddChildren: adds(f.id, who) } });
     }
-    if (fields.includes("appProperties")) return f.mine && who ? json(200, { id: f.id, appProperties: { rauntruth: "made" } }) : notFound();
+    if (fields.includes("appProperties")) return json(200, { id: f.id, ...(f.mine && who ? { appProperties: { rauntruth: "made" } } : {}) });
     // with no fields asked, Drive answers the few it always gives
     if (call.kind !== "download") return json(200, fields ? meta(f, fields) : { id: f.id, name: f.name, mimeType: type(f) });
     const range = call.range?.match(/^bytes=(\d+)-(\d+)$/);
