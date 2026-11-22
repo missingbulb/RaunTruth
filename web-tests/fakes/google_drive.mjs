@@ -23,7 +23,8 @@
 //   drive.inflight                                     how many calls are being answered now
 //   drive.offered                                      files the remote files dialog lists in whichever folder it shows
 //     (its listings alone, which ask for thumbnails), as a test hands the user a file to open
-//   drive.rootOf(study)                                the study's own folder, as its study.json names it
+//   drive.rootOf(study)                                the study's own folder, as its study.json names it;
+//     drive.studies: the ids of the studies whose own folders it holds
 //   drive.writableBy(folder, ...emails)                Drive's sharing lets them add to it; writableByAnyone(folder):
 //     anyone signed in; viewableOnly(folder): the user may only view it; sharedWithUserAlone(folder): not "Anyone with the
 //     link", so the site's key reads neither it nor what it holds
@@ -76,6 +77,7 @@ function makeDrive() {
     },
     next: (match = () => true) => new Promise((ok) => drive.waiting.push({ match, ok })),
     rootOf: (study) => drive.get(ROOTS.find((r) => r.study === study)?.id),
+    studies: ROOTS.map((r) => r.study),
     writableBy(folder, ...emails) {
       const id = folder.id ?? folder, now = drive.writers.get(id);
       drive.writers.set(id, new Set([...(now instanceof Set ? now : []), ...emails]));

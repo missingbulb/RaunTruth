@@ -46,11 +46,14 @@ export function world(browser, origin) {
         without(...scopes) { withheld = scopes; google.withhold = scopes; return user; },
         // the settings file another device of theirs left on Drive
         savedSettings(record) { google.savedSettings(email, record); return user; },
-        // Drive's sharing lets them add to the study's submissions folder, which makes them its tagger
-        tags(study) {
-          const root = drive.rootOf(study);
-          const subs = drive.files.find((f) => f.parent === root.id && f.name === "GT submissions") || drive.folder({ name: "GT submissions", parent: root.id });
-          drive.writableBy(subs, email);
+        // Drive's sharing lets them add to the study's submissions folder, which makes them its tagger; with no study
+        // named, every study's
+        tags(...studies) {
+          for (const study of studies.length ? studies : drive.studies) {
+            const root = drive.rootOf(study);
+            const subs = drive.files.find((f) => f.parent === root.id && f.name === "GT submissions") || drive.folder({ name: "GT submissions", parent: root.id });
+            drive.writableBy(subs, email);
+          }
           return user;
         },
         // Drive's sharing lets them add to the folder, which makes them its study's manager
@@ -62,7 +65,7 @@ export function world(browser, origin) {
     device() {
       const kept = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [];
-      let who = null, left = 3599e3, welcome, drafts = [], worker = false, profile = false, ctx = null;
+      let who = null, left = 3599e3, welcome, drafts = [], worker = false, profile = false, given = null, ctx = null;
       const device = {
         // signed in on the device, Google's token lasting left ms
         signedInAs(user, { tokenLeft = left } = {}) { who = user; left = tokenLeft; return device; },
@@ -82,12 +85,14 @@ export function world(browser, origin) {
         },
         withWorker() { worker = true; return device; },
         kept() { profile = true; return device; },
+        // a browser context made elsewhere, which then holds what the device keeps
+        on(context) { given = context; return device; },
         // the browser context's own options (a viewport, a user agent, a clock)
         with(more) { Object.assign(options, more); return device; },
         // the device's browser context, made on first need with all it holds
         async context() {
           if (ctx) return ctx;
-          ctx = profile ? await keptContext(pw, options, shared) : await browser.newContext(options);
+          ctx = given || (profile ? await keptContext(pw, options, shared) : await browser.newContext(options));
           const seed = { ...kept };
           if (who) seed["nor-google-sign-in"] = JSON.stringify(google.signedIn({ email: who.email, name: who.name, scopes: who.scopes, until: Date.now() + left }));
           const answer = welcome === undefined ? (who ? "google" : "anonymous") : welcome;
