@@ -42,8 +42,6 @@ const BEYOND = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-was
 const vascularServed = JSON.stringify({ ...vascular, web: { ...vascular.web, offline: [BEYOND] } });
 // the site's list of its own files names it by what is served
 const servedList = (list) => ({ ...list, files: list.files.map((f) => f.path === "../studies/vascular/study.json" ? { ...f, sha256: crypto.createHash("sha256").update(vascularServed).digest("hex") } : f) });
-const ROOT = vascular.root.match(/folders\/([\w-]+)/)[1];
-const SUB = "acmefolder0000000002";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".whl": "application/zip" };
 // what the browser and the page say of a request the network does not carry: each case that takes the network away
@@ -103,9 +101,9 @@ await ctx.clock.install();
 const pastHeartbeat = () => ctx.clock.fastForward(30000), pastOfflineRetry = () => ctx.clock.fastForward(5000);
 // the study's folder on the Drive fake: a stack, and a subfolder holding another
 const { drive } = w;
-drive.file({ id: "acmestack00000000001", name: "stack one.tif", parent: ROOT, bytes: TIFF, mimeType: "image/tiff" });
-drive.folder({ id: SUB, name: "sub", parent: ROOT });
-drive.file({ id: "acmestack00000000002", name: "stack two.tif", parent: SUB, bytes: TIFF, mimeType: "image/tiff" });
+const studyFolder = w.studyFolder("vascular");
+studyFolder.holds({ name: "stack one.tif", mimeType: "image/tiff", bytes: TIFF });
+studyFolder.folder("sub").holds({ name: "stack two.tif", mimeType: "image/tiff", bytes: TIFF });
 const driveDownloads = () => drive.calls.filter((c) => c.kind === "download").length;
 // a file beyond its Python the study names, on jsDelivr
 cdnFile(ctx, BEYOND, "export {};", "text/javascript");
