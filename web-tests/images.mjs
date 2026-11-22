@@ -2,8 +2,9 @@
 // file chooser to pick. Drawn in the test, never a study's real data.
 //   image.png("a.png", { width, height, seed })          noise, different for each seed
 //   image.greyPng("g.png", { width, height, value })     one grey value, or value(x, y) each pixel's
-//   image.tiff("s.tif", { width, height, planes, value, description, bps, headFirst })
+//   image.tiff("s.tif", { width, height, planes, value, description, bps, resolution, headFirst })
 //     planes of width x height, value(plane, x, y) each pixel's; description: the ImageJ header, if any;
+//     resolution: [x, y], the pixels per unit, each a TIFF rational [numerator, denominator], if any;
 //     headFirst: the IFD before the pixels, so a reader of the file's head alone has its shape, where ImageJ's own
 //     layout (the page's writeTiff) has them last
 //   image.bytes("x.vsi", n, mimeType)                     n bytes of nothing a reader could use
@@ -34,11 +35,11 @@ function headFirstTiff(W, H, planes, desc, value) {
 export const image = {
   png: (name, { width = 200, height = width, seed = 1 } = {}) => ({ name, mimeType: "image/png", bytes: noisePng(width, height, seed) }),
   greyPng: (name, { width, height = width, value }) => ({ name, mimeType: "image/png", bytes: greyPng(width, height, typeof value === "function" ? value : () => value) }),
-  tiff(name, { width, height = width, planes = 1, value = () => 0, description, bps = 2, headFirst = false }) {
+  tiff(name, { width, height = width, planes = 1, value = () => 0, description, bps = 2, resolution: [xres, yres] = [], headFirst = false }) {
     if (headFirst) return { name, mimeType: "image/tiff", bytes: headFirstTiff(width, height, planes, description, value) };
     const Arr = bps === 1 ? Uint8Array : Uint16Array;
     const all = Array.from({ length: planes }, (_, k) => Arr.from({ length: width * height }, (_, i) => value(k, i % width, Math.floor(i / width))));
-    return { name, mimeType: "image/tiff", bytes: Buffer.from(writeTiff({ w: width, h: height, bps, planes: all.map((p) => new Uint8Array(p.buffer)), description })) };
+    return { name, mimeType: "image/tiff", bytes: Buffer.from(writeTiff({ w: width, h: height, bps, planes: all.map((p) => new Uint8Array(p.buffer)), xres, yres, description })) };
   },
   bytes: (name, n, mimeType = typeOf(name)) => ({ name, mimeType, bytes: Buffer.alloc(n) }),
 };
