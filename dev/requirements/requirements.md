@@ -414,17 +414,6 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_previews_writer.py`.
   </details>
 
-- `req/shell/dialogs/open-from-button` A popup dialog a button opens grows out of that button.
-  <details>
-
-  Set by the owner on 2026-11-03. Every modal dialog on the page, the shell's and a study's, opened by
-  a click on a button or a link (or the keyboard pressing one), grows from that button's place and size
-  to its own in a fifth of a second, fading in, while its backdrop darkens. A dialog nothing pressed
-  opens, the Welcome on arrival say, appears at once, as does every dialog with animations off
-  (`req/shell/resources-dialog/animations`) or reduced motion asked for. Test:
-  `web-tests/test_dialog_motion_page.py`.
-  </details>
-
 - `req/shell/dialogs/focus-returns` When a dialog or menu closes, keyboard focus goes back to the control that opened it.
   <details>
 
@@ -434,6 +423,17 @@ nobody has decided: what the page does there is not a requirement yet.
   menu item whose menu closed, a button its list redrew), it goes to the one that leads back to it: the
   menu's own button, or the redrawn button in its place. One shared piece of the shell does this, so a
   new dialog or menu does it too. Test: `web-tests/test_dialog_focus_page.py`.
+  </details>
+
+- `req/shell/dialogs/open-from-button` A popup dialog a button opens grows out of that button.
+  <details>
+
+  Set by the owner on 2026-11-03. Every modal dialog on the page, the shell's and a study's, opened by
+  a click on a button or a link (or the keyboard pressing one), grows from that button's place and size
+  to its own in a fifth of a second, fading in, while its backdrop darkens. A dialog nothing pressed
+  opens, the Welcome on arrival say, appears at once, as does every dialog with animations off
+  (`req/shell/resources-dialog/animations`) or reduced motion asked for. Test:
+  `web-tests/test_dialog_motion_page.py`.
   </details>
 
 - `req/shell/drag/escape` Escape in the middle of any drag cancels it: what the drag changed goes back, and the rest of the press does nothing.

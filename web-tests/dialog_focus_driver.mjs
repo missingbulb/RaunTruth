@@ -5,6 +5,7 @@
 //   node web-tests/dialog_focus_driver.mjs
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
+import { frames } from "./page_frames.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const { origin, server } = await serveSite({
@@ -25,7 +26,7 @@ await page.waitForFunction(() => $("#sb-version").textContent);
 
 // what holds the keyboard: the element's id, or its menu's when it is a summary
 const focus = () => page.evaluate(() => { const a = document.activeElement; return a === document.body ? "body" : a.id || (a.localName === "summary" ? a.parentElement.id + " summary" : a.localName); });
-const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+const settle = () => frames(page);
 
 // ---- a dialog opened from a menu item: its close lands on the menu's summary, which the menu closing hid the item from ----
 for (const [item, dlg, close, what] of [

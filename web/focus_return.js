@@ -1,5 +1,7 @@
 // req/shell/dialogs/focus-returns: when a modal dialog or a menu closes, the keyboard goes back to the control that
 // opened it; where that control is gone or hidden by then, to the one that leads back to it.
+import { after } from "./pacing.js";
+
 const SINCE_CLICK_MS = 1000, REDRAW_MS = 1500, FOCUS_KEPT = 30;
 const PRESSABLE = "button, a, summary, input, select, [role=button], [role=menuitem], [role=tab]";
 
@@ -58,7 +60,7 @@ export function focusReturn() {
     // the opener's own list may redraw once the dialog's owner has heard it close: while that settles, a focus the redraw drops is put back
     const watch = new MutationObserver(() => { if (!document.activeElement || document.activeElement === document.body) target(from)?.focus(); });
     watch.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => watch.disconnect(), REDRAW_MS);
+    after(REDRAW_MS, () => watch.disconnect());
   }, true);
 
   // a menu closing with the keyboard inside it, by Escape or a choice, leaves it on the menu's own button
