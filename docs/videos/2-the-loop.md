@@ -96,8 +96,8 @@ real-world footage or illustration, **[C]** the chat with the AI software engine
 
 | Moment | Picture |
 |---|---|
-| run it everywhere | **[UI]** Study Setup, *Batch run*: images tick done. |
-| numbers beside images | The main app: an image beside its count and length histogram; a lasso round a region, the numbers redraw. |
+| run it everywhere | **[UI]** Study Setup, *Batch run* over all 400 images: they tick done. |
+| numbers beside images | The main app: an image beside its count and length histogram; a lasso round a region, and the count redraws for it, *41 in the lasso*. |
 
 ### 8. A score reviewers can check
 

@@ -188,7 +188,7 @@ ribbon (the five stages, the current one lit) sits in a corner throughout, and e
 | the ask | both | 3 | **[C]** "Improve the algorithm on the new ground truth." | `drift` | "Ask your AI software engineer to improve the algorithm on the new ground truth." |  |
 | scored | both | 4 | The agent's reply: the lab scored every version; `v2` ahead; a figure of `v2` against your marks. | `drift` | "It brings its own methods, and a lab that scores every version against your marks and keeps what's better." | `sfx:typing` |
 | a nudge helps | both | 3.5 | A one-line nudge, *"follow the fibre, not the blob"*, and the lab runs again by itself. | `drift` | "Point it in a direction if you have one. If not, it finds its own." | `sfx:ticks` |
-| tools too | both | 4 | **[UI]** Image 1's item box: *Yes · No · Missed one*; after the change, image 2's: *Widen this node · Lower the curvature*, with handles on the node. | `push@18,40` onto the item box | "The tagging tools grow too. At first you answer yes or no. Next time, you widen this node, or ease that curve." | `sfx:pop` |
+| tools too | both | 4 | **[UI]** Image 1's item box: *Yes · No · Missed one*; after the change, image 2's: *Widen this node · Lower the curvature*, with handles on the node. | `push@18,40` onto the item box | "The tagging tools grow too. At first you answer yes or no. Next time, you widen this node, or lower its curvature." | `sfx:pop` |
 | on the page | both | 3 | **[UI]** The algorithm list: `v2` and `v1` with precision and recall, *measured on 1 image*. | `push@18,32` onto the scores | "Every version shows its score, and on how many images." |  |
 
 ### 5.5 Around again

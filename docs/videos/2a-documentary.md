@@ -55,7 +55,7 @@ direction.
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
 | the next image is easier | both | 3 | `push@60,50` | "So the next image is easier. The algorithm already gets more of it right." | `bed:doc-lift` the bed lifts |
-| the tools grow too | both | 4 | `push@70,50` | "The tagging tools improve along with it. The first pass asks yes or no. Later ones ask for the finer things: widen this node, ease this curve." | `sfx:pop` |
+| the tools grow too | both | 4 | `push@70,50` | "The tagging tools improve along with it. The first pass asks yes or no. Later ones ask for the finer things: widen this node, lower the curvature." | `sfx:pop` |
 | faster each time | picture | 3 | `still` |  | `sfx:ticks` |
 | you decide | both | 2.5 | `pull` | "And you decide when it's good enough." |  |
 

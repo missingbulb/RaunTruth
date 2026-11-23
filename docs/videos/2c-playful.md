@@ -55,7 +55,7 @@ direction.
 | Moment | By | Hold | Camera | Voice | Sound |
 |---|---|---|---|---|---|
 | the next image is easier | both | 3 | `push@60,50` | "And the next image? Easier. It learned." |  |
-| the tools grow too | both | 4 | `push@70,50` | "The tagging tools learn too. Yes, no, missed one, becomes widen this node, and ease that curve." | `sfx:pop` `sfx:pop@1.6` |
+| the tools grow too | both | 4 | `push@70,50` | "The tagging tools learn too. Yes, no, missed one, becomes widen this node, and lower the curvature." | `sfx:pop` `sfx:pop@1.6` |
 | faster each time | picture | 3 | `still` |  | `sfx:pop` `sfx:pop@1` `sfx:pop@2` |
 | you decide | both | 2.5 | `pull` | "Stop whenever you're happy. Yes, you're allowed." |  |
 

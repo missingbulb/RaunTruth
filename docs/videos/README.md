@@ -15,6 +15,9 @@ soundtrack of voice, music beds and sound effects:
 python3 docs/videos/storyboard/build.py OUT_DIR --voices VOICES_DIR
 ```
 
+How a cut becomes a finished video (the recurring elements, the shot list, the sound and the audit every render
+passes) is [PRODUCTION.md](PRODUCTION.md).
+
 The page reads the scenes from these files and each moment's sketch from `storyboard/frames.json`. `VOICES_DIR`
 holds the [Piper](https://github.com/rhasspy/piper) models the cuts name (`pip install piper-tts`, installed ad
 hoc, the models downloaded from Piper's voices list); `storyboard/sound.py` synthesizes the beds and effects and

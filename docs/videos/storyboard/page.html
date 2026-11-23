@@ -59,20 +59,30 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
 .seg.on .pic { background: var(--accent-soft) } .seg.on .voc i { opacity: 1; background: var(--accent) }
 .seg .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent) }
 .note { font-size: 13px; color: var(--muted) }
+.rendered { margin: 0 0 18px; display: grid; gap: 8px }
+.rendered h2 { font-size: 1.1rem }
+.rendered video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 6px }
 .tone { font-size: 14px; color: var(--muted); max-width: 80ch; margin: 0 }
 .stage .cam { width: 100%; height: 100%; transform-origin: var(--ox, 50%) var(--oy, 50%) }
 .stage .cam.push { animation: cam-push var(--d) ease-in-out both } .stage .cam.pull { animation: cam-pull var(--d) ease-out both }
 .stage .cam.punch { animation: cam-punch var(--d) cubic-bezier(.2,.9,.2,1) both } .stage .cam.drift { animation: cam-drift var(--d) linear both }
 .stage .cam.pan-r { animation: cam-pan var(--d) ease-in-out both } .stage .cam.pan-l { animation: cam-pan var(--d) ease-in-out reverse both }
 .stage .cam.whip { animation: cam-whip .45s ease-out both } .stage .cam.shake { animation: cam-shake .5s linear both }
-@keyframes cam-push { from { transform: scale(1) } to { transform: scale(1.22) } }
-@keyframes cam-pull { from { transform: scale(1.25) } to { transform: scale(1) } }
-@keyframes cam-punch { 0% { transform: scale(1) } 18% { transform: scale(1.35) } 100% { transform: scale(1.4) } }
-@keyframes cam-drift { from { transform: scale(1.06) translateX(1.5%) } to { transform: scale(1.06) translateX(-1.5%) } }
-@keyframes cam-pan { from { transform: scale(1.15) translateX(6%) } to { transform: scale(1.15) translateX(-6%) } }
+@keyframes cam-push { from { transform: scale(1) } to { transform: scale(1.1) } }
+@keyframes cam-pull { from { transform: scale(1.12) } to { transform: scale(1) } }
+@keyframes cam-punch { 0% { transform: scale(1) } 18% { transform: scale(1.14) } 100% { transform: scale(1.16) } }
+@keyframes cam-drift { from { transform: scale(1.04) translateX(1.2%) } to { transform: scale(1.04) translateX(-1.2%) } }
+@keyframes cam-pan { from { transform: scale(1.08) translateX(3.5%) } to { transform: scale(1.08) translateX(-3.5%) } }
 @keyframes cam-whip { from { transform: translateX(40%) skewX(-8deg); filter: blur(6px) } to { transform: none; filter: none } }
 @keyframes cam-shake { 0%, 100% { transform: none } 20% { transform: translate(-1.5%, 1%) scale(1.03) } 40% { transform: translate(1.2%, -1%) } 60% { transform: translate(-.8%, .6%) } 80% { transform: translate(.4%, -.3%) } }
 @media (prefers-reduced-motion: reduce) { .stage .cam { animation: none !important } }
+html.render, html.render body { margin: 0; padding: 0; overflow: hidden; background: #000 }
+html.render .wrap { max-width: none; padding: 0 }
+html.render .wrap > :not(.player), html.render .player > :not(.stage):not(.caption) { display: none }
+html.render .player { border: 0; padding: 0; border-radius: 0; display: block }
+html.render .stage { width: 100vw; height: 100vh; aspect-ratio: auto; border-radius: 0 }
+html.render .caption { position: fixed; left: 0; right: 0; bottom: 5.5vh; text-align: center; max-width: none; min-height: 0; pointer-events: none }
+html.render .caption span { display: inline-block; max-width: 80vw; background: rgba(10, 12, 11, .78); color: #fff; font: 600 3.4vh/1.35 var(--body); padding: .4em .8em; border-radius: .3em }
 .seg .snd { height: 8px; border-radius: 1px; background: var(--bedc, transparent); position: relative }
 .seg .snd b { position: absolute; top: -2px; width: 3px; height: 12px; background: var(--ink); left: var(--x) }
 .lanes { grid-row: span 3 }
@@ -132,6 +142,11 @@ h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; letter-spacing: 
     for a cast voice and a score; bars marked illustrative are not measured.</p>
   <div class="tabs" role="tablist" id="tabs"></div>
   <p class="tone" id="tone"></p>
+  <section class="rendered" id="rendered" hidden>
+    <h2>The rendered cut</h2>
+    <video id="video" controls preload="metadata" playsinline></video>
+    <p class="note">Rendered frame by frame from the storyboard below, captions burned in. Voice, music and effects are generated.</p>
+  </section>
   <section class="player" aria-label="Animatic player">
     <div class="stage" id="stage"></div>
     <div class="caption" id="caption" aria-live="polite"></div>
@@ -157,8 +172,16 @@ const R = (x, y, w, h, cls, rx = 0, extra = "") => `<rect x="${x}" y="${y}" widt
 function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
 // A field of Caspr–Nav–Caspr triplets: green, red, green along a fibre.
+// Progress through the moment being drawn, 0 to 1: the board draws each moment's end state, a render every step.
+let P = 1;
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const lerp = (a, b, x) => a + (b - a) * x;
+
 function field(x, y, w, h, o = {}, seed = 7) {
-  const r = rng(seed), n = o.n ?? Math.round(w * h / 2600), cut = o.cut || 0;
+  const r = rng(o.seed ?? seed), n = o.n ?? Math.round(w * h / 2600);
+  const cut = o.cutFrom !== undefined ? Math.round(lerp(o.cutFrom, o.cut || 0, ease(P))) : o.cut || 0;
+  const cw = w / 10, ch = h / 10;
+  const walk = (px, py) => { const row = Math.min(9, Math.floor((py - y) / ch)), c = Math.min(9, Math.floor((px - x) / cw)); return row * 10 + (row % 2 ? 9 - c : c); };
   let s = R(x, y, w, h, "f-scope");
   const pts = [];
   for (let i = 0; i < n; i++) pts.push([x + 14 + r() * (w - 28), y + 14 + r() * (h - 28), r() * Math.PI, 0.7 + r() * 0.6]);
@@ -168,26 +191,35 @@ function field(x, y, w, h, o = {}, seed = 7) {
       `<ellipse cx="${px}" cy="${py}" rx="${2.4 * k}" ry="${2.2 * k}" class="f-red"/>` +
       `<ellipse cx="${px + dx}" cy="${py + dy}" rx="${5 * k}" ry="${2.6 * k}" transform="rotate(${deg} ${px + dx} ${py + dy})" class="f-green"/></g>`;
   }
-  if (o.outlines) pts.forEach(([px, py], i) => { if (i % 2 === 0) s += `<rect x="${px - 13}" y="${py - 9}" width="26" height="18" rx="3" class="f-wline" stroke-opacity=".45" stroke-width="1"/>`; });
-  const cw = w / 10, ch = h / 10;
+  // The answer drawn over it: quality 1 boxes every node and nothing else; lower, it misses nodes and boxes empty tissue.
+  const q = o.quality ?? 0.55, rq = rng(91 + (o.seed ?? seed));
+  const missed = pts.map(() => rq() < (1 - q) * 0.5);
+  const live = pts.map(([px, py]) => walk(px, py) >= cut);
+  const addAt = pts.findIndex((p, i) => missed[i] && live[i] && walk(p[0], p[1]) >= cut);
+  if (o.outlines) {
+    pts.forEach(([px, py], i) => { if (!missed[i]) s += `<rect x="${px - 13}" y="${py - 9}" width="26" height="18" rx="3" class="f-wline" stroke-opacity=".55" stroke-width="1"/>`; });
+    for (let k = 0; k < Math.round((1 - q) * 14); k++) s += `<rect x="${x + 20 + rq() * (w - 60)}" y="${y + 20 + rq() * (h - 40)}" width="26" height="18" rx="3" class="f-wline" stroke-opacity=".55" stroke-width="1"/>`;
+  }
   if (cut) {
     let k = 0;
     for (let row = 0; row < 10 && k < cut; row++) for (let c0 = 0; c0 < 10 && k < cut; c0++, k++) {
       const c = row % 2 ? 9 - c0 : c0;
-      s += R(x + c * cw, y + row * ch, cw + .5, ch + .5, "", 0, `fill="#000"`);
+      s += R(x + c * cw, y + row * ch, cw + .5, ch + .5, "", 0, `fill="#0a0d0c" fill-opacity=".86"`);
+      if (cw > 30 && !(w > 300 && row === 0 && x + (c + 1) * cw > x + w - 156)) s += `<text x="${x + c * cw + cw / 2}" y="${y + row * ch + ch / 2 + 5}" text-anchor="middle" font-size="${Math.min(14, cw / 4)}" fill="#6f8f7c">✓</text>`;
     }
+    if (w > 300) s += R(x + w - 150, y + 12, 138, 34, "", 6, `fill="#000" fill-opacity=".7"`) + `<text x="${x + w - 81}" y="${y + 35}" text-anchor="middle" font-size="16" class="f-m" fill="#9fd8b0">${cut}% done</text>`;
   }
   if (o.frame) {
     const k = Math.min(cut, 99), row = Math.floor(k / 10), c = row % 2 ? 9 - (k % 10) : k % 10;
     s += `<rect x="${x + c * cw - cw * .5}" y="${y + row * ch}" width="${cw * 2}" height="${ch * 1.6}" class="f-wline" stroke-width="1.5" stroke-dasharray="6 4"/>`;
   }
-  if (o.ring) { const p = pts[5] || pts[0]; s += `<circle cx="${p[0]}" cy="${p[1]}" r="17" class="f-ring pulse" stroke-width="3"/>`; }
+  if (o.ring) { const k = pts.findIndex((p, i) => !missed[i] && live[i]); const p = pts[k < 0 ? 0 : k]; s += `<circle cx="${p[0]}" cy="${p[1]}" r="17" class="f-ring pulse" stroke-width="3"/>`; }
   if (o.aoi) s += `<path d="M${x + w * .15} ${y + h * .3} C ${x + w * .3} ${y + h * .05}, ${x + w * .75} ${y + h * .1}, ${x + w * .85} ${y + h * .4} S ${x + w * .6} ${y + h * .92}, ${x + w * .3} ${y + h * .8} Z" class="f-wline" stroke-width="2.5" stroke-dasharray="9 5"/>` + T(x + w * .17, y + h * .27, "area of interest", "", 15, `fill="#fff"`);
   if (o.damaged) {
     s += `<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="9" fill="#ff9f43"/></pattern></defs>`;
     s += `<path d="M${x + w * .55} ${y + h * .55} l60 -20 l45 40 l-25 55 l-70 -5 z" fill="url(#hatch)" fill-opacity=".8" stroke="#ff9f43" stroke-width="2"/>` + T(x + w * .55, y + h * .52, "damaged", "", 15, `fill="#ffb877"`);
   }
-  if (o.added) { const ax = x + w * .62, ay = y + h * .38; s += `<circle cx="${ax}" cy="${ay}" r="17" class="f-ring pulse" stroke-width="3"/><text x="${ax + 20}" y="${ay - 14}" font-size="22" fill="#ffc22e" font-weight="700">+</text>`; }
+  if (o.added) { const p = pts[addAt < 0 ? pts.length - 3 : addAt]; s += `<circle cx="${p[0]}" cy="${p[1]}" r="17" class="f-ring pulse" stroke-width="3"/><rect x="${p[0] - 13}" y="${p[1] - 9}" width="26" height="18" rx="3" fill="none" stroke="#ffc22e" stroke-width="2"/><text x="${p[0] + 20}" y="${p[1] - 14}" font-size="22" fill="#ffc22e" font-weight="700">+</text>`; }
   if (o.lasso) s += `<path d="M${x + w * .2} ${y + h * .25} q ${w * .2} -${h * .12} ${w * .35} 0 t ${w * .05} ${h * .4} q -${w * .2} ${h * .2} -${w * .4} 0 z" class="f-ring" stroke-width="2.5" stroke-dasharray="3 6"/>`;
   return s;
 }
@@ -259,7 +291,7 @@ function thumbs(f) {
     if (f.tagged && i >= 8) s += R(x + 4, y + 82, 112, 18, "f-accsoft", 9) + T(x + 11, y + 95, "A3 · 4-AP", "f-t f-m", 10.5);
     if (faded) s += T(x + 46, y + 58, "hidden", "f-t f-h", 16);
     if ((f.flags || []).includes(i)) s += R(x + 108, y + 6, 36, 18, "f-acc", 9) + T(x + 114, y + 19, "GT", "f-white f-m", 11);
-    if (f.done !== undefined && i < f.done) s += `<circle cx="${x + 136}" cy="${y + 92}" r="9" class="f-acc"/>` + T(x + 131, y + 96, "✓", "f-white", 11);
+    if (f.done !== undefined && i < (f.doneFrom !== undefined ? Math.round(lerp(f.doneFrom, f.done, ease(P))) : f.done)) s += `<circle cx="${x + 136}" cy="${y + 92}" r="9" class="f-acc"/>` + T(x + 131, y + 96, "✓", "f-white", 11);
   }
   return s;
 }
@@ -346,7 +378,7 @@ function scene(f, video, chapterStage) {
         s += T(534, y, v, "f-t f-h", 18) + T(534, y + 30, "precision", "f-d f-m", 11) + R(620, y + 20, 290, 12, "f-bar", 3) + R(620, y + 20, 290 * p, 12, "f-acc grow", 3);
         s += T(534, y + 56, "recall", "f-d f-m", 11) + R(620, y + 46, 290, 12, "f-bar", 3) + R(620, y + 46, 290 * r, 12, "f-acc grow", 3);
       });
-      s += T(534, 490, f.note, "f-d f-m", 12);
+      s += T(640, 58, f.note, "f-d f-m", 12);
       break;
     }
     case "chat": s = R(0, 0, W, H, "f-ui") + chatPanel(f); break;
@@ -362,18 +394,19 @@ function scene(f, video, chapterStage) {
       }
       const pages = f.pages || 1;
       for (let k = pages - 1; k >= 0; k--) s += R(640 + k * 6, 300 - k * 7, 230, 180, "f-sheet", 3, `style="stroke:var(--rule)"`);
-      ["1.12 µm", "0.97 µm", "1.30 µm", "1.0"].forEach((l, i) => s += `<text x="${662}" y="${338 + i * 30}" font-size="22" font-family="cursive" class="f-ink" transform="rotate(-3 662 ${338 + i * 30})">${esc(i === 3 && f.snap ? "1.0—" : l)}</text>`);
+      ["1.12 µm", "0.97 µm", "1.30 µm", "1.0"].filter((l, i) => f.snap || f.tiles || i < Math.max(1, Math.ceil(P * 3.2))).forEach((l, i) => s += `<text x="${662}" y="${338 + i * 30}" font-size="22" font-family="cursive" class="f-ink" transform="rotate(-3 662 ${338 + i * 30})">${esc(i === 3 && f.snap ? "1.0—" : l)}</text>`);
       s += `<g transform="rotate(38 760 440)"><rect x="730" y="${f.snap ? 300 : 320}" width="16" height="150" rx="3" fill="#f2c14e" stroke="#8a6a1a"/><path d="M730 ${f.snap ? 300 : 320} l8 -22 l8 22 z" fill="#e8d2a6" stroke="#8a6a1a"/>${f.snap ? "" : `<path d="M735 304 l3 -8 l3 8 z" class="f-ink"/>`}</g>`;
-      s += `<ellipse cx="800" cy="500" rx="48" ry="34" fill="#d7a98a"/>`;
+      s += `<path d="M960 560 q-120 -40 -232 -104" fill="none" stroke="#d7a98a" stroke-width="34" stroke-linecap="round"/><ellipse cx="728" cy="452" rx="26" ry="20" fill="#d7a98a"/>`;
       s += `<path d="M30 540 q10 -130 140 -140 q120 6 140 140 z" fill="#3b4a44"/><circle cx="170" cy="335" r="58" fill="#3b4a44"/><path d="M150 282 q30 -18 60 4" fill="none" stroke="#2a3430" stroke-width="10" stroke-linecap="round"/>`;
-      if (!f.tiles) s += `<path d="M262 440 q40 -80 78 -190" fill="none" stroke="#d7a98a" stroke-width="30" stroke-linecap="round"/>`;
-      if (f.snap) s += `<g class="rise"><path d="M700 395 l9 -5 l2 10 z" class="f-ink"/><text x="640" y="250" font-size="44" class="f-acc f-h" transform="rotate(-8 640 250)">snap.</text></g>`;
+      if (!f.tiles) s += `<path d="M262 440 q40 -100 82 -238" fill="none" stroke="#d7a98a" stroke-width="30" stroke-linecap="round"/><ellipse cx="347" cy="200" rx="20" ry="16" fill="#d7a98a"/>`;
+      if (f.tiles) s += R(250, 160, 220, 70, "", 8, `fill="#000" fill-opacity=".8"`) + `<text x="360" y="208" text-anchor="middle" font-size="38" class="f-white f-h">× 400</text>`;
+      if (f.snap) { const fly = ease(P * 2.5); s += `<g transform="translate(${-60 * fly} ${-50 * fly + 90 * fly * fly}) rotate(${300 * fly} 818 310)"><path d="M812 300 l12 4 l-9 9 z" fill="#e8d2a6" stroke="#8a6a1a"/><path d="M818 304 l3 -2 l1 4 z" class="f-ink"/></g><path d="M800 290 l-14 -8 M806 282 l-6 -14 M812 284 l4 -14" class="f-inks" stroke-width="2"/><text x="640" y="250" font-size="44" class="f-acc f-h" transform="rotate(-8 640 250)">snap.</text>`; }
       break;
     }
     case "lab": {
       s = R(0, 0, W, H, "f-ui") + chatPanel({ user: f.nudge, reply: ["On it. Running the lab."] }, 20, 20, 420, 500);
       s += R(460, 20, 480, 500, "", 8, `fill="#101513"`) + `<text x="484" y="60" font-size="16" class="f-m" fill="#9fd8b0">lab · running by itself</text>`;
-      f.log.forEach((l, i) => s += `<g class="rise" style="animation-delay:${i * .5}s"><text x="484" y="${110 + i * 44}" font-size="17" class="f-m" fill="${/dropped/.test(l) ? "#ff8f6b" : "#e8ece9"}">${esc(l)}</text></g>`);
+      f.log.filter((l, i) => i < Math.ceil(P * f.log.length * 1.15)).forEach((l, i) => s += `<g class="rise" style="animation-delay:${i * .5}s"><text x="484" y="${110 + i * 44}" font-size="17" class="f-m" fill="${/dropped/.test(l) ? "#ff8f6b" : "#e8ece9"}">${esc(l)}</text></g>`);
       s += `<text x="484" y="${110 + f.log.length * 44}" font-size="17" class="f-m pulse" fill="#9fd8b0">▌</text>`;
       break;
     }
@@ -381,30 +414,31 @@ function scene(f, video, chapterStage) {
       s = R(0, 0, W, H, "f-paper") + T(60, 70, "The tagging tools grow too", "f-ink f-h", 28);
       const box = (x, title, btns, handles) => {
         let o = R(x, 100, 400, 400, "f-sheet", 8, `style="stroke:var(--rule)" stroke-width="1.5"`) + T(x + 22, 134, title, "f-d f-m", 14);
-        o += field(x + 22, 150, 356, 170, { n: 4 }, 4) + `<circle cx="${x + 200}" cy="235" r="26" class="f-ring" stroke-width="3"/>`;
+        o += field(x + 22, 150, 356, 170, { n: 0 }, 4);
+        o += `<g transform="translate(${x + 200} 235) rotate(${handles ? 20 : -15})"><ellipse cx="-17" cy="0" rx="14" ry="7" class="f-green"/><ellipse cx="0" cy="0" rx="7" ry="6" class="f-red"/><ellipse cx="17" cy="0" rx="14" ry="7" class="f-green"/></g><circle cx="${x + 200}" cy="235" r="34" class="f-ring" stroke-width="3"/>`;
         if (handles) o += `<g class="rise"><line x1="${x + 160}" y1="235" x2="${x + 240}" y2="235" stroke="#ffc22e" stroke-width="2" stroke-dasharray="4 3"/><rect x="${x + 152}" y="227" width="16" height="16" fill="#ffc22e"/><rect x="${x + 232}" y="227" width="16" height="16" fill="#ffc22e"/><path d="M${x + 170} 270 q30 -24 60 0" fill="none" stroke="#ffc22e" stroke-width="2"/></g>`;
         btns.forEach((b, i) => { const bx = x + 22 + (i % 2) * 182, by = 340 + Math.floor(i / 2) * 52; o += R(bx, by, 174, 42, i === 0 && !handles ? "f-acc" : "f-box", 5) + T(bx + 14, by + 27, b, i === 0 && !handles ? "f-white" : "f-t", 15); });
         return o;
       };
       s += box(60, "image 1 · first tools", ["Yes", "No", "Missed one"], false);
-      s += `<g class="rise">` + box(500, "image 3 · tools improved", ["Widen this node", "Lower the curvature", "Split in two", "Yes"], true) + `</g>`;
+      s += `<g class="rise">` + box(500, "image 3 · tools improved", ["Widen this node", "Lower the curvature", "Split in two"], true) + `</g>`;
       s += `<path d="M470 300 l20 0 m-8 -8 l8 8 l-8 8" class="f-accs" stroke-width="3"/>`;
       break;
     }
     case "field":
       s = field(0, 0, W, H, { n: 90 }, 9) + `<path d="M520 250 l0 26 l7 -7 l6 13 l5 -2 l-6 -13 l10 0 z" fill="#fff" stroke="#000"/>`;
-      s += R(30, 30, 210, 60, "", 6, `fill="#000" fill-opacity=".75"`) + `<text x="50" y="72" font-size="30" class="f-m" fill="#ffc22e">clicks: ${esc(f.tally)}</text>`;
+      s += R(30, 30, 210, 60, "", 6, `fill="#000" fill-opacity=".75"`) + `<text x="50" y="72" font-size="30" class="f-m" fill="#ffc22e">clicks: ${Math.max(1, Math.round(+f.tally * P))}</text>`;
       break;
     case "tiles": {
-      s = R(0, 0, W, H, "", 0, `fill="#0c0f0e"`);
+      s = R(0, 0, W, H, "", 0, `fill="#0c0f0e"`) + `<g transform="translate(480 270) scale(${1 + 7 * (1 - ease(P * 1.4))}) translate(-480 -270)">`;
       const r = rng(4);
       for (let i = 0; i < 16; i++) for (let j = 0; j < 25; j++) {
         const x = 8 + j * 38, y = 8 + i * 33;
         s += R(x, y, 34, 29, "f-scope");
         for (let k = 0; k < 3; k++) s += `<circle cx="${x + 4 + r() * 26}" cy="${y + 4 + r() * 21}" r="1.6" class="${k ? "f-green" : "f-red"}"/>`;
       }
-      s += R(250, 190, 460, 160, "", 8, `fill="#000" fill-opacity=".78"`) + `<text x="480" y="268" text-anchor="middle" font-size="56" class="f-white f-h">${esc(f.count)}</text>`;
-      s += `<text x="480" y="318" text-anchor="middle" font-size="22" class="f-m" fill="#ffc22e">clicked so far: ${esc(f.tally)}</text>`;
+      s += `</g>` + R(250, 190, 460, 160, "", 8, `fill="#000" fill-opacity=".78"`) + `<text x="480" y="268" text-anchor="middle" font-size="56" class="f-white f-h">${esc(f.count)}</text>`;
+      s += `<text x="480" y="318" text-anchor="middle" font-size="22" class="f-m" fill="#ffc22e">${f.tally ? "clicked so far: " + Math.round(lerp(3, +f.tally, ease(P))) : ""}</text>`;
       break;
     }
     case "cards3":
@@ -420,17 +454,17 @@ function scene(f, video, chapterStage) {
       });
       break;
     case "loop": {
-      s = R(0, 0, W, H, "f-paper") + `<circle cx="480" cy="270" r="160" class="f-accs" stroke-width="10" stroke-dasharray="300 35"/>`;
-      s += `<path d="M622 212 l20 -26 l14 32 z" class="f-acc"/><path d="M386 418 l-32 -2 l18 -28 z" class="f-acc"/>`;
+      s = R(0, 0, W, H, "f-paper") + `<g transform="rotate(${P * 50} 480 270)"><circle cx="480" cy="270" r="160" class="f-accs" stroke-width="10" stroke-dasharray="300 35"/>`;
+      s += `<path d="M622 212 l20 -26 l14 32 z" class="f-acc"/><path d="M386 418 l-32 -2 l18 -28 z" class="f-acc"/></g>`;
       if (f.title) s += `<text x="480" y="284" text-anchor="middle" font-size="44" class="f-ink f-h rise">${esc(f.title)}</text>`;
-      [[480, 92], [690, 420], [270, 420]].forEach(([x, y], i) => s += `<text x="${x}" y="${y}" text-anchor="middle" font-size="22" class="f-ink f-m">${esc(i === 1 ? "improve" : "annotate")}</text>`);
+      [[480, 78], [720, 440], [240, 440]].forEach(([x, y], i) => s += `<text x="${x}" y="${y}" text-anchor="middle" font-size="22" class="f-ink f-m">${esc(i === 1 ? "improve" : "annotate")}</text>`);
       break;
     }
     case "faster": {
       s = chrome("main", "Develop") + leftBar([{ h: "Ground Truth Tasks", rows: ["each image quicker than the last"] }]);
       f.images.forEach(([name, t], i) => {
         const x = 286 + i * 222;
-        s += field(x, 80, 206, 260, { n: 22, outlines: true, cut: Math.round(100 * (0.4 + i * 0.3)) }, 30 + i) + T(x, 368, name, "f-t f-h", 14);
+        s += field(x, 80, 206, 260, { n: 22, outlines: true, quality: 0.4 + i * 0.28, cut: [30, 45, 60][i] }, 30 + i) + T(x, 368, name, "f-t f-h", 14);
         s += R(x, 382, 206, 14, "f-bar", 3) + R(x, 382, 206 * t, 14, "f-acc grow", 3, `style="animation-delay:${i * .4}s"`);
       });
       s += T(286, 430, f.note, "f-d f-m", 12);
@@ -452,11 +486,18 @@ function scene(f, video, chapterStage) {
       f.lines.forEach((l, i) => s += `<text x="480" y="${280 + i * 34}" text-anchor="middle" font-size="22" class="f-paper">${esc(l)}</text>`);
       s += `<text x="480" y="420" text-anchor="middle" font-size="18" class="f-acc f-m">rauntruth.com · ${esc(f.next)} ▸</text>`;
       break;
+    case "reviewer":
+      s = R(0, 0, W, H, "f-foot") + `<circle cx="210" cy="250" r="70" fill="#c9cfcb"/><path d="M80 540 q130 -230 260 0 z" fill="#c9cfcb"/>`;
+      s += R(380, 80, 520, 330, "", 10, `fill="#111"`) + R(392, 92, 496, 306, "f-ui") + R(392, 92, 496, 26, "f-bar") + T(404, 110, "RaunTruth · NoR Finder", "f-t f-h", 12) + T(760, 110, "signed out", "f-d f-m", 11);
+      s += field(500, 124, 380, 266, { n: 30, outlines: true, quality: 0.95, seed: 44 }) + R(400, 124, 92, 266, "f-box") + T(408, 146, "Summary", "f-t f-h", 11);
+      [24, 40, 52, 36, 20, 10].forEach((v, i) => s += R(406 + i * 13, 240 - v, 9, v, "f-acc"));
+      s += T(408, 270, "v4 · frozen", "f-d f-m", 10) + T(408, 288, "precision · recall", "f-d f-m", 10);
+      s += R(560, 410, 160, 14, "", 3, `fill="#111"`) + R(500, 422, 280, 10, "", 4, `fill="#222"`);
+      s += `<text x="640" y="56" text-anchor="middle" font-size="20" class="f-footw">${esc(f.caption || "")}</text>`;
+      break;
     case "footage":
       s = R(0, 0, W, H, "f-foot") + `<g transform="translate(480 240) scale(1.4)">${ICON[f.icon]}</g>`;
-      s += `<text x="480" y="470" text-anchor="middle" font-size="22" class="f-footw">${esc(f.caption)}</text>`;
-      s += `<text x="34" y="52" font-size="14" class="f-footw f-m" letter-spacing="3">FOOTAGE</text>`;
-      s += `<path d="M24 24 h40 M24 24 v40 M936 24 h-40 M936 24 v40 M24 516 h40 M24 516 v-40 M936 516 h-40 M936 516 v-40" class="f-footl" stroke-width="3"/>`;
+      s += `<text x="480" y="96" text-anchor="middle" font-size="22" class="f-footw">${esc(f.caption)}</text>`;
       break;
     case "ribbon":
       s = R(0, 0, W, H, "f-paper") + T(60, 130, "Five stages", "f-ink f-h", 40) + ribbon(null, 60, 200, false);
@@ -481,10 +522,17 @@ function scene(f, video, chapterStage) {
       break;
     default: s = R(0, 0, W, H, "f-ui");
   }
+  if (WINDOWED.has(f.scene)) s = R(0, 0, W, H, "f-paper") + R(62, 40, 845, 475, "", 10, `fill="#000" opacity=".14"`) +
+    `<g transform="translate(480 270) scale(.88) translate(-480 -270)"><clipPath id="win"><rect width="${W}" height="${H}" rx="9"/></clipPath><g clip-path="url(#win)">${s}</g></g>` +
+    R(57.6, 32.4, 844.8, 475.2, "", 8, `fill="none" style="stroke:var(--rule)" stroke-width="1"`);
+  else if (INSET.has(f.scene)) s = R(0, 0, W, H, "f-paper") + `<g transform="translate(480 270) scale(.9) translate(-480 -270)">${s}</g>`;
   const st = f.stage || chapterStage;
   if (video === "walkthrough" && st && !["end", "ribbon"].includes(f.scene)) s += ribbon(st);
   return s;
 }
+
+// Screens float as a window on the paper and slides sit inset, so the camera has room to move without slicing text.
+const WINDOWED = new Set(["ui", "split", "chat", "lab", "faster", "drive"]), INSET = new Set(["cards3", "tools", "share"]);
 
 function chapterCard(c) {
   return R(0, 0, W, H, "f-paper") + `<circle cx="140" cy="270" r="70" class="f-accs" stroke-width="8" stroke-dasharray="130 18"/>` +
@@ -510,6 +558,11 @@ function select(id) {
   cur = VIDEOS.find(v => v.id === id) || VIDEOS[0];
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.id === cur.id));
   $("tone").textContent = cur.tone;
+  const vid = $("video");
+  $("rendered").hidden = true;
+  vid.onloadedmetadata = () => { $("rendered").hidden = false; };
+  vid.onerror = () => { $("rendered").hidden = true; };
+  if (!location.search.includes("render")) vid.src = `video/${cur.id}.mp4`;
   audio.src = cur.soundtrack || "";
   $("timeline").innerHTML = `<span class="lane-name">picture</span><div class="lanes" style="grid-row: span 3">` + cur.seq.map((s, i) => {
     const m = mo(s), first = s.kind === "moment" && s.ref[2] === 0;
@@ -547,6 +600,32 @@ function board() {
   });
   $("board").innerHTML = html;
 }
+
+// Render mode (?render): the stage alone at the viewport's size, captions burned in, drawn at any time on request.
+function renderFrame(t) {
+  const i = indexAt(t), s = cur.seq[i], m = mo(s), local = t - s.at;
+  P = ease(local / s.dur);
+  const inner = s.kind === "chapter" ? chapterCard(ch(s)) : scene(m.frame, cur.id, ch(s).stage);
+  P = 1;
+  const cam = m && m.cam ? m.cam : { kind: "still", x: 50, y: 50 };
+  $("stage").innerHTML = `<div class="cam ${cam.kind}" style="--ox:${cam.x}%;--oy:${cam.y}%;--d:${s.dur}s">${svg(inner, true)}</div>`;
+  for (const a of $("stage").getAnimations({ subtree: true })) { a.pause(); a.currentTime = local * 1000; }
+  let cap = "";
+  if (m && m.voice) {
+    const words = m.voice.split(/\s+/), chunks = [];
+    let line = [];
+    for (const w of words) { line.push(w); if (line.join(" ").length > 46 || /[.?!]$/.test(w)) { chunks.push(line.join(" ")); line = []; } }
+    if (line.length) chunks.push(line.join(" "));
+    const v = (local - 0.12) / Math.max(m.spoken, 0.1);
+    if (v >= 0 && v <= 1.05) {
+      let acc = 0; const total = words.length;
+      for (const c of chunks) { acc += c.split(" ").length; if (v * total <= acc + 0.01) { cap = c; break; } }
+      cap = cap || chunks[chunks.length - 1];
+    }
+  }
+  $("caption").innerHTML = cap ? `<span>${esc(cap)}</span>` : "";
+}
+window.renderFrame = renderFrame;
 
 function draw(i) {
   if (i === idx) return;
@@ -605,6 +684,7 @@ $("prev").addEventListener("click", () => { const w = playing; seek(cur.seq[Math
 $("next").addEventListener("click", () => { const w = playing; seek(cur.seq[Math.min(cur.seq.length - 1, idx + 1)].at); if (w) play(); });
 document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("button") && e.key === " ") return; if (e.key === " ") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") $("next").click(); if (e.key === "ArrowLeft") $("prev").click(); });
 const route = () => select(location.hash.slice(1) || VIDEOS[0].id);
+if (location.search.includes("render")) document.documentElement.classList.add("render");
 window.addEventListener("hashchange", route);
 route();
 </script>

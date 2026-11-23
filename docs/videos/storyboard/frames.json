@@ -91,7 +91,8 @@
      }
     ],
     "micro": {
-     "outlines": true
+     "outlines": true,
+     "quality": 0.4
     }
    },
    "steps": [
@@ -195,7 +196,8 @@
       }
      ],
      "micro": {
-      "cut": 100
+      "cut": 100,
+      "cutFrom": 2
      }
     }
    ]
@@ -237,10 +239,10 @@
      "scene": "lab",
      "nudge": "Follow the fibre, not the blob.",
      "log": [
-      "02:10  v3 scored on 6 tagged images",
-      "02:31  v4 scored · better, kept",
-      "03:05  v5 scored · worse, dropped",
-      "03:40  v6 scored · better, kept"
+      "02:10  try 1 · worse than v1, dropped",
+      "02:31  try 2 · better, kept as v2",
+      "03:05  try 3 · no better, dropped",
+      "03:40  v2 ready for your next image"
      ]
     },
     {}
@@ -286,8 +288,10 @@
       "outlines": true,
       "ring": true,
       "frame": true,
-      "cut": 62,
-      "n": 60
+      "cut": 40,
+      "n": 60,
+      "seed": 77,
+      "quality": 0.75
      }
     },
     {
@@ -311,7 +315,9 @@
       }
      ],
      "micro": {
-      "outlines": true
+      "outlines": true,
+      "seed": 123,
+      "quality": 0.97
      }
     }
    ]
@@ -325,14 +331,15 @@
      {
       "h": "Batch run",
       "rows": [
-       "v4 over 12 images",
+       "v4 over 400 images",
        "[ Mark all official ]"
       ],
       "bar": 0.8
      }
     ],
     "main": "thumbs",
-    "done": 10
+    "done": 10,
+    "doneFrom": 2
    },
    "steps": [
     {},
@@ -343,10 +350,11 @@
       {
        "h": "Summary",
        "rows": [
-        "count 193",
-        "density / mm²",
-        "lengths"
+        "193 nodes in the image",
+        "41 in the lasso",
+        "lengths, in the lasso"
        ],
+       "hl": 1,
        "hist": true
       }
      ],
@@ -369,8 +377,7 @@
    "steps": [
     {},
     {
-     "scene": "footage",
-     "icon": "reviewer",
+     "scene": "reviewer",
      "caption": "a reviewer, signed out, opens the study's link"
     }
    ]
@@ -1058,9 +1065,10 @@
      "scene": "lab",
      "nudge": "Follow the fibre, not the blob.",
      "log": [
-      "v2 scored on 1 tagged image",
-      "v3 scored · better, kept",
-      "v4 scored · worse, dropped"
+      "02:10  try 1 · worse than v1, dropped",
+      "02:31  try 2 · better, kept as v2",
+      "03:05  try 3 · no better, dropped",
+      "03:40  v2 ready for your next image"
      ],
      "stage": "Develop"
     },
@@ -1110,8 +1118,10 @@
      "outlines": true,
      "ring": true,
      "frame": true,
-     "cut": 62,
-     "n": 60
+     "cut": 40,
+     "n": 60,
+     "seed": 77,
+     "quality": 0.75
     }
    },
    "steps": [
@@ -1151,7 +1161,9 @@
       "outlines": true,
       "ring": false,
       "frame": false,
-      "cut": 0
+      "cut": 0,
+      "seed": 123,
+      "quality": 0.97
      },
      "popup": {
       "title": "Stage: Develop",
@@ -1176,7 +1188,9 @@
       "outlines": true,
       "ring": false,
       "frame": false,
-      "cut": 0
+      "cut": 0,
+      "seed": 123,
+      "quality": 0.97
      },
      "popup": {
       "title": "Stage",
@@ -1388,8 +1402,7 @@
    "steps": [
     {},
     {
-     "scene": "footage",
-     "icon": "reviewer",
+     "scene": "reviewer",
      "caption": "a reviewer, signed out, opens the study's link",
      "stage": "Review"
     }

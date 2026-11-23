@@ -158,9 +158,11 @@ def main():
         if args.voices:
             track = sound.mix(t, beds, fx, voices)
             path = f"audio/{vid}.mp3"
-            subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "f32le", "-ar", str(sound.SR), "-ac", "1", "-i", "-",
-                            "-b:a", "96k", str(args.out / path)], input=track.astype(np.float32).tobytes(), check=True)
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "f32le", "-ar", str(sound.SR), "-ac", "2", "-i", "-",
+                            "-af", "acompressor=threshold=-18dB:ratio=2.5:attack=8:release=120,loudnorm=I=-14:TP=-1:LRA=11",
+                            "-ar", str(sound.SR), "-b:a", "160k", str(args.out / path)], input=track.astype(np.float32).tobytes(), check=True)
             video["soundtrack"] = path
+            video["mix"] = dict(sound.REPORT)
         videos.append(video)
         print(f"{vid}: {t:.1f} s")
     page = (HERE / "page.html").read_text().replace("/*DATA*/null", json.dumps(videos, ensure_ascii=False))
