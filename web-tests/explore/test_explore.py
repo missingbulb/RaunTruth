@@ -151,3 +151,17 @@ def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp
         {'kind': 'click', 'key': '#file-name', 'text': 'Details'}])
     assert run['steps'][4]['vars']['image'] == 'original', run['steps']
     assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_refusal_the_world_itself_caused_is_not_found_wrong(tmp_path):
+    # the owner stops sharing the study's folder while the dialog that lists it is open: Drive answers the page's next read
+    # of the folder 404, which Chromium logs and the page tells the person of
+    run = replayed(tmp_path, 'member', [
+        {'kind': 'click', 'key': '#sb-res-icon', 'text': 'Resources'},
+        {'kind': 'event', 'event': 'offline'},
+        {'kind': 'click', 'key': '#storage-list > details:nth-of-type(4) > summary > button', 'text': 'Make Available Offline'},
+        {'kind': 'event', 'event': 'accessRemoved'},
+        {'kind': 'event', 'event': 'online'}])
+    assert any('404' in m['line'] for s in run['steps'] for m in s['heard']), 'the world refused nothing, so the case proves nothing'
+    assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
