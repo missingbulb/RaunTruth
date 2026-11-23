@@ -49,6 +49,13 @@ export function foldersOn(drive) {
       viewableOnly() { drive.viewableOnly(record); return f; },
       writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
       writableByAnyone() { drive.writableByAnyone(record); return f; },
+      // these users alone may add to it, whoever could before
+      writableOnlyBy(...users) { drive.writers.set(record.id, new Set(users.map((u) => u.email ?? u))); return f; },
+      // its owner stops sharing it with these users: they neither read it nor add to it any more
+      unsharedWith(...users) {
+        for (const e of users.map((u) => u.email ?? u)) { drive.readers.get(record.id)?.delete(e); drive.writers.get(record.id)?.delete?.(e); }
+        return f;
+      },
       folder: (name, options = {}) => on.folder(name, { ...options, in: record }),
       // the study file a study's root holds as Study Setup left it (req/shell/ground-truth/setup), with these keys over
       // what it said before; id: Drive's, when the test names it
@@ -75,6 +82,9 @@ export function foldersOn(drive) {
     // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
     folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
     studyFolder: (study) => folderOf(drive.rootOf(study)),
+    // a file someone removes from Drive, or renames, elsewhere than on the page
+    removeFile(file) { drive.files.splice(drive.files.indexOf(file), 1); },
+    renameFile(file, name) { file.name = name; file.modified = drive.tick(); },
     // a folder the fake already holds, by its record or id, said as a test means it
     of: (folder) => folderOf(folder.id ? folder : drive.get(folder)),
     // an image or file at Drive's top, in no folder, as a folder holds one
@@ -88,7 +98,8 @@ export function world(browser, origin) {
   const w = {
     browser, drive, google, site: settingsIn(shared), studies: studiesIn(shared),
 
-    folder: folders.folder, studyFolder: folders.studyFolder, file: folders.file,
+    folder: folders.folder, studyFolder: folders.studyFolder, file: folders.file, of: folders.of,
+    removeFile: folders.removeFile, renameFile: folders.renameFile,
 
     // a Google account, the one Google's window signs in next
     user(email) {
