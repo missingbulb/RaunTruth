@@ -51,7 +51,8 @@ finds test-first, fixes small gaps, and brings the owner only the calls that are
 ### Left by WP3, to triage at the end
 
 - In a GT-stage study, someone who only wants to look can no longer run an algorithm without choosing Start
-  annotating from scratch (follows "only from scratch shows the runner"; owner's call whether viewing keeps a runner).
+  annotating from scratch. Decided (owner, 2026-11-23): viewing in a GT stage has no runner of its own, running an
+  algorithm is annotating; a viewer who may not submit may still start annotating to run it.
 - The map says annotation mode stays across reloads; the spec and the build ask again per image and on reload.
 - Code comments in `web/` still say "Study Manager" where the requirements now say "study owner".
 - After a token expiry the page logs `ground truth status not read: 401`; the explorer's `phone` and `first-visit`

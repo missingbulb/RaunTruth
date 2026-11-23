@@ -1915,7 +1915,7 @@ nobody has decided: what the page does there is not a requirement yet.
   open to this user in this stage: viewing and running the algorithm, running on their own images, for someone the store lets save "Annotate: 12
   images still need it" (the images in the study's index, hidden ones left out for those who may not manage it, that carry no GT mark), and for
   someone who may write the root the Study Setup actions the stage opens. Someone who may not save has no Annotate line, nor has anyone in a stage that
-  closes annotating. Tentative: the gate's wording for each stage, which the page can measure only in part (the owner's judgement is the real gate).
+  closes annotating. Decided by the owner, 2026-11-23: the gate's wording for each stage, which the page can measure only in part (the owner's judgement is the real gate).
   Test: `web-tests/test_stage_popup_page.py`.
   </details>
 
@@ -2135,7 +2135,7 @@ nobody has decided: what the page does there is not a requirement yet.
   batch before the next image runs, says so, and the next click on Run renews it and goes on; any other failure stops it
   naming the image. While a batch runs the tree, the cells and the choices wait. Mark this batch official marks
   each image the batch reached official, in one write. In Review and Public a batch is exploratory and counts only once marked
-  (`req/setup/marks`). Tentative: the parameters of a run are the study's own at the time (a threshold in its panel);
+  (`req/setup/marks`). Decided by the owner, 2026-11-23: the parameters of a run are the study's own at the time (a threshold in its panel);
   they are kept in the file but do not tell one batch from another, which the algorithm and the code version do. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_batch_driver.mjs`.
   </details>
@@ -2160,7 +2160,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (null for a batch's). A later save by the author replaces the file's content, so the mark follows it: the main app shows
   the new model as GT at once and the dataset SHA changes. Marking another extraction GT replaces the first; GT and official
   are separate marks and may name one file or two. Each write reads the study file afresh and merges. A folder's cells say
-  Ground truth and Official for the images that have them. Tentative: the list names no one, only a marked
+  Ground truth and Official for the images that have them. Decided by the owner, 2026-11-23: the list names no one, only a marked
   extraction's author, since an extraction's author is read from its file on marking. Test: `web-tests/test_setup_page.py` with
   `web-tests/setup_marks_driver.mjs`.
   </details>
@@ -2216,7 +2216,7 @@ nobody has decided: what the page does there is not a requirement yet.
   first eight of its code version where a batch run made the extraction, "by hand" where a person's did, and the study's measures, the
   columns its `study.json` names under `results.measures` (`{title, path}` for a number in the extraction's document, `{title, count}` for
   the lengths of the lists at those paths added), the totals last (the images and each measure summed). An image with no official mark has no
-  row. Download CSV saves the same rows and totals from the page as a file, asking the network for nothing. Tentative: the measures
+  row. Download CSV saves the same rows and totals from the page as a file, asking the network for nothing. Decided by the owner, 2026-11-23: the measures
   declared for NoR (candidates kept and NoRs added), vascular (branch segments) and shelves (books) count what each extraction's document
   holds and are not the studies' final numbers; the box shows in every stage. Test: `web-tests/test_setup_page.py` with
   `web-tests/setup_results_driver.mjs`.
