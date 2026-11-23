@@ -44,6 +44,11 @@ export function foldersOn(drive) {
       id: record.id, name: record.name, record,
       // anyone with the link reads it, by the site's key too; sharedWithUserAlone: the signed-in user's token alone
       public() { record.access = "public"; return f; },
+      // no one by the link: Drive's sharing alone says who reads it
+      private() { record.access = "private"; return f; },
+      // Drive's sharing names no one on it to read it or add to it, the link's access kept; readableBy and writableBy
+      // then name exactly those
+      namesNoOne() { drive.readers.delete(record.id); drive.writers.delete(record.id); return f; },
       // Drive's sharing lets these users read it, and what it holds, and no one by the link: its members
       readableBy(...users) { record.access = "private"; drive.readers.set(record.id, new Set([...(drive.readers.get(record.id) ?? []), ...users.map((u) => u.email ?? u)])); return f; },
       sharedWithUserAlone() { drive.sharedWithUserAlone(record); return f; },

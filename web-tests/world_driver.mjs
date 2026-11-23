@@ -1,10 +1,10 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
 // a user signed in on it is who the page names, its token may do only the scopes it was signed in with, what the page learned for them is kept with it, and the
 // settings another device of theirs left on Drive are the ones it takes; a device with no one signed in is the
-// device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given, a file given at Drive's top is in no folder, and a folder the site made is the site's, one named by its id holding what a test puts in it; a device visits an address as given; a deploy
+// device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given, a file given at Drive's top is in no folder, and a folder the site made is the site's, one named by its id holding what a test puts in it; a folder's sharing said afresh is the one Drive lists; a device visits an address as given; a deploy
 // with no Google client offers no sign-in.
 //   node web-tests/world_driver.mjs
-import { pw, launch, check } from "./harness.mjs";
+import { pw, launch, check, expecting } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 import { image } from "./images.mjs";
@@ -78,6 +78,19 @@ try {
   check(top.parent === null && w.drive.get(top.id) === top && top.bytes.length === 4, "a file given at Drive's top is in no folder", top);
   const made = w.folder("Made", { bySite: true }), given = w.of(made.id).folder("Given");
   check(made.record.mine && !given.record.mine && given.record.parent === made.id, "a folder the site made is the site's, and one a test puts in it, by its id, is not", [made.record, given.record]);
+
+  // a folder's sharing said afresh, as Drive lists it to the site's key: the link and x, then the link alone, then not the link
+  const shared = w.folder("Shared").readableBy("x@acme.example").public(), asker = w.device();
+  const onAsker = await asker.opens("fixture", { until: "title" });
+  const sharing = () => onAsker.evaluate((id) => fetch(`https://www.googleapis.com/drive/v3/files/${id}/permissions?key=site&fields=permissions(type,emailAddress)`)
+    .then((r) => (r.ok ? r.json().then((j) => j.permissions.map((p) => p.emailAddress ?? p.type).join()) : r.status)), shared.id);
+  const both = await sharing();
+  const linkAlone = await (shared.namesNoOne(), sharing());
+  const notLink = await expecting(/status of 404/, () => (shared.private(), sharing()));
+  check(both === "anyone,x@acme.example" && linkAlone === "anyone" && notLink === 404,
+    "a folder that names no one after naming x lists the link's permission alone, and made private the site's key reads it not", [both, linkAlone, notLink]);
+  check(w.of(shared.record).id === shared.id, "a handle on a folder the fake holds is that folder");
+  await asker.close();
 
   const keyOnly = w.device();
   const bare = await keyOnly.opens("fixture", { until: "title" });
