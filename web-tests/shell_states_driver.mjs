@@ -230,7 +230,8 @@ const awayAndBack = async (page, p, opened) => {
   for (const [url, switched, label] of [[away, there, `away at ${other}`], [home, back, "back"]]) {
     const fresh = await open(p.signedIn, { ...opened, seed: kept, at: url, keepSettings: true });
     await ready(fresh); await settled(fresh);
-    for (const d of differ(switched, await snapshot(fresh))) differences.push(`${where}, ${label}, not as a fresh load: ${d}`);
+    // where the keyboard is belongs to the press that switched, not to the state: it is on the study menu's button after the choice
+    for (const d of differ(switched, await snapshot(fresh)).filter((d) => !/: focus /.test(d))) differences.push(`${where}, ${label}, not as a fresh load: ${d}`);
     await fresh.context().close();
   }
 };
