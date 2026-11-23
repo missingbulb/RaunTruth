@@ -6,23 +6,25 @@ const SINCE_CLICK_MS = 1000, REDRAW_MS = 1500, FOCUS_KEPT = 30;
 const PRESSABLE = "button, a, summary, input, select, [role=button], [role=menuitem], [role=tab]";
 
 // what finds an element again once a redraw has replaced it: its place among the look-alikes under its nearest
-// ancestor with an id
-function trace(el) {
+// ancestor with an id; it holds the page's elements weakly, so what a redraw removed is not kept alive by it
+function remembered(el) {
   const root = el.parentElement?.closest("[id]") || document.body;
-  const same = (x) => x.localName === el.localName && x.className === el.className && x.textContent === el.textContent;
-  return { root, same, at: [...root.querySelectorAll(el.localName)].filter(same).indexOf(el) };
+  const { localName, className, textContent } = el;
+  const same = (x) => x.localName === localName && x.className === className && x.textContent === textContent;
+  return { ref: new WeakRef(el), root: new WeakRef(root), localName, id: el.id, same, at: [...root.querySelectorAll(localName)].filter(same).indexOf(el) };
 }
 
 const usable = (el) => el?.isConnected && !el.disabled && el.checkVisibility?.({ visibilityProperty: true }) !== false && !el.closest("[inert]");
 
 function target(opener) {
-  if (usable(opener.el)) return opener.el;
-  const menu = opener.el.closest?.("details.menu");
+  const el = opener.ref.deref();
+  if (usable(el)) return el;
+  const menu = el?.closest?.("details.menu");
   if (menu?.isConnected && usable(menu.querySelector(":scope > summary"))) return menu.querySelector(":scope > summary");
-  if (opener.el.id && usable(document.getElementById(opener.el.id))) return document.getElementById(opener.el.id);
-  const { root, same, at } = opener.trace;
-  const found = root.isConnected ? [...root.querySelectorAll(opener.el.localName)].filter(same) : [];
-  return usable(found[at]) ? found[at] : found.find(usable);
+  if (opener.id && usable(document.getElementById(opener.id))) return document.getElementById(opener.id);
+  const root = opener.root.deref();
+  const found = root?.isConnected ? [...root.querySelectorAll(opener.localName)].filter(opener.same) : [];
+  return usable(found[opener.at]) ? found[opener.at] : found.find(usable);
 }
 
 export function focusReturn() {
@@ -32,11 +34,11 @@ export function focusReturn() {
 
   document.addEventListener("click", (e) => {
     const el = e.target.closest?.(PRESSABLE);
-    pressed = el ? { el, trace: trace(el) } : null;
+    pressed = el ? remembered(el) : null;
     at = performance.now();
   }, true);
   document.addEventListener("focusin", (e) => {
-    focused.push({ el: e.target, trace: trace(e.target) });
+    focused.push(remembered(e.target));
     if (focused.length > FOCUS_KEPT) focused.shift();
   });
 
@@ -44,7 +46,7 @@ export function focusReturn() {
     for (const c of changes) {
       const d = c.target;
       if (d.localName !== "dialog" || c.oldValue !== null || !d.open || !d.matches(":modal")) continue;
-      const from = pressed && !d.contains(pressed.el) && performance.now() - at <= SINCE_CLICK_MS ? pressed : focused.findLast((f) => !d.contains(f.el));
+      const from = pressed && !d.contains(pressed.ref.deref() ?? null) && performance.now() - at <= SINCE_CLICK_MS ? pressed : focused.findLast((f) => f.ref.deref() && !d.contains(f.ref.deref()));
       if (from) openers.set(d, from);
       pressed = null;
     }
