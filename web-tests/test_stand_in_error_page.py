@@ -23,4 +23,4 @@ def test_a_study_failing_on_its_image_is_an_error_message_not_an_uncaught_one(an
     nor = nor_image(str(tmp_path / 'nor.tif'))
     live = tmp_path / 'answers.json'
     live.write_text(json.dumps({**json.load(open(answers[0], encoding='utf-8')), 'live': ['nor']}))
-    run('stand_in_error_driver.mjs', str(live), answers[1], str(tmp_path / 'drive'), str(two), nor, timeout=300)
+    run('stand_in_error_driver.mjs', str(live), answers[1], str(tmp_path / 'drive'), str(two), nor)
