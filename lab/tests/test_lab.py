@@ -453,7 +453,7 @@ def test_a_frozen_nor_file_still_counts_its_rejected_candidate_as_a_known_non_no
     doc = nor_truth.three(deleted=[(300, 300)])
     with_reject = fetch.model_form(doc, nor.module)
     assert 'history' not in with_reject
-    elements, _ = nor.module.truth_of(with_reject)
+    elements, _ = nor_truth.S.truth_of(with_reject)
     assert sorted(e['state'] for e in elements).count('not') == 1
     without = fetch.model_form(nor_truth.three(), nor.module)
     assert fetch.model_sha256(with_reject) != fetch.model_sha256(without), 'the dataset SHA covers the rejects'
