@@ -135,16 +135,17 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // popup's answer; id: the study opened, the fixture unless named; study: what its study.json says otherwise for this
   // page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a driver's own, taking
   // precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept; viewport: the window's
-  // size; name: the signed-in user's; until: when their token runs out, in place of an hour on; welcome: the welcome
+  // size; name: the signed-in user's; until: when their token runs out, in place of an hour on; learned: what the
+  // page last learned from Google for them, kept with the sign-in; welcome: the welcome
   // popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study; at: an address
   // opened in place of the study's own, its caller waiting for what it shows
   async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
-    viewport, name = "Tester", until, welcome = false, setup = false, at } = {}) {
+    viewport, name = "Tester", until, learned, welcome = false, setup = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) for (const { owner } of [...google.settings]) google.savedSettings(owner, null);
     const device = w.device().with({ deviceScaleFactor: scale, ...(viewport ? { viewport } : {}) }).keeps(seed);
     const who = (email && email !== EMAIL) || name !== tester.name ? { email: email || EMAIL, name, scopes: SCOPES } : tester;
-    if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes, ...(until ? { tokenLeft: until - Date.now() } : {}) });
+    if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes, learned, ...(until ? { tokenLeft: until - Date.now() } : {}) });
     // the welcome popup answered before, and remembered (req/shell/account/welcome), unless a first visit
     device.welcomed(welcome || "nor-welcome" in seed ? null : signedIn ? "google" : "anonymous");
     const ctx = await device.context();

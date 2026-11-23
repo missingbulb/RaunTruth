@@ -1,5 +1,5 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
-// a user signed in on it is who the page names, its token may do only the scopes it was signed in with, and the
+// a user signed in on it is who the page names, its token may do only the scopes it was signed in with, what the page learned for them is kept with it, and the
 // settings another device of theirs left on Drive are the ones it takes; a device with no one signed in is the
 // device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given, a file given at Drive's top is in no folder, and a folder the site made is the site's, one named by its id holding what a test puts in it; a device visits an address as given; a deploy
 // with no Google client offers no sign-in.
@@ -34,6 +34,12 @@ try {
   const held = [...w.google.tokens].find(([t]) => !known.has(t))?.[1].scopes;
   check(held === "openid email", "a device signed in with fewer scopes keeps a token that may do only those", held);
   await narrow.close();
+
+  // what the page learned of the studies she may open, kept with her run-out sign-in
+  const knowing = w.device().signedInAs(ada, { tokenLeft: -1, learned: { members: ["fixture"] } });
+  const learned = await (await knowing.opens("fixture", { until: "title" })).evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in"))?.learned);
+  check(learned?.members?.join() === "fixture", "a device signed in with what the page learned for her keeps it with the sign-in", learned);
+  await knowing.close();
 
   const nobody = w.device();
   const own = await nobody.opens("fixture", { until: "title" });

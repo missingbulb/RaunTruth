@@ -140,13 +140,13 @@ export function world(browser, origin) {
     device() {
       const kept = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [], served = [];
-      let who = null, left = 3599e3, granted, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
+      let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
       const device = {
         // signed in on the device, Google's token lasting left ms; token: its value, for a test that checks what
         // carried it, else one of the sign-in fake's; unsaved: the settings' keys changed here since Drive last had
         // them; scopes: what the token kept may do, in place of what the user's would, as one granted before the page
-        // asked for more
-        signedInAs(user, { tokenLeft = left, token, unsaved, scopes } = {}) { who = user; left = tokenLeft; held = token; waiting = unsaved; granted = scopes; return device; },
+        // asked for more; learned: what the page last learned from Google for them, kept with the sign-in ({ members })
+        signedInAs(user, { tokenLeft = left, token, unsaved, scopes, learned } = {}) { who = user; left = tokenLeft; held = token; waiting = unsaved; granted = scopes; known = learned; return device; },
         // the opening popup's answer kept ("google", "anonymous"), or null for none yet; remembered: whether its
         // Remember this choice was ticked
         welcomed(answer, { remembered = true } = {}) { welcome = answer; remember = remembered; return device; },
@@ -177,7 +177,7 @@ export function world(browser, origin) {
           const seed = { ...kept };
           if (who) {
             const record = google.signedIn({ email: who.email, name: who.name, scopes: granted ?? who.scopes, token: held, until: Date.now() + left });
-            seed["nor-google-sign-in"] = JSON.stringify(waiting ? { ...record, changed: waiting } : record);
+            seed["nor-google-sign-in"] = JSON.stringify({ ...record, ...(waiting ? { changed: waiting } : {}), ...(known ? { learned: known } : {}) });
           }
           const answer = welcome === undefined ? (who ? "google" : "anonymous") : welcome;
           if (answer) seed["nor-welcome"] = JSON.stringify({ choice: answer, remember });
