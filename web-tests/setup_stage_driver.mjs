@@ -13,22 +13,23 @@ import { until, idle } from "./page_until.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { drive, ROOT, FILES, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, root, drive, ROOT, FILES, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const Y = "y@lab.example", Z = "z@lab.example";
 
 const shaOf = (n) => createHash("sha256").update(fs.readFileSync(path.join(rootDir, n))).digest("hex");
+// a person's extraction of an image, in the image's own folder of the extractions folder, both as the site makes them
+const extractions = w.of(GT.extractions), perImage = new Map();
 const extraction = async (name, who) => {
-  const sha = shaOf(name), stem = name.replace(/\.[^.]*$/, "");
-  const sub = FILES.find((f) => f.folder && f.parent === GT.extractions && f.name === `${stem}__${sha.slice(0, 8)}`)
-    || drive.folder({ mine: true, name: `${stem}__${sha.slice(0, 8)}`, parent: GT.extractions });
-  return drive.file({ mine: true, name: await personFile(who), parent: sub.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who,
-    image: { name, sha256: sha }, labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true })) });
+  const sha = shaOf(name), sub = `${name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
+  if (!perImage.has(sub)) perImage.set(sub, extractions.folder(sub, { bySite: true }));
+  return perImage.get(sub).holds({ name: await personFile(who), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who,
+    image: { name, sha256: sha }, labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true })) }, { bySite: true });
 };
 // img1: y's extraction is GT, and z saved one after it; img2: y's is GT and nothing came after
 const y1 = await extraction("img1.png", Y), y2 = await extraction("img2.png", Y);
 await extraction("img1.png", Z);
 studyFile({ stage: "Develop", marks: { [shaOf("img1.png")]: { gt: { file: y1.id, by: Y } }, [shaOf("img2.png")]: { gt: { file: y2.id, by: Y } } } });
-const study = () => JSON.parse(FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json").bytes.toString());
+const study = () => root.study();
 
 // an image of the study opened the way a person does, from the study's own list in the Drive dialog
 const openFromStudy = async (page, file) => {
