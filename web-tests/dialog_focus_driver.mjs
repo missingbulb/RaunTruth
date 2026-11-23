@@ -6,22 +6,18 @@
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { frames } from "./page_frames.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
   "/web/version_history.json": "[]",
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen ? " " + JSON.stringify(seen) : "")); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, reducedMotion: "reduce" });
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/index.html");
+const page = await w.device().with({ reducedMotion: "reduce" }).visits("/web/index.html", { until: "none" });
 await page.waitForFunction(() => $("#sb-version").textContent);
 
 // what holds the keyboard: the element's id, or its menu's when it is a summary
