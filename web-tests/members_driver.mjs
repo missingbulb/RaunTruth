@@ -148,6 +148,23 @@ await page.context().close();
   await sp.context().close();
   fileSays("Review");
 }
+// Make Available Offline for a study whose file lists no data folder: no folder is listed, least of all one named undefined
+{
+  const file = JSON.parse(drive.get("dmsettings00000000001").bytes.toString());
+  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify({ ...file, folders: [] }));
+  const op = await open(true, { email: X, prepare });
+  await op.click("#user-menu summary");
+  await op.click("#manage-storage");
+  await op.waitForFunction(() => document.querySelector("#usage-dlg").open && !/Reading/.test(document.querySelector("#storage-list").textContent));
+  const n = was();
+  await op.click('#storage-list .group[data-group="study:fixture"] .make-offline');
+  await op.waitForSelector("#offline-dlg[open]");
+  await idle(op);
+  const parents = drive.calls.slice(n).filter((c) => c.kind === "list").map((c) => c.parent);
+  await check(!parents.some((p) => !p || p === "undefined"), "Make Available Offline of a study whose file lists no data folder lists no folder of an undefined id", parents);
+  await op.context().close();
+  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify(file));
+}
 // a member who signs out from a study whose root is the members': the stage and the index are refused by design, and read quietly
 {
   drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set([X]));
