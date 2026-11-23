@@ -215,6 +215,19 @@ def test_the_landing_page_opens_the_app_and_lists_no_study(tmp_path):
     assert 'src="analytics.js"' in landing
 
 
+def test_the_landing_page_shows_the_intro_video_and_reaches_youtube_only_on_play(tmp_path):
+    """req/shell/site/landing: a still the site serves, linking the video; nothing of YouTube's is loaded by the page as served."""
+    build.assemble(ROOT, str(tmp_path), {})
+    landing = (tmp_path / 'index.html').read_text()
+    video = re.search(r'<a [^>]*class="video"[^>]*href="https://www\.youtube\.com/watch\?v=[\w-]{11}"[^>]*>(.*?)</a>', landing, re.S)
+    assert video, 'the landing page does not link its intro video'
+    still = re.search(r'<img [^>]*src="([^"]+)"', video.group(1))
+    assert still and (tmp_path / still.group(1)).is_file(), 'the video has no still picture the site serves'
+    assert '<iframe' not in landing, 'the landing page loads a player before anyone presses play'
+    loaded = re.findall(r'<(?:script|img|link|source|video)\b[^>]*\b(?:src|href)="([^"]+)"', landing)
+    assert len(loaded) >= 5 and not [u for u in loaded if re.match(r'(https?:)?//', u)], f'the landing page loads from another site: {loaded}'
+    assert 'YouTube' in (tmp_path / 'privacy.html').read_text(), 'the privacy policy does not name YouTube'
+
 
 def test_the_landing_page_lists_the_supported_browsers_the_page_checks_for(tmp_path):
     """req/shell/browsers/supported: the landing page's list is the one the status bar's icon is drawn from."""
