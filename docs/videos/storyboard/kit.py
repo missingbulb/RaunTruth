@@ -1,5 +1,5 @@
 """Packs the pitch's precursor artifacts into a kit for making it in another tool: brief, scene goals, script,
-timeline, subtitles, frames (PNG and editable SVG), a contact sheet, the production bible and the product's look.
+timeline, subtitles, frames (editable SVG), a contact sheet, the production bible and the product's look.
 
     python3 docs/videos/storyboard/build.py BUILT --voices VOICES_DIR
     python3 docs/videos/storyboard/kit.py BUILT OUT.zip
@@ -105,7 +105,7 @@ camera.
 |---|---|---|
 | `01-brief/` | the brief (scenes, what each must convey, pictures), the three cuts, the method, the production bible | understanding what each scene must do before changing it |
 | `02-script/` | per cut: a readable script with timecodes, `timeline.csv`, subtitles (`.srt`, `.vtt`) | the edit: import the CSV as markers, the SRT as captions, record the voice from the script |
-| `03-frames/` | every moment's first and last frame, 1920×1080 PNG and standalone SVG, and a contact sheet of them all | the picture: place PNGs on the timeline, or open the SVGs in Figma, Illustrator or After Effects to animate |
+| `03-frames/` | every moment's first and last frame as a standalone 1920×1080 SVG, and a contact sheet of them all | the picture: open the SVGs in Figma, Illustrator or After Effects to animate, or export them to images for the timeline |
 | `04-reference/` | today's real app (screenshot, poster), the palette and fonts | matching the product's real look |
 
 ## Timing
@@ -152,6 +152,8 @@ def main():
             (kit / "02-script" / f"{name}.srt").write_text("\n".join(f"{i + 1}\n{srt_tc(a)} --> {srt_tc(b)}\n{t}\n" for i, (a, b, t) in enumerate(cues)))
             (kit / "02-script" / f"{name}.vtt").write_text("WEBVTT\n\n" + "\n".join(f"{srt_tc(a).replace(',', '.')} --> {srt_tc(b).replace(',', '.')}\n{t}\n" for a, b, t in cues))
         subprocess.run(["node", str(HERE / "frames.cjs"), str(built), CHOSEN, str(kit / "03-frames")], check=True)
+        for png in (kit / "03-frames").glob("*.png"):
+            png.unlink()
         audit = Path(tmp) / "audit"
         subprocess.run(["node", str(HERE / "audit.cjs"), str(built), CHOSEN, str(audit)], check=True, capture_output=True)
         subprocess.run(["python3", str(HERE / "audit.py"), str(built), CHOSEN, str(audit)], capture_output=True)

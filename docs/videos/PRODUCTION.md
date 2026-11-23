@@ -33,7 +33,7 @@ node docs/videos/storyboard/render.cjs OUT CUT OUT/video/CUT.mp4 30
 Everything is deterministic: the same storyboard renders the same video, so a script edit is a re-render.
 
 To make the pitch in another tool, pack its precursor artifacts as a kit: brief, scene goals, script with
-timecodes, timeline CSV, subtitles, every moment's first and last frame as PNG and editable SVG, a contact sheet,
+timecodes, timeline CSV, subtitles, every moment's first and last frame as editable SVG, a contact sheet,
 and the product's palette and fonts:
 
 ```
