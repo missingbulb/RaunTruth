@@ -29,6 +29,12 @@ export function change(before, after, outside) {
     notice: before.notice !== after.notice ? after.notice : undefined };
 }
 
+// the categories any step may change given where it stood, effects.json's bookkeeping
+export function bookkeeping(effects, before, after, action) {
+  const now = { signedIn: before.vars.signedIn || after.vars.signedIn, menuOpen: before.open.length > 0 && after.open.every((k) => before.open.includes(k)) };
+  return Object.entries(effects.bookkeeping || {}).filter(([k, b]) => now[k] && (!b.actions || b.actions.includes(action.kind))).flatMap(([, b]) => b.categories);
+}
+
 const nothingChanged = (s) => !s.change.categories.filter((c) => !(s.always || []).includes(c)).length && !s.change.controls.added.length && !s.change.controls.removed.length
   && !s.change.controls.changed.length && !s.change.status && s.change.notice === undefined && !s.reads && !s.heard.length
   && s.before.focus.key === s.after.focus.key;
