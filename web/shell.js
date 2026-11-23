@@ -2606,13 +2606,21 @@ addEventListener(CONNECTION, (e) => {
 });
 function swap() {
   swapping = swapping.then(async () => {
-    const id = studyOf(location);
-    if (id === manifest?.id) return;
+    const id = studyOf(location), was = manifest?.id;
+    if (id === was) return;
+    // a study whose file cannot be read does not come in, and the one on show stays, at its own address
+    let read;
+    if (was) {
+      try { if (!/^[\w-]+$/.test(id) || !(read = await fetch(`../studies/${id}/study.json`)).ok) throw new Error(`no study "${id}"`); } catch (e) {
+        history.replaceState(null, "", addressOf(was) + location.hash);
+        return status("Error: " + (e.message || e), true);
+      }
+    }
     annotating = false; route = null; resume = null; editBase = null;
     dropImage();
     leaveStudy();
     try {
-      await mountStudy(id);
+      await mountStudy(id, read);
     } catch (e) { return status("Error: " + (e.message || e), true); }
     status("Ready. Load an image.");
     // Python, not started, starts on this study at its first Run; its files are kept meanwhile
@@ -2627,11 +2635,12 @@ let lifetime = new AbortController(), mounted = [], css = null;
 // its panels go into the shell's slots, its stylesheet beside the shell's, then its module mounts
 // counted as the page's work until the study is in, its steps drawn
 let studyIn = Promise.resolve();
-const mountStudy = (id) => (studyIn = work.during(mountNow(id), `study ${id} coming in`));
-async function mountNow(id) {
+// read: its study.json's answer, where the caller has it already
+const mountStudy = (id, read) => (studyIn = work.during(mountNow(id, read), `study ${id} coming in`));
+async function mountNow(id, read) {
   if (!/^[\w-]+$/.test(id)) throw new Error(`no study "${id}"`);
   base = `../studies/${id}/`;
-  const r = await fetch(base + "study.json");
+  const r = read ?? await fetch(base + "study.json");
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
   const no = await refusal(manifest);

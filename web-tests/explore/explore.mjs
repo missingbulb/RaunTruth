@@ -89,6 +89,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
   // a page's uncaught error is heard as the harness says it
   const w = await boot(world, prepared, { plants, pageError: () => {} });
   const { page, ctx, drive, google } = w;
+  const ROOT_REFUSED = new RegExp(`status of 404 .*%27${w.ROOT}%27`);
   const width = page.viewportSize().width;
   let action = null;
   const outside = () => ({ writes: [], settings: [], asked: [], popups: [], downloads: [], dialogs: [], reads: 0 });
@@ -110,6 +111,9 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
   // how many tokens Google had issued when an event ended them: until it issues the page another, the page's calls
   // with the old one are refused, as Chromium's console says of each, and the page may say so too
   let tokensWhenEnded = null;
+  // once the world has taken this person's access to the study's folder (the accessRemoved event), Drive answers every read of it
+  // 404 and Chromium's console says so of each; the page says the folder cannot be seen
+  let accessGone = false;
   const REFUSED = /status of 40[13] |Drive refused the [a-z ]+ \(40[13]\)|refused the token|Invalid Credentials|sign-in has run out/;
   // what the page says of Google's window answering otherwise than granting, while it does (the googleAnswers event)
   const DECLINED = /sign-in window|popup_failed_to_open|popup_closed|access_denied/;
@@ -151,12 +155,13 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     let error = null, said;
     // what a person offline or in this world sees the page say is not a finding of its own
     const allow = new RegExp([...allowed.map((r) => r.source), NETWORK_GONE.source, "^(warning|error): .*(offline|ERR_INTERNET_DISCONNECTED)",
-      ...(tokensWhenEnded !== null ? [REFUSED.source] : []), ...(google.answer !== "grant" ? [DECLINED.source] : [])].map((p) => `(?:${p})`).join("|"));
+      ...(tokensWhenEnded !== null ? [REFUSED.source] : []), ...(google.answer !== "grant" ? [DECLINED.source] : []), ...(accessGone ? [ROOT_REFUSED.source] : [])].map((p) => `(?:${p})`).join("|"));
     const settled = await expecting(allow, async () => {
       try { said = await perform(w, action, prepared.files); } catch (e) { error = String(e.message ?? e).split("\n")[0]; }
       return settle(page);
     }, { maybe: true });
     if (["string", "number"].includes(typeof said)) action.said = said;
+    if (action.event === "accessRemoved") accessGone = true;
     if (["expireToken", "signedOutElsewhere"].includes(action.event)) tokensWhenEnded = google.tokens.size;
     let after;
     try { after = await look(page); } catch (e) { error = (error ? error + "; " : "") + "the page could not be read: " + e.message.split("\n")[0]; after = before; }
@@ -168,7 +173,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     const refusing = tokensWhenEnded !== null;
     if (refusing && google.tokens.size > tokensWhenEnded) tokensWhenEnded = null;
     for (const m of heard) if (!m.expected && (allowed.some((r) => r.test(m.line)) || ((offline || nowOffline) && NETWORK_GONE.test(m.line))
-      || (refusing && REFUSED.test(m.line)) || (google.answer !== "grant" && DECLINED.test(m.line)))) m.allowed = true;
+      || (accessGone && ROOT_REFUSED.test(m.line)) || (refusing && REFUSED.test(m.line)) || (google.answer !== "grant" && DECLINED.test(m.line)))) m.allowed = true;
     // the shell-states rules, for the vars the page shows, where it settled
     let shell = null;
     // a study the address names, which the page shows only once its file has come in (offline it cannot)
