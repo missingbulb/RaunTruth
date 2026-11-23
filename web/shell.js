@@ -40,6 +40,7 @@ import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
 import { annotateChoice } from "./annotate_choice.js";
 import { dialogMotion } from "./dialog_motion.js";
+import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthTasks } from "./truth_tasks.js";
 import { truthHistory } from "./truth_history.js";
@@ -379,6 +380,7 @@ const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false)
 showUnloading();
 unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
+focusReturn();
 
 $("#sb-net").onclick = () => usage("network");
 $("#sb-cpu").onclick = () => usage("cpu");
