@@ -120,6 +120,9 @@ export const ORACLES = {
   },
   reverts(s) {
     if (!s.family.reverts || !s.previous) return [];
+    // undo puts back the last change to the history, which a step that made none (a view toggle) is not
+    const made = s.previous.change?.controls ?? { added: [], removed: [], changed: [] };
+    if (s.family.after && ![...made.added, ...made.removed, ...made.changed].some((k) => new RegExp(s.family.after).test(k))) return [];
     const keys = (st) => st.controls.filter((c) => !/gt-undo|gt-redo|eh-|sb-|unsaved/.test(c.key)).map((c) => `${c.key} ${c.pressed} ${c.value}`).sort();
     const was = keys(s.previous.before), is = keys(s.after);
     const lost = was.filter((k) => !is.includes(k)), more = is.filter((k) => !was.includes(k));

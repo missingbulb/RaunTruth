@@ -213,7 +213,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     steps.push({ i, action, offered: offered.map((o) => o.action.key || o.action.event).filter(Boolean), error, settled, change: s.change,
       writes: seen.writes, settings: seen.settings.length, asked: seen.asked.length, popups: seen.popups, downloads: seen.downloads, dialogs: seen.dialogs,
       heard: heard.map((m) => ({ line: m.line.slice(0, 400), expected: m.expected || !!m.allowed, late: !!m.late })), vars: after.vars,
-      shell: shell && { checked: shell.checked, wrong: shell.wrong.map((e) => e.name) }, findings: real.map((f) => f.sig), full: { before, action } });
+      shell: shell && { checked: shell.checked, wrong: shell.wrong.map((e) => e.name) }, findings: real.map((f) => f.sig), full: { before, action, change: s.change } });
     heard = [];
     lastPopups = seen.popups;
     // what the run has found so far, readable while it goes on

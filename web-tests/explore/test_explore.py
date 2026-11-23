@@ -151,3 +151,22 @@ def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp
         {'kind': 'click', 'key': '#file-name', 'text': 'Details'}])
     assert run['steps'][4]['vars']['image'] == 'original', run['steps']
     assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_undo_is_held_to_put_back_only_a_step_that_made_history():
+    script = """
+    import { ORACLES } from './oracles.mjs';
+    import fs from 'node:fs';
+    const effects = JSON.parse(fs.readFileSync('./effects.json', 'utf8'));
+    const family = effects.families.find((f) => f.family === 'undo');
+    const st = (pressed) => ({ controls: [{ key: '#show-gt-added', pressed, value: null }] });
+    const step = (made) => ({ family, action: { kind: 'click', key: '#gt-undo' }, after: st(true),
+      previous: { before: st(false), action: { kind: 'click', key: '#show-gt-added' },
+        change: { controls: { added: [], removed: [], changed: made } } } });
+    console.log(JSON.stringify([ORACLES.reverts(step(['#show-gt-added'])).length, ORACLES.reverts(step(['#show-gt-added', '#eh-list'])).length]));
+    """
+    r = subprocess.run([NODE, '--input-type=module', '-e', script], cwd=HERE, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    view_toggle, history_made = json.loads(r.stdout)
+    assert view_toggle == 0 and history_made == 1
