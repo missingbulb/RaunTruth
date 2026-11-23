@@ -98,3 +98,56 @@ def test_a_press_repeated_that_answers_as_before_is_not_a_dead_control(tmp_path)
     (tmp_path / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
     run = explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
     assert not [f for f in run['findings'] if f['sig'].startswith('dead ')], run['findings']
+
+
+def replayed(tmp_path, world, steps):
+    plan = {'world': {'name': world, 'path': os.path.join(HERE, 'worlds', world + '.json')}, 'seed': 1, 'focus': [], 'plants': [],
+            'steps': [{'i': i, 'action': {'family': 'a control', 'file': 'png', 'confirm': True, **a}} for i, a in enumerate(steps)]}
+    (tmp_path / 'plan.json').write_text(json.dumps(plan), encoding='utf-8')
+    return explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_study_that_could_not_come_in_is_not_held_to_its_shell_states(tmp_path):
+    # offline, the vascular study's file cannot be fetched: the address names it, the page still shows the study before
+    run = replayed(tmp_path, 'offline-tagger', [
+        {'kind': 'event', 'event': 'offline'},
+        {'kind': 'click', 'key': '#study-menu > summary', 'text': 'Switch study'},
+        {'kind': 'click', 'key': '#study-list > a:nth-of-type(4)', 'text': 'Vascular Measurements Develop'}])
+    assert run['steps'][2]['vars']['online'] is False
+    assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
+    script = """
+    import { bookkeeping } from './oracles.mjs';
+    import fs from 'node:fs';
+    const effects = JSON.parse(fs.readFileSync('./effects.json', 'utf8'));
+    const st = (vars, open) => ({ vars, open });
+    const out = [
+      bookkeeping(effects, st({ signedIn: false }, ['#study-menu']), st({ signedIn: false }, []), { kind: 'click' }),
+      bookkeeping(effects, st({ signedIn: false }, ['#study-menu']), st({ signedIn: false }, ['#study-menu', '#other']), { kind: 'click' }),
+      bookkeeping(effects, st({ signedIn: false }, ['#study-menu']), st({ signedIn: false }, []), { kind: 'key' }),
+      bookkeeping(effects, st({ signedIn: false }, []), st({ signedIn: false }, []), { kind: 'click' }),
+      bookkeeping(effects, st({ signedIn: false }, []), st({ signedIn: true }, []), { kind: 'click' }),
+    ];
+    console.log(JSON.stringify(out));
+    """
+    r = subprocess.run([NODE, '--input-type=module', '-e', script], cwd=HERE, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    closes, opens, pressed, nothing, signed = json.loads(r.stdout)
+    assert closes == ['open'] and opens == [] and pressed == [] and nothing == []
+    assert 'settings' in signed and 'signin' in signed and 'storage.nor-google-sign-in' in signed
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp_path):
+    run = replayed(tmp_path, 'annotator', [
+        {'kind': 'click', 'key': '#sb-load', 'text': 'Load image'},
+        {'kind': 'click', 'key': '#remote-list > button:nth-of-type(4)', 'text': 'wide scan.png 3.4 MB'},
+        {'kind': 'click', 'key': '#remote-open', 'text': 'Open'},
+        {'kind': 'click', 'key': '#image-box > div:nth-of-type(1) > h2', 'text': 'wide scan.png'},
+        {'kind': 'click', 'key': '#file-name', 'text': 'Details'}])
+    assert run['steps'][4]['vars']['image'] == 'original', run['steps']
+    assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']

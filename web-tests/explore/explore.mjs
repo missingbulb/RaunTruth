@@ -23,7 +23,7 @@ import { STEP } from "../deadlines.mjs";
 import { boot } from "./world.mjs";
 import { look } from "./page_look.mjs";
 import { possible, choose, perform, seeded, sig, family, leavesTheApp } from "./actions.mjs";
-import { change, ORACLES } from "./oracles.mjs";
+import { bookkeeping, change, ORACLES } from "./oracles.mjs";
 import { write } from "./report.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)), REPO = path.join(HERE, "..", "..");
@@ -171,7 +171,9 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
       || (refusing && REFUSED.test(m.line)) || (google.answer !== "grant" && DECLINED.test(m.line)))) m.allowed = true;
     // the shell-states rules, for the vars the page shows, where it settled
     let shell = null;
-    if (settled === true && after.app && after.study !== null && elementsOf[after.study || "viewer"]) {
+    // a study the address names, which the page shows only once its file has come in (offline it cannot)
+    const comesIn = (id) => after.title.endsWith(JSON.parse(fs.readFileSync(path.join(REPO, "studies", id, "study.json"), "utf8")).title);
+    if (settled === true && after.app && after.study !== null && elementsOf[after.study || "viewer"] && comesIn(after.study || "viewer")) {
       const study = after.study || "viewer";
       const expect = await oracle.ask({ study, vars: after.vars });
       const now = await read(page, expect);
@@ -181,7 +183,10 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
       const foldedByHand = (e) => e.box && ["on", "folded"].includes(e.expect) && ["on", "folded"].includes(now[e.name].seen)
         && [...steps.map((t) => t.action), action].some((a) => a.key?.startsWith(e.select + " "));
       const byHand = new Set(expect.filter(foldedByHand).map((e) => e.name));
-      const wrong = expect.filter((e) => now[e.name].seen !== e.expect && !byHand.has(e.name) && !e.path.some((p) => byHand.has(p))
+      // an element only a person's click on another shows, which the rules say is hidden
+      const clicked = new Set([...steps.map((t) => t.action), action].filter((a) => a.kind === "click").map((a) => a.key));
+      const opened = (e) => now[e.name].seen === "on" && EFFECTS.shellStates.openedBy.some((o) => o.select === e.select && clicked.has(o.by));
+      const wrong = expect.filter((e) => now[e.name].seen !== e.expect && !byHand.has(e.name) && !opened(e) && !e.path.some((p) => byHand.has(p))
         && !unread.some((u) => e.name === u || e.path.includes(u)))
         .map((e) => ({ ...e, seen: now[e.name].seen }));
       shell = { vars: after.vars, checked: expect.length, wrong };
@@ -189,7 +194,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     const s = { i, action, family: fam, before, after, control, change: change(before, after, seen), heard, settled, writes: seen.writes, popups: [...seen.popups, ...lastPopups],
       reads: seen.reads, shell, width,
       // while its token is refused, the page renews it in the person's next click, whatever the click was for
-      always: [...EFFECTS.always, ...(refusing ? ["signin", "settings", "storage.nor-google-sign-in"] : [])], written, deadLinks: await deadLinks(after), previous: steps.length ? { ...steps.at(-1).full } : null };
+      always: [...EFFECTS.always, ...bookkeeping(EFFECTS, before, after, action), ...(refusing ? ["signin", "settings", "storage.nor-google-sign-in"] : [])], written, deadLinks: await deadLinks(after), previous: steps.length ? { ...steps.at(-1).full } : null };
     if (fam.writes !== 0) for (const [, name] of seen.writes) written.add(name);
     const found = [];
     for (const [name, check] of Object.entries(ORACLES)) for (const f of check(s)) found.push({ ...f, oracle: name });
