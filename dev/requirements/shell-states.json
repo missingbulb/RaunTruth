@@ -534,9 +534,9 @@
                   "children": [
                     {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
                     {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
-                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring", "steady": "opens only on a click of the (?), which no path makes",
+                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring", "steady": "shown when the (?) is clicked, decided by the owner on 2026-11-23, which no path makes",
                       "rule": [
-                        {"is": "hidden", "approval": "tentative"}
+                        {"is": "hidden"}
                       ]
                     },
                     {"name": "The score's stamp", "select": "#algorithm-stamp", "req": "req/shell/processing/stamp", "steady": "shows only for a study whose metrics carry a stamp, which the fixture's do not",
@@ -594,9 +594,9 @@
                                 {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
                               ]
                             },
-                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "hidden while no GT action is unsaved, which no path makes",
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is, which is all any path reaches",
                               "rule": [
-                                {"is": "hidden", "approval": "tentative", "about": "no path makes a GT action"}
+                                {"is": "hidden", "about": "no path makes a GT action"}
                               ]
                             }
                           ]
@@ -874,7 +874,7 @@
             {"name": "Resources, unfolded", "select": "#sb-res-items", "req": "req/shell/status-bar/resources", "steady": "always shown",
               "children": [
                 {"name": "Storage", "select": "#sb-disk", "control": true, "req": "req/shell/status-bar/disk", "steady": "always shown"},
-                {"name": "Memory", "select": "#sb-memory", "control": true, "req": "req/shell/status-bar/memory", "steady": "always shown"},
+                {"name": "Memory", "select": "#sb-memory", "control": true, "req": "req/shell/status-bar/memory", "steady": "hidden until Python has reported a figure, decided by the owner on 2026-11-23 (unknown is hidden, never 0 MB); every path waits for Python, so it is always shown"},
                 {"name": "Network", "select": "#sb-net", "control": true, "req": "req/shell/status-bar/network", "steady": "always shown"},
                 {"name": "CPU", "select": "#sb-cpu", "control": true, "req": "req/shell/status-bar/cpu", "steady": "always shown"}
               ]

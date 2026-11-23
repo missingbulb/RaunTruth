@@ -7,7 +7,8 @@
   },
   "shellStates": {"openedBy": [
     {"select": "#file-info", "by": "#file-name", "why": "the image's name unfolds the details (req/shell/image/file-info), which the rules leave at hidden"},
-    {"select": "#lasso-hint", "by": "#mask-add", "why": "Add mask starts a lasso (req/shell/summary/mask), which no path of the rules takes"}
+    {"select": "#lasso-hint", "by": "#mask-add", "why": "Add mask starts a lasso (req/shell/summary/mask), which no path of the rules takes"},
+    {"select": "#scoring-note", "by": "#scoring-help", "why": "the (?) shows how the study scores (req/shell/processing/scoring), which the rules leave at hidden"}
   ], "unread": [
     {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
   ]},

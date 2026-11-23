@@ -848,7 +848,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-17. The log and its model live in the page while the tagger works, so they can try
   things without touching what is saved. Save Draft writes the log and the model to this device (IndexedDB database
   `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Save saves the draft too. Actions
-  not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
+  not yet saved are counted beside Undo ("· 6 unsaved", shown signed in or out: nothing is kept on this device until Save Draft, set by the owner on 2026-11-23), and leaving the page with any asks first. A write that fails is
   said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
   actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
@@ -1430,7 +1430,7 @@ nobody has decided: what the page does there is not a requirement yet.
   which the lab writes there from the scorer itself, so the explanation is always the one the numbers were counted
   by. The shell draws a (?) at the right of the list, titled How precision and recall are scored, and a click on it
   opens and closes that outline under the list. A study whose metrics carry no `scoring`, or that names no metrics,
-  shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
+  shows no (?). Set by the owner on 2026-11-23: the outline, "The scoring", is shown when the (?) is clicked, and hidden otherwise. Test: `web-tests/test_algorithm_choice_page.py`.
   </details>
 
 - `req/shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze date and a link to the GT commit.
@@ -1729,7 +1729,7 @@ nobody has decided: what the page does there is not a requirement yet.
   for the compiled code and the browser, which a page cannot read; amber past a quarter of the
   computer's total where the browser says it. Clicking it opens the Memory tab (`req/shell/resources-dialog`) listing each
   of those, and within the page's share the image and the study's results, and the computer's
-  total. It carries no button to have Python collect its garbage (a Run GC button removed by the owner on
+  total. The memory is hidden until Python has reported a figure: an unknown value is hidden, never shown as 0 MB (set by the owner on 2026-11-23). It carries no button to have Python collect its garbage (a Run GC button removed by the owner on
   2026-11-07), and no essay on how Python's memory grows. Test:
   `web-tests/test_status_bar_page.py`.
   </details>
