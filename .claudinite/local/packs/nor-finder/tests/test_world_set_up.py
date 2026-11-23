@@ -34,5 +34,6 @@ def test_the_world_the_fakes_a_comment_and_page_code_are_not(tmp_path):
                                    '// drive.files.push would reach into the fake\n'),
         'web-tests/world.mjs': 'if (!worker) delete Navigator.prototype.serviceWorker;\nlocalStorage.setItem("nor-welcome", x);\n',
         'web-tests/fakes/google_drive.mjs': 'drive.files.push(f);\ndrive.writers.set(id, s);\n',
+        'web-tests/fake_drive_driver.mjs': 'drive.folder({ id: ROOT, name: "Members root" });\n',
         'web/page.js': 'localStorage.setItem("nor-welcome", x);\n',
     }) == []

@@ -94,14 +94,13 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // gt: the study set up, its study file in ROOT, the page's own as its set-up wrote it, naming the extractions folder kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
   const GT = {};
-  let settings = null;
   if (gt) {
     GT.extractions = w.folder("Extractions", { in: "elsewhere", id: "dmextractions0000000001" }).writableByAnyone().id;
-    settings = root.holds({ name: "rauntruth-study.json", bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", data: null, extractions: GT.extractions })) },
-      { id: "dmsettings00000000001", bySite: true });
+    root.saysStudy({ data: null, extractions: GT.extractions }, { id: "dmsettings00000000001" });
   }
+  const settings = root.studyFile();
   // the study file's keys changed, as the owner's Study Setup would have written them (the marks, the stage), the rest kept
-  const studyFile = (changes) => { settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toString()), ...changes })); };
+  const studyFile = (changes) => root.saysStudy(changes);
   // the folders Drive lets the user only view
   const viewOnly = drive.viewOnly;
   // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
@@ -169,5 +168,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
-  return { w, drive, google, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
+  return { w, root, drive, google, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

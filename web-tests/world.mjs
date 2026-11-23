@@ -8,6 +8,7 @@
 //   w.studies.atStage("nor", "Analyze");                  the studies as served (fakes/studies.mjs)
 //   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).annotates("nor");
 //   w.studyFolder("nor").readableBy(ada)                  a study's members, Drive's readers of its root
+//   w.folder("Root C").public().saysStudy({ stage: "Public" })   a root's study file, as Study Setup left it; .study() reads it back
 //   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
 //   w.studyFolder("nor").holds(image.tiff("s.tif", {...}))  a study's own folder, as its study.json names it
@@ -25,6 +26,7 @@ import { pw, keptContext, worldOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
 export const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+const STUDY_FILE = "rauntruth-study.json";
 // what a page waits on before a test goes on: the study's Python ready, the page's title drawn, or nothing
 const UNTIL = {
   ready: (page) => page.waitForFunction(() => document.querySelector("#status")?.textContent.startsWith("Ready")),
@@ -48,6 +50,17 @@ export function foldersOn(drive) {
       writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
       writableByAnyone() { drive.writableByAnyone(record); return f; },
       folder: (name, options = {}) => on.folder(name, { ...options, in: record }),
+      // the study file a study's root holds as Study Setup left it (req/shell/ground-truth/setup), with these keys over
+      // what it said before; id: Drive's, when the test names it
+      saysStudy(keys = {}, { id } = {}) {
+        const had = f.studyFile();
+        if (had) had.bytes = Buffer.from(JSON.stringify({ ...f.study(), ...keys }));
+        else f.holds({ name: STUDY_FILE, bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", ...keys })) }, { id, bySite: true });
+        return f;
+      },
+      // the study file's record in the fake, or null; and what it says now, as the page left it
+      studyFile: () => drive.files.find((g) => g.parent === record.id && g.name === STUDY_FILE) ?? null,
+      study: () => { const g = f.studyFile(); return g && JSON.parse(g.bytes.toString()); },
       // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; alsoIn: other
       // folders it is in too, as Drive lets a file sit in several; bySite: one the site made, which it may replace;
       // the fake's record
