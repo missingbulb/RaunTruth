@@ -444,3 +444,17 @@ def test_the_stamp_step_names_the_commit_that_holds_the_files_and_waits_for_ther
     assert all(v['stamp']['commit'] == 'c0ffee' * 6 + 'abcd' for v in doc['versions'].values()) and doc['commit'] == 'c0ffee' * 6 + 'abcd'
     assert [os.path.relpath(p, s.dir) for p in asked] == [os.path.join('gt', FROZEN_ON)]
     assert open(s.metrics_path(), 'rb').read() != before
+
+
+def test_a_frozen_nor_file_still_counts_its_rejected_candidate_as_a_known_non_nor():
+    sys.path.insert(0, os.path.join(lab_study.STUDIES, 'nor', 'tests'))
+    import test_truth as nor_truth
+    nor = lab_study.Study('nor')
+    doc = nor_truth.three(deleted=[(300, 300)])
+    with_reject = fetch.model_form(doc, nor.module)
+    assert 'history' not in with_reject
+    elements, _ = nor.module.truth_of(with_reject)
+    assert sorted(e['state'] for e in elements).count('not') == 1
+    without = fetch.model_form(nor_truth.three(), nor.module)
+    assert fetch.model_sha256(with_reject) != fetch.model_sha256(without), 'the dataset SHA covers the rejects'
+    assert fetch.model_form(with_reject, nor.module) == with_reject, 'the committed form, read again, is itself'
