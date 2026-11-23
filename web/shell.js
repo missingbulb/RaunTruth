@@ -2606,8 +2606,15 @@ addEventListener(CONNECTION, (e) => {
 });
 function swap() {
   swapping = swapping.then(async () => {
-    const id = studyOf(location);
-    if (id === manifest?.id) return;
+    const id = studyOf(location), was = manifest?.id;
+    if (id === was) return;
+    // a study whose file cannot be read does not come in, and the one on show stays, at its own address
+    if (was) {
+      try { if (!/^[\w-]+$/.test(id) || !(await fetch(`../studies/${id}/study.json`)).ok) throw new Error(`no study "${id}"`); } catch (e) {
+        history.replaceState(null, "", addressOf(was) + location.hash);
+        return status("Error: " + (e.message || e), true);
+      }
+    }
     annotating = false; route = null; resume = null; editBase = null;
     dropImage();
     leaveStudy();
