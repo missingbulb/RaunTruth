@@ -45,7 +45,7 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-// ground truth is made by a Ground Truth Tagger (req/shell/account/role)
+// ground truth is made by someone the store lets save it (req/shell/annotate/no-save)
 w.site.withGoogle();
 const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };

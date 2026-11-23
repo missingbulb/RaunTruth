@@ -42,7 +42,7 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-// a Ground Truth Tagger's, the study opening its image from this computer
+// an annotator's, the study opening its image from this computer
 w.site.withGoogle();
 w.studies.fromThisComputer("nor");
 const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");

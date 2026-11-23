@@ -3,7 +3,7 @@
 // lab's, from the study's own file), a drawn stack to open as many
 // slices deep as the given model (drawnStack), and answers
 // Execute with that model, the arguments it was asked with in its "asked" field; the study at the stage asked for
-// (atStage); and a device of the Ground Truth Tagger's, with Google deployed (taggersDevice).
+// (atStage); and a device of the annotator's, with Google deployed (taggersDevice).
 import { writeTiff } from "../../../web/tiff_file.js";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -57,8 +57,8 @@ export function atStage(browser, stage) {
   studies.atStage("vascular", stage);
   studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 }
-// a device of world w's (world.mjs) that the tagger of the study's submissions is signed in on, as a Ground Truth
-// Tagger whose Drive holds no settings of the site's yet, whatever an earlier device saved
+// a device of world w's (world.mjs) that someone who may save the study's ground truth is signed in on, whose Drive
+// holds no settings of the site's yet, whatever an earlier device saved
 export function taggersDevice(w) {
   w.site.withGoogle();
   return w.device().signedInAs(w.user(TAGGER).named("Acme Tagger").savedSettings(null).annotates("vascular"));
