@@ -1,0 +1,2 @@
+# gitignored files a worker's worktree needs to run the page tests: their browser packages
+web-tests/node_modules/**
