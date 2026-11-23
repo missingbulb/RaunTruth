@@ -130,6 +130,26 @@ await check(JSON.stringify(drive.unshared) === JSON.stringify([["Study folder on
 await check(s.corrections.length === 0, "and the correction clears", s);
 await page.context().close();
 
+// anyone with the link may edit the extractions folder: a correction taking that off, not a writer; Fix removes that one permission, then a link that reads is offered
+page = await opened({ writers: [EMAIL] });
+const wasAccess = drive.get(GT.extractions).access;
+drive.get(GT.extractions).access = "public";
+drive.linkEdit.add(GT.extractions);
+await recheck(page);
+s = await shown(page);
+await check(s.corrections.length === 1 && /Extractions/.test(s.corrections[0].item) && s.corrections[0].change === "Take off the link's edit access" && s.corrections[0].fix,
+  "anyone with the link may edit the extractions folder: one correction, with a Fix", s);
+const q = await checks(page), wrote = permissionWrites().length;
+await page.click("#sharing-corrections .sharing-fix");
+await check(/no longer edit/i.test(await page.textContent("#sharing-corrections .sharing-confirm p")) && permissionWrites().length === wrote, "Fix asks to confirm, saying the link will no longer edit, and writes nothing yet");
+await page.click("#sharing-corrections .sharing-confirm-go");
+await settled(page, q);
+s = await shown(page);
+await check(JSON.stringify(drive.unshared.at(-1)) === JSON.stringify(["Extractions", "anyoneWithLink"]) && permissionWrites().length === wrote + 1, "Confirm: exactly one permission write, taking off that link permission", drive.unshared);
+await check(s.corrections.length === 1 && s.corrections[0].change === "Share it by link", "and the link that reads is offered next, as its own correction", s);
+drive.get(GT.extractions).access = wasAccess;
+await page.context().close();
+
 // Drive refuses the change (403): that correction drops its Fix and keeps its link and its pictures, with a line saying to change it there; the other keeps its Fix
 page = await opened({ stage: "Review" });
 drive.get(PREVIEWS).access = "private";

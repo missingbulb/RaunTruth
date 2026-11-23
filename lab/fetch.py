@@ -19,7 +19,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from study import STUDIES
+from study import STUDIES, Study
 
 # the stages from which a study's ground truth and scores are frozen
 FROZEN_STAGES = ('review', 'public')
@@ -74,6 +74,16 @@ def model_only(doc):
     out = _without_emails({k: v for k, v in doc.items() if k not in NOT_MODEL})
     if isinstance(out.get('image'), dict):
         out['image'] = {k: v for k, v in out['image'].items() if k not in NOT_MODEL_IN_IMAGE}
+    return out
+
+
+def model_form(doc, module=None):
+    """model_only, plus the list of rejected candidates a study's module reads from the file's history
+    (`rejected_of`) under `rejected`, which that history's removal would otherwise take from its scorer."""
+    out = model_only(doc)
+    rejected = getattr(module, 'rejected_of', None)
+    if rejected and 'rejected' not in out:
+        out['rejected'] = _without_emails(rejected(doc))
     return out
 
 
@@ -203,6 +213,7 @@ def truth(sid, transport=None, sf=None):
     form, which is what the dataset SHA covers."""
     sf = sf or study_file(sid, transport)
     raw = os.path.join(STUDIES, sid, 'data', 'raw')
+    module = Study(sid).module
     kept, refused = [], {}
     for sha, fid in sf.marks('gt').items():
         label = f'gt/{sha[:8]}'
@@ -216,7 +227,8 @@ def truth(sid, transport=None, sf=None):
         if not isinstance(doc, dict) or (doc.get('image') or {}).get('sha256') != sha:
             refused[label] = 'the file names another image than the mark'
             continue
-        kept.append(dict(subfolder=label, path=out, doc=model_only(doc), sha256=model_sha256(doc)))
+        form = model_form(doc, module)
+        kept.append(dict(subfolder=label, path=out, doc=form, sha256=model_sha256(form)))
     return kept, refused
 
 

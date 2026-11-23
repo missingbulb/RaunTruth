@@ -25,6 +25,7 @@
 //   drive.hold = (call) => promise;                    an answer kept back until the promise settles, as a test
 //     holds one (held.mjs) to make it slower than the user
 //   drive.uploaded = (file) => {};                     each file the page creates or replaces, once it has
+//   drive.linkEdit   ids of the items whose link permission lets anyone edit, not only read
 //   drive.calls, drive.writes, drive.thumbs, drive.shared, drive.unshared, drive.keptForever   what the page asked
 //     (a call of a batch request is logged on its own, batched: true, and the request itself as kind "batch")
 //   a file the page replaces keeps the version it had, as Drive does: file.revisions, each {id, bytes, modifiedTime,
@@ -72,7 +73,7 @@ function makeDrive() {
     files: [], viewOnly: new Set(), writers: new Map(), readers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
     get: (id) => drive.files.find((f) => f.id === id),
     outage: null, refuseSharing: false, checksums: true, hold: () => null, uploaded: () => {},
-    calls: [], writes: [], thumbs: [], shared: [], unshared: [], keptForever: [], inflight: 0,
+    linkEdit: new Set(), calls: [], writes: [], thumbs: [], shared: [], unshared: [], keptForever: [], inflight: 0,
     folder({ id = `fakefolder${String(++n).padStart(10, "0")}`, name, parent = null, access, mine = false } = {}) {
       const f = { id, name, parent, folder: true, access, mine, props: {}, revisions: [], createdTime: tick(), modified: tick() };
       drive.files.push(f);
@@ -132,7 +133,7 @@ export function driveAnswers(drive, google) {
       .filter(([k, v]) => v !== undefined && (["kind", "id", "type", "role"].includes(k) || want(k))));
     const nearestWriters = nearest(drive.writers, g);
     const writers = nearestWriters instanceof Set ? [...nearestWriters] : [], readers = [...(readersOf(g) ?? [])].filter((e) => !writers.includes(e));
-    return [...(access(g) === "public" ? [{ id: "anyoneWithLink", type: "anyone", role: "reader" }] : []),
+    return [...(access(g) === "public" ? [{ id: "anyoneWithLink", type: "anyone", role: drive.linkEdit.has(g.id) ? "writer" : "reader" }] : []),
       ...readers.map((e) => ({ id: "user-" + e, type: "user", role: "reader", emailAddress: e })),
       ...writers.map((e) => ({ id: "user-" + e, type: "user", role: "writer", emailAddress: e }))].map(one);
   };
@@ -205,7 +206,7 @@ export function driveAnswers(drive, google) {
       const own = drive.readers.get(on.id), writers = nearest(drive.writers, on);
       if (email ? !own?.has(email) && !writers?.has(email) : !(pid === "anyoneWithLink" && access(on) === "public")) return notFound();
       if (email) { own?.delete(email); if (writers?.has(email)) drive.writers.set(on.id, new Set([...writers].filter((e) => e !== email))); }
-      else on.access = "private";
+      else { on.access = "private"; drive.linkEdit.delete(on.id); }
       drive.unshared.push([on.name, pid]); drive.writes.push(["unshare", on.name]);
       return { status: 204, headers: CORS, contentType: "application/json", body: "" };
     }
