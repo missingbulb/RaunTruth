@@ -215,6 +215,13 @@ def test_the_landing_page_opens_the_app_and_lists_no_study(tmp_path):
     assert 'src="analytics.js"' in landing
 
 
+def test_every_folder_the_build_publishes_from_is_one_a_release_watches():
+    """req/shell/site/published-files: wrangler.json's watch_dir is what tells a release that a change reaches the site."""
+    watched = json.load(open(os.path.join(ROOT, 'wrangler.json')))['build']['watch_dir']
+    sources = {p.split('/')[0] for p in build.published(ROOT)}
+    assert len(sources) >= 3 and not sources - set(watched), f'published from, but not watched: {sorted(sources - set(watched))}'
+
+
 def test_the_landing_page_shows_the_intro_video_and_reaches_youtube_only_on_play(tmp_path):
     """req/shell/site/landing: a still the site serves, linking the video; nothing of YouTube's is loaded by the page as served."""
     build.assemble(ROOT, str(tmp_path), {})
