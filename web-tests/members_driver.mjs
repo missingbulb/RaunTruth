@@ -11,7 +11,7 @@ import { idle } from "./page_until.mjs";
 import { expecting } from "./harness.mjs";
 
 const [answers, rootDir] = process.argv.slice(2);
-const { drive, google, ROOT, open, check, done } = await standIn({ answers, rootDir });
+const { drive, google, ROOT, open, check, done, origin } = await standIn({ answers, rootDir });
 const X = "x@example.com", Y = "y@example.com";
 
 // A: members {x}; B: members {y}; C: shared by link, its study file at Public; D: the fixture, shared by link, Review
@@ -147,6 +147,42 @@ await page.context().close();
   await check(await annotatable(sp), "annotating is open, which the Review case had closed");
   await sp.context().close();
   fileSays("Review");
+}
+// Make Available Offline for a study whose file lists no data folder: no folder is listed, least of all one named undefined
+{
+  const file = JSON.parse(drive.get("dmsettings00000000001").bytes.toString());
+  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify({ ...file, folders: [] }));
+  const op = await open(true, { email: X, prepare });
+  await op.click("#user-menu summary");
+  await op.click("#manage-storage");
+  await op.waitForFunction(() => document.querySelector("#usage-dlg").open && !/Reading/.test(document.querySelector("#storage-list").textContent));
+  const n = was();
+  await op.click('#storage-list .group[data-group="study:fixture"] .make-offline');
+  await op.waitForSelector("#offline-dlg[open]");
+  await idle(op);
+  const parents = drive.calls.slice(n).filter((c) => c.kind === "list").map((c) => c.parent);
+  await check(!parents.some((p) => !p || p === "undefined"), "Make Available Offline of a study whose file lists no data folder lists no folder of an undefined id", parents);
+  await op.context().close();
+  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify(file));
+}
+// a member who signs out from a study whose root is the members': the stage and the index are refused by design, and read quietly
+{
+  drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set([X]));
+  const mp = await open(true, { email: X, prepare });
+  await mp.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  await idle(mp);
+  // the minute's copy of the study file lapsed, so signing out asks the store again, refused as the root is the members' alone
+  await mp.evaluate(() => { const now = Date.now(); Date.now = () => now + 120000; });
+  await expecting(/status of 404/, async () => {
+    await mp.click("#user-menu summary");
+    await mp.click("#sign-out");
+    await idle(mp);
+    await mp.click("#sb-load");
+    await idle(mp);
+  });
+  await check(true, "signing out of a study whose root is the members', and opening Load, warn of no stage or index not read");
+  await mp.context().close();
+  drive.get(ROOT).access = "public"; drive.readers.delete(ROOT);
 }
 await check(!moduleFetches.length, "neither loads the study's module", moduleFetches);
 await done(0);

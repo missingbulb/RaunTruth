@@ -74,10 +74,12 @@ export const remote = (() => {
   }
 
   const need = () => { if (!key && !signedIn()) throw new Error("this site has no Google API key yet (issue #234)"); };
-  const refused = (r, what) => new Error(signedIn()
+  const refused = (r, what) => Object.assign(new Error(signedIn()
     ? r.status === 404 ? `Your Google account cannot see this ${what}` : `Drive refused the ${what} (${r.status}) to your Google account`
     : r.status === 400 ? `Google refused this site's API key (${r.status})`
-      : `Drive refused the ${what} (${r.status}): is it shared as "Anyone with the link"? Signed in, you can open any your account can see`);
+      : `Drive refused the ${what} (${r.status}): is it shared as "Anyone with the link"? Signed in, you can open any your account can see`),
+    // the store's own answer, and whether it is the one given to an account that may not read it, which is no failure of the page's
+    { status: r.status, noAccess: r.status === 403 || r.status === 404 });
 
   // Google answers a burst of downloads by refusing the site's for a while, without the header that lets a page
   // read the refusal: a download that fails while the file's details still answer is that, an Error with
