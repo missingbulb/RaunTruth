@@ -716,7 +716,8 @@ async function working(btn, action) {
     await painted(); await action();
     await study.settled?.();
   } catch (e) {
-    console.warn(e);
+    // the study leaving ends the wait on purpose: nothing went wrong
+    if (!e?.cancelled) console.warn(e);
   } finally {
     hold.disconnect(); btn.classList.remove("working"); btn.disabled = false; study.idle?.();
   }
@@ -2741,7 +2742,7 @@ function leaveStudy() {
   study = {}; manifest = null; view?.use({}); view?.leave();
   for (const k of Object.keys(st)) if (!SHELL_STATE.has(k)) delete st[k];
   for (const k of SHELL_STATE) if (!PYTHON_STATE.includes(k)) st[k] = ST_LOADED[k];
-  for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(new Error("the study left")));
+  for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(Object.assign(new Error("the study left"), { cancelled: true })));
   busy(false); $("#notice").hidden = true; $("#tip").hidden = true;
   $("#image-view").hidden = false; delete $("#view").dataset.view; $("#switch").hidden = true; views.now = "image";
   tasks.leave(); gtSession.leave(); remoteLeft();
