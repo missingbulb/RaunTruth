@@ -5,7 +5,8 @@
     {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
   ]},
   "allow": [
-    {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"}
+    {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"},
+    {"pattern": "expected a 3-channel ImageJ TIFF", "why": "the walk opens an image the NoR study's Python cannot read, which it answers as the real one does, and the page says so in its status"}
   ],
   "families": [
     {"family": "theme", "match": {"key": "^#theme$"}, "must": ["html.theme"], "may": ["storage.*", "settings", "open"], "writes": 0},
