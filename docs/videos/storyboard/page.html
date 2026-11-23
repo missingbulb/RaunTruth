@@ -270,7 +270,7 @@ function leftBar(boxes) {
     let yy = y + 34 + rows.length * 26;
     if (b.bar !== undefined) { s += R(24, yy, 212, 7, "f-bar", 3) + R(24, yy, 212 * b.bar, 7, "f-acc grow", 3); yy += 18; }
     if (b.item) {
-      s += `<g class="rise">` + field(24, yy, 212, 98, { n: 3, outlines: false }, 3) + `<circle cx="130" cy="${yy + 49}" r="20" class="f-ring" stroke-width="3"/>`;
+      s += `<g class="rise">` + field(24, yy, 212, 98, { n: 0 }, 3) + `<g transform="translate(130 ${yy + 49}) rotate(-20)"><ellipse cx="-13" cy="0" rx="10" ry="5" class="f-green"/><ellipse cx="0" cy="0" rx="5" ry="4.5" class="f-red"/><ellipse cx="13" cy="0" rx="10" ry="5" class="f-green"/></g><circle cx="130" cy="${yy + 49}" r="26" class="f-ring" stroke-width="3"/>`;
       const ap = b.verdict === "approve", rj = b.verdict === "reject";
       s += R(24, yy + 106, 102, 34, ap ? "f-acc pulse" : "f-acc", 4, rj ? `opacity=".35"` : "") + T(46, yy + 128, "Approve", "f-white", 14);
       s += R(134, yy + 106, 102, 34, rj ? "f-ink pulse" : "f-box", 4) + T(162, yy + 128, "Reject", rj ? "f-sheet" : "f-t", 14) + `</g>`;

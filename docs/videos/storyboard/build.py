@@ -1,12 +1,13 @@
 """Builds the storyboard page: every cut's scenes as drawn moments, timed, with a mixed soundtrack per cut.
 
-    python3 docs/videos/storyboard/build.py OUT_DIR [--voices DIR]
+    python3 docs/videos/storyboard/build.py OUT_DIR [--voices DIR] [--stems]
 
 Scenes and moments come from the storyboards' Markdown (a pitch cut joins the brief's pictures to its own holds,
 camera, voice and sound), each moment's sketch from frames.json. With --voices (a folder of the Piper models the
 cuts name; `pip install piper-tts`, installed ad hoc) each cut gets OUT_DIR/audio/<cut>.mp3: its voice, music beds
 and sound effects mixed by sound.py, the voice's real length setting each moment's. Without it the page plays
-silent, voice lengths estimated.
+silent, voice lengths estimated. --stems also writes each cut's voice, music and effects as WAVs under
+OUT_DIR/audio/stems/, and each spoken moment's take under OUT_DIR/audio/takes/<cut>/, for editing in another tool.
 """
 
 import argparse
@@ -113,10 +114,17 @@ def speak(text, model, scale):
     return np.frombuffer(raw, dtype=np.float32).astype(float) * 0.9
 
 
+def wav(path, x):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "f32le", "-ar", str(sound.SR), "-ac", str(x.shape[1]), "-i", "-",
+                    "-c:a", "pcm_s16le", str(path)], input=np.clip(x, -1, 1).astype(np.float32).tobytes(), check=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out", type=Path)
     ap.add_argument("--voices", type=Path)
+    ap.add_argument("--stems", action="store_true")
     args = ap.parse_args()
     sketches = json.loads((HERE / "frames.json").read_text())
     (args.out / "audio").mkdir(parents=True, exist_ok=True)
@@ -146,6 +154,10 @@ def main():
                 dur = m["hold"] if m["by"] == "picture" else m["spoken"] + PAD if m["by"] == "voice" else max(m["spoken"], m["hold"]) + PAD
                 if samples is not None:
                     voices.append((t + 0.12, samples))
+                    if args.stems:
+                        take = args.out / "audio" / "takes" / vid / f"{len(voices):02d}-{re.sub(r'[^a-z0-9]+', '-', m['moment'].lower()).strip('-')}.wav"
+                        wav(take, samples[:, None])
+                        m["take"] = str(take.relative_to(args.out))
                 for kind, cue, off in m["cues"]:
                     (beds.append((t, cue)) if kind == "bed" else fx.append((t + off, cue)))
                 seq.append({"kind": "moment", "ref": [len(chapters) - 1, len(chapters[-1]["scenes"]) - 1, len(scene["moments"])],
@@ -163,6 +175,9 @@ def main():
                             "-ar", str(sound.SR), "-b:a", "160k", str(args.out / path)], input=track.astype(np.float32).tobytes(), check=True)
             video["soundtrack"] = path
             video["mix"] = dict(sound.REPORT)
+            if args.stems:
+                for name, x in sound.STEMS.items():
+                    wav(args.out / "audio" / "stems" / f"{vid}-{name}.wav", x if x.ndim == 2 else x[:, None])
         videos.append(video)
         print(f"{vid}: {t:.1f} s")
     page = (HERE / "page.html").read_text().replace("/*DATA*/null", json.dumps(videos, ensure_ascii=False))

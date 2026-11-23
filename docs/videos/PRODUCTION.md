@@ -32,6 +32,14 @@ node docs/videos/storyboard/render.cjs OUT CUT OUT/video/CUT.mp4 30
 
 Everything is deterministic: the same storyboard renders the same video, so a script edit is a re-render.
 
+To make the pitch in another tool, pack its precursor artifacts as a kit: brief, scene goals, script with
+timecodes, timeline CSV, subtitles, every moment's first and last frame as PNG and editable SVG, a contact sheet,
+and the product's palette and fonts:
+
+```
+python3 docs/videos/storyboard/kit.py OUT OUT/RaunTruth-pitch-kit.zip
+```
+
 ## The bible: elements that recur
 
 An element keeps its look and its state across every scene it appears in. The audit checks the ones a machine can;

@@ -132,6 +132,7 @@ def sfx(name):
 
 
 REPORT = {}
+STEMS = {}  # the last mix's voice, music and effects, scaled as in it: they sum to the mix before mastering
 
 
 def mix(total, beds, effects, voices, duck=0.3):
@@ -165,5 +166,10 @@ def mix(total, beds, effects, voices, duck=0.3):
         REPORT["music_under_voice_db"] = round(20 * np.log10(rms(music[under].mean(axis=1)) / rms(vo[under])), 1)
     out = music + (fx * 0.55 + vo)[:, None]
     tail = int(1.5 * SR)
-    out[-tail:] *= np.linspace(1, 0, tail)[:, None]
-    return out / max(1.0, np.abs(out).max() / 0.95)
+    fade = np.linspace(1, 0, tail)[:, None]
+    out[-tail:] *= fade
+    scale = 1 / max(1.0, np.abs(out).max() / 0.95)
+    music[-tail:] *= fade
+    STEMS.clear()
+    STEMS.update({"music": music * scale, "effects": fx * 0.55 * scale, "voice": vo * scale})
+    return out * scale
