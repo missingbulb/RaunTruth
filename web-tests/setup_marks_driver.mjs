@@ -12,18 +12,17 @@ import { until } from "./page_until.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { drive, ROOT, FILES, GT, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, root, ROOT, FILES, GT, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const Y = "y@lab.example", Z = "z@lab.example";
 
 // IMAGE's extractions, as the page's own saves make them: y's and z's, each a count of its own
 const image = path.join(rootDir, "img1.png"), bytes = fs.readFileSync(image), sha = createHash("sha256").update(bytes).digest("hex");
-const sub = drive.folder({ mine: true, name: `img1__${sha.slice(0, 8)}`, parent: GT.extractions }).id;
+const sub = w.of(GT.extractions).folder(`img1__${sha.slice(0, 8)}`, { bySite: true });
 const doc = (who, count) => Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: "img1.png", sha256: sha },
   labels: [{ threshold: 100, count }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true }));
-const yFile = drive.file({ mine: true, name: await personFile(Y), parent: sub, bytes: doc(Y, 7) });
-const zFile = drive.file({ mine: true, name: await personFile(Z), parent: sub, bytes: doc(Z, 5) });
-const study = () => JSON.parse(FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json").bytes.toString());
-const marks = () => study().marks?.[sha] ?? null;
+const yFile = sub.holds({ name: await personFile(Y), bytes: doc(Y, 7) }, { bySite: true });
+const zFile = sub.holds({ name: await personFile(Z), bytes: doc(Z, 5) }, { bySite: true });
+const marks = () => root.study().marks?.[sha] ?? null;
 const pressed = (page, file, kind) => page.evaluate(([f, k]) => document.querySelector(`#marks-list .mark-row[data-id="${f}"] button[data-kind="${k}"]`)?.getAttribute("aria-pressed") === "true", [file, kind]);
 const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#marks-list .mark-row")].map((r) => r.dataset.id));
 const press = async (page, file, kind) => {
