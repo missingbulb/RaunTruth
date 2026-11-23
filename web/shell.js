@@ -486,7 +486,7 @@ async function readStage({ fresh = false } = {}) {
     try {
       file = await place.settings({ fresh });
       if (file && STAGES.includes(file.stage) && signIn.signedIn()) signIn.learn(name, file.stage);
-    } catch (e) { console.warn("the study's stage was not read:", e); }
+    } catch (e) { if (!e?.noAccess) console.warn("the study's stage was not read:", e); }
   }
   const last = signIn.learned(name);
   return stageOf(file || (STAGES.includes(last) ? { stage: last } : null), manifest);
@@ -1595,7 +1595,7 @@ function remoteDialog() {
           const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
           // the folders and images alone: who built it stays in the store
           writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images, group: ix.group ?? null, hide: ix.hide ?? [] } }], ...rest] : rest));
-        } catch (e) { console.warn("the study index was not read:", e); }
+        } catch (e) { if (!e?.noAccess) console.warn("the study index was not read:", e); }
       }
       if (ix?.images.length) return showIndex(ix, off);
     }
