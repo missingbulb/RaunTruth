@@ -14,6 +14,4 @@ li { margin: 4px 0; }
 .lead { font-size: 18px; color: var(--dim); margin: 0 0 24px; }
 .open { display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
 .open:hover { filter: brightness(1.08); }
-.studies { list-style: none; padding: 0; }
-.studies li { margin: 8px 0; }
 footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; }

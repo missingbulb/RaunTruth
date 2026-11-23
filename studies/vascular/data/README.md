@@ -7,7 +7,7 @@ first time it needs it:
 ```
 pip install -r requirements.txt
 python3 lab/fetch.py vascular          # the stacks data/sources.json names, checked by SHA-256
-python3 lab/fetch.py vascular --pin    # list Data/ again: record what is new, drop what is gone
+python3 lab/fetch.py vascular --pin    # record the study file's images: what is new, drop what is gone
 ```
 
 They land in `data/raw/images/` (git-ignored, gone with the container). [`sources.json`](sources.json) is the

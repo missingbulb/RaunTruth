@@ -1,4 +1,4 @@
-// Drives the vascular study's page (web/) in a PreGT stage in headless Chromium against a stand-in worker
+// Drives the vascular study's page (web/) in a Review stage in headless Chromium against a stand-in worker
 // (stand_in.mjs) whose Execute answers with a model fixture. Checks req/vascular/model/view: Image, Model, Overlay and
 // Side by side, colour by depth painting the model too, and vessel widths; req/vascular/model/correct: Detected keeps
 // only the signal near the model; req/vascular/model/cards: Items shows the model's cards
@@ -19,11 +19,11 @@ import { STEP } from "../../../web-tests/deadlines.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
-// the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
+// the item views only show what was found, so they are driven in a Review study (req/shell/views/second)
 const site = await serve(studies, model), origin = site.origin;
 
 const browser = await launch(pw);
-atStage(browser, "PreGT");
+atStage(browser, "Review");
 let failed = false;
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
 await asTagger(ctx);

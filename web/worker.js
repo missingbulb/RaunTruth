@@ -4,7 +4,7 @@
 // Messages out while a study loads: progress {text}, ready {info}, error {text}; the rest are the bridge's.
 // A module worker: its imports are fetched with CORS, so the service worker can cache them.
 import { bridge } from "./bridge.js";
-import { CORE, PYODIDE, NOT_HERE, packagesOf, studyModules } from "./python_files.js";
+import { CORE, PYODIDE, NOT_HERE, packagesOf, studyModules, codeHash } from "./python_files.js";
 import { tiffCodecs } from "./tiff_codecs.js";
 
 const say = (text) => post({ type: "progress", text });
@@ -93,7 +93,9 @@ study = importlib.import_module(entry)
 `));
   files = py.runPython("sum(os.path.getsize(os.path.join(d, f)) for top in ('/lib', '/py') for d, _, fs in os.walk(top) for f in fs)");
   // modules: how many modules the importer knew the study to have, null when it asked the site for every name
-  post({ type: "ready", info: JSON.parse(py.runPython("study.ready() if hasattr(study, 'ready') else '{}'")), secs: (performance.now() - t0) / 1000, modules: known && Object.keys(known).length });
+  // code: the study's Python as one hash (python_files.js codeHash), what a run records it was made by
+  post({ type: "ready", info: JSON.parse(py.runPython("study.ready() if hasattr(study, 'ready') else '{}'")), secs: (performance.now() - t0) / 1000, modules: known && Object.keys(known).length,
+    code: await codeHash(await listing, bases, self.location.href) });
 }
 
 // a download the network did not answer (a fetch or an import fails with a TypeError then, an answer that is

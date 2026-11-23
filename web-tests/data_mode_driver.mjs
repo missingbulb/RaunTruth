@@ -16,22 +16,22 @@ import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
-const { ROOT, FILES, GT, writes, thumbs, open, role, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
+const { ROOT, FILES, GT, writes, thumbs, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir, uploaded: (f) => { if (f.parent === PREVIEWS_DIR) fs.writeFileSync(out, f.bytes); } });
 // the data folder's previews file (req/shell/drive/previews): in the root's Previews folder, which the page made, under the
 // data folder's id, a file someone else put there; the copy the tool left beside the images is never read
 const OURS = `${ROOT}.tiff`;
 FILES.push({ id: PREVIEWS_DIR, name: "Previews", parent: ROOT, folder: true, bytes: null, mine: true, props: {}, modified: "2026-11-05T07:00:00Z" },
   { id: "dmpreviewsfile000001", name: OURS, parent: PREVIEWS_DIR, folder: false, bytes: FILES.find((f) => f.name === "rauntruth-previews.tiff").bytes, mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
-// an image's Needs GT marker, in the curated folder, named as its ground-truth subfolder
+// an image's Needs GT marker, in the extractions folder, named as its image's subfolder
 const neededOf = (name) => { const f = FILES.find((g) => g.name === name); return `${name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(f.bytes).digest("hex").slice(0, 8)}.needs_gt`; };
 // someone else marked the stack as needing ground truth
-FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.curated, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
+FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.extractions, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered as a viewer's
+// not signed in: the drawers numbered, none for what the image has not got yet
 let page = await open(false);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2,3",
-  "the drawers on show, a viewer's without the postprocessing, are numbered");
+await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2",
+  "the drawers on show before an image, with no Summary yet, are numbered");
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
@@ -42,8 +42,8 @@ const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-
   && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
-await check(await page.evaluate(() => $("#data-col").hidden && !document.documentElement.dataset.mode), "a study manager in another role sees no Data Management");
-await role(page, "Study Manager");
+await check(await page.evaluate(() => !$("#data-col") && !document.documentElement.dataset.mode), "the study's own page holds no Data Management: it is Study Setup's, chosen from the avatar's menu");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 // Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
 await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
@@ -65,27 +65,25 @@ const summary = () => page.evaluate(() => Object.fromEntries([...document.queryS
 const folderMsg = () => page.textContent("#folder-msg");
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 4);
-await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 2, stale: 1, truth: 0, pending: 0, missing: 1 }), "the folder's sums, its photo among its images and pictured by Drive", await summary());
+await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 2, stale: 1, extracted: 0, truth: 0, missing: 1 }), "the folder's sums, its photo among its images and pictured by Drive", await summary());
 await page.click('#folder-layout button[data-layout="list"]');
 await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
 await check(true, "the list button lays the images out as a list");
 
 // whether the page made the previews file is asked of Drive, which knows nothing of the page's making it
-await expecting(/status of 404.*googleapis/, async () => {
-  await page.click("#update-previews");
-  await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
-});
-await check(!writes.filter(([, name]) => name !== "rauntruth-index.json").length, "a previews file the page did not make is left alone", writes);
+await page.click("#update-previews");
+await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
+await check(!writes.filter(([, name]) => name !== "rauntruth-study.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "1");
 await page.click("#update-previews");
 await page.waitForFunction(() => /3 previews made/.test($("#folder-msg").textContent), null, { timeout: 30000 });
-await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-index.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
+await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-study.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
-await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, truth: 0, pending: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
+await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, extracted: 0, truth: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .pic img").length === 4);
 const photoPic = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell")].find((c) => c.querySelector(".name").textContent === "d photo.jpg")?.querySelector(".pic img")?.src || "");
 await check(photoPic.startsWith("https://lh3.googleusercontent.com/") && thumbs.includes("d photo.jpg") && thumbs.every((n) => n === "d photo.jpg"),
@@ -110,15 +108,13 @@ const cell = (name) => `#folder-items .cell:has(.name:text-is("${name}"))`;
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "2");
 const eMarker = neededOf("e plain.tif");
-await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.curated,
-  "marking an image creates its marker in the curated folder, not beside the image", writes);
+await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.extractions,
+  "marking an image creates its marker in the extractions folder, not beside the image", writes);
 await page.click(cell("e plain.tif") + " .mark-gt");
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
 await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
-await expecting(/status of 404.*googleapis/, async () => {
-  await page.click(cell("b stack.tif") + " .mark-gt");
-  await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
-});
+await page.click(cell("b stack.tif") + " .mark-gt");
+await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
 await check(writes.at(-1)[1] !== neededOf("b stack.tif"), "a marker someone else made is left alone");
 
 await page.click("#data-tree .tree-folder .count");
@@ -164,24 +160,24 @@ await expecting(gone, async () => {
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 }, { maybe: true });
 
-await role(page, "Viewer");
-const leftMode = () => $("#data-col").hidden && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
+await dataManagement(page, false);
+const leftMode = () => !$("#data-col") && !$("#load").classList.contains("gone") && !document.documentElement.dataset.mode;
 await orMissed(page.waitForFunction(leftMode, null, { timeout: 5000 }));
 await check(await page.evaluate(leftMode),
-  "another role leaves the mode: the column gone, Load back");
-// offline, Study Manager is listed, says it needs the internet, and choosing it does nothing (req/shell/data/mode);
-// the role just chosen is a setting the page may still be saving to Drive as the network goes
+  "choosing its item again leaves Study Setup for the study: the column gone, Load back");
+// offline, Study Setup is listed in the avatar's menu but says it needs the internet, and choosing it does nothing
+// (req/setup/page)
 await expecting(NETWORK_GONE, async () => {
   await page.context().setOffline(true);
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
-  await page.click("#role-menu summary");
-  const offered = await page.evaluate(() => { const b = [...document.querySelectorAll("#role-list .item")].find((x) => x.textContent === "Study Manager");
-    return b && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
-  await page.click('#role-list .item:text-is("Study Manager")', { force: true });
+  await page.click("#user-menu summary");
+  const offered = await page.evaluate(() => { const b = document.querySelector("#open-setup");
+    return !b.hidden && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
+  await page.click("#open-setup", { force: true });
   // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
-  const after = await page.evaluate(() => ({ open: $("#role-menu").open, role: $("#role-name").textContent.trim(), mode: document.documentElement.dataset.mode || "" }));
-  await check(offered?.needs && offered.dim && after.open && after.role === "Viewer" && !after.mode, "offline, Study Manager is listed, says it needs the internet, and choosing it does nothing", { offered, after });
-  await page.evaluate(() => { $("#role-menu").open = false; });
+  const after = await page.evaluate(() => ({ open: $("#user-menu").open, mode: document.documentElement.dataset.mode || "" }));
+  await check(offered?.needs && offered.dim && after.open && !after.mode, "offline, Study Setup is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await page.evaluate(() => { $("#user-menu").open = false; });
   await page.context().setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 }, { maybe: true });
@@ -208,7 +204,7 @@ await expecting(/could not be (read|counted)|is corrupted/, async () => {
   };
   const kept = FILES.find((f) => f.name === OURS);
   kept.bytes = damage(Buffer.from(kept.bytes));
-  await role(page, "Study Manager");
+  await dataManagement(page);
   await page.click("#data-tree .tree-folder .name");
   await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
   await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");

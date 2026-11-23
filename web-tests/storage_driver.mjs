@@ -64,9 +64,9 @@ const LOCK = { packages: Object.fromEntries(["numpy", "scipy", "scikit-image", "
 // numpy, which Vascular Measurements uses too; pillow, which NoR Finder alone does among the studies listed
 const SHARED = ["numpy"].map((n) => PYODIDE + LOCK.packages[n].file_name), OWN = PYODIDE + LOCK.packages[OWN_PACKAGE].file_name;
 const PILLOW = PYODIDE + LOCK.packages.pillow.file_name;
-// the studies the build lists, as it lists them
+// the studies the build lists, as it lists them but the Bookshelf Reader, whose Python packages the stand-in lock below does not hold
 const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter((d) => fs.existsSync(path.join(repo, "studies", d, "study.json")))
-  .map((d) => JSON.parse(fs.readFileSync(path.join(repo, "studies", d, "study.json")))).filter((m) => m.visibility === "listed")
+  .map((d) => JSON.parse(fs.readFileSync(path.join(repo, "studies", d, "study.json")))).filter((m) => m.visibility === "listed" && m.id !== "shelves")
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
 // a context with what a browser that has used the page keeps, opened at NoR Finder; seed: more browser keys kept

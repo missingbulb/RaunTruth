@@ -152,3 +152,12 @@ def test_a_run_lists_what_it_could_not_carry_over_from_the_log_alone(out):
     assert d['marks'] == ['m1', 'm3']
     # a run after a run carries nothing, so leaves nothing out; a row that is no run, or none, lists none
     assert d['afterRun'] == [] and d['onBase'] == [] and d['outOfRange'] == []
+
+
+def test_a_run_records_the_version_that_made_it_and_an_old_file_says_unknown(out):
+    v = out['version']
+    assert v['recorded'] == {'site': '0.11121.154', 'code': 'c0de' * 16} and v['kept'] == v['recorded']
+    assert v['label'] == 'site 0.11121.154, code c0dec0de'
+    # a file from before has none: it still loads, its run's version is unknown and never a guess
+    assert v['old'] is None and v['oldLabel'] == 'version unknown' and v['oldLoads'] == 'verified'
+    assert v['notARun'] == ''

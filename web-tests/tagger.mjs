@@ -1,8 +1,8 @@
-// A page test working as a Ground Truth Tagger (req/shell/account/role), which only someone signed in may be: the site
-// deployed with a stand-in Google key and client, a user signed in to the sign-in fake with a token for the hour, the welcome
-// popup answered, and the role chosen, with no settings saved to Drive yet. Each study's folder on the Drive fake holds
-// a submissions folder the user may add to alone, which is what makes them a tagger (req/shell/data/roles). scopes: what
-// the tagger's token may do, in place of the sign-in fake's.
+// A page test working as someone who may save ground truth to the study (req/shell/annotate/no-save), which only someone signed in
+// may: the site deployed with a stand-in Google key and client, a user signed in to the sign-in fake with a token for the hour,
+// the welcome popup answered, with no settings saved to Drive yet. Each study's folder on the Drive fake holds an Extractions
+// folder the user may add to alone, which is what lets them save (req/shell/data/roles). scopes: what the token may do, in
+// place of the sign-in fake's.
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
 import { siteSettings } from "./fakes/site_settings.mjs";
@@ -12,7 +12,7 @@ export const TAGGER = "tagger@acme.example";
 export async function asTagger(ctx, { scopes } = {}) {
   const drive = googleDrive(ctx);
   for (const root of drive.files.filter((f) => f.folder && !f.parent)) {
-    const subs = drive.files.find((f) => f.parent === root.id && f.name === "GT submissions") || drive.folder({ name: "GT submissions", parent: root.id });
+    const subs = drive.files.find((f) => f.parent === root.id && f.name === "Extractions") || drive.folder({ name: "Extractions", parent: root.id });
     drive.writers.set(subs.id, new Set([TAGGER]));
   }
   // each visit a tagger whose Drive holds no settings of the site's yet, whatever an earlier visit saved
@@ -24,6 +24,5 @@ export async function asTagger(ctx, { scopes } = {}) {
   await ctx.addInitScript((record) => {
     if (!localStorage.getItem("nor-google-sign-in")) localStorage.setItem("nor-google-sign-in", JSON.stringify(record));
     localStorage.setItem("nor-welcome", JSON.stringify({ choice: "google", remember: true }));
-    localStorage.setItem("nor-role", "tagger");
   }, record);
 }

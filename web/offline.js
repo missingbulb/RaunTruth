@@ -183,8 +183,10 @@ export function offline({ $, esc, sizeText, remote, kept, keptIn, keep, throttle
     if (!remote.ready) return `Its ${remote.label} folder ${remote.words.noKey}.`;
     if (isOffline()) return `Its ${remote.label} folder can be read once you are online.`;
     if (throttled()) return `${remote.words.throttling}; try again in a while.`;
-    // its images are in the data folder its root's settings name, else in the root itself
-    const refs = [{ id: (await studyPlace(remote, () => s.manifest).dataFolders())[0] }];
+    // its images are in the data folder its root's settings name, else in the root itself; a study file naming none has none to read
+    const data = (await studyPlace(remote, () => s.manifest).dataFolders())[0];
+    if (!data) return `Its ${remote.label} folder holds no images.`;
+    const refs = [{ id: data }];
     const found = [];
     for (const queue = refs.map((r) => ({ id: r.id, path: [] })), seen = new Set(); queue.length && seen.size < MAX_FOLDERS && found.length < MAX_FILES; ) {
       const at = queue.shift();

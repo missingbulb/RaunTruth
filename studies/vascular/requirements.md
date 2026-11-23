@@ -71,7 +71,7 @@ owner's decisions on the stacks and the vessel model, are
 - `req/vascular/model/damaged` The model leaves the damaged areas out of its measurements, and the scorer out of the score.
   <details>
 
-  Set by the owner on 2026-11-19. Each version extracts on the whole stack; the Study Manager's damaged areas
+  Set by the owner on 2026-11-19. Each version extracts on the whole stack; the study owner's damaged areas
   (`req/shell/data/damaged`) then join the model's `excluded_regions`, in µm, through every slice, so whatever lies in
   one is left out of the analysis as damaged sample is: the summary's lengths, counts and tissue volume, and the
   model's segment count. The summary also leaves out the damaged areas of the image open, whatever model is shown.
@@ -100,7 +100,7 @@ owner's decisions on the stacks and the vessel model, are
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
   <details>
 
-  Submit Ground Truth (`req/shell/ground-truth/submit`), the last of the Ground Truth Tasks
+  Save (`req/shell/extractions/save`), the last of the Ground Truth Tasks
   (`req/vascular/truth/tasks`), exports the corrected `vessel-model/2` file, `status` corrected and
   labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
@@ -293,13 +293,12 @@ owner's decisions on the stacks and the vessel model, are
 
   Set by the owner on 2026-11-07, replacing the three steps per area (Lines, Missed vessels, Junctions) set earlier
   that day, which replaced the vessel-by-vessel tasks of 2026-11-04. The tasks are the stack's areas
-  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come Start GT
-  tagging, a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
-  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Submit Ground Truth last.
-  Execute leaves the stack in view as it was; the walk opens on its first area not done only once Start GT tagging is
-  pressed (`req/shell/ground-truth/tagging`), and Stop tagging gives the whole stack back, as the Show menu sets it.
+  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
+  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Save last.
+  Execute, while the user annotates (`req/shell/annotate/choice`), opens the walk on its first area not done
+  (`req/shell/ground-truth/tagging`); the whole stack, as the Show menu sets it, is what the page shows outside annotation mode.
 
-  While tagging, and only then, the areas float as a small map at the main view's top left, the shell's minimap's
+  While the user annotates, and only then, the areas float as a small map at the main view's top left, the shell's minimap's
   size (`req/shell/image/minimap`), on the whole stack and in an area alike: each area done, partly judged or not
   started, the current one marked; clicking one opens it. Under the areas the map shows the stack, never in 3D but
   every slice flattened, each pixel its brightest, in the colours the image box paints it, so the person sees where to

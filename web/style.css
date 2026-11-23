@@ -39,27 +39,18 @@ header > .grow { flex: 1; }
 h1 { font-size: 16px; font-weight: 600; margin: 0; }
 /* the study switcher, after GitHub's repository switcher: the title and a solid caret as one control, opening a
    panel under the caret with a search box and the studies, the one on show ticked */
-/* the role menu after the study's, the header reading "[study] as [role]" (req/shell/account/role), drawn like it */
-header > .as { color: var(--dim); font-size: 14px; }
-#role-menu .caret { anchor-name: --role-caret; }
-#role-menu .pop { left: anchor(--role-caret left); top: calc(100% + 8px); width: 240px; max-width: calc(100vw - 32px); }
-#role-menu .pop h2 { font-size: 13px; margin: 0 0 4px; color: var(--dim); font-weight: 600; }
-#role-list { display: flex; flex-direction: column; }
-#role-list .item[aria-checked=true] { font-weight: 600; } #role-list .item[aria-checked=true]::before { content: "✓ "; }
-#role-list .item[aria-checked=false]::before { content: "✓ "; visibility: hidden; }
-#role-hint { margin: 6px 0 0; font-size: 12px; white-space: normal; }
-#study-menu summary, #role-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
-#study-menu summary::after, #role-menu summary::after { content: none; }
-#study-menu h1, #role-name { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
+#study-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
+#study-menu summary::after { content: none; }
+#study-menu h1 { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon { display: flex; align-items: center; height: 32px; padding-left: 8px; color: var(--text); background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon svg { fill: currentColor; }
 #title-icon .study-icon[hidden] { display: none; }
 #title-icon:empty { display: none; }
-#study-menu .caret, #role-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
-#study-menu .caret svg, #role-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
-#study-menu summary:hover h1, #study-menu[open] h1, #role-menu summary:hover #role-name, #role-menu[open] #role-name, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
-#study-menu summary:hover .caret, #study-menu[open] .caret, #role-menu summary:hover .caret, #role-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
-#study-menu summary:focus-visible, #role-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#study-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
+#study-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
+#study-menu summary:hover h1, #study-menu[open] h1, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
+#study-menu summary:hover .caret, #study-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
+#study-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #study-menu .caret { anchor-name: --study-caret; }
 #study-menu .pop { left: anchor(--study-caret left); top: calc(100% + 8px); width: 320px; max-width: calc(100vw - 32px); min-width: 0; padding: 0 0 8px; gap: 0; border-radius: var(--r-panel);
   background: var(--panel); box-shadow: 0 8px 24px #0006; }
@@ -83,10 +74,12 @@ header > .as { color: var(--dim); font-size: 14px; }
 .stage-tag[data-light=red] { --stage: var(--no); }
 .stage-tag[data-light=yellow] { --stage: #f5c400; }
 .stage-tag[data-light=green] { --stage: var(--yes); }
+.stage-tag[data-light=blue] { --stage: var(--accent); }
 .stage-tag[data-light=all] { --stage: var(--yes); background: color-mix(in srgb, var(--yes) 18%, transparent); }
 #study-list a.active { background: color-mix(in srgb, var(--text) 8%, var(--panel)); }
 #study-list a.active .name { border-bottom-color: transparent; }
-#study-none { margin: 8px 16px 0; font-size: 13px; }
+#study-none, #study-stale { margin: 8px 16px 0; font-size: 13px; }
+#study-stale[hidden] { display: none; }
 #study-request { display: flex; align-items: center; gap: 8px; height: 32px; margin: 8px 8px 0; padding: 0 8px; border-radius: var(--r-chip); color: var(--accent); text-decoration: none; }
 #study-request svg { fill: currentColor; flex: none; }
 #study-request:hover, #study-request:focus-visible { background: color-mix(in srgb, var(--text) 8%, var(--panel)); outline: none; }
@@ -149,6 +142,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #recent .where { color: var(--dim); font-size: 11px; }
 .menu .pop .item { text-align: left; border: 0; background: none; padding: 4px 2px; white-space: nowrap; }
 .menu .pop .item:not(:disabled):hover { color: var(--accent); }
+.menu .pop a.item { display: block; color: var(--text); text-decoration: none; }
+.menu .pop a.item[hidden] { display: none; }
+#setup-note { margin: var(--pad); font-size: 14px; }
 .remote-logo, .computer-logo { width: 14px; height: 12px; flex: none; }
 /* how long since an image was opened: "3h", "6d" */
 .age { flex: none; font-size: 11px; color: var(--dim); padding: 0 5px; border-radius: var(--r-chip); background: color-mix(in srgb, var(--text) 8%, transparent);
@@ -332,9 +328,9 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 /* each view shows only its own tools */
 #view[data-view=image] .for-items, #view[data-view=items] .for-image { display: none; }
 /* a published study shows what it finds: the steps that serve making ground truth go */
-[data-stage=Published] .unpublished { display: none !important; }
-/* nothing that makes ground truth but for a Ground Truth Tagger (req/shell/account/role) */
-:root:not([data-role=tagger]) .unpublished { display: none !important; }
+[data-stage=Public] .unpublished { display: none !important; }
+/* nothing that makes ground truth but while the user annotates (req/shell/annotate/choice) */
+:root:not([data-annotating]) .unpublished { display: none !important; }
 #switch .count { opacity: .7; font-weight: 400; }
 #switch .count:empty { display: none; }
 /* a card whose task is still open */
@@ -514,6 +510,7 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list .dot[data-light=red] { background: var(--no); }
 #stage-list .dot[data-light=yellow] { background: #f5c400; }
 #stage-list .dot[data-light=green] { background: var(--yes); }
+#stage-list .dot[data-light=blue] { background: var(--accent); }
 #stage-list .dot[data-light=all] { background: var(--yes); box-shadow: 0 0 0 2px color-mix(in srgb, var(--yes) 40%, transparent); }
 /* the stages, beside the switcher at the hovered label's row */
 #stage-pop { position: fixed; inset: auto; margin: 0; width: min(360px, calc(100vw - 16px)); padding: 12px 14px;
@@ -528,6 +525,10 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list li.now { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #stage-list li.now .dot { opacity: 1; }
 #stage-next { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+#stage-gates, #stage-actions { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; }
+#stage-gates li { color: var(--dim); padding: 1px 0; }
+#stage-actions li { padding: 1px 0; }
+#stage-actions:not(:empty) { border-top: 1px solid var(--line); padding-top: 6px; }
 /* the steps done, each followed by a chevron, and the one to do now shining: clicking it leads to its button */
 #sb-steps { display: flex; align-items: center; gap: 4px; min-width: 0; }
 #sb-steps:empty { display: none; }
@@ -600,9 +601,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 @media (prefers-reduced-motion: reduce) { #busy.scan #scan-light { animation-duration: 8s; } }
 
 /* the remote files dialog */
-#remote-dlg, #setup-dlg, #switch-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#remote-dlg, #setup-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#remote-dlg::backdrop, #setup-dlg::backdrop, #switch-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
+#remote-dlg::backdrop, #setup-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
 .dlg-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .dlg-row.end { justify-content: space-between; } .dlg-row .grow { flex: 1; }
 #remote-link { flex: 1; min-width: 0; }
@@ -711,7 +712,7 @@ kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 
 /* the version history popup, and the bubble that points at the version after an update */
 #history-dlg { width: min(560px, calc(100vw - 32px)); }
-#setup-dlg, #switch-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2, #switch-dlg h2 { margin: 0 0 10px; }
+#setup-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2 { margin: 0 0 10px; }
 #history-dlg h2 { margin: 0 0 10px; }
 #usage-dlg h2 { margin: 0 0 10px; }
 /* one size whatever the tab: a longer tab scrolls within it (req/shell/resources-dialog) */
@@ -923,7 +924,7 @@ html.offline #sb-online .off { display: block; }
 #guide-dlg.waiting #guide-go { display: none; }
 html:not(.offline) #welcome-offline { display: none; }
 
-/* ---------- Data Management (req/shell/data/mode): the tree's column, left of the left bar, for study managers only ---------- */
+/* ---------- Data Management (req/shell/data/mode): the tree's column, left of the left bar, for study owners only ---------- */
 #data-col { grid-column: 1; } #left { grid-column: 2; } #gutter-left { grid-column: 3; } #view { grid-column: 4; }
 :root[data-mode=data] #layout { --tw: 300px; }
 :root[data-mode=data][data-tree=folded] #layout { --tw: 36px; }
@@ -938,7 +939,7 @@ html:not(.offline) #welcome-offline { display: none; }
 :root[data-tree=folded] #data-open:hover { color: var(--text); border-color: var(--accent); }
 :root[data-tree=folded] #data-open .strip-name { writing-mode: vertical-rl; font-size: 12px; letter-spacing: .03em; }
 :root:not([data-tree=folded]) #data-open { align-self: flex-start; border: 0; background: transparent; color: var(--dim); }
-#data-body { display: none; min-width: 240px; flex: 1; min-height: 0; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 10px 8px; margin-top: 6px; }
+#data-body { display: none; min-width: 240px; flex: 1; min-height: 0; overflow-y: auto; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 10px 8px; margin-top: 6px; }
 :root[data-mode=data]:not([data-tree=folded]) #data-body { display: flex; animation: data-in .35s ease-out; }
 @keyframes data-in { from { opacity: 0; transform: translateX(-24px); } }
 .data-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px 8px; } .data-head h2 { font-size: 14px; margin: 0; flex: 1; }
@@ -947,7 +948,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-setup.nudge { border-color: var(--warn); color: var(--text); background: color-mix(in srgb, var(--warn) 18%, transparent); font-weight: 600; }
 #gt-box { border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
 #gt-box h2 { font-size: 14px; margin: 0 0 4px; } #gt-box p { margin: 2px 0; }
-#data-tree { overflow: auto; flex: 1; min-height: 0; font-size: 13px; }
+#data-tree { overflow: auto; flex: 1 0 200px; min-height: 200px; font-size: 13px; }
 .tree-folder .row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* the study's listed folders: Remove beside each, the root's other folders under them to add, a pasted link to add another */
 .tree-folder .row .unlist { flex: none; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; border-radius: var(--r-chip); }
@@ -998,6 +999,25 @@ html:not(.offline) #welcome-offline { display: none; }
 #study-set { padding: 8px 4px 0; border-top: 1px solid var(--line); margin-top: 8px; font-size: 13px; }
 #study-set h3 { font-size: 12px; margin: 0 0 6px; color: var(--dim); font-weight: 600; }
 .study-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+/* Study Setup's stage box, and what the stage closes of the data (req/setup/promote, req/shell/study/stage): from Review on the controls that change it are gone */
+#stage-box { flex: none; border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
+#stage-box h2 { font-size: 14px; margin: 0; } #stage-box h3 { font-size: 12px; margin: 8px 0 4px; color: var(--dim); font-weight: 600; }
+#stage-box.busy { opacity: .6; }
+#stage-newer, #stage-freeze-newer { margin: 4px 0; padding-left: 18px; overflow-wrap: anywhere; }
+:root[data-frozen] :is(#gt-setup, #data-add-row, .unlist, #data-unlisted, #study-set, #tags-box .tags-add-row, #tags-box .untag, #tags-desc-row, #areas, .mark-gt, #update-previews) { display: none !important; }
+/* Study Setup's sharing check: each correction with its link and picture, then People */
+#sharing-box { flex: none; border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
+.sharing-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+#sharing-box h2 { font-size: 14px; margin: 0; } #sharing-box h3 { font-size: 12px; margin: 10px 0 4px; color: var(--dim); font-weight: 600; }
+#sharing-corrections, #people-list { list-style: none; margin: 4px 0; padding: 0; }
+.sharing-correction { border-top: 1px solid var(--line); padding: 6px 0; }
+.sharing-correction p { margin: 2px 0; }
+.sharing-item, .sharing-change { display: block; }
+.sharing-how summary { cursor: pointer; color: var(--accent); }
+.sharing-correction img { display: block; max-width: 100%; height: auto; margin: 4px 0; border-radius: var(--r-chip); }
+.sharing-fix, .sharing-confirm button { margin: 2px 6px 2px 0; }
+#people-list li { padding: 2px 0; overflow-wrap: anywhere; }
+.holds { font-size: 10.5px; padding: 1px 5px; border-radius: 9px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
 :root[data-mode=data] #load.gone { display: none; }
 #load.poof { animation: poof .45s ease-in forwards; pointer-events: none; }
 #load.unpoof { animation: poof .3s ease-out reverse; }
@@ -1027,25 +1047,38 @@ html:not(.offline) #welcome-offline { display: none; }
 #folder-items .tag.warn { color: var(--warn); } #folder-items .tag.yes { color: var(--yes); }
 #folder-items .mark-gt { font-size: 11px; padding: 2px 8px; justify-self: start; }
 #folder-items .mark-gt[aria-pressed=true] { background: var(--warn); border-color: var(--warn); color: #000; }
+/* Study Setup: a cell's checkbox choosing it for a batch run, an image's extractions with their marks, and the batch box (req/setup/marks, req/setup/batch) */
+#folder-items .cell .pick { position: absolute; top: 12px; left: 12px; margin: 0; }
+#marks-list { display: grid; gap: 4px; margin: 4px 0; }
+.mark-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.mark-row .mark-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mark-row button { flex: none; font-size: 11px; padding: 2px 8px; }
+.mark-row button[aria-pressed=true] { background: var(--yes); border-color: var(--yes); color: #000; }
+#batch-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#batch-official[hidden] { display: none; }
+#batch-msg, #marks-msg { overflow-wrap: anywhere; }
+/* Study Setup's Results (req/setup/results) */
+#results-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#results-csv[hidden], #results-scroll[hidden] { display: none; }
+#results-scroll { overflow-x: auto; margin: 4px 0; }
+#results-scroll table { border-collapse: collapse; font-size: 12px; width: 100%; }
+#results-scroll table th, #results-scroll table td { padding: 2px 6px; text-align: left; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+#results-scroll table td:nth-child(n+3), #results-scroll table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+#results-scroll table tfoot td { font-weight: 600; }
+#results-box.busy { opacity: .6; }
+#results-msg { overflow-wrap: anywhere; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 
-/* the tagger's line in a study's ground-truth box: may they write to the submissions folder (req/shell/ground-truth/tagger-access) */
+/* the line in a study's ground-truth box saying whether the user may save to the study (req/shell/annotate/no-save) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
 .gt-access[hidden] { display: none; }
-.gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
+.gt-access[data-access="signedout"], .gt-access[data-access="nosave"], .gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
-/* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
-#folder-items .tag.pending { color: var(--accent); }
-.curate-list { list-style: none; margin: 8px 0; padding: 0; min-width: 360px; }
-.curate-list li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.curate-list .who { font-weight: 600; }
-.curate-list .grow { flex: 1; }
-/* an image's ground truth in the remote files dialog's rows (req/shell/ground-truth/pending) */
+/* an image's extractions in the remote files dialog's rows (shell/extractions/marks-shown) */
 #remote-list .gt-tag:empty, #recent .gt-tag:empty { display: none; }
 #remote-list .gt-tag, #recent .gt-tag { font-size: 10.5px; padding: 0 5px; border-radius: 8px; border: 1px solid currentColor; color: var(--yes); }
-#remote-list .gt-tag[data-state="pending"], #recent .gt-tag[data-state="pending"] { color: var(--accent); }
-#remote-list .gt-tag[data-state="rejected"], #recent .gt-tag[data-state="rejected"] { color: var(--warn); }
+#remote-list .gt-tag[data-state="saved"], #recent .gt-tag[data-state="saved"] { color: var(--accent); }
 #remote-list .gt-tag[data-state="wanted"], #recent .gt-tag[data-state="wanted"] { color: var(--warn); border-style: dashed; }
 
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
@@ -1054,7 +1087,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
 #gt-areas-row[hidden] { display: none; }
 #gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
-#gt-start { display: block; width: 100%; margin: 0 0 10px; }
 #gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
@@ -1076,7 +1108,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
-#gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
+#gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
 #gt-offers[hidden], #gt-edits[hidden] { display: none; }
 #gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
@@ -1134,8 +1166,21 @@ html:not(.offline) #welcome-offline { display: none; }
 #mask-warning { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 5px 14px; border-radius: 999px;
   background: #b45309; color: #fff; font-size: 12px; pointer-events: none; white-space: nowrap; }
 #mask-warning[hidden] { display: none; }
-/* the Study Manager's areas: damaged ones darkened inside a dotted line, the area of interest a solid line over a dark one */
+/* the study owner's areas: damaged ones darkened inside a dotted line, the area of interest a solid line over a dark one */
 #overlay .study-areas, #mask-3d .study-areas { pointer-events: none; }
 .study-areas .damaged { fill: #000; fill-opacity: .55; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .study-areas .interest { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .study-areas .interest.under { stroke: #000; stroke-width: 3; stroke-opacity: .5; }
+
+/* the Annotations box: how to get annotations on the image open (req/shell/annotate/choice) */
+#annotate-box[hidden], #annotate-choices[hidden], #annotate-list[hidden], #annotate-ask[hidden] { display: none; }
+#annotate-choices { display: flex; flex-direction: column; gap: 6px; }
+#annotate-choices > button, #annotate-edit, #annotate-clear { width: 100%; }
+#annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; }
+#annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
+#annotate-list .others .item { width: 100%; margin-top: 4px; }
+#annotate-list .others summary { cursor: pointer; font-size: 12px; color: var(--dim); margin: 2px 0; }
+#annotate-say { margin: 8px 0 0; }
+#annotate-edit, #annotate-clear { margin-top: 8px; }
+#gt-waiting { margin: 6px 0 0; }
+#gt-submit[hidden], #gt-download[hidden] { display: none; }

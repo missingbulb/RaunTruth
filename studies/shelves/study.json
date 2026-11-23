@@ -2,13 +2,10 @@
   "id": "shelves",
   "title": "Bookshelf Reader",
   "description": "Each book on a photo of bookshelves boxed and its title read, in Hebrew and English.",
-  "visibility": {
-    "accounts": [
-      "arielra@gmail.com"
-    ]
-  },
-  "stage": "GT",
+  "visibility": "listed",
+  "stage": "Develop",
   "summary": {"mask": true},
+  "results": {"measures": [{"title": "Books", "count": ["books"]}]},
   "icon": "web/icon.svg",
   "poster": "web/poster.jpg",
   "phases": [

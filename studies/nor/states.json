@@ -19,19 +19,11 @@
     {"under": "Ground Truth Tasks", "tree": [
       {"name": "The NoR tasks", "select": "#nor-tasks", "req": "req/nor/truth/tasks"},
       {"name": "Missed NoRs check", "select": "#area-check", "req": "req/nor/truth/order",
-        "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)",
-        "rule": [
-          {"is": "hidden", "approval": "tentative"}
-        ],
         "children": [
           {"name": "No missed NoRs here", "select": "#area-ok", "control": true, "req": "req/nor/truth/order"}
         ]
       },
       {"name": "Task tools", "select": "#task-tools", "req": "req/nor/truth/order",
-        "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)",
-        "rule": [
-          {"is": "hidden", "approval": "tentative"}
-        ],
         "children": [
           {"name": "Back", "select": "#task-back", "control": true, "req": "req/nor/truth/order",
             "rule": [
@@ -55,14 +47,14 @@
       }
     ]},
     {"under": "Keys legend", "tree": [
-      {"name": "Finalists' key", "select": "#key-show-pass", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
-      {"name": "Added NoRs' key", "select": "#key-show-added", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"role": ["viewer", "data"]}, "is": "hidden", "req": "req/shell/account/role", "approval": "tentative", "about": "the Show menu's ground-truth rows are a tagger's"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
-      {"name": "Cut out what is done's key", "select": "#key-show-cut", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]},
-      {"name": "Frame the area's key", "select": "#key-show-frame", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "unwalked": "shows only while tagging, which no path starts (req/shell/ground-truth/tagging)", "rule": [{"is": "hidden", "approval": "tentative"}]}
+      {"name": "Finalists' key", "select": "#key-show-pass", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice", "approval": "tentative", "about": "the Show menu's ground-truth rows are for those annotating"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Added NoRs' key", "select": "#key-show-added", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice", "approval": "tentative", "about": "the Show menu's ground-truth rows are for those annotating"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]},
+      {"name": "Cut out what is done's key", "select": "#key-show-cut", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the walk has nothing to open before the study has run"}]},
+      {"name": "Frame the area's key", "select": "#key-show-frame", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the walk has nothing to open before the study has run"}]}
     ]},
     {"under": "Main view", "after": "Tasks/Items switch", "tree": [
       {"name": "Show menu", "select": "#show-menu", "req": "req/nor/show-menu", "steady": "always shown"},
-      {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/options", "unwalked": "shows only on a task's card, while tagging, which no path starts (req/shell/ground-truth/tagging)",
+      {"name": "Card menu", "select": "#card-menu", "req": "req/nor/cards/options", "unwalked": "shows only on a task's card, and the finders find no candidate on the walked image",
         "rule": [
           {"is": "hidden", "about": "it holds a task's card options, under the open task"}
         ]
@@ -87,18 +79,18 @@
   ],
   "samples": "tests/state_samples.py",
   "differ": {
-    "Submit GT crumb": {"steady": "its Review step is still to do on every path",
+    "Save crumb": {"steady": "its Review step is still to do on every path",
       "rule": [
         {"is": "hidden", "approval": "tentative", "req": "req/shell/status-bar/breadcrumbs"}
       ]
     }
   },
   "roots": {
-    "GT, signed out": {"stage": "GT", "signedIn": false, "role": "viewer"},
-    "GT, Tagger": {"stage": "GT", "signedIn": true, "role": "tagger"}
+    "Develop, signed out": {"stage": "Develop", "signedIn": false},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, signed out", "actions": ["load", "count"]},
-    {"root": "GT, Tagger", "actions": ["load", "count"]}
+    {"root": "Develop, signed out", "actions": ["load", "scratch", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]}
   ]
 }

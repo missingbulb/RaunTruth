@@ -5,6 +5,7 @@
 // row (the study's words, then the file's, then red, green and blue) with its black and white points, and
 // Unload clearing the page back to where it started. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/image_box_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -154,10 +155,10 @@ await page.evaluate(() => shellForTests.page.set({ minimap: "hidden" }));
 await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "false", "the page's state hides the minimap and raises its button");
 await page.evaluate(() => shellForTests.page.set({ minimap: "open" }));
 
-// ---- Submit Ground Truth is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
+// ---- Save is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
 const bar = await page.evaluate(() => ({ last: document.querySelector("#gt-tasks").lastElementChild.contains(document.querySelector("#gt-submit")),
   inImage: document.querySelector("#view").contains(document.querySelector("#gt-submit")), right: !!document.querySelector("#right, #gutter-right") }));
-await check(bar.last && !bar.inImage && !bar.right, "Submit Ground Truth is the last task, not over the image, and there is no right bar", bar);
+await check(bar.last && !bar.inImage && !bar.right, "Save is the last task, not over the image, and there is no right bar", bar);
 
 // ---- the channel: the study's name and description, its black and white points, its checkbox ----
 const rows = () => page.$$eval("#channels .channel", (rs) => rs.map((r) => ({ name: r.querySelector("label").textContent, colour: r.dataset.colour,
@@ -262,15 +263,15 @@ await check(await page.evaluate(() => document.querySelector("#file-name").textC
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
 await check(clear.shine && !clear.done && clear.crumbs === "Load image", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");
+await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true", "and the boxes on show fold as before any image");
 await check((await rows()).length === 0, "and no channel rows are left, with no image (req/shell/channels/rows)");
 
-// ---- after Unload, the next image's tasks open again once tagging starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----
+// ---- after Unload, the next image's tasks open again once annotation starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----
 await loadImage();
+await fromScratch(page, "#fx-count");
 await page.click("#fx-count");
 await page.waitForFunction(() => !document.querySelector("#gt-submit").disabled);
-await page.click("#gt-start");
 const tasksAfter = await page.evaluate(() => ({ open: document.querySelector('#gt-tasks > li[data-task="check"]').classList.contains("now"),
   row: document.querySelector('#gt-tasks > li[data-task="check"] .t').textContent.trim() }));
-await check(tasksAfter.open && tasksAfter.row === "0/1 Count checked", "after Unload, the next image's task opens again once tagging starts, nothing done", tasksAfter);
+await check(tasksAfter.open && tasksAfter.row === "0/1 Count checked", "after Unload, the next image's task opens again once annotation starts, nothing done", tasksAfter);
 await done(0);

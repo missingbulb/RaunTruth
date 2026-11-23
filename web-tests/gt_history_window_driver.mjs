@@ -1,5 +1,5 @@
 // Drives the Edit History window (req/shell/ground-truth/history, req/shell/ground-truth/clear) in headless Chromium on the
-// fixture study, against the stand-in Google of stand_in_drive.mjs, as a Ground Truth Tagger: where it floats and how big it
+// fixture study, against the stand-in Google of stand_in_drive.mjs, annotating: where it floats and how big it
 // is, its rows (newest on top, the current one dotted, undone ones above it), a click on a row, folded runs, a day rule, a
 // long list drawn by what is in view, a hover's ring and a click's pan, its switch, Clear all history and a draft whose
 // history did not replay. Exits 1 on a failed check, 2 when it cannot run.
@@ -41,7 +41,7 @@ await counted(page);
 await settle(page);
 await check(await page.isVisible("#edit-history"), "once the image has a run it is shown");
 const [saveBtn, submitBtn] = [await box(page, "#gt-save-draft"), await box(page, "#gt-submit")];
-await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Submit Ground Truth, each on one line", { saveBtn, submitBtn });
+await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Save, each on one line", { saveBtn, submitBtn });
 const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
   return { right: v.r - w.r, bottom: v.b - w.b, w: w.w, h: w.h, expectW: vars * 1.4, expectH: Math.min((vars + 24) * 2.5, v.b - v.t - 24) };

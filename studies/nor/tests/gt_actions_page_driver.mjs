@@ -5,6 +5,7 @@
 // candidate drawn from its box, no outline), what the five older keys held is offered once after Find Candidates, recorded as GT
 // actions at the click and forgotten when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
 //   node tests/gt_actions_page_driver.mjs ANSWERS IMAGE
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -57,6 +58,7 @@ async function open(ctx) {
 async function loadImage(page) {
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await fromScratch(page, "#find");
 }
 // drafts, keys: what the device keeps before the page opens
 async function newContext({ drafts = [], keys = {} } = {}) {
@@ -114,7 +116,6 @@ try {
   let page = await open(ctx);
   await find(page);
   await unfold(page, "#tasks-box");
-  await page.click("#gt-start");
   await settle(page);
   const total = await page.evaluate(() => st.order.length);
   await check((await rows(page)).join() === `Algorithm ran: ${total} candidates,Image opened` && await unsaved(page) === 0,
@@ -238,7 +239,6 @@ try {
   const drawn = await page.evaluate(() => ({ groups: document.querySelectorAll("#overlay > g[data-i] .hit").length, outlines: [...document.querySelectorAll("#overlay > g[data-i] path")].filter((p) => p.getAttribute("d")).length, find: $("#find").disabled,
     rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
   await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find, "each candidate is drawn from its box, with no outline, and Find Candidates is on", drawn);
-  await page.click("#gt-start");
   await settle(page);
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
@@ -290,7 +290,6 @@ try {
   await check(/^Load earlier edits/.test(offer.text) && /your earlier work in this browser/.test(offer.title) && (await read(page)).forced.length === 0 && (await keys(page)).length === 4,
     "it is offered once, not loaded unasked, its keys kept", { offer, keys: await keys(page) });
   await check(/7 actions/.test(offer.title), "saying how many GT actions it makes", offer);
-  await page.click("#gt-start");
   await settle(page);
   await page.click("#gt-load-legacy");
   await page.waitForFunction(() => st.areas.size === 2);

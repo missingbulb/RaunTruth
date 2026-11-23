@@ -71,7 +71,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
-  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside annotation mode nothing is kept across visits.
   A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
   `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
   candidate's id and then by its rounded place: an approval, a rejection, the
@@ -110,15 +110,14 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   options are set.
   </details>
 
-- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
+- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Save writes the extraction.
   <details>
 
   Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
   CSV (every candidate, the user's decision and its measurements), and under it the shell's
   Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
-  NoRs, their density and the area counted, and each measurement's statistics. Submit Ground
-  Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
-  2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
+  NoRs, their density and the area counted, and each measurement's statistics. Save, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
+  2026-11-03, and shown only while annotating is open, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
   from: its Google Drive id and link, or "local") and the finder it was run with, with
@@ -141,7 +140,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/find/damaged` The finders analyse no pixel of a damaged area, and the scorer counts no NoR in one.
   <details>
 
-  Set by the owner on 2026-11-19. The Study Manager's damaged areas (`req/shell/data/damaged`) join the pixels each
+  Set by the owner on 2026-11-19. The study owner's damaged areas (`req/shell/data/damaged`) join the pixels each
   finder leaves out of its colour thresholds and its green and red segments, as a finder that blanks the blue mask
   does, so no candidate is made of their pixels. A NoR that crosses the line keeps only its outside part, and is
   found only if that part is still a red between two greens. The blue mask stays a filter (`req/nor/find/blue-mask`):
@@ -199,7 +198,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   the Show menu's task-named rows (`req/nor/show-menu`).
   Changed by the owner on 2026-10-31: there is no right bar (`req/shell/left-bar/width`).
   Changed by the owner on 2026-11-04: the item view is shelved (`req/shell/views/second`), so in
-  every role the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
+  every mode the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
   removed by the owner on 2026-11-19 (missingbulb/RaunTruth#740).
   </details>
 
@@ -227,13 +226,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/submit/progress` The submit button's icon says how finished the work is; its popup lists what is left.
   <details>
 
-  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Submit Ground
-  Truth button's text says how finished the work is: a green check when every task before it is
+  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Save button's text says how finished the work is: a green check when every task before it is
   done (every finalist has the user's verdict, and every area is
   checked for missed NoRs), an orange warning when some candidates have a verdict but a task is not done, and a red
   error when no candidate has one yet or a candidate the user added still waits for a verdict; the
   warning and the error pulse gently. Any animation scrolled out of view is paused, since Chrome
-  would keep drawing it. The button itself stays plain. Its popup (`req/shell/ground-truth/submit`) carries a checklist of
+  would keep drawing it. The button itself stays plain. Its popup (`req/shell/extractions/save`) carries a checklist of
   short instructions (approve or reject the NoRs you added, vote on at least one candidate, vote on
   every finalist, check every area for missed NoRs, only
   images from Google Drive can be exported), each done one crossed out with a
@@ -266,8 +264,9 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Set by the owner on 2026-10-06; the mask itself is the shell's since 2026-11-16 (`req/shell/summary/mask`). The
   summary counts only the candidates whose centre is inside the mask, and the Candidates and Summary CSVs hold only
   those; the ground truth ignores the mask (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on
-  2026-11-04: the mask shows only while the summary does, so while the study makes ground truth it is neither drawn
-  nor listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  2026-11-04: the mask shows only while the summary does, so before a model it is neither drawn nor listed in the submit
+  popup, and comes back with the summary; changed on 2026-11-21: the summary shows beside the tasks while the user
+  annotates (`req/shell/left-bar/shells`), so the mask is drawn then too (`studies/nor/tests/test_truth_tasks_page.py`).
   </details>
 
 - `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.
@@ -320,12 +319,12 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/truth/tasks` Ground Truth Tasks lists the tasks, one row each; the open one shows one item at a time.
   <details>
 
-  Set by the owner on 2026-11-03. In Summary's place while the study makes ground truth, counting
-  once the candidates are found; the walk opens only once Start GT tagging is pressed, and Stop tagging
-  closes it, the image left as it is viewed (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
+  Set by the owner on 2026-11-03. In the left bar while the user annotates (`req/shell/annotate/choice`), counting
+  once the candidates are found; the walk opens with annotation mode, as soon as the candidates are found
+  (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
   long and filled as far as it is done, heads one row per task, each counting only once and never
   repeating that it is a review: "13/47 Finalists", "0/100 Areas" (the areas
-  checked for NoRs the finder missed), and Submit Ground Truth (`req/nor/downloads`); a done task
+  checked for NoRs the finder missed), and Save (`req/nor/downloads`); a done task
   is marked done with a check (no marks on the others). The rows count; the work is one walk
   (`req/nor/truth/order`), and the row of the current item's task is the open one. Clicking a task
   goes to its next item not done along the walk. The open task's row carries a
