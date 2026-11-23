@@ -5,12 +5,13 @@
 // Ground truth button's colour follows the verdicts (red while an added NoR waits for one) and opens a popup that
 // names what is missing; the file holds only the candidates voted on, the added NoR once approved; for an image
 // from Google Drive (a stand-in Drive API), for a tagger whose sign-in lacks Drive's per-file permission, its box
-// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a PreGT
+// left unticked, Submit stays off and says why (web-tests/test_gt_drive_page.py submits to them). In a Review
 // study, where the summary is (req/nor/layout), it checks the summary mask: lassoed areas,
 // combined by exclusive or, limit the summary and the CSVs but not the ground truth. And the study's steps in the status bar: Run algorithm shines with Find Candidates until the finder has run
 // chosen, then Review all items until every finalist has a verdict. Exits 1 on a failed check, 2
 // when it cannot run.
 //   node tests/ground_truth_page_driver.mjs ANSWERS IMAGE
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import fs from "node:fs";
 
@@ -46,7 +47,7 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 // the image on Drive, in the study's own folder
@@ -57,7 +58,7 @@ async function open(drive, stage) {
   // Google's window answers as the tagger, the per-file box left unticked
   if (drive) tagger.without(DRIVE_FILE);
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).asRole("tagger").with({ acceptDownloads: true });
+  const device = w.device().signedInAs(tagger).with({ acceptDownloads: true });
   const studies = studiesOf(await device.context());
   if (stage) studies.atStage("nor", stage);
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
@@ -71,6 +72,7 @@ async function open(drive, stage) {
     await page.setInputFiles("#file", image);
   }
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await annotateIfAsked(page, "#find");
   return { device, page };
 }
 
@@ -122,6 +124,7 @@ const offAxis = (L) => {
 const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b); if (e.classList.contains("folded")) e.querySelector(".sec-head h2").click(); }, box); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 async function markAndVote(page) {
   await unfold(page, "#processing-box");
+  const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
@@ -134,8 +137,6 @@ async function markAndVote(page) {
     window.still = window.lastAt === at ? (window.still || 0) + 1 : 0; window.lastAt = at;
     return window.still >= 5;
   }, null, { polling: "raf" });
-  const was = await page.evaluate(() => ({ zoom: st.zoom, x: $("#scroller").scrollLeft, y: $("#scroller").scrollTop }));
-  await page.click("#gt-start");
   await rest();
   await page.evaluate((w) => { shellForTests.viewer.setZoom(w.zoom); $("#scroller").scrollTo({ left: w.x, top: w.y, behavior: "instant" }); }, was);
   await rest();
@@ -194,7 +195,7 @@ async function markAndVote(page) {
 
 // the popup the Ground truth button opens: its text, and the file its Export button downloads
 async function popup(page) {
-  // Submit Ground Truth is the last of the tasks (req/nor/truth/tasks)
+  // Save is the last of the tasks (req/nor/truth/tasks)
   await page.click("#gt-submit");
   await check(await page.isVisible("#gt-dlg"), "the Ground truth button opens its popup");
   // a checklist of every issue, the resolved ones crossed out: what is still open
@@ -335,20 +336,20 @@ async function mask(page) {
   await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });
   await check(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
-  await check(all_ === "Load image › Run algorithm › Review all items › Submit GT | ", `with every task done and the file exported, every step is done: ${all_}`);
+  await check(all_ === "Load image › Run algorithm › Review all items › Save | ", `with every task done and the file exported, every step is done: ${all_}`);
   await page.selectOption("#algorithm", { index: 1 });
   const changed = await crumbs(page);
   await check(changed === "Load image › Run algorithm* | #find,#sb-find", `another finder makes Run algorithm the step to do again: ${changed}`);
   await device.close();
 }
 
-// ---- a PreGT study: the summary, its mask and CSVs ----
+// ---- a Review study: the summary, its mask and CSVs ----
 {
-  const { device, page } = await open(false, "PreGT");
+  const { device, page } = await open(false, "Review");
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
-  await check(await page.isHidden("#gt-submit"), "a PreGT study has no Submit Ground Truth");
+  await check(await page.isHidden("#gt-submit"), "a Review study has no Save");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
     return ["#dl-cands", "#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(); return b.top >= sum.bottom && b.bottom <= box.bottom; });

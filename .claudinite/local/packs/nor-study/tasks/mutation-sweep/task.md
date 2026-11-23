@@ -3,7 +3,13 @@
 Follow the [mutating-an-algorithm](../../../nor-finder/skills/mutating-an-algorithm/SKILL.md) skill
 on the NoR study. The base is the default finder that `studies/nor/lab/STATE.md` names.
 
-1. Set up, then run the sweep with that finder's spec as the base:
+1. Set up, then run the sweep with that finder's spec as the base. The lab reads NoR's study file
+   through `RAUNTRUTH_STUDY_NOR`. First ask the stage; when it exits 3 the study is frozen, so end the
+   run there with nothing changed:
+
+   ```
+   python3 lab/stage.py nor --stop-if-frozen
+   ```
 
    ```
    python3 -m pip install -r requirements.txt

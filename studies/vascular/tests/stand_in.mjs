@@ -61,7 +61,7 @@ export function atStage(browser, stage) {
 // Tagger whose Drive holds no settings of the site's yet, whatever an earlier device saved
 export function taggersDevice(w) {
   w.site.withGoogle();
-  return w.device().signedInAs(w.user(TAGGER).named("Acme Tagger").savedSettings(null).tags("vascular")).asRole("tagger");
+  return w.device().signedInAs(w.user(TAGGER).named("Acme Tagger").savedSettings(null).annotates("vascular"));
 }
 
 export { BLUE, legend, legendKeys } from "../../../web-tests/keys_legend.mjs";

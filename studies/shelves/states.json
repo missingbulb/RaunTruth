@@ -27,7 +27,11 @@
         "children": [
           {"name": "Books counted", "select": "#bs-count", "req": "req/shelves/summary"},
           {"name": "Titles' list", "select": "#bs-list", "req": "req/shelves/read/readers"},
-          {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export"}
+          {"name": "Download for the matcher", "select": "#bs-export", "control": true, "req": "req/shelves/matcher/export",
+            "rule": [
+              {"when": {"makesTruth": [true]}, "is": "disabled", "approval": "tentative", "about": "the matcher's file is the finder's, not the ground truth's"}
+            ]
+          }
         ]
       }
     ]},
@@ -61,7 +65,7 @@
         {"is": "hidden", "req": "req/shell/image/toolbar", "about": "the study hides them: its view.hide names them"}
       ]
     },
-    "Submit Ground Truth": {
+    "Save": {
       "rule": [
         {"is": "disabled", "req": "req/shelves/truth/task",
           "about": "until every book is decided and none is left missed, which no path does"}
@@ -69,11 +73,11 @@
     }
   },
   "roots": {
-    "GT, Viewer": {"stage": "GT", "signedIn": true, "role": "viewer"},
-    "GT, Tagger": {"stage": "GT", "signedIn": true, "role": "tagger"}
+    "Public, signed in": {"stage": "Public", "signedIn": true, "maySave": true},
+    "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
   },
   "paths": [
-    {"root": "GT, Viewer", "actions": ["load", "count"]},
-    {"root": "GT, Tagger", "actions": ["load", "count"]}
+    {"root": "Public, signed in", "actions": ["load", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]}
   ]
 }

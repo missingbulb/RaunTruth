@@ -9,7 +9,8 @@ _Last updated 2026-11-18._
 
 ## Setup
 1. `python3 -m pip install -r requirements.txt`
-2. `python3 lab/fetch.py nor`: downloads, the first time, the study's images and its curated ground truth into
+2. `python3 lab/fetch.py nor`: downloads, the first time, the study's images and the files its GT marks name (through the study file,
+   `RAUNTRUTH_STUDY_NOR`) into
    `data/raw/`, which is never committed.
 3. `python3 lab/run.py nor tl rf`: every finder scored on every image with ground truth (here, the reference
    slide `Slide5_4AP_NoR.sld - Slice1_up_left2.tif` against `lab/truth/claude_v1.json`). An answer is kept in
@@ -28,12 +29,11 @@ _Last updated 2026-11-18._
 - **Labels:** `lab/truth/claude_v1.json`, 200 spots labelled by Claude's eye (72 real, 93 not,
   35 unsure), **not by Ariel**. How an answer is scored against them: `../docs/scoring.md` (soft, one-to-one counts since 2026-11-18; numbers recorded before that day, here and in the ledger, are under the old rule, a pass within 5 px of a spot). With 72 real
   spots, a difference of 1-2 is noise.
-- **Curated ground truth** (R10, moved to Drive 2026-11-05): people mark candidates (thumbs up/down)
-  and missed NoRs on the page and submit them to the study's submissions folder on Drive; a Data
-  Manager accepts them into its curated folder (`study.json` `groundTruth`, both `null` until the
-  owner makes them). `lab/fetch.py` takes each image's newest curated file, the first time, into
-  `data/raw/truth/`, never git, and stops when a folder lists 50 entries; `lab/run.py` scores every finder on
-  every image with ground truth. None has arrived yet.
+- **Ground truth marked on Drive** (R10): people mark candidates (thumbs up/down) and missed NoRs on the page
+  and save them as extractions; the study owner marks one per image GT in the study file. `lab/fetch.py` reads
+  each GT mark's file, afresh, in its model-only form, into `data/raw/truth/`, never git; `lab/run.py` scores
+  every finder on every image with ground truth. The stage is the study file's (`python3 lab/stage.py nor`); no
+  file in the repo records it.
 - **Precision and recall per finder and filter preset** (R11, 2026-10-06; the default one filter on, not stick-like, since 2026-11-20, as the page runs it; ledger §7):
   `../web/algorithm_metrics.json`, written by `python3 lab/run.py nor --write`, naming
   the data it was measured on: each image's and ground-truth file's SHA-256 and the dataset SHA. Quote

@@ -1,22 +1,24 @@
-// A study's root folder in the remote store (req/shell/data/roles, req/shell/ground-truth/setup): the one folder its
-// study.json names, and the settings file in it that names the folders under it by id. A root with no settings file
-// has its folders found by name. read() is cached a minute per root; setup() makes what is missing and writes the
-// file. reader: all(folder) as [{id, name, folder}], text(id); writer: folder(parent, name), create(parent, name,
-// blob), replace(id, blob), share(id) (anyone with the link may view).
+// A study's root folder in the remote store (req/shell/data/roles, req/shell/ground-truth/setup, shell/study/one-file):
+// the one folder its study.json names, and the one study file in it, which holds the folders under it by id, the study
+// index, the tags, the hide and grouping rules, the marks and the stage. Its marks are
+// {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}: the extraction file each mark names by its id in the store, and its
+// author's email or null, one of each kind per image; a mark follows its file's latest content (shell/study/marks). A root with no study file has its folders
+// found by name; one still holding the settings, index and tags files of before is read as it was and written back as
+// one file by the next save. read() is cached a minute per root; every write reads the root afresh and merges into what
+// it finds, as two managers may edit at once. reader: all(folder) as [{id, name, folder}], text(id); writer:
+// folder(parent, name), create(parent, name, blob), replace(id, blob), share(id) (anyone with the link may view),
+// ours(id), trash(id).
 "use strict";
 
 export const SETTINGS = "rauntruth-study.json";
-export const FORMAT = "rauntruth-study/1";
-// the study index the Study Manager's page builds from the listed folders (req/shell/data/index)
-export const INDEX = "rauntruth-index.json";
-export const INDEX_FORMAT = "rauntruth-index/1";
-// the tags and descriptions a Study Manager writes (req/shell/data/tags)
-export const TAGS = "rauntruth-tags.json";
-export const TAGS_FORMAT = "rauntruth-tags/1";
-// the names a folder is found by, lower-cased, best first, while the settings file does not name it
-const NAMES = { data: ["data"], curated: ["gt curated", "gt"], submissions: ["gt submissions", "gt"], previews: ["previews"] };
+export const FORMAT = "rauntruth-study/2";
+// the files the study file replaced, read while a root still holds them
+const OLD_INDEX = "rauntruth-index.json", OLD_INDEX_FORMAT = "rauntruth-index/1";
+const OLD_TAGS = "rauntruth-tags.json", OLD_TAGS_FORMAT = "rauntruth-tags/1";
+// the names a folder is found by, lower-cased, best first, while the study file does not name it
+const NAMES = { data: ["data"], extractions: ["extractions"], previews: ["previews"] };
 // the names setup() and previewsFolder() give the folders they make
-const MADE = { curated: "GT curated", submissions: "GT submissions", both: "GT", previews: "Previews" };
+const MADE = { extractions: "Extractions", previews: "Previews" };
 const KEEP_MS = 60e3;
 const known = new Map();
 
@@ -27,133 +29,137 @@ const byName = (items, names) => {
   }
   return null;
 };
+const json = (doc) => new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
+const parsed = async (reader, id) => { try { return JSON.parse(await reader.text(id)); } catch { return null; } };
+// the study file's index section as the page uses it, null while there is none or it does not read as one
+const indexOf = (d) => (Array.isArray(d?.folders) && Array.isArray(d?.images) ? { built_by: d.built_by ?? null, built_at: d.built_at ?? null, folders: d.folders, images: d.images } : null);
+const tagsOf = (d) => ({ images: d?.images && typeof d.images === "object" ? d.images : {}, folders: d?.folders && typeof d.folders === "object" ? d.folders : {} });
 
-// {root, data, curated, submissions, previews, same, review, set, file, doc, folders, index}: the folders under root by id,
-// each null while there is none; set whether the settings file named them; file its id or null and doc what it holds;
-// folders the listed folders (req/shell/data/folders), the data folder or else the root while the file names none;
-// index the study index's id or null. fresh: read past the minute's copy.
+// {root, data, extractions, previews, set, file, doc, folders, group, hide, stage, tags, marks, index, old}: the folders under root by id, each null while there is none; set whether the study file named them;
+// file its id or null and doc what it holds; folders the listed folders (req/shell/data/folders), the data folder or
+// else the root while the file names none; group and hide its grouping tag and hide rules; stage its stage or null;
+// tags {images, folders} and marks {} as it holds them; index its study index {folders, images, built_by, built_at}
+// or null; old the ids of the index and tags files of before still in the root, {index, tags}, whose contents stand in
+// for sections the study file lacks. fresh: read past the minute's copy.
 export async function read(reader, root, { fresh = false } = {}) {
   const kept = known.get(root);
   if (!fresh && kept && Date.now() - kept.at < KEEP_MS) return kept.value;
   const items = await reader.all(root), file = items.find((f) => !f.folder && f.name === SETTINGS) || null;
-  const index = items.find((f) => !f.folder && f.name === INDEX) || null;
-  let doc = null;
-  if (file) try { doc = JSON.parse(await reader.text(file.id)); } catch { doc = null; }
+  const oldIndex = items.find((f) => !f.folder && f.name === OLD_INDEX) || null, oldTags = items.find((f) => !f.folder && f.name === OLD_TAGS) || null;
+  const doc = file ? await parsed(reader, file.id) : null;
+  // a section the study file lacks is the one the file of before held
+  let index = indexOf(doc?.index), tags = doc?.tags ? tagsOf(doc.tags) : null;
+  if (!index && oldIndex) { const d = await parsed(reader, oldIndex.id); if (d?.format === OLD_INDEX_FORMAT) index = indexOf(d); }
+  if (!tags && oldTags) { const d = await parsed(reader, oldTags.id); if (d?.format === OLD_TAGS_FORMAT) tags = tagsOf(d); }
   // the file names a folder by id, wherever it now lives; the names count only where it names none
   const pick = (k) => doc?.[k] || byName(items, NAMES[k]);
-  const curated = pick("curated"), submissions = pick("submissions");
   const data = pick("data"), listed = Array.isArray(doc?.folders) ? doc.folders.filter((id) => typeof id === "string") : null;
-  const value = { root, data, curated, submissions, previews: pick("previews"), same: !!curated && curated === submissions,
-    review: doc?.curated ? !!doc.review : !!curated && curated !== submissions, set: !!doc?.curated, file: file?.id ?? null,
-    doc, folders: listed || [data || root], index: index?.id ?? null,
+  const value = { root, data, extractions: pick("extractions"), previews: pick("previews"), set: !!doc?.extractions, file: file?.id ?? null,
+    doc, folders: listed || [data || root], index, tags: tags || tagsOf(null), marks: doc?.marks && typeof doc.marks === "object" ? doc.marks : {},
+    stage: typeof doc?.stage === "string" ? doc.stage : null, old: { index: oldIndex?.id ?? null, tags: oldTags?.id ?? null },
     group: typeof doc?.group === "string" ? doc.group : null, hide: Array.isArray(doc?.hide) ? doc.hide.filter((t) => typeof t === "string") : [] };
   known.set(root, { at: Date.now(), value });
   return value;
 }
 
-// The study's ground-truth folders made where missing, the curated one shared to view, and the settings file
-// written: review, two folders, else one for both. by: who set it up; at: when. Returns read()'s answer afresh.
-export async function setup({ reader, writer, root, review, by, at = new Date() }) {
+// The study file as it is written: what it holds, the sections of the files of before folded in, in the one format.
+const whole = (was) => {
+  const doc = { ...(was.doc || {}), format: FORMAT };
+  if (was.index) doc.index = was.index;
+  if (was.doc?.tags || was.old.tags) doc.tags = was.tags;
+  return doc;
+};
+
+// The study file written once from what change makes of what the root holds now: read afresh, change(doc, was) returning
+// the document to write (or changing it in place), a new file when the root has none, then the index and tags files of
+// before trashed where the page made them. guard: a study file the page did not make is left alone. Returns read()'s
+// answer afresh.
+async function save({ reader, writer, root, change, guard = true }) {
   const was = await read(reader, root, { fresh: true });
-  let curated, submissions;
-  if (review) {
-    curated = was.curated && !was.same ? was.curated : await writer.folder(root, MADE.curated);
-    submissions = was.submissions && !was.same ? was.submissions : await writer.folder(root, MADE.submissions);
-  } else {
-    curated = submissions = was.same ? was.curated : await writer.folder(root, MADE.both);
+  if (guard && was.file && !(await writer.ours(was.file))) throw new Error(`The study file, ${SETTINGS} in the study's root, was not made by this page, so the page leaves it alone. Delete it to let the page manage it.`);
+  const doc = change(whole(was), was) || {};
+  if (was.file) await writer.replace(was.file, json(doc)); else await writer.create(root, SETTINGS, json(doc));
+  for (const id of [was.old.index, was.old.tags]) {
+    if (!id) continue;
+    try { if (await writer.ours(id)) await writer.trash(id); } catch (e) { console.warn("a file of before the one study file was not trashed:", e); }
   }
-  await writer.share(curated);
-  const doc = { ...was.doc, format: FORMAT, data: was.data, curated, submissions, review: !!review, set_by: by, set_at: at.toISOString() };
-  const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
-  if (was.file) await writer.replace(was.file, blob); else await writer.create(root, SETTINGS, blob);
   known.delete(root);
   return read(reader, root, { fresh: true });
 }
 
-// A set-up study switched between reviewed and unreviewed (req/shell/ground-truth/switch), no file moved, copied or
-// deleted: to one folder, the curated one serves as both; to review, the one folder is curated and a GT submissions
-// folder is found by name, else made. The settings file keeps who set it up and records the mode before, who
-// switched and when. Returns read()'s answer afresh.
-export async function switchMode({ reader, writer, root, review, by, at = new Date() }) {
+// The study's Extractions folder made where missing, shared to view by link, and the study file written naming it. by: who set it
+// up; at: when. Returns read()'s answer afresh.
+export async function setup({ reader, writer, root, by, at = new Date() }) {
   const was = await read(reader, root, { fresh: true });
-  if (!was.set || !was.file) throw new Error("The study's ground truth is not set up yet.");
-  if (!!review === !was.same) return was;
-  let doc = {};
-  try { doc = JSON.parse(await reader.text(was.file)) || {}; } catch { doc = {}; }
-  const curated = was.curated;
-  let submissions = curated;
-  if (review) {
-    const there = (await reader.all(root)).find((f) => f.folder && f.id !== curated && f.name.trim().toLowerCase() === MADE.submissions.toLowerCase());
-    submissions = there ? there.id : await writer.folder(root, MADE.submissions);
-  }
-  const next = { ...doc, format: FORMAT, data: was.data, curated, submissions, review: !!review,
-    switched: { from: { review: !was.same, curated: was.curated, submissions: was.submissions }, by, at: at.toISOString() } };
-  await writer.replace(was.file, new Blob([JSON.stringify(next, null, 1)], { type: "application/json" }));
-  known.delete(root);
-  return read(reader, root, { fresh: true });
+  const extractions = was.extractions || await writer.folder(root, MADE.extractions);
+  await writer.share(extractions);
+  return save({ reader, writer, root, guard: false,
+    change: (d) => ({ ...d, data: was.data, extractions, set_by: by, set_at: at.toISOString() }) });
 }
-
-const json = (doc) => new Blob([JSON.stringify(doc, null, 1)], { type: "application/json" });
 
 // The study file's keys in changes written, every other key it holds kept; a new file when the root has none. A study
 // file the page did not make is left alone. writer.ours(id): whether the page made the file. Returns read()'s answer
 // afresh.
-export async function setStudy({ reader, writer, root, changes }) {
-  const was = await read(reader, root, { fresh: true });
-  if (was.file && !(await writer.ours(was.file))) throw new Error(`The study file, ${SETTINGS} in the study's root, was not made by this page, so the page leaves it alone. Delete it to let the page manage it.`);
-  const doc = { ...(was.doc || {}), format: was.doc?.format || FORMAT, ...changes };
-  if (was.file) await writer.replace(was.file, json(doc)); else await writer.create(root, SETTINGS, json(doc));
-  known.delete(root);
-  return read(reader, root, { fresh: true });
-}
+export const setStudy = ({ reader, writer, root, changes }) => save({ reader, writer, root, change: (d) => ({ ...d, ...changes }) });
 
 // The listed folders written into the study file (req/shell/data/folders)
 export const setFolders = ({ reader, writer, root, folders }) => setStudy({ reader, writer, root, changes: { folders: [...new Set(folders)] } });
 
-// The tags file in root (req/shell/data/tags): {format, images: {id: {tags, description}}, folders: {id: {tags}}},
-// empty while there is none or it does not read as one
+// The marks of the study file changed (req/setup/marks), in one write that merges into the marks the root holds now:
+// changes [{sha, kind: "gt" | "official", mark: {file, by} | null}], each setting the image's mark of that kind or, with null,
+// taking it off; a kind holds one mark per image, so a later change replaces an earlier. A study file the page did not make
+// is left alone. Returns read()'s answer afresh.
+export function writeMarks({ reader, writer, root, changes }) {
+  return save({ reader, writer, root, change: (d) => {
+    const marks = { ...(d.marks && typeof d.marks === "object" ? d.marks : {}) };
+    for (const { sha, kind, mark } of changes) {
+      const one = { ...(typeof marks[sha] === "object" && marks[sha] ? marks[sha] : {}) };
+      if (mark) one[kind] = { file: mark.file, by: mark.by ?? null }; else delete one[kind];
+      if (Object.keys(one).length) marks[sha] = one; else delete marks[sha];
+    }
+    return { ...d, marks };
+  } });
+}
+
+// The tags in the study file (req/shell/data/tags): {format, images: {id: {tags, description}}, folders: {id: {tags}}},
+// empty while there are none, from the read of the minute
 export async function readTags(reader, root) {
-  const f = (await reader.all(root)).find((x) => !x.folder && x.name === TAGS);
-  let doc = null;
-  if (f) try { doc = JSON.parse(await reader.text(f.id)); } catch { doc = null; }
-  const ok = doc?.format === TAGS_FORMAT;
-  return { format: TAGS_FORMAT, images: (ok && doc.images) || {}, folders: (ok && doc.folders) || {} };
+  const t = (await read(reader, root)).tags;
+  return { format: OLD_TAGS_FORMAT, images: t.images, folders: t.folders };
 }
 
-// The tags file written from doc, a new file or the page's own replaced; one the page did not make is left alone
-export async function writeTags({ reader, writer, root, doc }) {
-  const f = (await reader.all(root)).find((x) => !x.folder && x.name === TAGS);
-  if (f && !(await writer.ours(f.id))) throw new Error(`The tags file, ${TAGS} in the study's root, was not made by this page, so the page leaves it alone. Delete it to let the page manage it.`);
-  const body = json({ format: TAGS_FORMAT, images: doc.images, folders: doc.folders });
-  if (f) await writer.replace(f.id, body); else await writer.create(root, TAGS, body);
-}
-
-// The study index in root (req/shell/data/index), or null while there is none or it does not read as one
-export async function readIndex(reader, root) {
-  const f = (await reader.all(root)).find((x) => !x.folder && x.name === INDEX);
-  if (!f) return null;
-  try {
-    const doc = JSON.parse(await reader.text(f.id));
-    return doc?.format === INDEX_FORMAT && Array.isArray(doc.images) && Array.isArray(doc.folders) ? doc : null;
-  } catch { return null; }
-}
-
-// The study index written from index ({folders, images}): "written" when it differs from the one there, "same" when
-// it does not, "not ours" when the one there is not the page's. by: whose page built it; at: when.
-export async function writeIndex({ reader, writer, root, index, by, at = new Date() }) {
-  const f = (await reader.all(root)).find((x) => !x.folder && x.name === INDEX);
-  if (f && !(await writer.ours(f.id))) return "not ours";
-  if (f) {
-    let was = null;
-    try { was = JSON.parse(await reader.text(f.id)); } catch { was = null; }
-    const held = (d) => JSON.stringify({ folders: d.folders, images: d.images, group: d.group ?? null, hide: d.hide ?? [] });
-    if (was?.format === INDEX_FORMAT && held(was) === held(index)) return "same";
-  }
-  const doc = { format: INDEX_FORMAT, built_by: by, built_at: at.toISOString(), group: index.group ?? null, hide: index.hide ?? [], folders: index.folders, images: index.images };
-  if (f) await writer.replace(f.id, json(doc)); else await writer.create(root, INDEX, json(doc));
-  known.delete(root);
+// The tags written into the study file from doc ({images, folders}), with the study index too where index is given
+// ({folders, images}; by: whose page built it, at: when): one write. "written" when anything differs from the file,
+// "same" when nothing does, "not ours" when the study file there is not the page's.
+export async function writeStudyData({ reader, writer, root, tags, index, by, at = new Date() }) {
+  const was = await read(reader, root, { fresh: true });
+  if (was.file && !(await writer.ours(was.file))) return "not ours";
+  const held = (d) => JSON.stringify({ folders: d.folders, images: d.images, group: d.group ?? null, hide: d.hide ?? [] });
+  const sameIndex = !index || (was.index && held({ ...was.index, group: was.group, hide: was.hide }) === held(index));
+  const sameTags = !tags || (!was.old.tags && was.doc?.tags && JSON.stringify(tagsOf(was.doc.tags)) === JSON.stringify(tagsOf(tags)));
+  if (sameIndex && sameTags && !was.old.index && !was.old.tags && was.doc?.format === FORMAT) return "same";
+  await save({ reader, writer, root, change: (d) => ({ ...d,
+    ...(tags ? { tags: { images: tags.images, folders: tags.folders } } : {}),
+    ...(index ? { index: { built_by: by, built_at: at.toISOString(), folders: index.folders, images: index.images } } : {}) }) });
   return "written";
 }
+
+// The tags written from doc, the study file replaced or made; one the page did not make is left alone
+export async function writeTags({ reader, writer, root, doc }) {
+  if (await writeStudyData({ reader, writer, root, tags: doc }) === "not ours") {
+    throw new Error(`The study file, ${SETTINGS} in the study's root, was not made by this page, so the page leaves it alone. Delete it to let the page manage it.`);
+  }
+}
+
+// The study index in the study file (req/shell/data/index), {folders, images, group, hide}, or null while there is none
+export async function readIndex(reader, root) {
+  const s = await read(reader, root);
+  return s.index ? { ...s.index, group: s.group, hide: s.hide } : null;
+}
+
+// The study index written from index ({folders, images}): "written" when it differs from the one there, "same" when it
+// does not, "not ours" when the study file there is not the page's. by: whose page built it; at: when.
+export const writeIndex = ({ reader, writer, root, index, by, at }) => writeStudyData({ reader, writer, root, index, by, at });
 
 // a data folder's previews file, in the root's Previews folder, named by the data folder's id
 export const previewsName = (folder) => `${folder}.tiff`;
@@ -175,8 +181,6 @@ export function studyPlace(remote, manifest) {
   const settings = async ({ fresh = false } = {}) => (root() ? read(reader, root(), { fresh }) : null);
   // the Previews folder's listing, once a minute at most: {at, folder, items}
   let previews = null;
-  // the study index as last read: {root, at, value}
-  let kept = null;
   return {
     reader, root, settings,
     // the store's entry for a data folder's previews file, null for none, undefined when the store could not say;
@@ -196,20 +200,19 @@ export function studyPlace(remote, manifest) {
       if (!root()) return [];
       try { return (await settings()).folders; } catch { return [root()]; }
     },
-    // the study index (req/shell/data/index), once a minute at most; null for none or a study with no root
+    // the study index (req/shell/data/index), from the study file's read of the minute; null for none or a study with no root
     async index() {
       if (!root()) return null;
-      if (!kept || kept.root !== root() || Date.now() - kept.at >= KEEP_MS) kept = { root: root(), at: Date.now(), value: await readIndex(reader, root()) };
-      return kept.value;
+      return readIndex(reader, root());
     },
-    // what was written into the root's index, read afresh next time
-    forgetIndex() { kept = null; if (root()) known.delete(root()); },
-    // {manager, tagger}: whether the store lets the signed-in user write to the root and to the submissions folder
+    // what was written into the study file, read afresh next time
+    forgetIndex() { if (root()) known.delete(root()); },
+    // {manager, tagger}: whether the store lets the signed-in user write to the root and to the extractions folder
     // (req/shell/data/roles); both false for nobody signed in or a study with no root
     async roles() {
       if (!root() || !remote.signedIn()) return { manager: false, tagger: false };
       const s = await settings().catch(() => null);
-      const [manager, tagger] = await Promise.all([remote.canWrite(root()), s?.submissions ? remote.canWrite(s.submissions) : false]);
+      const [manager, tagger] = await Promise.all([remote.canWrite(root()), s?.extractions ? remote.canWrite(s.extractions) : false]);
       return { manager: !!manager, tagger: !!tagger };
     },
   };

@@ -2,7 +2,16 @@
 // (start, run, document, load), undone and redone one at a time. No page, no clock of its own.
 
 export const HISTORY_FORMAT = "rauntruth-gt-history/1";
-export const SHELL_KEYS = ["history", "created", "tagger", "image", "accepted"];
+export const SHELL_KEYS = ["history", "created", "tagger", "image", "accepted", "base"];
+
+// the version a run action records, {site, code}: the site's version and the study's algorithm code hash, either null where
+// the page could not tell. A run from a file written before has none: its label says so, and nothing is guessed.
+export const versionLabel = (a) => {
+  if (a?.type !== "run") return "";
+  const v = a.version;
+  if (!v || typeof v !== "object") return "version unknown";
+  return [v.site ? `site ${v.site}` : "", v.code ? `code ${String(v.code).slice(0, 8)}` : ""].filter(Boolean).join(", ") || "version unknown";
+};
 export const bare = (doc) => Object.fromEntries(Object.entries(doc).filter(([k]) => !SHELL_KEYS.includes(k)));
 
 export function canonical(v) {
@@ -117,8 +126,8 @@ export function actionLog(study, { now = () => new Date().toISOString() } = {}) 
     get canUndo() { return floor() >= 0 && actions.length - 1 > floor(); },
     get canRedo() { return undone.length > 0; },
     open(image, studyId) { reset([{ type: "open", at: now(), image, study: studyId }]); },
-    ran({ algorithm, output }) {
-      const entry = { type: "run", at: now(), algorithm, output };
+    ran({ algorithm, output, version }) {
+      const entry = { type: "run", at: now(), algorithm, output, ...(version ? { version } : {}) };
       if (actions.length && actions[actions.length - 1].type === "run") { actions.pop(); rebuild(); }
       diverge();
       append(entry);

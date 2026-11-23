@@ -15,13 +15,14 @@ pytestmark = pytest.mark.full
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SPEC = os.path.join(ROOT, 'dev', 'requirements', 'requirements.md')
+LAB_SPEC = os.path.join(ROOT, 'lab', 'requirements.md')
 TAG = r'req(?:/[a-z0-9]+(?:-[a-z0-9]+)*)+'
 SKIP_DIRS = {'.git', 'node_modules', '__pycache__', 'vendor', 'build'}
 TEXT = ('.md', '.py', '.js', '.mjs', '.css', '.html', '.yml', '.yaml', '.json', '.go', '.sh', '.txt')
 
 
 def specs():
-    return [SPEC, *sorted(glob.glob(os.path.join(ROOT, 'studies', '*', 'requirements.md')))]
+    return [SPEC, LAB_SPEC, *sorted(glob.glob(os.path.join(ROOT, 'studies', '*', 'requirements.md')))]
 
 
 def sections(*paths):
@@ -94,9 +95,10 @@ def test_every_cited_tag_exists():
 
 
 def test_the_shell_spec_holds_only_the_shell_and_each_study_its_own():
-    """req/checks/spec-layout: no study's section in the shell's spec, and each study's spec one section of its own."""
+    """req/checks/spec-layout: no study's section in the shell's spec (Study Setup's is the shell's own), and each study's spec one section of its own."""
     shell = list(sections(SPEC))
-    assert shell == ['req/shell', 'req/checks'], f'the shell spec holds more than the shell: {shell}'
+    assert shell == ['req/shell', 'req/setup', 'req/checks'], f'the shell spec holds more than the shell: {shell}'
+    assert list(sections(LAB_SPEC)) == ['req/lab'], 'the lab spec is one req/lab section'
     studies = sorted(glob.glob(os.path.join(ROOT, 'studies', '*', 'requirements.md')))
     assert len(studies) >= 3, f'found {len(studies)} study specs'
     for path in studies:

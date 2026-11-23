@@ -76,6 +76,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   version (its precision, recall and dataset SHA), never in a test that re-scores it on every pull
   request; here this replaces research-project's guard-wins-regression. (quality-per-version)
 
+- **Finishing feature work on the page, before handing it to the owner** - play with it through the explorer,
+  `web-tests/explore/`, as the `exploring-the-ui` skill says: the change's worlds and focus, several seeds, each bug
+  fixed test-first, each owner's call asked with its screenshots. (exploring-the-ui)
+
 ## What the page reaches
 
 - **Planning a change that adds or alters a network call or a permission request** (the page's,
@@ -99,8 +103,8 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 
 ## Ground truth
 
-- **Building or changing a study's ground-truth controls** (what its page shows in a GT or PostGT
-  stage) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
+- **Building or changing a study's ground-truth controls** (what its page shows in Setup, Develop or Analyze,
+  where annotating is open) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
   item at a time, area by area, what is done cut out of the image. (designing-ground-truth-tasks)
 
 ## The shell's states

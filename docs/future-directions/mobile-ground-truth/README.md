@@ -1,7 +1,7 @@
 # Ground-truth tagging on a phone (future direction)
 
 A design exploration, not a plan: nothing here is built, approved or timed on a person. It asks how
-each study in its GT stage could take ground truth from a phone, with fingers instead of a mouse, a
+each study in Develop could take ground truth from a phone, with fingers instead of a mouse, a
 small screen, maybe a noisy room, and maybe a trained helper instead of the lead. On the phone the work
 becomes short questions (yes/no, pick one of a few) that the lab prepares ahead of time.
 

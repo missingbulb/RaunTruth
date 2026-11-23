@@ -5,6 +5,7 @@
 // candidate drawn from its box, no outline), what the five older keys held is offered once after Find Candidates, recorded as GT
 // actions at the click and forgotten when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
 //   node tests/gt_actions_page_driver.mjs ANSWERS IMAGE
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -44,7 +45,7 @@ const browser = await launch(pw), w = world(browser, origin);
 // a Ground Truth Tagger's, the study opening its image from this computer
 w.site.withGoogle();
 w.studies.fromThisComputer("nor");
-const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, more) => { if (!ok) { console.error("FAILED: " + what, more === undefined ? "" : JSON.stringify(more)); await done(1); } console.log("ok: " + what); };
 const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json"), "utf8"));
@@ -58,11 +59,12 @@ async function open(dev) {
 async function loadImage(page) {
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await fromScratch(page, "#find");
 }
 // drafts, keys: what the device keeps before the page opens; the tagger's Drive holding no settings of the site's yet
 function newDevice({ drafts = [], keys = {} } = {}) {
   tagger.savedSettings(null);
-  return w.device().signedInAs(tagger).asRole("tagger").keepsDrafts(drafts).keeps(keys);
+  return w.device().signedInAs(tagger).keepsDrafts(drafts).keeps(keys);
 }
 const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b); if (e.classList.contains("folded")) e.querySelector(".sec-head h2").click(); }, box); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 async function find(page) {
@@ -110,7 +112,6 @@ try {
   let page = await open(dev);
   await find(page);
   await unfold(page, "#tasks-box");
-  await page.click("#gt-start");
   await settle(page);
   const total = await page.evaluate(() => st.order.length);
   await check((await rows(page)).join() === `Algorithm ran: ${total} candidates,Image opened` && await unsaved(page) === 0,
@@ -234,7 +235,6 @@ try {
   const drawn = await page.evaluate(() => ({ groups: document.querySelectorAll("#overlay > g[data-i] .hit").length, outlines: [...document.querySelectorAll("#overlay > g[data-i] path")].filter((p) => p.getAttribute("d")).length, find: $("#find").disabled,
     rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
   await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find, "each candidate is drawn from its box, with no outline, and Find Candidates is on", drawn);
-  await page.click("#gt-start");
   await settle(page);
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
@@ -286,7 +286,6 @@ try {
   await check(/^Load earlier edits/.test(offer.text) && /your earlier work in this browser/.test(offer.title) && (await read(page)).forced.length === 0 && (await keys(page)).length === 4,
     "it is offered once, not loaded unasked, its keys kept", { offer, keys: await keys(page) });
   await check(/7 actions/.test(offer.title), "saying how many GT actions it makes", offer);
-  await page.click("#gt-start");
   await settle(page);
   await page.click("#gt-load-legacy");
   await page.waitForFunction(() => st.areas.size === 2);

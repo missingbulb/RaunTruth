@@ -1,24 +1,25 @@
-// What the GT history drivers share: the fixture study opened as a Ground Truth Tagger on the stand-in Drive, marks counted and
+// What the GT history drivers share: the fixture study opened in annotation mode on the stand-in Drive, marks counted and
 // dragged, the device's drafts read, a page opened on a device keeping some, and a question the page asks answered.
 import { until } from "./page_until.mjs";
+import { fromScratch } from "./annotating.mjs";
 import { storedDrafts, seedDrafts } from "./device_storage.mjs";
 
 export function kit({ drive, png }) {
-  const { role, open } = drive;
+  const { open } = drive;
   const ready = (page) => page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-  const asTagger = async (page) => { if ((await page.textContent("#role-name")).trim() !== "Ground Truth Tagger") await role(page, "Ground Truth Tagger"); };
   const openImage = async (page) => {
     await page.click("#load-remote");
     await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
     await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
     await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
   };
-  const tagger = async (page) => { await asTagger(page); await openImage(page); };
+  // the image open, then annotation from scratch chosen for it (req/shell/annotate/choice)
+  const tagger = async (page) => { await openImage(page); await fromScratch(page, "#fx-count"); };
   // a tagger's page in a fresh context, the image open, on a device keeping those drafts and browser keys
   const openKept = async ({ drafts = [], seed = {} } = {}) => { const page = await open(true, { seed, prepare: (ctx) => seedDrafts(ctx, drafts) }); await tagger(page); return page; };
   const model = (page) => page.evaluate(() => window.fixture.model());
   const marks = async (page) => JSON.stringify((await model(page))?.marks ?? null);
-  const counted = async (page) => { await page.click("#fx-count"); await until(page, () => !!window.fixture.model()); await page.click("#gt-start"); };
+  const counted = async (page) => { await page.click("#fx-count"); await until(page, () => !!window.fixture.model()); };
   const label = (page) => page.evaluate(() => ({ hidden: $("#gt-unsaved").hidden, text: $("#gt-unsaved").textContent }));
   const center = (page, id) => page.evaluate((id) => { const r = document.querySelector(`#fx-marks circle[data-mark="${id}"]`).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, id);
   // a mark pressed, moved by (dx, dy) screen pixels and, unless held, let go
@@ -44,5 +45,5 @@ export function kit({ drive, png }) {
     await acting;
     return text;
   };
-  return { ready, asTagger, openImage, tagger, openKept, model, marks, counted, label, center, dragMark, moved, records, ask };
+  return { ready, openImage, tagger, openKept, model, marks, counted, label, center, dragMark, moved, records, ask };
 }

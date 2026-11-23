@@ -1,0 +1,140 @@
+// Drives req/setup/promote in headless Chromium on the fixture study, against the stand-in Google of stand_in_drive.mjs serving ROOT
+// (three images): the owner on Study Setup sees the study's stage, lists the images whose extractions are newer than their GT before
+// Review, promotes and moves back (the stage written into the study file, the sharing checked again), and freezes: marking and data
+// close; the main app's Save of a session begun before the freeze still writes the extraction, labelled as not counted.
+// Exits 1 on a failed check, 2 when it cannot run.
+//   node web-tests/setup_stage_driver.mjs ANSWERS STUDIES ROOT
+import fs from "node:fs";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import { standIn } from "./stand_in_drive.mjs";
+import { pressDrive } from "./drive_open.mjs";
+import { until, idle } from "./page_until.mjs";
+import { personFile } from "../web/truth_folders.js";
+
+const [answers, studies, rootDir] = process.argv.slice(2);
+const { drive, ROOT, FILES, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const Y = "y@lab.example", Z = "z@lab.example";
+
+const shaOf = (n) => createHash("sha256").update(fs.readFileSync(path.join(rootDir, n))).digest("hex");
+const extraction = async (name, who) => {
+  const sha = shaOf(name), stem = name.replace(/\.[^.]*$/, "");
+  const sub = FILES.find((f) => f.folder && f.parent === GT.extractions && f.name === `${stem}__${sha.slice(0, 8)}`)
+    || drive.folder({ mine: true, name: `${stem}__${sha.slice(0, 8)}`, parent: GT.extractions });
+  return drive.file({ mine: true, name: await personFile(who), parent: sub.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who,
+    image: { name, sha256: sha }, labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true })) });
+};
+// img1: y's extraction is GT, and z saved one after it; img2: y's is GT and nothing came after
+const y1 = await extraction("img1.png", Y), y2 = await extraction("img2.png", Y);
+await extraction("img1.png", Z);
+studyFile({ stage: "Develop", marks: { [shaOf("img1.png")]: { gt: { file: y1.id, by: Y } }, [shaOf("img2.png")]: { gt: { file: y2.id, by: Y } } } });
+const study = () => JSON.parse(FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json").bytes.toString());
+
+// an image of the study opened the way a person does, from the study's own list in the Drive dialog
+const openFromStudy = async (page, file) => {
+  await pressDrive(page);
+  await page.dblclick(`#remote-list .item[data-id="${FILES.find((f) => f.parent === ROOT && f.name === path.basename(file)).id}"]`);
+};
+
+const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent.trim() ?? null, sel);
+const names = (page, sel) => page.evaluate((s) => [...document.querySelectorAll(s)].map((li) => li.dataset.name), sel);
+const visible = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
+const settledStage = (page, stage) => page.waitForFunction((s) => document.querySelector("#stage-now")?.textContent.trim() === s && !document.querySelector("#stage-box").classList.contains("busy"), stage);
+const checks = (page) => page.evaluate(() => +document.querySelector("#sharing-box").dataset.checks);
+
+let page = await open(true, { setup: true });
+await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
+await settledStage(page, "Develop");
+await check(await visible(page, "#stage-box"), "Study Setup has a stage box, whatever the stage");
+await check(await text(page, "#stage-up") === "Promote to Analyze" && await text(page, "#stage-back") === "Move back to Setup", "it offers the next stage and the one before", { up: await text(page, "#stage-up"), back: await text(page, "#stage-back") });
+
+// no listing of an image's extractions on opening, on a mark being written or on a stage change: the list of newer extractions is read on a press alone
+const lists = () => drive.calls.filter((c) => c.kind === "list" && FILES.some((f) => f.id === c.parent && f.folder && (f.parent === GT.extractions || f.id === GT.extractions)))
+  .map((c) => FILES.find((f) => f.id === c.parent).name).filter((n) => n !== "Extractions").map((n) => n.split("__")[0]);
+const subs = () => new Set(lists());
+await idle(page);
+await check(lists().length === 0 && !(await visible(page, "#stage-newer-box")), "opening Study Setup lists no image's extractions and shows no list", lists());
+await check(await text(page, "#stage-find") === "Find images with newer extractions" && await visible(page, "#stage-find"), "the Stage box has a button, Find images with newer extractions", await text(page, "#stage-find"));
+await page.click("#data-tree .tree-folder .name");
+await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
+await page.click('#folder-items .cell:has(.name:text-is("img2.png")) .name');
+await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 1);
+await page.click(`#marks-list .mark-row[data-id="${y2.id}"] button[data-kind="official"]`);
+await page.waitForFunction(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent));
+await idle(page);
+await check(study().marks[shaOf("img2.png")].official?.file === y2.id, "a mark is written", study().marks);
+await check([...subs()].every((n) => n === "img2") && !(await visible(page, "#stage-newer-box")), "writing a mark lists only the extractions of the image it is on, and no list of newer ones", lists());
+
+// promote to Analyze: the stage is written into the study file, its other keys kept, and the sharing is checked again
+const was = await checks(page);
+const wrote = drive.writes.length;
+const listed = lists().length;
+await page.click("#stage-up");
+await settledStage(page, "Analyze");
+await idle(page);
+await check(!lists().slice(listed).includes("img1") && !(await visible(page, "#stage-newer-box")), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
+
+// the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
+await page.click("#stage-find");
+await page.waitForFunction(() => document.querySelectorAll("#stage-newer li").length >= 1);
+await check(JSON.stringify(await names(page, "#stage-newer li")) === JSON.stringify(["img1.png"]), "pressing it lists the image with an extraction newer than its GT, and not the one without", await names(page, "#stage-newer li"));
+await check(lists().slice(listed).includes("img1") && lists().slice(listed).includes("img2"), "by one extractions listing per GT-marked image", lists().slice(listed));
+await check(study().stage === "Analyze" && study().marks?.[shaOf("img1.png")]?.gt?.file === y1.id && study().extractions === GT.extractions, "promoting writes the stage into the study file and keeps the rest of it", study());
+await check((await until(page, (n) => +document.querySelector("#sharing-box").dataset.checks > n && document.querySelector("#sharing-title").textContent === "Sharing (Analyze)", was)) !== false, "and the sharing is checked again, for the new stage", await text(page, "#sharing-title"));
+await check(drive.writes.slice(wrote).every((w) => w[0] === "replace" && w[1] === "rauntruth-study.json"), "the promotion writes the study file and nothing else", drive.writes.slice(wrote));
+
+// promote to Review: a dialog names what freezes and the images whose newer extractions are not marked; Cancel writes nothing
+await check(await text(page, "#stage-up") === "Promote to Review…", "the way into Review is marked as asking", await text(page, "#stage-up"));
+const listsBefore = lists().length;
+await page.click("#stage-up");
+await page.waitForFunction(() => document.querySelector("#stage-freeze-dlg").open);
+await check(lists().length > listsBefore, "promoting to Review lists the extractions before the Freeze dialog is shown", lists().slice(listsBefore));
+await check(/marking|marks/i.test(await text(page, "#stage-freeze-dlg")) && /data/i.test(await text(page, "#stage-freeze-dlg")), "it says marking and data close", await text(page, "#stage-freeze-dlg"));
+await check(JSON.stringify(await names(page, "#stage-freeze-newer li")) === JSON.stringify(["img1.png"]), "and lists the images with newer unmarked extractions again", await names(page, "#stage-freeze-newer li"));
+await page.click("#stage-freeze-cancel");
+await page.waitForFunction(() => !document.querySelector("#stage-freeze-dlg").open);
+await check(study().stage === "Analyze", "Cancel leaves the stage as it was", study().stage);
+await page.click("#stage-up");
+await page.waitForFunction(() => document.querySelector("#stage-freeze-dlg").open);
+await page.click("#stage-freeze");
+await settledStage(page, "Review");
+await check(study().stage === "Review", "Freeze writes Review into the study file", study().stage);
+
+// frozen: no data control, no mark button; the stage and the way back stay
+await page.click("#data-tree .tree-folder .name");
+await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
+await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');
+await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 2);
+await check(!(await visible(page, "#marks-list button.mark-gt")) && !(await visible(page, "#marks-list button.mark-official")), "after the freeze the extractions show with no mark button", await page.evaluate(() => document.querySelector("#marks-list").innerHTML));
+await check(!(await visible(page, "#data-add")) && !(await visible(page, "#data-tree .unlist")), "and the data controls are gone");
+await check(await visible(page, "#stage-back") && await text(page, "#stage-back") === "Move back to Analyze" && await text(page, "#stage-up") === "Promote to Public", "while the stage's own buttons remain", { up: await text(page, "#stage-up") });
+await check(await text(page, "#stage-newer") === null || !(await visible(page, "#stage-newer li")), "the list of newer extractions is a thing of before Review");
+
+// moving back reopens them
+await page.click("#stage-back");
+await settledStage(page, "Analyze");
+await check(study().stage === "Analyze", "Move back writes the earlier stage", study().stage);
+await page.waitForFunction(() => document.querySelectorAll("#marks-list button.mark-gt").length === 2);
+await check(await visible(page, "#data-add"), "and marking and data are open again");
+await page.context().close();
+
+// the main app: a session begun before the freeze saves after it; the save is made and says it is not counted
+page = await open(true);
+await openFromStudy(page, path.join(rootDir, "img3.png"));
+await page.waitForFunction(() => st.fileName === "img3.png" && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent));
+await page.waitForSelector("#annotate-scratch", { state: "visible" });
+await page.click("#annotate-scratch");
+await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.shellForTests.page.get("image") && !$("#fx-count").disabled);
+await page.click("#fx-count");
+await until(page, () => !!window.fixture.model());
+await page.click("#fx-add");
+studyFile({ stage: "Review" });
+const before = drive.writes.length;
+await page.evaluate(() => $("#gt-submit").click());
+await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
+await page.click("#gt-send");
+await page.waitForFunction(() => /^Saved/.test($("#gt-msg").textContent));
+const said = await text(page, "#gt-msg");
+await check(/after the freeze, not counted/.test(said), "the main app's Save still works after the freeze and says it is after the freeze, not counted", said);
+await check(drive.writes.slice(before).some((w) => w[0] === "create" && /^x_/.test(w[1])), "and the extraction is written", drive.writes.slice(before));
+await done(0);

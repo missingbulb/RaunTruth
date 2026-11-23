@@ -1,8 +1,8 @@
 // Drives the fixture study's GT actions in headless Chromium, against the stand-in Google of stand_in_drive.mjs, as a
-// Ground Truth Tagger. Checks req/shell/ground-truth/save-draft (nothing is kept until Save Draft; unsaved actions counted
+// annotating. Checks req/shell/ground-truth/save-draft (nothing is kept until Save Draft; unsaved actions counted
 // and guarded; a failed write said; replacing an unloaded draft asks), req/shell/ground-truth/draft-offer (Load draft is
 // offered, never loaded unasked, and asks before it replaces unsaved actions), req/shell/ground-truth/history (Undo and
-// Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Submit's file carries the log in
+// Redo by button and key, and a drag's cancel), req/shell/ground-truth/history-file (Save's file carries the log in
 // force, and a viewer's copy is handed the study without it) and req/shell/storage/manage (a draft listed and deleted).
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_driver.mjs ANSWERS STUDIES ROOT
@@ -14,7 +14,7 @@ import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir });
-const { FILES, GT, open, role, check, done } = drive;
+const { FILES, GT, studyFile, open, dataManagement, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
@@ -24,7 +24,7 @@ const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /Submitted|not submitted/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /Saved|not saved/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;
@@ -66,7 +66,7 @@ await page.context().close();
 page = await openKept({ drafts: recs });
 await until(page, () => !$("#gt-offers").hidden);
 const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-offers").nextElementSibling.id }));
-await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above Start GT tagging, with when it was saved and how many actions", offer);
+await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above the tasks, with when it was saved and how many actions", offer);
 await check((await model(page)) === null && (await page.textContent("#fx-result")).startsWith("Nothing counted"), "nothing is loaded unasked");
 await page.evaluate(() => { window.posted = []; const p = Worker.prototype.postMessage; Worker.prototype.postMessage = function (m, ...r) { posted.push(m.type + ":" + (m.action || "")); return p.call(this, m, ...r); }; });
 await page.click("#gt-load-draft");
@@ -99,7 +99,6 @@ await page.focus("#fx-threshold");
 await page.keyboard.press("Control+KeyZ");
 await check((await marks(page)) === m2, "typed in a field, Ctrl+Z is the browser's own, not the log's");
 await page.evaluate(() => document.activeElement.blur());
-await page.click("#gt-start");
 // a drag: Escape puts the mark back and records nothing; Ctrl+Z mid-drag does nothing; a drop is one action
 await dragMark(page, "m1", 30, 20, { hold: true });
 await page.keyboard.press("Control+KeyZ");
@@ -130,14 +129,14 @@ await until(page, () => $("#gt-unsaved").hidden);
 recs = await records(page);
 await check(recs.length === 1 && recs[0].saved !== savedAt && recs[0].log.filter((a) => a.type === "move-mark").length === 1, "accepted, it replaces the image's draft", recs.length);
 
-// Submit after one undo: the file carries the log in force, and the draft is saved with it
+// Save after one undo: the file carries the log in force, and the draft is saved with it
 await moved(page, "m2", -10, -10); await moved(page, "m1", 8, -6);
 await page.click("#gt-undo");
 const draftBefore = recs[0].saved;
-await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Submit", await label(page));
+await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Save", await label(page));
 const msg = await submit(page);
-await check(/Submitted/.test(msg), "Submit says the file landed", msg);
-const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.submissions);
+await check(/^Saved/.test(msg), "Save says the file landed", msg);
+const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.extractions);
 const file = FILES.filter((f) => f.parent === subFolder?.id).at(-1);
 const doc = JSON.parse(file.bytes.toString());
 await check(Array.isArray(doc.labels) && doc.history?.format === "rauntruth-gt-history/1" && doc.history.replay === "verified", "the file is the study's document with a history, its replay verified", { keys: Object.keys(doc), history: doc.history && { format: doc.history.format, replay: doc.history.replay } });
@@ -146,23 +145,21 @@ await check(acts.filter((a) => a.type === "move-mark").length === 2 && acts.ever
   "the undone move is not written, each action has its time, and the run's output is deflated", acts.map((a) => a.type));
 recs = await records(page);
 await check(recs.length === 1 && recs[0].saved !== draftBefore && recs[0].log.filter((a) => a.type === "move-mark").length === 2 && (await label(page)).hidden,
-  "Submit saved the draft too, the action it had not saved with it", recs.map((r) => ({ saved: r.saved, log: r.log.map((a) => a.type) })));
+  "Save saved the draft too, the action it had not saved with it", recs.map((r) => ({ saved: r.saved, log: r.log.map((a) => a.type) })));
 
-// a viewer loading that file as curated ground truth is handed the study's document, without the history
-const curated = { id: "dmcuratedsub0000000001", name: sub, parent: GT.curated, folder: true, bytes: null, mine: false, props: {}, modified: "2026-11-17T09:00:00.000Z" };
-FILES.push(curated, { id: "dmcuratedfile00000001", name: file.name, parent: curated.id, folder: false, mine: false, props: {}, modified: "2026-11-17T09:00:01.000Z",
-  bytes: Buffer.from(JSON.stringify({ ...doc, accepted: { by: "boss@example.com", at: "2026-11-17T09:00:00.000Z", from_sha256: "0".repeat(64) } })) });
+// a viewer loading that file once the study file marks it GT is handed the study's document, without the history
+studyFile({ marks: { [createHash("sha256").update(png.bytes).digest("hex")]: { gt: { file: file.id, by: "tester@example.com" } } } });
 await page.context().close();
 page = await open(false);
 await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await page.waitForSelector("#load-gt:not([hidden])", { timeout: 5000 });
-await page.click("#load-gt");
+await page.click("#annotate-load");
+await page.click(`#annotate-list button[data-key="${file.id}"]`);
 await until(page, () => !!window.fixture.truth());
 const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));
-await check(shown.includes("labels") && !shown.includes("history"), "a viewer's Load GT tagging hands the study the file without its history", shown);
+await check(shown.includes("labels") && !shown.includes("history"), "a viewer loading the marked annotation from Drive hands the study the file without its history", shown);
 await page.context().close();
 
 page = await open(true);
@@ -176,7 +173,6 @@ await page.evaluate(() => $("#fx-count").click());
 await until(page, () => !$("#gt-save-draft").disabled);
 l = await label(page);
 await check(l.text === "· 1 unsaved" && !(await page.isDisabled("#gt-save-draft")), "a run after Save Draft counts as unsaved, and Save Draft is on", l);
-if ((await page.textContent("#gt-start")).trim() === "Start GT tagging") await page.click("#gt-start");
 await until(page, () => !document.activeViewTransition);
 // opening another image, or unloading this one, with an action unsaved asks first
 await moved(page, await page.evaluate(() => window.fixture.model().marks[0].id), 9, 9);
@@ -185,15 +181,15 @@ await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileNam
 asked = await ask(page, false, async () => { await page.click("#load-remote"); await page.waitForFunction(() => document.querySelector("#remote-dlg").open); await page.dblclick(`#remote-list .item[data-id="${png.id}"]`); });
 await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name && !(await label(page)).hidden, "opening an image over an unsaved action asks, and dismissing keeps the model", asked);
 await page.evaluate(() => { const d = $("#remote-dlg"); if (d.open) d.close(); });
-// choosing another study, or changing role away from Ground Truth Tagger, with an action unsaved asks first
+// choosing another study, or clearing all annotations, with an action unsaved asks first
 const studyIs = (page) => page.evaluate(() => st.fileName + "|" + document.title);
 const before = await studyIs(page);
 asked = await ask(page, false, async () => { await page.click("#study-menu summary"); await page.click('#study-list a[data-id="viewer"]'); });
 await check(/unsaved/.test(asked || "") && (await studyIs(page)) === before && new URL(page.url()).pathname.endsWith("/fixture") && !(await label(page)).hidden,
   "choosing another study with an unsaved action asks, and dismissing keeps the study, its image and the action", asked);
-asked = await ask(page, false, async () => { await page.click("#role-menu summary"); await page.click('#role-list .item:text-is("Viewer")'); });
-await check(/unsaved/.test(asked || "") && (await page.textContent("#role-name")).trim() === "Ground Truth Tagger" && (await studyIs(page)) === before && !(await label(page)).hidden,
-  "changing role away from Ground Truth Tagger with an unsaved action asks, and dismissing keeps the role and the action", asked);
+asked = await ask(page, false, () => page.click("#annotate-clear"));
+await check(/unsaved/.test(asked || "") && await page.evaluate(() => document.documentElement.hasAttribute("data-annotating")) && (await studyIs(page)) === before && !(await label(page)).hidden,
+  "clearing all annotations with an unsaved action asks, and dismissing keeps annotation mode and the action", asked);
 await page.click("#gt-save-draft");
 await until(page, () => $("#gt-unsaved").hidden);
 

@@ -15,31 +15,34 @@ import { repoFile } from "./repo_file.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { pw, launch } from "./harness.mjs";
 import { world } from "./world.mjs";
+import { SCOPES } from "./fakes/google_sign_in.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
-// uploaded(file): each file the page creates or replaces, {name, bytes}
-export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true }) {
+// uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
+// (and what it holds, until a folder has readers of its own), which then no longer shares it with anyone with the link
+// rooted: see inList below; pageError(e): what a page's uncaught error does, in place of ending the run
+export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, rooted: inList = false, pageError }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const EMAIL = "tester@example.com";
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   let id = new URL(self.location.href).searchParams.get("study");
-  postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0 });
+  postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0, code: "standin0" });
   onmessage = async ({ data: m }) => {
-    if (m.type === "study") { id = m.id; postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0 }); }
+    if (m.type === "study") { id = m.id; postMessage({ type: "ready", info: A.ready[id], heap: 0, files: 0, code: "standin0" }); }
     else if (m.type === "open") {
       self.lastOpen = { name: m.name, bytes: new Uint8Array(m.bytes) };
       postMessage({ type: "held" });
     }
     // a study ANSWERS names as live answers from its own Python, on the file it was handed last
-    else if (m.type === "call" && A.live?.includes(id)) {
+    else if (m.type === "call" && A.live?.includes(id)) try {
       let s = ""; for (let k = 0; k < self.lastOpen.bytes.length; k += 32768) s += String.fromCharCode(...self.lastOpen.bytes.subarray(k, k + 32768));
       const r = await (await fetch("/py", { method: "POST", body: JSON.stringify({ id, name: self.lastOpen.name, bytes: btoa(s), action: m.action, args: m.args, damaged: m.damaged }) })).json();
       if (r.error) throw new Error(r.error);
       const b = r.bytes == null ? null : bytes(r.bytes);
       postMessage({ type: "result", action: m.action, meta: r.meta, bytes: b, echo: m.echo }, b ? [b.buffer] : []);
-    }
+    } catch (e) { postMessage({ type: "error", text: String(e.message || e) }); }
     else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
   };`;
   const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
@@ -78,7 +81,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // the Drive fake, ROOT its folder: {id, name, parent, folder, bytes, mine, props, modified}; Drive's clock moves a
   // second each write
   const FILES = drive.files;
-  const root = w.folder("Study folder one").public(), ROOT = root.id;
+  const root = w.folder("Study folder one", { id: "dmrootfolder00000001" }).public(), ROOT = root.id;
   const add = (dir, folder) => {
     for (const name of fs.readdirSync(dir).sort()) {
       const p = path.join(dir, name);
@@ -86,14 +89,19 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
   };
   add(rootDir, root);
+  if (members) root.readableBy(...members);
   const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
-  // gt: the study set up with review, its settings file in ROOT naming two ground-truth folders kept outside ROOT,
+  // gt: the study set up, its study file in ROOT, the page's own as its set-up wrote it, naming the extractions folder kept outside ROOT,
   // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
   const GT = {};
+  let settings = null;
   if (gt) {
-    [GT.curated, GT.submissions] = ["GT curated", "GT submissions"].map((name) => w.folder(name, { in: "elsewhere" }).writableByAnyone().id);
-    root.holds({ name: "rauntruth-study.json", bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/1", data: null, curated: GT.curated, submissions: GT.submissions, review: true })) });
+    GT.extractions = w.folder("Extractions", { in: "elsewhere", id: "dmextractions0000000001" }).writableByAnyone().id;
+    settings = root.holds({ name: "rauntruth-study.json", bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", data: null, extractions: GT.extractions })) },
+      { id: "dmsettings00000000001", bySite: true });
   }
+  // the study file's keys changed, as the owner's Study Setup would have written them (the marks, the stage), the rest kept
+  const studyFile = (changes) => { settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toString()), ...changes })); };
   // the folders Drive lets the user only view
   const viewOnly = drive.viewOnly;
   // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
@@ -114,39 +122,52 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   }
   w.studies.rootedAt("fixture", ROOT);
   if (studies) w.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
+  // inList: the list of studies names ROOT as each rooted study's root, so that Drive's sharing of it decides who is a member (shell/study/members)
+  // (the fixture, which the build leaves out of the list as unlisted, is put in it rooted)
+  if (inList) w.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "Develop", root: ROOT }])] : list));
 
-  const done = async (code) => { await browser.close(); server.close(); py?.kill(); process.exit(code); };
+  const close = async () => { await browser.close(); server.close(); py?.kill(); };
+  const done = async (code) => { await close(); process.exit(code); };
   const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
   // a page or a check gone wrong ends the run
 
   // scopes: what the signed-in user's token may do, in place of all the site asks; email: who is signed in, in place
-  // of the study's study manager, Google's window still signing in the manager; seed: browser keys kept before the
-  // page opens, over the sign-in and the welcome popup's answer; id: the study opened, the fixture unless named;
-  // study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS
-  // pixel; prepare(ctx): routes of a driver's own, taking precedence over these; keepSettings: the settings an earlier
-  // visit saved to Drive, kept; at: an address opened in place of the study's own, its caller waiting for what it shows
-  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false, at } = {}) {
+  // of the study's study manager; seed: browser keys kept before the page opens, over the sign-in and the welcome
+  // popup's answer; id: the study opened, the fixture unless named; study: what its study.json says otherwise for this
+  // page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a driver's own, taking
+  // precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept; viewport: the window's
+  // size; name: the signed-in user's; until: when their token runs out, in place of an hour on; welcome: the welcome
+  // popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study; at: an address
+  // opened in place of the study's own, its caller waiting for what it shows
+  async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
+    viewport, name = "Tester", until, welcome = false, setup = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) for (const { owner } of [...google.settings]) google.savedSettings(owner, null);
-    const device = w.device().with({ deviceScaleFactor: scale }).keeps(seed);
-    const who = email && email !== EMAIL ? { email, name: tester.name, scopes: tester.scopes } : tester;
-    if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes });
-    // the welcome popup answered before, and remembered (req/shell/account/welcome)
-    device.welcomed("nor-welcome" in seed ? null : signedIn ? "google" : "anonymous");
+    const device = w.device().with({ deviceScaleFactor: scale, ...(viewport ? { viewport } : {}) }).keeps(seed);
+    const who = (email && email !== EMAIL) || name !== tester.name ? { email: email || EMAIL, name, scopes: SCOPES } : tester;
+    if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes, ...(until ? { tokenLeft: until - Date.now() } : {}) });
+    // the welcome popup answered before, and remembered (req/shell/account/welcome), unless a first visit
+    device.welcomed(welcome || "nor-welcome" in seed ? null : signedIn ? "google" : "anonymous");
     const ctx = await device.context();
     if (study) studiesOf(ctx).edit(id, (m) => ({ ...m, ...study }));
     if (prepare) await prepare(ctx);
     const page = await ctx.newPage();
-    page.on("pageerror", async (e) => { if (cutShort(e)) return; console.error("page error: " + e.message); await done(1); });
-    return device.opens(at ? at.slice(`${origin}/web/`.length) : id, { until: at ? "none" : "ready" });
+    page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
+    if (at) return device.visits(at.slice(origin.length), { until: "none" });
+    return setup ? device.opensSetup(id) : device.opens(id);
   }
 
-  // the role menu's choice (req/shell/account/role), the page then showing it
-  async function role(page, name) {
-    await page.click("#role-menu summary");
-    await page.click(`#role-list .item:text-is("${name}")`);
-    await page.waitForFunction((n) => document.querySelector("#role-name").textContent.trim() === n, name);
+
+  // Study Setup (req/setup/page) opened (on) from the avatar's menu of the study, or left for the study again, the page then showing it
+  async function dataManagement(page, on = true) {
+    await page.click("#user-menu summary");
+    await page.waitForSelector("#open-setup:not([hidden])");
+    const now = await page.evaluate(() => document.documentElement.dataset.page === "setup");
+    if (now === on) return void (await page.click("#user-menu summary"));
+    await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
+    await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+    if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, role, check, done, origin };
+  return { w, drive, google, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

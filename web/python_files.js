@@ -18,6 +18,17 @@ export function packagesOf(python, lock, vendored, vendorBase) {
     .concat(own.map((w) => ({ url: new URL(w, vendorBase).href })));
 }
 
+// The SHA-256 of a study's Python as the release's list names it: each module of its folders (studyModules) with the SHA-256
+// the list gives it, in name order; null without a list or a module, never a guess. A run records it as the code that made it.
+export async function codeHash(listing, bases, app) {
+  const found = studyModules(listing, bases, app), names = found ? Object.keys(found).sort() : [];
+  if (!names.length) return null;
+  const sums = new Map(listing.files.map((f) => [new URL(f.path, app).href, f.sha256]));
+  const text = names.map((n) => `${n}.py ${sums.get(found[n])}\n`).join("");
+  const bytes = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // {name: address} the modules directly in a study's folders, its Python's bases in the order the importer tries them,
 // as the release's offline list names them (listing: its offline.json; app: the address its paths are from); null
 // without a listing, when every name is asked of the site

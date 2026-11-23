@@ -12,6 +12,7 @@
 // bytes, and a channel hidden changing nothing it counts (req/shell/python/on-run, req/shell/python/file-bytes). Prints what it saw; exits 1 on a failure, 2 when it
 // cannot run.
 //   node web-tests/study_page_driver.mjs ANSWERS IMAGE.png STUDIES
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
@@ -22,7 +23,7 @@ import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { held as holding } from "./held.mjs";
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -38,8 +39,8 @@ let stub = true;
 // the files slow to arrive, each held until the test lets it go: path → its hold
 const slow = {};
 // the switcher's titles, as the build lists the studies
-// what the switcher offers a visitor not signed in: the build's list but the studies shown to named accounts alone
-const offered = JSON.parse(fs.readFileSync(studies, "utf8")).filter((m) => !m.accounts), titles = offered.map((m) => m.title);
+// what the switcher offers a visitor signed in, whose Google can read every study's root (shell/study/members): the build's list
+const offered = JSON.parse(fs.readFileSync(studies, "utf8")), titles = offered.map((m) => m.title);
 
 // answers every request the way web/worker.js does with the fixture's Python, from answers.json
 const STAND_IN = `
@@ -69,9 +70,12 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.fromThisComputer("fixture");
+w.site.withGoogle();
+// a visitor signed in with Google, whose Google can read every study's root (shell/study/members)
+const tester = w.user("tester@example.com").named("Tester");
 const problems = [];
 const done = async () => { await browser.close(); server.close(); for (const p of problems) console.error(p); process.exitCode = problems.length ? 1 : 0; };
-const device = w.device().with({ acceptDownloads: true }), ctx = await device.context();
+const device = w.device().signedInAs(tester).with({ acceptDownloads: true }), ctx = await device.context();
 ctx.on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error: " + e.error().message); });
 try {
   const page = await device.visits("/web/index.html?study=fixture");
@@ -145,6 +149,7 @@ try {
   }
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(page, "#fx-count");
   const base = await page.evaluate(() => [document.querySelector("#base").width, document.querySelector("#base").height]);
   if (base.join() !== "80,60") problems.push(`the viewer drew ${base} for an 80 x 60 image`);
   const opened = await page.evaluate(() => [...document.querySelectorAll("#channels label")].map((l) => l.textContent).join());
@@ -256,7 +261,7 @@ try {
   // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
   const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
   slow[MODULE] = holding(); slow[CHOSEN] = holding();
-  const elsewhere = w.device();
+  const elsewhere = w.device().signedInAs(tester);
   (await elsewhere.context()).on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error, a study chosen while another came in: " + e.error().message); });
   const early = await elsewhere.opens("fixture", { until: "none" });
   await slow[MODULE].asked;
@@ -278,11 +283,26 @@ try {
   if (!swapped || chosen.path !== "/web/" || chosen.fixture) problems.push("a study chosen while another was coming in is not the one on show, alone: " + JSON.stringify(chosen));
   if (chosen.errors.length) problems.push("a study chosen while another was coming in made the page say: " + chosen.errors.join(" | "));
   await elsewhere.close();
+
+  // the network gone, a study chosen in the switcher cannot come in: the page stays the study it was, at its address, and says so
+  await page.goto(origin + "/web/fixture");
+  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  await expecting(new RegExp(NETWORK_GONE.source + "|Failed to fetch"), async () => {
+    await ctx.setOffline(true);
+    await page.click("#study-menu summary");
+    await page.click("#study-list a >> text=Image Viewer");
+    await page.waitForFunction(() => /^Error/.test(document.querySelector("#status").textContent));
+    await orMissed(page.waitForFunction(() => document.title === "Fixture" && !!document.querySelector("#fx-count")));
+    const failed = await page.evaluate(() => ({ title: document.title, path: location.pathname, head: document.querySelector("#title").textContent, fixture: !!document.querySelector("#fx-count"), status: document.querySelector("#status").textContent }));
+    console.log("a study chosen offline: " + JSON.stringify(failed));
+    if (failed.path !== "/web/fixture" || failed.title !== "Fixture" || failed.head !== "Fixture" || !failed.fixture) problems.push("a study that could not come in left the page in neither study: " + JSON.stringify(failed));
+  });
+  await ctx.setOffline(false);
   delete slow[MODULE]; delete slow[CHOSEN];
 
   // the real worker: the fixture's own Python in Pyodide, answering the page
   stub = false;
-  const python = w.device(), real = await python.context();
+  const python = w.device().signedInAs(tester), real = await python.context();
   real.on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error: " + e.error().message); });
   // each worker the page starts, and the bytes each open hands it, copied before they are transferred
   await real.addInitScript(() => {
@@ -301,6 +321,7 @@ try {
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);
   await live.setInputFiles("#file", image);
   await live.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  await fromScratch(live, "#fx-count");
   if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before Count");
   await live.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
   await live.click("#fx-count");

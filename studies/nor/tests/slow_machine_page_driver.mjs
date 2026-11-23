@@ -68,9 +68,9 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw), w = world(browser, origin);
-// driven in a PreGT study, outside ground truth
-w.studies.atStage("nor", "PreGT");
-const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
+// driven in a Review study, outside ground truth
+w.studies.atStage("nor", "Review");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -83,7 +83,7 @@ const started = (page) => page.waitForFunction(() => document.querySelector("#al
 // page opens
 async function open(gb, seed = {}) {
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).asRole("tagger").keeps(seed), ctx = await device.context();
+  const device = w.device().signedInAs(tagger).keeps(seed), ctx = await device.context();
   siteSettings(ctx).withGoogle();
   await ctx.addInitScript((gb) => { Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true }); }, gb);
   await standInDrive(ctx);

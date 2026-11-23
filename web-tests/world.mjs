@@ -5,13 +5,14 @@
 // sentence; what is left unsaid is the common case.
 //   const w = world(browser, origin);
 //   w.site.withGoogle();                                  the deploy's variables (fakes/site_settings.mjs)
-//   w.studies.atStage("nor", "PostGT");                   the studies as served (fakes/studies.mjs)
-//   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).tags("nor");
+//   w.studies.atStage("nor", "Analyze");                  the studies as served (fakes/studies.mjs)
+//   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).annotates("nor");
+//   w.studyFolder("nor").readableBy(ada)                  a study's members, Drive's readers of its root
 //   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
 //   w.studyFolder("nor").holds(image.tiff("s.tif", {...}))  a study's own folder, as its study.json names it
 //   w.file(image.png("b.png"))                            a file at Drive's top, in no folder
-//   const page = await w.device().signedInAs(ada).asRole("tagger").keeps({ "nor-motion": "false" }).opens("nor");
+//   const page = await w.device().signedInAs(ada).keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
 // A device, unless told: no one signed in, the opening popup answered (google signed in, else anonymous), the site's
@@ -19,7 +20,7 @@
 import { driveIn } from "./fakes/google_drive.mjs";
 import { SCOPES, signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
-import { studiesIn } from "./fakes/studies.mjs";
+import { studies as studiesOf, studiesIn } from "./fakes/studies.mjs";
 import { pw, keptContext, worldOf } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -40,15 +41,18 @@ export function foldersOn(drive) {
       id: record.id, name: record.name, record,
       // anyone with the link reads it, by the site's key too; sharedWithUserAlone: the signed-in user's token alone
       public() { record.access = "public"; return f; },
+      // Drive's sharing lets these users read it, and what it holds, and no one by the link: its members
+      readableBy(...users) { record.access = "private"; drive.readers.set(record.id, new Set([...(drive.readers.get(record.id) ?? []), ...users.map((u) => u.email ?? u)])); return f; },
       sharedWithUserAlone() { drive.sharedWithUserAlone(record); return f; },
       viewableOnly() { drive.viewableOnly(record); return f; },
       writableBy(...users) { drive.writableBy(record, ...users.map((u) => u.email ?? u)); return f; },
       writableByAnyone() { drive.writableByAnyone(record); return f; },
       folder: (name, options = {}) => on.folder(name, { ...options, in: record }),
       // an image or file (images.mjs) in it; id, createdTime: Drive's, when the test names them; alsoIn: other
-      // folders it is in too, as Drive lets a file sit in several; the fake's record
-      holds({ name, mimeType, bytes }, { id, createdTime, alsoIn = [] } = {}) {
-        return drive.file({ name, mimeType, bytes, parent: record.id, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}),
+      // folders it is in too, as Drive lets a file sit in several; bySite: one the site made, which it may replace;
+      // the fake's record
+      holds({ name, mimeType, bytes }, { id, createdTime, alsoIn = [], bySite = false } = {}) {
+        return drive.file({ name, mimeType, bytes, parent: record.id, mine: bySite, ...(id ? { id } : {}), ...(createdTime ? { createdTime } : {}),
           ...(alsoIn.length ? { also: alsoIn.map((g) => g.id ?? g) } : {}) });
       },
     };
@@ -58,6 +62,8 @@ export function foldersOn(drive) {
     // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
     folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
     studyFolder: (study) => folderOf(drive.rootOf(study)),
+    // a folder the fake already holds, by its record or id, said as a test means it
+    of: (folder) => folderOf(folder.id ? folder : drive.get(folder)),
     // an image or file at Drive's top, in no folder, as a folder holds one
     file: (image, options) => folderOf({ id: null }).holds(image, options),
   };
@@ -86,25 +92,28 @@ export function world(browser, origin) {
         without(...scopes) { withheld = scopes; google.withhold = scopes; return user; },
         // the settings file another device of theirs left on Drive
         savedSettings(record) { google.savedSettings(email, record); return user; },
-        // Drive's sharing lets them add to the study's submissions folder, which makes them its tagger; with no study
-        // named, every study's
-        tags(...studies) {
+        // Drive's sharing lets them add to the study's Extractions folder, which lets them save its ground truth
+        // (req/shell/data/roles); with no study named, every study's
+        annotates(...studies) {
           for (const study of studies.length ? studies : drive.studies) {
             const root = drive.rootOf(study);
-            const subs = drive.files.find((f) => f.parent === root.id && f.name === "GT submissions") || drive.folder({ name: "GT submissions", parent: root.id });
+            const subs = drive.files.find((f) => f.parent === root.id && f.name === "Extractions") || drive.folder({ name: "Extractions", parent: root.id });
             drive.writableBy(subs, email);
           }
           return user;
         },
         // Drive's sharing lets them add to the folder, which makes them its study's manager
-        manages(folder) { drive.writableBy(folder, email); return user; },
+        manages(folder) { drive.writableBy(folder.record ?? folder, email); return user; },
+        // Drive's sharing lets them read the folder, which makes them a member of the study it is the root of
+        // (req/shell/study/members)
+        memberOf(folder) { (folder.readableBy ? folder : foldersOn(drive).of(folder)).readableBy(email); return user; },
       };
       return user;
     },
 
     device() {
       const kept = {}, options = { viewport: { width: 1400, height: 900 } };
-      const cached = [];
+      const cached = [], served = [];
       let who = null, left = 3599e3, granted, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
       const device = {
         // signed in on the device, Google's token lasting left ms; token: its value, for a test that checks what
@@ -115,7 +124,6 @@ export function world(browser, origin) {
         // the opening popup's answer kept ("google", "anonymous"), or null for none yet; remembered: whether its
         // Remember this choice was ticked
         welcomed(answer, { remembered = true } = {}) { welcome = answer; remember = remembered; return device; },
-        asRole(role) { kept["nor-role"] = role; return device; },
         keeps(keys) { Object.assign(kept, keys); return device; },
         // ground-truth drafts kept, as device_storage.mjs reads them back
         keepsDrafts(records) { drafts = records; return device; },
@@ -129,6 +137,8 @@ export function world(browser, origin) {
         },
         withWorker() { worker = true; return device; },
         kept() { profile = true; return device; },
+        // study id's study.json as this device alone is served it, with these keys (its stage, say)
+        withStudy(id, keys) { served.push([id, keys]); return device; },
         // a browser context made elsewhere, which then holds what the device keeps
         on(context) { given = context; return device; },
         // the browser context's own options (a viewport, a user agent, a clock)
@@ -137,6 +147,7 @@ export function world(browser, origin) {
         async context() {
           if (ctx) return ctx;
           ctx = given || (profile ? await keptContext(pw, options, shared) : await browser.newContext(options));
+          for (const [id, keys] of served) studiesOf(ctx).edit(id, (m) => ({ ...m, ...keys }));
           const seed = { ...kept };
           if (who) {
             const record = google.signedIn({ email: who.email, name: who.name, scopes: granted ?? who.scopes, token: held, until: Date.now() + left });
@@ -165,6 +176,8 @@ export function world(browser, origin) {
         },
         // a page on the study's own address, or the site's with none; until: ready, title or none
         opens: (study, { until = "ready" } = {}) => device.visits(`/web/${study ?? ""}`, { until }),
+        // the study's Study Setup page (req/setup/page), until as opens()
+        opensSetup: (study, { until = "ready" } = {}) => device.visits(`/web/setup?study=${study}`, { until }),
         // a page on an address of the site's as a visitor has it (an old one, one with a query), until as opens()
         async visits(address, { until = "ready" } = {}) {
           const c = await device.context(), page = c.pages().find((p) => p.url() === "about:blank") || await c.newPage();

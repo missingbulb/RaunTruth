@@ -4,7 +4,7 @@
 //   studies(ctx).edit(id, (m) => m);       study id's study.json as the test needs it, made from the one served; an
 //                                          edit may change m in place or return another
 //   studies(ctx).editList((list) => list); the list of studies, the same way
-//   studies(ctx).atStage(id, "PostGT");    the study in that stage; fromThisComputer(id): it opens files from this
+//   studies(ctx).atStage(id, "Analyze");   the study in that stage; fromThisComputer(id): it opens files from this
 //                                          computer alone; rootedAt(id, folder): its own Drive folder is that one;
 //                                          shownTo(id, ...accounts): shown to those accounts alone
 const fakes = new WeakMap();

@@ -7,6 +7,7 @@
 // look right waits for a drawn vessel's width, marks the rest looked at and does the area; the export carries each
 // width and still names the estimates unchecked. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_widths_driver.mjs STUDIES [SHOTS_DIR]
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -48,7 +49,7 @@ const model = {
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-atStage(browser, "GT");
+atStage(browser, "Develop");
 let failed = false;
 const device = taggersDevice(w).with({ deviceScaleFactor: 1, acceptDownloads: true });
 await standInDrive(await device.context());
@@ -74,10 +75,10 @@ try {
   page.setDefaultTimeout(15000);
   await openFromDrive(page, stack(model.source));
   await page.waitForFunction(() => !$("#vm-run").disabled);
+  await fromScratch(page, "#vm-run");
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
-  await page.click("#gt-start");
   await page.waitForFunction(() => window.vascular.tasks().focused);
   [cx, cy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left, r.top]; });
   check(await look() == null, "an area opens with the lines over the stack, not its widths");

@@ -1,14 +1,14 @@
 // Drives the page (web/) in headless Chromium with a stand-in worker that answers from ANSWERS, a folder
 // of real results written by tests/test_memory.py, and checks that no image is drawn out of its own
 // proportions when the side bar is narrow: the minimap, the image and the
-// selected card; and where the selected card and Submit Ground Truth sit, with no right bar. Prints what it
+// selected card; and where the selected card and Save sit, with no right bar. Prints what it
 // measured; exits 1 on a skewed image or a misplaced part, 2 when it cannot run.
 //   node tests/page_layout_driver.mjs ANSWERS IMAGE
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -39,20 +39,20 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").tags("nor");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 // a tagger's device in a window that wide, the side bars at their narrowest, the study at that stage, its image opened
 // from Drive and found on
 async function found(width, stage) {
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).asRole("tagger").with({ viewport: { width, height: 900 } })
+  const device = w.device().signedInAs(tagger).with({ viewport: { width, height: 900 } }).withStudy("nor", { stage })
     .keeps({ "nor-bars-v1": JSON.stringify({ left: 200, right: 200 }) });
   const ctx = await device.context();
-  studiesOf(ctx).atStage("nor", stage);
   await standInDrive(ctx);
   const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
+  await annotateIfAsked(page, "#find");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   return { device, page };
@@ -64,11 +64,11 @@ const measure = (page) => page.evaluate(() => [...document.querySelectorAll("can
   return { where: c.closest("[id]").id, skew: Math.abs(r.width / r.height / (w / h) - 1) };
 }));
 let seen = 0, worst = { skew: 0 };
-// the selected card only shows what was found, so it is driven in a PreGT study
+// the selected card only shows what was found, so it is driven in a Review study
 // (req/shell/views/second); while the study makes ground truth, the task's card is in the left bar
 // the side bars at their narrowest, in a narrow and a wide window
 for (const width of [1000, 1600]) {
-  const { device, page } = await found(width, "PreGT");
+  const { device, page } = await found(width, "Review");
     // ---- the selected card over the image's top right corner, only while one is selected; Submit Ground
   // Truth not in the image view; no right bar (req/nor/layout, req/nor/candidates/decide, req/nor/downloads) ----
   const fail = async (what, seen) => { console.error("FAILED: " + what + ": " + JSON.stringify(seen)); await done(1); };
@@ -90,7 +90,7 @@ for (const width of [1000, 1600]) {
   if (Math.abs(layout.sel.r - layout.view.r) > 40 || Math.abs(layout.sel.t - layout.view.t) > 40) await fail("the selected card is not at the image's top right corner", layout);
   if (layout.mm && layout.mm.r > layout.sel.l) await fail("the minimap and the selected card overlap", layout);
   if (!layout.stepIn || layout.prev.b > layout.crop.b + 1 || layout.prev.t < layout.crop.t || layout.next.l < layout.prev.r - 1) await fail("previous and next do not hover side by side over the bottom of the selected crop", layout);
-  if (layout.gt !== "Submit Ground Truth" || layout.gtShown) await fail("Submit Ground Truth shows in the image view", layout);
+  if (layout.gt !== "Save" || layout.gtShown) await fail("Save shows in the image view", layout);
   if (layout.right) await fail("the right bar is still there", layout);
   if (process.env.SHOTS) { await page.evaluate(() => { $("#notice").hidden = true; }); await page.mouse.move(5, 5); await page.screenshot({ path: `${process.env.SHOTS}/${width}_image.png` }); }
   {
@@ -106,7 +106,7 @@ for (const width of [1000, 1600]) {
 }
 // a GT study: the image and the task's card in the left bar, at the left bar's narrowest
 for (const width of [1000, 1600]) {
-  const { device, page } = await found(width, "GT");
+  const { device, page } = await found(width, "Develop");
   // the walk may open on an area's check; the finalists' row goes to a candidate
   await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
   await page.waitForFunction(() => document.querySelector("#task-card canvas"));

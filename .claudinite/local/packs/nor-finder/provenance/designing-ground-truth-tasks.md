@@ -48,3 +48,24 @@
   study settings."
 - **Actor:** @missingbulb (owner).
 - **Model:** claude-opus-5-5
+
+## 2026-11-21 · policy-changed · annotating is the walk; statistics sit beside the tasks
+- **Reason:** the role menu and the Start/Stop tagging buttons are gone; after an image loads the
+  person chooses how to annotate it (local work, an annotation from Drive, or from scratch), and
+  choosing one enters the walk. The Summary shows whenever the image carries a model, so statistics
+  now sit beside the tasks instead of being for viewing only. Replaces "tagging starts and stops by
+  hand" and "statistics are for viewing, not for making ground truth".
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-opus-5-5
+- **Mechanism:** the skill's prose, loaded when building or changing ground-truth controls; the walk's entry is
+  now the page's per-image choice, which its tests pin.
+- **Source:** the owner, on #1015: "only the last option should actually show the algorithms
+  runner"; "once there's any model on the image, no matter the progress of it, I want the 'summary'
+  block showing."
+- **Landed:** #1036
+
+## 2026-11-22 · reworded · the old stages GT, PostGT and PreGT became the five stages
+- **Reason:** the rule and skill named stages that no longer exist; annotating is open in Setup,
+  Develop and Analyze.
+- **Actor:** Claude, work package WP6 of the study-stages plan (owner's decisions of 2026-11-22).
+- **Model:** claude-opus-5-5

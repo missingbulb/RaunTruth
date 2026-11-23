@@ -2,14 +2,15 @@
 // ANSWERS (tests/test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
 // on its row in the switcher, whose popup lists the stages; breadcrumbs of the steps done and the one to do now, which shines with its button and
 // nothing else does; a popup on each crumb saying what was done; the shining crumb bringing its button into view
-// and pressing it; a new image starting over; a PreGT study with no Submit GT step;
+// and pressing it; a new image starting over; a Review study with no Save step;
 // the second view's switch reading Tasks with what is left while the study makes ground truth, Items otherwise;
-// a Published study with no Submit GT step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
+// a Public study with no Save step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
 // numbers, each opening its own tab of one dialog, each rolling its changed characters to a new value, the CPU and
 // the network flashing on a sharp rise and rolling nothing when reduced motion is asked for; a separator between every two items; no question-mark pointer; the four folded into one icon at first, unfolded by hovering it but not by going offline,
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
+import { annotateIfAsked } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import { helpTip, anyHelp } from "./help_tip.mjs";
@@ -85,7 +86,7 @@ const bars = (page) => page.evaluate(() => {
 // clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
 // seed: browser keys kept before the page opens
 async function open(study, mode, clock, seed = {}) {
-  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w)).asRole("tagger")
+  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w))
     .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
   const ctx = await device.context();
   if (clock) await ctx.clock.install();
@@ -143,7 +144,7 @@ const hoverStage = async (page, id) => {
   if (!(await page.evaluate(() => document.querySelector("#study-menu").open))) await page.click("#study-menu summary");
   await page.hover(`#study-list a[data-id="${id}"] .stage-tag`);
   await page.waitForFunction(() => document.querySelector("#stage-pop").matches(":popover-open"));
-  return page.evaluate(() => [...document.querySelectorAll("#stage-pop li")].map((li) => ({
+  return page.evaluate(() => [...document.querySelectorAll("#stage-list li")].map((li) => ({
     name: li.querySelector(".name").textContent, now: li.classList.contains("now"), crossed: getComputedStyle(li.querySelector(".name")).textDecorationLine,
   })));
 };
@@ -160,23 +161,23 @@ const switchIs = async (page, want, on, what) => {
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
   await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
-const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !document.querySelector("#fx-count").disabled); };
+const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => document.querySelector("#fx-count")?.disabled === false); await annotateIfAsked(page, "#fx-count"); };
 const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
-// ---- a GT study: Load image, its Count, Submit GT; the resources block always open, as it was before it could fold ----
+// ---- a Develop study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
 {
   const { ctx, page } = await open("fixture", "open");
-  await stageIs(page, "GT");
+  await stageIs(page, "Develop");
   // hovering the stage lists the stages, its own highlighted and the ones before it crossed out
   const stages = await hoverStage(page, "fixture");
-  await check(stages.map((x) => x.name).join() === "PreGT,GT,PostGT,Published" && stages[1].now && stages.filter((x) => x.now).length === 1,
-    "the stage's popup lists PreGT, GT, PostGT and Published, GT highlighted", stages);
+  await check(stages.map((x) => x.name).join() === "Setup,Develop,Analyze,Review,Public" && stages[1].now && stages.filter((x) => x.now).length === 1,
+    "the stage's popup lists Setup, Develop, Analyze, Review and Public, Develop highlighted", stages);
   await check(stages[0].crossed === "line-through" && stages.slice(1).every((x) => x.crossed === "none"), "the stage before it is crossed out", stages);
   await check(/next|move on/i.test(await page.textContent("#stage-pop")), "and says what moves the study on", await page.textContent("#stage-pop"));
   const beside = await page.evaluate(() => document.querySelector("#stage-pop").getBoundingClientRect().left - document.querySelector("#study-menu .pop").getBoundingClientRect().right);
   await check(beside >= 0, "and opens beside the switcher, not over it", beside);
   if (shots) await page.screenshot({ path: path.join(shots, "0-stages.png") });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"));
   await page.keyboard.press("Escape");
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
@@ -231,8 +232,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.click("#sb-load");
   await check(!!(await chooser), "clicking the shining Load image presses Load");
 
-  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the study makes ground truth there is no item view and no switch to one");
   await loadImage(page);
+  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
   await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
   await check((await tip(page, "Load image")).includes("squares.png"), "Load image's popup names the image");
   // Count's box folded and scrolled away: its crumb unfolds it, scrolls to Count and presses it
@@ -255,7 +256,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
   await orMissed(page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }));
   await check(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
-  await steps(page, ["Load image", "Count", "Submit GT*"], ["#gt-submit", "#sb-submit"]);
+  await steps(page, ["Load image", "Count", "Save*"], ["#gt-submit", "#sb-submit"]);
   await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
@@ -266,10 +267,9 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
       filled: +part.style.getPropertyValue("--done"), submit: !s.disabled, state: s.dataset.state || "" };
   });
   const l0 = await list();
-  await check(l0.rows.join() === "0/1 Count checked,Submit Ground Truth" && l0.last && l0.submit && l0.state === "todo",
-    "the study's task is a row, 0 of 1 done, and Submit Ground Truth, on, is the last", l0);
-  await check(!l0.open, "no task is open until Start GT tagging (req/shell/ground-truth/tagging)", l0);
-  await page.click("#gt-start");
+  await check(l0.rows.join() === "0/1 Count checked,Save" && l0.last && l0.submit && l0.state === "todo",
+    "the study's task is a row, 0 of 1 done, and Save, on, is the last", l0);
+  await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
   await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
   await page.check("#fx-done");
@@ -277,17 +277,17 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
   await shot(page, "2-submit");
-  // the shining Submit GT crumb presses the shell's Submit, its box unfolded
+  // the shining Save crumb presses the shell's Submit, its box unfolded
   await page.evaluate(() => document.querySelector("#tasks-box").classList.add("folded"));
   await page.click("#sb-submit");
   await page.waitForFunction(() => document.querySelector("#gt-dlg").open);
-  await check(await page.evaluate(() => !document.querySelector("#tasks-box").classList.contains("folded")), "the Submit GT crumb unfolds the tasks and presses Submit");
+  await check(await page.evaluate(() => !document.querySelector("#tasks-box").classList.contains("folded")), "the Save crumb unfolds the tasks and presses Submit");
   const download = page.waitForEvent("download");
   await page.click("#gt-export");
   await download;
   await page.click("#gt-close");
-  await steps(page, ["Load image", "Count", "Submit GT"], []);
-  await check(/squares_gt\.json/.test(await tip(page, "Submit GT")), "Submit GT says what was exported");
+  await steps(page, ["Load image", "Count", "Save"], []);
+  await check(/squares_gt\.json/.test(await tip(page, "Save")), "Save says what was exported");
   await shot(page, "3-done");
   // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
   page.once("dialog", (d) => d.accept());
@@ -586,17 +586,17 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await ctx.close();
 }
 
-// ---- the same study as PreGT: no ground truth to export ----
+// ---- the same study as Review: no ground truth to export ----
 {
-  stage = "PreGT";
+  stage = "Review";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "PreGT");
+  await stageIs(page, "Review");
   // another study's label speaks of that study
   const other = await hoverStage(page, "nor");
-  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a PreGT study, hovering NoR Finder's label highlights GT, its own", other);
+  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a Review study, hovering NoR Finder's label highlights Develop, its own", other);
   // with animations off, leaving it closes it all the same
   const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   const closed = await orMissed(page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: STEP }));
   await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
@@ -605,21 +605,21 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await switchIs(page, "Items", false, "the shell keeps the switch off until the study has counted its items");
   await count(page);
   await steps(page, ["Load image", "Count"], []);
-  await switchIs(page, "Items 1", true, "a PreGT study's item view shows what was found, how many");
+  await switchIs(page, "Items 1", true, "a Review study's item view shows what was found, how many");
   await page.click("#switch");
   await page.waitForFunction(() => !document.querySelector("#switch").classList.contains("working"));
   await check(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
     "pressing it shows the item view, its card what was found");
-  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Submit Ground Truth");
+  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Save");
   await ctx.close();
   stage = null;
 }
 
-// ---- the same study as Published: it only shows what it finds ----
+// ---- the same study as Public: it only shows what it finds ----
 {
-  stage = "Published";
+  stage = "Public";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "Published");
+  await stageIs(page, "Public");
   await loadImage(page); await count(page);
   await steps(page, ["Load image", "Count"], []);
   await switchIs(page, "Items 1", true, "its item view shows what was found, how many");
@@ -637,7 +637,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   // switching study in place: its stage and steps come with it, and it starts with no image open
   await page.click("#study-menu summary");
   await page.click("#study-list a >> text=NoR Finder");
-  await page.waitForFunction(() => document.documentElement.dataset.stage === "GT");
+  await page.waitForFunction(() => document.documentElement.dataset.stage === "Develop");
   // NoR Finder loads from Drive (req/shell/load/from): with no image opened there yet, Drive's button is the step's
   await steps(page, ["Load image*"], ["#load-remote", "#sb-load"]);
   await ctx.close();

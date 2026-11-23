@@ -4,7 +4,7 @@
 // of study.VERSIONS on it, any other action one of study.STAGES on the last run's answer, which stays in Python.
 // The page reads and shows the image itself; Python is handed the file's own bytes only for the study's algorithms.
 // Messages in: open {name, bytes}, call {action, args, echo, damaged}, reply {value, bytes} (a service's answer), close.
-// A call's damaged areas, the Study Manager's outlines in the image's pixels ([[[x, y], ...], ...], none for an image
+// A call's damaged areas, the study owner's outlines in the image's pixels ([[[x, y], ...], ...], none for an image
 // with none), reach a version or stage that takes `damaged`, for the study to leave out as it decides
 // (req/shell/data/damaged).
 // Messages out: progress {text}, held {}, ask {service, meta, bytes, echo} (a version asking the page for a service

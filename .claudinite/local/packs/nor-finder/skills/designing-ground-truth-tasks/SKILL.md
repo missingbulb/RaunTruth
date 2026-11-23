@@ -1,6 +1,6 @@
 ---
 name: designing-ground-truth-tasks
-description: How a study's page lets a person make ground truth - the left bar's tasks, one item at a time, area by area, what is done cut out of the image. Use when building or changing any study's ground-truth controls (its GT or PostGT stage), or reviewing them.
+description: How a study's page lets a person make ground truth - the left bar's tasks, one item at a time, area by area, what is done cut out of the image. Use when building or changing any study's ground-truth controls (Setup, Develop or Analyze, where annotating is open), or reviewing them.
 metadata:
   body: guidelines
   usage:
@@ -9,7 +9,7 @@ metadata:
 
 # Designing a study's ground-truth tasks
 
-While a study is in its GT or PostGT stage, the page exists to make ground truth, not to look at
+While annotating is open in a study (Setup, Develop or Analyze), the page exists to make ground truth, not to look at
 results. The person is working through a to-do list; the page should give them the pace of one
 item, one verdict, the next item, and show the progress on the image itself. The NoR study is the
 reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth/marks` in
@@ -18,16 +18,19 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## What the page is while ground truth is made
 
-- **Tagging starts and stops by hand.** Opening an image or running the algorithm leaves the image
-  as it is viewed: no task open, no ring, frame or cut-out, the view not moved. The shell's Start
-  GT tagging opens the walk and Stop tagging closes it (`req/shell/ground-truth/tagging`); the
-  study hears both through its tasks' `tagging` hook and asks `tasks.tagging()`, and the Show
-  menu's rows for what tagging alone draws are off out of it.
-- **Statistics are for viewing, not for making ground truth.** Hide the study's summary,
-  histograms and CSVs in a GT stage; they stay in PreGT and Published. A ground-truth tasks box
-  takes the summary's place in the left bar.
+- **Annotating is the walk.** Choosing how to get annotations on an image (from scratch, from the work
+  kept on the device, from an annotation of the store; `req/shell/annotate/choice`) enters annotation
+  mode, the walk of the tasks, and there is no Start or Stop: the study is mounted afresh in the mode, so
+  `shell.makesTruth` is fixed for a mount, hears the mode through its tasks' `tagging` hook and asks
+  `tasks.tagging()`, and may be told it before it has a model, the first one (a run, a draft, an
+  annotation loaded) being the walk's start. The ring, the frame and the cut-out, and the Show menu's
+  rows for them, are the mode's alone.
+- **Statistics are for viewing, and sit beside the tasks.** The Summary box shows whenever the image
+  carries a model, annotation mode included (`req/shell/left-bar/shells`), beside the tasks box; draw
+  nothing of the statistics on the image that is noise to the walk, a summary mask aside, which follows
+  the summary.
 - **The main area is the image, always.** No item view and no switch to one: mark the study's
-  `#items-view` with `data-viewing` and the shell drops it and its switch in a GT stage
+  `#items-view` with `data-viewing` and the shell drops it and its switch while annotating
   (`req/shell/views/second`). No card hovers over the image; picking an item on the image makes
   it the current task's item.
 - **The display markings give way to the tasks' own.** Colour codes, numbers, reasons and
@@ -40,9 +43,9 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## The tasks
 
-- **Tasks in the order the work is done, Submit last.** Review what the algorithm accepted,
-  then what it rejected, then look for what it missed, then submit. The submit button is the
-  last task, not a toolbar button.
+- **Tasks in the order the work is done, Save last.** Review what the algorithm accepted,
+  then what it rejected, then look for what it missed, then save. The Save button, which writes the
+  person's extraction (`req/shell/extractions/save`), is the last task, not a toolbar button.
 - **One row per task, saying only what is not already said.** "13/47 Finalists": the count once,
   done over total, no "Review the …" (the whole box is the review), no second count anywhere.
   No radio buttons or circles: a done task gets a check, the others nothing.
@@ -62,7 +65,7 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
   rejection the person overturns needs its measurements set before it is approved. A correction
   shows only its undo ("Reset measurements"), never a label saying it was made.
 - **A verdict moves on by itself**: to the walk's next item not done, and once none is left to
-  Submit. A verdict or a Skip slides the next item in over the last
+  Save. A verdict or a Skip slides the next item in over the last
   (none under reduced motion). Pan the image to the item only when it is out of the middle of the
   view.
 
@@ -86,6 +89,6 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
 
 ## Testing it
 
-- **Drive the tasks in a GT stage, the viewing parts in PreGT.** A page driver serves the
+- **Drive the tasks in Develop, the viewing parts in Review.** A page driver serves the
   study's `study.json` with the stage it needs; the item views, the summary and the Show menu are
-  only reachable outside a GT stage, and a driver that needs them asks for one.
+  only reachable where annotating is closed (Review, Public), and a driver that needs them asks for one.

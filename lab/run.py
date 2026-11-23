@@ -4,10 +4,11 @@ the sums written as the precision and recall the page shows.
     python3 lab/run.py STUDY                 # every version, a table of how each did
     python3 lab/run.py STUDY v4 v5           # only these
     python3 lab/run.py STUDY --write         # also record them in the study's metrics file, with how they were scored
-    python3 lab/run.py STUDY --truth lab     # only the study's own lab/truth/ (drive: only the curated files)
+    python3 lab/run.py STUDY --truth lab     # only the study's own lab/truth/ (drive: only the GT marks)
 
-The ground truth is the study's curated files on Drive (fetch.py) and the files in the study's own lab/truth/, each
-naming its image by SHA-256. A version scored at several settings (the study's SETTINGS: {version: {name: params}})
+The ground truth is the extraction file each GT mark of the study file names (fetch.py; official marks are never scored)
+and the files in the study's own lab/truth/, each naming its image by SHA-256. From Review on the study is frozen and
+--write stops. A version scored at several settings (the study's SETTINGS: {version: {name: params}})
 reports each beside its default. Precision is tp / (tp + fp) and recall tp / (tp + fn), over the counts every image's
 score gives; an answer is kept in data/raw/runs/ and run again only when the study's algorithm code changes.
 """
@@ -59,19 +60,20 @@ def committed_truth(study):
     return out
 
 
-def corpus(study, transport=None, which='all'):
-    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, curated files first, each
-    image with its damaged areas; which is 'all', 'drive' (the curated files alone) or 'lab' (the study's own
-    lab/truth/ alone)."""
-    root = fetch.study_root(study.id, transport)
-    found, refused = fetch.truth(study.id, transport, root) if which != 'lab' and root else ([], {})
-    for path, why in refused.items():
-        print(f'ground truth {path} left out: {why}', file=sys.stderr)
-    truths = found + (committed_truth(study) if which != 'drive' else [])
+def corpus(study, transport=None, which='all', sf=None, truths=None):
+    """[(image entry, truth)]: every ground-truth file whose image the study's data holds, GT marks first, each
+    image with its damaged areas; which is 'all', 'drive' (the GT marks alone) or 'lab' (the study's own lab/truth/
+    alone); truths, given, is the whole ground truth in place of all of those (the freeze's committed files)."""
+    sf = sf or fetch.study_file(study.id, transport)
+    if truths is None:
+        found, refused = fetch.truth(study.id, sf=sf) if which != 'lab' else ([], {})
+        for path, why in refused.items():
+            print(f'ground truth {path} left out: {why}', file=sys.stderr)
+        truths = found + (committed_truth(study) if which != 'drive' else [])
     # only the images some ground truth names are fetched
-    areas = fetch.damaged(root)
-    imgs = {e['sha256']: dict(e, damaged=areas.get(e['drive_id'], []))
-            for e in fetch.images(study.id, transport, only={t['doc']['image']['sha256'] for t in truths})}
+    areas = sf.damaged()
+    imgs = {e['sha256']: dict(e, damaged=areas.get(e['sha256'], []))
+            for e in fetch.images(study.id, sf=sf, only={t['doc']['image']['sha256'] for t in truths})}
     pairs = []
     for t in truths:
         sha = t['doc']['image']['sha256']
@@ -116,10 +118,10 @@ def total(scores):
     return s
 
 
-def measure(study, versions=None, transport=None, which='all'):
+def measure(study, versions=None, transport=None, which='all', sf=None, truths=None):
     """{version: {settings name or None: {totals, 'images': {ground-truth file sha256: counts}}}} over the corpus, and
     the corpus."""
-    pairs = corpus(study, transport, which)
+    pairs = corpus(study, transport, which, sf, truths)
     code, images, out = code_hash(study), {}, {}
     settings = getattr(study.module, 'SETTINGS', {})
     for v in versions or study.versions:
@@ -156,6 +158,15 @@ def document(study, results, pairs):
                 scoring=study.scoring, versions=versions)
 
 
+def write(study, doc):
+    """The study's metrics file, rewritten with doc: its path."""
+    path = study.metrics_path()
+    with open(path, 'w') as f:
+        json.dump(doc, f, indent=1, ensure_ascii=False)
+        f.write('\n')
+    return path
+
+
 def table(results):
     rows = ['| version | setting | tp | fp | fn | precision | recall |', '|---|---|---|---|---|---|---|']
     for v, by in results.items():
@@ -173,15 +184,15 @@ def main(argv=None):
     ap.add_argument('--truth', choices=['all', 'drive', 'lab'], default='all')
     a = ap.parse_args(argv)
     study = Study(a.study)
-    results, pairs = measure(study, a.versions or None, which=a.truth)
+    sf = fetch.study_file(a.study)
+    print(sf.stage_line())
+    if a.write and sf.frozen:
+        raise SystemExit(sf.frozen_message('run.py --write'))
+    results, pairs = measure(study, a.versions or None, which=a.truth, sf=sf)
     print(table(results))
     if a.write:
         doc = document(study, results, pairs)
-        path = study.metrics_path()
-        with open(path, 'w') as f:
-            json.dump(doc, f, indent=1, ensure_ascii=False)
-            f.write('\n')
-        print(f'wrote {os.path.relpath(path)} ({doc["measured"]})')
+        print(f'wrote {os.path.relpath(write(study, doc))} ({doc["measured"]})')
 
 
 if __name__ == '__main__':
