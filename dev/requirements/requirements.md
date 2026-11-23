@@ -425,6 +425,17 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_dialog_motion_page.py`.
   </details>
 
+- `req/shell/dialogs/focus-returns` When a dialog or menu closes, keyboard focus goes back to the control that opened it.
+  <details>
+
+  Set by the owner on 2026-11-23. Closing any modal dialog, the shell's or a study's, by its Close or
+  Cancel, its ×, Escape or a choice in it, and closing any menu (Escape, a choice), puts the keyboard on
+  the control that opened it, not on the page's body. Where that control is gone or hidden by then (a
+  menu item whose menu closed, a button its list redrew), it goes to the one that leads back to it: the
+  menu's own button, or the redrawn button in its place. One shared piece of the shell does this, so a
+  new dialog or menu does it too. Test: `web-tests/test_dialog_focus_page.py`.
+  </details>
+
 - `req/shell/drag/escape` Escape in the middle of any drag cancels it: what the drag changed goes back, and the rest of the press does nothing.
   <details>
 
