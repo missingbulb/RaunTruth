@@ -1,7 +1,7 @@
 // The world a test sets up (world.mjs), as the page meets it: a device keeps the keys it was given, and opens on them;
 // a user signed in on it is who the page names, its token may do only the scopes it was signed in with, and the
 // settings another device of theirs left on Drive are the ones it takes; a device with no one signed in is the
-// device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given, and a file given at Drive's top is in no folder; a device visits an address as given; a deploy
+// device's own; a kept device holds the cache entries it was given; a public folder holds the image it was given, a file given at Drive's top is in no folder, and a folder the site made is the site's, one named by its id holding what a test puts in it; a device visits an address as given; a deploy
 // with no Google client offers no sign-in.
 //   node web-tests/world_driver.mjs
 import { pw, launch, check } from "./harness.mjs";
@@ -70,6 +70,8 @@ try {
   await lister.close();
   const top = w.file(image.bytes("top.vsi", 4));
   check(top.parent === null && w.drive.get(top.id) === top && top.bytes.length === 4, "a file given at Drive's top is in no folder", top);
+  const made = w.folder("Made", { bySite: true }), given = w.of(made.id).folder("Given");
+  check(made.record.mine && !given.record.mine && given.record.parent === made.id, "a folder the site made is the site's, and one a test puts in it, by its id, is not", [made.record, given.record]);
 
   const keyOnly = w.device();
   const bare = await keyOnly.opens("fixture", { until: "title" });

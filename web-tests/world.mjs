@@ -13,6 +13,7 @@
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
 //   w.studyFolder("nor").holds(image.tiff("s.tif", {...}))  a study's own folder, as its study.json names it
 //   w.file(image.png("b.png"))                            a file at Drive's top, in no folder
+//   w.of(id).viewableOnly()                              a folder the fake already holds, by its record or id
 //   const page = await w.device().signedInAs(ada).keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
@@ -79,8 +80,9 @@ export function foldersOn(drive) {
     return f;
   };
   const on = {
-    // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it
-    folder(name, { in: parent, id } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, ...(id ? { id } : {}) })); },
+    // a Drive folder, in another (a folder handle or an id) or at the top; id: its Drive id, when the test names it;
+    // bySite: one the site made, as holds() says
+    folder(name, { in: parent, id, bySite = false } = {}) { return folderOf(drive.folder({ name, parent: parent?.id ?? parent ?? null, mine: bySite, ...(id ? { id } : {}) })); },
     studyFolder: (study) => folderOf(drive.rootOf(study)),
     // a file someone removes from Drive, or renames, elsewhere than on the page
     removeFile(file) { drive.files.splice(drive.files.indexOf(file), 1); },
