@@ -24,7 +24,7 @@ import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { localStudy } from "./local_study.mjs";
 import { held as holding } from "./held.mjs";
-import { pw, launch, googleOf } from "./harness.mjs";
+import { pw, launch, googleOf, expecting, NETWORK_GONE } from "./harness.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -298,6 +298,21 @@ try {
   if (!swapped || chosen.path !== "/web/" || chosen.fixture) problems.push("a study chosen while another was coming in is not the one on show, alone: " + JSON.stringify(chosen));
   if (chosen.errors.length) problems.push("a study chosen while another was coming in made the page say: " + chosen.errors.join(" | "));
   await elsewhere.close();
+
+  // the network gone, a study chosen in the switcher cannot come in: the page stays the study it was, at its address, and says so
+  await page.goto(origin + "/web/fixture");
+  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  await expecting(new RegExp(NETWORK_GONE.source + "|Failed to fetch"), async () => {
+    await ctx.setOffline(true);
+    await page.click("#study-menu summary");
+    await page.click("#study-list a >> text=Image Viewer");
+    await page.waitForFunction(() => /^Error/.test(document.querySelector("#status").textContent));
+    await orMissed(page.waitForFunction(() => document.title === "Fixture" && !!document.querySelector("#fx-count")));
+    const failed = await page.evaluate(() => ({ title: document.title, path: location.pathname, head: document.querySelector("#title").textContent, fixture: !!document.querySelector("#fx-count"), status: document.querySelector("#status").textContent }));
+    console.log("a study chosen offline: " + JSON.stringify(failed));
+    if (failed.path !== "/web/fixture" || failed.title !== "Fixture" || failed.head !== "Fixture" || !failed.fixture) problems.push("a study that could not come in left the page in neither study: " + JSON.stringify(failed));
+  });
+  await ctx.setOffline(false);
   delete slow[MODULE]; delete slow[CHOSEN];
 
   // the real worker: the fixture's own Python in Pyodide, answering the page
