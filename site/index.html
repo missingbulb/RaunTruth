@@ -17,22 +17,46 @@
 <link rel="stylesheet" href="site.css">
 <!-- cookieless visit counts (Cloudflare Web Analytics), on the released site only -->
 <script defer src="analytics.js"></script>
+<script defer src="intro.js"></script>
 </head>
 <body>
-<main>
+<main class="landing">
+<header class="top">
+<a class="brand" href="./"><img src="favicon.svg" alt="" width="28" height="28">rauntruth.com</a>
+<a href="app/">Open the app</a>
+</header>
+
 <section class="hero">
 <h1>Microscopy images into numbers you can check</h1>
 <p class="lead">rauntruth.com is a free research tool for neuroscientists. Open a fluorescence-microscopy
 image and a study finds, counts and measures what it is built for, then lets you review every result
 and correct it.</p>
 <a class="open" href="app/">Open the app</a>
+<span class="dim note">Free · no account needed · nothing to install</span>
 </section>
 
-<h2>What it does</h2>
-<p>Each analysis on the site is a <em>study</em>: a viewer and an algorithm for one question about one
-kind of image. A study proposes every candidate it finds, says why it kept or rejected each one, and
-reports counts, densities and lengths for the whole image or a region you draw. You keep the final say:
-accept, reject or correct any result, and export the numbers as CSV.</p>
+<figure class="intro">
+<a class="video" href="https://www.youtube.com/watch?v=M2W47TMjWwU" title="Play the intro video">
+<img src="intro.jpg" alt="RaunTruth First Steps, the intro video" width="1280" height="720">
+<span class="play" aria-hidden="true"></span>
+</a>
+<figcaption class="dim">RaunTruth First Steps. Pressing play loads the video from YouTube.</figcaption>
+</figure>
+
+<ul class="points">
+<li><b>Runs in your browser</b>Images are analysed on your own computer and are never uploaded. Once opened, the app works offline too.</li>
+<li><b>You keep the final say</b>Every candidate is shown with why it was kept or rejected. Accept, reject or correct any of them.</li>
+<li><b>Free and open source</b>The code, the algorithms and the ground truth they are scored against are public.</li>
+</ul>
+
+<h2>How it works</h2>
+<ol class="steps">
+<li><b>Open an image</b> from a file on your computer or a shared Google Drive folder, in a <em>study</em>:
+a viewer and an algorithm for one question about one kind of image.</li>
+<li><b>The study proposes</b> every candidate it finds, says why it kept or rejected each one, and reports
+counts, densities and lengths for the whole image or a region you draw.</li>
+<li><b>You review and export.</b> Accept, reject or correct any result, and export the numbers as CSV.</li>
+</ol>
 <p>Your corrections can be sent back as <em>ground truth</em>, which is what the algorithms are tested and
 improved against, in the open.</p>
 
@@ -55,6 +79,8 @@ and lets a study's data managers work on that study's Google Drive folders. The
 <h2>Open source</h2>
 <p>The site's code, its algorithms and the ground truth they are scored against are public under the
 <a href="license">MIT License</a>.</p>
+
+<p class="again"><a class="open" href="app/">Open the app</a></p>
 
 <footer class="dim">
 Run by Ariel · <a href="mailto:ariel@rauntruth.com">ariel@rauntruth.com</a> ·

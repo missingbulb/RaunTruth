@@ -1621,6 +1621,10 @@ nobody has decided: what the page does there is not a requirement yet.
   lists the supported browsers (`req/shell/browsers/supported`), and links the privacy policy, the terms and the
   license. Changed by the owner on 2026-11-21: it lists no study, since who may see a study is read at run time from
   Drive's sharing (`req/shell/study/members`); the app's switcher (`req/shell/header`) lists them, and the page says so.
+  Added by the owner on 2026-11-23: it shows the site's intro video, hosted on YouTube. Until a visitor presses play
+  the page shows a still picture it serves itself and reaches YouTube for nothing; pressing play loads YouTube's
+  player in place, from youtube-nocookie.com, and without scripting the picture is a link to the video on YouTube.
+  The privacy policy (`req/shell/site/policies`) names YouTube among the services reached.
   Test: `web-tests/test_published_site.py`.
   </details>
 
