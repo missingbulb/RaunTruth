@@ -12,9 +12,9 @@ import path from "node:path";
 import { helpTip } from "./help_tip.mjs";
 
 import { motion, record, begun, moved } from "./page_motions.mjs";
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { TAGGER } from "./tagger.mjs";
 import { pw, launch } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -38,21 +38,16 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await record(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("fixture");
+const device = w.device().signedInAs(tagger);
+await record(await device.context());
+const page = await device.opens("fixture");
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 
 const loadImage = async (file = image) => {

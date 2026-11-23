@@ -13,8 +13,9 @@ import path from "node:path";
 import { repoFile } from "./repo_file.mjs";
 
 import { cutShort } from "./page_errors.mjs";
-import { pw, launch, googleOf, siteOf } from "./harness.mjs";
-import { STEP } from "./deadlines.mjs";
+import { pw, launch } from "./harness.mjs";
+import { world } from "./world.mjs";
+import { SCOPES } from "./fakes/google_sign_in.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
 // uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
@@ -22,61 +23,7 @@ import { studies as studiesOf } from "./fakes/studies.mjs";
 // rooted: see inList below; pageError(e): what a page's uncaught error does, in place of ending the run
 export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, rooted: inList = false, pageError }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const ROOT = "dmrootfolder00000001", EMAIL = "tester@example.com";
-
-  // the Drive fake, ROOT its folder: {id, name, parent, folder, bytes, mine, props, modified}; Drive's clock moves a
-  // second each write
-  const browser = await launch(pw), { drive, signIn: google } = googleOf(browser);
-  google.account = { sub: "1002", name: "Tester", email: EMAIL, picture: null };
-  drive.uploaded = uploaded;
-  const FILES = drive.files;
-  let next = 0;
-  drive.folder({ id: ROOT, name: "Study folder one", access: "public" });
-  const add = (dir, parent) => {
-    for (const name of fs.readdirSync(dir).sort()) {
-      const p = path.join(dir, name), folder = fs.statSync(p).isDirectory(), id = folder ? "dmsubfolder" + String(next++).padStart(9, "0") : "dmfile" + String(next++).padStart(14, "0");
-      if (folder) { drive.folder({ id, name, parent }); add(p, id); } else drive.file({ id, name, parent, bytes: fs.readFileSync(p) });
-    }
-  };
-  add(rootDir, ROOT);
-  if (members) { drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set(members)); }
-  const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
-  // gt: the study set up, its study file in ROOT, the page's own as its set-up wrote it, naming the extractions folder kept outside ROOT,
-  // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
-  const GT = { extractions: "dmextractions0000000001" };
-  const anyone = { has: () => true };
-  if (gt) {
-    drive.folder({ id: GT.extractions, name: "Extractions", parent: "elsewhere" }); drive.writers.set(GT.extractions, anyone);
-    drive.file({ id: "dmsettings00000000001", name: "rauntruth-study.json", parent: ROOT, mine: true,
-      bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", data: null, extractions: GT.extractions })) });
-  }
-  // the study file's keys changed, as the owner's Study Setup would have written them (the marks, the stage), the rest kept
-  const studyFile = (changes) => {
-    const f = FILES.find((g) => g.parent === ROOT && g.name === "rauntruth-study.json");
-    f.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(f.bytes.toString()), ...changes }));
-  };
-  // the folders Drive lets the user only view
-  const viewOnly = drive.viewOnly;
-  // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
-  const hidden = drive.hidden;
-  // who Drive's sharing lets write to ROOT, which makes them its study manager (req/shell/data/roles)
-  const writers = new Set([EMAIL]);
-  drive.writers.set(ROOT, writers);
-  // the folders the page shared with anyone with the link, every write it made, Drive's own small pictures it asked
-  // for, and the files replaced keeping the version they replace forever
-  const sharedOut = drive.shared, writes = drive.writes, thumbs = drive.thumbs, keptForever = drive.keptForever;
-
-  // the deploy with a Google key and client; the fixture study, and every other study with a root, given ROOT as its
-  // root, and the list of studies the test's own
-  const site = siteOf(browser);
-  site.settings.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "123456-stand.apps.googleusercontent.com" };
-  const rooted = (m) => (m.root ? { ...m, root: `https://drive.google.com/drive/folders/${ROOT}` } : m);
-  for (const id of fs.readdirSync(path.join(repo, "studies"))) if (fs.existsSync(path.join(repo, "studies", id, "study.json"))) site.studies.edit(id, rooted);
-  site.studies.edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
-  if (studies) site.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
-  // inList: the list of studies names ROOT as each rooted study's root, so that Drive's sharing of it decides who is a member (shell/study/members)
-  // (the fixture, which the build leaves out of the list as unlisted, is put in it rooted)
-  if (inList) site.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "Develop", root: ROOT }])] : list));
+  const EMAIL = "tester@example.com";
   const STAND_IN = `
   const A = await (await fetch("answers.json")).json();
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -127,42 +74,87 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
   const origin = `http://127.0.0.1:${server.address().port}`;
 
+  const browser = await launch(pw), w = world(browser, origin), { drive, google } = w;
+  const tester = w.user(EMAIL).named("Tester");
+  drive.uploaded = uploaded;
+
+  // the Drive fake, ROOT its folder: {id, name, parent, folder, bytes, mine, props, modified}; Drive's clock moves a
+  // second each write
+  const FILES = drive.files;
+  const root = w.folder("Study folder one", { id: "dmrootfolder00000001" }).public(), ROOT = root.id;
+  const add = (dir, folder) => {
+    for (const name of fs.readdirSync(dir).sort()) {
+      const p = path.join(dir, name);
+      if (fs.statSync(p).isDirectory()) add(p, folder.folder(name)); else folder.holds({ name, bytes: fs.readFileSync(p) });
+    }
+  };
+  add(rootDir, root);
+  if (members) root.readableBy(...members);
+  const SUB = FILES.find((f) => f.folder && f.parent === ROOT)?.id ?? null;
+  // gt: the study set up, its study file in ROOT, the page's own as its set-up wrote it, naming the extractions folder kept outside ROOT,
+  // which Drive's sharing lets anyone signed in write to (req/shell/data/roles)
+  const GT = {};
+  if (gt) {
+    GT.extractions = w.folder("Extractions", { in: "elsewhere", id: "dmextractions0000000001" }).writableByAnyone().id;
+    root.saysStudy({ data: null, extractions: GT.extractions }, { id: "dmsettings00000000001" });
+  }
+  const settings = root.studyFile();
+  // the study file's keys changed, as the owner's Study Setup would have written them (the marks, the stage), the rest kept
+  const studyFile = (changes) => root.saysStudy(changes);
+  // the folders Drive lets the user only view
+  const viewOnly = drive.viewOnly;
+  // the folders shared with the signed-in user alone, not "Anyone with the link": the site's key reads neither them nor what they hold
+  const hidden = drive.hidden;
+  // who Drive's sharing lets write to ROOT, which makes them its study manager (req/shell/data/roles)
+  tester.manages(ROOT);
+  const writers = drive.writers.get(ROOT);
+  // the folders the page shared with anyone with the link, every write it made, Drive's own small pictures it asked
+  // for, and the files replaced keeping the version they replace forever
+  const sharedOut = drive.shared, writes = drive.writes, thumbs = drive.thumbs, keptForever = drive.keptForever;
+
+  // the deploy with a Google key and client; the fixture study, and every other study with a root, given ROOT as its
+  // root, and the list of studies the test's own
+  w.site.withGoogle();
+  for (const id of fs.readdirSync(path.join(repo, "studies"))) {
+    const json = path.join(repo, "studies", id, "study.json");
+    if (fs.existsSync(json) && JSON.parse(fs.readFileSync(json, "utf8")).root) w.studies.rootedAt(id, ROOT);
+  }
+  w.studies.rootedAt("fixture", ROOT);
+  if (studies) w.studies.editList(() => JSON.parse(fs.readFileSync(studies, "utf8")));
+  // inList: the list of studies names ROOT as each rooted study's root, so that Drive's sharing of it decides who is a member (shell/study/members)
+  // (the fixture, which the build leaves out of the list as unlisted, is put in it rooted)
+  if (inList) w.studies.editList((list) => (Array.isArray(list) ? [...list.map((m) => (m.root ? { ...m, root: ROOT } : m)), ...(list.some((m) => m.id === "fixture") ? [] : [{ id: "fixture", title: "Fixture", stage: "Develop", root: ROOT }])] : list));
+
   const close = async () => { await browser.close(); server.close(); py?.kill(); };
   const done = async (code) => { await close(); process.exit(code); };
   const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
   // a page or a check gone wrong ends the run
 
-  const SCOPES = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
-  // scopes: what the signed-in user's token may do, in place of SCOPES; email: who is signed in, in place of the
-  // study's study manager; seed: browser keys kept before the page opens; id: the study opened, the fixture unless
-  // named; study: what its study.json says otherwise for this page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a
-  // driver's own, taking precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept;
-  // viewport: the window's size; name: the signed-in user's; until: when their token runs out, in place of an hour
-  // on; welcome: the welcome popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study;
-  // at: an address opened in place of the study's own, its caller waiting for what it shows
+  // scopes: what the signed-in user's token may do, in place of all the site asks; email: who is signed in, in place
+  // of the study's study manager; seed: browser keys kept before the page opens, over the sign-in and the welcome
+  // popup's answer; id: the study opened, the fixture unless named; study: what its study.json says otherwise for this
+  // page (its stage, say); scale: the screen's pixels per CSS pixel; prepare(ctx): routes of a driver's own, taking
+  // precedence over these; keepSettings: the settings an earlier visit saved to Drive, kept; viewport: the window's
+  // size; name: the signed-in user's; until: when their token runs out, in place of an hour on; learned: what the
+  // page last learned from Google for them, kept with the sign-in; welcome: the welcome
+  // popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study; at: an address
+  // opened in place of the study's own, its caller waiting for what it shows
   async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
-    viewport = { width: 1400, height: 900 }, name = "Tester", until, welcome = false, setup = false, at } = {}) {
+    viewport, name = "Tester", until, learned, welcome = false, setup = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
-    if (!keepSettings) google.settings.length = 0;
-    const ctx = await browser.newContext({ viewport, deviceScaleFactor: scale });
+    if (!keepSettings) for (const { owner } of [...google.settings]) google.savedSettings(owner, null);
+    const device = w.device().with({ deviceScaleFactor: scale, ...(viewport ? { viewport } : {}) }).keeps(seed);
+    const who = (email && email !== EMAIL) || name !== tester.name ? { email: email || EMAIL, name, scopes: SCOPES } : tester;
+    if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes, learned, ...(until ? { tokenLeft: until - Date.now() } : {}) });
+    // the welcome popup answered before, and remembered (req/shell/account/welcome), unless a first visit
+    device.welcomed(welcome || "nor-welcome" in seed ? null : signedIn ? "google" : "anonymous");
+    const ctx = await device.context();
     if (study) studiesOf(ctx).edit(id, (m) => ({ ...m, ...study }));
     if (prepare) await prepare(ctx);
-    // the welcome popup answered before, and remembered (req/shell/account/welcome); seeded once a tab, so a reload
-    // keeps what the page itself wrote since
-    await ctx.addInitScript(([who, seed, welcome]) => {
-      delete Navigator.prototype.serviceWorker;
-      if (sessionStorage.getItem("primed")) return;
-      sessionStorage.setItem("primed", "1");
-      if (who) localStorage.setItem("nor-google-sign-in", JSON.stringify(who));
-      if (!welcome) localStorage.setItem("nor-welcome", JSON.stringify({ choice: who ? "google" : "anonymous", remember: true }));
-      for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-    }, [signedIn ? google.signedIn({ email: email || EMAIL, name, scopes: scopes || SCOPES, ...(until ? { until } : {}) }) : null, seed, welcome]);
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
-    page.setDefaultTimeout(STEP);
-    await page.goto(at ?? origin + (setup ? "/web/setup?study=" + id : "/web/" + id));
-    if (!at) await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-    return page;
+    if (at) return device.visits(at.slice(origin.length), { until: "none" });
+    return setup ? device.opensSetup(id) : device.opens(id);
   }
 
 
@@ -177,5 +169,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
-  return { drive, google, ROOT, FILES, SUB, GT, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
+  return { w, root, drive, google, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }

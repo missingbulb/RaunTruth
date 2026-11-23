@@ -13,7 +13,7 @@ import path from "node:path";
 import { watchReads, readsDone } from "./page_reads.mjs";
 import { pw, launch, expecting } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { identify, verdict } = await import(pathToFileURL(path.join(repo, "web", "browsers.js")).href);
@@ -59,29 +59,22 @@ for (const [key, touch, name, version, ok] of table) {
 
 // ---- the page ----
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 
 // a page in a browser saying it is `ua` (the engine's own when null), with one image from Drive among the recents;
 // window.open records the address it is given; seed: browser keys kept before the page opens
 async function open(ua, seed = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...(ua && { userAgent: ua }) });
-  await ctx.addInitScript(([secret, seed]) => {
-    delete Navigator.prototype.serviceWorker;
-    window.open = (url) => { window.opened = url; return null; };
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    localStorage.setItem("nor-welcome", JSON.stringify("anonymous"));
-    localStorage.setItem("nor-drive-recent", JSON.stringify([{ id: "d1", name: secret, path: ["Lab"], study: "fixture" }]));
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-  }, [SECRET, seed]);
+  const device = w.device().with(ua ? { userAgent: ua } : {})
+    .keeps({ "nor-drive-recent": JSON.stringify([{ id: "d1", name: SECRET, path: ["Lab"], study: "fixture" }]), ...seed });
+  const ctx = await device.context();
+  await ctx.addInitScript(() => { window.open = (url) => { window.opened = url; return null; }; });
   // whether the page supports this browser waits on browsers.json, which a supported one shows nothing of
   await watchReads(ctx, ["browsers.json"]);
-  const page = await ctx.newPage();
-  page.on("pageerror", async (e) => { if (!/thrown-for-the-test/.test(e.message)) { console.error("page error: " + e.message); await done(1); } });
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/fixture");
+  // the device opens the fixture on this tab, heard from the start
+  (await ctx.newPage()).on("pageerror", async (e) => { if (!/thrown-for-the-test/.test(e.message)) { console.error("page error: " + e.message); await done(1); } });
+  const page = await device.opens("fixture", { until: "none" });
   await page.waitForFunction(() => $("#sb-version").textContent && $("#recent .recent"));
   await readsDone(page);
   return { ctx, page };

@@ -7,24 +7,21 @@ import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { drive, open, check, done, ROOT, GT, FILES, studyFile, EMAIL } = await standIn({ answers, studies, rootDir });
+const { w, root: studyRoot, drive, open, check, done, ROOT, GT, studyFile, EMAIL } = await standIn({ answers, studies, rootDir });
 const Y = "y@example.com", Z = "z@example.com";
 
-// the root's Data and Previews folders, as a study keeps them, and its study file, the page's own
-const DATA = drive.folder({ id: "shdata00000000000001", name: "Data", parent: ROOT }).id;
-const PREVIEWS = drive.folder({ id: "shprevs00000000000001", name: "Previews", parent: ROOT }).id;
-const STUDY = FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json");
+// the root's Data and Previews folders, as a study keeps them, its study file, the page's own, and the extractions folder
+const dataFolder = studyRoot.folder("Data"), previewsFolder = studyRoot.folder("Previews"), PREVIEWS = previewsFolder.id;
+const study = w.of(studyRoot.studyFile()), extractions = w.of(GT.extractions);
 const link = (id) => `https://drive.google.com/drive/folders/${id}?usp=sharing`;
 
 // the sharing as a case needs it: root "named" (its members alone) or "link"; the link-readable items public or private; who writes the
-// extractions folder; the study file's stage, none for a study as it is today
+// extractions folder; the study file's stage, none for a study as it is today; the tester the root's manager throughout
 const seed = ({ root = "named", others = "public", members = [EMAIL, Y], writers = [Y], stage } = {}) => {
-  const r = drive.get(ROOT);
-  r.access = root === "link" ? "public" : "private";
-  if (root === "link") drive.readers.delete(ROOT); else drive.readers.set(ROOT, new Set(members));
-  for (const id of [DATA, PREVIEWS]) drive.get(id).access = others;
-  STUDY.access = others;
-  drive.writers.set(GT.extractions, new Set(writers));
+  studyRoot.namesNoOne().writableBy(EMAIL);
+  if (root === "link") studyRoot.public(); else studyRoot.readableBy(...members);
+  for (const item of [dataFolder, previewsFolder, study]) if (others === "public") item.public(); else item.private();
+  extractions.namesNoOne().writableBy(...writers);
   drive.refuseSharing = false;
   studyFile({ stage });
 };
@@ -51,7 +48,7 @@ await page.context().close();
 
 // the Previews folder not readable by link: one correction, naming it
 page = await opened({ others: "public" });
-drive.get(PREVIEWS).access = "private";
+previewsFolder.private();
 await recheck(page);
 s = await shown(page);
 await check(s.corrections.length === 1 && /Previews/.test(s.corrections[0].item) && s.corrections[0].change === "Share it by link" && s.corrections[0].where === link(PREVIEWS),
@@ -60,10 +57,10 @@ await page.context().close();
 
 // the study file not readable by link, and the extractions folder written by no one: two corrections, the second with nothing the site can fix
 page = await opened({ writers: [] });
-STUDY.access = "private";
+study.private();
 await recheck(page);
 s = await shown(page);
-await check(s.corrections.length === 2 && /study file/i.test(s.corrections[1].item) && s.corrections[1].where === `https://drive.google.com/file/d/${STUDY.id}/view?usp=sharing`
+await check(s.corrections.length === 2 && /study file/i.test(s.corrections[1].item) && s.corrections[1].where === `https://drive.google.com/file/d/${study.id}/view?usp=sharing`
   && /Extractions/.test(s.corrections[0].item) && !s.corrections[0].fix && s.corrections[0].where === link(GT.extractions),
   "an unreadable study file and an extractions folder no one may write: each its correction, the extractions one with no Fix", s);
 await page.context().close();
@@ -76,7 +73,6 @@ await check(s.corrections.length === 0 && /Sharing is as this stage needs/.test(
 // People: who holds which of the three shares
 await page.context().close();
 seed({ members: [Z, Y], writers: [Y] });
-drive.writers.set(ROOT, new Set([EMAIL]));
 page = await open(true, { setup: true });
 await settled(page);
 const people = await page.evaluate(() => ({
@@ -91,7 +87,7 @@ studyFile({ stage: "Review" });
 await recheck(page);
 s = await shown(page);
 await check(s.corrections.length === 1 && s.corrections[0].change === "Share the root by link", "promoted to Review with the root members-only: the correction Share the root by link appears", s);
-drive.get(ROOT).access = "public";
+studyRoot.public();
 await recheck(page);
 s = await shown(page);
 await check(s.corrections.length === 0 && /Sharing is as this stage needs/.test(s.state), "the root shared and Check again pressed: it clears", s);
@@ -132,8 +128,7 @@ await page.context().close();
 
 // anyone with the link may edit the extractions folder: a correction taking that off, not a writer; Fix removes that one permission, then a link that reads is offered
 page = await opened({ writers: [EMAIL] });
-const wasAccess = drive.get(GT.extractions).access;
-drive.get(GT.extractions).access = "public";
+extractions.public();
 drive.linkEdit.add(GT.extractions);
 await recheck(page);
 s = await shown(page);
@@ -147,12 +142,12 @@ await settled(page, q);
 s = await shown(page);
 await check(JSON.stringify(drive.unshared.at(-1)) === JSON.stringify(["Extractions", "anyoneWithLink"]) && permissionWrites().length === wrote + 1, "Confirm: exactly one permission write, taking off that link permission", drive.unshared);
 await check(s.corrections.length === 1 && s.corrections[0].change === "Share it by link", "and the link that reads is offered next, as its own correction", s);
-drive.get(GT.extractions).access = wasAccess;
+extractions.public();
 await page.context().close();
 
 // Drive refuses the change (403): that correction drops its Fix and keeps its link and its pictures, with a line saying to change it there; the other keeps its Fix
 page = await opened({ stage: "Review" });
-drive.get(PREVIEWS).access = "private";
+previewsFolder.private();
 await recheck(page);
 const before = permissionWrites().length;
 drive.refuseSharing = true;

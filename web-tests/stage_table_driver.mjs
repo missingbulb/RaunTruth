@@ -13,15 +13,14 @@ import { pressDrive } from "./drive_open.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { drive, GT, FILES, ROOT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, GT, FILES, ROOT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const TABLE = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "stage_table.json"), "utf8"));
 const Y = "y@lab.example";
 
-// img1's one extraction, so that a mark button has a row to stand on
+// img1's one extraction, so that a mark button has a row to stand on, in its own folder of the extractions folder, both as the site makes them
 const image = path.join(rootDir, "img1.png"), sha = createHash("sha256").update(fs.readFileSync(image)).digest("hex");
-const sub = drive.folder({ mine: true, name: `img1__${sha.slice(0, 8)}`, parent: GT.extractions }).id;
-drive.file({ mine: true, name: await personFile(Y), parent: sub, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: Y,
-  image: { name: "img1.png", sha256: sha }, labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true })) });
+w.of(GT.extractions).folder(`img1__${sha.slice(0, 8)}`, { bySite: true }).holds({ name: await personFile(Y), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: Y,
+  image: { name: "img1.png", sha256: sha }, labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true })) }, { bySite: true });
 
 // an image of the study opened the way a person does, from the study's own list in the Drive dialog
 const openFromStudy = async (page, file) => {

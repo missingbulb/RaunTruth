@@ -12,20 +12,17 @@ import { until, idle } from "./page_until.mjs";
 import { personFile, runFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { drive, FILES, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, drive, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const Y = "y@lab.example";
 
 const shaOf = (n) => createHash("sha256").update(fs.readFileSync(path.join(rootDir, n))).digest("hex");
-const subOf = (name) => {
-  const sha = shaOf(name), stem = name.replace(/\.[^.]*$/, ""), folder = `${stem}__${sha.slice(0, 8)}`;
-  return FILES.find((f) => f.folder && f.parent === GT.extractions && f.name === folder) || drive.folder({ mine: true, name: folder, parent: GT.extractions });
-};
+const subOf = (name) => w.of(GT.extractions).folder(`${name.replace(/\.[^.]*$/, "")}__${shaOf(name).slice(0, 8)}`, { bySite: true });
 const body = (name, extra, count) => Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", image: { name, sha256: shaOf(name) }, labels: [{ threshold: 100, count }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true, ...extra }));
 // img1's official extraction is a batch run's of the algorithm `above` (it names no tagger and begins with that run); img2's is y's own; img3 has no official mark
-const run1 = drive.file({ mine: true, name: runFile("above", "abcdef01"), parent: subOf("img1.png").id,
-  bytes: body("img1.png", { history: { actions: [{ type: "run", algorithm: "above", version: { site: "1.0", code: "abcdef0123456789" }, output: {} }] } }, 7) });
-const own2 = drive.file({ mine: true, name: await personFile(Y), parent: subOf("img2.png").id, bytes: body("img2.png", { tagger: Y }, 5) });
-const own3 = drive.file({ mine: true, name: await personFile(Y), parent: subOf("img3.png").id, bytes: body("img3.png", { tagger: Y }, 9) });
+const run1 = subOf("img1.png").holds({ name: runFile("above", "abcdef01"),
+  bytes: body("img1.png", { history: { actions: [{ type: "run", algorithm: "above", version: { site: "1.0", code: "abcdef0123456789" }, output: {} }] } }, 7) }, { bySite: true });
+const own2 = subOf("img2.png").holds({ name: await personFile(Y), bytes: body("img2.png", { tagger: Y }, 5) }, { bySite: true });
+const own3 = subOf("img3.png").holds({ name: await personFile(Y), bytes: body("img3.png", { tagger: Y }, 9) }, { bySite: true });
 studyFile({ stage: "Analyze", marks: { [shaOf("img1.png")]: { official: { file: run1.id, by: null } }, [shaOf("img2.png")]: { official: { file: own2.id, by: Y } },
   [shaOf("img3.png")]: { gt: { file: own3.id, by: Y } } } });
 const official = new Set([run1.id, own2.id]);

@@ -22,9 +22,9 @@ import http from "node:http";
 import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
-import { localStudy } from "./local_study.mjs";
 import { held as holding } from "./held.mjs";
-import { pw, launch, googleOf, expecting, NETWORK_GONE } from "./harness.mjs";
+import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -58,8 +58,6 @@ const server = http.createServer((q, r) => {
   const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
   if (u === "/web/worker.js" && stub) { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
   // the build's list of vendored wheels, which the fixture needs none of
-  // the deploy's Google key and client, which signing in and reading Drive need
-  if (u === "/web/config.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(`window.NOR_CONFIG = { google: { apiKey: "stand-in", clientId: "123456-stand.apps.googleusercontent.com" } };`); }
   if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
   const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
@@ -70,25 +68,17 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await launch(pw);
-const { signIn: google } = googleOf(browser);
+const browser = await launch(pw), w = world(browser, origin);
+w.studies.fromThisComputer("fixture");
+w.site.withGoogle();
+// a visitor signed in with Google, whose Google can read every study's root (shell/study/members)
+const tester = w.user("tester@example.com").named("Tester");
 const problems = [];
 const done = async () => { await browser.close(); server.close(); for (const p of problems) console.error(p); process.exitCode = problems.length ? 1 : 0; };
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
-await localStudy(ctx, "fixture");
-// a visitor signed in with Google, the welcome popup answered
-const signedIn = (c) => c.addInitScript((who) => {
-  localStorage.setItem("nor-google-sign-in", JSON.stringify(who));
-  localStorage.setItem("nor-welcome", JSON.stringify({ choice: "google", remember: true }));
-}, google.signedIn({ email: "tester@example.com", name: "Tester" }));
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await signedIn(ctx);
-const page = await ctx.newPage();
-page.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error: " + e.message); });
-page.setDefaultTimeout(STEP);
+const device = w.device().signedInAs(tester).with({ acceptDownloads: true }), ctx = await device.context();
+ctx.on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error: " + e.error().message); });
 try {
-  await page.goto(origin + "/web/index.html?study=fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  const page = await device.visits("/web/index.html?study=fixture");
   const seen = await page.evaluate(() => ({
     title: document.title, h1: document.querySelector("#title").textContent, threshold: document.querySelector("#fx-threshold").value,
     channels: [...document.querySelectorAll("#channels label")].map((l) => l.textContent), accept: document.querySelector("#file").accept,
@@ -271,14 +261,9 @@ try {
   // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
   const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
   slow[MODULE] = holding(); slow[CHOSEN] = holding();
-  const elsewhere = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await localStudy(elsewhere, "fixture");
-  await elsewhere.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await signedIn(elsewhere);
-  const early = await elsewhere.newPage();
-  early.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error, a study chosen while another came in: " + e.message); });
-  early.setDefaultTimeout(STEP);
-  await early.goto(origin + "/web/fixture");
+  const elsewhere = w.device().signedInAs(tester);
+  (await elsewhere.context()).on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error, a study chosen while another came in: " + e.error().message); });
+  const early = await elsewhere.opens("fixture", { until: "none" });
   await slow[MODULE].asked;
   await early.evaluate(() => {
     window.statuses = [];
@@ -317,10 +302,8 @@ try {
 
   // the real worker: the fixture's own Python in Pyodide, answering the page
   stub = false;
-  const real = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await localStudy(real, "fixture");
-  await real.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await signedIn(real);
+  const python = w.device().signedInAs(tester), real = await python.context();
+  real.on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error: " + e.error().message); });
   // each worker the page starts, and the bytes each open hands it, copied before they are transferred
   await real.addInitScript(() => {
     window.__workers = 0; window.__ended = 0; window.__held = [];
@@ -331,10 +314,8 @@ try {
       terminate() { window.__ended++; return super.terminate(); }
     };
   });
-  const live = await real.newPage();
-  live.on("pageerror", (e) => { if (!cutShort(e)) problems.push("page error: " + e.message); });
+  const live = await python.visits("/web/index.html?study=fixture", { until: "none" });
   live.setDefaultTimeout(60000);
-  await live.goto(origin + "/web/index.html?study=fixture");
   await live.waitForFunction(() => /^(Ready|Error)/.test(document.querySelector("#status").textContent));
   const ready = await live.textContent("#status");
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);

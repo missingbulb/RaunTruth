@@ -12,13 +12,14 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { pw, launch, expecting, siteOf } from "../../../web-tests/harness.mjs";
-import { localStudy } from "../../../web-tests/local_study.mjs";
+import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
+import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
+import { pw, launch, expecting } from "../../../web-tests/harness.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const [answers, image, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -66,9 +67,10 @@ export const openImage = async (...a) => { await new Promise((ok) => setTimeout(
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // driven in a Review study, outside ground truth
-siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage: "Review" }));
+w.studies.atStage("nor", "Review");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -77,21 +79,17 @@ const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(s
 // algorithm list, fetched without the page waiting on it, can be ready before it
 const started = (page) => page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false
   && document.querySelector("#status").textContent === "Ready. Load an image.");
-// seed: browser keys kept before the page opens
+// an annotator's computer reporting gb of memory, on a deploy with Google; seed: browser keys kept before the
+// page opens
 async function open(gb, seed = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await asTagger(ctx);
-  await ctx.addInitScript((gb) => {
-    delete Navigator.prototype.serviceWorker;
-    Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true });
-  }, gb);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).keeps(seed), ctx = await device.context();
+  siteSettings(ctx).withGoogle();
+  await ctx.addInitScript((gb) => { Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true }); }, gb);
   await standInDrive(ctx);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
+  const page = await device.opens("nor", { until: "none" });
   await started(page);
-  return { ctx, page };
+  return { device, page };
 }
 const held = (page, id) => page.evaluate((id) => { const b = $(id); return b.disabled && b.classList.contains("working"); }, id);
 // resolves once the worker's answer to this action has reached the page, after the page's own handler took it
@@ -110,7 +108,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
 
 // ---- plenty of memory: no popup; slow buttons are held until their action is done ----
 {
-  const { ctx, page } = await open(8);
+  const { device, page } = await open(8);
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "no memory popup on a computer with 8 GB");
   const mem = await page.textContent("#sb-memory");
   // before any Run, Python has not started (req/shell/python/on-run): the memory is the page's own
@@ -144,12 +142,12 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await page.evaluate(() => $("#far").scrollIntoView());
   await page.waitForFunction(() => !$("#far").classList.contains("offscreen"));
   await check(await playing() === "running", "and runs again once it is in view");
-  await ctx.close();
+  await device.close();
 }
 
 // ---- little memory: the popup, until the user asks not to see it ----
 {
-  const { ctx, page } = await open(2);
+  const { device, page } = await open(2);
   const why = await page.evaluate(() => $("#memory-dlg").open && $("#memory-why").textContent);
   await check(why && /2 GB/.test(why) && /close other tabs/.test(why), `a computer with 2 GB gets the popup: "${why}"`);
   await shot(page, "memory_popup");
@@ -157,10 +155,10 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await page.check("#memory-off"); await page.click("#memory-dlg button.primary");
   const kept = await page.evaluate(() => localStorage.getItem("nor-memory-tip-off"));
   await check(kept === "true", `Don't show this again is kept: ${kept}`);
-  await ctx.close();
+  await device.close();
 }
 {
-  const { ctx, page } = await open(2, { "nor-memory-tip-off": "true" });
+  const { device, page } = await open(2, { "nor-memory-tip-off": "true" });
   await check(!(await page.evaluate(() => $("#memory-dlg").open)), "a page opened with the popup turned off does not show it");
   // running out of memory shows it anyway, without the opt-out
   await openFromDrive(page, image); await free(page, "#image-pick");
@@ -171,20 +169,18 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
   await check(await page.evaluate(() => !$("#find").disabled), "Find Candidates is free again after the failure");
-  await ctx.close();
+  await device.close();
 }
 // ---- an image opened before the study's code has come: once the study is in, the image is loaded and its first
 // step is the one to do ----
 {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await localStudy(ctx, "nor");
+  // a device no one signed in on, its welcome popup not answered yet, the study opening from this computer
+  const device = w.device().welcomed(null), ctx = await device.context();
+  studiesOf(ctx).fromThisComputer("nor");
   // the study's code held until the image has opened, or the page waits for the study to open it
   const code = holding();
   await ctx.route("**/studies/nor/web/nor.js", async (r) => { await code.hold(); await r.continue(); });
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
+  const page = await device.opens("nor", { until: "none" });
   await code.asked;
   await page.waitForFunction(() => window.shellForTests && $("#file").onchange);
   await page.setInputFiles("#file", image);
@@ -193,6 +189,6 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await idle(page, { timeout: 4 * LATE + 2000 });
   const steps = await page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › "));
   await check(steps === "Load image › Run algorithm*" && await page.evaluate(() => !!st.img), `an image opened as the study came in is loaded, Run algorithm the step to do: ${steps}`);
-  await ctx.close();
+  await device.close();
 }
 await done(0);

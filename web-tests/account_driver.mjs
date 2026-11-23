@@ -19,7 +19,9 @@ import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
-import { pw, launch, googleOf, siteOf, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
+import { CLIENT_ID as CLIENT } from "./fakes/site_settings.mjs";
+import { world } from "./world.mjs";
 import { orMissed, untilHeard, idle } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { frames } from "./page_frames.mjs";
@@ -27,7 +29,6 @@ import { frames } from "./page_frames.mjs";
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const CLIENT = "acme-client.apps.googleusercontent.com";
 const GSI = "https://accounts.google.com/gsi/client";
 let origin;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
@@ -41,14 +42,12 @@ const server = http.createServer((q, r) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await launch(pw);
-// the deploy with a Google key and client
-const site = siteOf(browser).settings;
-site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: CLIENT };
-// the sign-in fake's account; settings(): the user's settings file in their Drive's app folder, which a test changes to
-// play another device; seen(): every request the page made to Google
-const { drive, signIn: google } = googleOf(browser);
-google.account = { sub: "1001", name: "Ada Lovelace", email: "ada@acme.example", picture: origin + "/web/logo.svg" };
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
+// the user Google's window signs in; settings(): their settings file in their Drive's app folder, which savedSettings
+// changes to play another device; seen(): every request the page made to Google
+const { drive, google } = w;
+const ada = w.user("ada@acme.example").named("Ada Lovelace").pictured(origin + "/web/logo.svg");
 const settings = () => google.settings[0] || null;
 const file = () => (settings() ? JSON.parse(settings().body) : null);
 const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
@@ -64,26 +63,18 @@ const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`s
 const googleCalls = (page) => page.evaluate(() => window.googleCalls);
 
 const outside = []; // every address outside the page's own the browser was asked for
-async function device(seed) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+// a World device, opened on the fixture
+async function device(dev) {
+  const ctx = await dev.context();
   ctx.on("request", (q) => { if (!q.url().startsWith(origin)) outside.push(new URL(q.url()).origin + new URL(q.url()).pathname); });
-  await ctx.addInitScript((seed) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-  }, seed);
   await ctx.addInitScript(() => {
     window.googleCalls = 0;
     const fetchNow = window.fetch;
     window.fetch = function (u, ...rest) { if (/googleapis\.com\//.test(String(u?.url ?? u))) window.googleCalls++; return fetchNow.call(this, u, ...rest); };
   });
-  const page = await ctx.newPage();
-  page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#title").textContent);
-  return { ctx, page };
+  // the device opens the fixture on this tab, heard from the start
+  (await ctx.newPage()).on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
+  return { ctx, dev, page: await dev.opens("fixture", { until: "title" }) };
 }
 // no one signed in here, a sign-in first opens the guide to Google's screens (req/shell/account/consent-guide): on through it
 const throughGuide = async (page) => { await page.waitForSelector("#guide-dlg[open]"); await page.click("#guide-go"); };
@@ -104,15 +95,14 @@ const shot = async (page, name) => { if (shots) await page.screenshot({ path: pa
 
 try {
   // device A: used before, never signed in; it answered the sign-in popup (req/shell/account/welcome) and closed its tip
-  const answered = { "nor-welcome": JSON.stringify({ choice: "anonymous", remember: true }) };
-  const a = await device({ ...answered, "nor-theme": "dark", "nor-tips-closed": JSON.stringify(["recent-files", "sign-in"]), "nor-bars-v1": JSON.stringify({ left: 300 }) });
+  const a = await device(w.device().keeps({ "nor-theme": "dark", "nor-tips-closed": JSON.stringify(["recent-files", "sign-in"]), "nor-bars-v1": JSON.stringify({ left: 300 }) }));
   // the one read a visitor's page makes: the study's root, by the site's key, to read the study file's stage (a visitor's study file is link-shared)
   await a.page.waitForFunction(() => window.googleCalls >= 1);
   await idle(a.page);
   const reads = drive.calls.filter((c) => !c.token);
   check(google.scriptLoads === 0 && !(await askedGoogle(a.page)) && !outside.some((u) => /google/.test(u) && !/^https:\/\/www\.googleapis\.com\/drive\/v3\/files$/.test(u)),
     "a visitor who never signs in loads nothing from Google but the study's shared file", outside);
-  check(drive.calls.length === reads.length && reads.length === 1 && reads[0].kind === "list" && reads[0].parent === "fixturefolder00000001" && reads[0].key,
+  check(drive.calls.length === reads.length && reads.length === 1 && reads[0].kind === "list" && reads[0].parent === w.studyFolder("fixture").id && reads[0].key,
     "and the one read it makes is the study's root listed by the site's key, for the study file's stage", drive.calls.map((c) => [c.kind, c.parent, c.id, !!c.key, !!c.token]));
   check(await a.page.textContent("#who-where") === "On this device, not signed in" && await a.page.isHidden("#sign-out"), "not signed in, the menu says so");
   await a.page.click("#user-menu summary");
@@ -199,12 +189,12 @@ try {
     await tab.close();
   }
   // the tip closed again, as the rest of this test expects of the file
-  settings().body = JSON.stringify({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
+  ada.savedSettings({ ...file(), "nor-tips-closed": JSON.stringify(["recent-files"]) });
   // animations turned off on another device
-  settings().body = JSON.stringify({ ...file(), "nor-motion": "false" });
+  ada.savedSettings({ ...file(), "nor-motion": "false" });
 
   // device B: its own theme and left bar
-  let b = await device({ ...answered, "nor-tips-closed": JSON.stringify(["sign-in"]), "nor-theme": "dark", "nor-bars-v1": JSON.stringify({ left: 400 }) });
+  let b = await device(w.device().keeps({ "nor-tips-closed": JSON.stringify(["sign-in"]), "nor-theme": "dark", "nor-bars-v1": JSON.stringify({ left: 400 }) }));
   check(await b.page.evaluate(() => document.documentElement.dataset.theme) === "dark", "a second device starts in its own theme");
   await signInVia(b.page);
   check(await shows(b.page, () => document.documentElement.dataset.theme === "light"), "signing in there brings the user's theme at once");
@@ -221,8 +211,8 @@ try {
     "signing in keeps the user and Google's token for the hour", me && { ...me, token: !!me.token });
   await b.ctx.close();
   // another device changes the file; a page opened within the hour from what this device keeps takes it with no click
-  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" });
-  b = await device(kept);
+  ada.savedSettings({ ...file(), "nor-theme": "dark" });
+  b = await device(w.device().welcomed(null).keeps(kept));
   check(await shows(b.page, () => !document.querySelector("#sign-out").hidden), "a page opened within the hour stays signed in");
   check(await shows(b.page, () => document.documentElement.dataset.theme === "dark"), "and syncs with no click");
   check(await b.page.evaluate(() => !window.tokenClient || window.tokenClient.asked.length === 0) && asks === 1, "and asks Google for no new token");
@@ -233,11 +223,9 @@ try {
     // the sign-in back, an hour long, and a request still on its way would meet the revoked token
     const at = b.page.url();
     await b.page.goto(origin + "/web/logo.svg");
-    google.revokeAll();
-    await b.page.evaluate(() => {
-      const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s));
-      localStorage.removeItem("nor-seen-version"); // the page writes it again as it loads: a setting that changes with no click
-    });
+    await b.dev.tokenRunsOut(b.page);
+    // the page writes it again as it loads: a setting that changes with no click
+    await b.page.evaluate(() => localStorage.removeItem("nor-seen-version"));
     await b.page.goto(at);
     await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden && window.tokenClient);
   };
@@ -257,7 +245,7 @@ try {
   const renewal = (await b.page.evaluate(() => window.tokenClient.asked))[0];
   check(await askedNow() === 1 && renewal?.prompt === "" && renewal.login_hint === "ada@acme.example", "renewing asks Google once, silently, for the same user");
 
-  settings().body = JSON.stringify({ ...file(), "nor-theme": "dark" }); // another device
+  ada.savedSettings({ ...file(), "nor-theme": "dark" }); // another device
   await expire();
   await b.page.click("#image-pick");
   check(await shows(b.page, () => document.documentElement.dataset.theme === "dark"), "opening the image selector renews the token and brings the file's settings");
@@ -292,16 +280,16 @@ try {
   {
     const left = await b.page.evaluate(() => ({ ...localStorage }));
     await b.ctx.close();
-    const after = await device(left);
+    const after = await device(w.device().welcomed(null).keeps(left));
     check(await after.page.isHidden("#sign-out") && await after.page.textContent("#who-where") === "On this device, not signed in",
       "a page opened after signing out stays signed out");
     await after.ctx.close();
   }
 
   // a site with no Google client
-  site.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" };
+  w.site.withoutGoogleClient();
   const loads = google.scriptLoads;
-  const c = await device({});
+  const c = await device(w.device().welcomed(null));
   await c.page.click("#user-menu summary");
   check(google.scriptLoads === loads && !(await askedGoogle(c.page)) && await c.page.isHidden("#sign-in") && await c.page.isVisible("#manage-storage"), "with no Google client, the menu offers no sign-in");
   await c.page.click("#open-settings");
@@ -313,10 +301,10 @@ try {
 
   const services = new Set(outside);
   // the study's root, its listing and the user's write access on it, for the roles (req/shell/data/roles), and the listed studies' roots asked of Drive in one batch (shell/study/members)
-  const ROOT = "fixturefolder00000001";
+  const ROOT = w.studyFolder("fixture").id;
   // and Python's own files, kept on this device ahead of the first Run (req/shell/python/on-run)
   const known = (u) => u === GSI || u === "https://openidconnect.googleapis.com/v1/userinfo" || u.startsWith("https://cdn.jsdelivr.net/pyodide/")
-    || /^https:\/\/www\.googleapis\.com\/((upload\/)?drive\/v3\/files(\/appdatafile\d+|\/fixturefolder00000001)?|batch\/drive\/v3)$/.test(u);
+    || /^https:\/\/www\.googleapis\.com\/((upload\/)?drive\/v3\/files(\/appdatafile\d+)?|batch\/drive\/v3)$/.test(u) || u === `https://www.googleapis.com/drive/v3/files/${ROOT}`;
   check(services.size >= 4 && [...services].every(known), `the page reached only Google's sign-in script, account details, the Drive API and Python's files (${[...services].join(", ")})`);
   check(seen().filter((s) => /drive\/v3\/files(\?|$)/.test(s) && s.startsWith("GET")).every((s) => /spaces=appDataFolder/.test(s) || new RegExp(`'${ROOT}'[+ ]in[+ ]parents`).test(decodeURIComponent(s))),
     "every Drive listing it made looked only in the app's own folder, or the study's root for the roles");

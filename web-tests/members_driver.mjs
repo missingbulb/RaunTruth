@@ -11,17 +11,12 @@ import { idle } from "./page_until.mjs";
 import { expecting } from "./harness.mjs";
 
 const [answers, rootDir] = process.argv.slice(2);
-const { drive, google, ROOT, open, check, done, origin } = await standIn({ answers, rootDir });
+const { w, root, drive, ROOT, settings, studyFile, open, check, done } = await standIn({ answers, rootDir });
 const X = "x@example.com", Y = "y@example.com";
 
 // A: members {x}; B: members {y}; C: shared by link, its study file at Public; D: the fixture, shared by link, Review
-const ROOTS = { nor: "memrootA0000000000001", b: "memrootB0000000000001", c: "memrootC0000000000001" };
-drive.folder({ id: ROOTS.nor, name: "Root A", access: "private" }); drive.readers.set(ROOTS.nor, new Set([X]));
-drive.folder({ id: ROOTS.b, name: "Root B", access: "private" }); drive.readers.set(ROOTS.b, new Set([Y]));
-drive.folder({ id: ROOTS.c, name: "Root C", access: "public" });
-drive.file({ id: "memstudyC00000000001", name: "rauntruth-study.json", parent: ROOTS.c, bytes: Buffer.from(JSON.stringify({ format: "rauntruth-study/2", stage: "Public" })) });
-const settings = drive.get("dmsettings00000000001");
-settings.bytes = Buffer.from(JSON.stringify({ ...JSON.parse(settings.bytes.toString()), format: "rauntruth-study/2", stage: "Review" }));
+const ROOTS = { nor: w.folder("Root A").readableBy(X).id, b: w.folder("Root B").readableBy(Y).id, c: w.folder("Root C").public().saysStudy({ stage: "Public" }).id };
+studyFile({ stage: "Review" });
 
 const link = (id) => `https://drive.google.com/drive/folders/${id}`;
 const LIST = [{ id: "nor", title: "Study A", stage: "Develop", root: ROOTS.nor }, { id: "b", title: "Study B", stage: "Develop", root: ROOTS.b },
@@ -60,12 +55,14 @@ await page.context().close();
 page = await open(true, { email: Y, prepare });
 await check(JSON.stringify(await listed(page, ["b", "c", "fixture"])) === '["b","c","fixture"]', "signed in as y, the switcher lists B, C and D");
 
-// the token run out, the page opened again: the list Drive last gave, and a line saying so
-google.revokeAll();
-await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("nor-google-sign-in")); s.until = Date.now() - 1; localStorage.setItem("nor-google-sign-in", JSON.stringify(s)); });
+// the studies Drive let y open, kept with the sign-in
+const learned = await page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")).learned);
+await check(Array.isArray(learned?.members) && learned.members.includes("b") && !learned.members.includes("nor"), "the page keeps the studies Drive let y open with y's sign-in", learned);
+await page.context().close();
+
+// a device that kept that, its token run out: the list Drive last gave, and a line saying so
 n = was();
-await page.reload();
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+page = await open(true, { email: Y, prepare, until: Date.now() - 1, learned });
 await listed(page, ["b", "c", "fixture"]);
 const note = await page.evaluate(() => { const e = document.querySelector("#study-stale"); return e && !e.hidden ? e.textContent : ""; });
 await check(/as Drive last said/.test(note) && !batches(since(n)).length, "with the token run out, the list Drive last gave stays, with the line \"as Drive last said\" under it and no batch request", [note, batches(since(n)).length]);
@@ -111,7 +108,7 @@ await page.context().close();
 // signed out, the stage is the study file's, read by the site's key (shell/study/stage): the study.json's and the list's stand in until it answers
 {
   const image = path.join(rootDir, "d photo.jpg");
-  const fileSays = (stage) => { drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify({ ...JSON.parse(drive.get("dmsettings00000000001").bytes.toString()), stage })); };
+  const fileSays = (stage) => studyFile({ stage });
   const listedAs = (stage) => (ctx) => { prepare(ctx); studiesOf(ctx).editList(() => LIST.map((e) => (e.id === "fixture" ? { ...e, stage } : e))); };
   const annotatable = async (pg) => {
     await pg.setInputFiles("#file", image);
@@ -120,7 +117,7 @@ await page.context().close();
     return pg.evaluate(() => !!document.querySelector("#annotate-scratch")?.checkVisibility());
   };
   const stageOn = (pg, want) => pg.waitForFunction((w) => document.documentElement.dataset.stage === w, want).then(() => true, async () => pg.evaluate(() => document.documentElement.dataset.stage));
-  const reads = () => drive.calls.filter((c) => !c.token && c.key && c.kind !== "batch" && c.parent === ROOT || c.id === "dmsettings00000000001");
+  const reads = () => drive.calls.filter((c) => !c.token && c.key && c.kind !== "batch" && c.parent === ROOT || c.id === settings.id);
 
   // the file says Review, study.json and the list Public: shown as Review, annotating closed, not listed
   fileSays("Review");
@@ -150,8 +147,8 @@ await page.context().close();
 }
 // Make Available Offline for a study whose file lists no data folder: no folder is listed, least of all one named undefined
 {
-  const file = JSON.parse(drive.get("dmsettings00000000001").bytes.toString());
-  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify({ ...file, folders: [] }));
+  const { folders } = root.study();
+  studyFile({ folders: [] });
   const op = await open(true, { email: X, prepare });
   await op.click("#user-menu summary");
   await op.click("#manage-storage");
@@ -163,11 +160,11 @@ await page.context().close();
   const parents = drive.calls.slice(n).filter((c) => c.kind === "list").map((c) => c.parent);
   await check(!parents.some((p) => !p || p === "undefined"), "Make Available Offline of a study whose file lists no data folder lists no folder of an undefined id", parents);
   await op.context().close();
-  drive.get("dmsettings00000000001").bytes = Buffer.from(JSON.stringify(file));
+  studyFile({ folders });
 }
 // a member who signs out from a study whose root is the members': the stage and the index are refused by design, and read quietly
 {
-  drive.get(ROOT).access = "private"; drive.readers.set(ROOT, new Set([X]));
+  root.readableBy(X);
   const mp = await open(true, { email: X, prepare });
   await mp.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   await idle(mp);
@@ -182,7 +179,6 @@ await page.context().close();
   });
   await check(true, "signing out of a study whose root is the members', and opening Load, warn of no stage or index not read");
   await mp.context().close();
-  drive.get(ROOT).access = "public"; drive.readers.delete(ROOT);
 }
 await check(!moduleFetches.length, "neither loads the study's module", moduleFetches);
 await done(0);

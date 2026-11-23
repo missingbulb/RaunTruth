@@ -11,12 +11,11 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { asTagger } from "./tagger.mjs";
+import { tagger } from "./tagger.mjs";
 import { record, begun, moved } from "./page_motions.mjs";
-import { localStudy } from "./local_study.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -36,21 +35,15 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await record(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
+const device = w.device().signedInAs(tagger(w));
+await record(await device.context());
+const page = await device.opens("fixture");
 
 // the left bar's drawers as the user sees them: the step mark, the title (a picture in it as "[img]") and
 // open or folded, by any of its contents shown or not

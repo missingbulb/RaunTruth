@@ -12,12 +12,12 @@ import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
-import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -39,15 +39,15 @@ onmessage = async ({ data: m }) => {
   }
 };`;
 
-let stage = null; // the study's stage as served; null: as committed
 const { origin, server } = await serveSite({
   "/web/worker.js": () => EARLY + STAND_IN,
   "/web/answers/": { dir: answers },
 });
 
-const browser = await launch(pw);
-// the study as served, at its stage
-siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage: stage || m.stage }));
+const browser = await launch(pw), w = world(browser, origin);
+// ground truth is made by someone the store lets save it (req/shell/annotate/no-save)
+w.site.withGoogle();
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const fail = async (what, seen) => { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); };
 const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ") + what); if (!ok) await fail(what, seen); };
@@ -56,17 +56,16 @@ const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ")
 const MASKED = [[[0, 0], [60, 0], [60, 60], [0, 60]]];
 // the pictures off the site the page asked for
 const pictures = [];
-async function open() {
-  const ctx = await browser.newContext({ viewport: { width: 1200, height: 700 } });
-  await asTagger(ctx); // someone the store lets save ground truth (req/shell/annotate/no-save)
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+// stage: the study's as served, in place of the committed one
+async function open(stage) {
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", stage ? { stage } : {})
+    .keeps({ ["nor-mask-v1:" + path.basename(image)]: JSON.stringify(MASKED) });
+  const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
-  await ctx.addInitScript(([k, m]) => localStorage.setItem(k, JSON.stringify(m)), ["nor-mask-v1:" + path.basename(image), MASKED]);
   await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
+  const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
@@ -427,8 +426,7 @@ await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await lege
 await page.close();
 
 // ---- a Review study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
-stage = "Review";
-page = await open();
+page = await open("Review");
 await check(await shown(page, "#summary-box") && !(await shown(page, "#tasks-box")) && !(await shown(page, "#switch")) && await shown(page, "#show-menu"),
   "a Review study has its summary and its Show menu, no tasks and no switch to an item view");
 await check(await page.evaluate(() => !!document.querySelector("#overlay .mask-marks .edge")), "the summary's mask is drawn with the summary");

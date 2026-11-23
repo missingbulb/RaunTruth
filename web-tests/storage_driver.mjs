@@ -11,31 +11,20 @@
 // Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/storage_driver.mjs [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
-import { cutShort } from "./page_errors.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { studies as studiesOf } from "./fakes/studies.mjs";
-import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// NoR Finder's own folder, which its dialog lists
-const ROOT = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root.split("/").pop();
-// two images in a folder; their bytes need only be a real picture, which the worker never reads
-const PNG = noisePng();
-const DRIVE = [{ id: "acmeimage00000000001", name: "acme one.png" }, { id: "acmeimage00000000002", name: "acme two.png" }];
-// a subfolder, listed after the images, holding an image named as the first one
-const SUB = { id: "acmefolder0000000002", name: "sub" }, TWIN = { id: "acmeimage00000000003", name: "acme one.png" };
 const OWN_PACKAGE = "acmepkg";
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
@@ -49,7 +38,6 @@ let failed = false;
 const PIC = "data:image/jpeg;base64," + "A".repeat(4000);
 const SEED = {
   "nor-theme": "dark",
-  "nor-drive-link": JSON.stringify(`https://drive.google.com/drive/folders/${ROOT}`),
   "nor-load-source": JSON.stringify("drive"),
   "nor-filter-settings-v1": JSON.stringify({ values: { min_len: 3 }, off: [] }),
   "nor-marks-v1:slide 1.tif|ridge": JSON.stringify({ "10,20": "in" }),
@@ -69,42 +57,33 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
   .map((d) => JSON.parse(fs.readFileSync(path.join(repo, "studies", d, "study.json")))).filter((m) => m.visibility === "listed" && m.id !== "shelves")
   .map((m) => ({ id: m.id, title: m.title })).sort((a, b) => a.title.localeCompare(b.title)));
 
-// a context with what a browser that has used the page keeps, opened at NoR Finder; seed: more browser keys kept
-// before the page opens; refusing: the thumbnails' cache takes nothing, as a full one, each refusal counted in
+const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
+// NoR Finder with a package of its own, which no other study names
+w.studies.edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
+// the deploy with a Google key
+w.site.withoutGoogleClient();
+// NoR Finder's own folder, which its dialog lists: two images, whose bytes need only be a real picture, which the
+// worker never reads; and a subfolder, listed after the images, holding an image named as the first one
+const nor = w.studyFolder("nor"), at = { createdTime: "2026-10-01T10:00:00Z" };
+const DRIVE = ["acme one.png", "acme two.png"].map((name) => nor.holds(image.png(name), at));
+const TWIN = nor.folder("sub").holds(image.png("acme one.png"), at);
+
+// a device of its own with what a browser that has used the page keeps, opened at NoR Finder; seed: more browser keys
+// kept before the page opens; refusing: the thumbnails' cache takes nothing, as a full one, each refusal counted in
 // window.thumbsRefused
 async function start({ seed = {}, refusing = false } = {}) {
-  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-  // NoR Finder with a package of its own, which no other study names
-  studiesOf(ctx).edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
-  // the deploy with a Google key
-  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-  // the Drive fake's folder: the two images, and the subfolder holding the first one's twin
-  const drive = googleDrive(ctx);
-  for (const f of DRIVE) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-  drive.folder({ ...SUB, parent: ROOT });
-  drive.file({ ...TWIN, parent: SUB.id, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+  const device = w.device().kept().remembersDriveLink(nor).keeps({ ...SEED, ...seed }), ctx = await device.context();
   // jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
   cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
   for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");
-  await ctx.addInitScript((seed) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-  }, { ...SEED, ...seed });
   if (refusing) await ctx.addInitScript(() => {
     const open = CacheStorage.prototype.open;
     window.thumbsRefused = 0;
     CacheStorage.prototype.open = function (name) { return name === "nor-thumbs-v1" ? (window.thumbsRefused++, Promise.reject(new Error("no room"))) : open.call(this, name); };
   });
-  const page = await ctx.newPage();
-  page.on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
-  await page.waitForFunction(() => $("#title").textContent);
-  return { ctx, page, drive };
+  return { device, page: await device.opens("nor", { until: "title" }) };
 }
-const { ctx, page, drive } = await start();
+const { device, page } = await start();
 // how often each image was downloaded from Drive
 const downloads = new Proxy({}, { get: (_, id) => drive.calls.filter((c) => c.kind === "download" && c.id === id).length });
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
@@ -291,7 +270,7 @@ try {
   {
     const seeded = await start({ seed: { "nor-drive-autosave": autosaved } });
     check(!(await autosave(undefined, seeded.page))[0], "a page opened with it kept off shows it unticked in Settings");
-    await seeded.ctx.close();
+    await seeded.device.close();
   }
   await drive();
   await openRow(2);
@@ -363,7 +342,7 @@ try {
     await until(refused.page, (n) => window.thumbsRefused >= n, LEGACY.length);
     stayed = await legacyKeys(refused.page);
     check(LEGACY.every((id) => ("nor-drive-thumb:" + id) in stayed) && "nor-drive-thumb-names" in stayed, `thumbnails the cache would not take stay in the settings' storage: ${Object.keys(stayed)}`);
-    await refused.ctx.close();
+    await refused.device.close();
   });
   const taken = await start({ seed: stayed });
   await orMissed(until(taken.page, async (ids) => {
@@ -376,11 +355,11 @@ try {
     return { name: decodeURIComponent((await of("L1"))?.headers.get("x-nor-name") || ""), type: (await of("L2"))?.headers.get("content-type"), junk: !!(await of("L4")) };
   });
   const legacyLeft = Object.keys(await legacyKeys(taken.page));
-  await taken.ctx.close();
+  await taken.device.close();
   check(!legacyLeft.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}, left ${legacyLeft}`);
   check(!moved.junk, "what was kept there and is no picture is dropped, never moved");
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
-await ctx.close(); server.close();
+await device.close(); await browser.close(); server.close();
 process.exitCode = failed ? 1 : 0;

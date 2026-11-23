@@ -11,9 +11,9 @@ import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
 import { pw, launch, expecting } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -32,27 +32,18 @@ const { origin, server } = await serveSite({
   "/web/version_history.json": () => history,
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
 
 // a page whose browser last saw `seen` (null: never visited)
 async function open(seen, theme = "dark") {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript(([seen, theme]) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    localStorage.setItem("nor-theme", theme);
-    if (seen) localStorage.setItem("nor-seen-version", JSON.stringify(seen));
-  }, [seen, theme]);
-  await watchReads(ctx, ["version_history.json"]);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html");
+  const device = w.device().keeps({ "nor-theme": theme, ...(seen ? { "nor-seen-version": JSON.stringify(seen) } : {}) });
+  await watchReads(await device.context(), ["version_history.json"]);
+  const page = await device.opens(undefined, { until: "none" });
   await historyRead(page);
-  return { ctx, page };
+  return { ctx: await device.context(), page };
 }
 // the page loaded, and done with the version history: it reads the history, when it does, as it shows its version
 const historyRead = async (page) => {

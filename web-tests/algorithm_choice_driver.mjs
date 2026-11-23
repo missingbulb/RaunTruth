@@ -12,11 +12,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { tagger } from "./tagger.mjs";
 import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -36,20 +35,13 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
+let page = await w.device().signedInAs(tagger(w)).opens("fixture");
 
 const own = (rel) => JSON.parse(fs.readFileSync(path.join(repo, "studies", "fixture", rel), "utf8"));
 const [first, second] = own("web/algorithms.json"), listed = own("web/algorithm_metrics.json"), SCORING = listed.scoring;
@@ -76,9 +68,11 @@ await check(await page.evaluate(() => document.querySelector("#algorithm-stamp")
 
 // a study from Review on: its metrics carry a stamp for each version, and the score shows it (req/shell/processing/stamp)
 const STAMP = { version: first.key, dataset_sha256: "0123456789abcdef".repeat(4), frozen: "2026-11-23", commit: "c0ffee1234567890c0ffee1234567890c0ffee12" };
-await page.route("**/algorithm_metrics.json", (route) => route.fulfill({ contentType: "application/json",
+await page.context().close();
+const reviewed = w.device().signedInAs(tagger(w));
+(await reviewed.context()).route("**/algorithm_metrics.json", (route) => route.fulfill({ contentType: "application/json",
   body: JSON.stringify({ ...listed, versions: { ...listed.versions, [first.key]: { ...listed.versions[first.key], stamp: STAMP } } }) }));
-await page.reload();
+page = await reviewed.opens("fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready") && !document.querySelector("#algorithm").disabled);
 const stamped = () => page.evaluate(() => { const el = document.querySelector("#algorithm-stamp"); return el && { shown: !el.hidden, text: el.textContent, link: el.querySelector("a")?.href ?? null, outsideFold: !document.querySelector("#algorithm-about").contains(el) }; });
 let st = await stamped();
@@ -87,8 +81,8 @@ await check(st?.shown && st.outsideFold && st.text.includes("2026-11-23") && st.
 await check(st.link === `https://github.com/missingbulb/RaunTruth/commit/${STAMP.commit}`, "... and a link to the ground truth's commit on GitHub", st);
 await page.evaluate((k) => { const sel = document.querySelector("#algorithm"); sel.value = k; sel.dispatchEvent(new Event("change")); }, second.key);
 await check(!(await stamped())?.shown, "an algorithm with no stamped score shows none", await stamped());
-await page.unroute("**/algorithm_metrics.json");
-await page.reload();
+await reviewed.close();
+page = await w.device().signedInAs(tagger(w)).opens("fixture");
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready") && !document.querySelector("#algorithm").disabled);
 
 await page.setInputFiles("#file", image);

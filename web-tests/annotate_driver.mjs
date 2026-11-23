@@ -11,18 +11,19 @@ import { standIn } from "./stand_in_drive.mjs";
 import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
+import { storedDrafts, seedDrafts } from "./device_storage.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, second] = process.argv.slice(2);
-const { google, drive, ROOT, GT, studyFile, writes, viewOnly, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, google, drive, GT, studyFile, writes, viewOnly, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const OTHER = "someone@example.com", OWNER = "owner@acme.example";
 
 // the owner's extraction of IMAGE on Drive, marked GT in the study file, and the user's own, as the page's own saves are made
 const bytes = fs.readFileSync(image), sha = createHash("sha256").update(bytes).digest("hex");
-const sub = drive.folder({ mine: true, name: `${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, parent: GT.extractions }).id;
-const seed = async (who, marks, mine = false) => drive.file({ mine, name: await personFile(who), parent: sub,
+const sub = w.of(GT.extractions).folder(`${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, { bySite: true });
+const seed = async (who, marks, bySite = false) => sub.holds({ name: await personFile(who),
   bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: sha },
-    labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true })) });
+    labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true })) }, { bySite });
 const ownersFile = await seed(OWNER, [[12, 12], [55, 35]]), mineFile = await seed(OTHER, [[20, 20]], true);
 studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 
@@ -31,11 +32,6 @@ const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-loa
 const annotating = (page) => page.evaluate(() => document.documentElement.hasAttribute("data-annotating"));
 const model = (page) => page.evaluate(() => window.fixture?.model() ?? null);
 const loaded = (page, name) => page.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), name);
-const records = (page) => page.evaluate(() => new Promise((ok, bad) => {
-  const q = indexedDB.open("gt-drafts", 1);
-  q.onupgradeneeded = () => { q.transaction.abort(); ok([]); };
-  q.onsuccess = () => { const r = q.result.transaction("drafts").objectStore("drafts").getAll(); r.onsuccess = () => { q.result.close(); ok(r.result); }; r.onerror = () => bad(r.error); };
-}));
 // a question the page asks, answered as told; its text
 const ask = async (page, accept, act) => {
   const asked = page.waitForEvent("dialog");
@@ -102,15 +98,15 @@ await until(page, () => $("#gt-unsaved").hidden);
 await page.click("#fx-add"); await page.click("#fx-add");
 await until(page, () => window.fixture.model().marks.length >= 4);
 const before = writes.length;
-await check(await unsaved(page) === "· 2 unsaved" && (await records(page)).length === 1, "two actions are unsaved after the draft kept", await unsaved(page));
+await check(await unsaved(page) === "· 2 unsaved" && (await storedDrafts(page)).length === 1, "two actions are unsaved after the draft kept", await unsaved(page));
 let said = await ask(page, false, () => page.click("#annotate-clear"));
-await check(/2 unsaved actions/.test(said || "") && await annotating(page) && (await model(page)) !== null && (await records(page)).length === 1,
+await check(/2 unsaved actions/.test(said || "") && await annotating(page) && (await model(page)) !== null && (await storedDrafts(page)).length === 1,
   "Clear all annotations from image asks, naming the unsaved actions lost, and Cancel changes nothing", said);
 await ask(page, true, () => page.click("#annotate-clear"));
 await page.waitForFunction(() => !document.documentElement.hasAttribute("data-annotating") && window.fixture?.model() === null && !!window.shellForTests.page.get("image"));
 await check(!(await annotating(page)) && (await model(page)) === null && JSON.stringify(await choices(page)) === JSON.stringify(["Load annotation from Drive", "Start annotating from scratch"])
-  && (await records(page)).length === 0 && writes.length === before,
-  "accepted, the page is back just after loading, the device's draft is gone and Drive was not written", { choices: await choices(page), records: (await records(page)).length, writes: writes.length - before });
+  && (await storedDrafts(page)).length === 0 && writes.length === before,
+  "accepted, the page is back just after loading, the device's draft is gone and Drive was not written", { choices: await choices(page), records: (await storedDrafts(page)).length, writes: writes.length - before });
 await page.context().close();
 
 // ---- the device holds a draft: Continue local annotation work, only on that image
@@ -121,8 +117,10 @@ await counted(page);
 await page.click("#fx-add"); await page.click("#fx-add");
 await page.click("#gt-save-draft");
 await until(page, () => $("#gt-unsaved").hidden);
-await page.reload();
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+const drafts = await storedDrafts(page);
+await check(drafts.length === 1 && drafts[0].sha256 === sha, "Save draft keeps the image's draft on the device", drafts.map((d) => d.sha256));
+await page.context().close();
+page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await seedDrafts(ctx, drafts); } });
 await opened(page);
 await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done" && document.querySelector("#annotate-local").checkVisibility());
 await check(JSON.stringify(await choices(page)) === JSON.stringify(["Continue local annotation work", "Load annotation from Drive", "Start annotating from scratch"]),
@@ -147,7 +145,7 @@ await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-export").disabled)
 await check(await page.evaluate(() => $("#gt-send").hidden), "its dialog offers the download alone");
 await page.click("#gt-close");
 await page.context().close();
-viewOnly.add(GT.extractions);
+w.of(GT.extractions).viewableOnly();
 page = await open(true, { email: OTHER, prepare: standInDrive });
 await opened(page);
 await scratch(page);

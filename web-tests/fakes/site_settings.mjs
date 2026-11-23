@@ -3,6 +3,8 @@
 // set for itself.
 //   siteSettings(ctx).env = { GOOGLE_API_KEY, GOOGLE_CLIENT_ID };   the deploy's variables; unset, or with no key, the
 //     committed config.js, as a deploy with no key keeps it
+//   siteSettings(ctx).withGoogle();          deployed with a Google key and client; withoutGoogleClient(): a key alone,
+//     so the page offers no sign-in
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +24,12 @@ const fakes = new WeakMap();
 export const siteSettings = (ctx) => fakes.get(ctx);
 
 // a browser's deploy, made on first need
-export const settingsIn = (world) => (world.settings ||= { env: null });
+export const CLIENT_ID = "acme-client.apps.googleusercontent.com";
+export const settingsIn = (world) => (world.settings ||= {
+  env: null,
+  withGoogle() { this.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: CLIENT_ID }; },
+  withoutGoogleClient() { this.env = { GOOGLE_API_KEY: "stand-in", GOOGLE_CLIENT_ID: "" }; },
+});
 
 export async function fakeSiteSettings(ctx, world, outside) {
   // the context's own, reading the browser's until it sets its own

@@ -42,16 +42,13 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
   const d = world.drive;
   const s = await standIn({ answers: prepared.answers, studies: prepared.studies, rootDir: prepared.rootDir, gt: d.gt !== false,
     members: d.access === "private" ? d.members || [] : undefined, pageError });
-  const { drive, google } = s;
-  s.writers.clear();
-  for (const w of d.writers || []) s.writers.add(w);
-  if (d.gt !== false) {
-    if (d.extractionsWriters) drive.writers.set(s.GT.extractions, new Set(d.extractionsWriters));
-  }
+  const { drive, google, w, root } = s;
+  root.writableOnlyBy(...(d.writers || []));
+  if (d.gt !== false && d.extractionsWriters) w.of(s.GT.extractions).writableOnlyBy(...d.extractionsWriters);
   // the study's settings file, as the page makes it when the study is set up: the site's own, which it may replace
   for (const f of drive.files) if (/^rauntruth-/.test(f.name)) f.mine = true;
   const account = world.user || world.signIn?.account;
-  if (account) google.account = { sub: "2001", name: account.name, email: account.email, picture: null };
+  if (account) w.user(account.email).named(account.name);
   google.answer = world.signIn?.answer || "grant";
   const seed = { ...(world.seed || {}) };
   const page = await s.open(!!world.user, {
@@ -75,7 +72,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     online: { when: (v) => v.online === false, run: () => ctx.setOffline(false) },
     // a page opened while offline is the service worker's to answer, which the stand-in Google turns off: the walk
     // goes to another page online alone
-    reload: { when: (v) => v.online !== false, run: () => page.reload() },
+    reload: { when: (v) => v.online !== false, run: () => page.reload() }, // visits again on purpose (a reload is the subject): a person reloading is one of the walk's steps
     // back to the page before, never past the first one the walk opened, the browser's blank one
     back: { when: (v) => v.online !== false, run: async () => {
       await page.goBack();
@@ -90,24 +87,22 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     googleAnswers: { when: () => true, run: (n) => { google.answer = ["grant", "deny", "closed", "blocked"][n % 4]; return google.answer; } },
     driveAdded: { when: () => folders().length > 0, run: (n) => {
       const f = folders()[n % folders().length];
-      drive.file({ name: `scan ${++made} added elsewhere.png`, parent: f.id, bytes: png });
+      w.of(f).holds({ name: `scan ${++made} added elsewhere.png`, bytes: png });
       return f.name;
     } },
     driveRemoved: { when: () => theirs().length > 0, run: (n) => {
       const f = theirs()[n % theirs().length];
-      drive.files.splice(drive.files.indexOf(f), 1);
+      w.removeFile(f);
       return f.name;
     } },
     driveRenamed: { when: () => theirs().length > 0, run: (n) => {
       const f = theirs()[n % theirs().length], was = f.name;
-      f.name = "renamed " + f.name; f.modified = drive.tick();
+      w.renameFile(f, "renamed " + f.name);
       return was;
     } },
     // the owner stops sharing the study's folder with this person
-    accessRemoved: { when: () => !!world.user && (drive.readers.get(s.ROOT)?.has(world.user.email) || s.writers.has(world.user.email)), run: () => {
-      drive.readers.get(s.ROOT)?.delete(world.user.email);
-      s.writers.delete(world.user.email);
-    } },
+    accessRemoved: { when: () => !!world.user && (drive.readers.get(s.ROOT)?.has(world.user.email) || !!drive.writers.get(s.ROOT)?.has(world.user.email)),
+      run: () => { root.unsharedWith(world.user.email); } },
     switchStudy: { when: (v) => v.online !== false, run: (n) => {
       const to = world.switchTo || ["viewer", "nor", world.study];
       return page.goto(s.origin + (world.page === "setup" ? "/web/setup?study=" : "/web/") + to[n % to.length]).then(() => to[n % to.length]);

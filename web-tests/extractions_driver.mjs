@@ -14,18 +14,18 @@ import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, second] = process.argv.slice(2);
-const { drive, GT, studyFile, writes, keptForever, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
+const { w, drive, GT, studyFile, writes, keptForever, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
 const ME = "someone@example.com", YAEL = "yael@lab.org";
 
 const shaOf = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const subName = (file) => `${path.basename(file).replace(/\.[^.]*$/, "")}__${shaOf(file).slice(0, 8)}`;
-const sub = drive.folder({ mine: true, name: subName(image), parent: GT.extractions }).id;
+const sub = w.of(GT.extractions).folder(subName(image), { bySite: true });
 const doc = (who, marks) => JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: shaOf(image) },
   labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true });
 // the user's own extraction of IMAGE, another person's and a batch run's
-const mine = drive.file({ mine: true, name: await personFile(ME), parent: sub, bytes: Buffer.from(doc(ME, [[20, 20]])) });
-const yael = drive.file({ name: await personFile(YAEL), parent: sub, bytes: Buffer.from(doc(YAEL, [[12, 12], [55, 35]])) });
-const batch = drive.file({ name: "run_count__0.1.2.json", parent: sub, bytes: Buffer.from(doc(null, [[30, 30]])) });
+const mine = sub.holds({ name: await personFile(ME), bytes: Buffer.from(doc(ME, [[20, 20]])) }, { bySite: true });
+const yael = sub.holds({ name: await personFile(YAEL), bytes: Buffer.from(doc(YAEL, [[12, 12], [55, 35]])) });
+const batch = sub.holds({ name: "run_count__0.1.2.json", bytes: Buffer.from(doc(null, [[30, 30]])) });
 const yaelBytes = Buffer.from(yael.bytes);
 studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL } } } });
 

@@ -10,14 +10,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
-import { storedDrafts, seedDrafts, seedKeys } from "../../../web-tests/device_storage.mjs";
+import { world } from "../../../web-tests/world.mjs";
+import { storedDrafts } from "../../../web-tests/device_storage.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
@@ -26,22 +25,15 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK_PX];
 const site = await serve(studies, model);
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, site.origin);
 atStage(browser, "Develop");
 let failed = false;
-let ctx, page;
-// a page of a context of its own, ready; drafts, keys: what the device keeps before it opens
+let device, page;
+// a page of a device of its own, ready; drafts, keys: what the device keeps before it opens
 async function open({ drafts = [], keys = {} } = {}) {
-  ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-  await asTagger(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await standInDrive(ctx);
-  await seedDrafts(ctx, drafts);
-  await seedKeys(ctx, keys);
-  page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
+  await standInDrive(await device.context());
+  page = await device.opens("vascular");
 }
 
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -138,7 +130,7 @@ try {
   const drafts = await storedDrafts(page), { history: filed, ...file } = out;
   check(drafts.length === 1 && drafts[0].study === "vascular" && drafts[0].name === stack.name && JSON.stringify(drafts[0].model) === JSON.stringify(file)
     && JSON.stringify(drafts[0].log) === JSON.stringify(filed.actions), `Save Draft stores the stack's draft on the device: the model and the log of the file: ${JSON.stringify(drafts.map((d) => [d.study, d.name, d.log.length]))}`);
-  await ctx.close();
+  await device.close();
   await open({ drafts });
   await opened();
   await page.waitForFunction(() => !$("#gt-offers").hidden);
@@ -153,7 +145,7 @@ try {
   const key = oldKey(meta);
   const candidate = run.edges.findIndex((e) => e.state === "candidate");
   const earlier = { ...run, edges: run.edges.map((e, k) => (k === candidate ? { ...e, state: "accepted" } : e)) };
-  await ctx.close();
+  await device.close();
   await open({ drafts, keys: { [key]: JSON.stringify({ edits: 2, model: earlier }) } });
   await opened();
   await execute();

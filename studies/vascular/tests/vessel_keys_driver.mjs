@@ -13,33 +13,27 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 const site = await serve(studies, model);
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, site.origin);
 let failed = false;
 // the page at a stage, the stack opened and the algorithm run; where the study asks how to get annotations (its GT stage),
 // from scratch chosen: the view toggles are tried in a published study, which is only viewed, and the keys of the walk in a GT one
-let ctx, page;
+atStage(browser, "Develop");
+let device, page;
 async function begin(stage) {
-  atStage(browser, stage);
-  ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D });
-  await asTagger(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await standInDrive(ctx);
-  page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  device = taggersDevice(w).with({ ...SOFTWARE_3D }).withStudy("vascular", { stage });
+  await standInDrive(await device.context());
+  page = await device.opens("vascular");
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await annotateIfAsked(page, "#vm-run");
@@ -159,7 +153,7 @@ try {
   await page.click("#key-swap span:first-child");
   check(half2 === "widths" && half2again === "widths" && (await mode()) === "overlay", `each half of the legend's 3D | 2D shows its own view: ${half2} ${half2again} → ${await mode()}`);
 
-  await ctx.close();
+  await device.close();
   await begin("Develop");
   await page.waitForFunction(() => window.vascular.tasks().key);
   // annotating, a junction to judge: its verdicts, Skip, the widths look, the views and Panning; Area is right still off

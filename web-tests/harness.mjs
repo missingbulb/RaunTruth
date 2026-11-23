@@ -303,14 +303,17 @@ export async function launch(pw, options = {}) {
 // a browser's Google, before any of its contexts opens: {drive, signIn}, the fakes' own (fakes/google_drive.mjs,
 // fakes/google_sign_in.mjs)
 const worlds = new WeakMap();
+// the outside systems' state a browser's contexts share (world.mjs says it in a test's terms)
+export const worldOf = (browser) => worlds.get(browser);
 export const googleOf = (browser) => ({ drive: driveIn(worlds.get(browser)), signIn: signInIn(worlds.get(browser)) });
 export const siteOf = (browser) => ({ settings: settingsIn(worlds.get(browser)), studies: studiesIn(worlds.get(browser)) });
 
 // Playwright's WebKit empties the cache storage of a throwaway context on every reload, where Safari keeps it, so a
-// test of what the page keeps on this device needs a profile of its own
-export const keptContext = async (pw, options) => {
+// test of what the page keeps on this device needs a profile of its own; world: the outside systems it shares, a world
+// of its own unless given one (world.mjs gives its own)
+export const keptContext = async (pw, options, world = {}) => {
   const outside = await opening();
-  return install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...launching(options), ...outside.contextOptions }), {}, outside);
+  return install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...launching(options), ...outside.contextOptions }), world, outside);
 };
 
 // What the browser and the page say of a request the network does not carry, offline: the browser's line for the
