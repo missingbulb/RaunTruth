@@ -1,6 +1,6 @@
 // req/shell/dialogs/focus-returns: when a modal dialog or a menu closes, the keyboard goes back to the control that
 // opened it; where that control is gone or hidden by then, to the one that leads back to it.
-const SINCE_CLICK_MS = 1000;
+const SINCE_CLICK_MS = 1000, REDRAW_MS = 1500, FOCUS_KEPT = 30;
 const PRESSABLE = "button, a, summary, input, select, [role=button], [role=menuitem], [role=tab]";
 
 // what finds an element again once a redraw has replaced it: its place among the look-alikes under its nearest
@@ -24,7 +24,8 @@ function target(opener) {
 }
 
 export function focusReturn() {
-  let pressed = null, at = 0, last = null;
+  let pressed = null, at = 0;
+  const focused = [];
   const openers = new WeakMap();
 
   document.addEventListener("click", (e) => {
@@ -33,15 +34,16 @@ export function focusReturn() {
     at = performance.now();
   }, true);
   document.addEventListener("focusin", (e) => {
-    if (!e.target.closest?.("dialog:modal")) last = { el: e.target, trace: trace(e.target) };
+    focused.push({ el: e.target, trace: trace(e.target) });
+    if (focused.length > FOCUS_KEPT) focused.shift();
   });
 
   new MutationObserver((changes) => {
     for (const c of changes) {
       const d = c.target;
       if (d.localName !== "dialog" || c.oldValue !== null || !d.open || !d.matches(":modal")) continue;
-      const from = pressed && !d.contains(pressed.el) && performance.now() - at <= SINCE_CLICK_MS ? pressed : last;
-      if (from && !d.contains(from.el)) openers.set(d, from);
+      const from = pressed && !d.contains(pressed.el) && performance.now() - at <= SINCE_CLICK_MS ? pressed : focused.findLast((f) => !d.contains(f.el));
+      if (from) openers.set(d, from);
       pressed = null;
     }
   }).observe(document.body, { subtree: true, attributeFilter: ["open"], attributeOldValue: true });
@@ -50,9 +52,13 @@ export function focusReturn() {
   document.addEventListener("close", (e) => {
     const from = openers.get(e.target);
     openers.delete(e.target);
+    if (!from) return;
     const now = document.activeElement;
-    if (!from || (now && now !== document.body && !e.target.contains(now))) return;
-    target(from)?.focus();
+    if (!now || now === document.body || e.target.contains(now)) target(from)?.focus();
+    // the opener's own list may redraw once the dialog's owner has heard it close: while that settles, a focus the redraw drops is put back
+    const watch = new MutationObserver(() => { if (!document.activeElement || document.activeElement === document.body) target(from)?.focus(); });
+    watch.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => watch.disconnect(), REDRAW_MS);
   }, true);
 
   // a menu closing with the keyboard inside it, by Escape or a choice, leaves it on the menu's own button
