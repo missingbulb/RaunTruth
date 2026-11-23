@@ -20,7 +20,7 @@ import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
-const { FILES, GT, drive, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
+const { w, FILES, GT, drive, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 const [part, parts] = shard.split("/").map(Number);
 const paths = [...every.entries()].filter(([k]) => k % parts === part);
@@ -101,8 +101,7 @@ const ACTIONS = {
     const { name, sha } = await page.evaluate(() => ({ name: st.fileName, sha: st.sha }));
     const sub = `${name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
     if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.extractions)) {
-      const f = drive.folder({ name: sub, parent: GT.extractions });
-      const file = drive.file({ name: await personFile("owner@acme.example"), parent: f.id, bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
+      const file = w.of(GT.extractions).folder(sub).holds({ name: await personFile("owner@acme.example"), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
         labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
       studyFile({ marks: { [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
     }
