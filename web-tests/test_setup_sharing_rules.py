@@ -36,7 +36,14 @@ def test_every_stage_wants_the_data_previews_and_study_file_readable_by_link(out
 def test_someone_may_write_the_extractions_folder_only_while_the_stage_lets_people_annotate(out):
     assert out['noWriter'] == {'Setup': [['extractions', 'ask']], 'Develop': [['extractions', 'ask']], 'Analyze': [['extractions', 'ask']],
                                'Review': [], 'Public': []}
-    assert out['linkWriterIsWriter'] == []
+    assert out['ownerIsWriter'] == []
+
+
+def test_an_anyone_with_the_link_edit_permission_is_wrong_sharing_to_correct_and_not_a_writer(out):
+    assert out['linkEditIsWrong'] == [['extractions', 'unshare']]
+    assert out['linkEditNamesItsPermission'] == 'anyoneWithLink'
+    assert out['linkEditOnlyIsNoWriter'] == [['extractions', 'unshare'], ['extractions', 'ask']]
+    assert out['linkEditElsewhere'] == [['root', 'unshare'], ['data', 'unshare']]
 
 
 def test_a_sharing_the_account_cannot_read_is_a_correction_with_nothing_to_fix_and_an_absent_item_is_skipped(out):

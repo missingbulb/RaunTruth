@@ -27,6 +27,7 @@ const WHY = {
   link: "From Review on the study opens by its address, so its root is shared by link.",
   linked: "Visitors and the lab read it with no sign-in, so it is shared by link.",
   writer: "In this stage people annotate: someone must be able to add files to the extractions folder.",
+  linkEdit: "Anyone with the link may edit it, which no stage allows; a link that only reads is offered once this is off.",
   unread: "This account may not read its sharing from here, so the page cannot check it.",
 };
 
@@ -44,7 +45,9 @@ export function corrections(stage, items, sharing) {
       if (rule.root === "named" && anyone) add("unshare", "Make it shared with named people only", WHY.named, "named", anyone.id);
       if (rule.root === "link" && !anyone) add("share", "Share the root by link", WHY.link, "link");
     } else if (BY_LINK.includes(it.kind) && !anyone) add("share", "Share it by link", WHY.linked, "link");
-    if (it.kind === "extractions" && rule.annotating && !it.perms.some((p) => WRITES.includes(p.role))) {
+    const wide = it.perms.find((p) => p.type === "anyone" && WRITES.includes(p.role));
+    if (wide && !(it.kind === "root" && rule.root === "named")) { add("unshare", "Take off the link's edit access", WHY.linkEdit, "named", wide.id); out[out.length - 1].edit = true; }
+    if (it.kind === "extractions" && rule.annotating && !it.perms.some((p) => p.type !== "anyone" && WRITES.includes(p.role))) {
       add("ask", "Share it with someone who may edit it", WHY.writer, "editor");
     }
   }
@@ -73,7 +76,7 @@ export function people(items) {
 
 const CONFIRM = {
   share: (c) => `${c.label} will be shared with anyone with the link, to view.`,
-  unshare: (c) => `Anyone with the link will no longer open ${c.label.toLowerCase()}; the people named on it keep their access.`,
+  unshare: (c) => c.edit ? `Anyone with the link will no longer edit ${c.label.toLowerCase()}; the people named on it keep their access.` : `Anyone with the link will no longer open ${c.label.toLowerCase()}; the people named on it keep their access.`,
 };
 
 // ctx: what the shell lends it, named below where it is used

@@ -2235,9 +2235,10 @@ nobody has decided: what the page does there is not a requirement yet.
   dialog; one the site can make has a **Fix** button, which asks to confirm what will change, makes that one change
   and checks again; Cancel writes nothing. Nothing else changes sharing: not opening the page, not a promotion, not
   Check again. Where Drive refuses the change (403), that correction drops its Fix, keeps its link and picture, and
-  says to change it there. Tentative: a correction for an item whose sharing this account may not read has no Fix,
-  only the link; the owner of the extractions folder counts as someone who may write it; a person with an
-  `anyone`-with-the-link edit permission on it counts too. Test: `web-tests/test_setup_sharing_page.py` (the fake
+  says to change it there. A correction for an item whose sharing this account may not read has no Fix,
+  only the link; the owner of the extractions folder counts as someone who may write it; an `anyone`-with-the-link edit
+  permission on an item is wrong sharing, not a writer: it has its own correction, whose Fix (after its confirmation, like any other)
+  takes off that one permission, and a link that only reads is then offered by its own correction (owner, 2026-11-23). Test: `web-tests/test_setup_sharing_page.py` (the fake
   Drive's permissions seeded per case, each rule, Fix, Cancel, Drive refusing), `web-tests/test_setup_sharing_rules.py`
   (the rules per stage).
   </details>
