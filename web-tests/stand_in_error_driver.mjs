@@ -4,6 +4,7 @@
 // 2 when it cannot run.
 //   node web-tests/stand_in_error_driver.mjs ANSWERS STUDIES ROOT TWO_CHANNELS.tif
 import { standIn } from "./stand_in_drive.mjs";
+import { expecting } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, rootDir, image] = process.argv.slice(2);
@@ -13,9 +14,11 @@ const { open, check, done } = drive;
 const page = await open(true, { id: "nor" });
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Image loaded"));
-await page.click("#sb-find");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Error:"), null, { timeout: STEP });
-await page.waitForFunction(() => !document.querySelector("#sb-find").classList.contains("working"), null, { timeout: STEP });
+await expecting(/Traceback|3-channel/, async () => {
+  await page.click("#sb-find");
+  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Error:"), null, { timeout: STEP });
+  await page.waitForFunction(() => !document.querySelector("#sb-find").classList.contains("working"), null, { timeout: STEP });
+});
 await check(/3-channel/.test(await page.textContent("#status")), "Python's failure on the image is said on the status line", await page.textContent("#status"));
 await check(!errors.length, "... and nothing went uncaught", errors);
 await check(!(await page.evaluate(() => document.querySelector("#sb-find").classList.contains("working"))), "... and the run's button is not left held");
