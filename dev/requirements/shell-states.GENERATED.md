@@ -178,7 +178,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -420,7 +420,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -662,7 +662,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? | ? | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ | ○ | ◐ | ◐ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
@@ -904,7 +904,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -1146,7 +1146,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -1388,7 +1388,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -1630,7 +1630,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● |
@@ -1872,7 +1872,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ? | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ○ |
@@ -2114,7 +2114,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ? | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ○ |
@@ -2356,7 +2356,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ◐ | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -2598,7 +2598,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ● | ● | ● |
@@ -2840,7 +2840,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ◐ | ◐ |
@@ -3082,7 +3082,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ● | ● |
@@ -3324,7 +3324,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ |
@@ -3566,7 +3566,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ |
@@ -3808,7 +3808,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ |
@@ -4050,7 +4050,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ | ? | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ | ○ | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● | ● | ◐ |
@@ -4292,7 +4292,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● | ◐ |
@@ -4534,7 +4534,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● | ● |
@@ -4776,7 +4776,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ○ | ◐ | ◐ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ◐ | ◐ | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ◐ | ◐ | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ◐ | ◐ | ● | ◐ |
@@ -5018,7 +5018,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● | ● |
@@ -5260,7 +5260,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar gutter | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ◐ | ● |
@@ -6497,7 +6497,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? | ? | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ○ | ● |
@@ -6758,7 +6758,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Download Summary | ⊘ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ◐ | ◐ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |

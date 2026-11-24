@@ -834,14 +834,20 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 .channel.v3-slices .v3-steps { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
 .channel.v3-slices .v3-steps button { flex: 1; padding: 0 3px; border: 0; border-radius: 0; background: none; font-size: 8px; line-height: 1; color: var(--dim); cursor: pointer; }
 .channel.v3-slices .v3-steps button:hover { color: var(--text); background: var(--line); }
-/* colour by depth, a channel's own: an icon tick, stacked slices, beside the colour picker, which is a palette picker
-   while it is ticked */
-.channel .v3-pickers { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-.channel input.v3-tick { appearance: none; width: 18px; height: 18px; margin: 0; border: 0; cursor: pointer;
-  background: var(--dim); -webkit-mask: var(--layers) center / 14px no-repeat; mask: var(--layers) center / 14px no-repeat;
+/* colour by depth, a channel's own: a toggle button, stacked slices on it, beside the colour picker, which is a palette picker
+   while it is on; the pair as wide and as tall as the spacing under it, so the column's edges line up */
+.channel > .v3-pickers { display: flex; align-items: stretch; justify-self: stretch; gap: 4px; height: 22px; }
+.channel.v3-slices .v3-spin { box-sizing: border-box; height: 22px; }
+.channel .v3-pickers > :is(input[type=color], .v3-palette) { flex: 1; width: auto; min-width: 22px; height: auto; }
+.channel input.v3-tick { appearance: none; flex: none; display: grid; place-items: center; width: 24px; height: auto; margin: 0; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--r-chip); background: var(--panel); }
+.channel input.v3-tick::before { content: ""; width: 14px; height: 14px; background: var(--dim); -webkit-mask: var(--layers) center / 14px no-repeat; mask: var(--layers) center / 14px no-repeat;
   --layers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M8 1.5 14.5 5 8 8.5 1.5 5z'/%3E%3Cpath d='M1.5 8 8 11.5 14.5 8'/%3E%3Cpath d='M1.5 11 8 14.5 14.5 11'/%3E%3C/svg%3E"); }
-.channel input.v3-tick:checked { background: var(--accent); }
-.channel input.v3-tick:hover, .channel input.v3-tick:focus-visible { background: var(--text); }
+.channel input.v3-tick:hover { border-color: var(--dim); }
+.channel input.v3-tick:hover::before { background: var(--text); }
+.channel input.v3-tick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.channel input.v3-tick:checked { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--bg); }
+.channel input.v3-tick:checked::before { background: var(--accent); }
 /* framed as the colour picker is, the palette in the swatch's place */
 .channel .v3-palette { flex: none; width: 22px; height: 15px; padding: 0; border: 3px solid; border-radius: 2px; cursor: pointer;
   border-color: color-mix(in srgb, var(--dim) 55%, #fff) color-mix(in srgb, var(--dim) 65%, #000) color-mix(in srgb, var(--dim) 65%, #000) color-mix(in srgb, var(--dim) 55%, #fff);

@@ -681,7 +681,7 @@
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"route": ["drive"], "annotating": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-                {"when": {"counted": [false]}, "is": "disabled"}
+                {"when": {"counted": [false]}, "is": "hidden"}
               ]
             },
             {"name": "Ruler", "select": "#ruler-btn", "control": true, "req": "req/shell/tools/ruler",

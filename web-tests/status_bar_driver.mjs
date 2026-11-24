@@ -575,7 +575,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
   await loadImage(page);
-  await switchIs(page, "Items", false, "the shell keeps the switch off until the study has counted its items");
+  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "the shell shows no switch until the study has counted its items");
   await count(page);
   await shines(page, []);
   await switchIs(page, "Items 1", true, "a Review study's item view shows what was found, how many");
