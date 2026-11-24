@@ -79,7 +79,7 @@ const ACTIONS = {
   // the study's first step: its button pressed, and the step done
   async count(page, first) {
     await page.click(first.button);
-    await page.waitForFunction((k) => /\nDone at /.test(document.querySelector(`#sb-${k}`)?.dataset.help ?? ""), first.key, { timeout: 60000 });
+    await page.waitForFunction((k) => shellForTests.steps.find((p) => p.key === k)?.done, first.key, { timeout: 60000 });
   },
   async items(page) {
     await page.click("#switch");

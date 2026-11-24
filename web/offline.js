@@ -65,6 +65,10 @@ export function offline({ $, esc, sizeText, remote, kept, keptIn, keep, throttle
     for (const el of document.querySelectorAll(NEEDS)) {
       if (off && el.dataset.onlineTitle === undefined) { el.dataset.onlineTitle = el.title; el.title = WHY; el.setAttribute("aria-disabled", "true"); }
       if (!off && el.dataset.onlineTitle !== undefined) { el.title = el.dataset.onlineTitle; delete el.dataset.onlineTitle; el.removeAttribute("aria-disabled"); }
+      // in the avatar's menu a held action carries the status bar's offline icon
+      const badge = el.querySelector(":scope > .offline-mark");
+      if (off && !badge && el.closest("#user-menu")) { const b = online.querySelector(".off").cloneNode(true); b.setAttribute("class", "offline-mark"); el.prepend(b); }
+      if (!off && badge) badge.remove();
     }
   };
   // what is drawn while offline says so too

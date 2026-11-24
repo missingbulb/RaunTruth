@@ -1,7 +1,7 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps whose button shines (step(key, done) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
 // submission; and around them the theme, the left bar, foldable boxes, the resources dialog (storage, memory,
 // network and CPU) and the version history. The page is the shell of two addresses: the study's own, and Study Setup
 // (setup.html, which loads setup.js, which attaches Data Management, data_mode.js, to the shell); the shell lends setup.js
@@ -636,15 +636,15 @@ const views = {
   },
 };
 $("#switch").onclick = () => views.show(views.now === "image" ? "items" : "image");
-// The study's steps, in order, in one state that the breadcrumbs and the shining buttons are drawn from:
-// [{key, name, button, done, info, at}]. Load image and Save are the shell's, the study's own come from its
+// The study's steps, in order, in one state that the shining button is drawn from (req/shell/steps):
+// [{key, name, button, done}]. Load image and Save are the shell's, the study's own come from its
 // study.json; the step to do now is the first not done.
 let steps = [], shone = [];
 const stepsWatch = new MutationObserver(() => drawSteps());
 function makeSteps() {
   steps = [{ key: "load", name: "Load image", button: loadButton() }, ...manifest.phases,
     ...(makesTruth() ? [{ key: "submit", name: "Save", button: "#gt-submit" }] : [])]
-    .map((p) => ({ ...p, done: false, info: "", at: null }));
+    .map((p) => ({ ...p, done: false }));
   // a step's button shines only while it can be pressed
   stepsWatch.disconnect();
   for (const p of steps) if (p.button && $(p.button)) {
@@ -654,45 +654,26 @@ function makeSteps() {
   drawSteps();
   tasks.stepped();
 }
-// a step done or not, and what was done in it (or how far it has got)
-function step(key, done, info) {
+// a step done or not
+function step(key, done) {
   const p = steps.find((x) => x.key === key);
   if (!p) return;
   if (done && !p.done) {
-    p.at = new Date(); log.add(`Step done: ${p.name}`);
+    log.add(`Step done: ${p.name}`);
     // the boxes follow what the user did, not a dial set back to the last run's
     if (key === "load" || !p.button || p.pressed) foldFor(key);
     p.pressed = false;
   }
   p.done = !!done;
-  if (info !== undefined) p.info = info;
   drawSteps();
   tasks.stepped();
 }
 function drawSteps() {
-  const now = steps.findIndex((p) => !p.done), shown = now < 0 ? steps : steps.slice(0, now + 1);
-  const when = (d) => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  $("#sb-steps").replaceChildren(...shown.map((p, k) => {
-    const c = document.createElement("span");
-    c.id = "sb-" + p.key; c.className = "crumb" + (k === now ? " now shine" : ""); c.textContent = p.name; c.tabIndex = 0;
-    c.dataset.help = (p.done ? `${p.info || "Done"}\nDone at ${when(p.at)}.` : p.info || "To do now.");
-    return c;
-  }));
+  const now = steps.findIndex((p) => !p.done);
   // the button lit last time may belong to no step now: the study switched, or the step's button changed
   for (const b of shone.splice(0)) b.classList.remove("shine");
   steps.forEach((p, k) => { const b = p.button && $(p.button); if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); } });
 }
-// the shining crumb leads to its button: the box it is in unfolds, it scrolls into view, and it is pressed
-function goToStep(e) {
-  const c = e.target.closest(".crumb.now"), p = c && steps.find((x) => "sb-" + x.key === c.id), b = p?.button && $(p.button);
-  if (!b || b.hidden) return;
-  if (b.closest("#items-view") && views.now !== "items") views.show("items");
-  b.closest(".box.foldable")?.classList.remove("folded");
-  b.scrollIntoView({ block: "nearest" });
-  if (!b.disabled) b.click();
-}
-$("#sb-steps").onclick = goToStep;
-$("#sb-steps").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToStep(e); } };
 
 // ---------- buttons whose action takes a while: disabled, with a small spinner, until the action is done ----------
 // the worker's next message of a kind ("opened", or "result:<action>"), or its error
@@ -890,7 +871,7 @@ function imageOpened(m) {
   showImage();
   boxDone($("#image-box"), loadedSummary());
   const from = remote.owns(st.source) ? remote.label : st.source?.kind === "preview" ? `its preview in ${remote.label}` : "this computer";
-  step("load", true, `${st.fileName}, ${m.meta.W} × ${m.meta.H} px, from ${from}`);
+  step("load", true);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
   status("Image loaded."); // the study's opened hook says what comes next, if anything
   summaryMasks.opened(); studyAreas(st.source); data.opened();
@@ -974,7 +955,7 @@ async function openNow(name, bytes, source) {
   if (annotating && !resume) { annotating = false; route = null; viewing = null; editBase = null; await restudy(false); }
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
-  for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
+  for (const p of steps) Object.assign(p, { done: false, pressed: false });
   drawSteps(); boxes().forEach((b) => summaries.delete(b)); retitle();
   // the file as it came, for Python at a Run (a copy is handed over then) and the problem report
   const kept = st.kept = { name, source, bytes };
@@ -1962,6 +1943,8 @@ async function storageTab(fresh) {
   $("#storage-total").textContent = `This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which Settings clears` +
     (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : ".");
 }
+// the menu's avatar lies over the header's: a click on it closes the menu, as one on the header's would
+$("#who-avatar").onclick = () => { $("#user-menu").open = false; };
 $("#manage-storage").onclick = () => { $("#user-menu").open = false; usage("storage"); };
 
 // the settings kept on this device only, the shell's and the study on show's, each {key, label, size}; who is signed
@@ -2163,7 +2146,7 @@ function submitTruth(gt) {
   $("#gt-export").onclick = async () => {
     saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
     $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
-    if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not saved`); next($("#gt-close")); }
+    if (send.disabled) { step("submit", true); next($("#gt-close")); }
   };
   send.onclick = async () => {
     send.disabled = true; $("#gt-msg").textContent = "Saving…";
@@ -2175,7 +2158,7 @@ function submitTruth(gt) {
       // a session begun before the owner froze the study saves still, and the extraction is said not to count (req/setup/promote)
       const late = frozen(await readStage({ fresh: true }));
       $("#gt-msg").textContent = `Saved to the study's extractions folder, as your annotation of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
-      step("submit", true, `Saved the annotation of ${st.fileName}`);
+      step("submit", true);
       log.add(late ? "Saved the annotation, after the freeze: not counted" : "Saved the annotation");
       next($("#gt-close"));
     } catch (e) {
@@ -2184,7 +2167,7 @@ function submitTruth(gt) {
         queueSave({ study: manifest.id, ...image, doc, base: editBase });
         if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
         $("#gt-msg").textContent = `${remote.label} could not be reached, so the annotation of ${st.fileName} waits on this device and goes with your next click online.`;
-        step("submit", true, `The annotation of ${st.fileName} waits to be saved`);
+        step("submit", true);
         log.add("The annotation waits to be saved");
         return next($("#gt-close"));
       }
@@ -2858,7 +2841,7 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; }, get steps() { return steps.map(({ key, name, done }) => ({ key, name, done })); } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);

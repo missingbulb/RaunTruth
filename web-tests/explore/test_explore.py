@@ -79,7 +79,7 @@ def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_screenshot_for_the_owner_has_two_device_pixels_to_a_css_pixel(tmp_path):
     from PIL import Image
-    run = explore(tmp_path, '--world', 'phone', '--seed', '1', '--steps', '12')
+    run = explore(tmp_path, '--world', 'phone', '--seed', '3', '--steps', '12')
     shots = [f['ownerShot'] for f in run['findings'] if f.get('ownerShot')]
     assert shots, run['findings']
     assert Image.open(tmp_path / shots[0]).size[0] == 2 * 390
@@ -144,7 +144,7 @@ def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp_path):
     run = replayed(tmp_path, 'annotator', [
-        {'kind': 'click', 'key': '#sb-load', 'text': 'Load image'},
+        {'kind': 'click', 'key': '#load-remote', 'text': ''},
         {'kind': 'click', 'key': '#remote-list > button:nth-of-type(4)', 'text': 'wide scan.png 3.4 MB'},
         {'kind': 'click', 'key': '#remote-open', 'text': 'Open'},
         {'kind': 'click', 'key': '#image-box > div:nth-of-type(1) > h2', 'text': 'wide scan.png'},

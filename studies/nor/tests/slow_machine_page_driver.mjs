@@ -19,6 +19,7 @@ import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
 import { pw, launch, expecting } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
+import { stepsOf } from "../../../web-tests/page_steps.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
 
 const [answers, image, shots] = process.argv.slice(2);
@@ -187,7 +188,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await page.waitForFunction(() => !!st.img || shellForTests.work.doing.includes("waiting for the study"), null, { timeout: 4 * LATE + 2000 });
   code.release();
   await idle(page, { timeout: 4 * LATE + 2000 });
-  const steps = await page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › "));
+  const steps = await stepsOf(page);
   await check(steps === "Load image › Run algorithm*" && await page.evaluate(() => !!st.img), `an image opened as the study came in is loaded, Run algorithm the step to do: ${steps}`);
   await device.close();
 }

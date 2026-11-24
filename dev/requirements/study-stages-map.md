@@ -177,7 +177,7 @@ Every requirement that names a stage, a role, Data Management or the root (most 
 `req/shell/data/folders`, `req/shell/data/damaged`, `req/shell/left-bar/shells`, `req/shell/ground-truth/folders`,
 `shell/ground-truth/curate`, `req/shell/data/tags`, `req/shell/data/hidden`,
 `req/shell/data/area-of-interest`, `req/shell/views/second`, `req/shell/study/switch-in-place`,
-`req/shell/status-bar`, `req/shell/status-bar/breadcrumbs`, `req/shell/report/bug`, `req/shell/report/action-log`,
+`req/shell/status-bar`, `req/shell/steps`, `req/shell/report/bug`, `req/shell/report/action-log`,
 `req/shell/python/one-call`, `req/shell/python/on-run`, `req/shell/offline/default`, `req/shell/header`,
 `shell/ground-truth/tagger-access`, `req/shell/ground-truth/save-draft`, `req/shell/ground-truth/draft-offer`,
 `req/shell/drive/renewal`, `req/shell/drive/dialog`, `req/shell/data/preview-images`,

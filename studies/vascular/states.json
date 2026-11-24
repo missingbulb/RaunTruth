@@ -104,13 +104,7 @@
     ]}
   ],
   "samples": "tests/state_samples.py",
-  "differ": {
-    "Save crumb": {"steady": "its Review step is still to do on every path",
-      "rule": [
-        {"is": "hidden", "approval": "tentative", "req": "req/shell/status-bar/breadcrumbs"}
-      ]
-    }
-  },
+  "differ": {},
   "roots": {
     "Public, signed out": {"stage": "Public", "signedIn": false},
     "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}

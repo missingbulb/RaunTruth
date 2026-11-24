@@ -846,19 +846,6 @@
     },
     {"name": "Status bar", "select": "#statusbar", "req": "req/shell/status-bar", "steady": "always shown",
       "children": [
-        {"name": "Breadcrumbs", "select": "#sb-steps", "req": "req/shell/status-bar/breadcrumbs",
-          "rule": [
-            {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
-          ],
-          "children": [
-            {"name": "Save crumb", "select": "#sb-submit", "made": "one crumb per step, by the shell", "req": "req/shell/status-bar/breadcrumbs",
-              "rule": [
-                {"when": {"makesTruth": [false]}, "is": "hidden"},
-                {"when": {"hasModel": [false]}, "is": "hidden"}
-              ]
-            }
-          ]
-        },
         {"name": "Now", "select": "#sb-now", "req": "req/shell/status-bar", "steady": "always shown",
           "children": [
             {"name": "Spinner", "select": "#spin", "req": "req/shell/waiting/visible", "steady": "turns only while something loads, never once the page has settled",

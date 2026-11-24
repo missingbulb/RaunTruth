@@ -188,7 +188,7 @@ try {
     stayed: !!window.stayed, path: location.pathname, title: document.title, h1: document.querySelector("#title").textContent,
     image: !document.querySelector("#stage").hidden && [document.querySelector("#base").width, document.querySelector("#base").height].join(),
     file: document.querySelector("#file-name").textContent, unload: !document.querySelector("#unload").hidden,
-    loaded: !document.querySelector("#sb-load")?.classList.contains("now"), fixture: !!document.querySelector("#fx-box, #fx-result"),
+    loaded: !!shellForTests.steps.find((p) => p.name === "Load image")?.done, fixture: !!document.querySelector("#fx-box, #fx-result"),
     css: [...document.querySelectorAll("link[rel=stylesheet]")].map((l) => l.getAttribute("href")).filter((h) => h.includes("studies/")),
     channels: [...document.querySelectorAll("#channels label")].map((l) => l.textContent).join(),
     noHelp: !document.querySelector("#channels .help"), icon: document.querySelector("#favicon").href,

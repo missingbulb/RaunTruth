@@ -37,14 +37,10 @@
     </div>
   </details>
   <span class="grow"></span>
-  <button id="theme" class="icon" title="Switch between dark and light" aria-label="Switch between dark and light">
-    <svg class="sun" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
-    <svg class="moon" viewBox="0 0 24 24" width="18" height="18"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
-  </button>
   <details class="menu" id="user-menu">
     <summary title="You, on this device" aria-label="You, on this device"><svg class="avatar" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="16"/><circle cx="16" cy="12.5" r="5.5"/><path d="M5.5 27a11 9 0 0 1 21 0"/></svg></summary>
     <div class="pop right">
-      <div class="who"><b id="who-name">You</b><span class="dim" id="who-where">On this device, not signed in</span></div>
+      <div class="who"><span class="who-text"><b id="who-name">You</b><span class="dim" id="who-where">On this device, not signed in</span></span><span id="who-avatar"></span></div>
       <button class="item" id="sign-in" type="button" data-needs-network hidden></button>
       <a class="item" id="open-setup" href="setup" data-needs-network hidden>Study Setup…</a>
       <button class="item" id="open-settings" type="button">Settings…</button>
@@ -54,6 +50,10 @@
       <div class="legal"><a href="../privacy">Privacy policy</a> · <a href="../terms">Terms</a> · <a href="../license">License</a></div>
     </div>
   </details>
+  <button id="theme" class="icon" title="Switch between dark and light" aria-label="Switch between dark and light">
+    <svg class="sun" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" width="18" height="18"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+  </button>
 </header>
 
 <div id="layout">
@@ -176,7 +176,6 @@
 </div>
 
 <footer id="statusbar">
-  <nav id="sb-steps" aria-label="Steps"></nav>
   <span id="sb-now"><span class="spin" id="spin"></span><span id="status">Starting…</span></span>
   <span class="grow"></span>
   <span id="sb-res" data-mode="auto">
@@ -279,12 +278,12 @@
 <dialog id="usage-dlg" aria-labelledby="usage-title">
   <form method="dialog">
     <h2 id="usage-title">Resource Usage</h2>
-    <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div><label class="res-mode"><input type="checkbox" id="res-mode"> Autohide</label></div>
+    <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div></div>
     <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
     <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>
-    <div class="dlg-row end"><span id="storage-msg" class="hint" data-for="storage"></span><span class="grow"></span><button id="storage-reload" type="button" data-for="storage" hidden>Reload the page</button><button value="close" class="primary">Close</button></div>
+    <div class="dlg-row end"><label class="res-mode"><input type="checkbox" id="res-mode"> Autohide in statusbar</label><span id="storage-msg" class="hint" data-for="storage"></span><span class="grow"></span><button id="storage-reload" type="button" data-for="storage" hidden>Reload the page</button><button value="close" class="primary">Close</button></div>
   </form>
 </dialog>
 <div id="tip" hidden></div>

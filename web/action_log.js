@@ -30,7 +30,7 @@ export function actionLog(store = localStorage) {
   // what the user does with the page's controls, by name, never what they type
   function watch(root = document) {
     root.addEventListener("click", (e) => {
-      const el = e.target.closest?.("button, a, summary, [role=tab], [role=menuitem], .crumb, canvas");
+      const el = e.target.closest?.("button, a, summary, [role=tab], [role=menuitem], canvas");
       if (!el) return;
       if (el.tagName === "CANVAS") return add("Clicked the image");
       add(`Clicked “${nameOf(el)}”${placeOf(el)}`);

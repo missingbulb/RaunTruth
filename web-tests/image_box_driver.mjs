@@ -18,6 +18,7 @@ import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { stepsOf } from "./page_steps.mjs";
 
 const [answers, image, studies, three, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -252,11 +253,11 @@ await page.waitForFunction(() => document.querySelector("#file-box").hidden && d
 const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage").hidden, empty: !document.querySelector("#empty").hidden,
   minimap: !!document.querySelector("#minimap").offsetParent, unload: !!document.querySelector("#unload").offsetParent, img: !!st.img,
   shine: document.querySelector("#load-main").classList.contains("shine"), done: document.querySelector("#load").classList.contains("done"),
-  crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent).join(), fx: document.querySelector("#fx-result").textContent,
+  fx: document.querySelector("#fx-result").textContent,
   overlay: document.querySelector("#overlay").children.length, status: document.querySelector("#status").textContent }));
 await check(await page.evaluate(() => document.querySelector("#file-name").textContent === ""), "with no image, the Image box names none (req/shell/load/button)");
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
-await check(clear.shine && !clear.done && clear.crumbs === "Load image", "Load shines again, and the steps start over", clear);
+await check(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
 await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true", "and the boxes on show fold as before any image");
 await check((await rows()).length === 0, "and no channel rows are left, with no image (req/shell/channels/rows)");

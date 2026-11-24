@@ -297,7 +297,7 @@ export function viewer(shell) {
     const body = box.querySelector(".mm-body");
     body.addEventListener("pointerdown", (e) => {
       const sc = $("#scroller"), was = [sc.scrollLeft, sc.scrollTop];
-      drag(body, e, { move: go, cancel: () => sc.scrollTo(...was) });
+      drag(body, e, { move: go, cancel: () => sc.scrollTo(...was), view: true });
       shell.showImage(); go(e);
     });
     $("#scroller").addEventListener("scroll", view);
@@ -393,7 +393,7 @@ export function viewer(shell) {
       const to = (ev) => { sc.scrollLeft = p.l - (ev.clientX - p.x); sc.scrollTop = p.t - (ev.clientY - p.y); };
       const over = () => sc.classList.remove("dragging");
       sc.classList.add("dragging"); $("#tip").hidden = true;
-      drag(sc, p.down, { move: to, drop: over, cancel: () => { over(); sc.scrollTo(p.l, p.t); } });
+      drag(sc, p.down, { move: to, drop: over, cancel: () => { over(); sc.scrollTo(p.l, p.t); }, view: true });
       to(e);
     });
     sc.addEventListener("pointerup", () => { if (!taken()) hooks.pick?.(press.c); press = null; });

@@ -137,6 +137,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     } else if (!pic && was.tagName === "IMG" && summary.dataset.anonymous) {
       was.outerHTML = summary.dataset.anonymous;
     }
+    $("#who-avatar").replaceChildren(summary.querySelector(".avatar").cloneNode(true));
     summary.title = summary.ariaLabel = user ? `${user.name}, signed in` : "You, on this device";
     changed();
   };

@@ -222,8 +222,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -465,8 +463,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -708,8 +704,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● | ● | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● | ● | ● | ● |
@@ -951,8 +945,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -1194,8 +1186,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -1437,8 +1427,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -1680,8 +1668,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -1923,8 +1909,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -2166,8 +2150,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -2409,8 +2391,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -2652,8 +2632,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● | ● |
@@ -2895,8 +2873,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● | ● | ● |
 | Status bar | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● |
@@ -3138,8 +3114,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● |
@@ -3381,8 +3355,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -3624,8 +3596,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -3867,8 +3837,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ● |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -4110,8 +4078,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ○ | ● | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● | ● |
@@ -4353,8 +4319,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● |
@@ -4596,8 +4560,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -4839,8 +4801,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ○ | ● | ● | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ⊘ | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● |
@@ -5082,8 +5042,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -5325,8 +5283,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ |
 | Status bar | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● |
@@ -5580,8 +5536,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -5835,8 +5789,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -6077,8 +6029,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● |
@@ -6319,8 +6269,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ● |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -6581,8 +6529,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● | ● | ● |
@@ -6843,8 +6789,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |
@@ -7073,8 +7017,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ |
 | Status bar | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● |
@@ -7303,8 +7245,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Grid or list | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Folder's images | ⊘ | ⊘ | ⊘ | ⊘ |
 | Status bar | ● | ● | ● | ● |
-| &nbsp;&nbsp;Breadcrumbs | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Save crumb | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;Now | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Spinner | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Status | ● | ● | ● | ● |

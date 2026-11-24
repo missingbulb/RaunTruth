@@ -259,6 +259,16 @@ try {
     check(/offline/i.test(await page.textContent("#net-total")), "whose total says the page is offline: " + (await page.textContent("#net-total")));
     await page.keyboard.press("Escape");
     check(await page.$eval("#study-request", (a) => a.getAttribute("aria-disabled") === "true" && /offline/i.test(a.title)), "Submit New Study Request is held, its tooltip saying why");
+    // the avatar's menu: a held action struck through in red beside the offline icon, not dimmed
+    await page.click("#user-menu summary");
+    const held = await page.$eval("#report-problem", (b) => { const c = getComputedStyle(b), m = b.querySelector(".offline-mark");
+      return { line: c.textDecorationLine, red: c.textDecorationColor !== c.color && c.textDecorationColor === getComputedStyle(document.querySelector("#sb-online .off")).color,
+        opacity: c.opacity, mark: !!m && m.getBoundingClientRect().width > 0 && m.innerHTML === document.querySelector("#sb-online .off").innerHTML, off: b.getAttribute("aria-disabled") }; });
+    check(held.line === "line-through" && held.red && held.opacity === "1" && held.mark && held.off === "true", "in the avatar's menu a held action is struck through in red, the offline icon beside it", held);
+    check(await page.$eval("#open-settings", (b) => getComputedStyle(b).textDecorationLine === "none" && !b.querySelector(".offline-mark")), "and one that needs no network is plain");
+    await shot(page, "menu-offline");
+    await page.click("#who-avatar");
+    check(!(await page.$eval("#user-menu", (m) => m.open)), "a click on the menu's avatar closes it");
     // a click on it opens nothing
     const popup = orMissed(page.waitForEvent("popup", { timeout: 1500 }));
     await page.evaluate(() => document.querySelector("#study-request").click());
@@ -316,6 +326,7 @@ try {
   check(!(await page.isVisible("#sb-online .off")), "back online, the online icon shows online again");
   check(!/offline/i.test(await page.getAttribute("#sb-net", "title")), "and the network's tooltip is its own again");
   check(await page.$eval("#study-request", (a) => !a.hasAttribute("aria-disabled")), "back online, Submit New Study Request is offered again");
+  check(await page.$eval("#report-problem", (b) => getComputedStyle(b).textDecorationLine === "none" && !b.querySelector(".offline-mark")), "and the menu's held action is plain again");
 
   // the network goes mid-session while the browser still says it is online (a dead Wi-Fi), the Drive dialog open on
   // the study's folder: the page notices by itself, and the dialog follows

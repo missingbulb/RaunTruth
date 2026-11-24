@@ -141,7 +141,7 @@ try {
   check(lines.effect === "non-scaling-stroke" && lines.width >= 2, "a book's outline keeps its screen width at any zoom, thick enough to see", lines);
   const drawn = await books(page);
   check(drawn.length === 3 && drawn.filter((c) => c.includes("cover")).length === 1, "Find books draws each book on the photo, the cover marked as one", drawn);
-  const found = () => page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
+  const found = () => page.evaluate(() => $("#status").textContent);
   check(await page.evaluate(() => window.textRuns) === 1 && !/without the text finder/.test(await found()),
     "Find books runs the text finder over Python's view of the photo and hands the finder its map", [await page.evaluate(() => window.textRuns), await found()]);
   check(await page.evaluate(() => tess.reads) === 6, "and reads every book's title in the same run, at both turns its shape allows", await page.evaluate(() => tess.reads));
@@ -208,8 +208,8 @@ try {
   await page.selectOption("#algorithm", "r5");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && $("#bs-list").children.length === 2);
-  check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && /^edge-only: 2 books found\n/.test(await found()),
-    "the edge-only finder runs without the text finder, and its step names it", [await page.evaluate(() => window.textRuns), await found()]);
+  check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && / edge-only: 2 books found;/.test(await found()),
+    "the edge-only finder runs without the text finder, and the status names it", [await page.evaluate(() => window.textRuns), await found()]);
   await page.context().close();
 
   // the text finder out of reach: the books are found without it, and Find says so
@@ -218,7 +218,7 @@ try {
     await page.click("#bs-find");
     await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   });
-  const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
+  const without = await page.evaluate(() => $("#status").textContent);
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
   await page.context().close();
 
@@ -616,7 +616,7 @@ try {
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books", "a book is added on a photo where no book was found yet", [await books(page), await rowsOf(page)]);
   check((await history(page)).join() === "Read a title again,Added a missed book,Ground truth from the photo alone, before Find books, no history,Image opened" && await unsaved(page) === 2,
     "the log starts from the photo alone, the book added and its reading the first GT actions", [await history(page), await unsaved(page)]);
-  check(!(await page.evaluate(() => [...document.querySelectorAll("[data-help]")].some((e) => /drafted/.test(e.dataset.help)))), "and no step says books were drafted");
+  check(!/drafted/.test(await page.evaluate(() => $("#status").textContent)), "and nothing says books were drafted");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   check((await books(page)).length === 4 && (await rowsOf(page))[0] === "0/4 Books" && (await history(page))[0] === "Algorithm ran: 3 books" && !(await history(page)).some((h) => /carry over/.test(h)),

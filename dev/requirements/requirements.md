@@ -340,7 +340,7 @@ nobody has decided: what the page does there is not a requirement yet.
   its image count is clicked, each with a small preview. In the mode the left bar keeps the Image box
   and hides the study's own drawers, its item view
   and the steps; Load vanishes in a puff, Unload in its line with it: choosing another image or folder
-  replaces the one open (set by the owner on 2026-11-04). The steps hidden are the status bar's breadcrumbs, with the item
+  replaces the one open (set by the owner on 2026-11-04). The steps hidden are the shining buttons, with the item
   view's switch and its tasks' bar (set by the owner on 2026-11-04). Set by the owner on
   2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, the avatar's Study Setup item is listed
   but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`); Study Setup opened
@@ -447,12 +447,13 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
   </details>
 
-- `req/shell/drag/hint` While anything is dragged, a label at the bottom center of the page says "Hit 'esc' to cancel".
+- `req/shell/drag/hint` While something is dragged that is not a plain change of view, a label at the bottom center of the page says "Hit 'esc' to cancel".
   <details>
 
   Set by the owner on 2026-11-16. It shows once the pointer pressed has moved, on every drag that Escape cancels
   (`req/shell/drag/escape`), and goes when the drag ends: released, cancelled or Escaped. A click that does not move
-  shows nothing. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
+  shows nothing. Set by the owner on 2026-11-24: a drag that only changes the view, the image's pan, the 3D view's turn
+  and pan, the minimap, shows no label, Escape cancelling it all the same. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
   </details>
 
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
@@ -929,7 +930,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the open one, its name in bold: the study puts what it needs under its row and beside its name (its item,
   Back and Skip, an area's check), and hears when the user clicks a task's name. The walk through the tasks
   stays each study's own (owner: a change of heart on how one study does its tasks must not move the others;
-  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Save crumb (`req/shell/status-bar/breadcrumbs`) presses
+  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Save crumb (`req/shell/steps`) presses
   the shell's Save. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
   `studies/nor/tests/test_truth_tasks_page.py`, the vascular study's vessel tasks test.
   </details>
@@ -947,7 +948,7 @@ nobody has decided: what the page does there is not a requirement yet.
   opens. Test: `web-tests/test_gt_drive_page.py`, `web-tests/test_annotate_mode_page.py`.
   </details>
 
-- `req/shell/header` A header with the logo, the study switcher and a dark/light switch (remembered).
+- `req/shell/header` A header with the logo, the study switcher, the user's avatar and, last, a dark/light switch (remembered).
   <details>
 
   GitHub's repository switcher, for studies: the study's icon (as in its list, below), its title and a solid caret form one 32 px
@@ -959,7 +960,10 @@ nobody has decided: what the page does there is not a requirement yet.
   header already names it, and only assistive tech is told which it is. Arrow
   keys move through the list, Enter opens the one marked, Escape closes it. Each entry is a link to
   the study's address (`req/shell/study/folder-and-address`), so a middle click opens it in a new tab. The header's spacing follows
-  GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Test: `web-tests/test_study_runs.py`.
+  GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Set by the owner on 2026-11-24: at the right the user's avatar
+  comes first and the dark/light switch last, at the edge. The avatar's menu opens over the avatar, and its top row
+  holds the avatar again, at the same place and the same size, beside the user's name and where they are signed in,
+  so the picture seems not to move as the menu opens. Test: `web-tests/test_study_runs.py`, `web-tests/test_account_page.py`.
   </details>
 
 - `req/shell/image/cellsens` An Olympus cellSens image, a `.vsi` and its `_<name>_` folder, is one image: one row in the Drive dialog, opened in 2D or 3D like any other.
@@ -1186,7 +1190,7 @@ nobody has decided: what the page does there is not a requirement yet.
   title opens or closes it. The first is the shell's Image box (the image selector or Load, the image's
   details, its channels, Unload): open until an image opens, then folded; in a study with no steps after Load
   (the Image Viewer) it stays open, nothing else having opened (the owner, 2026-11-05). Processing opens once an image opens and folds
-  again after the study's first step (`req/shell/status-bar/breadcrumbs`); Summary and Ground Truth Tasks open after that
+  again after the study's first step (`req/shell/steps`); Summary and Ground Truth Tasks open after that
   step (`req/shell/left-bar/shells`, set by the owner on 2026-11-07). When a step is done by the user (an image opening, or the
   step's button pressed, never a dial set back to the last run's) its boxes open and the boxes it
   closes fold; opening another image also folds every box waiting for a later step. Between those moments a box
@@ -1363,6 +1367,9 @@ nobody has decided: what the page does there is not a requirement yet.
   back. A visit the browser cannot reach a copy for, never opened online, shows the browser's own
   offline page: no site opens there. Nothing here installs the site as an app or asks the browser
   for anything. Test: `web-tests/test_offline_page.py`, `web-tests/test_background_tab_page.py` (a hidden tab).
+  Set by the owner on 2026-11-24: in the avatar's menu an action offline holds shows the status bar's offline
+  icon beside it and its words struck through with a red line, the words keeping their own colour, in the place of the dimmed
+  look held controls have elsewhere; it does nothing all the same. Test: `web-tests/test_offline_page.py`.
   </details>
 
 - `req/shell/offline/mark` What is available offline says so, quietly: a study, and an image from Google Drive.
@@ -1413,7 +1420,7 @@ nobody has decided: what the page does there is not a requirement yet.
   opacity, live in one page state in the shell (`web/page_state.js`). Loading and unloading an image
   change that state, and every control showing a part of it (Load and Unload, the image's name and
   details, the channels, the view, the minimap and its toolbar button) redraws from it; no control
-  reaches into another to change it. The steps (`req/shell/status-bar/breadcrumbs`) are a state of the same kind. Test:
+  reaches into another to change it. The steps (`req/shell/steps`) are a state of the same kind. Test:
   `web-tests/test_image_box_page.py`.
   </details>
 
@@ -1678,45 +1685,26 @@ nobody has decided: what the page does there is not a requirement yet.
   preview or a fork counts nothing. Test: `web-tests/test_published_site.py`.
   </details>
 
-- `req/shell/status-bar` The status bar: the study's steps at the left, the disk, memory, network, CPU and version at the right.
+- `req/shell/status-bar` The status bar: what the page is doing at the left, the disk, memory, network, CPU and version at the right.
   <details>
 
-  From the left edge: the breadcrumbs of its steps (`req/shell/status-bar/breadcrumbs`), then
+  From the left edge:
   the spinner and what the page is doing now (each stage of Python's loading, the study's progress,
   an error in red) and the thumbnails' progress (`req/shell/drive/dialog`). From the right edge inward: the site's
   version (stamped by each release; `req/shell/version-history`, `req/shell/site/out-of-date`), the CPU (`req/shell/status-bar/cpu`), the network (`req/shell/status-bar/network`), the
   memory (`req/shell/status-bar/memory`) and the disk (`req/shell/status-bar/disk`); between the version and those four, the report icon (`req/shell/report/bug`), a bug, or a warning sign in a browser the page does not support,
   and then the online icon (`req/shell/status-bar/online`). The four are folded into one icon unless set
   always open (`req/shell/status-bar/resources`), and unfolding them moves neither their icon, the online icon, the report icon nor the version. With too
-  little room, what the page is doing now and the four give way, cut short, while the steps at the left and the
+  little room, what the page is doing now and the four give way, cut short, while the
   icons and version at the right stay whole (owner, 2026-11-07). Each of the four before the version is a small grey icon
   and its number, with no word naming it; all five are plain, with no box, alike. A mild vertical
-  bar separates each item from the next, the resources icon included, folded or not, but the four, which sit
-  together with none between them. Nothing in the status bar turns the pointer into a
-  question mark. The image's name and the study's counts are in the
-  breadcrumbs' popups: Load image names the image, the study's own step gives its counts. Test:
+  bar separates each item from the next, but the four, which sit
+  together with none between them, and none stands between the four on show and the resources icon (set by the owner on 2026-11-24).
+  Hovering or focusing an item that can be clicked fades a button's border in around it, quickly, so it reads as
+  something to press; what cannot be clicked gets none (set by the owner on 2026-11-24). Nothing in the status bar turns the pointer into a
+  question mark. Set by the owner on 2026-11-24: the status bar holds no breadcrumbs of the study's steps, neither
+  the steps done nor the one to do next. Test:
   `web-tests/test_status_bar_page.py`.
-  </details>
-
-- `req/shell/status-bar/breadcrumbs` Breadcrumbs show the steps done so far, and the step to do now shines.
-  <details>
-
-  A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
-  Run algorithm and Review all items), then Save while the study makes ground truth for the user: a
-  user annotating in a Setup, Develop or Analyze study (`req/shell/annotate/choice`). The status bar shows
-  the steps done, then the first one not done, which shines blue, and with it the button that does
-  that step (the `button` the step names; Load for Load image, the ground-truth button for Save); later steps do not show yet, and once every step is done none shines. Load image is done
-  once an image is open, Save once the extraction is saved or waits to be (for a local image, once its file is
-  exported); the study says when its own steps are done (NoR: Run algorithm while the image was
-  searched with the finder and settings now chosen, Review all items while the Save
-  button (`req/nor/downloads`) says the ground truth is complete: some vote cast, every added NoR and every
-  finalist decided; corrected by the owner on 2026-10-31, so the filters rejecting every finalist
-  never moves the step on while the button still says what is missing). Opening another image, or switching study (`req/shell/study/switch-in-place`), starts over. Hovering a crumb says what was done in that step
-  and when. Clicking the crumb that shines brings its button into view, unfolding the box it is in
-  (`req/shell/left-bar/folding`) and scrolling to it, and presses it: a way there, a lesson in where it is, and a
-  shortcut. The steps live in one state in the shell, and the crumbs and the shining buttons are
-  drawn from it alone. Test: `web-tests/test_status_bar_page.py`,
-  `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/shell/status-bar/cpu` The CPU, a processor icon and "12%", is how busy this tab's threads are now.
@@ -1776,7 +1764,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-03. The four sit in one block with a gauge icon at its right, next to the
-  online icon (`req/shell/status-bar/online`). An Autohide checkbox in the resources dialog, above its tabs on every tab, chooses how the block shows:
+  online icon (`req/shell/status-bar/online`). A checkbox in the resources dialog, "Autohide in statusbar", in its bottom row at the left, in line with its buttons, on every tab (set by the owner on 2026-11-24), chooses how the block shows:
   checked, the default, it auto-hides; unchecked, it is always open, as the status bar was before (set by the owner on
   2026-11-07, in the place of a choice that also offered Hidden always; a kept Hidden always reads as auto-hiding). Auto-hiding,
   the page opens with the four folded away and the icon alone showing; hovering the block unfolds the
@@ -1800,6 +1788,24 @@ nobody has decided: what the page does there is not a requirement yet.
   1 MB/s), its icon and number turn the warning colour for three seconds, then fade back. With
   reduced motion asked for, the digits change without rolling. Test:
   `web-tests/test_status_bar_page.py`.
+  </details>
+
+- `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines.
+  <details>
+
+  A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
+  Run algorithm and Review all items), then Save while the study makes ground truth for the user: a
+  user annotating in a Setup, Develop or Analyze study (`req/shell/annotate/choice`). The button that does
+  the first step not done shines blue (the `button` the step names; Load for Load image, the ground-truth button for Save), and once every step is done none shines. Load image is done
+  once an image is open, Save once the extraction is saved or waits to be (for a local image, once its file is
+  exported); the study says when its own steps are done (NoR: Run algorithm while the image was
+  searched with the finder and settings now chosen, Review all items while the Save
+  button (`req/nor/downloads`) says the ground truth is complete: some vote cast, every added NoR and every
+  finalist decided; corrected by the owner on 2026-10-31, so the filters rejecting every finalist
+  never moves the step on while the button still says what is missing). Opening another image, or switching study (`req/shell/study/switch-in-place`), starts over.
+  Set by the owner on 2026-11-24: the steps show nowhere as a list; the status bar's breadcrumbs went, and the
+  shining button stays. Test: `web-tests/test_status_bar_page.py`,
+  `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/shell/storage/keys-keep-names` What a user saved stays theirs: a stored key never changes its name.

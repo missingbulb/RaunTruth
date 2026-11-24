@@ -20,6 +20,7 @@ import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world, DRIVE_FILE } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
+import { stepsOf } from "../../../web-tests/page_steps.mjs";
 
 const [answers, image] = process.argv.slice(2);
 
@@ -76,9 +77,8 @@ async function open(drive, stage) {
   return { device, page };
 }
 
-// the status bar's steps, the one to do now marked *, and what shines
-const crumbs = (page) => page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › ")
-  + " | " + [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort().join());
+// the study's steps, the one to do now marked *, and what shines
+const crumbs = async (page) => await stepsOf(page) + " | " + await page.evaluate(() => [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort().join());
 // a held button (busy with its action) has finished
 const idle = (page) => page.waitForFunction(() => !document.querySelector("button.working"));
 
@@ -128,7 +128,7 @@ async function markAndVote(page) {
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
-  await check(ran === "Load image › Run algorithm › Review all items* | #sb-review", `once it has run, Review all items is: ${ran}`);
+  await check(ran === "Load image › Run algorithm › Review all items* | ", `once it has run, Review all items is: ${ran}`);
   await check(await gtColour(page) === "todo", "with no verdict the Ground truth button is red");
   // the walk opens once tagging starts (req/shell/ground-truth/tagging), framing its first area; the view is put back
   // as it was, the whole image, once it rests, so a right click lands on the image point it aims at
@@ -286,7 +286,7 @@ async function mask(page) {
   await check(Math.abs(where.top - 56) <= 1 && Math.abs(where.centre) <= 1, `the warning sits at the top of the view, across its middle: ${JSON.stringify(where)}`);
   await page.click("#notice-ok");
   const before = await crumbs(page);
-  await check(before === "Load image › Run algorithm* | #find,#sb-find", `with an image open, Run algorithm is the step to do: ${before}`);
+  await check(before === "Load image › Run algorithm* | #find", `with an image open, Run algorithm is the step to do: ${before}`);
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const none = await popup(page);
@@ -339,7 +339,7 @@ async function mask(page) {
   await check(all_ === "Load image › Run algorithm › Review all items › Save | ", `with every task done and the file exported, every step is done: ${all_}`);
   await page.selectOption("#algorithm", { index: 1 });
   const changed = await crumbs(page);
-  await check(changed === "Load image › Run algorithm* | #find,#sb-find", `another finder makes Run algorithm the step to do again: ${changed}`);
+  await check(changed === "Load image › Run algorithm* | #find", `another finder makes Run algorithm the step to do again: ${changed}`);
   await device.close();
 }
 

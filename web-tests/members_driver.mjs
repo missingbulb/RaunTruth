@@ -174,7 +174,7 @@ await page.context().close();
     await mp.click("#user-menu summary");
     await mp.click("#sign-out");
     await idle(mp);
-    await mp.click("#sb-load");
+    await mp.click("#load .shine");
     await idle(mp);
   });
   await check(true, "signing out of a study whose root is the members', and opening Load, warn of no stage or index not read");

@@ -43,6 +43,6 @@ await check(/sign out/i.test(why || "") && /tick/i.test(why || "") && !/owner/.t
 await check(await orMissed(page.waitForFunction(() => /not written/.test($("#data-index").textContent), null, { timeout: 5000 })) && !writes.length,
   "and writes nothing, saying the study index was not written", writes);
 const after = google.asked.length;
-await page.click("#user-menu summary"); await page.click("#user-menu summary");
+await page.click("#user-menu summary"); await page.click("#who-avatar");
 await check(google.asked.length === after, "and a later click asks Google nothing more", google.asked.length - after);
 await done(0);
