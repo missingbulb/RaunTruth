@@ -106,15 +106,15 @@
   </aside>
   <aside id="left">
     <section class="box foldable" id="image-box" data-folds="load">
-      <div class="sec-head"><h2 data-done-name="Loaded Image">Load Image</h2></div>
+      <div class="sec-head"><h2 data-done-name="Loaded Image">Load Image</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">unload image</button></div>
       <div id="load">
-        <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Choose an image" data-log-as="the image selector"><span class="pick-name">Choose an image</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
+        <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Recently Opened" data-log-as="the image selector"><span class="pick-name">Recently Opened</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
           <div class="pop" role="dialog" aria-label="Images opened lately"><div id="recent" role="listbox" data-log-as="a recent image"></div></div>
         </details>
         <button id="load-main" class="primary" type="button" title="Open from this computer"><svg class="computer-logo" aria-hidden="true"><use href="#computer-logo"/></svg><span class="word">Load</span></button>
-        <button id="unload" type="button" hidden title="Close the image and clear the page" aria-label="Unload"><span class="word">Unload</span><svg class="x-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
         <button id="load-remote" type="button"><svg class="remote-logo" aria-hidden="true"><use href="#remote-logo"/></svg></button>
       </div>
+      <div id="file-tags" aria-label="The image's tags" hidden></div>
       <details id="file-box" class="empty" hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
       <div id="channels"></div>
       <div id="image-foot">

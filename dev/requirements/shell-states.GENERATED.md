@@ -62,6 +62,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -80,7 +82,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -303,6 +304,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -321,7 +324,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -544,6 +546,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ | ▸ | ● | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ | ⋯ | ○* | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ | ⋯ |
@@ -562,7 +566,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ | ⋯ | ⋯ |
@@ -785,6 +788,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -803,7 +808,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1026,6 +1030,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1044,7 +1050,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1267,6 +1272,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1285,7 +1292,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1508,6 +1514,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ |
@@ -1526,7 +1534,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ |
@@ -1749,6 +1756,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1767,7 +1776,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -1990,6 +1998,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -2008,7 +2018,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -2231,6 +2240,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -2249,7 +2260,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -2472,6 +2482,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ | ● | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ | ● | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ | ○* | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ○ | ⋯ | ⋯ |
@@ -2490,7 +2502,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ● | ⋯ | ⋯ |
@@ -2713,6 +2724,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ● | ● | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2731,7 +2744,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2954,6 +2966,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ● | ● | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ | ● | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ | ● | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ | ○* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ○ | ⋯ |
@@ -2972,7 +2986,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ | ⊘ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ● | ⋯ |
@@ -3195,6 +3208,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ |
@@ -3213,7 +3228,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ |
@@ -3436,6 +3450,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ |
@@ -3454,7 +3470,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ |
@@ -3677,6 +3692,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ |
@@ -3695,7 +3712,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ |
@@ -3918,6 +3934,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ | ▸ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ | ⋯ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ |
@@ -3936,7 +3954,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⊘ |
@@ -4159,6 +4176,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ | ⊘ |
@@ -4177,7 +4196,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ | ⊘ |
@@ -4400,6 +4418,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -4418,7 +4438,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -4641,6 +4660,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ● | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ● | ▸ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ○ | ○ | ⋯ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ○* | ⋯ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ○ | ○ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
@@ -4659,7 +4680,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⊘ | ● | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⊘ | ● | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⊘ | ○ | ⋯ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⊘ | ○ | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⊘ | ● | ⋯ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ○ | ⋯ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ⋯ | ⊘ |
@@ -4882,6 +4902,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ |
@@ -4900,7 +4922,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ |
@@ -5123,6 +5144,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ |
@@ -5141,7 +5164,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ |
@@ -5364,6 +5386,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -5382,7 +5406,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -5617,6 +5640,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -5635,7 +5660,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -5870,6 +5894,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ |
@@ -5888,7 +5914,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ |
@@ -6110,6 +6135,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -6128,7 +6155,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -6350,6 +6376,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
@@ -6368,7 +6396,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ | ⋯ | ⋯ |
@@ -6610,6 +6637,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ▸ | ▸ | ▸ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -6628,7 +6657,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ○ | ⋯ | ⋯ | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ⋯ | ⋯ | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⋯ | ⋯ | ⋯ |
@@ -6870,6 +6898,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ○ |
@@ -6888,7 +6918,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ |
@@ -7098,6 +7127,8 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study images' message | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Left bar | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Image box | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's tags | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File name and info | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's name | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's details | ⊘ | ○ | ○ | ○ |
@@ -7116,7 +7147,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image selector | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Selector's face | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This computer | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unload | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Google Drive button | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image box's foot | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load Original | ⊘ | ⊘ | ⊘ | ⊘ |

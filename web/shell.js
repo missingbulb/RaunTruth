@@ -50,6 +50,7 @@ import { groupsOf, isHidden } from "./tags.js";
 import { subfolderName, marksOf } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
+import { BLOB } from "./file_fields.js";
 import { storedPart } from "./vsi.js";
 import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
@@ -162,7 +163,7 @@ const remoteHint = () => { $("#remote-hint").textContent = remote.words.hint(sig
 $("#logos").insertAdjacentHTML("afterbegin", remote.logo.symbol);
 $("#load-remote").title = $("#load-remote").ariaLabel = `Open from ${remote.label}`;
 $("#load-original").title = `Open the image itself, not its preview: from this device when it is kept here, else from ${remote.label}`;
-$("#remote-title").textContent = `Load from ${remote.label}`;
+$("#remote-title").textContent = "Open Image";
 $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
 
@@ -766,14 +767,15 @@ function pythonWorker() {
   st.worker.onerror = (e) => onWorker({ type: "error", text: e.message || "Python stopped." });
 }
 // The study owner's areas of the image opened from the study's store (req/shell/data/damaged,
-// req/shell/data/area-of-interest), from its study index, the one kept on this device offline; none for a preview,
-// whose pixels are not the image's, or an image the index does not hold
+// req/shell/data/area-of-interest) and its tags (req/shell/image/file-info), from its study index, the one kept on
+// this device offline; none for a preview, whose pixels are not the image's, or an image the index does not hold
 async function studyAreas(source) {
   if (!source?.id || source.kind === "preview" || !remote.owns(source) || !place.root()) return;
   let ix = readJSON(STUDY_INDEX)[place.root()]?.index || null;
   if (!offlineCopy.offline()) ix = await place.index().catch(() => ix);
   const im = ix?.images?.find((i) => i.id === source.id);
   if (st.source !== source || !im) return;
+  page.set({ tags: { of: source.id, tags: im.tags || [] } });
   summaryMasks.areas({ damaged: im.damaged || [], interest: im.interest || [] });
 }
 // one of the study's Python actions; its answer reaches the study's result hook. Python starts with the first, and is
@@ -901,7 +903,7 @@ function imageOpened(m) {
 // the details (req/shell/image/file-info): the fields pinned, then every other field the file carries, folded
 function fileInfo(rows, more = []) {
   const item = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
-  const list = (r) => r.flatMap(([k, v]) => [item("dt", k), item("dd", v)]);
+  const list = (r) => r.flatMap(([k, v]) => [item("dt", k), Object.assign(item("dd", v), v === BLOB ? { className: "unsaid", title: "Binary data, which the file holds and the page does not spell out" } : {})]);
   $("#file-info").replaceChildren(...list(rows || []));
   $("#file-more-list").replaceChildren(...list(rows ? more : []));
   $("#file-more-n").textContent = rows ? String(more.length) : "";
@@ -928,23 +930,26 @@ const loadButton = () => (!fromRemote() ? "#load-main" : recentAll().length ? "#
 const loadHolder = () => $(fromRemote() ? "#image-pick" : "#load-main");
 function placeLoad() {
   $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal());
-  if (fromRemote()) $("#file-box").before($("#load")); else $("#image-foot").prepend($("#load"));
+  if (fromRemote()) $("#file-tags").before($("#load")); else $("#image-foot").prepend($("#load"));
 }
-// the Image box draws from the page's state: the image's name and what its file says, the control to load with
-// filled until an image is open and plain after, and Unload once one is
+// the Image box draws from the page's state: the image's name, its tags in the study and what its file says, the
+// control to load with filled until an image is open and plain after, and Unload once one is
 function imageBox() {
   const opening = page.get("opening"), im = page.get("image"), name = opening?.name || im?.name, remoteOn = fromRemote();
   $("#file-name").textContent = remoteOn && name ? "Details" : name || ""; $("#file-box").hidden = !name;
   fileInfo(opening ? null : im?.info || null, im?.more || []);
+  const tagged = page.get("tags"), tags = !opening && im && tagged && tagged.of === st.source?.id ? tagged.tags : [];
+  $("#file-tags").replaceChildren(...tags.map((t) => Object.assign(document.createElement("span"), { className: "tag-chip", textContent: t })));
+  $("#file-tags").hidden = !tags.length;
   $("#load").classList.toggle("done", !!im); $("#unload").hidden = !im;
   const listed = remoteOn && recentAll().length > 0;
-  $("#image-pick .pick-name").textContent = name || (listed ? "Choose an image" : "No image opened here yet");
+  $("#image-pick .pick-name").textContent = name || (listed ? "Recently Opened" : "No image opened here yet");
   $("#image-pick").classList.toggle("dim", !name);
   $("#image-pick").classList.toggle("primary", !im && listed); $("#load-remote").classList.toggle("primary", !im && !listed && !fromLocal());
   $("#load-main").classList.toggle("primary", !remoteOn || (!im && !listed));
   $("#load-original").hidden = im?.source?.kind !== "preview";
 }
-page.watch("image", imageBox); page.watch("opening", imageBox);
+page.watch("image", imageBox); page.watch("opening", imageBox); page.watch("tags", imageBox);
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
 async function openNow(name, bytes, source) {
@@ -1376,11 +1381,12 @@ function remoteDialog() {
   // multi-value tag the study names, less those its rules hide but to a study owner; each folder's previews file read
   // once one of its images scrolls into view
   let groupsSeen = null;
+  const unfolded = new Set();
   const showIndex = async (ix, off) => {
-    keptOn = false; trail = [{ index: true, name: "The study's images" }];
+    keptOn = false; trail = [{ index: true, name: "" }];
     const asked = ++listing, kept = await keptIds();
     if (asked !== listing) return;
-    $("#remote-path").textContent = "The study's images";
+    $("#remote-path").replaceChildren();
     $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
     groupsSeen?.disconnect();
     const manager = data.on, hide = ix.hide || [];
@@ -1400,8 +1406,11 @@ function remoteDialog() {
     const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
     msg(groups.length ? "" : "No images in the study's index.");
     for (const g of groups) {
-      const head = Object.assign(document.createElement("div"), { className: "group" });
-      head.innerHTML = `<span class="group-name">${esc(g.label)}</span><span class="group-count">${g.items.length}</span>`;
+      // a group folded until its head is clicked, and as it was left while the page lives; a lone group open
+      const head = Object.assign(document.createElement("button"), { type: "button", className: "group" }), rows = [];
+      head.innerHTML = `<svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg><svg class="folder-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M1.5 4.2c0-.7.5-1.2 1.2-1.2h3.1l1.4 1.5h6.1c.7 0 1.2.5 1.2 1.2v6.1c0 .7-.5 1.2-1.2 1.2H2.7c-.7 0-1.2-.5-1.2-1.2Z"/></svg><span class="group-name">${esc(g.label)}</span><span class="group-count">(${g.items.length})</span>`;
+      const unfold = (on) => { head.setAttribute("aria-expanded", String(on)); for (const r of rows) r.hidden = !on; };
+      head.onclick = () => { const on = head.getAttribute("aria-expanded") !== "true"; if (on) unfolded.add(g.label); else unfolded.delete(g.label); unfold(on); thumbs.later(); };
       $("#remote-list").append(head);
       for (const im of g.items) {
         const f = { id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path,
@@ -1409,8 +1418,9 @@ function remoteDialog() {
         coverOf(f.dir);
         row(f, { kept, opened, listings, off }); items.push(f);
         const el = $("#remote-list").lastElementChild;
-        dirOf.set(el, f.dir); groupsSeen.observe(el);
+        dirOf.set(el, f.dir); groupsSeen.observe(el); rows.push(el);
       }
+      unfold(groups.length === 1 || unfolded.has(g.label));
     }
     if (!off) markTruth(items, asked);
   };
@@ -1492,13 +1502,14 @@ function remoteDialog() {
     };
     // the rows from the first in view to AHEAD past the last, that no fetch has been started for
     const wanted = () => {
-      const list = $("#remote-list"), items = list.children;
+      const list = $("#remote-list"), items = [...list.children].filter((e) => !e.hidden);
       if (!$("#remote-dlg").open || readJSON(THUMBS, "on") === "off" || throttled() || !items.length) return [];
       const box = list.getBoundingClientRect();
       let first = 0, last = items.length - 1;
       for (let hi = last; first < hi; ) { const m = (first + hi) >> 1; if (items[m].getBoundingClientRect().bottom > box.top) hi = m; else first = m + 1; }
       for (last = first; last + 1 < items.length && items[last + 1].getBoundingClientRect().top < box.bottom; ) last++;
-      return rows.filter((r) => !r.asked && r.at >= first && r.at <= last + AHEAD);
+      const near = new Set(items.slice(first, last + AHEAD + 1));
+      return rows.filter((r) => !r.asked && near.has(r.row));
     };
     const next = () => {
       frame = 0;

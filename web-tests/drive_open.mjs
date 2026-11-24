@@ -50,12 +50,26 @@ export async function openFromDrive(page, file) {
         if (shown === "row") break;
         await page.dblclick("#remote-list .item.folder", { timeout: 2000 }).catch(() => {});
       }
+      await unfoldTo(page, row);
       await page.dblclick(row);
     }
     // the dialog closes once the download starts; a folder it listed first may have left an error showing meanwhile
     await page.waitForFunction(() => !document.querySelector("#remote-dlg").open, null, { timeout: 15000 })
       .catch(async () => { throw new Error("the Drive dialog did not open the file: " + (await page.textContent("#remote-msg"))); });
   } finally { drive.offered.delete(f.id); }
+}
+
+// a row of the dialog's list in view, once it is listed: the group holding it unfolded, as a user unfolds it with a
+// click on its head (req/shell/load/study-images)
+export async function unfoldTo(page, row) {
+  const el = page.locator(row).first();
+  await el.waitFor({ state: "attached" });
+  await el.evaluate((e) => {
+    if (!e.hidden) return;
+    let head = e.previousElementSibling;
+    while (head && !head.matches(".group")) head = head.previousElementSibling;
+    head.click();
+  });
 }
 
 // the Image box opened, as a user opens it when it has folded after an image, then Drive's button pressed
