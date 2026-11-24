@@ -625,13 +625,12 @@ const views = {
   count(total) { views.total = total ?? null; views.draw(); },
   draw() {
     const b = $("#switch");
-    b.disabled = views.total === null;
+    b.disabled = views.total === null; b.hidden = !itemsView() || b.disabled;
     b.querySelector(".name").textContent = views.now === "items" ? "Image" : "Items";
     b.querySelector(".count").textContent = views.now === "items" || views.total === null ? "" : String(views.total);
   },
   mount() {
     slow($("#switch"));
-    $("#switch").hidden = !itemsView();
     views.total = null; views.show("image");
   },
 };
@@ -2029,7 +2028,7 @@ let truthShown = false;
 function showingTruth(on) {
   truthShown = on;
   if (on) views.show("image");
-  $("#switch").hidden = !itemsView();
+  views.draw();
 }
 // Whether the user may read the study's root, as the studies' list last said: the list shows who made each extraction to them, and to
 // someone who is not one only the marked, by algorithm version or by hand (req/shell/extractions/outsiders). Not known counts as not.

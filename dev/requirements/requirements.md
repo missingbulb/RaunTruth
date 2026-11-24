@@ -2078,7 +2078,9 @@ nobody has decided: what the page does there is not a requirement yet.
   slices shown sits beside its name, and each row's picker sits at the box's right edge, its slider filling the room
   before it; a palette picker is framed as the colour picker is (owner, 2026-11-07). Colour by depth is each
   channel's own (owner, 2026-11-07): a small icon tick on each channel's own row beside its colour picker, no words
-  and no palette bar beside it (owner, 2026-11-07), and while it is ticked the
+  and no palette bar beside it (owner, 2026-11-07). Set by the owner on 2026-11-24: the tick looks like a button, framed,
+  and lit while it is on, and with its picker it is as wide and as tall as the spacing box under it, so the three line
+  up. While it is ticked the
   row's colour picker becomes a palette picker, since the channel is then drawn in a range of colours by the depth
   of each point, not in one colour by its brightness alone. Two channels coloured by depth each take a different
   palette, so they read apart; a study's `channels` may tick it from the start (`depth`: true, or a palette's name).
@@ -2101,7 +2103,8 @@ nobody has decided: what the page does there is not a requirement yet.
   "Items" with how many there are, and "Image" in the item view. The study counts them (`views.count(total)`,
   null until it has any; Vascular: its junctions and vessels) and hears which view is shown (`views.on(fn)`).
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
-  while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
+  while it has not; a study never turns it on or off itself. Set by the owner on 2026-11-24: while the study has
+  counted none (before its algorithm has run on the image) the switch is not shown at all, rather than shown off. While the study makes ground truth for the user
   (annotating in a Setup, Develop or Analyze study, `req/shell/annotate/choice`) there is no item view and no switch:
   the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
   owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
