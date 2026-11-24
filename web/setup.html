@@ -36,6 +36,7 @@
       <a id="study-request" target="_blank" rel="noopener" data-needs-network><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>Submit New Study Request</a>
     </div>
   </details>
+  <a id="article-link" target="_blank" rel="noopener" title="The study's article, in a tab of its own" hidden><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z"/><path d="M9.5 1.5V5H13M6.5 8h4M6.5 10.5h4"/></svg>Article</a>
   <span class="grow"></span>
   <button id="theme" class="icon" title="Switch between dark and light" aria-label="Switch between dark and light">
     <svg class="sun" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
@@ -260,7 +261,7 @@
       <div id="point-menu" class="pop" role="menu" hidden></div>
       <div id="minimap" hidden>
         <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
-        <div class="mm-body"><canvas id="minimap-canvas"></canvas><div id="minimap-view"></div></div>
+        <div class="mm-body"><canvas id="minimap-canvas"></canvas><div class="mm-areas" id="minimap-areas" role="group" aria-label="The areas: pick one" hidden></div><div id="minimap-view"></div></div>
       </div>
       <section id="edit-history" class="float" aria-label="Edit History" hidden>
         <div class="mm-head"><span class="mm-title">Edit History <small id="eh-count"></small></span><button id="eh-close" class="mm-btn" type="button" aria-label="Hide Edit History" title="Hide (Show Edit History in Ground Truth Tasks brings it back)"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>

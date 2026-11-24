@@ -19,6 +19,7 @@
     "shows3d": [false, true],
     "masks": [false, true],
     "walksAreas": [false, true],
+    "namesArticle": [false, true],
     "managing": [false, true],
     "annotating": [false, true],
     "route": ["none", "scratch", "local", "drive"],
@@ -73,6 +74,11 @@
           "children": [
             {"name": "Study's icon", "select": "#title-icon", "req": "req/shell/header", "steady": "always shown"},
             {"name": "Study's name", "select": "#title", "req": "req/shell/header", "steady": "always shown"}
+          ]
+        },
+        {"name": "Article link", "select": "#article-link", "req": "req/shell/study/article",
+          "rule": [
+            {"when": {"namesArticle": [false]}, "is": "hidden"}
           ]
         },
         {"name": "Dark/light switch", "select": "#theme", "control": true, "req": "req/shell/header", "steady": "always shown"},
@@ -803,6 +809,11 @@
                     {"name": "Hide the minimap", "select": "#minimap-hide", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Fold the minimap", "select": "#minimap-fold", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
+                    {"name": "Minimap's areas", "select": "#minimap-areas", "req": "req/shell/ground-truth/area-map", "steady": "hidden unless a study hands the minimap its areas",
+                      "rule": [
+                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas"}
+                      ]
+                    },
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
                   ]
                 },

@@ -830,7 +830,20 @@ export function mount(shell) {
     if (was && fresh && was.dataset.i !== fresh.dataset.i) slideIn(was, fresh, st.taskDir || 1);
     st.taskDir = 0;
     drawReveal();
+    drawAreaMap(ready);
     tellKeys();
+  }
+  // the areas on the minimap (req/nor/truth/order): each done, begun or not started, the walk's own marked; a click
+  // opens one at its first step not done, else at its check
+  function drawAreaMap(ready) {
+    if (!ready) return shell.viewer.areaMap(null);
+    const w = walk(), by = new Map();
+    for (const x of w) by.set(x.a, [...(by.get(x.a) || []), x]);
+    shell.viewer.areaMap({ n: AREAS.count(), now: st.area, state(a) {
+      const steps = by.get(a), did = steps.filter((x) => x.done).length;
+      return { mark: did === steps.length ? "done" : did ? "part" : "",
+        title: `Area ${a + 1}: ${did === steps.length ? "done" : did ? `${did} of ${steps.length} steps done` : "not started"}` };
+    }, pick(a) { const steps = by.get(a); goStep(steps.find((x) => !x.done) || steps.at(-1)); } });
   }
   // the next item's card slides in over the last one's, which slides out the other way
   function slideIn(was, fresh, dir) {

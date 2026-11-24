@@ -4,6 +4,7 @@
 // only while the user annotates, from the choice that enters annotation mode to its end (req/shell/annotate/choice).
 "use strict";
 import * as Areas from "./gt_areas.js";
+import { areaMap } from "./gt_area_map.js";
 
 // started(): whether the study's first step is done; until it is, Submit stays off whatever the study says; heardBy(on):
 // the shell's own listener, told as the study is each time tagging starts or stops
@@ -84,13 +85,15 @@ export function truthTasks({ $, icon, started, heardBy }) {
     row,
     // the areas the study's ground truth is walked through (req/shell/ground-truth/areas): count(), the areas each way now,
     // null for a study not walked by areas; on(fn), fn(count) heard each time the tagger chooses another; place(a), areaAt(fx,
-    // fy) and box(a, W, H), as gt_areas.js, at the count now
+    // fy) and box(a, W, H), as gt_areas.js, at the count now; map(body, {state(a), now, pick(a)}) draws them
     areas: {
       count: () => n,
       on(fn) { moved.push(fn); },
       place: (a) => Areas.place(a, n),
       areaAt: (fx, fy) => Areas.areaAt(fx, fy, n),
       box: (a, W, H) => Areas.box(a, n, W, H),
+      // the areas drawn as a map into body, an element of the study's own (req/shell/ground-truth/area-map)
+      map: (body, how) => areaMap(body, { ...how, n }),
     },
     // the study arriving: start, the count it starts at from its study.json, or none
     mount(start) {

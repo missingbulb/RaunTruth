@@ -2657,6 +2657,8 @@ async function mountNow(id, read) {
   manifest.stage = await readStage(); data.stageChanged();
   if (listed.find((s) => s.id === manifest.id)?.stage !== manifest.stage) drawStudies();
   document.title = SETUP ? `Study Setup · ${manifest.title}` : manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
+  // the study's article (req/shell/study/article)
+  $("#article-link").hidden = !manifest.article; if (manifest.article) $("#article-link").href = manifest.article; else $("#article-link").removeAttribute("href");
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;
   $("#file").accept = manifest.files.accept; $("#empty-text").textContent = manifest.files.empty; placeLoad();

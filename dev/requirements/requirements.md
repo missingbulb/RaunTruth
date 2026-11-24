@@ -672,6 +672,21 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
+- `req/shell/ground-truth/area-map` While the user annotates, the areas of the walk show as a map, each done, begun or not started; clicking one opens it.
+  <details>
+
+  Set by the owner on 2026-11-24 ("the minimap in NoR is not repurposed to show the GT area progress like in vascular.
+  It should"). The shell draws the map once, for every study that walks by areas (`req/shell/ground-truth/areas`): a
+  button per area laid out as the field is cut, tinted green lightly once begun and strongly once done, the picture
+  seen through the tint, the walk's own area outlined in white, each with a tooltip saying how far it is; the study
+  says how far each area is, which one the walk is in, and what a click on one does. On a flat image the map is the
+  minimap (`req/shell/image/minimap`): while the user annotates its title reads Areas, the areas lie over its picture,
+  it shows even when the whole image is in view, and a click on an area opens it in place of moving the view; outside
+  annotation mode it is the minimap as ever. A study in the 3D view draws the map into a floating box of its own, over
+  its own picture of the stack (`req/vascular/truth/tasks`). Test: `studies/nor/tests/test_truth_tasks_page.py`,
+  `studies/vascular/tests/test_vessel_tasks_page.py`.
+  </details>
+
 - `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
   <details>
 
@@ -1830,6 +1845,18 @@ nobody has decided: what the page does there is not a requirement yet.
   and cleared in Settings (`req/shell/account/settings`); the total says what they take, and counts too what is stored
   under the site that neither the shell nor the study names. The shell names its own keys; the study names its keys through its `stored` hook, so the
   shell still names no study (`req/shell/study/knows-none`). Test: `web-tests/test_storage_page.py`.
+  </details>
+
+- `req/shell/study/article` A study naming an article shows a link to it in the header.
+  <details>
+
+  Set by the owner on 2026-11-24, for NoR as a graphic placeholder (its pitch document); the stages' map had it since
+  2026-11-21 ("a study naming an article shows a link to it in the header, with some fanfare, in any stage"). A study's
+  `study.json` may name its `article`, a link; the header then shows Article beside the study's name, a pill in the
+  accent colour, which opens the link in a tab of its own. The page itself asks that address for nothing. A study
+  naming none shows no link. Not built yet: the owner naming the article in Study Setup, and showing it only from Public
+  unless the owner ticks "show the article" (`dev/requirements/study-stages-spec.md`). Test:
+  `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/shell/study/folder-and-address` A study is a folder, and the app runs the one its address names: rauntruth.com/app/<id>.

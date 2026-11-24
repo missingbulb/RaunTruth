@@ -142,11 +142,13 @@
 .card.task .tag { margin-top: 6px; }
 .card.task .reset-lines { display: block; margin: 6px auto 0; font-size: 12px; }
 
-/* the image while the study makes ground truth: a candidate waiting is a faint outline and nothing more, the
-   current one has a yellow ring; what is done is cut out; the area being
+/* the image while the study makes ground truth: a candidate waiting is a thin white outline with the cross of its
+   length and width, the current one has a yellow ring; what is done is cut out; the area being
    checked for missed NoRs is framed */
-#overlay.gt .num, #overlay.gt .red, #overlay.gt .lines, #overlay.gt .added text { display: none; }
-#overlay.gt g[data-i] path { stroke: #fff; stroke-width: 1px; stroke-opacity: .3; stroke-dasharray: none; }
+#overlay.gt .num, #overlay.gt .red, #overlay.gt .lines line.r, #overlay.gt .added text { display: none; }
+#overlay.gt g[data-i] path { stroke: #fff; stroke-width: 1px; stroke-opacity: .8; stroke-dasharray: none; }
+#overlay.gt g[data-i] .lines { display: none; }
+#overlay.gt g.todo .lines, #overlay.gt .added .lines { display: inline; }
 #overlay.gt g.yes path, #overlay.gt g.no path, #overlay.gt .added.yes, #overlay.gt .added.no { display: none; }
 /* the Show menu's rows for the tasks' markings */
 #overlay.gt.no-gt-pass g.pass.todo, #overlay.gt.no-gt-added .added-marks,

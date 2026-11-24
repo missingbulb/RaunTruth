@@ -79,6 +79,19 @@
   ],
   "samples": "tests/state_samples.py",
   "differ": {
+    "Minimap": {
+      "rule": [
+        {"when": {"image": ["none"]}, "is": "hidden"},
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map", "about": "it carries the areas, so it shows though the whole image is in view"},
+        {"when": {"imageFits": [true]}, "is": "hidden"}
+      ]
+    },
+    "Minimap's areas": {
+      "rule": [
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map"},
+        {"is": "hidden"}
+      ]
+    },
     "Save crumb": {"steady": "its Review step is still to do on every path",
       "rule": [
         {"is": "hidden", "approval": "tentative", "req": "req/shell/status-bar/breadcrumbs"}
@@ -91,6 +104,7 @@
   },
   "paths": [
     {"root": "Develop, signed out", "actions": ["load", "scratch", "count"]},
-    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]}
+    {"root": "Develop, Annotator", "actions": ["load", "scratch", "count"]},
+    {"root": "Develop, Annotator", "actions": ["load", "zoom"]}
   ]
 }
