@@ -1034,7 +1034,8 @@ function dropImage() {
 // Unload: no image open, the study starting over as one that has just come in
 $("#unload").onclick = () => {
   if (!st.img || loadHolder().classList.contains("working") || !gtSession.leaving("unload it")) return;
-  restudy(false);
+  // the link goes with the image: the keyboard it held is handed to the box's Load
+  restudy(false).then(() => { if (document.activeElement === document.body) $("#load-main").focus({ preventScroll: true }); });
 };
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {

@@ -264,6 +264,7 @@ const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage
   overlay: document.querySelector("#overlay").children.length, status: document.querySelector("#status").textContent }));
 await check(await page.evaluate(() => document.querySelector("#file-name").textContent === ""), "with no image, the Image box names none (req/shell/load/button)");
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
+await check(await page.evaluate(() => document.activeElement?.id) === "load-main", "and the keyboard, which was on Unload, is on Load", await page.evaluate(() => document.activeElement?.id || document.activeElement?.localName));
 await check(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
 await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");
