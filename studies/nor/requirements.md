@@ -219,7 +219,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   ground-truth tasks name them. Outside ground truth: Finalists and those the user rejected, each with
   its own line width and colour, the candidate numbers and the measuring lines. While the
   study makes ground truth, the tasks' own markings (`req/nor/truth/marks`): Finalists
-  (each waiting one's faint outline), Added NoRs, Cut out what is done, and Frame the area, all on
+  (each waiting one's outline and cross), Added NoRs, Cut out what is done, and Frame the area, all on
   at first. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
@@ -291,8 +291,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Set by the owner on 2026-11-03. The markings that look at what was found (pink and blue, numbers,
   measuring lines) give way to the tasks' own. A candidate waiting for the
-  user's verdict is only a faint thin white outline, and the current
-  one has a yellow ring. Once the user decides a candidate, up or down, its area (the rectangle
+  user's verdict is only a thin white outline, and the current
+  one has a yellow ring. Changed by the owner on 2026-11-24, the outline at 30% having been "much too subtle": the
+  outline is 80% opaque at the same one-pixel width, and the cross of the candidate's length and width measurements is
+  drawn over it in white, with no number or other glyph and without the red line; an added NoR waiting shows its
+  cross too. Once the user decides a candidate, up or down, its area (the rectangle
   around its pixels, two pixels wider each way) is removed from the image. The area being worked on
   (`req/nor/truth/order`) is framed in yellow. Changed by the owner on 2026-11-04: once an area is
   done, every candidate in it decided and it checked for missed NoRs, the whole area is removed.
@@ -312,8 +315,10 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   owner on 2026-11-04: the tasks are one walk through the areas, so after a number of verdicts a
   whole region of the image is done rather than candidates scattered over it. In each area its
   finalists, then the NoRs the user added there, each top to bottom, and last
-  the area's check for missed NoRs; then the next area. The grid is not drawn; the area being worked
-  on is framed (`req/nor/truth/marks`). Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  the area's check for missed NoRs; then the next area. The grid is not drawn on the image; the area being worked
+  on is framed (`req/nor/truth/marks`). Set by the owner on 2026-11-24: while the user annotates, the minimap shows the
+  areas (`req/shell/ground-truth/area-map`): an area is done once each of its steps is, its check included, and begun
+  once any is; clicking one goes to its first step not done, else to its check. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/tasks` Ground Truth Tasks lists the tasks, one row each; the open one shows one item at a time.

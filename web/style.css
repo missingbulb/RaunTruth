@@ -80,6 +80,12 @@ h1 { font-size: 16px; font-weight: 600; margin: 0; }
 #study-list a.active .name { border-bottom-color: transparent; }
 #study-none, #study-stale { margin: 8px 16px 0; font-size: 13px; }
 #study-stale[hidden] { display: none; }
+/* the study's article: a pill in the accent colour beside the study's name */
+#article-link { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1px solid var(--accent); border-radius: 14px;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 13px; font-weight: 600; text-decoration: none; }
+#article-link[hidden] { display: none; }
+#article-link svg { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; flex: none; }
+#article-link:hover, #article-link:focus-visible { background: color-mix(in srgb, var(--accent) 24%, transparent); outline: none; }
 #study-request { display: flex; align-items: center; gap: 8px; height: 32px; margin: 8px 8px 0; padding: 0 8px; border-radius: var(--r-chip); color: var(--accent); text-decoration: none; }
 #study-request svg { fill: currentColor; flex: none; }
 #study-request:hover, #study-request:focus-visible { background: color-mix(in srgb, var(--text) 8%, var(--panel)); outline: none; }
@@ -396,6 +402,16 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 #minimap.collapsed .mm-body { display: none; }
 #minimap .mm-body { position: relative; line-height: 0; background: #000; cursor: crosshair; }
 #minimap-canvas { width: 100%; height: auto; }
+/* a ground-truth walk's areas as a map: a button each, tinted as far as it is done, the picture seen through the tint */
+.mm-areas { position: relative; display: grid; gap: 2px; }
+.mm-areas[hidden] { display: none; }
+.mm-areas button { min-width: 0; padding: 0; border: 1px solid #fff6; border-radius: 2px; background: transparent; cursor: pointer; }
+.mm-areas button:hover { border-color: #fff; }
+.mm-areas button.part { background: color-mix(in srgb, var(--yes) 25%, transparent); }
+.mm-areas button.done { background: color-mix(in srgb, var(--yes) 55%, transparent); border-color: var(--yes); }
+.mm-areas button.now { outline: 2px solid #fff; outline-offset: 0; z-index: 1; }
+#minimap .mm-areas { position: absolute; inset: 0; gap: 0; }
+#minimap .mm-areas button { border-radius: 0; border-color: #fff3; }
 #minimap-view { position: absolute; border: 1.5px solid #fff; border-radius: 2px; box-shadow: 0 0 0 1px #0008; pointer-events: none; }
 
 /* the Edit History window: the minimap's frame at the image's bottom right, 2.5 times its height and never taller than the

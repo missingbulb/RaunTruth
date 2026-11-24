@@ -29,6 +29,7 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
 - `visibility` — `"listed"` (the header's study switcher may offer it: to those who can read its Drive root, and to everyone
   once its stage is released; `web/members.js`) or `"unlisted"` (only by its address; the fixture). The landing page lists
   no study.
+- `article` — optional, a link to the study's article, which the header shows beside its name (`req/shell/study/article`).
 - `icon`, `poster` and `description` — its tab icon (an SVG), its shared link's preview (a 1200 × 630 JPEG), both
   under its `web/`, and one line of at most 160 characters for that preview. Required of every study but an
   unlisted one (`req/shell/site/icons`); a poster is a screenshot of the study's page at work under a banner with

@@ -18,6 +18,7 @@
 import { resolve, ramp } from "./channels.js";
 import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
+import { areaMap } from "./gt_area_map.js";
 
 // the user's grid: {colour, um, px}, its colour and the distance between its lines in µm and in pixels
 export const GRID = "nor-grid";
@@ -241,9 +242,20 @@ export function viewer(shell) {
     const keep = () => shell.writeJSON(MINIMAP, { mode: page.get("minimap"), opacity: page.get("minimapOpacity") });
     // the whole image in view leaves nothing to navigate: the minimap waits until it is larger than the view
     const fits = () => { const sc = $("#scroller"); return st.W * st.zoom <= sc.clientWidth && st.H * st.zoom <= sc.clientHeight; };
+    // the areas of the walk over the picture while the user tags (req/shell/ground-truth/area-map), null for none
+    let walked = null;
+    const grid = $("#minimap-areas");
+    function areas(map) {
+      if (map !== undefined) walked = map;
+      const on = !!walked && tagging;
+      grid.hidden = !on; box.querySelector(".mm-title").textContent = on ? "Areas" : "Minimap";
+      if (on) areaMap(grid, walked); else grid.replaceChildren();
+      place();
+    }
     function place() {
       const mode = page.get("minimap");
-      box.hidden = !st.img || mode === "hidden" || fits(); box.classList.toggle("collapsed", mode === "collapsed");
+      // with the areas on it the map is worth showing even when the whole image is in view
+      box.hidden = !st.img || mode === "hidden" || (fits() && grid.hidden); box.classList.toggle("collapsed", mode === "collapsed");
       btn.setAttribute("aria-pressed", mode !== "hidden");
       fold.ariaLabel = fold.title = mode === "open" ? "Collapse the minimap" : "Expand the minimap";
       view();
@@ -296,13 +308,15 @@ export function viewer(shell) {
     };
     const body = box.querySelector(".mm-body");
     body.addEventListener("pointerdown", (e) => {
+      // an area's button takes its own click
+      if (e.target.closest(".mm-areas button")) return;
       const sc = $("#scroller"), was = [sc.scrollLeft, sc.scrollTop];
       drag(body, e, { move: go, cancel: () => sc.scrollTo(...was), view: true });
       shell.showImage(); go(e);
     });
     $("#scroller").addEventListener("scroll", view);
     addEventListener("resize", place);
-    return { draw, view, place };
+    return { draw, view, place, areas };
   })();
 
   // zoom keeps the image point under `at` (a pointer event) where it is; without one, the middle of the view
@@ -524,7 +538,7 @@ export function viewer(shell) {
       fit(); tools();
     }));
   }
-  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; closeMenu(); }
+  function clear() { $("#overlay").innerHTML = ""; done = []; ringAt = null; closeMenu(); minimap.areas(null); }
 
   // ---------- what the tagger has done, cut out of the image ----------
   // The study gives the shapes its tagger has decided ([[x, y], ...] in image pixels); the viewer cuts them out of the
@@ -560,7 +574,10 @@ export function viewer(shell) {
     // the Ruler button taken over by another view (fn() on each press) or given back (null), this view's ruler gone
     rulerWith: (fn) => ruler.take(fn),
     // the shapes the tagger has decided, cut out of the image while they tag; and whether they tag now, from the shell
-    doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); },
+    doneMask(shapes) { done = shapes || []; drawDone(); }, tagged(on) { tagging = !!on; drawDone(); minimap.areas(); },
+    // the areas the study's ground truth is walked through, shown on the minimap while the user tags: {n, state(a), now,
+    // pick(a)}, null for none
+    areaMap(map) { minimap.areas(map); },
     draw, setZoom, fit, frame: frameBox, focus, ring, inView, toImage, layer, channelList: () => chans.map(({ name, colour }) => ({ name, colour })), minimapView: () => minimap.place(), preview, clear, shown, picture,
     get overlay() { return $("#overlay"); }, get scroller() { return $("#scroller"); },
   };

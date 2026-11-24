@@ -4,6 +4,7 @@
   "description": "Nodes of Ranvier, found, counted and measured in fluorescence images, then reviewed one by one.",
   "visibility": "listed",
   "stage": "Develop",
+  "article": "https://docs.google.com/document/d/1bv3iQPHhjCzYWPgaxIca8qeHcz1cdgII0L1uc7PhdbU/edit?tab=t.0",
   "summary": {"mask": true},
   "results": {"measures": [{"title": "Candidates", "count": ["candidates"]}, {"title": "Added NoRs", "count": ["added"]}]},
   "icon": "web/icon.svg",

@@ -300,7 +300,7 @@ owner's decisions on the stacks and the vessel model, are
 
   While the user annotates, and only then, the areas float as a small map at the main view's top left, the shell's minimap's
   size (`req/shell/image/minimap`), on the whole stack and in an area alike: each area done, partly judged or not
-  started, the current one marked; clicking one opens it. Under the areas the map shows the stack, never in 3D but
+  started, the current one marked; clicking one opens it (the shell's map of the areas, `req/shell/ground-truth/area-map`). Under the areas the map shows the stack, never in 3D but
   every slice flattened, each pixel its brightest, in the colours the image box paints it, so the person sees where to
   go next; an area's mark is a tint the stack shows through (owner, 2026-11-10).
 
