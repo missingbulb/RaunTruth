@@ -625,9 +625,9 @@ export function mount(shell) {
     const items = [
       st.added.length && { level: "error", grade: true, ok: !waiting, text: waiting ? `Approve or reject the ${waiting} NoR${s(waiting)} you added` : "Approve or reject the NoRs you added" },
       { level: "error", grade: true, ok: voted > 0, text: "Vote on at least one candidate" },
-      { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be exported` : "Vote on every finalist" },
+      { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be uploaded` : "Vote on every finalist" },
       TRUTH && { level: "warn", grade: true, ok: st.areas.size === areaCount(), text: st.areas.size === areaCount() ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${areaCount() - st.areas.size} of ${areaCount()} left` },
-      { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be submitted` },
+      { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be uploaded` },
     ].filter(Boolean);
     return { state: !voted || waiting ? "todo" : open || (TRUTH && st.areas.size < areaCount()) ? "part" : "done", items };
   }

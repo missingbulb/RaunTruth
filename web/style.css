@@ -714,9 +714,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #notice p { margin: 0; }
 #notice button { align-self: flex-end; }
 :root { --gt-part: #e8890c; }
-#gt-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#gt-dlg, #start-dlg, #load-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#gt-dlg::backdrop { background: #0007; }
+#gt-dlg::backdrop, #start-dlg::backdrop, #load-dlg::backdrop { background: #0007; }
 /* the popup's checklist: every issue the ground truth can have, crossed out with a green check once resolved */
 .checklist { list-style: none; margin: 4px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .checklist li { display: flex; gap: 8px; align-items: flex-start; }
@@ -727,7 +727,7 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .checklist li.warn svg { color: var(--gt-part); }
 .checklist li.error svg { color: var(--no); }
 #gt-msg:empty { display: none; }
-#gt-dlg .grow { flex: 1; }
+#gt-dlg .grow, #start-dlg .grow, #load-dlg .grow { flex: 1; }
 
 
 /* the low-memory popup */
@@ -1215,7 +1215,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-choices .pair > button[hidden] { display: none; }
 #annotate-say { margin: 8px 0 0; }
 #annotate-edit { margin-top: 8px; }
-#start-dlg, #load-dlg { width: min(460px, calc(100vw - 32px)); }
 #start-dlg h3 { margin: 12px 0 0; font-size: 13px; }
 #start-dlg #algorithm { height: auto; padding: 4px; }
 #start-dlg #algorithm option { padding: 4px 6px; border-radius: 4px; }
