@@ -158,7 +158,7 @@ export function mount(shell) {
     if (why === "open") return;
     if (why !== "act" && why !== "run") { pending = null; asked = null; }
     if (why === "load" && !bare) {
-      shell.step("find", true); shell.boxDone($("#bs-box"), `${books.length} books`);
+      shell.step("find", true);
       shell.step("read", true);
     }
     if (quiet) { drawBoxes(); list(); tasks(false); return; }
@@ -220,7 +220,6 @@ export function mount(shell) {
     books = raw.map((b, i) => ({ ...b, id: `r${i + 1}`, source: "found", verdict: null, typed: false, turnSet: false, proposed: null }));
     found = true; curId = null; shell.busy(false);
     shell.step("find", true); shell.step("read", true);
-    shell.boxDone($("#bs-box"), `${books.length} books`);
     shell.status(`Titles read. ${shell.algorithm.title}: ${books.length} books found` + (textless ? `, without the text finder (${textless})` : "")
       + `; ${raw.filter((b) => b.text).length} of ${raw.length} titles read with ${READERS[meta.reader] ?? meta.reader}.`);
     shell.gt.ran({ algorithm: { key: shell.algorithm.key }, output: { image: st.fileName, W: st.W, H: st.H, reader: meta.reader,
@@ -540,14 +539,14 @@ export function mount(shell) {
   }
   function submit() {
     commitTitle();
-    const name = st.fileName.replace(/\.[^.]*$/, ""), kept = books.filter((b) => b.verdict === "right");
+    const kept = books.filter((b) => b.verdict === "right");
     const items = [{ ok: true, text: `${books.filter((b) => b.source === "found" && b.verdict === "right").length} books the finder proposed kept` },
       { ok: true, text: `${books.filter((b) => b.source === "missed" && b.verdict === "right").length} missed books added` },
       ...(kept.some((b) => !b.fields?.title) ? [{ ok: false, level: "warning", text: `${kept.filter((b) => !b.fields?.title).length} books with no title typed` }] : []),
       // a library's shelf: the books walked before its first mark was seen may lack theirs
       ...(kept.some((b) => b.fields?.library) && kept.some((b) => !b.fields?.library)
         ? [{ ok: false, level: "warning", text: `${kept.filter((b) => b.fields?.library).length} books with a library mark, ${kept.filter((b) => !b.fields?.library).length} without` }] : [])];
-    shell.submitTruth({ count: kept.length, file: name + "_books_gt.json", items, empty: "No book marked right yet." });
+    shell.submitTruth({ count: kept.length, items, empty: "No book marked right yet." });
   }
 
   // ---------- the right-click menu: a book added anywhere, a book flipped or deleted ----------

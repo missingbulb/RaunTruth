@@ -117,7 +117,7 @@ async function open(role, seed = {}, finder = {}, drafts = []) {
   page.on("dialog", (d) => d.accept());
   await device.opens("shelves");
   await load(page);
-  if (role === "tagger") await fromScratch(page, "#bs-find");
+  await fromScratch(page, "#bs-find", { run: false });
   const found = await page.evaluate(() => $("#bs-found").textContent);
   check(found === "", "before Find books, the box says nothing of books not found yet", found);
   return page;
@@ -204,8 +204,8 @@ try {
     "three finders are offered, the text-guided one first, each with its precision and recall", listed);
   const scoring = await page.evaluate(() => !$("#scoring-help").hidden && $("#scoring-note").textContent);
   check(/A book/.test(scoring) && /title/.test(scoring), "beside them a (?) says how a book's box and its title are scored", scoring);
-  if (await page.evaluate(() => $("#processing-box").classList.contains("folded"))) await page.click("#processing-box .sec-head h2");
-  await page.selectOption("#algorithm", "r5");
+  // the list is in the Start dialog, shut by now: the choice made as the list would make it
+  await page.evaluate(() => { const s = $("#algorithm"); s.value = "r5"; s.dispatchEvent(new Event("change")); });
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && $("#bs-list").children.length === 2);
   check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && / edge-only: 2 books found;/.test(await found()),
@@ -534,7 +534,7 @@ try {
     "every book decided, the task asks for the missed ones before Submit", await rows());
   // right-click on the photo: a book added where no box is, sized as the books found, and one deleted from inside it
   // Edit History floats over the photo's right side, where the next clicks are: it is switched off
-  await page.uncheck("#gt-history-on");
+  await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here", "right-click off every book offers only Add a book");
   await page.click('#point-menu .item:text-is("Add a book here")');
@@ -558,10 +558,9 @@ try {
   await page.click('.bs-verdicts [data-do="right"]');
   await page.click('[data-do="none"]');
   check((await rows()).join() === "4/4 Books" && !(await page.evaluate(() => $("#gt-submit").disabled)), "None missed ends the task, and Submit opens", await rows());
-  await page.click("#gt-submit");
-  const gt = await saved(page, "#gt-export");
+  const gt = await saved(page, "#analysis-dl");
   const [b1, b2, b3, b4] = gt.doc.books;
-  check(gt.name === "shelf_books_gt.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
+  check(gt.name === "shelf_analysis.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
     && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[0][0] === dragged[0][0] && b3.proposed.corners[0][0] === 120 && b4.source === "missed" && Math.abs(b4.corners[0][0] - 330) < 1 && Math.abs(b4.corners[0][1] - 60) < 1 && !b4.proposed,
   "Submit's file carries each book in the order they stand: its verdict, corners (past the photo's edge where dragged there), turn and text, and what the finder and the reader proposed", gt.doc);
   check(gt.doc.books.map((b) => b.id).join() === "b2,b1,b3,u2" && gt.doc.none_missed === true && gt.doc.books.every((b) => b.verdict === "right"),
@@ -574,7 +573,6 @@ try {
   check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
   // Save Draft stores the photo's draft on the device; a page opened with it there, the photo opened: Load draft brings
   // every book back, without finding again
-  await page.click("#gt-close");
   await page.click("#gt-save-draft");
   await until(page, () => $("#gt-unsaved").hidden);
   const drafts = await storedDrafts(page), { history: filed, ...doc } = gt.doc;
@@ -589,11 +587,9 @@ try {
   await page.waitForFunction(() => $("#gt-tasks > li:not([data-task=edits]) .t")?.textContent.includes("4/4"));
   check((await rows()).join() === "4/4 Books" && (await books(page)).length === 4 && await page.evaluate(() => !$("#gt-submit").disabled),
     "Load draft brings back every book, verdict and title, with no Find books", await rows());
-  await page.click("#gt-submit");
-  const back = await saved(page, "#gt-export");
+  const back = await saved(page, "#analysis-dl");
   check(JSON.stringify(back.doc.books) === JSON.stringify(gt.doc.books) && back.doc.history.replay === "verified" && back.doc.history.actions.length === gt.doc.history.actions.length,
     "the file made from the loaded draft is the file made before, books and log", back.doc.books);
-  await page.click("#gt-close");
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
   const kept = await page.$$eval('#storage-list .entry[data-kind="selections"]', (es) => es.map((e) => [e.querySelector(".name").textContent, e.querySelector(".what").textContent]));
@@ -608,7 +604,6 @@ try {
 
   // a book added before Find books has run: the log starts from the photo alone, and Find books carries the book over
   page = await open("tagger", KEPT);
-  await page.click("#tasks-box .sec-head h2");
   await page.evaluate(() => document.activeViewTransition?.finished);
   await page.mouse.click(...(await toScreenOf(page, 350, 150)), { button: "right" });
   await page.click('#point-menu .item:text-is("Add a book here")');

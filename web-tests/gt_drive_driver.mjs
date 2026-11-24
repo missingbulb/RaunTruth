@@ -43,17 +43,17 @@ const markNeeded = async (page, f) => {
 };
 const pressed = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-items .cell")].map((c) => [c.dataset.id, c.querySelector(".mark-gt").getAttribute("aria-pressed")])));
 // whether the page offers Save, and the line it gives
-const saves = (page) => page.evaluate(() => ({ save: !$("#gt-submit").hidden, download: !$("#gt-download").hidden, access: $("#left .gt-access").dataset.access || "" }));
+const saves = (page) => page.evaluate(() => ({ save: !$("#gt-submit").hidden, download: !$("#analysis-dl").hidden, access: $("#left .gt-access").dataset.access || "" }));
 
 // not set up: nobody may save, and the study manager is offered Set up ground truth
 let page = await open(true);
 await asTagger(page);
 await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosave");
-await check(!(await saves(page)).save && (await saves(page)).download, "with no extractions folder, no one may save: there is no Save, and Download is there", await saves(page));
+await check(!(await saves(page)).save && (await saves(page)).download, "with no extractions folder, no one may save: there is no Upload, and Download Analysis is there", await saves(page));
 await dataManagement(page);
 await page.waitForSelector("#gt-setup:not([hidden])");
 const top = await page.evaluate(() => ({ first: document.querySelector("#data-body").firstElementChild?.id, nudged: $("#gt-setup").classList.contains("nudge"), text: $("#gt-setup").textContent.trim() }));
-await check(top.text === "Set up extractions…" && top.first === "gt-setup" && top.nudged, "a study manager is offered Set up extractions at the top of the bar, highlighted while the folder is missing", top);
+await check(top.text === "Set up Analysis Files…" && top.first === "gt-setup" && top.nudged, "a study manager is offered Set up extractions at the top of the bar, highlighted while the folder is missing", top);
 await check(await page.isHidden("#gt-box"), "with no extractions folder, there is no Extractions box");
 await page.click("#gt-setup");
 await page.click("#setup-go");
@@ -70,7 +70,7 @@ await check(!tree.some((n) => /^Extractions/.test(n)), "the tree leaves the extr
 await check(await orMissed(page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 })), "set up, nothing offers to set it up again");
 await page.waitForFunction(() => /No image/.test($("#gt-box").textContent));
 const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!($("#gt-box").compareDocumentPosition($("#data-tree")) & Node.DOCUMENT_POSITION_FOLLOWING) }));
-await check(box.above && /Extractions folder/.test(box.text) && !(await page.$("#gt-switch")), "an Extractions box above the folders says where annotations are saved and that no image has one yet, with no switch between reviewed and not", box);
+await check(box.above && /Analysis Files folder/.test(box.text) && !(await page.$("#gt-switch")), "an Analysis Files box above the folders says where they are kept and that no image has one yet, with no switch between reviewed and not", box);
 // Needs GT: a marker in the extractions folder named as the image's subfolder, nothing written beside the image
 let marked = await markNeeded(page, png);
 const marker = FILES.find((f) => f.name === neededOf(png));
@@ -115,14 +115,14 @@ const submit = async () => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /Saved/.test($("#gt-msg").textContent) || /not saved/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /Uploaded/.test($("#gt-msg").textContent) || /not uploaded/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;
 };
 let msg = await submit();
 const sub = subOf(png);
-await check(/^Saved/.test(msg), "Save says the file landed", msg);
+await check(/^Uploaded/.test(msg), "Save says the file landed", msg);
 const folder = FILES.find((f) => f.folder && f.name === sub);
 await check(!!folder && folder.parent === EXT, "Save makes the image's subfolder in the extractions folder", sub);
 const file = FILES.find((f) => f.parent === folder.id);
@@ -134,7 +134,7 @@ const run = gtDoc.history?.actions?.find((a) => a.type === "run");
 await check(run?.version?.site === (await page.evaluate(() => $("#site-version").title.replace(/^version /, ""))) && run.version.code === "standin0",
   "its run records the site's version and the code version the worker reported", run?.version);
 msg = await submit();
-await check(/^Saved/.test(msg) && writes.filter(([w, n]) => w === "folder" && n === sub).length === 1 && JSON.stringify(writes.slice(-1)) === JSON.stringify([["replace", file.name]]) && keptForever.includes(file.name),
+await check(/^Uploaded/.test(msg) && writes.filter(([w, n]) => w === "folder" && n === sub).length === 1 && JSON.stringify(writes.slice(-1)) === JSON.stringify([["replace", file.name]]) && keptForever.includes(file.name),
   "saving again replaces the person's own file, keeping the old version, and writes nothing else", writes);
 
 // Clear all history, at the Edit History window's foot: asks first, naming the image, then forgets the draft Submit kept
@@ -176,7 +176,7 @@ await check(tag === "yours: saved", "and so does the image selector's list of re
 // Data Management counts it, and a GT mark in the study file (what Study Setup writes) shows
 await dataManagement(page);
 await orMissed(page.waitForFunction(() => /1 image has an extraction/.test($("#gt-box").textContent), null, { timeout: 5000 }));
-await check(/1 image has an extraction/.test(await page.textContent("#gt-box")), "the Extractions box counts it", await page.textContent("#gt-box"));
+await check(/1 image has an Analysis File/.test(await page.textContent("#gt-box")), "the Analysis Files box counts it", await page.textContent("#gt-box"));
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
 await page.click("#data-tree .tree-folder .name");
 const cell = `#folder-items .cell[data-id="${png.id}"]`;
@@ -212,7 +212,8 @@ await check(downloads.every((d) => d === png.id || d === settings.id), "before a
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.textContent));
 await check(rows.length === 1 && /^by hand · GT/.test(rows[0]) && !/@/.test(rows[0]), "signed out, the list holds the marked extraction alone, by hand, with no name", rows);
 await page.click(`#annotate-list button[data-key="${file.id}"]`);
-// only the click reads the extraction
+await page.click("#load-go");
+// only the choice loaded reads the extraction
 await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
 const summed = await page.textContent("#annotate-say"), shown = await page.textContent("#fx-result");
 await check(/GT/.test(summed) && !/@/.test(summed) && /pixels counted/.test(summed), "its line says it is the GT one, with the study's counts and no name", summed);

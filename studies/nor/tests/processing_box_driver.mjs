@@ -37,9 +37,10 @@ try {
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   // the list's numbers arrive with the study's measured quality
   await page.waitForFunction(() => /\(P\s/.test(document.querySelector("#algorithm").options[0].textContent));
-  const folds = await page.evaluate(() => ({ about: document.querySelector("#algorithm-about").open }));
-  console.log("folds", JSON.stringify(folds));
-  if (folds.about) problems.push("the algorithm's note starts open");
+  // how the chosen algorithm works is in the Start dialog, under the list, with nothing to unfold
+  const about = await page.evaluate(() => ({ inDialog: !!document.querySelector("#start-dlg #algorithm-note"), fold: !!document.querySelector("#start-dlg details") }));
+  console.log("about", JSON.stringify(about));
+  if (!about.inDialog || about.fold) problems.push("how the algorithm works is not in the Start dialog, plain under the list");
   // the algorithm gives a list of NoRs and nothing else: no setting, filter or preset anywhere on the page
   const controls = await page.evaluate(() => ["#settings-box", "#filters-fold", "#filters", "#presets", "#main-params", "#detect-params", "#reset-detect"]
     .filter((id) => document.querySelector(id)));
@@ -53,13 +54,13 @@ try {
   for (const [k, text] of options) {
     const icon = LISTED[k].icon;
     if (!icon || !text.startsWith(icon + " " + LISTED[k].title)) problems.push(`${k} in the list does not start with its icon: ${text}`);
-    // the box is folded until an image opens, so the choice is made as the list would make it
+    // the dialog is shut until an image opens and Start is pressed, so the choice is made as the list would make it
     await page.evaluate((k) => { const s = document.querySelector("#algorithm"); s.value = k; s.dispatchEvent(new Event("change")); }, k);
-    await orMissed(page.waitForFunction((n) => document.querySelector("#algorithm-about summary").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
+    await orMissed(page.waitForFunction((n) => document.querySelector("#algorithm-about").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
     const note = await page.evaluate(() => {
       const n = document.querySelector("#algorithm-note"), sel = document.querySelector("#algorithm");
       return {
-        title: document.querySelector("#algorithm-about summary").textContent, nested: !!n.querySelector("li > ul > li, li > ol > li"),
+        title: document.querySelector("#algorithm-about").textContent, nested: !!n.querySelector("li > ul > li, li > ol > li"),
         text: n.textContent, strong: n.querySelector("strong")?.textContent, line: n.querySelector("strong")?.parentElement.textContent, raw: /(^|\n)\s*- /.test(n.innerText), option: sel.selectedOptions[0].textContent,
       };
     });

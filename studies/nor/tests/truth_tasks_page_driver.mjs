@@ -70,9 +70,6 @@ async function open(stage, more = {}) {
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
-  // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
-  await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Save is off");
-  await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await page.evaluate(() => { $("#notice").hidden = true; });
   return page;
@@ -278,7 +275,7 @@ await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySe
 
 // a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
 // tagger's own switch puts it away first
-await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
+await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));
@@ -370,10 +367,10 @@ const key = async (code, o = {}) => {
 };
 // the key a button shows at its end, while it is shown
 const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
-// the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
+// the legend's rows while tagging: the one view of the whole image, the NoRs over it shown or not, on 1; the Show menu's other rows
+// have no row and no key; the buttons' keys on the buttons
 const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
-const VIEWS = ["Finalists 1", "Added NoRs 2"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 3", "Frame the area 4"];
-const expectRows = async () => TAGGING_VIEWS.join(", ");
+const expectRows = async () => "NoRs 1";
 const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4"].map((code) => ({ code }));
 const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
 let took;
@@ -381,7 +378,7 @@ await page.evaluate(() => document.activeElement?.blur());
 await page.evaluate((k) => nor.goTo(k), first.key);
 const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
 await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
-await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
+await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists NoRs alone, on 1, with F, J and S on their buttons", await legendRows(page));
 const heard = await studyTakes(page, KEYS);
 await check(heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
 s = await now();
@@ -438,14 +435,21 @@ took = await key("Space");
 s2 = await now();
 await check(okChip === "Space" && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2),
   "Space is No missed NoRs here, the area checked and the walk on", { okChip, s2 });
-// a view's number key switches its Show menu row, its legend row filled blue while it is held and while the view is on
+// 1 shows and hides the NoRs over the image, the finalists and the added ones together, its legend row filled blue while it is
+// held and while they show; 2, 3 and 4 switch nothing
+const norsShown = () => page.evaluate(() => ({ pass: $("#show-gt-pass").checked, added: $("#show-gt-added").checked, off: $("#overlay").classList.contains("no-gt-pass") && $("#overlay").classList.contains("no-gt-added"),
+  cut: $("#show-gt-cut").checked, frame: $("#show-gt-frame").checked }));
 await page.keyboard.down("Digit1");
-const heldRow = (await legend(page))[0], passOff = await page.evaluate(() => !$("#show-gt-pass").checked && $("#overlay").classList.contains("no-gt-pass"));
+const heldRow = (await legend(page))[0], hid = await norsShown();
 await page.keyboard.up("Digit1");
 const offRow = (await legend(page))[0];
-await check(passOff && heldRow.lit && !offRow.lit, "1 turns Finalists off: its row blue while 1 is held, grey once let go", { passOff, heldRow, offRow });
-await page.click("#key-show-pass");
-await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
+await check(!hid.pass && !hid.added && hid.off && heldRow.lit && !offRow.lit, "1 hides the NoRs, finalists and added alike: its row blue while 1 is held, grey once let go", { hid, heldRow, offRow });
+for (const k of ["Digit2", "Digit3", "Digit4"]) await page.keyboard.press(k);
+const others = await norsShown();
+await check(others.cut && others.frame && !others.pass && !others.added, "2, 3 and 4 switch nothing: cutting out what is done and framing the area have no key", others);
+await page.click("#key-show-nors");
+const back = await norsShown();
+await check(back.pass && back.added && !back.off && (await legend(page))[0].lit, "clicking its row shows the NoRs again, its row blue", back);
 await page.close();
 
 // ---- a Review study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----

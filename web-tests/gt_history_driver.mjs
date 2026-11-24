@@ -6,6 +6,7 @@
 // force, and a viewer's copy is handed the study without it) and req/shell/storage/manage (a draft listed and deleted).
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_driver.mjs ANSWERS STUDIES ROOT
+import { loadStored, fromScratch } from "./annotating.mjs";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until } from "./page_until.mjs";
@@ -18,13 +19,13 @@ const { FILES, GT, studyFile, open, dataManagement, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
 
-const { ready, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
+const { ready, openImage, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 const unloadAsks = (page) => page.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); dispatchEvent(e); return e.defaultPrevented; });
 const submit = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /Saved|not saved/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /Uploaded|not uploaded/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;
@@ -45,7 +46,7 @@ let recs = await records(page);
 await page.context().close();
 page = await openKept({ drafts: recs });
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await check(await page.isHidden("#gt-offers") && (await model(page)) === null, "a page opened on what the device keeps finds nothing kept: no offer, nothing counted, and the shell says its look for a draft has ended");
+await check(await page.isHidden("#gt-offers"), "a page opened on what the device keeps finds nothing kept: no offer, and the shell says its look for a draft has ended");
 
 // Save Draft keeps the log and the model on this device
 await counted(page);
@@ -67,10 +68,10 @@ page = await openKept({ drafts: recs });
 await until(page, () => !$("#gt-offers").hidden);
 const offer = await page.evaluate(() => ({ shown: !$("#gt-offers").hidden, text: $("#gt-load-draft").textContent.trim(), above: $("#gt-offers").nextElementSibling.id }));
 await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(offer.text) && offer.above === "gt-list", "the image's draft is offered above the tasks, with when it was saved and how many actions", offer);
-await check((await model(page)) === null && (await page.textContent("#fx-result")).startsWith("Nothing counted"), "nothing is loaded unasked");
+await check((await marks(page)) !== edited2, "nothing of the draft is loaded unasked: the marks are the run's own", await marks(page));
 await page.evaluate(() => { window.posted = []; const p = Worker.prototype.postMessage; Worker.prototype.postMessage = function (m, ...r) { posted.push(m.type + ":" + (m.action || "")); return p.call(this, m, ...r); }; });
 await page.click("#gt-load-draft");
-await until(page, () => !!window.fixture.model());
+await until(page, () => $("#gt-offers").hidden);
 await check((await marks(page)) === edited2, "Load draft brings the model back with the two moves", { got: await marks(page), edited2 });
 const status = await page.textContent("#status");
 await check(/verified/.test(status) && !(await page.evaluate(() => posted.some((p) => p.startsWith("call:")))) && await page.isHidden("#gt-offers"),
@@ -135,7 +136,7 @@ await page.click("#gt-undo");
 const draftBefore = recs[0].saved;
 await check((await label(page)).text === "· 1 unsaved", "one action is unsaved before Save", await label(page));
 const msg = await submit(page);
-await check(/^Saved/.test(msg), "Save says the file landed", msg);
+await check(/^Uploaded/.test(msg), "Save says the file landed", msg);
 const subFolder = FILES.find((f) => f.folder && f.name === sub && f.parent === GT.extractions);
 const file = FILES.filter((f) => f.parent === subFolder?.id).at(-1);
 const doc = JSON.parse(file.bytes.toString());
@@ -155,8 +156,7 @@ await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await page.click("#annotate-load");
-await page.click(`#annotate-list button[data-key="${file.id}"]`);
+await loadStored(page, file.id);
 await until(page, () => !!window.fixture.truth());
 const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));
 await check(shown.includes("labels") && !shown.includes("history"), "a viewer loading the marked annotation from Drive hands the study the file without its history", shown);
@@ -218,9 +218,10 @@ await expecting(/storage refused/, async () => {
     const real = IDBFactory.prototype.open;
     IDBFactory.prototype.open = function (name, ...rest) { if (name === "gt-drafts") throw new Error("storage refused"); return real.call(this, name, ...rest); };
   }) });
-  await tagger(page);
+  await openImage(page);
   await page.waitForFunction(() => /could not be read/.test($("#status").textContent));
   await check(true, "a draft that cannot be looked up is said on the status line", await page.textContent("#status"));
+  await fromScratch(page, "#fx-count");
   await counted(page);
   await moved(page, "m1", 12, 12);
   await page.click("#gt-save-draft");

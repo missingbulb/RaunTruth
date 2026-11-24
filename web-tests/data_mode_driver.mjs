@@ -28,10 +28,10 @@ const neededOf = (name) => { const f = FILES.find((g) => g.name === name); retur
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.extractions, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered, none for what the image has not got yet
+// not signed in: the three drawers, by their titles alone
 let page = await open(false);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2",
-  "the drawers on show before an image, with no Summary yet, are numbered");
+const drawers = await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".sec-head h2").textContent.trim()).join());
+await check(drawers === "Load,Analysis,Summary", "the drawers on show before an image are Load, Analysis and Summary, each its title alone", drawers);
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG

@@ -168,14 +168,17 @@ PAGE_SLOTS = {'toolbar', 'toolbar-end', 'view-top', 'views', 'over-image', 'body
 
 
 def test_the_left_bar_is_the_shells_and_a_study_fills_its_boxes():
-    """req/shell/left-bar/shells: the shell lays out the left bar, its boxes Image, Processing, Ground Truth Tasks and
-    Summary; a study adds no box anywhere, only its part inside the shell's boxes and the page's other slots."""
+    """req/shell/left-bar/shells: the shell lays out the left bar, its three boxes Load, Analysis and Summary; a study adds
+    no box anywhere, only its parts inside the shell's boxes (its processing and its tasks in Analysis, its summary in
+    Summary) and the page's other slots."""
     page = open(os.path.join(WEB, 'index.html'), encoding='utf8').read()
     left = page[page.index('<aside id="left">'):page.index('</aside>', page.index('<aside id="left">'))]
-    for bid, slot in (('processing-box', 'processing'), ('tasks-box', 'tasks'), ('summary-box', 'summary')):
+    boxes = re.findall(r'<section class="box foldable[^"]*" id="([\w-]+)"', left)
+    assert boxes == ['image-box', 'analysis-box', 'summary-box'], f'the left bar\'s boxes are {boxes}'
+    for bid, slots in (('analysis-box', ('processing', 'tasks')), ('summary-box', ('summary',))):
         m = re.search(rf'<section class="box foldable[^"]*" id="{bid}"[^>]*>(.*?)</section>', left, re.S)
-        assert m, f'the shell\'s left bar has no {bid}'
-        assert f'data-slot-for="{slot}"' in m.group(1), f'{bid} holds the study\'s {slot} slot'
+        for slot in slots:
+            assert f'data-slot-for="{slot}"' in m.group(1), f'{bid} holds the study\'s {slot} slot'
     assert 'data-slot-for="left"' not in page, 'the left bar has no slot of its own for a study\'s boxes'
     seen = 0
     for path in STUDIES:

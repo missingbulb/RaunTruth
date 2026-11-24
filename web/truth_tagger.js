@@ -8,8 +8,8 @@ import { asLoaded } from "./as_loaded.js";
 const SAY = {
   signedout: "You are not signed in, so nothing here can be saved to the study. Sign in to save; you can download your work meanwhile.",
   nosave: "You may not save to this study. Ask the study owner for access; you can download your work meanwhile.",
-  unset: "This study has not set up its extractions folder yet, so nothing can be saved to it.",
-  view: "View only: the store lets you only view the study's extractions folder. Ask its owner for edit access.",
+  unset: "This study has not set up its Analysis Files folder yet, so nothing can be uploaded to it.",
+  view: "View only: the store lets you only view the study's Analysis Files folder. Ask its owner for edit access.",
   unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
   unknown: "Your sign-in ran out. Sign in again to save.",
 };
@@ -66,13 +66,14 @@ export function truthTagger({ account, remote, place, image, on, may }) {
     },
     // the study file's marks, {<image's SHA-256>: {gt, official}}, as read in the minute
     async marks() { return (await studyFile())?.marks || {}; },
-    // the image's extractions as the list shows them (truth_folders.js rows): the study file read afresh, for its marks follow the
-    // latest, then two listings and no extraction read. member: whether the
-    // user may read the study's root, which the list's names and unmarked rows follow
-    async list(img, { member }) {
-      const file = await studyFile({ fresh: true }), folder = folderOf(file);
-      if (!folder) return [];
-      return rows({ files: await files(reader, folder, img), marks: marksOf(file?.marks, img.sha256), key: account.email() ? await personKey(account.email()) : null, member });
+    // the image's extractions as the list shows them (truth_folders.js rows), and the user's own among the files, whether the list
+    // shows it or not, as files() gives it, or null: the study file read afresh unless told not to, for its marks follow the latest, then two listings
+    // and no extraction read. member: whether the user may read the study's root, which the list's names and unmarked rows follow
+    async list(img, { member, fresh = true }) {
+      const file = await studyFile({ fresh }), folder = folderOf(file);
+      if (!folder) return { rows: [], mine: null };
+      const all = await files(reader, folder, img), key = account.email() ? await personKey(account.email()) : null, own = key && all.find((f) => f.by === key);
+      return { rows: rows({ files: all, marks: marksOf(file?.marks, img.sha256), key, member }), mine: own || null };
     },
     // the user's own extraction of the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
     // file read, for an image from the remote store only (req/shell/ground-truth/draft-offer)

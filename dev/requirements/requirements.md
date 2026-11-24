@@ -111,46 +111,81 @@ nobody has decided: what the page does there is not a requirement yet.
   follows what it points at when the window resizes. Test: `web-tests/test_welcome_page.py`.
   </details>
 
-- `req/shell/annotate/choice` After an image loads, the left bar asks how to get annotations on it, per image; only starting from scratch shows the algorithm runner.
+- `req/shell/analysis/start` Start opens a dialog listing the study's algorithms, how the chosen one works under the list, with Cancel and Run; Run starts the analysis with the one chosen.
+  <details>
+
+  Set by the owner on 2026-11-24. Start, in the Analysis box (`req/shell/annotate/choice`), opens the Start Analysis
+  dialog: the study's algorithms in a box of rows (`req/shell/processing/algorithms`), the first chosen, under it how
+  the chosen one works and how it scored, and two actions, Cancel and Run. Cancel closes it and nothing changes. Run
+  closes it and starts the analysis with the algorithm chosen: where the stage lets the user annotate, the page enters
+  annotation mode; the study's runner shows in the Analysis box under a line naming the algorithm that ran, and the
+  study's first step is pressed for the user as soon as its button can be, so the run needs no second press. The box
+  holds no list of algorithms, before a run or after it. While the study's first step waits behind Start, Start is the
+  button that shines (`req/shell/steps`). A study naming no algorithms, or with no first step to press, has no
+  dialog: Start enters annotation mode at once. Tentative: a study whose analysis is several steps, each with a button
+  of its own (Bookshelf Reader's Find books, then Read titles), has its runner opened by Run and no step pressed, so
+  its user sets what the runner offers and presses each step; in a stage that does not annotate (Review, Public) Start
+  runs the algorithm with no annotation mode, and stays on show to run another. Test:
+  `web-tests/test_annotate_mode_page.py`, `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
+- `req/shell/annotate/choice` Once an image is open the Analysis box offers Start and Load, per image; only Start shows the algorithm runner.
   <details>
 
   Set by the owner on 2026-11-21, in place of the role menu (the header has none: one page for everyone, to which
-  what Drive's sharing lets a person do only adds) and of Start GT tagging. In a study whose stage lets its users
-  annotate (Setup, Develop and Analyze; `req/shell/study/stage`), once an image has loaded an
-  Annotations box in the left bar asks, for that image, how to get annotations on it: **Continue local annotation
-  work**, offered only when this device holds a draft of the image (`req/shell/ground-truth/save-draft`) and entering
-  annotation mode with it loaded; **Load annotation from Drive**, which lists the image's annotations on Drive and,
-  once one is chosen, shows it read-only, as the study's final results with no annotation tool and no algorithm run
-  (`req/shell/ground-truth/view`), offering **Edit this annotation**, which enters annotation mode with it as the base;
-  and **Start annotating from scratch**, which enters annotation mode and is the only way that shows the algorithm
-  runner (Processing). Annotation mode is the page an annotator had, for the one image: the study opens
-  afresh on it, Ground Truth Tasks, Undo, Redo, Save Draft, Save and every annotation tool show, the study's
-  postprocessing shows, and the walk of the tasks is open from the first model on, with no Start GT tagging or Stop
-  tagging (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode.
-  Loading another image leaves the mode and asks again, so does Unload, and the mode is not kept across a reload.
-  The list is that of `req/shell/extractions/list`. Tentative: a study whose stage does
-  not annotate (Review, Public) asks nothing, and Processing shows as before. Test:
+  what Drive's sharing lets a person do only adds) and of Start GT tagging; changed by the owner on 2026-11-24, who
+  named the box Analysis, took out the line asking how to get annotations and the line saying the work started from
+  scratch, and named the buttons. In a study whose stage lets its users annotate (Setup, Develop and Analyze;
+  `req/shell/study/stage`), once an image is open the Analysis box offers, for that image: **Continue local work**,
+  only when this device holds a draft of the image (`req/shell/ground-truth/save-draft`), entering annotation mode
+  with it loaded; **Start**, which opens the algorithms' dialog and runs the one chosen (`req/shell/analysis/start`)
+  and is the only way that shows the algorithm runner; and beside it **Load**, on only where the image has an Analysis
+  File to load (`req/shell/extractions/list`), which opens the Load Analysis dialog: the image's Analysis Files, one to
+  choose, and Cancel and Load. The one loaded shows read-only, as the study's final results with no tool and no
+  algorithm run (`req/shell/ground-truth/view`), a line saying which is shown, with **Edit this analysis**, which
+  enters annotation mode with it as the base. Annotation mode is the page an annotator had, for the one image: the
+  study opens afresh on it, Analysis Tasks, Undo, Redo, Save Draft, Upload and every tool show, the study's
+  postprocessing shows, and the walk of the tasks is open from the first model on
+  (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode. Opening
+  another image leaves the mode and offers the choice again, so does Unload, and the mode is not kept across a reload.
+  A study whose stage does not annotate (Review, Public) is offered Start alone. Test:
   `web-tests/test_annotate_mode_page.py`.
   </details>
 
-- `req/shell/annotate/clear` Clear all annotations from image puts the page back as just after the image loaded, forgetting the device's draft.
+- `req/shell/annotate/clear` reset analysis, a link on the Analysis box's header, puts the page back as just after the image opened, forgetting the device's draft.
   <details>
 
-  Set by the owner on 2026-11-21. In annotation mode a button in the Annotations box asks first, naming the actions not
-  yet saved that are lost, and on a yes forgets this device's draft of the image and opens the study afresh on the
-  same image outside annotation mode, the choice asked again. Drive is not touched, whatever was saved there
-  staying. Cancel changes nothing. The Edit History window's own Clear all history stays as it was
-  (`req/shell/ground-truth/clear`). Test: `web-tests/test_annotate_mode_page.py`.
+  Set by the owner on 2026-11-21 as the button Clear all annotations from image; changed by the owner on 2026-11-24:
+  it is not a top-level action but a link, "reset analysis", on the Analysis box's header, shown while the user
+  annotates and the box is open, as the Load box's "unload image" is. It asks first, naming how many unsaved actions
+  would be lost; accepted, annotation mode ends, the page is as it was just after the image opened, with Start and Load
+  offered again, this device's draft of the image is discarded, and nothing in the store is touched. Test:
+  `web-tests/test_annotate_mode_page.py`.
   </details>
 
-- `req/shell/annotate/no-save` Someone the store lets save nothing gets the same choices and tools, with no Save, a Download, and a line saying what to do.
+- `req/shell/annotate/held` While the study comes in again on the image open, the page stays on screen as it was until the image is open in it.
   <details>
+
+  Set by the owner on 2026-11-24, on seeing the page clear nearly everything after Start, and after the clearing of
+  annotations, before the algorithm loaded. Entering annotation mode, and reset analysis, mount the study afresh on the
+  same image; the browser keeps showing the page as it was until the image is open again in the study come in, and
+  then shows the new page at once, with no motion between. A browser without view transitions, or one that gives the
+  hold up after its own time limit, shows the page as it then is. While held the page takes no press. Test:
+  `web-tests/test_annotate_mode_page.py`, which checks that the hold begins and ends with the image open, never how it
+  looks on the way.
+  </details>
+
+- `req/shell/annotate/no-save` Someone the store lets save nothing gets the same choices and tools, with no Upload, Download Analysis on the box's header, and a line saying what to do.
+  <details>
+
+  Changed by the owner on 2026-11-24: there is no Download button beside Upload and no export in a dialog; the
+  download is Download Analysis, the icon on the Analysis box's header (`req/shell/extractions/save`), which is there
+  for everyone once the image carries a model, and for someone who cannot upload it is the last step.
 
   Set by the owner on 2026-11-21, and moved from the removed tagger-access requirement (set by the owner on
   2026-11-05, changed on 2026-11-07). Whether the user may save to the study is what Drive's sharing gives them: signed
   in and able to add to the study's extractions folder. Someone who may not sees every choice and every tool of the
-  mode, but Save does not show and a Download button does, in the same row, taking the same popup of the
-  checklist and the file, which holds the Export alone; and at the top of the Ground Truth Tasks box a line says to
+  mode, but Upload does not show; and at the top of the Analysis Tasks a line says to
   sign in (signed out), or to ask the study owner for access (signed in without it); for a sign-in without the
   per-file permission, to sign out and in again ticking its box (`req/shell/data/drive-access`); for a study that has
   set up no extractions folder, the same. Someone who may save is told nothing, the line taking no room. A sign-in that
@@ -617,8 +652,17 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_python_files.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/extractions/list` Loading an image lists every extraction of it, labelled: mine, then marked (GT, official), then others folded; another's opens read-only with Edit this annotation.
+- `req/shell/extractions/list` An image opening lists its Analysis Files, so Load is on only where there is one; its dialog labels each: mine, then marked (GT, official), then others folded; one loaded opens read-only with Edit this analysis.
   <details>
+
+  Changed by the owner on 2026-11-24, who approved the call: as an image from the store opens, signed in and online,
+  the page asks the store once for the image's Analysis Files, by two listings (the extractions folder, then the
+  image's subfolder of it) and the minute's copy of the study file for its marks, reading no file; Load is on only where
+  that found one to list, and its dialog shows what was found, asking nothing more. What the opening read also answers
+  whether the user has a file of their own there (`req/shell/ground-truth/draft-offer`), so starting to annotate asks
+  nothing again. Nothing of it is kept between openings. Signed out, the store is not asked as an image opens: Load
+  stays on and asks at its press, as it did, reading the study file afresh. An image from this computer, or one opened
+  offline, has Load off, saying why.
 
   Set by the owner on 2026-11-21. Load annotation from Drive (`req/shell/annotate/choice`) lists, from the
   extractions folder's listing and the image's subfolder's, two in all and no file read, every extraction of the image:
@@ -657,8 +701,15 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
-- `req/shell/extractions/save` Save writes the person's one extraction for the image to the study's extractions folder, replacing their own and keeping Drive's old revision; a count says how many images wait to upload.
+- `req/shell/extractions/save` Upload writes the person's one Analysis File for the image to the study's extractions folder, replacing their own and keeping Drive's old revision; Download Analysis saves it as a file; a count says how many images wait to upload.
   <details>
+
+  Changed by the owner on 2026-11-24: the last task's button reads Upload and opens the Upload Analysis dialog, the
+  checklist with two actions, Cancel and Upload, and no Export file; once uploaded, or kept waiting on this device,
+  Cancel reads Close. The file itself is Download Analysis, a download icon with that tooltip on the Analysis box's
+  header, there whenever the image carries a model: it saves the model's document with its history as
+  `<image name>_analysis.json`, and where nothing can be uploaded, by this user or of this image, it is the last
+  step.
 
   Set by the owner on 2026-11-21, in place of Submit. Save (the left bar's task row and its popup, which also holds
   the checklist and Export file) writes the user's extraction of the image, `x_<key>.json`, into the image's
@@ -693,7 +744,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-19 (missingbulb/RaunTruth#747): the field is cut into n × n areas, and n is the
-  tagger's to choose in an Areas menu at the top of Ground Truth Tasks, the same for every study: the whole field,
+  tagger's to choose in an Areas menu at the top of Analysis Tasks, the same for every study: the whole field,
   2 × 2, 3 × 3, 4 × 4, 5 × 5, 6 × 6, 8 × 8 and 10 × 10, the list Vascular Measurements offered of its own since
   2026-11-07. A study that walks by areas names the count it starts at in its `study.json`
   (`groundTruth.areas`: NoR 10, Vascular 4); one that names none has no menu. The shell owns the walk's order: the
@@ -737,7 +788,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-17. When the image open has a draft on this device, by the study and the image's SHA-256
   (`req/shell/ground-truth/save-draft`), the Annotations box offers Continue local annotation work (`req/shell/annotate/choice`) and, once the image is
-  opened in annotation mode, the Ground Truth Tasks box opens with it and shows Load draft above its tasks, before the study has listed them too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
+  opened in annotation mode, the Analysis Tasks box opens with it and shows Load draft above its tasks, before the study has listed them too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
   asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
@@ -766,6 +817,10 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/history` A tagger's ground truth is an ordered log of GT actions, undone and redone one at a time down to the algorithm's run.
   <details>
 
+  Changed by the owner on 2026-11-24: Edit History's switch is not a checkbox in the left bar but a button among the
+  toolbar's tools, after the minimap's, a small numbered list, pressed while the window shows, as the minimap's button
+  is; it shows while the user annotates a study that keeps GT actions.
+
   Set by the owner on 2026-11-17. Each change to an image's ground truth is one GT action, `{at, type, …}`: when, and
   the least data that says what happened, with no label, no inverse and no number; `at` is only ever the time, so a
   place in an action has another name. One gesture is one action, done whole by the study (a drag is one action, at its
@@ -783,7 +838,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   The log is shown as Edit History, a tool window floating over the image at its bottom right, framed and headed as the
   minimap is, 2.5 times the minimap's height and never taller than the view less its margins, 1.4 times its width. Show
-  Edit History, in Ground Truth Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
+  Edit History, in Analysis Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
   has a run or a base. Newest on top, a dot at the current state; what was undone sits above the dot, dimmed and struck,
   until a new action clears it. A click on a row goes to it, the run's row back to the algorithm's output; the image's
   opening closes the list and is no row to go to. A row's words are the study's `describe`, its time at the right. Runs
@@ -848,7 +903,7 @@ nobody has decided: what the page does there is not a requirement yet.
   owner on 2026-11-22, so a listing names no one), and a batch run's `run_<algorithm key>__<version>.json`. The file
   carries the image's full SHA-256, who made it and `created`, the time it was made. Saving again replaces the person's
   own file, keeping Drive's earlier revision forever. Only an image opened from Google Drive can be saved; for one
-  opened from the computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`,
+  opened from the computer the Analysis Tasks box says so. Test: `web-tests/test_gt_drive_page.py`,
   `web-tests/test_truth_folders.py`.
   </details>
 
@@ -858,7 +913,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-17, for the edits Vascular kept in this browser. A study that kept them somewhere of its own
   hands them over with `shell.gt.legacy({model, count, from, forget})` once its run is in the log: `model` is the study's
   document, `count` how many edits it holds, `from` what to call it, `forget` removes the old store; `shell.gt.legacy(null)`
-  withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
+  withdraws the offer, and each image and each run says it afresh. Analysis Tasks then shows Load earlier edits
   beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
   when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
   once Save Draft or Save has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
@@ -881,7 +936,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
   actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
   image, or unloading this one, with actions not yet saved asks first. Tentative: so does choosing another study from the
-  study menu, and Clear all annotations from image, which names them (`req/shell/annotate/clear`). What no question can stop gives up the
+  study menu, and reset analysis, which names them (`req/shell/annotate/clear`). What no question can stop gives up the
   unsaved actions without asking, and the spec says so plainly here: the browser's Back and
   Forward buttons, which swap the study at once. A sign-in that runs out gives up nothing (`req/shell/annotate/survives`).
   The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
@@ -914,7 +969,7 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/tagging` Annotating is the walk of the tasks: it opens with annotation mode, with no Start or Stop.
   <details>
 
-  Set by the owner on 2026-11-07, changed on 2026-11-21 (`req/shell/annotate/choice`). The Ground Truth Tasks box
+  Set by the owner on 2026-11-07, changed on 2026-11-21 (`req/shell/annotate/choice`). The Analysis Tasks box
   counts each task all the while. Annotation mode, which the choice of how to get annotations enters, is the walk: it
   begins at the walk's next item not done as soon as the study has a model for it (an algorithm run, a draft or an
   annotation loaded), a task's name opens it at that task, and it ends with the mode, when another image opens, the
@@ -929,11 +984,11 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shell/ground-truth/tasks` The shell lists the study's ground-truth tasks in Ground Truth Tasks, Save last; how a task is worked through is the study's.
+- `req/shell/ground-truth/tasks` The shell lists the study's tasks under Analysis Tasks, in the Analysis box, Upload last; how a task is worked through is the study's.
   <details>
 
   Set by the owner on 2026-11-07. The study names its tasks in order (a name, and a tooltip saying what the
-  task is) and how far each has got, done of all; the shell draws them in its Ground Truth Tasks box
+  task is) and how far each has got, done of all; the shell draws them in its Analysis Tasks box
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
   last the shell's Save row, which opens the save popup (`req/shell/extractions/save`) with
@@ -1070,7 +1125,7 @@ nobody has decided: what the page does there is not a requirement yet.
   its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
   a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
   legend is empty. Set by the owner on 2026-11-17, the shell's own: Undo (Ctrl+Z, ⌘Z) and Redo (Ctrl+Shift+Z, ⌘⇧Z, Ctrl+Y)
-  press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
+  press their buttons in Analysis Tasks and so act only while those show and are on; typed in a field they are the
   browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
   study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
   </details>
@@ -1205,46 +1260,34 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_runs.py`, `web-tests/test_compressed_tiff.py`, `web-tests/test_viewer3d_page.py`.
   </details>
 
-- `req/shell/left-bar/folding` The left bar's boxes stay folded until their step makes them useful, and fold again once it is done.
+- `req/shell/left-bar/folding` The left bar's three boxes are always there; one waits, folded to its title and inert, until the stage before it is done, and opens as that ends.
   <details>
 
-  Set by the owner on 2026-10-30. Every box in the left bar folds under its title, and clicking the
-  title opens or closes it. The first is the shell's Image box (the image selector or Load, the image's
-  details, its channels, Unload): open until an image opens, then folded; in a study with no steps after Load
-  (the Image Viewer) it stays open, nothing else having opened (the owner, 2026-11-05). Processing opens once an image opens and folds
-  again after the study's first step (`req/shell/steps`); Summary and Ground Truth Tasks open after that
-  step (`req/shell/left-bar/shells`, set by the owner on 2026-11-07). When a step is done by the user (an image opening, or the
-  step's button pressed, never a dial set back to the last run's) its boxes open and the boxes it
-  closes fold; opening another image also folds every box waiting for a later step. Between those moments a box
-  stays as the user left it; switching study (`req/shell/study/switch-in-place`) starts over.
-  Changed by the owner on 2026-10-31. The boxes are drawers stacked in one panel, no gap between
-  them, each title on a compact row behind the step's number in a circle, which turns into a green
-  check once the drawer's task is done; the open drawers carry an accent bar at their left. A
-  drawer's title describes its task while the task waits, open or folded; once it is done, the
-  folded title sums up what was done and the open one names the drawer. The Image box, titled Load
-  Image while no image is open (and again after Unload), folds once done (in a study with a step after Load) to
-  a small preview of the image, its name and, for a TIFF, what it holds ("2D", "3 channels", from the file;
-  only "2D" when the file does not say; a PNG or JPEG shows no such tags, set by the owner on 2026-11-10), and opens as "Loaded Image". A study's drawer is done
-  when the study gives it a summary, and waits again when the study takes it back. A drawer opening or
-  folding slides open or shut, and the drawers below it slide to their new places (set by the owner on
-  2026-10-31). Changed by the owner on 2026-11-03: a folded drawer opens from a click anywhere on it,
-  not only on its title or number; an open one still folds only from its title.
-  Test: `web-tests/test_left_bar_page.py`, `web-tests/test_study_contract.py`.
+  Set by the owner on 2026-11-24, in place of drawers numbered by step, checked when done and summing up what was done
+  in their titles. The boxes are drawers stacked in one panel, each a title row, the open ones carrying an accent bar,
+  with no number, no check and no picture beside a title. Load is open until an image is in and folds then (it stays
+  open for a preview, Load Original being what comes next, and in a study with no step after it). Analysis waits until
+  an image is open, and opens as one is. Summary waits until the image carries a model, and opens as it does. A
+  waiting box is folded to its title alone, dimmed, and does nothing when pressed; folded, any box shows its title and
+  nothing else, its header's links and icons included. Between those a box stays as the user left it: a click on a
+  folded one, anywhere on it, opens it, a click on an open one's title folds it, and a drawer opening or folding
+  slides, the ones below sliding to their new places (none where animations are off). Another image, or Unload, starts
+  over. Test: `web-tests/test_left_bar_page.py`.
   </details>
 
-- `req/shell/left-bar/shells` The shell lays out the whole left bar, Load Image, Processing, Ground Truth Tasks and Summary; a study only fills its boxes.
+- `req/shell/left-bar/shells` The shell lays out the whole left bar, Load, Analysis and Summary; a study only fills its parts of them.
   <details>
 
-  Set by the owner on 2026-11-07: the left bar's layout is the shell's, and a study adds no box to it. Under
-  the Image box (and Data Management's) come three boxes of the shell's, each holding what the study puts in it:
-  Processing (what runs the algorithm: its choice, its settings, its button, and the tools that correct its
-  result), Ground Truth Tasks and Summary (what the result adds up to, and its downloads). Ground Truth Tasks
-  shows while the user annotates (`req/shell/annotate/choice`); Summary shows whenever the image open carries any
-  model, however far along (an algorithm's run, a draft or an annotation of Drive loaded), annotation mode included,
-  beside Ground Truth Tasks (changed by the owner on 2026-11-21, which had Tasks in Summary's place). Processing shows
-  once an image is open in a study that annotates only on the route that starts from scratch. A box the study puts nothing in is not shown. How the study's results are drawn over the image
-  is chosen in the toolbar (`req/shell/image/toolbar`), never in the left bar. Test:
-  `web-tests/test_study_contract.py`, `web-tests/test_left_bar_page.py`.
+  Set by the owner on 2026-11-24, in place of the four boxes Load Image, Processing, Ground Truth Tasks and Summary.
+  The left bar has three boxes, the shell's own: Load (the image, its details and channels); Analysis, which holds the
+  choice of Start and Load (`req/shell/annotate/choice`), the study's processing (its runner, the settings and tools of
+  its own, from Start on), and Analysis Tasks, the study's tasks, while the user annotates
+  (`req/shell/ground-truth/tasks`); and Summary (what the result adds up to), which waits until the image carries a
+  model and then shows beside the tasks. A study adds no box anywhere: it fills `processing`, `tasks` and `summary`,
+  and a box it puts nothing in is not shown (the Image Viewer has Load alone). A box's header carries its title at the
+  near edge and its own actions at the far one, shown while the box is open: on Load, unload image; on Analysis, reset
+  analysis and Download Analysis; on Summary, Download Summary. Test: `web-tests/test_study_contract.py`,
+  `web-tests/test_left_bar_page.py`, `web-tests/test_annotate_mode_page.py`.
   </details>
 
 - `req/shell/left-bar/static` The left bar stays open: nothing collapses it, and it has no chevron and no Steps label.
@@ -1453,8 +1496,12 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_image_box_page.py`.
   </details>
 
-- `req/shell/processing/algorithms` A study offering several algorithms lists them atop its Processing box, the first the default, each with its icon, title and precision and recall.
+- `req/shell/processing/algorithms` A study offering several algorithms lists them in the Start dialog, in a box of rows, the first the default, each with its icon, title and precision and recall.
   <details>
+
+  Changed by the owner on 2026-11-24: the list is not atop a Processing box but in the Start dialog
+  (`req/shell/analysis/start`), a box of rows with how the chosen algorithm works plain under it, nothing to unfold;
+  the left bar holds no list, and says which algorithm ran.
 
   Set by the owner on 2026-11-13: what NoR Finder and Vascular Measurements each drew for themselves is the shell's,
   so every study with more than one algorithm shows it the same way. Changed by the owner on 2026-11-14: the algorithms
@@ -1819,7 +1866,7 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_status_bar_page.py`.
   </details>
 
-- `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines.
+- `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines: Start, while the study's step waits behind it.
   <details>
 
   A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
@@ -2022,12 +2069,15 @@ nobody has decided: what the page does there is not a requirement yet.
   Test: `web-tests/test_study_members_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
-- `req/shell/summary/download` Download Summary, at the Summary box's foot, saves the study's summary as one standard CSV.
+- `req/shell/summary/download` Download Summary, a download icon on the Summary box's header, saves the study's summary as one standard CSV.
   <details>
+
+  Changed by the owner on 2026-11-24: the button is not at the box's foot with its name written out but on the box's
+  header, a download icon alone, Download Summary its tooltip, as Download Analysis is on the Analysis box's.
 
   Set by the owner on 2026-11-16: the study works out the numbers worth reporting, the shell exports them, the same
   way for every study. A study hands the shell its summary as data, `shell.summary.set({over, rows})`, and takes it
-  back with `set(null)`; while it has one the box ends with Download Summary. The file, `<image name>_summary.csv`, is
+  back with `set(null)`; while it has one the box's header carries Download Summary. The file, `<image name>_summary.csv`, is
   one table with a row per measurement: `image`, `study`, `counted_over` (what the study says it counted over, such as
   a mask), `measurement`, `unit`, `value` for a single number, and `n`, `mean`, `sd`, `median`, `min`, `max` for a
   distribution, a column left empty where the row has none. A summary goes with the study that set it, and with the
@@ -2035,12 +2085,14 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/study_page_driver.mjs` (the fixture study), `studies/vascular/tests/model_page_driver.mjs`.
   </details>
 
-- `req/shell/summary/mask` Add mask, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
+- `req/shell/summary/mask` Define Area of Interest, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
   <details>
+
+  Changed by the owner on 2026-11-24: the button reads Define Area of Interest, not Add mask.
 
   Set by the owner on 2026-11-16, in place of NoR's and Vascular's own masks: one mask for every study, offered only
   by a study whose `study.json` says it can count inside one (`"summary": {"mask": true}`; every study filling the
-  Summary box says true or false). Add mask switches to the image, shows all of it (a stack seen from straight above,
+  Summary box says true or false). Define Area of Interest switches to the image, shows all of it (a stack seen from straight above,
   held still, the area running through every slice) and lets the user lasso an area by dragging; Esc cancels, and a
   lasso a few pixels across is no area. Lassoing again adds an area by exclusive or, so one inside another cuts a hole.
   The borders show as a pulsing dashed line over the image, or over the stack following the view as it turns, and the

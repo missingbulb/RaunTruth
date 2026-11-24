@@ -37,7 +37,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   candidate. Cards the user voted up or down have their own border colours. Changed by the owner on
   2026-11-19: the item views are gone (missingbulb/RaunTruth#740), so double clicking a candidate on
   the image selects it, as a click does. Changed by the owner on 2026-11-03: while the study makes ground truth no card hovers over the image; the
-  selected candidate is the current task's, its card in the Ground Truth Tasks box
+  selected candidate is the current task's, its card in the Analysis Tasks box
   (`req/nor/truth/tasks`), and clicking or double clicking a candidate on the image makes it the
   current one there. Test: `studies/nor/tests/test_ground_truth_page.py`.
   </details>
@@ -110,13 +110,14 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   options are set.
   </details>
 
-- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Save writes the extraction.
+- `req/nor/downloads` The shell's Download Summary gives the summary as a CSV and its Download Analysis the analysis; Upload writes the Analysis File.
   <details>
 
-  Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
-  CSV (every candidate, the user's decision and its measurements), and under it the shell's
-  Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
-  NoRs, their density and the area counted, and each measurement's statistics. Save, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
+  Moved by the owner on 2026-10-07; changed by the owner on 2026-11-24, who put the shell's Download Analysis
+  (`req/shell/extractions/save`) in the place of Download Candidates: the page has no CSV of the candidates, and the
+  analysis as a file holds every one of them, the user's decisions and the measurements. The shell's
+  Download Summary gives the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
+  NoRs, their density and the area counted, and each measurement's statistics. Upload, the last of the Analysis Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only while annotating is open, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
@@ -180,8 +181,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   malleable. The page shows the NoRs the lab scores as the finder's default (`req/nor/find/nors-only`).
   </details>
 
-- `req/nor/layout` The left bar holds Load Image, Processing and Summary, or Ground Truth Tasks while the study makes ground truth.
+- `req/nor/layout` The left bar holds the shell's Load, Analysis and Summary, the study's runner and its tasks inside Analysis.
   <details>
+
+  Changed by the owner on 2026-11-24: the boxes are the shell's three (`req/shell/left-bar/shells`), and what is said
+  below of Processing and of Analysis Tasks as boxes is of those parts of the Analysis box.
 
   Changed by the owner on 2026-10-30, 2026-10-31 and 2026-11-02. Below the Image box
   (`req/shell/left-bar/folding`) the left bar holds Processing, the candidates finder (its "how the
@@ -192,7 +196,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   (`req/nor/find/nors-only`). Test:
   `studies/nor/tests/test_processing_box.py`. The main area has a toolbar over two views: the image and the
   items, a card for each candidate, with the shell's switch between them at its left (`req/shell/views/second`).
-  Changed by the owner on 2026-11-03: while the study makes ground truth, Ground Truth Tasks
+  Changed by the owner on 2026-11-03: while the study makes ground truth, Analysis Tasks
   (`req/nor/truth/tasks`) takes Summary's place, and the main area is the image alone, with no
   switch and no item view: the image's markings are the tasks' (`req/nor/truth/marks`), switched by
   the Show menu's task-named rows (`req/nor/show-menu`).
@@ -281,9 +285,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   menu or dialog open; a key that does nothing there keeps its usual effect. Each button shows its key
   in a small chip beside its label. Changed by the owner on 2026-11-16: the keys are the shell's
   (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
-  bottom left while they act, the study listening to no key itself; and the Show menu's ground-truth rows are
-  on number keys, 1 Finalists, 2 Added NoRs, and while tagging 3 Cut out what is done and 4 Frame
-  the area (changed by the owner on 2026-11-20, the Rejected row gone with the filters), each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  bottom left while they act, the study listening to no key itself; and, changed by the owner on
+  2026-11-24, the legend holds one view alone, the one that changes the whole image: NoRs, on 1, which shows and hides
+  the NoRs drawn over the image, the finalists and the added ones together, its row filled blue while they show. The
+  Show menu's other ground-truth rows (Cut out what is done, Frame the area) are in the menu only, with no key and no
+  row in the legend. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image.
@@ -321,7 +327,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   once any is; clicking one goes to its first step not done, else to its check. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
-- `req/nor/truth/tasks` Ground Truth Tasks lists the tasks, one row each; the open one shows one item at a time.
+- `req/nor/truth/tasks` Analysis Tasks lists the tasks, one row each; the open one shows one item at a time.
   <details>
 
   Set by the owner on 2026-11-03. In the left bar while the user annotates (`req/shell/annotate/choice`), counting

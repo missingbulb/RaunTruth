@@ -9,7 +9,7 @@
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
-import { annotateIfAsked } from "./annotating.mjs";
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -145,8 +145,9 @@ const switchIs = async (page, want, on, what) => {
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
   await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
-const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => document.querySelector("#fx-count")?.disabled === false); await annotateIfAsked(page, "#fx-count"); };
-const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
+const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !!window.shellForTests?.page.get("image") && document.querySelector("#busy").hidden && document.querySelector("#fx-count")?.disabled === false); };
+// Start, and Run in its dialog: the study's Count runs
+const count = async (page) => { await fromScratch(page, "#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
 // ---- a Develop study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
 {
@@ -222,10 +223,9 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(!pointers.length, "nothing in the status bar shows a question-mark pointer", pointers);
 
   await loadImage(page);
+  await shines(page, ["#annotate-scratch"]);
+  await count(page);
   await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
-  await shines(page, ["#fx-count"]);
-  await page.click("#fx-count");
-  await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
   // Python worked about WORK ms of the last two seconds
   await orMissed(page.waitForFunction(() => parseInt(document.querySelector("#sb-cpu").textContent) >= 30, null, { timeout: STEP }));
   await check(parseInt(await page.textContent("#sb-cpu")) >= 30, "the CPU shows Python at work", await page.textContent("#sb-cpu"));
@@ -246,8 +246,8 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
       filled: +part.style.getPropertyValue("--done"), submit: !s.disabled, state: s.dataset.state || "" };
   });
   const l0 = await list();
-  await check(l0.rows.join() === "0/1 Count checked,Save" && l0.last && l0.submit && l0.state === "todo",
-    "the study's task is a row, 0 of 1 done, and Save, on, is the last", l0);
+  await check(l0.rows.join() === "0/1 Count checked,Upload" && l0.last && l0.submit && l0.state === "todo",
+    "the study's task is a row, 0 of 1 done, and Upload, on, is the last", l0);
   await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
   await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
@@ -258,16 +258,16 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await shot(page, "2-submit");
   await page.click("#gt-submit");
   await page.waitForFunction(() => document.querySelector("#gt-dlg").open);
-  const download = page.waitForEvent("download");
-  await page.click("#gt-export");
-  await download;
   await page.click("#gt-close");
+  const download = page.waitForEvent("download");
+  await page.click("#analysis-dl");
+  await download;
   await shines(page, []);
   await shot(page, "3-done");
   // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
   page.once("dialog", (d) => d.accept());
   await loadImage(page);
-  await shines(page, ["#fx-count"]);
+  await shines(page, ["#annotate-scratch"]);
 
   // the memory opens its tab of the one dialog, with no Run GC and no essay on Python's memory
   await page.click("#sb-memory");

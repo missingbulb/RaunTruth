@@ -65,7 +65,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!filed;
     $("#gt-offers").hidden = !offered && !earlier && !sent;
     $("#gt-load-submission").hidden = !sent;
-    if (sent) $("#gt-load-submission").textContent = `Load your extraction${filed.modified ? ` · saved ${stamp(filed.modified)}` : ""}`;
+    if (sent) $("#gt-load-submission").textContent = `Load your Analysis File${filed.modified ? ` · saved ${stamp(filed.modified)}` : ""}`;
     offer.hidden = !offered;
     offer.textContent = offered ? `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}` : "";
     $("#gt-load-legacy").hidden = !earlier;
@@ -125,12 +125,12 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   // the person's own extraction, read now, the one download
   async function loadSubmission() {
-    if (!module || !log || !filed || !mayReplace("your extraction")) return false;
+    if (!module || !log || !filed || !mayReplace("your Analysis File")) return false;
     const { id, modified } = filed;
     let doc;
-    try { doc = await readSubmission(id); } catch (e) { notice(`Your extraction could not be read: ${e?.message || e}`); return false; }
+    try { doc = await readSubmission(id); } catch (e) { notice(`Your Analysis File could not be read: ${e?.message || e}`); return false; }
     const h = doc?.history;
-    const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your extraction");
+    const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your Analysis File");
     if (taken) { filed = null; paint(); }
     return taken;
   }
@@ -179,7 +179,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
         return null;
       });
       const sent = !makesTruth() ? null : submission().catch((e) => {
-        console.warn("the submission was not looked up:", e); status(`Your extraction of this image could not be looked up: ${e?.message || e}`, true);
+        console.warn("the submission was not looked up:", e); status(`Your Analysis File of this image could not be looked up: ${e?.message || e}`, true);
         return null;
       });
       const [d, s] = await Promise.all([device, sent]);

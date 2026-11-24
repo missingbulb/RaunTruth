@@ -26,7 +26,7 @@ const WHY = {
   named: "Before Review the root is for the study's named people: anyone with a link could open its files.",
   link: "From Review on the study opens by its address, so its root is shared by link.",
   linked: "Visitors and the lab read it with no sign-in, so it is shared by link.",
-  writer: "In this stage people annotate: someone must be able to add files to the extractions folder.",
+  writer: "In this stage people analyse images: someone must be able to add files to the Analysis Files folder.",
   linkEdit: "Anyone with the link may edit it, which no stage allows; a link that only reads is offered once this is off.",
   unread: "This account may not read its sharing from here, so the page cannot check it.",
 };
@@ -55,7 +55,7 @@ export function corrections(stage, items, sharing) {
 }
 
 // Who holds which of the three shares, from the root's and the extractions folder's items: {members: [{email, name, holds}], link}.
-// holds, in order, "sees" (reads the root), "annotates" (writes the extractions folder), "manages" (writes the root); link whether the root
+// holds, in order, "sees" (reads the root), "analyses" (writes the extractions folder), "manages" (writes the root); link whether the root
 // is shared by link
 export function people(items) {
   const found = new Map(), root = items.find((i) => i.kind === "root"), extractions = items.find((i) => i.kind === "extractions");
@@ -68,8 +68,8 @@ export function people(items) {
     }
   };
   hold(root?.perms, "root", (p) => [["sees", true], ["manages", WRITES.includes(p.role)]]);
-  hold(extractions?.perms, "extractions", (p) => [["annotates", WRITES.includes(p.role)]]);
-  const order = ["sees", "annotates", "manages"];
+  hold(extractions?.perms, "extractions", (p) => [["analyses", WRITES.includes(p.role)]]);
+  const order = ["sees", "analyses", "manages"];
   return { members: [...found.values()].map((m) => ({ email: m.email, name: m.name, holds: order.filter((h) => m.held.has(h)) })).filter((m) => m.holds.length),
     link: !!root?.perms?.some((p) => p.type === "anyone") };
 }
@@ -105,7 +105,7 @@ export function sharingPanel(ctx) {
     const spec = [{ kind: "root", id: top, label: "The study's root" },
       ...folders.map((id, k) => ({ kind: "data", id, label: `The "${names[k] || "data"}" folder` })),
       ...(s.previews ? [{ kind: "previews", id: s.previews, label: "The Previews folder" }] : []),
-      ...(s.extractions ? [{ kind: "extractions", id: s.extractions, label: "The Extractions folder" }] : []),
+      ...(s.extractions ? [{ kind: "extractions", id: s.extractions, label: "The Analysis Files folder" }] : []),
       ...(s.file ? [{ kind: "file", id: s.file, label: "The study file" }] : [])];
     const items = await Promise.all(spec.map(async (it) => ({ ...it, perms: await remote.permissions(it.id).catch((e) => { console.warn(`${it.label}'s sharing was not read:`, e); return null; }) })));
     return { stage: stageOf(s, manifest), items };
@@ -137,11 +137,11 @@ export function sharingPanel(ctx) {
     const rootItem = last.items.find((i) => i.kind === "root"), gt = last.items.find((i) => i.kind === "extractions");
     folks.replaceChildren(
       ...(link ? [h("li", { class: "people-link", text: "Anyone with the link reads the root." })] : []),
-      ...(members.length || link ? [] : [h("li", { class: "hint", text: "No one is named on the root or the extractions folder." })]),
+      ...(members.length || link ? [] : [h("li", { class: "hint", text: "No one is named on the root or the Analysis Files folder." })]),
       ...members.map((m) => h("li", { "data-email": m.email }, h("span", { class: "who", text: m.name ? `${m.name} (${m.email})` : m.email }), " ",
         ...m.holds.map((x) => h("span", { class: "holds", text: x }))
           .flatMap((s) => [s, " "]))),
-      h("li", { class: "people-where" }, ...[[rootItem, "Root sharing"], [gt, "Extractions folder sharing"]].filter(([i]) => i).flatMap(([i, text]) =>
+      h("li", { class: "people-where" }, ...[[rootItem, "Root sharing"], [gt, "Analysis Files folder sharing"]].filter(([i]) => i).flatMap(([i, text]) =>
         [h("a", { href: remote.sharing.link("folder", i.id), target: "_blank", rel: "noopener", text }), " "])));
   }
 

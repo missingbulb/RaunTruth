@@ -94,8 +94,6 @@
 #summary .hist .sd { fill: var(--text); opacity: .1; }
 #summary .hist .mean { stroke: var(--text); stroke-width: 1.5; }
 #summary .density { margin-top: 6px; font-variant-numeric: tabular-nums; }
-#nor-summary .csv-btns { display: flex; gap: 8px; margin-top: 12px; }
-#nor-summary .csv-btns button { flex: 1; white-space: nowrap; padding-inline: 6px; }
 /* NoRs the user added, in a colour the image never has; the circle glows until the user decides */
 #overlay .added-marks { --miss: #ffd400; }
 #overlay .added .glow { fill: none; stroke: var(--miss); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none;

@@ -36,7 +36,7 @@ const saved = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
   await page.click("#gt-send");
-  await page.waitForFunction(() => /^Saved|not saved/.test($("#gt-msg").textContent));
+  await page.waitForFunction(() => /^Uploaded|not uploaded/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
   return msg;
@@ -46,6 +46,7 @@ const bodyOf = (f) => JSON.parse(f.bytes.toString());
 // ---- a member: the list is mine, then the marked, then the others folded, each labelled
 let page = await open(true, { email: ME, prepare: standInDrive });
 await opened(page, image);
+await page.waitForFunction(() => !$("#annotate-load").disabled);
 await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 3);
 await check(JSON.stringify(await rows(page)) === JSON.stringify(["Yours", "by hand · GT", "Others (1)"]),
@@ -56,12 +57,13 @@ await check(/^count 0\.1\.2/.test(run), "a batch run is named by its algorithm a
 
 // Edit this annotation on the other's: the next Save writes the user's own, recording its base, and the other's file is left alone
 await page.click(`#annotate-list button[data-key="${yael.id}"]`);
+await page.click("#load-go");
 await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
 await page.click("#annotate-edit");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 2 && document.querySelector("#busy").hidden);
 await page.click("#fx-add");
 const w0 = writes.length;
-await check(/^Saved/.test(await saved(page)), "Save after Edit this annotation lands");
+await check(/^Uploaded/.test(await saved(page)), "Save after Edit this annotation lands");
 await check(bodyOf(mine).base === yael.id && bodyOf(mine).tagger === ME && bodyOf(mine).marks.length === 3,
   "the user's own extraction was replaced by the edited one, recording the other's file as its base", bodyOf(mine));
 await check(Buffer.compare(yael.bytes, yaelBytes) === 0 && !writes.slice(w0).some(([, n]) => n === yael.name) && Buffer.compare(batch.bytes, Buffer.from(doc(null, [[30, 30]]))) === 0,
@@ -72,12 +74,12 @@ await page.context().close();
 page = await open(true, { email: ME, prepare: standInDrive });
 await opened(page, second);
 await fromScratch(page, "#fx-count");
-await page.click("#fx-count"); await until(page, () => !!window.fixture.model());
+await until(page, () => !!window.fixture.model());
 const before = writes.length;
-await check(/^Saved/.test(await saved(page)), "Save on an image with no extraction lands");
+await check(/^Uploaded/.test(await saved(page)), "Save on an image with no extraction lands");
 await page.click("#fx-add");
 const marksNow = await page.evaluate(() => window.fixture.model().marks.length);
-await check(/^Saved/.test(await saved(page)), "and again");
+await check(/^Uploaded/.test(await saved(page)), "and again");
 const folder = drive.files.find((f) => f.folder && f.name === subName(second) && f.parent === GT.extractions);
 const files = drive.files.filter((f) => f.parent === folder?.id);
 await check(files.length === 1 && files[0].name === await personFile(ME), "one file `x_<the email's hash>.json` in the image's subfolder `<stem>__<sha8>`", files.map((f) => f.name));
@@ -97,6 +99,7 @@ await check(outsider.length === 2 && outsider.every((t) => !t.includes("@")) && 
   "signed out, the list holds two rows, the GT and the official one, neither with an @, and no folded others", outsider);
 await check(/^by hand · GT/.test(outsider[0]) && /^count 0\.1\.2 · official/.test(outsider[1]), "labelled by hand or by algorithm version, with the mark", outsider);
 await page.click(`#annotate-list button[data-key="${yael.id}"]`);
+await page.click("#load-go");
 await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
 await check(!(await page.textContent("#annotate-say")).includes("@") && !(await page.evaluate(() => document.body.innerText.includes("yael"))), "its line names nobody", await page.textContent("#annotate-say"));
 await page.context().close();

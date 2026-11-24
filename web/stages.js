@@ -35,14 +35,14 @@ export const frozen = (stage) => !stageAllows(stage, "setup-data");
 // the traffic light of a stage in the switcher, what it means, and what moves a study on from it
 export const LIGHT = { Setup: "red", Develop: "yellow", Analyze: "green", Review: "blue", Public: "all" };
 export const WHAT = {
-  Setup: "The study's inputs are being marked and its first algorithm and annotation tool built. Annotating is open for trial: nothing counts.",
-  Develop: "Annotations score the algorithm: the owner marks them GT and each version's precision and recall is recorded.",
-  Analyze: "Annotations replace the algorithm's answer in the study's numbers, and batch runs make its results.",
+  Setup: "The study's inputs are being marked and its first algorithm and analysis tool built. Analysing is open for trial: nothing counts.",
+  Develop: "Analysis Files score the algorithm: the owner marks them GT and each version's precision and recall is recorded.",
+  Analyze: "Analysis Files replace the algorithm's answer in the study's numbers, and batch runs make its results.",
   Review: "The results are frozen: the ground truth is committed and the official scores published. Marking and data are closed.",
   Public: "The study is published and listed for everyone, its results as they were frozen.",
 };
 export const NEXT = {
-  Setup: "To move on to Develop: the inputs are marked and an annotation tool works.",
+  Setup: "To move on to Develop: the inputs are marked and an analysis tool works.",
   Develop: "To move on to Analyze: the owner judges the analysis valid.",
   Analyze: "To move on to Review: the owner calls the results final.",
   Review: "To move on to Public: the article is accepted.",
@@ -70,12 +70,12 @@ export function lines(stage, may, facts) {
   if (stageAllows(stage, "own-images")) out.push(["own-images", "Run the algorithm on your own images, in this browser: nothing leaves the device."]);
   if (may.save && stageAllows(stage, "annotate")) {
     const need = facts ? facts.images - facts.gt : null;
-    out.push(["annotate", need == null ? "Annotate: open"
-      : need === 0 ? "Annotate: every image has a GT mark" : `Annotate: ${need} image${need === 1 ? "" : "s"} still need${need === 1 ? "s" : ""} it`]);
+    out.push(["annotate", need == null ? "Analyse: open"
+      : need === 0 ? "Analyse: every image has a GT mark" : `Analyse: ${need} image${need === 1 ? "" : "s"} still need${need === 1 ? "s" : ""} it`]);
   }
   if (may.manage) {
     if (stageAllows(stage, "setup-data")) out.push(["setup-data", "Study Setup: change the study's folders, tags and areas."]);
-    if (stageAllows(stage, "mark")) out.push(["mark", "Study Setup: mark an extraction GT or official."]);
+    if (stageAllows(stage, "mark")) out.push(["mark", "Study Setup: mark an Analysis File GT or official."]);
     if (stageAllows(stage, "batch")) out.push(["batch", stage === "Review" || stage === "Public" ? "Study Setup: run a batch: it counts once marked." : "Study Setup: run an algorithm over chosen images."]);
     out.push(["stage", "Study Setup: promote the study or move it back."]);
   }

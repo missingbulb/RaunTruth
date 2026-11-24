@@ -74,11 +74,11 @@ export function setupBatch({ $, runner, remote, account, reader, writer, place, 
     try {
       await account.forRead();
       const extractions = tf.folderOf(await place.settings({ fresh: true }));
-      if (!extractions) throw new Error("Set up extractions first: a batch's files are kept in the extractions folder.");
+      if (!extractions) throw new Error("Set up Analysis Files first: a batch's files are kept in their folder.");
       const code = await runner.version(), version = code ? String(code).slice(0, 8) : "unknown";
       for (const [k, im] of images.entries()) {
         if (stop.signal.aborted) break;
-        if (!im.sha) throw new Error(`The store does not say ${im.name}'s SHA-256, which its extraction is kept under.`);
+        if (!im.sha) throw new Error(`The store does not say ${im.name}'s SHA-256, which its Analysis File is kept under.`);
         const image = { name: im.name, sha256: im.sha };
         const had = (await tf.files(reader, extractions, image)).find((f) => f.name === tf.runFile(algorithm, version));
         if (had) { reached.push({ sha: im.sha, name: im.name, file: had.id }); skipped++; continue; }

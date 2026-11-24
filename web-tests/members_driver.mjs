@@ -114,7 +114,7 @@ await page.context().close();
     await pg.setInputFiles("#file", image);
     await pg.waitForFunction(() => !!window.shellForTests?.page.get("image") && document.querySelector("#busy").hidden);
     await idle(pg);
-    return pg.evaluate(() => !!document.querySelector("#annotate-scratch")?.checkVisibility());
+    return pg.evaluate(() => !!document.querySelector("#annotate-load")?.checkVisibility());
   };
   const stageOn = (pg, want) => pg.waitForFunction((w) => document.documentElement.dataset.stage === w, want).then(() => true, async () => pg.evaluate(() => document.documentElement.dataset.stage));
   const reads = () => drive.calls.filter((c) => !c.token && c.key && c.kind !== "batch" && c.parent === ROOT || c.id === settings.id);

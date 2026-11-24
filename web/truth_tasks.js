@@ -1,5 +1,5 @@
-// The study's ground-truth tasks in the shell's Ground Truth Tasks box (req/shell/ground-truth/tasks): a bar of one
-// part per task, a row per task, and Submit Ground Truth last. The study says what its tasks are and how far each has
+// The study's Analysis Tasks in the shell's Analysis box (req/shell/ground-truth/tasks): a bar of one
+// part per task, a row per task, and Upload last. The study says what its tasks are and how far each has
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
 // only while the user annotates, from the choice that enters annotation mode to its end (req/shell/annotate/choice).
 "use strict";
@@ -21,7 +21,6 @@ export function truthTasks({ $, icon, started, heardBy }) {
   ico.innerHTML = ["done", "part", "todo"].map((n) => icon(n).replace("<svg ", `<svg class="${n}" `)).join("");
 
   $("#gt-submit").onclick = () => submit?.();
-  $("#gt-download").onclick = () => submit?.();
   $("#gt-tasks").addEventListener("click", (e) => {
     const t = e.target.closest("button.t"), li = t?.closest("li");
     if (!li || li.parentElement !== $("#gt-tasks")) return;
@@ -105,12 +104,12 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // what is left to do as its tooltip
     ready(on, state, title) {
       const b = $("#gt-submit");
-      wants = !!on; b.disabled = !wants || !started(); $("#gt-download").disabled = b.disabled;
+      wants = !!on; b.disabled = !wants || !started();
       if (state) b.dataset.state = state; else delete b.dataset.state;
       if (title) b.title = title; else b.removeAttribute("title");
     },
     // the study's steps moved: Submit follows its first one
-    stepped() { $("#gt-submit").disabled = $("#gt-download").disabled = !wants || !started(); },
+    stepped() { $("#gt-submit").disabled = !wants || !started(); },
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);

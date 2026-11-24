@@ -77,7 +77,6 @@ try {
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await fromScratch(page, "#vm-run");
   await page.evaluate(() => { $("#notice").hidden = true; });
-  await page.click("#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
   await page.waitForFunction(() => window.vascular.tasks().focused);
   [cx, cy] = await page.evaluate(() => { const r = $("#mcv").getBoundingClientRect(); return [r.left, r.top]; });
@@ -226,8 +225,7 @@ try {
     "... does the area and moves on to the next, its junctions first");
 
   // the export carries each width, and still names the algorithm's unchecked
-  await page.click("#gt-submit");
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(edgeAt(out, 90).width.um === 3.75 && edgeAt(out, 40).width.how === "looked" && ["r", "r_a", "r_b", "taper_known"].every((k) => out.unchecked?.includes(k)),
     `the export carries each width, the estimates still named unchecked: ${JSON.stringify(out.unchecked)}`);

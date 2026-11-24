@@ -69,8 +69,8 @@ const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.a
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----
-const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [[...h.children].filter((e) => e.checkVisibility()).length, h.querySelector("h2 .title").textContent]; });
-await check(JSON.stringify(await head()) === '[1,"Load Image"]', "the box is titled Load Image, with nothing else showing in its head", await head());
+const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [[...h.children].filter((e) => e.checkVisibility()).length, h.querySelector("h2").textContent.trim()]; });
+await check(JSON.stringify(await head()) === '[1,"Load"]', "the box is titled Load, with nothing else showing in its head", await head());
 const order = await page.evaluate(() => [...document.querySelector("#image-box").children].map((e) => e.id || e.className));
 await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")), "Load sits at the box's foot", order);
 const loadBefore = await box("#load");
@@ -266,7 +266,7 @@ await check(await page.evaluate(() => document.querySelector("#file-name").textC
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
 await check(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true", "and the boxes on show fold as before any image");
+await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");
 await check((await rows()).length === 0, "and no channel rows are left, with no image (req/shell/channels/rows)");
 
 // ---- after Unload, the next image's tasks open again once annotation starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----

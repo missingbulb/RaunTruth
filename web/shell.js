@@ -584,8 +584,9 @@ function showAccess() {
   link.textContent = SETUP ? "Leave Study Setup…" : "Study Setup…";
   link.setAttribute("href", SETUP ? studyAddress(manifest.id) : `setup?study=${encodeURIComponent(manifest.id)}`);
   if (SETUP) { setupLive ||= manage; data.open(manage); setupNote(manage); }
-  for (const [id, show] of [["#gt-submit", maySave()], ["#gt-download", !maySave()]]) $(id).hidden = !show;
+  $("#gt-submit").hidden = !maySave();
   truth.draw();
+  wantList();
   drawAnnotate();
 }
 // Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
@@ -643,13 +644,12 @@ let steps = [], shone = [];
 const stepsWatch = new MutationObserver(() => drawSteps());
 function makeSteps() {
   steps = [{ key: "load", name: "Load image", button: loadButton() }, ...manifest.phases,
-    ...(makesTruth() ? [{ key: "submit", name: "Save", button: "#gt-submit" }] : [])]
+    ...(makesTruth() ? [{ key: "submit", name: "Upload", button: "#gt-submit" }] : [])]
     .map((p) => ({ ...p, done: false }));
   // a step's button shines only while it can be pressed
   stepsWatch.disconnect();
   for (const p of steps) if (p.button && $(p.button)) {
     stepsWatch.observe($(p.button), { attributes: true, attributeFilter: ["disabled", "hidden"] });
-    $(p.button).addEventListener("click", () => { p.pressed = true; }, { signal: lifetime.signal });
   }
   drawSteps();
   tasks.stepped();
@@ -660,9 +660,7 @@ function step(key, done) {
   if (!p) return;
   if (done && !p.done) {
     log.add(`Step done: ${p.name}`);
-    // the boxes follow what the user did, not a dial set back to the last run's
-    if (key === "load" || !p.button || p.pressed) foldFor(key);
-    p.pressed = false;
+    if (key === "load") foldLoad();
   }
   p.done = !!done;
   drawSteps();
@@ -672,7 +670,11 @@ function drawSteps() {
   const now = steps.findIndex((p) => !p.done);
   // the button lit last time may belong to no step now: the study switched, or the step's button changed
   for (const b of shone.splice(0)) b.classList.remove("shine");
-  steps.forEach((p, k) => { const b = p.button && $(p.button); if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); } });
+  steps.forEach((p, k) => {
+    // a step of the study's whose button waits behind Start: Start is what to press now
+    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? $("#annotate-scratch") : own;
+    if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); }
+  });
 }
 
 // ---------- buttons whose action takes a while: disabled, with a small spinner, until the action is done ----------
@@ -870,7 +872,6 @@ function imageOpened(m) {
     info: m.meta.info, more: m.meta.more || [], planes: m.images, channels: m.meta.channels || null, Z: m.meta.Z || 1, spacing: m.meta.spacing ?? null } });
   busy(false); statusBar();
   showImage();
-  boxDone($("#image-box"), loadedSummary());
   const from = remote.owns(st.source) ? remote.label : st.source?.kind === "preview" ? `its preview in ${remote.label}` : "this computer";
   step("load", true);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
@@ -883,14 +884,13 @@ function imageOpened(m) {
   viewing = null; storeList = null; storeRows = new Map(); listing++;
   if (resumed) tasks.tagging(true);
   showBoxes();
-  // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
-  gtSession.opened().then(async (offered) => {
+  if (!resumed) { listedFor = null; wantList(); }
+  // a draft of the image on this device is offered with the tasks, Load draft in view (req/shell/ground-truth/draft-offer)
+  gtSession.opened().then(async () => {
     if (resumed) await resumed.then?.();
-    // annotating from work already made opens Ground Truth Tasks with it
-    if ((offered || (resumed && route !== "scratch")) && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); }
     drawAnnotate();
     // the choice just made took the focus with it: it goes to what is left of the box
-    if (resumed && document.activeElement === document.body) $("#annotate-clear").focus({ preventScroll: true });
+    if (resumed && document.activeElement === document.body) $("#analysis-box h2").focus({ preventScroll: true });
   });
   truth.paint(); drawAnnotate(); drawWaiting();
   if (st.source && st.source.kind === "local" && makesTruth()) notice(LOCAL_GT(remote));
@@ -959,8 +959,8 @@ async function openNow(name, bytes, source) {
   if (annotating && !resume) { annotating = false; route = null; viewing = null; editBase = null; await restudy(false); }
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
-  for (const p of steps) Object.assign(p, { done: false, pressed: false });
-  drawSteps(); boxes().forEach((b) => summaries.delete(b)); retitle();
+  for (const p of steps) p.done = false;
+  drawSteps();
   // the file as it came, for Python at a Run (a copy is handed over then) and the problem report
   const kept = st.kept = { name, source, bytes };
   tasks.tagging(false);
@@ -1028,7 +1028,7 @@ try { localStorage.removeItem("nor-load-source"); localStorage.removeItem("nor-r
 function dropImage() {
   if (st.held && st.worker) st.worker.postMessage({ type: "close" });
   Object.assign(st, { kept: null, held: null, fileName: "", source: null, sha: "", um: null, umY: null });
-  page.set({ image: null, opening: null }); boxDone($("#image-box"), null);
+  page.set({ image: null, opening: null });
   viewing = null; storeList = null; listing++;
 }
 // Unload: no image open, the study starting over as one that has just come in
@@ -1048,8 +1048,18 @@ function restudy(again = true) {
     try { await mountStudy(id); } catch (e) { return status("Error: " + (e.message || e), true); }
     if (ready) { st.ready = true; st.readyInfo = readyInfo; study.ready?.(readyInfo); }
     statusBar(); status("Ready. Load an image.");
-    if (image) openBytes(image.name, image.bytes, image.source);
+    if (image) await openBytes(image.name, image.bytes, image.source);
   });
+}
+// The study mounted again on the image open, the page held on screen as it is until the image is open in it
+// (req/shell/annotate/held): the browser keeps showing what it showed while the change is made, where it can
+function restudyHeld() {
+  if (!document.startViewTransition) return restudy();
+  const root = document.documentElement;
+  root.dataset.held = "";
+  const t = document.startViewTransition(() => restudy());
+  t.ready.catch(() => {}); // the browser giving the hold up shows the page as it then is: only the hold is lost
+  t.finished.finally(() => { delete root.dataset.held; });
 }
 
 // a tip: a bubble below its anchor, pointing at it, until the user closes it, after which it never shows again
@@ -1186,7 +1196,7 @@ function truthTag(g) {
   const mine = ours(g.marks.official) ? "official" : ours(g.marks.gt) ? "GT" : g.saved ? "saved" : null;
   const others = [["gt", "GT"], ["official", "official"]].filter(([k]) => theirs(g.marks[k])).map(([, t]) => t);
   const parts = [...(mine ? [`yours: ${mine}`] : []), ...others.map((t) => `${t} marked`)];
-  if (parts.length) return [parts.join(" · "), "What the study's extractions of this image say, yours first", mine === "saved" && !others.length ? "saved" : "marked"];
+  if (parts.length) return [parts.join(" · "), "What the study's Analysis Files of this image say, yours first", mine === "saved" && !others.length ? "saved" : "marked"];
   return g.needed ? ["GT wanted", "A study owner marked it as needing ground truth", "wanted"] : [];
 }
 const putTruthTag = (tag, g) => {
@@ -2028,37 +2038,51 @@ function showingTruth(on) {
 // someone who is not one only the marked, by algorithm version or by hand (req/shell/extractions/outsiders). Not known counts as not.
 const isMember = () => !!manifest && signIn.signedIn() && !!memberIds?.includes(manifest.id);
 // The extractions of the image open that the store holds (req/shell/extractions/list), mine, then the marked, then the others, each
-// {key, label, detail, group, read() -> {doc, label}}.
-async function storeAnnotations() {
+// {key, label, detail, group, read() -> {doc, label}}; and the user's own file among them, null for none
+async function storeAnnotations(fresh) {
   const img = { name: st.fileName, sha256: st.sha };
-  if (!remote.owns(st.source) || !st.sha) return [];
+  if (!remote.owns(st.source) || !st.sha) return { rows: [], mine: null };
   if (signIn.signedIn()) await listedReady;
-  const listed = await truth.list(img, { member: isMember() });
-  return listed.map((r) => ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
-    read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your annotation" : `the annotation ${r.label}` }) }));
+  const { rows, mine } = await truth.list(img, { member: isMember(), fresh });
+  return { mine, rows: rows.map(rowOf) };
 }
-let storeRows = new Map(), listing = 0;
-async function listAnnotations() {
-  const mine = ++listing;
+function rowOf(r) {
+  return ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
+    read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your Analysis File" : `the Analysis File ${r.label}` }) });
+}
+// listedFor: the image open, by its SHA-256, once its list is read, with the user's own file in it, so that the user's own looked
+// up as they start to annotate asks the store nothing more; a save, or another opening, lets it go
+let storeRows = new Map(), listing = 0, listedFor = null;
+// fresh: the study file read again for its marks, as a press asks; an image opening takes the minute's copy
+async function listAnnotations(fresh = true) {
+  const mine = ++listing, sha = st.sha;
   storeList = { busy: true }; drawAnnotate();
-  let rows;
-  try { rows = await storeAnnotations(); } catch (e) {
-    console.warn("annotations not listed:", e);
-    if (mine === listing) { storeList = { failed: `The annotations of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
+  let rows, own;
+  try { ({ rows, mine: own } = await storeAnnotations(fresh)); } catch (e) {
+    console.warn("the Analysis Files were not listed:", e);
+    if (mine === listing) { storeList = { failed: `The Analysis Files of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
     return;
   }
   if (mine !== listing) return;
+  listedFor = { sha, rows, mine: own };
   storeRows = new Map(rows.map((r) => [r.key, r]));
   storeList = { rows }; drawAnnotate();
+}
+// why the store cannot be asked for the image's Analysis Files, "" where it can
+const listHeld = () => (!remote.owns(st.source) ? `Only an image from ${remote.label} has Analysis Files there.`
+  : document.documentElement.classList.contains("offline") ? "Needs the internet: you are offline." : "");
+// The image's Analysis Files asked of the store as it opens (req/shell/extractions/list), so that Load is on only where there is
+// one to load: once as an image opens, signed in and online. Signed out the store is asked at Load's press, as it was.
+function wantList() {
+  if (!manifest || !stageAllows("annotate") || data.on || !st.img || !st.sha || annotating || storeList || listHeld() || !signIn.signedIn()) return;
+  listAnnotations(false);
 }
 // a stored annotation drawn read-only through the study's showTruth, its final results alone
 async function viewAnnotation(key) {
   const row = storeRows.get(key), mine = listing;
   if (!row) return;
   let got;
-  try { got = await row.read(); } catch (e) {
-    storeList = { ...storeList, failed: `The annotation could not be read: ${e.message || e}` }; return drawAnnotate();
-  }
+  try { got = await row.read(); } catch (e) { return status(`The Analysis File could not be read: ${e.message || e}`, true); }
   if (mine !== listing || annotating || !st.img) return;
   const { history: _, ...plain } = got.doc;
   const counts = study.showTruth ? study.showTruth(plain) : "";
@@ -2070,36 +2094,69 @@ async function viewAnnotation(key) {
 function enterAnnotating(how, then) {
   if (!st.img || annotating) return;
   annotating = true; route = how; resume = { then };
-  log.add(`Chose to annotate ${how === "scratch" ? "from scratch" : how === "local" ? "from this device's work" : "from an annotation of the store"}`);
-  restudy();
+  log.add(`Chose to analyse ${how === "scratch" ? "from the start" : how === "local" ? "from this device's work" : "from an Analysis File of the store"}`);
+  restudyHeld();
+}
+// Start (req/shell/analysis/start): the study's algorithms in a dialog, where it names any and has a first step to press; Run
+// starts the analysis with the one chosen, pressing that step for the user where it is the study's one step with a button: a
+// study of several such steps is worked through its runner, which Run opens
+const runsFirst = () => !!manifest?.algorithms && !!manifest.phases[0]?.button;
+const oneRun = () => manifest.phases.filter((p) => p.button).length === 1;
+function startAnalysis() {
+  if (!st.img || annotating) return;
+  if (!runsFirst()) return beginAnalysis();
+  $("#start-dlg").showModal();
+}
+$("#start-cancel").onclick = () => $("#start-dlg").close();
+$("#start-run").onclick = () => { $("#start-dlg").close(); beginAnalysis(); };
+function beginAnalysis() {
+  const key = algorithms.api.key;
+  const run = async () => {
+    if (!runsFirst()) return;
+    await algorithms.api.ready; algorithms.api.choose(key);
+    $("#algorithm-ran").textContent = algorithms.api.title ? `Algorithm: ${algorithms.api.title}` : ""; $("#algorithm-ran").hidden = !algorithms.api.title;
+    if (oneRun()) pressWhenAble($(manifest.phases[0].button));
+  };
+  if (stageAllows("annotate")) return enterAnnotating("scratch", run);
+  route = "scratch"; log.add("Started an analysis");
+  showBoxes(); drawAnnotate(); run();
+}
+// a button pressed for the user as soon as it can be, while the study on show stays
+function pressWhenAble(b) {
+  const press = () => { if (b.disabled) return false; b.click(); return true; };
+  if (press()) return;
+  const watch = new MutationObserver(() => { if (press()) watch.disconnect(); });
+  watch.observe(b, { attributes: true, attributeFilter: ["disabled"] });
+  lifetime.signal.addEventListener("abort", () => watch.disconnect());
 }
 const choice = annotateChoice({ $, remote,
-  scratch: () => enterAnnotating("scratch"),
+  start: () => startAnalysis(),
   local: () => enterAnnotating("local", () => gtSession.loadDraft()),
-  stored: () => { signIn.renew(); listAnnotations(); },
+  load: () => { signIn.renew(); if (!storeList?.rows) listAnnotations(); },
   pick: (key) => viewAnnotation(key),
-  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("stored", () => gtSession.loadDocument(v.doc, "Annotation")); } },
+  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("stored", () => gtSession.loadDocument(v.doc, "Analysis File")); } },
   clear: () => clearAnnotations() });
 // the boxes that follow whether an image is open
 page.watch("image", () => { showBoxes(); drawAnnotate(); });
 // the choice drawn from where things stand
 function drawAnnotate() {
   document.documentElement.toggleAttribute("data-annotating", !!manifest && makesTruth());
-  const shown = !!manifest && stageAllows("annotate") && !!page.get("image") && !data.on;
-  const says = { scratch: "Annotating from scratch.", local: "Annotating from the work kept on this device.",
-    stored: `Annotating from ${remote.short}'s annotation${viewing ? `: ${viewing.label}` : ""}.` };
-  choice.draw({ shown, annotating, route: says[route] || "", draft: shown && !annotating ? gtSession.draft() : null,
-    list: storeList, viewing: viewing && `Showing ${viewing.label}, read-only${viewing.counts ? `: ${viewing.counts}` : "."}` });
+  const loads = !!manifest && stageAllows("annotate");
+  const shown = !!manifest && (loads || runsFirst()) && !!page.get("image") && !data.on;
+  const says = { local: "From the work kept on this device.", stored: `From ${remote.short}'s Analysis File${viewing ? `: ${viewing.label}` : ""}.` };
+  choice.draw({ shown, annotating, loads, say: says[route] || "", draft: shown && loads && !annotating ? gtSession.draft() : null,
+    list: storeList, why: shown && loads ? listHeld() : "", asks: !signIn.signedIn(), viewing: viewing && `Showing ${viewing.label}, read-only${viewing.counts ? `: ${viewing.counts}` : "."}` });
+  drawSteps();
 }
-// Clear all annotations from image: the page back to just after the image loaded, this device's draft of it let go and the store untouched
+// reset analysis: the page back to just after the image loaded, this device's draft of it let go and the store untouched
 async function clearAnnotations() {
   if (!annotating || !st.img) return;
   const n = gtSession.unsaved();
-  if (!confirm(`Clear all annotations from ${st.fileName}? ${n ? `Your ${n} unsaved action${n === 1 ? "" : "s"} will be lost. ` : ""}This device's draft of it is discarded; ${remote.label} is not touched.`)) return;
+  if (!confirm(`Reset the analysis of ${st.fileName}? ${n ? `Your ${n} unsaved action${n === 1 ? "" : "s"} will be lost. ` : ""}This device's draft of it is discarded; ${remote.label} is not touched.`)) return;
   try { await gtSession.discard(); } catch (e) { return notice(`The draft could not be cleared: ${e?.message || e}`); }
   annotating = false; route = null; viewing = null; storeList = null; editBase = null;
-  log.add("Cleared all annotations from the image");
-  restudy();
+  log.add("Reset the analysis of the image");
+  restudyHeld();
 }
 
 // Saves that could not reach the store, kept on this device until a click finds it back: [{study, sha256, name, source, doc, base}]
@@ -2126,14 +2183,15 @@ async function sendWaiting() {
       noteSaved(w.sha256);
       writeJSON(OUTBOX, outbox().filter((x) => !(x.study === w.study && x.sha256 === w.sha256)));
       drawWaiting();
-      log.add(`Saved the waiting annotation of ${w.name}`);
+      listedFor = null;
+      log.add(`Uploaded the waiting analysis of ${w.name}`);
     }
   } finally { sending = false; }
 }
 document.addEventListener("click", () => { sendWaiting(); });
 
-// The Save dialog (req/shell/extractions/save): a checklist of what is still open, the file to export, and Save, which writes
-// the person's extraction of the image to the study's extractions folder, replacing their own. gt: {doc, count, file, items: [{level, ok, text}],
+// The Upload dialog (req/shell/extractions/save): a checklist of what is still open, and Upload, which writes the person's
+// Analysis File of the image to the study's extractions folder, replacing their own. gt: {doc, count, items: [{level, ok, text}],
 // empty}, count how many of its marks the document holds, nothing to send at 0.
 function submitTruth(gt) {
   if (!makesTruth()) return;
@@ -2144,49 +2202,49 @@ function submitTruth(gt) {
     return li;
   }));
   $("#gt-msg").textContent = n ? why() : gt.empty;
-  $("#gt-export").disabled = !n;
-  // someone the store lets save nothing downloads their work instead (req/shell/annotate/no-save)
   send.hidden = !maySave();
   send.disabled = !n || !!why() || !maySave(); send.title = why();
-  // the blue button is the next step: Save when it can, else the export; Close once either is done
-  const next = (b) => { for (const id of ["#gt-export", "#gt-send", "#gt-close"]) $(id).classList.toggle("primary", $(id) === b); };
-  next(send.disabled ? $("#gt-export") : send);
+  const done = (is) => { $("#gt-close").textContent = is ? "Close" : "Cancel"; $("#gt-close").classList.toggle("primary", is); send.classList.toggle("primary", !is); };
+  done(false);
   // a study with GT actions saves the model's document with its history
   const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
-  $("#gt-export").onclick = async () => {
-    saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
-    $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
-    if (send.disabled) { step("submit", true); next($("#gt-close")); }
-  };
   send.onclick = async () => {
-    send.disabled = true; $("#gt-msg").textContent = "Saving…";
+    send.disabled = true; $("#gt-msg").textContent = "Uploading…";
     const doc = await docOf(), image = { name: st.fileName, sha256: st.sha, source: st.source };
     try {
       await truth.save(doc, image, editBase);
-      noteSaved(image.sha256);
+      noteSaved(image.sha256); listedFor = null;
       if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-      // a session begun before the owner froze the study saves still, and the extraction is said not to count (req/setup/promote)
+      // a session begun before the owner froze the study saves still, and the Analysis File is said not to count (req/setup/promote)
       const late = frozen(await readStage({ fresh: true }));
-      $("#gt-msg").textContent = `Saved to the study's extractions folder, as your annotation of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
+      $("#gt-msg").textContent = `Uploaded to the study's Analysis Files, as your analysis of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
       step("submit", true);
-      log.add(late ? "Saved the annotation, after the freeze: not counted" : "Saved the annotation");
-      next($("#gt-close"));
+      log.add(late ? "Uploaded the analysis, after the freeze: not counted" : "Uploaded the analysis");
+      done(true);
     } catch (e) {
       // the store refusing is final; a sign-in run out, or no network, is not: the save waits on this device for the next click
       if (!e.status) {
         queueSave({ study: manifest.id, ...image, doc, base: editBase });
         if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-        $("#gt-msg").textContent = `${remote.label} could not be reached, so the annotation of ${st.fileName} waits on this device and goes with your next click online.`;
+        $("#gt-msg").textContent = `${remote.label} could not be reached, so the analysis of ${st.fileName} waits on this device and goes with your next click online.`;
         step("submit", true);
-        log.add("The annotation waits to be saved");
-        return next($("#gt-close"));
+        log.add("The analysis waits to be uploaded");
+        return done(true);
       }
-      $("#gt-msg").textContent = `It was not saved: ${e.message || e}. Export the file to keep a copy.`;
+      $("#gt-msg").textContent = `It was not uploaded: ${e.message || e}. Download Analysis, on the Analysis box, keeps a copy.`;
       send.disabled = false;
     }
   };
   $("#gt-dlg").showModal();
 }
+// Download Analysis, on the Analysis box's header: the model's document with its history, as a file; where nothing can be
+// uploaded, by this user or of this image, that is the last step
+$("#analysis-dl").onclick = async () => {
+  if (!gtSession.on() || !st.img) return;
+  saveFile(st.fileName.replace(/\.[^.]*$/, "") + "_analysis.json", JSON.stringify(await gtSession.fileDoc(), null, 1), "application/json");
+  log.add("Downloaded the analysis");
+  if (makesTruth() && (!maySave() || truth.blocked())) step("submit", true);
+};
 $("#gt-close").onclick = () => $("#gt-dlg").close();
 
 // ---------- problems: a report of what went wrong, from the status bar's icon or the avatar's menu, and whether the
@@ -2243,41 +2301,24 @@ function notice(text, { signOut = false } = {}) {
 $("#notice-ok").onclick = () => { $("#notice").hidden = true; };
 $("#notice-sign-out").onclick = () => { $("#notice").hidden = true; $("#sign-out").click(); };
 
-// ---------- boxes that fold with the steps ----------
-// A box's data-opens names the step after which it opens ("user": only its title opens it), and data-folds
-// the one after which it folds; one with neither is open from the start. Between steps a box stays as the
-// user left it.
+// ---------- the left bar's boxes ----------
+// Load, Analysis and Summary (req/shell/left-bar/folding): a box waits, folded to its title and inert, until the stage before it
+// is done, opens as that ends, and between those stays as the user left it; Load folds once an image is in.
 const boxes = () => document.querySelectorAll(".box.foldable");
-function unfoldFirst() { boxes().forEach((b) => b.classList.toggle("folded", b.hasAttribute("data-opens"))); retitle(); }
-// a step just done: a new image folds every box waiting for a later step
-function foldFor(key) {
-  // a preview keeps the Image box open: Load Original is what comes next; so does a study with no step after Load
-  const keep = key === "load" && (st.source?.kind === "preview" || steps.length === 1);
-  boxes().forEach((b) => {
-    if (b.dataset.opens === key || (keep && b.id === "image-box")) b.classList.remove("folded");
-    else if ((b.dataset.folds === key && !(keep && b.id === "image-box")) || (key === "load" && b.hasAttribute("data-opens"))) b.classList.add("folded");
-  });
-  retitle();
-}
-// A box's title: its step's number, or a check once its task is done, and its name while the task waits; done,
-// the folded box sums up what was done and the open one shows its data-done-name, else its name.
-const summaries = new WeakMap(); // box -> its summary: text, or a node
-function retitle() {
-  const shown = [...boxes()].filter((b) => b.checkVisibility());
-  [...boxes()].forEach((b) => {
-    const k = shown.indexOf(b);
+const waits = (b) => (b.id === "analysis-box" ? !page.get("image") : b.id === "summary-box" ? !page.get("image") || !hasModel() : false);
+function drawBoxes() {
+  for (const b of boxes()) {
+    const w = waits(b), was = b.classList.contains("waits");
+    if (w) b.classList.add("folded"); else if (was) b.classList.remove("folded");
+    b.classList.toggle("waits", w);
     const h = b.querySelector(":scope > .sec-head h2");
-    if (!h.querySelector(".title")) {
-      h.dataset.name ||= h.textContent.trim();
-      h.replaceChildren(Object.assign(document.createElement("span"), { className: "step-mark" }), Object.assign(document.createElement("span"), { className: "title" }));
-    }
-    const sum = summaries.get(b), done = sum != null, t = h.querySelector(".title");
-    b.classList.toggle("done", done);
-    h.querySelector(".step-mark").textContent = done ? "✓" : String(k + 1);
-    const want = done && b.classList.contains("folded") ? sum : done ? h.dataset.doneName || h.dataset.name : h.dataset.name;
-    if (typeof want === "string") { if (t.textContent !== want || t.children.length) t.textContent = want; }
-    else if (t.firstChild !== want) t.replaceChildren(want);
-  });
+    h.setAttribute("aria-disabled", String(w)); h.tabIndex = w ? -1 : 0;
+  }
+}
+function unfoldFirst() { boxes().forEach((b) => b.classList.toggle("folded", waits(b))); drawBoxes(); }
+// an image just in: the Load box folds, but for a preview, Load Original being what comes next, and a study with no step after it
+function foldLoad() {
+  if (st.source?.kind !== "preview" && steps.length > 1) $("#image-box").classList.add("folded");
 }
 // a Markdown outline drawn as HTML: paragraphs split by blank lines, "- " or "1. " items nested by their indent
 function outline(text) {
@@ -2300,28 +2341,6 @@ function outline(text) {
   }
   return out;
 }
-// a box's task done, summed up (text, or a node), or waiting again (null): the box, or what the study put in it
-function boxDone(el, summary) {
-  const box = el.closest(".box");
-  if (summary == null) summaries.delete(box); else summaries.set(box, summary);
-  retitle();
-}
-// Load Image done: a small preview of the image, its name, and what the file says it holds
-function loadedSummary() {
-  const n = document.createElement("span"); n.className = "loaded";
-  const pic = document.createElement("img"); pic.className = "pic"; pic.alt = "";
-  const t = $("#base"), c = document.createElement("canvas"), side = 56, k = Math.max(side / t.width, side / t.height);
-  c.width = c.height = side;
-  c.getContext("2d").drawImage(t, (side - t.width * k) / 2, (side - t.height * k) / 2, t.width * k, t.height * k);
-  pic.src = c.toDataURL();
-  const text = document.createElement("span"); text.className = "what";
-  const name = document.createElement("span"); name.className = "name"; name.textContent = st.fileName;
-  const tags = document.createElement("span"); tags.className = "tags";
-  let said = ""; try { const k = st.kept.bytes; said = holds(shape(k.buffer || k)); } catch (e) { console.warn("cannot read what the image holds:", e); }
-  if (isTiff(st.fileName)) for (const w of (said || "2D").split(" · ")) tags.append(Object.assign(document.createElement("span"), { className: "tag", textContent: w }));
-  text.append(name, tags); n.append(pic, text);
-  return n;
-}
 // A drawer opening or folding slides, and those below it slide to their new places: the stylesheet's motion, each
 // drawer a shape of its own, clipped to the left bar, so a browser that cannot clip one changes them at once
 function slide(change) {
@@ -2336,7 +2355,7 @@ function slide(change) {
 function foldable() {
   document.querySelectorAll(".box.foldable > .sec-head h2").forEach((h) => {
     h.tabIndex = 0; h.setAttribute("role", "button");
-    const box = h.closest(".box"), flip = () => slide(() => { box.classList.toggle("folded"); retitle(); });
+    const box = h.closest(".box"), flip = () => { if (!box.classList.contains("waits")) slide(() => box.classList.toggle("folded")); };
     // folded, the whole drawer opens it; open, only its title folds it
     box.onclick = (e) => { if (box.classList.contains("folded") || h.contains(e.target)) flip(); };
     h.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } };
@@ -2688,43 +2707,34 @@ async function mountNow(id, read) {
   showRecent();
   showAccess();
 }
-// The left bar's boxes the study fills (req/shell/left-bar/shells): one it leaves empty is not shown. Ground Truth Tasks
-// shows while the user annotates; Summary whenever the image carries a model, however far along, beside it (set by the
-// owner, req/shell/annotate/choice); Processing, in a study that annotates, once an image is open, only on the route that starts
-// from scratch. Processing opens with the image and folds after the study's first step, which opens the others
-// (req/shell/left-bar/folding).
+// What the study fills of the left bar's boxes (req/shell/left-bar/shells): in the Analysis box its processing, from Start on, and
+// its Analysis Tasks, while the user annotates; the Summary box, which waits until the image carries a model. A box the study
+// puts nothing in is not shown.
 const STUDY_BOXES = { processing: "#processing-box", tasks: "#tasks-box", summary: "#summary-box" };
-// whether the image open carries a model: the log's, one a store's annotation shows, or, for a study keeping no GT actions, always
+// whether the image open carries a model: the log's, one a store's Analysis File shows, or, for a study keeping no GT actions, always
 const hasModel = () => !!viewing || !gtSession.on() || !!gtSession.api.model();
 function showBoxes() {
   if (!manifest) return;
-  let summary = false;
-  for (const [slot, sel] of Object.entries(STUDY_BOXES)) {
-    const b = $(sel), filled = !!b.querySelector("[data-study-panel]") || (slot === "processing" && !!manifest.algorithms);
-    const gone = !filled || (slot === "tasks" && !makesTruth()) || (slot === "summary" && !hasModel())
-      || (slot === "processing" && stageAllows("annotate") && !!page.get("image") && !(annotating && route === "scratch"));
-    if (slot === "summary" && b.hidden !== gone) summary = true;
-    b.hidden = gone;
-  }
-  if (summary) summaryMasks.redraw();
+  const filled = (sel) => !!$(sel).querySelector("[data-study-panel]");
+  $("#processing-box").hidden = !filled("#processing-box") || !page.get("image") || route !== "scratch";
+  $("#tasks-box").hidden = !filled("#tasks-box") || !makesTruth();
+  $("#summary-box").hidden = !filled("#summary-box");
+  $("#analysis-box").hidden = !(filled("#processing-box") || filled("#tasks-box") || runsFirst() || stageAllows("annotate"));
+  $("#analysis-dl").hidden = !(gtSession.on() && !!gtSession.api.model() && !!page.get("image"));
+  drawBoxes(); drawSteps();
+  if (summaryShown !== summaryShows()) { summaryShown = summaryShows(); summaryMasks.redraw(); }
 }
-function studyBoxes() {
-  const first = manifest.phases[0]?.key || "load";
-  for (const [slot, sel] of Object.entries(STUDY_BOXES)) {
-    const b = $(sel);
-    b.dataset.opens = slot === "processing" ? "load" : first;
-    if (slot === "processing" && first !== "load") b.dataset.folds = first; else delete b.dataset.folds;
-    summaries.delete(b);
-  }
-  showBoxes(); summaryMasks.redraw(); gtSession.paint();
-}
+// whether the Summary box shows its summary, and whether it did when the mask was last drawn
+const summaryShows = () => !$("#summary-box").hidden && !waits($("#summary-box"));
+let summaryShown = false;
+function studyBoxes() { showBoxes(); summaryShown = summaryShows(); summaryMasks.redraw(); gtSession.paint(); }
 const viewers = {};
 const algorithms = algorithmChoice({ $, outline, status, repo: REPO });
-// Download Summary at the Summary box's foot: the study's summary, saved as the shell's one CSV
+// Download Summary on the Summary box's header: the study's summary, saved as the shell's one CSV
 const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
 // the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
 const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get("image"), fileName: () => st.fileName, study: () => manifest,
-  shows: () => !$("#summary-box").hidden, drag, readJSON, writeJSON, views });
+  shows: () => summaryShows(), drag, readJSON, writeJSON, views });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
@@ -2732,7 +2742,8 @@ const gtDrafts = truthDrafts();
 const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth, viewer: () => view, remoteLabel: () => remote.label, readJSON, writeJSON,
   image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
   // offline there is nothing to ask the store
-  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.read(id),
+  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null)
+    : listedFor?.sha === st.sha ? Promise.resolve(listedFor.mine) : truth.mine()), readSubmission: (id) => truth.read(id),
   version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
@@ -2742,7 +2753,8 @@ function leaveStudy() {
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
-  for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
+  for (const sel of Object.values(STUDY_BOXES)) $(sel).hidden = true;
+  $("#analysis-dl").hidden = true; $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
   css?.remove(); css = null;
   $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();
@@ -2757,7 +2769,7 @@ function leaveStudy() {
 
 const shell = {
   $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
-  showImage, boxDone, outline,
+  showImage, outline,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
   // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)
@@ -2818,7 +2830,7 @@ const batchRunner = {
 export const lent = {
   batchRunner, stageAllows, setStage, readStage, saveFile,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
-  page, views, summaryMasks, st, retitle, loadOriginal, minimapView: () => view?.minimapView(),
+  page, views, summaryMasks, st, drawBoxes, loadOriginal, minimapView: () => view?.minimapView(),
   // the image itself, by its id, is open
   originalOpen: (id) => !!st.source && st.source.id === id && st.source.kind !== "preview" && !!page.get("image"),
   openBytes: (name, bytes, source) => openBytes(name, bytes, source),
@@ -2858,7 +2870,7 @@ window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, ma
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
-remoteDialog(); slow($("#gt-export"));
+remoteDialog(); slow($("#analysis-dl"));
 // the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
 const first = mountStudy(studyOf(location));
 swapping = first.catch(() => {});

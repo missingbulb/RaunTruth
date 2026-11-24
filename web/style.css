@@ -173,7 +173,12 @@ body.resizing #layout { transition: none; }
 .box select { width: 100%; }
 /* the Image box's foot: Load; Load Original in Data Management */
 #image-foot { display: flex; gap: 8px; align-items: stretch; margin-top: 12px; }
-.sec-head #unload { padding: 0; }
+.sec-head .link { padding: 0; }
+/* a box header's icon button, at its far edge */
+.sec-head .head-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; padding: 3px 6px; border-color: transparent; background: none; color: var(--dim); }
+.sec-head .head-icon:not(:disabled):hover { color: var(--accent); border-color: var(--line); }
+.sec-head .head-icon[hidden], .sec-head .link[hidden] { display: none; }
+.sec-head .link + .head-icon { margin-left: 0; }
 /* the image's tags in the study, over its details; a value the details name without spelling its bytes out */
 #file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
 #file-tags[hidden] { display: none; }
@@ -680,8 +685,8 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 
 /* a box that folds: its title opens and closes it */
 .box.foldable > .sec-head h2 { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; min-width: 0; }
-/* the left bar's boxes are drawers stacked in one panel: a compact title row each, behind its step's number
-   (a check once done), and an accent bar on the open ones */
+/* the left bar's boxes are drawers stacked in one panel: a title row each, and an accent bar on the open ones; one
+   waiting for the stage before it is its title alone, dimmed */
 #left > .box.foldable { margin: 0; padding: 0 12px; border-width: 0 1px 1px; border-radius: 0; }
 #left > .box.foldable:first-of-type { border-top-width: 1px; border-radius: var(--r-panel) var(--r-panel) 0 0; }
 #left > .box.foldable:last-of-type { border-radius: 0 0 var(--r-panel) var(--r-panel); }
@@ -691,19 +696,13 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #left > .box.foldable:not(.folded) > .sec-head { margin-bottom: 10px; border-bottom-color: var(--line); }
 #left > .box.foldable > .sec-head h2 { font-size: 14px; }
 #left > .box.foldable > .sec-head h2::before { display: none; }
-.step-mark { flex: none; display: grid; place-items: center; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%;
-  border: 1.5px solid var(--dim); color: var(--dim); font-size: 11px; font-weight: 600; line-height: 1; }
-.box.foldable:not(.folded) .step-mark { border-color: var(--accent); color: var(--accent); }
-.box.foldable.done .step-mark { border-color: var(--yes); background: var(--yes); color: #fff; }
-.sec-head h2 .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* Load Image done and folded: the image's preview, name and what it holds */
-.loaded { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.loaded .pic { flex: none; width: 28px; height: 28px; border-radius: 4px; background: #000; }
-.loaded .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.loaded .name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
-.loaded .tags { display: flex; gap: 4px; }
-.loaded .tag { font-size: 10.5px; font-weight: 500; padding: 0 5px; border-radius: 4px; color: var(--dim);
-  background: color-mix(in srgb, var(--text) 12%, transparent); }
+.box.foldable.waits { cursor: default; }
+.box.foldable.waits > .sec-head h2 { cursor: default; color: var(--dim); opacity: .6; }
+/* the study's parts of the Analysis box, one under the other */
+#analysis-box > div:not(.sec-head):not([hidden]) ~ div:not([hidden]) { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#tasks-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+#algorithm-ran { margin: 0 0 8px; }
+#processing-box[hidden], #tasks-box[hidden], #algorithm-ran[hidden] { display: none; }
 /* folding wins over any box's own layout for its parts */
 .box.foldable.folded > :not(.sec-head) { display: none !important; }
 .box.foldable.folded > .sec-head > :not(h2) { display: none; }
@@ -1108,6 +1107,9 @@ html:not(.offline) #welcome-offline { display: none; }
 #results-scroll table tfoot td { font-weight: 600; }
 #results-box.busy { opacity: .6; }
 #results-msg { overflow-wrap: anywhere; }
+/* the page held while the study comes in again on the image open: the new page takes the old one's place at once */
+:root[data-held]::view-transition-group(*), :root[data-held]::view-transition-old(*), :root[data-held]::view-transition-new(*) { animation: none; }
+:root[data-held]::view-transition-old(*) { display: none; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 
@@ -1144,9 +1146,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
-#gt-history-row[hidden] { display: none; }
-#gt-history-row { padding: 8px 0; font-size: 13px; }
-#gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
 #gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
@@ -1178,12 +1177,6 @@ html:not(.offline) #welcome-offline { display: none; }
   padding: 4px 12px; font-size: 12px; color: var(--text); background: var(--tipbg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
 #drag-hint[hidden] { display: none; }
 
-/* Download Summary, at the Summary box's foot (req/shell/summary/download) */
-.summary-dl-row { display: flex; margin-top: 10px; }
-.summary-dl-row:has(> [hidden]) { display: none; }
-#summary-dl { padding: 3px 10px; font-size: 12px; }
-#summary-dl[hidden] { display: none; }
-
 /* the summary's mask (req/shell/summary/mask): its borders as a pulsing dashed line, its inside tinted only when areas
    overlap or nest, and the lasso as it is drawn; over a stack in 3D, an overlay following the view */
 .mask-btns { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -1213,15 +1206,25 @@ html:not(.offline) #welcome-offline { display: none; }
 .study-areas .interest { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .study-areas .interest.under { stroke: #000; stroke-width: 3; stroke-opacity: .5; }
 
-/* the Annotations box: how to get annotations on the image open (req/shell/annotate/choice) */
-#annotate-box[hidden], #annotate-choices[hidden], #annotate-list[hidden], #annotate-ask[hidden] { display: none; }
+/* the Analysis box's choice, Start and Load side by side, and the Start and Load dialogs (req/shell/annotate/choice) */
+#annotate-box[hidden], #annotate-choices[hidden] { display: none; }
 #annotate-choices { display: flex; flex-direction: column; gap: 6px; }
-#annotate-choices > button, #annotate-edit, #annotate-clear { width: 100%; }
-#annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; }
+#annotate-choices > button, #annotate-edit { width: 100%; }
+#annotate-choices .pair { display: flex; gap: 6px; }
+#annotate-choices .pair > button { flex: 1 1 0; min-width: 0; }
+#annotate-choices .pair > button[hidden] { display: none; }
+#annotate-say { margin: 8px 0 0; }
+#annotate-edit { margin-top: 8px; }
+#start-dlg, #load-dlg { width: min(460px, calc(100vw - 32px)); }
+#start-dlg h3 { margin: 12px 0 0; font-size: 13px; }
+#start-dlg #algorithm { height: auto; padding: 4px; }
+#start-dlg #algorithm option { padding: 4px 6px; border-radius: 4px; }
+#start-dlg #algorithm-pick { margin: 0; }
+#start-dlg #algorithm-note { max-height: 40vh; overflow: auto; }
+#annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 0; max-height: 50vh; overflow: auto; }
 #annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
+#annotate-list .item[aria-selected=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 #annotate-list .others .item { width: 100%; margin-top: 4px; }
 #annotate-list .others summary { cursor: pointer; font-size: 12px; color: var(--dim); margin: 2px 0; }
-#annotate-say { margin: 8px 0 0; }
-#annotate-edit, #annotate-clear { margin-top: 8px; }
 #gt-waiting { margin: 6px 0 0; }
-#gt-submit[hidden], #gt-download[hidden] { display: none; }
+#gt-submit[hidden] { display: none; }

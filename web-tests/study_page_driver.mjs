@@ -321,8 +321,8 @@ try {
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);
   await live.setInputFiles("#file", image);
   await live.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before the first run");
   await fromScratch(live, "#fx-count");
-  if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before Count");
   await live.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
   await live.click("#fx-count");
   await live.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
