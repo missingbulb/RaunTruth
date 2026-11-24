@@ -6,6 +6,7 @@
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
 import { fromScratch } from "./annotating.mjs";
 import { standIn } from "./stand_in_drive.mjs";
+import { unfoldTo } from "./drive_open.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
@@ -96,7 +97,15 @@ await page.click("#load-remote");
 await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }));
 const listed = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : e.querySelector(".name").textContent)));
 await check(JSON.stringify(listed) === JSON.stringify(["# Data", "acme.png", "# Data / sub", "beta.png", "# Elsewhere", "delta.png"]), "Load study images lists the index's images, a group per folder", listed);
+const dialog = await page.evaluate(() => ({ title: document.querySelector("#remote-title").textContent, path: document.querySelector("#remote-path").checkVisibility() ? document.querySelector("#remote-path").textContent : "" }));
+await check(dialog.title === "Open Image" && dialog.path === "", "the dialog is titled Open Image, with no line naming the study's images over the list", dialog);
+const heads = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .group")].map((g) => ({ open: g.getAttribute("aria-expanded"), folder: !!g.querySelector("svg.folder-icon"), count: g.querySelector(".group-count").textContent })));
+const showing = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].filter((e) => e.checkVisibility()).map((e) => e.querySelector(".name").textContent));
+await check((await heads()).every((h) => h.open === "false" && h.folder && h.count === "(1)") && !(await showing()).length,
+  "each group is folded at first, under a folder with its number of images in brackets", { heads: await heads(), showing: await showing() });
 await shoot("#remote-dlg", "load-study-images.png");
+await page.click('#remote-list .group:has(.group-name:text-is("Data / sub"))');
+await check(JSON.stringify(await showing()) === '["beta.png"]' && (await heads())[1].open === "true", "a click on a group unfolds its images, and no other's", { heads: await heads(), showing: await showing() });
 const reads = writes.length;
 await page.dblclick('#remote-list .item:has(.name:text-is("beta.png"))');
 await orMissed(page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }));
@@ -186,6 +195,14 @@ await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-lis
 const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
+// req/shell/image/file-info: the image's tags in the Image box, over its details
+await page.click('#remote-list .group:has(.group-name:text-is("group: wild-type"))');
+await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
+await orMissed(page.waitForFunction(() => document.querySelector("#file-tags .tag-chip"), null, { timeout: 10000 }));
+const boxTags = await page.evaluate(() => { const t = document.querySelector("#file-tags");
+  return { tags: [...t.querySelectorAll(".tag-chip")].map((c) => c.textContent), above: t.nextElementSibling === document.querySelector("#file-box"), shown: !t.hidden }; });
+await check(JSON.stringify(boxTags.tags) === '["group:wild-type"]' && boxTags.above && boxTags.shown, "an image opened shows its tags in the Image box, above its details", boxTags);
+await shoot("#image-box", "image-box-tags.png");
 await page.context().close();
 
 // req/shell/extractions/marks-shown: the study file's marks, seeded as Study Setup would write them, shown on each image's row in Load,
@@ -247,7 +264,7 @@ page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => 
   Worker.prototype.postMessage = function (m, t) { window.posted.push(m); return send.call(this, m, t); };
 }) });
 await page.click("#load-remote");
-await page.waitForSelector('#remote-list .item:has(.name:text-is("acme.png"))');
+await unfoldTo(page, '#remote-list .item:has(.name:text-is("acme.png"))');
 await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
 await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }));
 const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));

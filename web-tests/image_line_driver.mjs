@@ -151,11 +151,11 @@ try {
     return { first: first?.id, beforeDetails: !!(first.compareDocumentPosition($("#file-box")) & Node.DOCUMENT_POSITION_FOLLOWING) };
   });
   check(line.first === "load" && line.beforeDetails, "the selector's line is the Image box's top line, above the details", line);
-  check(/Choose an image/.test(await page.textContent("#image-pick")), "before an image, the selector says to choose one");
+  check(/Recently Opened/.test(await page.textContent("#image-pick")), "before an image, the selector is titled Recently Opened");
   check(!(await shown("#unload")), "with no Unload yet");
   check(await page.evaluate(() => $("#image-pick").classList.contains("primary")), "the selector shines until an image is open");
   check(await page.$("#load-remote svg.remote-logo"), "Drive's button bears Drive's logo");
-  const [pick, driveButton] = [await box("#image-menu"), await box("#load-remote")];
+  const [pick, driveButton, lineBefore] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
   check(driveButton.x > pick.x + pick.w - 1 && Math.abs(driveButton.y + driveButton.h / 2 - (pick.y + pick.h / 2)) < 4, "Drive's button stands at the selector's right, on its line", { pick, driveButton });
   await page.click("#image-pick");
   let r = await rows();
@@ -191,12 +191,13 @@ try {
   await page.waitForFunction(() => !$("#image-box").classList.contains("folded") && $("#unload").getClientRects().length);
   check(/kept\.png/.test(await page.textContent("#image-pick")), "once open, the selector names the image");
   check(await shown("#unload"), "and Unload shows");
-  const [p2, u2, d2] = [await box("#image-menu"), await box("#unload"), await box("#load-remote")];
-  check(u2.x > p2.x + p2.w - 1 && d2.x > u2.x + u2.w - 1 && Math.abs(u2.y + u2.h / 2 - (p2.y + p2.h / 2)) < 4, "Unload stands between the selector and Drive's button", { p2, u2, d2 });
+  const [p2, d2, l2] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
+  check(await page.evaluate(() => $("#unload").parentElement.matches("#image-box > .sec-head") && $("#unload").textContent.trim() === "unload image"), "as a link on the box's header");
+  check(p2.w === pick.w && d2.x === driveButton.x && d2.w === driveButton.w && l2.w === lineBefore.w && l2.h === lineBefore.h, "the selector's line keeps its controls where they were before the image", { pick, p2, driveButton, d2 });
   check(await page.evaluate(() => $("#file-name").textContent.trim() === "Details"), "the details below are titled Details");
   await shot("loaded", "#image-box");
   await page.click("#unload");
-  await page.waitForFunction(() => !window.st.img && /Choose an image/.test($("#image-pick").textContent));
+  await page.waitForFunction(() => !window.st.img && /Recently Opened/.test($("#image-pick").textContent));
   check(true, "Unload clears the image");
 
   // ---- req/shell/drive/offline-listing ----

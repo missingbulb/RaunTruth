@@ -495,7 +495,8 @@ nobody has decided: what the page does there is not a requirement yet.
   in view still lack. Test: `web-tests/test_drive_thumbs_page.py`. An image opened from Drive saves its own in the browser (the latest 100), shown from then
   on without a download; set by the owner on 2026-11-17, it is kept as a JPEG in cache storage, not in the settings' storage (`req/shell/storage/manage`). All but Drive's own are in the colours the page gives the
   channels. Show thumbnails in Settings (on at first, `req/shell/account/settings`) turns the downloads off; set by the
-  owner on 2026-11-07, the dialog itself holds no such checkbox. The status bar's message says, while they load ("Thumbnails 3 of 10 ·
+  owner on 2026-11-07, the dialog itself holds no such checkbox. Set by the owner on 2026-11-24: the dialog is titled
+  Open Image, whichever store it reads from (`web-tests/test_study_index_page.py`). The status bar's message says, while they load ("Thumbnails 3 of 10 ·
   1.2 MB"), how many have arrived and their size; once they are in, the message says again what it said
   before (set by the owner on 2026-11-05: the message, not a text of its own beside it). It needs the site's Google API key, kept in the repository variable
   `GOOGLE_API_KEY` and written into `web/config.js` at deploy; without one the option is off
@@ -981,7 +982,7 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_cellsens.py`.
   </details>
 
-- `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say.
+- `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say; its tags in the study show over that.
   <details>
 
   Folded at first: the field in µm and px, the pixel size, the bit depth, the ImageJ series, the
@@ -992,11 +993,17 @@ nobody has decided: what the page does there is not a requirement yet.
   per format (`tiff`, `heic`, `jpeg`, `png`), the fields it pins instead, by the labels the details show.
   Every other field the file carries is listed below them in More details, folded at first: a TIFF's tags
   and ImageJ header, a photo's EXIF (GPS included), JFIF and XMP fields, a HEIC's container (its images,
-  thumbnails, auxiliary images and colour profile), a PNG's chunks. Binary blobs (a maker note, an embedded
-  profile's bytes, a thumbnail, a list of more than 16 values) are left out. The bit depth is the file's
+  thumbnails, auxiliary images and colour profile), a PNG's chunks. Set by the owner on 2026-11-24, in place of
+  leaving them out: a field whose value is bytes (a maker note, an embedded profile, an XMP or IPTC block, ImageJ's
+  binary metadata) is listed by its name, its value reading "base64…", dimmed, so that the field is seen to be there
+  and its bytes are not spelled out; a list of more than 16 values says how many it holds ("64 values…"). A tag that
+  only says where other data lies in the file (the pixels' offsets, a thumbnail's) stays unlisted. The bit depth is the file's
   own, even where the page shows the image in 8 bits. What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
   line says the microscope or acquisition is missing, and with no image open the box names none and shows no
-  details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
+  details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`). Set by the owner on
+  2026-11-24: an image the study's index holds (`req/shell/data/index`) shows the tags it carries there
+  (`req/shell/data/tags`) in the Image box, as chips above its details; an image with none, or one the index does
+  not hold, shows no such line (`web-tests/test_study_index_page.py`).
   </details>
 
 - `req/shell/image/frame` A study names a box of the image to bring into view; the shell zooms and glides there, the same way in every study.
@@ -1238,7 +1245,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the toolbar's right end (its `toolbar-end` slot).
   </details>
 
-- `req/shell/load/button` In a study opening from this computer alone, Load opens an image from it and shines until one is open; Unload beside it closes it.
+- `req/shell/load/button` In a study opening from this computer alone, Load opens an image from it and shines until one is open; "unload image" on the box's header closes it.
   <details>
 
   No study the site publishes opens from this computer alone (`req/shell/load/from`); the shell keeps the case for
@@ -1246,7 +1253,9 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/image/file-info`), its channels (`req/shell/channels/rows`), and at its foot Load, which opens the
   computer's own file chooser, filled and glowing until an image is open and a plain button with a blue border
   after. Load sits at the foot, not in the box's title, so the title keeps its place whether the box is folded or
-  open. Once an image is open, Unload stands beside Load and clears the page back to before any image:
+  open. Set by the owner on 2026-11-24, in place of an Unload button beside Load: once an image is open the box's
+  header carries a link, "unload image", at its right, shown while the box is open and not while it is folded, so
+  that the line of controls to load with looks as it did before the image. It clears the page back to before any image:
   no image, no minimap, the steps starting over at Load image, the boxes folded as at first, and the
   study starting over too, its panels as they were before any image; Python, if it has started, lets the image go. Test:
   `web-tests/test_image_box_page.py`.
@@ -1274,13 +1283,13 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_cache_page.py`.
   </details>
 
-- `req/shell/load/selector` In a study opening from Google Drive, the Image box's top line picks the image: a selector of the images opened lately, newest first, each saying how long ago; Unload once one is open; the computer's button where the study opens local files; and Drive's button.
+- `req/shell/load/selector` In a study opening from Google Drive, the Image box's top line picks the image: a selector of the images opened lately, newest first, each saying how long ago; the computer's button where the study opens local files; and Drive's button.
   <details>
 
   Set by the owner on 2026-11-04, in place of Load and its dropdown (`req/shell/load/from`). The Image box's first
   line, above the image's details (`req/shell/image/file-info`, titled Details) and its channels, holds a selector
-  looking like the header's study switcher: its face names the image open, or, before one, says "Choose an
-  image"; it opens on the last 30 images opened in the study on show, newest first, the first (the one opened
+  looking like the header's study switcher: its face names the image open, or, before one, says "Recently
+  Opened" (set by the owner on 2026-11-24, in place of "Choose an image"); it opens on the last 30 images opened in the study on show, newest first, the first (the one opened
   last) selected, so Enter opens it (set by the owner on 2026-10-31: an image opened in another study is
   irrelevant here). Each shows its name and where it is, beside that place's small logo: in Drive, the folders under
   where it was opened from, so two files of one name stay apart; for a file on this computer, "This computer". Each
@@ -1296,14 +1305,15 @@ nobody has decided: what the page does there is not a requirement yet.
   where the study opens local files, a button bearing a computer opens the computer's own file chooser; last, a
   button bearing Drive's logo opens the Google Drive dialog (`req/shell/drive/dialog`), offline too
   (`req/shell/drive/offline-listing`). Until an image is open, the selector, or when it lists nothing the
-  computer's button, else Drive's, is filled and glowing, as Load is (`req/shell/load/button`). Once an image is
-  open a small Unload button stands after the selector, and clears the page as Unload does. The selector's list
+  computer's button, else Drive's, is filled and glowing, as Load is (`req/shell/load/button`). Set by the owner
+  on 2026-11-24: the line holds no Unload button, so its controls stand where they stood before the image; the box's
+  header carries "unload image" (`req/shell/load/button`). The selector's list
   stays inside the left bar, a long name cut short. The references to files on this computer stay with this
   device, listed in Settings among what is kept on this device only (`req/shell/account/settings`), and the
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
   </details>
 
-- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the study owner chooses, not by folder.
+- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the study owner chooses, not by folder, each group folded under its head.
   <details>
 
   Set by the owner on 2026-11-17. In a study with a study index (`req/shell/data/index`), Load's Google Drive dialog
@@ -1320,7 +1330,11 @@ nobody has decided: what the page does there is not a requirement yet.
   read lists offline as before. The grouping tag is set in Data Management's Study images, which offers `folder` and
   every multi-value tag the study's images carry. Grouped by a tag, a group per value, its head `<tag>: <value>`, in
   the values' order; an image with no value of it sits in a last group, "No <tag>" (Tentative). Each row also shows the
-  image's tags, and its description under its name; to a study owner a hidden image shows, marked hidden. Test:
+  image's tags, and its description under its name; to a study owner a hidden image shows, marked hidden. Set by the
+  owner on 2026-11-24: no line over the list says "The study's images"; each group's head is a folder, whatever tag
+  sorts the groups, then its name and, small and in brackets, how many images it holds, and its images are folded
+  away until a click on the head unfolds them, another click folding them again. Tentative: a group stays as it was
+  left while the page lives, and where the list is a single group it is open. Test:
   `web-tests/test_study_index_page.py`.
   </details>
 

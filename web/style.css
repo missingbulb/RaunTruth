@@ -99,17 +99,15 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #image-foot:not(:has(> :not([hidden], input, svg))) { display: none; }
 #load { display: flex; gap: 8px; align-items: stretch; }
 #load:not([data-remote]) > #image-menu, #load:not([data-remote]) > #load-remote, #load[data-remote]:not([data-local]) > #load-main { display: none; }
-/* on the top line: the selector, Unload, the computer's button, the remote store's */
-#load[data-remote] > #unload { order: 1; } #load[data-remote] > #load-main { order: 2; } #load[data-remote] > #load-remote { order: 3; }
+/* on the top line: the selector, the computer's button, the remote store's */
+#load[data-remote] > #load-main { order: 2; } #load[data-remote] > #load-remote { order: 3; }
 #load-main .computer-logo { display: none; }
 #load[data-remote] > #load-main .word { display: none; }
 #load[data-remote] > #load-main .computer-logo { display: block; width: 18px; height: 16px; }
 #load-main { font-weight: 600; padding: 4px 14px; }
 #load.done .primary { background: var(--panel); border-color: var(--accent); color: var(--accent); }
 #load[data-remote] { margin: 0 0 10px; position: relative; }
-#load[data-remote] > #unload, #load[data-remote] > #load-main, #load-remote { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: none; }
-#load[data-remote] > #unload[hidden] { display: none; }
-#load[data-remote] > #unload .word, #load:not([data-remote]) > #unload .x-icon { display: none; }
+#load[data-remote] > #load-main, #load-remote { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: none; }
 #load[data-remote] > #load-main.primary { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); color: var(--text); }
 #load-remote .remote-logo { width: 18px; height: 16px; }
 #load-remote.primary { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
@@ -167,9 +165,14 @@ body.resizing #layout { transition: none; }
 .box + .box { margin-top: var(--pad); }
 .box h2 { margin-bottom: 10px; }
 .box select { width: 100%; }
-/* the Image box's foot: Load and, once an image is open, Unload; Load Original in Data Management */
+/* the Image box's foot: Load; Load Original in Data Management */
 #image-foot { display: flex; gap: 8px; align-items: stretch; margin-top: 12px; }
-#unload[hidden] { display: none; }
+.sec-head #unload { padding: 0; }
+/* the image's tags in the study, over its details; a value the details name without spelling its bytes out */
+#file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
+#file-tags[hidden] { display: none; }
+#file-tags .tag-chip { font-size: 11px; padding: 0 6px; }
+#file-box dd.unsaid { color: var(--dim); font-style: italic; }
 #file-box { margin: 0 0 10px; }
 #file-name { display: flex; align-items: center; gap: 7px; word-break: break-all; font-size: 13px; cursor: pointer; list-style: none; }
 #file-name::-webkit-details-marker { display: none; }
@@ -608,6 +611,8 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .dlg-row.end { justify-content: space-between; } .dlg-row .grow { flex: 1; }
 #remote-link { flex: 1; min-width: 0; }
 /* every part keeps its size whatever the folder holds, so the dialog stays still while browsing */
+#remote-path:empty { display: none; }
+#remote-path:empty + #remote-list { height: calc(300px + 1.5em + 10px); }
 #remote-path { margin-top: 10px; font-size: 13px; height: 1.5em; line-height: 1.5em; white-space: nowrap; overflow-x: auto; overflow-y: hidden; }
 #remote-list { display: flex; flex-direction: column; height: 300px; overflow-y: auto; margin-top: 6px;
   border: 1px solid var(--line); border-radius: var(--r-ctl); }
@@ -619,10 +624,17 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #remote-list .item .tags { display: flex; flex-wrap: wrap; gap: 3px; justify-content: flex-end; max-width: 40%; }
 #remote-list .item .tags .tag-chip { font-size: 11px; padding: 0 6px; }
 #remote-list .item .hidden-mark { color: var(--err); border-color: currentColor; }
-/* Load study images: each group's head, its folder's path and how many images it holds, held at the top while its rows scroll */
-#remote-list .group { display: flex; gap: 8px; align-items: baseline; flex: none; position: sticky; top: 0; z-index: 1; padding: 6px 10px 4px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
-#remote-list .group .group-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-#remote-list .group .group-count { color: var(--dim); font-weight: 400; }
+/* Load study images: each group's head, a folder, its name and how many images it holds, held at the top while its
+   rows scroll; a click folds its rows away or back */
+#remote-list .item[hidden] { display: none; }
+#remote-list .group .chev, #remote-list .group .folder-icon { flex: none; align-self: center; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+#remote-list .group .chev { transition: transform .12s; }
+#remote-list .group[aria-expanded="true"] .chev { transform: rotate(90deg); }
+#remote-list .group .folder-icon { color: var(--accent); }
+#remote-list .group:hover { background: var(--bg); }
+#remote-list .group { display: flex; gap: 6px; align-items: baseline; flex: none; width: 100%; text-align: left; color: inherit; border: 0; border-radius: 0; cursor: pointer; position: sticky; top: 0; z-index: 1; padding: 6px 10px 4px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+#remote-list .group .group-name { min-width: 0; overflow-wrap: anywhere; }
+#remote-list .group .group-count { color: var(--dim); font-weight: 400; font-size: 11px; }
 #remote-list .item .shape { color: var(--dim); font-size: 11px; white-space: nowrap; padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r-chip); }
 #remote-list .item .shape:empty { display: none; }
 /* an image the folder did not hold when last listed here (req/shell/drive/dialog) */

@@ -226,6 +226,16 @@
                 {"when": {"image": ["local", "original"]}, "is": "folded"}
               ],
               "children": [
+                {"name": "Unload", "select": "#unload", "control": true, "req": "req/shell/load/button",
+                  "rule": [
+                    {"when": {"image": ["none"]}, "is": "hidden"}
+                  ]
+                },
+                {"name": "Image's tags", "select": "#file-tags", "req": "req/shell/image/file-info", "steady": "shows only on an image the study's index gives tags, which no image walked here has",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ]
+                },
                 {"name": "File name and info", "select": "#file-box", "req": "req/shell/image/file-info",
                   "rule": [
                     {"when": {"image": ["none"]}, "is": "hidden"}
@@ -286,11 +296,6 @@
                     {"name": "This computer", "select": "#load-main", "control": true, "req": "req/shell/load/from",
                       "rule": [
                         {"when": {"fromComputer": [false]}, "is": "hidden"}
-                      ]
-                    },
-                    {"name": "Unload", "select": "#unload", "control": true, "req": "req/shell/load/selector",
-                      "rule": [
-                        {"when": {"image": ["none"]}, "is": "hidden"}
                       ]
                     },
                     {"name": "Google Drive button", "select": "#load-remote", "control": true, "req": "req/shell/load/selector"}
