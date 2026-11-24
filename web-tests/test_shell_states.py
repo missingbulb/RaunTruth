@@ -55,7 +55,7 @@ def test_each_state_is_one_more_action_and_each_element_shows_as_its_rules_and_i
     assert (states[3]['Box'], states[3]['Button']) == ('gone', 'gone')
     # an undecided case is not checked; a tentative one is, and the matrix marks it
     assert states[2]['Panel'] is None and states[3]['Panel'] == 'on'
-    assert '| Panel | ● | ● | ? | ●* |' in matrix and '- Acme · acme: Load · Count · Start annotating from scratch, Count: Panel' in matrix
+    assert '| Panel | ● | ● | ? | ●* |' in matrix and '- Acme · acme: Load · Count · Start, and Run, Count: Panel' in matrix
 
 
 def test_a_case_no_state_reaches_is_reported():

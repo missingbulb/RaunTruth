@@ -65,7 +65,7 @@
         {"is": "hidden", "req": "req/shell/image/toolbar", "about": "the study hides them: its view.hide names them"}
       ]
     },
-    "Save": {
+    "Upload": {
       "rule": [
         {"is": "disabled", "req": "req/shelves/truth/task",
           "about": "until every book is decided and none is left missed, which no path does"}

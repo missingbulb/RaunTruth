@@ -46,7 +46,7 @@
       }
     ]},
     {"under": "Keys legend", "tree": [
-      {"name": "NoRs' key", "select": "#key-show-nors", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice", "approval": "tentative", "about": "the view of the NoRs over the image is for those annotating"}, {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative"}]}
+      {"name": "NoRs' key", "select": "#key-show-nors", "made": "by the shell, from the study's actions", "control": true, "req": "req/nor/truth/keys", "rule": [{"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice", "approval": "tentative", "about": "the view of the NoRs over the image is for those annotating"}]}
     ]},
     {"under": "Main view", "after": "Tasks/Items switch", "tree": [
       {"name": "Show menu", "select": "#show-menu", "req": "req/nor/show-menu", "steady": "always shown"},

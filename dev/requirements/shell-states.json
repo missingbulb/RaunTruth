@@ -491,14 +491,15 @@
                 },
                 {"name": "Download Analysis", "select": "#analysis-dl", "control": true, "req": "req/shell/extractions/save",
                   "rule": [
-                    {"when": {"keepsLog": [false]}, "is": "hidden", "approval": "tentative"},
+                    {"when": {"keepsLog": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "every study with steps keeps GT actions"},
                     {"when": {"route": ["drive"], "annotating": [false]}, "is": "hidden", "approval": "tentative", "about": "an Analysis File shown read-only is not the page's own work to download"},
                     {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"}
                   ]
                 },
                 {"name": "Start and Load", "select": "#annotate-box", "req": "req/shell/annotate/choice",
                   "rule": [
-                    {"when": {"image": ["none"]}, "is": "hidden"}
+                    {"when": {"image": ["none"]}, "is": "hidden", "unwalked": "the Analysis box is folded, waiting, until an image is open"},
+                    {"when": {"annotating": [true], "route": ["scratch"]}, "is": "hidden", "approval": "tentative", "about": "annotating from Start, it has nothing to offer or to say"}
                   ],
                   "children": [
                     {"name": "The ways to an analysis", "select": "#annotate-choices", "req": "req/shell/annotate/choice",
@@ -512,11 +513,12 @@
                             {"when": {"hasDraft": [false]}, "is": "hidden"}
                           ]
                         },
-                        {"name": "Load", "select": "#annotate-load", "control": true, "req": "req/shell/annotate/choice",
+                        {"name": "Load an Analysis File", "select": "#annotate-load", "control": true, "req": "req/shell/annotate/choice",
                           "rule": [
                             {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"},
-                            {"when": {"image": ["local", "preview"]}, "is": "disabled", "approval": "tentative", "req": "req/shell/extractions/list", "about": "only an image from the store has Analysis Files there"}
+                            {"when": {"image": ["local", "preview"]}, "is": "disabled", "approval": "tentative", "req": "req/shell/extractions/list", "about": "only an image from the store has Analysis Files there"},
+                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "unwalked": "the paths go offline only with an image from this computer open, where Load is off"},
+                            {"is": "shown", "approval": "undecided", "about": "on where the store holds an Analysis File of the image, off where it holds none, which no state says"}
                           ]
                         },
                         {"name": "Start", "select": "#annotate-scratch", "control": true, "req": "req/shell/annotate/choice"}
@@ -539,7 +541,7 @@
                 },
                 {"name": "The study's runner", "select": "#processing-box", "req": "req/shell/left-bar/shells",
                   "rule": [
-                    {"when": {"image": ["none"]}, "is": "hidden"},
+                    {"when": {"image": ["none"]}, "is": "hidden", "unwalked": "the Analysis box is folded, waiting, until an image is open"},
                     {"when": {"route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"}
                   ],
                   "children": [
@@ -610,7 +612,7 @@
                             {"name": "Upload", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
                               "rule": [
                                 {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
-                                {"when": {"hasModel": [false]}, "is": "disabled"}
+                                {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "annotating, an image carries no model only in a study of several steps before its first, where the tasks list is not yet shown"}
                               ]
                             }
                           ]

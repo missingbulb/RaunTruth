@@ -21,7 +21,7 @@ import { fromScratch, loadStored } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
-const { w, FILES, ROOT, GT, drive, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
+const { w, FILES, GT, drive, settings: SETTINGS, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
 // whether the study has one step with a button, which Start's Run presses for the user (req/shell/analysis/start)
 const oneRun = (study) => JSON.parse(fs.readFileSync(new URL(`../studies/${study}/study.json`, import.meta.url), "utf8")).phases.filter((p) => p.button).length === 1;
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
@@ -35,6 +35,14 @@ const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
 // who is signed in, but for the study's owner, whom Drive lets write its root: someone who may save to its extractions folder alone
 const OTHER = "someone@example.com";
 
+// each image of the study's Drive folder has an Analysis File there, the owner's, marked GT, from before any page opens: read as
+// the image opens, it is what Load offers
+for (const image of FILES.filter((f) => !f.folder && /\.(png|jpe?g|tiff?)$/i.test(f.name))) {
+  const sha = createHash("sha256").update(image.bytes).digest("hex"), sub = `${image.name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
+  const file = w.of(GT.extractions).folder(sub).holds({ name: await personFile("owner@acme.example"), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
+    labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
+  studyFile({ marks: { ...(JSON.parse(drive.files.find((f) => f.id === SETTINGS.id).bytes.toString()).marks || {}), [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
+}
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
 // done: the page settled, its drawers and fades over (a spinner going round never ends, so it is left out)
 const settled = async (page) => {
@@ -136,16 +144,8 @@ const ACTIONS = {
     await page.evaluate(() => document.querySelector("#unload").click());
     await page.waitForFunction(() => !shellForTests.page.get("image") && document.querySelector("#busy").hidden);
   },
-  // the first image of the study's Drive folder, which holds an Analysis File of it, the owner's, marked GT: read as the image
-  // opens, it is what Load offers
+  // the first image of the study's Drive folder
   async drive(page, first) {
-    const image = FILES.find((f) => !f.folder && f.parent === ROOT && /\.(png|jpe?g|tiff?)$/i.test(f.name));
-    const sha = createHash("sha256").update(image.bytes).digest("hex"), sub = `${image.name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
-    if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.extractions)) {
-      const file = w.of(GT.extractions).folder(sub).holds({ name: await personFile("owner@acme.example"), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
-        labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
-      studyFile({ marks: { [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
-    }
     await page.evaluate(() => document.querySelector("#load-remote").click());
     await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelector("#remote-list .item"));
     // the study's folder opened, where the dialog lists the folders first

@@ -15,6 +15,9 @@ const stampOf = (v) => {
   return t && typeof t.dataset_sha256 === "string" && typeof t.frozen === "string" ? t : null;
 };
 
+// how many rows the list's box shows: before any study is in, and at most
+const FEW = 4, MANY = 6;
+
 export function algorithmChoice({ $, outline, status, repo }) {
   const box = $("#algorithm-pick"), sel = $("#algorithm"), q = $("#scoring-help"), scoring = $("#scoring-note"), heard = [];
   const shut = () => { scoring.hidden = true; q.setAttribute("aria-expanded", "false"); };
@@ -61,13 +64,13 @@ export function algorithmChoice({ $, outline, status, repo }) {
           if (m.scoring) { const head = document.createElement("p"); head.textContent = "How precision and recall are scored"; scoring.replaceChildren(head, outline(m.scoring)); }
           sel.replaceChildren(...list.map((a) => new Option(`${a.icon || ""} ${a.title}${measured(a) ? ` (${pr(a)})` : ""}`.trim(), a.key)));
           sel.title = list.some(measured) ? `Precision (P) and recall (R) of each algorithm${doc.measured ? " " + doc.measured : ""}` : "";
-          sel.disabled = !list.length; sel.size = Math.max(2, Math.min(list.length, 6)); if (list.length) sel.selectedIndex = 0; about();
+          sel.disabled = !list.length; sel.size = Math.max(2, Math.min(list.length, MANY)); if (list.length) sel.selectedIndex = 0; about();
           return list;
         }, (e) => { if (!signal.aborted) status(`The algorithms could not be listed: ${e.message || e}`, true); return signal.aborted ? new Promise(() => {}) : []; });
     },
     // the study leaving: the list as before any study came in
     leave() {
-      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; box.hidden = true; $("#algorithm-stamp").hidden = true;
+      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; sel.size = FEW; box.hidden = true; $("#algorithm-stamp").hidden = true;
       shut(); q.hidden = true; scoring.replaceChildren();
       $("#algorithm-about").textContent = "How the algorithm works"; $("#algorithm-note").replaceChildren();
     },

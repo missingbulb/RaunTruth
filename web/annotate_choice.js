@@ -30,7 +30,6 @@ export function annotateChoice({ $, remote, start, local, load, pick, edit, clea
     // list: null | {busy} | {failed} | {rows: [{key, label, detail, group}]}, why: what holds Load while the list cannot be
     // read, asks: the list is read at Load's press, so Load is on until it is known, viewing: the line saying which Analysis File is shown read-only, or null, say: a line of the mode, or ""}
     draw(v) {
-      $("#annotate-box").hidden = !v.shown;
       $("#annotate-choices").hidden = v.annotating;
       $("#annotate-local").hidden = !v.draft;
       if (v.draft) $("#annotate-local").title = `Saved ${new Date(v.draft.saved).toLocaleString()}, ${v.draft.count} action${v.draft.count === 1 ? "" : "s"}`;
@@ -57,6 +56,8 @@ export function annotateChoice({ $, remote, start, local, load, pick, edit, clea
       go.disabled = !chosen;
       $("#load-dlg-msg").textContent = v.readFailed || "";
       const say = v.annotating ? v.say : v.viewing;
+      // annotating with nothing to say of where the analysis came from, the part has nothing to show
+      $("#annotate-box").hidden = !v.shown || (v.annotating && !say);
       $("#annotate-say").hidden = !say; $("#annotate-say").textContent = say || "";
       $("#annotate-edit").hidden = v.annotating || !v.viewing;
       $("#annotate-clear").hidden = !v.annotating;

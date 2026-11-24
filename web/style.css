@@ -175,10 +175,10 @@ body.resizing #layout { transition: none; }
 #image-foot { display: flex; gap: 8px; align-items: stretch; margin-top: 12px; }
 .sec-head .link { padding: 0; }
 /* a box header's icon button, at its far edge */
-.sec-head .head-icon { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; padding: 3px 6px; border-color: transparent; background: none; color: var(--dim); }
+.sec-head .head-icon { display: inline-flex; align-items: center; justify-content: center; padding: 3px 6px; border-color: transparent; background: none; color: var(--dim); }
 .sec-head .head-icon:not(:disabled):hover { color: var(--accent); border-color: var(--line); }
 .sec-head .head-icon[hidden], .sec-head .link[hidden] { display: none; }
-.sec-head .link + .head-icon { margin-left: 0; }
+.box.foldable > .sec-head h2 { margin-right: auto; }
 /* the image's tags in the study, over its details; a value the details name without spelling its bytes out */
 #file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
 #file-tags[hidden] { display: none; }

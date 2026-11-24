@@ -50,8 +50,7 @@
     {"under": "Image view", "after": "Minimap", "tree": [
       {"name": "Map of the areas", "select": "#gt-mini", "req": "req/vascular/truth/tasks",
         "rule": [
-          {"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-          {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the walk has nothing to open before the study has run"}
+          {"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"}
         ],
         "children": [
           {"name": "The flattened stack", "select": "#gt-mini-image", "req": "req/vascular/truth/tasks"},
