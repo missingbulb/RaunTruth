@@ -419,10 +419,20 @@ function showAccess() {
   drawAnnotate();
 }
 // Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
-// run out, as the store's reads do. It opens in a page of its own, the link's own doing; leaving it waits for the sign-in's answer
+// run out, as the store's reads do. It opens in a page of its own: the link's own doing while the token lasts; with the token run out
+// the page is opened empty within the click and sent to Study Setup once the sign-in has answered, so that it reads with the new token.
+// Leaving it waits for the sign-in's answer
 $("#open-setup").onclick = (e) => {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  if (!SETUP) { $("#user-menu").open = false; signIn.forRead().catch(() => {}); return; }
+  if (!SETUP) {
+    $("#user-menu").open = false;
+    if (signIn.token()) { signIn.forRead().catch(() => {}); return; }
+    e.preventDefault();
+    const tab = window.open("", "_blank"), to = new URL($("#open-setup").getAttribute("href"), location.href).href;
+    const send = () => { if (!tab) return location.assign(to); tab.opener = null; tab.location.replace(to); };
+    signIn.forRead().then(send, send);
+    return;
+  }
   e.preventDefault(); $("#user-menu").open = false;
   const go = () => location.assign($("#open-setup").href);
   signIn.forRead().then(go, go);

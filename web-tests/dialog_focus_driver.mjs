@@ -57,4 +57,13 @@ await page.keyboard.press("Escape");
 await page.waitForFunction(() => !$("#user-menu").open);
 await settle();
 { const f = await focus(); await check(f === "user-menu summary", "the avatar menu closed by Esc: its button has the keyboard", f); }
+
+// every dialog of both pages wears the page's own frame, a hairline and round corners, none the browser's
+for (const [at, atLeast] of [["/web/index.html", 12], ["/web/setup.html", 14]]) {
+  const p = await w.device().visits(at, { until: "none" });
+  await p.waitForFunction(() => document.querySelectorAll("dialog").length > 0 && [...document.styleSheets].some((s) => /style\.css/.test(s.href || "")));
+  const looks = await p.evaluate(() => [...document.querySelectorAll("dialog")].map((d) => { const c = getComputedStyle(d); return [d.id, c.borderTopWidth, parseFloat(c.borderTopLeftRadius)]; }));
+  const odd = looks.filter(([, width, radius]) => width !== "1px" || !(radius > 0));
+  await check(looks.length >= atLeast && !odd.length, `the ${looks.length} dialogs of ${at} have the page's frame`, odd);
+}
 await done(0);

@@ -29,6 +29,24 @@ await check(await page.evaluate(() => document.documentElement.dataset.mode === 
 await check(await page.evaluate(() => $("#title").textContent !== "" && document.title !== ""), "under the study's own title");
 await page.context().close();
 
+// the owner's token has run out by the page's own record when the item is clicked: the click renews it before the new page reads
+// anything, so Study Setup opens with no refused read and no word of a sign-in run out, there or on the page left behind
+{
+  const main = await open(true, { prepare: (ctx) => ctx.clock.install() });
+  await main.click("#user-menu summary");
+  await main.waitForSelector("#open-setup:not([hidden])");
+  await main.clock.fastForward("01:05:00");
+  const refused = [], said = [];
+  main.context().on("response", (r) => { if (r.status() === 401) refused.push(r.url()); });
+  main.context().on("console", (m) => { if (/run out|click again/.test(m.text())) said.push(m.text()); });
+  const [late] = await Promise.all([main.waitForEvent("popup"), main.click("#open-setup")]);
+  await late.waitForFunction(() => location.pathname === "/web/setup" && document.querySelectorAll("#data-tree .tree-folder").length === 2, null, { timeout: 20000 })
+    .catch(async () => check(false, "with a token run out, Study Setup still opens on the study's folders", await late.evaluate(() => [location.href, document.querySelector("#setup-note")?.textContent, document.querySelector("#status")?.textContent])));
+  await idle(late);
+  await check(!refused.length && !said.length, "the click renewed the token first: no read was refused and nothing said the sign-in had run out", { refused, said });
+  await main.context().close();
+}
+
 // someone Drive does not let write the root: no item in the menu, and the setup page, reached by its address, says whom it is for
 page = await open(true, { email: T });
 await idle(page);
