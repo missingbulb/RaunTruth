@@ -995,6 +995,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #setup-rail { display: flex; flex-direction: column; gap: 4px; }
 #setup-rail button { text-align: left; padding: 9px 12px; border: 1px solid transparent; background: transparent; border-radius: var(--r-ctl); color: var(--dim); font-weight: 600; }
 #setup-rail button:hover { color: var(--text); border-color: var(--line); }
+/* Ground Truth is marked while the study has no folder for its Analysis Files yet */
+#setup-body:has(#gt-setup.nudge:not([hidden])) #setup-rail button[data-aspect=truth]::after { content: "●"; color: var(--warn); margin-left: 8px; font-size: 10px; vertical-align: middle; }
 #setup-rail button[aria-pressed=true] { color: var(--text); background: var(--panel); border-color: var(--line); box-shadow: inset 3px 0 0 var(--accent); }
 /* the aspect on show: each child belongs to the aspects its rule names */
 #setup-aspect { min-height: 0; min-width: 0; display: grid; gap: var(--pad); grid-template-rows: minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: var(--pad); }
