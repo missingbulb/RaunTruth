@@ -229,6 +229,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -487,6 +488,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -745,6 +747,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1003,6 +1006,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1261,6 +1265,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1519,6 +1524,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -1777,6 +1783,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -2035,6 +2042,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2293,6 +2301,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2551,6 +2560,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2809,6 +2819,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3067,6 +3078,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3325,6 +3337,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3583,6 +3596,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -3841,6 +3855,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -4099,6 +4114,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -4357,6 +4373,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4615,6 +4632,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -4873,6 +4891,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -5131,6 +5150,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -5389,6 +5409,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -5647,6 +5668,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ |
@@ -5913,6 +5935,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -6179,6 +6202,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -6445,6 +6469,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -6702,6 +6727,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ |
@@ -6959,6 +6985,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -7236,6 +7263,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -7513,6 +7541,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -7758,6 +7787,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ |
@@ -8003,6 +8033,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The summaries with no paper | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Literature's message | ⊘ | ⊘ | ⊘ | ⊘ |
 | Image's dialog | ○* | ○* | ○* | ○* |
+| &nbsp;&nbsp;Load Original in the dialog | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Image's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Damaged areas' count | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Mark damaged | ⊘ | ⊘ | ⊘ | ⊘ |

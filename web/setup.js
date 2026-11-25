@@ -88,6 +88,11 @@ $("#image-open").onclick = () => {
   minimapView();
 };
 $("#image-close").onclick = () => imageDialog.close();
+// Load Original in the dialog stands for the image box's, which does not show here
+$("#image-original").onclick = () => $("#load-original").click();
+const original = () => { $("#image-original").hidden = $("#load-original").hidden; $("#image-original").title = $("#load-original").title; };
+new MutationObserver(original).observe($("#load-original"), { attributes: true, attributeFilter: ["hidden"] });
+original();
 // Esc gives up a lasso being drawn before it shuts the dialog
 let lassoed = false;
 window.addEventListener("keydown", (e) => { if (e.key === "Escape") lassoed = !!imageDialog.querySelector(".lassoing"); }, true);

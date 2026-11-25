@@ -877,6 +877,11 @@
         {"is": "hidden", "approval": "tentative", "about": "opened by Open image…, which no path presses"}
       ],
       "children": [
+        {"name": "Load Original in the dialog", "select": "#image-original", "control": true, "req": "req/setup/image", "steady": "shows while a preview is on show in the dialog, which no path opens",
+          "rule": [
+            {"is": "hidden", "approval": "tentative"}
+          ]
+        },
         {"name": "Image's areas", "select": "#areas", "req": "req/shell/data/damaged",
           "rule": [
             {"when": {"selected": ["folder"]}, "is": "hidden", "approval": "tentative", "about": "areas are an image's"}

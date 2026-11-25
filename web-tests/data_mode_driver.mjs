@@ -121,7 +121,7 @@ const got = await page.evaluate(() => ({ name: st.kept.name, bytes: Array.from(n
 await check(got.name === "a flat.preview.tif", "the preview opens as a TIFF, the file Python is handed", got.name);
 fs.writeFileSync(out + ".preview.tif", Buffer.from(got.bytes));
 await openImage(page);
-await page.click("#load-original");
+await page.click("#image-original");
 // the name is set as the open starts, the image's source once it is done
 await orMissed(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
 await check(await page.evaluate(() => st.fileName === "a flat.tif" && shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden), "Load Original opens the image itself");

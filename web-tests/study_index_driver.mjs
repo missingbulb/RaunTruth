@@ -240,7 +240,7 @@ const lasso = async (x0, y0, x1, y1) => {
   for (const p of [...pts.slice(1), pts[0]]) await page.mouse.move(...p, { steps: 6 });
   await page.mouse.up();
 };
-page = await open(true, { study: masked });
+page = await open(true, { study: masked, scale: shots ? 2 : 1 });
 await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
@@ -256,6 +256,7 @@ await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
 await idle(page);
 await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
 await idle(page);
+await shoot("#image-dlg", "areas-lassoed.png");
 const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
 await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
   "a damaged area and the area of interest go into the tags file, the image's description kept", acmeAreas);

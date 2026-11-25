@@ -184,7 +184,7 @@ const ACTIONS = {
   // on Study Setup, in the image's dialog, shut again once the image itself is open
   async original(page) {
     await openImage(page);
-    await page.click("#load-original");
+    await page.click("#image-original");
     await page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive");
     await page.click("#image-close");
   },

@@ -2329,22 +2329,10 @@ nobody has decided: what the page does there is not a requirement yet.
   as before, its preview first, and by the code that reads it on the study's own page, so choosing asks the network for no more than it did.
   Open image… shows it in a dialog over the page, the page behind it held until the dialog shuts, as large as the window allows: the image's
   name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler,
-  grid, minimap and zoom, Load Original while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
+  grid, minimap and zoom, Load Original (the dialog's own button) while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
   left bar, no channel rows, no 3D view and none of the study's own tools. Close and Esc shut it, and choosing a folder shuts it too; Esc
   while an area is being lassoed gives up the lasso and leaves the dialog open. A notice raised while it is open shows over it. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/test_data_mode_page.py`.
-  </details>
-
-- `req/setup/loading` What Study Setup reads from the store is shown where it will land: the place is emptied of the choice before, shows that it is loading, and a late answer for an earlier choice paints nothing.
-  <details>
-
-  Set by the owner on 2026-11-24. Choosing a folder empties the grid and the folder's sums at once and shows a progress bar there,
-  "Loading <folder>'s images from Google Drive…", until its images are drawn; the same holds for the folders tree while the study's
-  folders are read and for an image's Analysis Files. Each goes through the page's network calls (`req/shell/status-bar/calls`),
-  which gives the place to the latest call for it: an answer that arrives for a choice since replaced is dropped, and the page
-  records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
-  being read, and are named in the status bar while they are. It adds no call and moves none. Test:
-  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
   </details>
 
 - `req/setup/literature` Study Setup lists the papers in the study's Literature folder against the repo's summaries of them.
@@ -2364,6 +2352,18 @@ nobody has decided: what the page does there is not a requirement yet.
   paper here". A root with no Literature folder says so and lists nothing of the store; a study with no summaries published says so. The
   listing goes through the page's calls (`req/setup/loading`): the place is emptied and marked loading, and the store's logo turns. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_literature_driver.mjs`, `web-tests/test_published_site.py`.
+  </details>
+
+- `req/setup/loading` What Study Setup reads from the store is shown where it will land: the place is emptied of the choice before, shows that it is loading, and a late answer for an earlier choice paints nothing.
+  <details>
+
+  Set by the owner on 2026-11-24. Choosing a folder empties the grid and the folder's sums at once and shows a progress bar there,
+  "Loading <folder>'s images from Google Drive…", until its images are drawn; the same holds for the folders tree while the study's
+  folders are read and for an image's Analysis Files. Each goes through the page's network calls (`req/shell/status-bar/calls`),
+  which gives the place to the latest call for it: an answer that arrives for a choice since replaced is dropped, and the page
+  records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
+  being read, and are named in the status bar while they are. It adds no call and moves none. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
   </details>
 
 - `req/setup/marks` The owner marks an extraction GT or official on Study Setup; a mark names the extraction's file, and so follows that file's latest content; an image has one GT mark and one official mark.
