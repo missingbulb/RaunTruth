@@ -135,8 +135,8 @@ await idle(page);
 await aspect("batch", ["#data-tree", "#folder-view", "#batch-box"], ["#tags-box", "#marks-box", "#sharing-box", "#results-box", "#truth-panel"]);
 await aspect("results", ["#results-box"], ["#data-tree", "#folder-view", "#sharing-box", "#batch-box", "#truth-panel"]);
 
-// second-visit-in-test: the page opened again starts from the default layout, whatever it showed
-await page.reload();
+// the page opened again starts from the default layout, whatever it showed
+await page.reload(); // visits again on purpose (a reload is the subject): the layout a second visit opens on is the requirement
 await folders(page);
 await idle(page);
 const again = await page.evaluate(() => [document.querySelector('#setup-rail button[aria-pressed="true"]')?.dataset.aspect, document.documentElement.dataset.sel || null, $("#folder-view").hidden]);
