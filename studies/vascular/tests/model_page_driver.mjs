@@ -5,6 +5,7 @@
 // outside a ground-truth stage and approves a low-confidence vessel from one; and the model's canvas leaves the 3D
 // view with the study. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/model_page_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -68,7 +69,7 @@ try {
   // req/vascular/model/run: the Processing box runs the algorithm on the image open, as NoR's; no model file is loaded
   check(await page.evaluate(() => !$("#model-load") && !$("#model-file") && !/model file/i.test($("#model-set").textContent + $("#model-facts").textContent)),
     "the Processing box offers no model file to load, only Execute");
-  await page.click("#vm-run");
+  await fromScratch(page, "#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
   check(/vessel edges/.test(await facts()), `Execute opens the model it draws: ${(await facts()).slice(0, 80)}`);
   // req/vascular/summary/metrics and req/vascular/summary/mask: the eight numbers, over the whole field and then inside a lassoed mask

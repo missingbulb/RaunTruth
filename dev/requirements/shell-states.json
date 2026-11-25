@@ -19,13 +19,15 @@
     "shows3d": [false, true],
     "masks": [false, true],
     "walksAreas": [false, true],
+    "namesArticle": [false, true],
     "managing": [false, true],
     "annotating": [false, true],
     "route": ["none", "scratch", "local", "drive"],
     "hasDraft": [false, true],
     "maySave": [false, true],
     "keepsLog": [false, true],
-    "edited": [false, true]
+    "edited": [false, true],
+    "oneRun": [false, true]
   },
   "roots": {
     "Develop, signed out": {"stage": "Develop", "signedIn": false},
@@ -73,6 +75,11 @@
           "children": [
             {"name": "Study's icon", "select": "#title-icon", "req": "req/shell/header", "steady": "always shown"},
             {"name": "Study's name", "select": "#title", "req": "req/shell/header", "steady": "always shown"}
+          ]
+        },
+        {"name": "Article link", "select": "#article-link", "req": "req/shell/study/article",
+          "rule": [
+            {"when": {"namesArticle": [false]}, "is": "hidden"}
           ]
         },
         {"name": "Dark/light switch", "select": "#theme", "control": true, "req": "req/shell/header", "steady": "always shown"},
@@ -226,6 +233,16 @@
                 {"when": {"image": ["local", "original"]}, "is": "folded"}
               ],
               "children": [
+                {"name": "Unload", "select": "#unload", "control": true, "req": "req/shell/load/button",
+                  "rule": [
+                    {"when": {"image": ["none"]}, "is": "hidden"}
+                  ]
+                },
+                {"name": "Image's tags", "select": "#file-tags", "req": "req/shell/image/file-info", "steady": "shows only on an image the study's index gives tags, which no image walked here has",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative"}
+                  ]
+                },
                 {"name": "File name and info", "select": "#file-box", "req": "req/shell/image/file-info",
                   "rule": [
                     {"when": {"image": ["none"]}, "is": "hidden"}
@@ -286,11 +303,6 @@
                     {"name": "This computer", "select": "#load-main", "control": true, "req": "req/shell/load/from",
                       "rule": [
                         {"when": {"fromComputer": [false]}, "is": "hidden"}
-                      ]
-                    },
-                    {"name": "Unload", "select": "#unload", "control": true, "req": "req/shell/load/selector",
-                      "rule": [
-                        {"when": {"image": ["none"]}, "is": "hidden"}
                       ]
                     },
                     {"name": "Google Drive button", "select": "#load-remote", "control": true, "req": "req/shell/load/selector"}
@@ -464,110 +476,32 @@
                 {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"}
               ]
             },
-            {"name": "Annotations", "select": "#annotate-box", "box": true, "req": "req/shell/annotate/choice",
-              "rule": [
-                {"when": {"stage": [null, "Review", "Public"]}, "is": "hidden"},
-                {"when": {"image": ["none"]}, "is": "hidden"},
-                {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
-              ],
-              "children": [
-                {"name": "Annotations' question", "select": "#annotate-ask", "req": "req/shell/annotate/choice",
-                  "rule": [
-                    {"when": {"annotating": [true]}, "is": "hidden"}
-                  ]
-                },
-                {"name": "The ways to get annotations", "select": "#annotate-choices", "req": "req/shell/annotate/choice",
-                  "rule": [
-                    {"when": {"annotating": [true]}, "is": "hidden"}
-                  ],
-                  "children": [
-                    {"name": "Continue local annotation work", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
-                      "rule": [
-                        {"when": {"hasDraft": [false]}, "is": "hidden"}
-                      ]
-                    },
-                    {"name": "Load annotation from Drive", "select": "#annotate-load", "control": true, "req": "req/shell/annotate/choice",
-                      "rule": [
-                        {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default"}
-                      ]
-                    },
-                    {"name": "Start annotating from scratch", "select": "#annotate-scratch", "control": true, "req": "req/shell/annotate/choice"}
-                  ]
-                },
-                {"name": "The annotations on Drive", "select": "#annotate-list", "req": "req/shell/annotate/choice",
-                  "rule": [
-                    {"when": {"route": ["drive"], "annotating": [false]}, "is": "shown"},
-                    {"is": "hidden"}
-                  ]
-                },
-                {"name": "Where the annotation comes from", "select": "#annotate-say", "req": "req/shell/annotate/choice",
-                  "rule": [
-                    {"when": {"annotating": [true]}, "is": "shown"},
-                    {"when": {"route": ["drive"]}, "is": "shown"},
-                    {"is": "hidden"}
-                  ]
-                },
-                {"name": "Edit this annotation", "select": "#annotate-edit", "control": true, "req": "req/shell/annotate/choice",
-                  "rule": [
-                    {"when": {"route": ["drive"], "annotating": [false]}, "is": "shown"},
-                    {"is": "hidden"}
-                  ]
-                },
-                {"name": "Clear all annotations from image", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
-                  "rule": [
-                    {"when": {"annotating": [true]}, "is": "shown"},
-                    {"is": "hidden"}
-                  ]
-                }
-              ]
-            },
-            {"name": "Processing", "select": "#processing-box", "box": true, "req": "req/shell/left-bar/shells",
+            {"name": "Analysis", "select": "#analysis-box", "box": true, "req": "req/shell/left-bar/shells",
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"stage": ["Setup", "Develop", "Analyze"], "image": ["local", "preview", "original"], "route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-                {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"},
-                {"when": {"counted": [true]}, "is": "folded", "req": "req/shell/left-bar/folding"}
+                {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
-                {"name": "Algorithms", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms",
-                  "children": [
-                    {"name": "Algorithm", "select": "#algorithm", "control": true, "req": "req/shell/processing/algorithms"},
-                    {"name": "How precision and recall are scored", "select": "#scoring-help", "control": true, "req": "req/shell/processing/scoring"},
-                    {"name": "The scoring", "select": "#scoring-note", "req": "req/shell/processing/scoring", "steady": "shown when the (?) is clicked, decided by the owner on 2026-11-23, which no path makes",
-                      "rule": [
-                        {"is": "hidden"}
-                      ]
-                    },
-                    {"name": "The score's stamp", "select": "#algorithm-stamp", "req": "req/shell/processing/stamp", "steady": "shows only for a study whose metrics carry a stamp, which the fixture's do not",
-                      "rule": [
-                        {"is": "hidden", "approval": "tentative"}
-                      ]
-                    },
-                    {"name": "About the algorithm", "select": "#algorithm-about", "req": "req/shell/processing/algorithms"}
-                  ]
-                }
-              ]
-            },
-            {"name": "Ground Truth Tasks", "select": "#tasks-box", "box": true, "req": "req/shell/left-bar/shells",
-              "rule": [
-                {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
-                {"when": {"makesTruth": [false]}, "is": "hidden"},
-                {"when": {"hasModel": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
-              ],
-              "children": [
-                {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer", "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
+                {"name": "reset analysis", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
                   "rule": [
-                    {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
-                  ],
-                  "children": [
-                    {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer", "unwalked": "its parent is hidden in every path, no draft being on this device"},
-                    {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative", "unwalked": "its parent is hidden in every path, no study's old store being offered"},
-                    {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative", "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
+                    {"when": {"annotating": [true]}, "is": "shown"},
+                    {"is": "hidden"}
                   ]
                 },
-                {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
+                {"name": "Download Analysis", "select": "#analysis-dl", "control": true, "req": "req/shell/extractions/save",
+                  "rule": [
+                    {"when": {"keepsLog": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "every study with steps keeps GT actions"},
+                    {"when": {"route": ["drive"], "annotating": [false]}, "is": "hidden", "approval": "tentative", "about": "an Analysis File shown read-only is not the page's own work to download"},
+                    {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Tasks' progress", "select": "#gt-strip", "req": "req/shell/ground-truth/tasks",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "the strip is there while the tasks are listed"}
+                  ],
                   "children": [
+                    {"name": "Analysis Tasks' title", "select": "#tasks-title", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas",
                       "rule": [
                         {"when": {"walksAreas": [false]}, "is": "hidden", "req": "req/shell/ground-truth/areas"}
@@ -577,21 +511,94 @@
                       ]
                     },
                     {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
-                    {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
+                    {"name": "Tasks' counters", "select": "#gt-counters", "req": "req/shell/ground-truth/tasks", "approval": "tentative"}
+                  ]
+                },
+                {"name": "Start and Load", "select": "#annotate-box", "req": "req/shell/annotate/choice",
+                  "rule": [
+                    {"when": {"image": ["none"]}, "is": "hidden", "unwalked": "the Analysis box is folded, waiting, until an image is open"},
+                    {"when": {"annotating": [true], "route": ["scratch"]}, "is": "hidden", "approval": "tentative", "about": "annotating from Start, it has nothing to offer or to say"}
+                  ],
+                  "children": [
+                    {"name": "The ways to an analysis", "select": "#annotate-choices", "req": "req/shell/annotate/choice",
+                      "rule": [
+                        {"when": {"annotating": [true]}, "is": "hidden"}
+                      ],
                       "children": [
-                        {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
+                        {"name": "Continue local work", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
                           "rule": [
-                            {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
-                          ],
+                            {"when": {"stage": ["Review", "Public"]}, "is": "hidden"},
+                            {"when": {"hasDraft": [false]}, "is": "hidden"}
+                          ]
+                        },
+                        {"name": "Load an Analysis File", "select": "#annotate-load", "control": true, "req": "req/shell/annotate/choice",
+                          "rule": [
+                            {"when": {"stage": ["Review", "Public"]}, "is": "hidden", "req": "req/shell/annotate/choice"},
+                            {"when": {"image": ["local", "preview"]}, "is": "disabled", "approval": "tentative", "req": "req/shell/extractions/list", "about": "only an image from the store has Analysis Files there"},
+                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "unwalked": "the paths go offline only with an image from this computer open, where Load is off"},
+                            {"is": "shown", "approval": "undecided", "about": "on where the store holds an Analysis File of the image, off where it holds none, which no state says"}
+                          ]
+                        },
+                        {"name": "Start", "select": "#annotate-scratch", "control": true, "req": "req/shell/annotate/choice"}
+                      ]
+                    },
+                    {"name": "Where the analysis comes from", "select": "#annotate-say", "req": "req/shell/annotate/choice",
+                      "rule": [
+                        {"when": {"route": ["drive"]}, "is": "shown"},
+                        {"when": {"annotating": [true], "route": ["local"]}, "is": "shown"},
+                        {"is": "hidden"}
+                      ]
+                    },
+                    {"name": "Edit this analysis", "select": "#annotate-edit", "control": true, "req": "req/shell/annotate/choice",
+                      "rule": [
+                        {"when": {"route": ["drive"], "annotating": [false]}, "is": "shown"},
+                        {"is": "hidden"}
+                      ]
+                    }
+                  ]
+                },
+                {"name": "The study's runner", "select": "#processing-box", "req": "req/shell/left-bar/shells",
+                  "rule": [
+                    {"when": {"image": ["none"]}, "is": "hidden", "unwalked": "the Analysis box is folded, waiting, until an image is open"},
+                    {"when": {"route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"}
+                  ],
+                  "children": [
+                    {"name": "Algorithm that ran", "select": "#algorithm-ran", "req": "req/shell/analysis/start"}
+                  ]
+                },
+                {"name": "Analysis Tasks", "select": "#tasks-box", "req": "req/shell/left-bar/shells",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden"}
+                  ],
+                  "children": [
+                    {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer", "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
+                      ],
+                      "children": [
+                        {"name": "Load draft", "select": "#gt-load-draft", "control": true, "req": "req/shell/ground-truth/draft-offer", "unwalked": "its parent is hidden in every path, no draft being on this device"},
+                        {"name": "Load earlier edits", "select": "#gt-load-legacy", "control": true, "req": "req/shell/ground-truth/legacy", "approval": "tentative", "unwalked": "its parent is hidden in every path, no study's old store being offered"},
+                        {"name": "Load your submission", "select": "#gt-load-submission", "control": true, "req": "req/shell/ground-truth/draft-offer", "approval": "tentative", "unwalked": "its parent is hidden in every path, the stand-in store holding no submission of the tagger's"}
+                      ]
+                    },
+                    {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
+                      "children": [
+                        {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                           "children": [
-                            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
-                              "rule": [
-                                {"when": {"edited": [false]}, "is": "disabled", "approval": "tentative", "about": "nothing is made to undo until a mark is added, or a draft of one loaded"}
-                              ]
-                            },
-                            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+                            {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
                               "rule": [
                                 {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
+                              ]
+                            },
+                            {"name": "Saves waiting to upload", "select": "#gt-waiting", "req": "req/shell/annotate/survives", "steady": "no path leaves a save waiting",
+                              "rule": [
+                                {"is": "hidden", "approval": "tentative", "about": "no path saves while the store does not answer"}
+                              ]
+                            },
+                            {"name": "Upload", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
+                              "rule": [
+                                {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
+                                {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "annotating, an image carries no model only in a study of several steps before its first, where the tasks list is not yet shown"}
                               ]
                             },
                             {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is, which is all any path reaches",
@@ -599,36 +606,6 @@
                                 {"is": "hidden", "about": "no path makes a GT action"}
                               ]
                             }
-                          ]
-                        },
-                        {"name": "Show Edit History row", "select": "#gt-history-row", "req": "req/shell/ground-truth/history",
-                          "rule": [
-                            {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "unwalked": "the box is folded until the first step is done"}
-                          ],
-                          "children": [
-                            {"name": "Show Edit History", "select": "#gt-history-on", "control": true, "req": "req/shell/ground-truth/history"}
-                          ]
-                        },
-                        {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
-                          "rule": [
-                            {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
-                          ]
-                        },
-                        {"name": "Download", "select": "#gt-download", "control": true, "req": "req/shell/annotate/no-save",
-                          "rule": [
-                            {"when": {"maySave": [true]}, "is": "hidden"},
-                            {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
-                          ]
-                        },
-                        {"name": "Saves waiting to upload", "select": "#gt-waiting", "req": "req/shell/annotate/survives", "steady": "no path leaves a save waiting",
-                          "rule": [
-                            {"is": "hidden", "approval": "tentative", "about": "no path saves while the store does not answer"}
-                          ]
-                        },
-                        {"name": "Save", "select": "#gt-submit", "control": true, "req": "req/shell/ground-truth/tasks",
-                          "rule": [
-                            {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
-                            {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "the box is folded until the first step is done"}
                           ]
                         }
                       ]
@@ -641,8 +618,8 @@
               "rule": [
                 {"when": {"hasSteps": [false]}, "is": "hidden", "approval": "tentative"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
-                {"when": {"hasModel": [false]}, "is": "hidden", "req": "req/shell/left-bar/shells"},
-                {"when": {"route": ["local", "drive"]}, "is": "folded", "approval": "tentative", "about": "work loaded rather than made by the study's first step opens no box but Ground Truth Tasks"}
+                {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"},
+                {"when": {"hasModel": [false]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
                 {"name": "Mask buttons", "select": "#mask-row", "req": "req/shell/summary/mask",
@@ -650,7 +627,7 @@
                     {"when": {"masks": [false]}, "is": "hidden"}
                   ],
                   "children": [
-                    {"name": "Add mask", "select": "#mask-add", "control": true, "req": "req/shell/summary/mask"},
+                    {"name": "Define Area of Interest", "select": "#mask-add", "control": true, "req": "req/shell/summary/mask"},
                     {"name": "Clear mask", "select": "#mask-clear", "control": true, "req": "req/shell/summary/mask", "steady": "shows only once a mask is drawn, which no path lassos",
                       "rule": [
                         {"is": "hidden"}
@@ -676,7 +653,7 @@
                 {"when": {"makesTruth": [true]}, "is": "hidden"},
                 {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"},
                 {"when": {"route": ["drive"], "annotating": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-                {"when": {"counted": [false]}, "is": "disabled"}
+                {"when": {"counted": [false]}, "is": "hidden"}
               ]
             },
             {"name": "Ruler", "select": "#ruler-btn", "control": true, "req": "req/shell/tools/ruler",
@@ -697,6 +674,29 @@
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
                 {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
                 {"when": {"image": ["none"]}, "is": "disabled"}
+              ]
+            },
+            {"name": "Edit History button", "select": "#history-btn", "control": true, "req": "req/shell/ground-truth/history",
+              "rule": [
+                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
+                {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only someone annotating has a log to show"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+              ]
+            },
+            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
+              "rule": [
+                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
+                {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"edited": [false]}, "is": "disabled", "approval": "tentative", "about": "nothing is made to undo until a mark is added, or a draft of one loaded"}
+              ]
+            },
+            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+              "rule": [
+                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
+                {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"},
+                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
               ]
             },
             {"name": "Reset view group", "select": "#v3-tools", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d",
@@ -803,6 +803,11 @@
                     {"name": "Hide the minimap", "select": "#minimap-hide", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Fold the minimap", "select": "#minimap-fold", "control": true, "req": "req/shell/image/minimap"},
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
+                    {"name": "Minimap's areas", "select": "#minimap-areas", "req": "req/shell/ground-truth/area-map", "steady": "hidden unless a study hands the minimap its areas",
+                      "rule": [
+                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas"}
+                      ]
+                    },
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
                   ]
                 },
@@ -846,19 +851,6 @@
     },
     {"name": "Status bar", "select": "#statusbar", "req": "req/shell/status-bar", "steady": "always shown",
       "children": [
-        {"name": "Breadcrumbs", "select": "#sb-steps", "req": "req/shell/status-bar/breadcrumbs",
-          "rule": [
-            {"when": {"managing": [true]}, "is": "hidden", "req": "req/shell/data/mode"}
-          ],
-          "children": [
-            {"name": "Save crumb", "select": "#sb-submit", "made": "one crumb per step, by the shell", "req": "req/shell/status-bar/breadcrumbs",
-              "rule": [
-                {"when": {"makesTruth": [false]}, "is": "hidden"},
-                {"when": {"hasModel": [false]}, "is": "hidden"}
-              ]
-            }
-          ]
-        },
         {"name": "Now", "select": "#sb-now", "req": "req/shell/status-bar", "steady": "always shown",
           "children": [
             {"name": "Spinner", "select": "#spin", "req": "req/shell/waiting/visible", "steady": "turns only while something loads, never once the page has settled",

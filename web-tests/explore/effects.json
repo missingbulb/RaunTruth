@@ -7,7 +7,7 @@
   },
   "shellStates": {"openedBy": [
     {"select": "#file-info", "by": "#file-name", "why": "the image's name unfolds the details (req/shell/image/file-info), which the rules leave at hidden"},
-    {"select": "#lasso-hint", "by": "#mask-add", "why": "Add mask starts a lasso (req/shell/summary/mask), which no path of the rules takes"},
+    {"select": "#lasso-hint", "by": "#mask-add", "why": "Define Area of Interest starts a lasso (req/shell/summary/mask), which no path of the rules takes"},
     {"select": "#scoring-note", "by": "#scoring-help", "why": "the (?) shows how the study scores (req/shell/processing/scoring), which the rules leave at hidden"}
   ], "unread": [
     {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
@@ -23,9 +23,10 @@
     {"family": "sign out", "match": {"key": "^#sign-out$"}, "may": ["storage.*", "html.*", "class.*", "dialog", "url", "open"], "writes": 0},
     {"family": "continue anonymously", "match": {"key": "^#welcome-anonymous$"}, "may": ["storage.*", "dialog", "html.*"], "writes": 0},
     {"family": "save draft", "match": {"key": "^#gt-save-draft$"}, "may": ["storage.*", "html.*", "dialog"], "writes": [0, 4]},
-    {"family": "save an annotation", "match": {"key": "^#(gt-submit|gt-send|gt-export|gt-download)$"}, "may": ["storage.*", "html.*", "dialog", "download", "url"], "writes": "any"},
+    {"family": "upload an analysis", "match": {"key": "^#(gt-submit|gt-send)$"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
+    {"family": "download the analysis", "match": {"key": "^#analysis-dl$"}, "may": ["download", "html.*", "class.*"], "writes": 0},
+    {"family": "download from the analysis's menu", "match": {"key": "^#analysis-dl-menu "}, "must": ["download"], "may": ["html.*", "class.*"], "writes": 0},
     {"family": "download the summary", "match": {"key": "^#summary-dl$"}, "must": ["download"], "writes": 0},
-    {"family": "download the candidates", "match": {"key": "^#dl-cands$"}, "must": ["download"], "writes": 0},
     {"family": "download the results", "match": {"key": "^#results-csv$"}, "may": ["download"], "writes": 0},
     {"family": "show results", "match": {"key": "^#results-show$"}, "may": ["html.*", "class.*", "open", "settings", "storage.*"], "writes": 0},
     {"family": "undo", "match": {"key": "^#gt-undo$"}, "reverts": true, "after": "^#(eh-list|gt-undo)", "may": ["storage.*"], "writes": 0},
@@ -37,7 +38,7 @@
     {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
     {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
     {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
-    {"family": "annotation mode", "match": {"key": "^#annotate-"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
+    {"family": "start or load an analysis", "match": {"key": "^#(annotate-|start-(run|cancel)$|load-(go|cancel)$)"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
     {"family": "study setup", "match": {"key": "^#open-setup$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": "any"},
     {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
     {"family": "marks on an image", "match": {"text": "^(Needs GT|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},

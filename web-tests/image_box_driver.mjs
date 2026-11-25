@@ -18,6 +18,7 @@ import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { stepsOf } from "./page_steps.mjs";
 
 const [answers, image, studies, three, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -68,10 +69,11 @@ const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.a
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----
-const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [h.children.length, h.querySelector("h2 .title").textContent]; });
-await check(JSON.stringify(await head()) === '[1,"Load Image"]', "the box is titled Load Image, with nothing else in its head", await head());
+const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [[...h.children].filter((e) => e.checkVisibility()).length, h.querySelector("h2").textContent.trim()]; });
+await check(JSON.stringify(await head()) === '[1,"Load"]', "the box is titled Load, with nothing else showing in its head", await head());
 const order = await page.evaluate(() => [...document.querySelector("#image-box").children].map((e) => e.id || e.className));
-await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")) && (await page.$("#image-foot #unload")), "Load and Unload sit at the box's foot", order);
+await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")), "Load sits at the box's foot", order);
+const loadBefore = await box("#load");
 await check(!(await page.$("#left canvas")), "the left bar holds no picture of the image");
 await check(!(await visible("#unload")), "no Unload before an image");
 await check(!(await visible("#minimap")) && (await page.$eval("#minimap-btn", (b) => b.disabled)), "no minimap, and its button off, before an image");
@@ -83,7 +85,13 @@ await check(open.y === folded.y && open.h === folded.h && open.x === folded.x, "
 await loadImage();
 await title(); // the box folds when an image opens; open it to look inside
 await check(await visible("#unload"), "an image open: Unload shows");
-await check((await box("#unload")).x > (await box("#load")).x && Math.abs((await box("#unload")).y - (await box("#load")).y) < 4, "Unload stands beside Load");
+const unload = await page.evaluate(() => { const u = document.querySelector("#unload"); return { head: u.parentElement.matches("#image-box > .sec-head"), text: u.textContent.trim(), link: u.classList.contains("link") }; });
+await check(unload.head && unload.text === "unload image" && unload.link, "as a link reading unload image, on the box's header", unload);
+const loadAfter = await box("#load");
+await check(loadAfter.x === loadBefore.x && loadAfter.w === loadBefore.w && loadAfter.h === loadBefore.h, "the line of controls to load with is as it was before the image", { loadBefore, loadAfter });
+await title();
+await check(!(await visible("#unload")), "the box folded: no Unload");
+await title();
 await shot("image_box", "#image-box");
 
 await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "true", "the whole image in view: no minimap, nothing to navigate, its button still pressed");
@@ -252,13 +260,14 @@ await page.waitForFunction(() => document.querySelector("#file-box").hidden && d
 const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage").hidden, empty: !document.querySelector("#empty").hidden,
   minimap: !!document.querySelector("#minimap").offsetParent, unload: !!document.querySelector("#unload").offsetParent, img: !!st.img,
   shine: document.querySelector("#load-main").classList.contains("shine"), done: document.querySelector("#load").classList.contains("done"),
-  crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent).join(), fx: document.querySelector("#fx-result").textContent,
+  fx: document.querySelector("#fx-result").textContent,
   overlay: document.querySelector("#overlay").children.length, status: document.querySelector("#status").textContent }));
 await check(await page.evaluate(() => document.querySelector("#file-name").textContent === ""), "with no image, the Image box names none (req/shell/load/button)");
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
-await check(clear.shine && !clear.done && clear.crumbs === "Load image", "Load shines again, and the steps start over", clear);
+await check(await page.evaluate(() => document.activeElement?.id) === "load-main", "and the keyboard, which was on Unload, is on Load", await page.evaluate(() => document.activeElement?.id || document.activeElement?.localName));
+await check(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true", "and the boxes on show fold as before any image");
+await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");
 await check((await rows()).length === 0, "and no channel rows are left, with no image (req/shell/channels/rows)");
 
 // ---- after Unload, the next image's tasks open again once annotation starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----

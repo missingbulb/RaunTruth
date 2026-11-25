@@ -8,7 +8,7 @@ import { work } from "./pending.js";
 import { asLoaded } from "./as_loaded.js";
 import { holdOwns } from "./offline.js";
 
-const KINDS = [["gt", "GT", "the ground truth the lab scores against"], ["official", "Official", "the extraction the study's numbers count"]];
+const KINDS = [["gt", "GT", "the ground truth the lab scores against"], ["official", "Official", "the Analysis File the study's numbers count"]];
 
 // $: the page's selector; reader, writer, place: the store's reads and writes and the study's place in it; data: Data Management
 // (marked() draws the folder on show with the marks written); allows(action): whether the stage opens it, the buttons being there only while
@@ -55,12 +55,12 @@ export function setupMarks({ $, reader, writer, place, data, allows }) {
     let rows;
     try {
       const s = await place.settings({ fresh: true }), folder = tf.folderOf(s);
-      if (!folder) return say("Set up extractions first: the files marked are kept in the extractions folder.");
+      if (!folder) return say("Set up Analysis Files first: the files marked are kept in their folder.");
       const files = await tf.files(reader, folder, { name: img.name, sha256: img.sha });
       rows = tf.rows({ files, marks: tf.marksOf(s.marks, img.sha), key: null, member: true });
-    } catch (e) { return say("The image's extractions could not be read: " + (e.message || e), true); }
+    } catch (e) { return say("The image's Analysis Files could not be read: " + (e.message || e), true); }
     if (mine !== epoch) return;
-    if (!rows.length) return say("No extraction of this image yet.");
+    if (!rows.length) return say("No Analysis File of this image yet.");
     list.replaceChildren(...rows.map((row) => {
       const el = Object.assign(document.createElement("div"), { className: "mark-row" });
       el.setAttribute("role", "listitem"); el.dataset.id = row.id;

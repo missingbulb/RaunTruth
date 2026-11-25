@@ -28,10 +28,10 @@ const neededOf = (name) => { const f = FILES.find((g) => g.name === name); retur
 FILES.push({ id: "dmmarker000000000001", name: neededOf("b stack.tif"), parent: GT.extractions, folder: false, bytes: Buffer.alloc(0), mine: false, props: {}, modified: "2026-11-05T07:00:00Z" });
 const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
 
-// not signed in: the drawers numbered, none for what the image has not got yet
+// not signed in: the three drawers, by their titles alone
 let page = await open(false);
-await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".step-mark").textContent).join()) === "1,2",
-  "the drawers on show before an image, with no Summary yet, are numbered");
+const drawers = await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".sec-head h2").textContent.trim()).join());
+await check(drawers === "Load,Analysis,Summary", "the drawers on show before an image are Load, Analysis and Summary, each its title alone", drawers);
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
@@ -172,11 +172,11 @@ await expecting(NETWORK_GONE, async () => {
   await page.waitForFunction(() => document.documentElement.classList.contains("offline"));
   await page.click("#user-menu summary");
   const offered = await page.evaluate(() => { const b = document.querySelector("#open-setup");
-    return !b.hidden && { needs: /needs the internet/i.test(b.title), dim: +getComputedStyle(b).opacity < 1 }; });
+    return !b.hidden && { needs: /needs the internet/i.test(b.title), struck: getComputedStyle(b).textDecorationLine === "line-through" }; });
   await page.click("#open-setup", { force: true });
   // the item's own click closes the menu at once, so a menu still open is a click that reached nothing
   const after = await page.evaluate(() => ({ open: $("#user-menu").open, mode: document.documentElement.dataset.mode || "" }));
-  await check(offered?.needs && offered.dim && after.open && !after.mode, "offline, Study Setup is listed, says it needs the internet, and choosing it does nothing", { offered, after });
+  await check(offered?.needs && offered.struck && after.open && !after.mode, "offline, Study Setup is listed, says it needs the internet, and choosing it does nothing", { offered, after });
   await page.evaluate(() => { $("#user-menu").open = false; });
   await page.context().setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));

@@ -20,7 +20,7 @@ MATRIX = os.path.join(ROOT, 'dev', 'requirements', 'shell-states.GENERATED.md')
 EXPECT = os.path.join(ROOT, 'web-tests', 'shell-states.GENERATED.json')
 
 # what each action leaves changed; the browser test does the same action on the page
-# an image coming in ends annotation mode: the choice of how to get annotations on it is asked again (req/shell/annotate/choice)
+# an image coming in ends annotation mode: Start and Load are offered for it again (req/shell/annotate/choice)
 ASK = {'annotating': False, 'route': 'none', 'edited': False}
 # a page opened afresh: no image, nothing chosen, no annotation mode
 FRESH = {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, 'selected': 'nothing', 'notice': False,
@@ -30,16 +30,18 @@ ACTIONS = {
     'stack': ('Load a stack', {'image': 'local', 'stack': True, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     # an image larger than the view, which opens below 100% (req/shell/image/opens-fitted)
     'large': ('Load a large image', {'image': 'local', 'imageLarge': True, 'stack': False, 'counted': False, 'view': 'image', **ASK}),
-    'count': ('Count', {'counted': True}),
+    # the study's first step run: by Start and Run where nothing was started yet, which shows the runner (req/shell/analysis/start)
+    'count': ('Count', lambda s: {'counted': True, 'route': 'scratch' if s['route'] == 'none' else s['route']}),
     'items': ('Items', {'view': 'items'}),
     'image': ('Image', {'view': 'image'}),
-    # how to get annotations on the image open (req/shell/annotate/choice): the study opens afresh on the same image in
-    # annotation mode, from scratch, from the work this device kept, or from an annotation of the store; the store's
+    # how the image open gets its analysis (req/shell/annotate/choice): the study opens afresh on the same image in
+    # annotation mode, from Start and Run, which presses the first step of a study that has one such step
+    # (req/shell/analysis/start), from the work this device kept, or from an Analysis File of the store; the store's
     # alone is first shown read-only
-    'scratch': ('Start annotating from scratch', {'annotating': True, 'route': 'scratch', 'counted': False, 'view': 'image', 'edited': False}),
-    'local': ('Continue local annotation work', {'annotating': True, 'route': 'local', 'counted': False, 'view': 'image', 'edited': True}),
-    'viewdrive': ('Load annotation from Drive', {'route': 'drive', 'annotating': False, 'counted': False, 'view': 'image', 'edited': False}),
-    'edit': ('Edit this annotation', {'annotating': True, 'route': 'drive', 'counted': False, 'view': 'image', 'edited': False}),
+    'scratch': ('Start, and Run', lambda s: {'annotating': True, 'route': 'scratch', 'counted': s['oneRun'], 'view': 'image', 'edited': False}),
+    'local': ('Continue local work', {'annotating': True, 'route': 'local', 'counted': False, 'view': 'image', 'edited': True}),
+    'viewdrive': ('Load an Analysis File', {'route': 'drive', 'annotating': False, 'counted': False, 'view': 'image', 'edited': False}),
+    'edit': ('Edit this analysis', {'annotating': True, 'route': 'drive', 'counted': False, 'view': 'image', 'edited': False}),
     'draft': ('Save Draft', {'hasDraft': True, 'edited': True}),
     'folder': ('Folder', {'selected': 'folder'}),
     'preview': ('Preview', {'selected': 'image', 'image': 'preview', 'stack': False, 'counted': False, 'imageLarge': False, **ASK}),
@@ -110,13 +112,15 @@ def check_rules(rules, tree, roots, paths):
 def facts(study):
     """What the study itself says, from its study.json and its panels: whether it opens images from the computer,
     has steps of its own after Load, has an item view (req/shell/views/second),
-    shows a z-stack in 3D (req/shell/viewer-3d), offers the summary's mask (req/shell/summary/mask), and walks its ground
-    truth by areas (req/shell/ground-truth/areas)."""
+    shows a z-stack in 3D (req/shell/viewer-3d), offers the summary's mask (req/shell/summary/mask), walks its ground
+    truth by areas (req/shell/ground-truth/areas), names an article (req/shell/study/article), and has one step with a
+    button, which Start's Run presses (req/shell/analysis/start)."""
     d = study['study']
     view = re.search(r'<[^>]*\bid="items-view"[^>]*>', study.get('panels', ''))
     return {'fromComputer': 'local' in d['files']['from'], 'hasSteps': bool(d['phases']), 'itemView': bool(view),
             'shows3d': d.get('viewer') == 'image3d', 'masks': (d.get('summary') or {}).get('mask') is True,
-            'walksAreas': 'areas' in (d.get('groundTruth') or {}), 'keepsLog': 'actions' in (d.get('groundTruth') or {})}
+            'walksAreas': 'areas' in (d.get('groundTruth') or {}), 'namesArticle': bool(d.get('article')), 'keepsLog': 'actions' in (d.get('groundTruth') or {}),
+            'oneRun': sum(1 for ph in d['phases'] if ph.get('button')) == 1}
 
 
 def walk(study, roots, paths):
@@ -127,7 +131,7 @@ def walk(study, roots, paths):
         states = [('Start', dict(s))]
         for a in p['actions']:
             label, change = ACTIONS[a]
-            s = {**s, **change}
+            s = {**s, **(change(s) if callable(change) else change)}
             # an image from the computer, open for whoever annotates, is told it cannot be submitted
             # (req/shell/extractions/save); the study opening afresh in annotation mode tells it again
             if a in ('load', 'large', 'stack', 'drive', 'unload', 'restudy') or a in AFRESH:

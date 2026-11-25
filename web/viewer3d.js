@@ -398,7 +398,7 @@ export function viewer3d(shell, flat) {
       if (e.button === 0 && !pts.size) down.set(e.pointerId, [e.clientX, e.clientY]); else down.clear();
       if (!pts.size) was = { rot: S.rot, pivot: S.pivot, dist: S.dist };
       pts.set(e.pointerId, [e.clientX, e.clientY]); S.dragging = true; last = null;
-      drag(el, e, { move, drop: end, cancel });
+      drag(el, e, { move, drop: end, cancel, view: true });
     });
     function end(e) {
       const d = down.get(e.pointerId); down.delete(e.pointerId);

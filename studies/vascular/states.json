@@ -1,7 +1,7 @@
 {
   "about": "The Vascular Measurements study's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow; its roots and paths open this study. `samples` names the module writing the image or z-stack its paths load; `differ` says where a shell element shows otherwise in this study. `counted` is its first step, Run algorithm, done.",
   "grafts": [
-    {"under": "Processing", "after": "Algorithms", "tree": [
+    {"under": "The study's runner", "after": "Algorithm that ran", "tree": [
       {"name": "The model", "select": "#model-set", "req": "req/vascular/model/run",
         "children": [
           {"name": "Run algorithm", "select": "#vm-run", "control": true, "req": "req/vascular/model/run"},
@@ -9,7 +9,7 @@
         ]
       }
     ]},
-    {"under": "Ground Truth Tasks", "tree": [
+    {"under": "Analysis Tasks", "tree": [
       {"name": "The tasks", "select": "#vm-tasks", "req": "req/vascular/truth/tasks"},
       {"name": "Task tools", "select": "#task-tools", "req": "req/vascular/truth/order",
         "children": [
@@ -50,8 +50,7 @@
     {"under": "Image view", "after": "Minimap", "tree": [
       {"name": "Map of the areas", "select": "#gt-mini", "req": "req/vascular/truth/tasks",
         "rule": [
-          {"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"},
-          {"when": {"counted": [false]}, "is": "hidden", "approval": "tentative", "about": "the walk has nothing to open before the study has run"}
+          {"when": {"makesTruth": [false]}, "is": "hidden", "req": "req/shell/annotate/choice"}
         ],
         "children": [
           {"name": "The flattened stack", "select": "#gt-mini-image", "req": "req/vascular/truth/tasks"},
@@ -105,9 +104,9 @@
   ],
   "samples": "tests/state_samples.py",
   "differ": {
-    "Save crumb": {"steady": "its Review step is still to do on every path",
+    "Tasks' counters": {"steady": "its tasks, the areas, say no count on every path",
       "rule": [
-        {"is": "hidden", "approval": "tentative", "req": "req/shell/status-bar/breadcrumbs"}
+        {"is": "hidden", "approval": "tentative", "req": "req/shell/ground-truth/tasks", "about": "its tasks, the areas, say no count: each is its part of the bar alone"}
       ]
     }
   },

@@ -86,7 +86,7 @@ export function dataMode(ctx) {
       if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { console.warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
       if (of !== epoch) return;
       gt = { extractions: tf.folderOf(s) }; marks = s?.marks || {}; previewsId = s?.previews || null;
-      gtNodes = gt.extractions ? [{ id: gt.extractions, name: "Extractions", access: null }] : [];
+      gtNodes = gt.extractions ? [{ id: gt.extractions, name: "Analysis Files", access: null }] : [];
       drawSetup(s); drawTruthBox(null); truthStatus();
       const queue = roots.map((id) => ({ id, parent: null, name: null }));
       while (queue.length && nodes.size < MAX_FOLDERS) {
@@ -356,7 +356,7 @@ export function dataMode(ctx) {
     const b = $("#gt-setup");
     b.hidden = !gtStudy() || !place.root() || !!s?.set;
     b.classList.toggle("nudge", !gt.extractions);
-    b.title = gt.extractions ? "Name the study's extractions folder in its study file" : "Make the study's extractions folder in its root";
+    b.title = gt.extractions ? "Name the study's Analysis Files folder in its study file" : "Make the study's Analysis Files folder in its root";
   }
   $("#gt-setup").onclick = () => { msg($("#setup-msg"), ""); $("#setup-dlg").showModal(); };
   $("#setup-cancel").onclick = () => $("#setup-dlg").close();
@@ -365,10 +365,10 @@ export function dataMode(ctx) {
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = true;
     try {
       if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
-      say("Making the extractions folder…");
+      say("Making the Analysis Files folder…");
       await setUp({ reader, writer, root: top, by: account.email() });
       $("#setup-dlg").close();
-      msg($("#data-msg"), "Extractions set up: one Extractions folder in the root, shared with anyone with the link to view.");
+      msg($("#data-msg"), "Analysis Files set up: one folder, named Extractions, in the root, shared with anyone with the link to view.");
       nodes = new Map(); loaded = null; chosen = null; await load();
     } catch (e) { say(e.message || String(e), true); }
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = false;
@@ -379,11 +379,11 @@ export function dataMode(ctx) {
     const box = $("#gt-box");
     box.hidden = !gt.extractions || !gtStudy();
     if (box.hidden) return;
-    $("#gt-mode").textContent = "Everyone's saved annotations of the study's images are kept in its Extractions folder, one file per person for each image.";
+    $("#gt-mode").textContent = "Everyone's uploaded Analysis Files of the study's images are kept in its Analysis Files folder, one file per person for each image.";
     if (!gts) { $("#gt-counts").textContent = "Reading…"; return; }
     const held = [...gts.values()].filter((g) => g.held).length, gtMarked = Object.values(marks).filter((m) => m?.gt?.file).length;
     const images = (k) => `${k} image${k === 1 ? "" : "s"}`;
-    $("#gt-counts").textContent = [held ? `${images(held)} ${held === 1 ? "has" : "have"} an extraction.` : "No image has an extraction yet.",
+    $("#gt-counts").textContent = [held ? `${images(held)} ${held === 1 ? "has" : "have"} an Analysis File.` : "No image has an Analysis File yet.",
       gtMarked ? `${images(gtMarked)} ${gtMarked === 1 ? "has" : "have"} a GT mark.` : ""].filter(Boolean).join(" ");
   }
 
@@ -482,8 +482,8 @@ export function dataMode(ctx) {
   async function truthStatus() {
     if (!gt.extractions) return new Map();
     try { const gts = await tf.held(reader, gt.extractions); drawTruthBox(gts); return gts; } catch (e) {
-      msg($("#folder-msg"), "The extractions folder could not be read: " + (e.message || e), true);
-      $("#gt-counts").textContent = "The extractions folder could not be read."; return new Map();
+      msg($("#folder-msg"), "The Analysis Files folder could not be read: " + (e.message || e), true);
+      $("#gt-counts").textContent = "The Analysis Files folder could not be read."; return new Map();
     }
   }
 
@@ -504,7 +504,7 @@ export function dataMode(ctx) {
     if (of !== epoch || chosen?.id !== n.id) return;
     const all = states(n, pv, gts), count = (p) => all.filter(p).length;
     const rows = [["images", "Images", all.length], ["previews", "With a preview", count((s) => s.shown)], ["stale", "Preview out of date", count((s) => s.stale)],
-      ["extracted", "With an extraction", count((s) => s.extracted)], ["truth", "With ground truth", count((s) => s.truth)], ["missing", "Marked as needing it", count((s) => s.marker)]];
+      ["extracted", "With an Analysis File", count((s) => s.extracted)], ["truth", "With ground truth", count((s) => s.truth)], ["missing", "Marked as needing it", count((s) => s.marker)]];
     $("#folder-summary").replaceChildren(...rows.flatMap(([k, label, v]) => {
       const dt = Object.assign(document.createElement("dt"), { textContent: label }), dd = Object.assign(document.createElement("dd"), { textContent: String(v) });
       dd.dataset.k = k; return [dt, dd];
@@ -525,17 +525,17 @@ export function dataMode(ctx) {
       if (k < 60) cell.style.viewTransitionName = "cell-" + k;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
       cell.innerHTML = `<span class="pic"></span><span class="name">${esc(s.f.name)}</span><span class="meta">${esc(s.f.size == null ? "" : sizeText(s.f.size))}</span>` +
-        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Extraction</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
+        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
         `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>` +
         `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Choose ${esc(s.f.name)} for a batch run" title="Choose it for a batch run">`;
       cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f); };
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
-      const why = !gt.extractions ? "Set up extractions first: the mark is kept in the extractions folder"
-        : ["view", "unpermitted"].includes(access) ? "The mark is kept in the extractions folder: " + ACCESS[access][1]
+      const why = !gt.extractions ? "Set up Analysis Files first: the mark is kept in their folder"
+        : ["view", "unpermitted"].includes(access) ? "The mark is kept in the Analysis Files folder: " + ACCESS[access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
-      mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the extractions folder";
+      mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the Analysis Files folder";
       mark.onclick = () => markTruth(n, s, mark);
       picture(cell.querySelector(".pic"), pv, s.f);
       return cell;

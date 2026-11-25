@@ -180,7 +180,7 @@ export function driveAnswers(drive, google) {
     if (call.kind === "list") {
       if (!sees(drive.get(call.parent))) return notFound();
       const offered = fields.includes("thumbnailLink") ? [...drive.offered].map((id) => drive.get(id)).filter(Boolean) : [];
-      return json(200, { files: drive.files.filter((g) => g.parent === call.parent || g.also?.includes(call.parent)).concat(offered).map((g) => meta(g, fields)) });
+      return json(200, { files: drive.files.filter((g) => (g.parent === call.parent || g.also?.includes(call.parent)) && (call.named === null || g.name === call.named) && (!call.foldersOnly || g.folder)).concat(offered).map((g) => meta(g, fields)) });
     }
     if (u.pathname.startsWith("/upload/")) {
       if (!who) return json(401, { error: { code: 401, message: "Login Required" } });
@@ -297,6 +297,9 @@ export function driveAnswers(drive, google) {
       method: req.method, url: req.url, id: id || null, fields: u.searchParams.get("fields") || "", range: req.headers.range || null,
       batched: !!req.batched, key: u.searchParams.get("key"), token: (req.headers.authorization || "").match(/^Bearer (.+)$/)?.[1] ?? null,
       parent: (u.searchParams.get("q") || "").match(/'([^']+)' in parents/)?.[1] || null,
+      // the q's other terms, as Drive's search reads them: name = '<a name, its ' and \\ escaped>', and the folder kind alone
+      named: (u.searchParams.get("q") || "").match(/\bname\s*=\s*'((?:\\.|[^'\\])*)'/)?.[1].replace(/\\(.)/g, "$1") ?? null,
+      foldersOnly: /\bmimeType\s*=\s*'application\/vnd\.google-apps\.folder'/.test(u.searchParams.get("q") || ""),
     };
     call.kind = u.pathname === BATCH ? "batch" : req.method !== "GET" ? "write" : !id ? "list" : u.searchParams.get("alt") === "media" ? (call.range ? "piece" : "download") : "details";
     if (call.kind === "piece") call.kind = "download", call.piece = true;

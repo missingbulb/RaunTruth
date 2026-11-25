@@ -71,7 +71,7 @@ export function setupStage({ $, reader, writer, place, changed }) {
     try {
       const l = await newerThanGT();
       if (mine === epoch && stage() === now) shown(l, true);
-    } catch (e) { console.warn("the extractions newer than their GT were not listed:", e); say("The extractions could not be listed.", true); }
+    } catch (e) { console.warn("the extractions newer than their GT were not listed:", e); say("The Analysis Files could not be listed.", true); }
     busy = false; draw();
   }
   $("#stage-find").onclick = () => work.during(find(), "the images with newer extractions were listed");

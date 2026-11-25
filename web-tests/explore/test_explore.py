@@ -144,7 +144,7 @@ def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp_path):
     run = replayed(tmp_path, 'annotator', [
-        {'kind': 'click', 'key': '#sb-load', 'text': 'Load image'},
+        {'kind': 'click', 'key': '#load-remote', 'text': ''},
         {'kind': 'click', 'key': '#remote-list > button:nth-of-type(4)', 'text': 'wide scan.png 3.4 MB'},
         {'kind': 'click', 'key': '#remote-open', 'text': 'Open'},
         {'kind': 'click', 'key': '#image-box > div:nth-of-type(1) > h2', 'text': 'wide scan.png'},

@@ -1,7 +1,7 @@
 // The Edit History window (req/shell/ground-truth/history): the action log of the image open as a list floating over the
 // image, newest on top, a dot at the current state, what was undone above it; a click goes to a row and a hover rings
 // its item on the image. It reads the log and the study's `describe` and `where` and changes nothing but the log's place,
-// through the session's goto. Its switch in Ground Truth Tasks is remembered on this device.
+// through the session's goto. Its switch, a button in the toolbar, is remembered on this device.
 "use strict";
 import { leftOut } from "./truth_actions.js";
 
@@ -148,8 +148,8 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
   function paint() {
     const lg = log(), on = shown();
     win.hidden = !on || !switchedOn;
-    $("#gt-history-row").hidden = !on;
-    $("#gt-history-on").checked = switchedOn;
+    $("#history-btn").hidden = !on;
+    $("#history-btn").setAttribute("aria-pressed", String(switchedOn));
     if (!on || !lg) { built = []; list.replaceChildren(); $("#eh-count").textContent = ""; viewer()?.ring?.(null); return; }
     $("#eh-count").textContent = `· ${lg.count}`;
     if (win.hidden) return;
@@ -158,7 +158,7 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
   }
 
   const setSwitch = (on) => { switchedOn = on; writeJSON(GT_HISTORY, on ? "on" : "off"); paint(); };
-  $("#gt-history-on").onchange = (e) => setSwitch(e.target.checked);
+  $("#history-btn").onclick = () => setSwitch(!switchedOn);
   $("#eh-close").onclick = () => setSwitch(false);
   $("#eh-clear").onclick = () => clearAll();
   list.addEventListener("scroll", () => { if (windowed) draw(); });

@@ -24,7 +24,7 @@
       "row": "Start Annotating, saving extractions (extractions folder write)",
       "cells": ["open for trial, nothing counted", "open: annotations score the algorithm", "open: annotations replace the algorithm's answer in the study's numbers", "closed", "closed"],
       "open": [true, true, true, false, false],
-      "control": {"page": "main", "selector": "#annotate-scratch", "after": "an image loads"}
+      "control": {"page": "main", "selector": "#annotate-load", "after": "an image loads"}
     },
     "mark": {
       "row": "Mark an extraction GT or official (Study Setup, study owner)",

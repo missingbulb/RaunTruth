@@ -38,7 +38,6 @@ async function begin(stage) {
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await annotateIfAsked(page, "#vm-run");
   await page.evaluate(() => { $("#notice").hidden = true; });
-  await page.click("#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
 }
 

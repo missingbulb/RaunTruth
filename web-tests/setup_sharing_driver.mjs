@@ -61,7 +61,7 @@ study.private();
 await recheck(page);
 s = await shown(page);
 await check(s.corrections.length === 2 && /study file/i.test(s.corrections[1].item) && s.corrections[1].where === `https://drive.google.com/file/d/${study.id}/view?usp=sharing`
-  && /Extractions/.test(s.corrections[0].item) && !s.corrections[0].fix && s.corrections[0].where === link(GT.extractions),
+  && /Analysis Files/.test(s.corrections[0].item) && !s.corrections[0].fix && s.corrections[0].where === link(GT.extractions),
   "an unreadable study file and an extractions folder no one may write: each its correction, the extractions one with no Fix", s);
 await page.context().close();
 
@@ -78,8 +78,8 @@ await settled(page);
 const people = await page.evaluate(() => ({
   rows: Object.fromEntries([...document.querySelectorAll("#people-list [data-email]")].map((li) => [li.dataset.email, [...li.querySelectorAll(".holds")].map((x) => x.textContent)])),
   links: [...document.querySelectorAll("#people-list a")].map((a) => a.href) }));
-await check(JSON.stringify(Object.entries(people.rows).sort()) === JSON.stringify([[EMAIL, ["sees", "manages"]], [Y, ["sees", "annotates"]], [Z, ["sees"]]].sort()),
-  "People lists each member with the shares they hold: sees, annotates, manages", people.rows);
+await check(JSON.stringify(Object.entries(people.rows).sort()) === JSON.stringify([[EMAIL, ["sees", "manages"]], [Y, ["sees", "analyses"]], [Z, ["sees"]]].sort()),
+  "People lists each member with the shares they hold: sees, analyses, manages", people.rows);
 await check(people.links.includes(link(ROOT)) && people.links.includes(link(GT.extractions)), "and links to the sharing dialog of the root and of the extractions folder", people.links);
 
 // the promotion to Review with the root still members-only: the correction appears; the share seeded and Check again pressed, it clears
@@ -132,7 +132,7 @@ extractions.public();
 drive.linkEdit.add(GT.extractions);
 await recheck(page);
 s = await shown(page);
-await check(s.corrections.length === 1 && /Extractions/.test(s.corrections[0].item) && s.corrections[0].change === "Take off the link's edit access" && s.corrections[0].fix,
+await check(s.corrections.length === 1 && /Analysis Files/.test(s.corrections[0].item) && s.corrections[0].change === "Take off the link's edit access" && s.corrections[0].fix,
   "anyone with the link may edit the extractions folder: one correction, with a Fix", s);
 const q = await checks(page), wrote = permissionWrites().length;
 await page.click("#sharing-corrections .sharing-fix");

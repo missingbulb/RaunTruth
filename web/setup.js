@@ -11,7 +11,7 @@ import { setupStage } from "./setup_stage.js";
 import { setupResults } from "./setup_results.js";
 import { sharingPanel } from "./setup_sharing.js";
 
-const { $, views, summaryMasks, st, retitle, openBytes, minimapView } = lent;
+const { $, views, summaryMasks, st, drawBoxes, openBytes, minimapView } = lent;
 
 // the marks and the batch run (req/setup/marks, req/setup/batch): their boxes, told what Data Management has chosen
 const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
@@ -40,12 +40,12 @@ attach(data = dataMode({
     if (!on) minimapView();
   },
   modeChanged(on) {
-    retitle(); $("#tip").hidden = true;
+    drawBoxes(); $("#tip").hidden = true;
     if (!on && views.now !== "image") views.show("image");
     minimapView();
   },
   // the drawers on show changed: their numbers again
-  relabel: () => retitle(),
+  relabel: () => drawBoxes(),
   openPreview: (name, bytes, source) => openBytes(name, bytes, source),
 }));
 

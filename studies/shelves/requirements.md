@@ -215,7 +215,7 @@ read for a title matcher; matching the titles is not part of it.
 
   Set by the owner on 2026-11-04: boxing and reading are made into ground truth together, as
   NoR's finding and measuring are. Someone annotating finds and reads the books, then works down
-  the Ground Truth Tasks box: Books ("12/40 Books"), one book at a time, its straightened picture across
+  the Analysis Tasks box: Books ("12/40 Books"), one book at a time, its straightened picture across
   the box, Flip and Turn 90° beside Hebrew, English and Both, its title in a text box filled with what the
   reader read, and Right or Not a book under it, with Back and Skip on its row; its corners drag on the photo,
   and the picture and the reading follow them. Then Missed books: a book is added from the photo's right-click

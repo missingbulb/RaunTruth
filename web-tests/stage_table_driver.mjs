@@ -44,7 +44,7 @@ for (const [k, stage] of TABLE.stages.entries()) {
   await openFromStudy(page, image);
   await page.waitForFunction(() => st.fileName === "img1.png" && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent));
   // where annotating is open the choice of how to start waits for the lookup of the image's annotations; where it is closed there is nothing to wait for
-  if (want("annotate")) await page.waitForSelector("#annotate-scratch", { state: "visible" });
+  if (want("annotate")) await page.waitForSelector("#annotate-load", { state: "visible" });
   else await page.waitForFunction(() => document.querySelector("#busy").hidden);
   for (const [action, a] of where("main").filter(([, x]) => x.control.after)) {
     await check(await here(page, a.control.selector) === want(action), `${stage}: ${action} is ${want(action) ? "open" : "closed"}: ${a.control.selector} is ${want(action) ? "there" : "not there"}`);

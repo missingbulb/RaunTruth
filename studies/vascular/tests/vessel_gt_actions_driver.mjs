@@ -42,8 +42,10 @@ const count = async () => +(/\d+/.exec(await page.textContent("#gt-unsaved"))?.[
 const nodeOf = async (id) => (await doc()).nodes.find((n) => n.id === id) ?? (await doc()).edges.flatMap((e) => e.via).find((n) => n.id === id);
 const stack = { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) };
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
-const execute = async () => { await page.click("#vm-run"); await page.waitForFunction(() => !$("#vm-review").hidden); };
-const opened = async () => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); await fromScratch(page, "#vm-run"); await page.evaluate(() => { $("#notice").hidden = true; }); };
+// Execute has run: Start's Run pressed it
+const execute = () => page.waitForFunction(() => !$("#vm-review").hidden);
+// the stack opened and, unless told not to, an analysis started on it, its algorithm run
+const opened = async (start = true) => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); if (start) await fromScratch(page, "#vm-run"); await page.evaluate(() => { $("#notice").hidden = true; }); };
 
 try {
   await open();
@@ -107,17 +109,14 @@ try {
     await page.mouse.move(cv[0] + (tipOf.p[0] + tipOf.q[0]) / 2, cv[1] + (tipOf.p[1] + tipOf.q[1]) / 2, { steps: 4 });
     await page.mouse.move(cv[0] + tipOf.q[0], cv[1] + tipOf.q[1], { steps: 4 }); await page.mouse.up();
     const title = await page.getAttribute("#gt-undo", "title");
-    check((await count()) === had + 1 && title === "Undo: Moved a point", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
+    check((await count()) === had + 1 && title === "Undo: Moved a point (Ctrl+Z)", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
     await page.click("#gt-undo");
     check((await count()) === had, "and Undo takes it back");
   }
 
   // the file: every id kept, no clock, the log with it
-  await page.click("#gt-submit");
-  await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-export").disabled);
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
-  await page.click("#gt-close");
   const move = out.history.actions.find((a) => a.type === "move-node");
   check(out.edges.every((e) => e.segment_ids?.length === e.via.length + 1 && e.via.every((p) => Number.isInteger(p.id))) && out.status === "corrected" && !("corrected_at" in out) && !("corrections" in out),
     "the file carries each segment's and curve point's id, and no clock and no count of corrections");
@@ -132,10 +131,10 @@ try {
     && JSON.stringify(drafts[0].log) === JSON.stringify(filed.actions), `Save Draft stores the stack's draft on the device: the model and the log of the file: ${JSON.stringify(drafts.map((d) => [d.study, d.name, d.log.length]))}`);
   await device.close();
   await open({ drafts });
-  await opened();
-  await page.waitForFunction(() => !$("#gt-offers").hidden);
-  check(await page.evaluate(() => !!window.vascular.model().model === false && !$("#gt-load-draft").hidden), "a page opened with the draft there offers it and shows no model: Execute has not run");
-  await page.click("#gt-load-draft");
+  await opened(false);
+  await page.waitForFunction(() => $("#annotate-local").checkVisibility());
+  check(await page.evaluate(() => !!window.vascular.model().model === false), "a page opened with the draft there offers it, as Continue local work, and shows no model: Execute has not run");
+  await page.click("#annotate-local");
   await page.waitForFunction(() => !!window.vascular.model().model);
   check(JSON.stringify(await doc()) === saved && (await page.textContent("#status")).includes("verified") && await page.evaluate(() => !$("#vm-review").hidden), "Load draft brings the model back with its replay verified, and no Execute");
 

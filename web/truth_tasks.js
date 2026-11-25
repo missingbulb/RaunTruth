@@ -1,9 +1,10 @@
-// The study's ground-truth tasks in the shell's Ground Truth Tasks box (req/shell/ground-truth/tasks): a bar of one
-// part per task, a row per task, and Submit Ground Truth last. The study says what its tasks are and how far each has
+// The study's Analysis Tasks in the shell's Analysis box (req/shell/ground-truth/tasks): under the box's header a strip of
+// their progress, a bar of one part per task and a counter per task; under the runner the open task's row, and Upload last. The study says what its tasks are and how far each has
 // got; how a task is worked through stays the study's, which puts what it needs on the open task's row. A task is open
 // only while the user annotates, from the choice that enters annotation mode to its end (req/shell/annotate/choice).
 "use strict";
 import * as Areas from "./gt_areas.js";
+import { areaMap } from "./gt_area_map.js";
 
 // started(): whether the study's first step is done; until it is, Submit stays off whatever the study says; heardBy(on):
 // the shell's own listener, told as the study is each time tagging starts or stops
@@ -13,21 +14,23 @@ export function truthTasks({ $, icon, started, heardBy }) {
   let n = null, moved = [];
   $("#gt-areas").replaceChildren(...Areas.COUNTS.map((k) => new Option(k === 1 ? "The whole field" : `${k} × ${k}`, String(k))));
   $("#gt-areas").onchange = (e) => { n = +e.target.value; for (const fn of moved) fn(n); };
-  const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit" && li.dataset.task !== "edits");
+  const rows = () => [...$("#gt-tasks").children].filter((li) => li.dataset.task !== "submit");
+  const counter = (key) => [...$("#gt-counters").children].find((b) => b.dataset.task === key);
   const row = (key) => rows().find((li) => li.dataset.task === key) || null;
   const part = (key) => [...$("#gt-bar").children].find((p) => p.dataset.task === key);
   const ico = $("#gt-submit .gt-ico");
   ico.innerHTML = ["done", "part", "todo"].map((n) => icon(n).replace("<svg ", `<svg class="${n}" `)).join("");
 
   $("#gt-submit").onclick = () => submit?.();
-  $("#gt-download").onclick = () => submit?.();
   $("#gt-tasks").addEventListener("click", (e) => {
     const t = e.target.closest("button.t"), li = t?.closest("li");
     if (!li || li.parentElement !== $("#gt-tasks")) return;
     pick?.(li.dataset.task);
   });
+  $("#gt-counters").addEventListener("click", (e) => { const b = e.target.closest("button[data-task]"); if (b) pick?.(b.dataset.task); });
+  $("#gt-bar").addEventListener("click", (e) => { const p = e.target.closest("span[data-task]"); if (p) pick?.(p.dataset.task); });
   function tagged(now) {
-    if (!now) for (const li of rows()) li.classList.remove("now");
+    if (!now) for (const el of [...rows(), ...$("#gt-counters").children, ...$("#gt-bar").children]) el.classList.remove("now");
   }
 
   const api = {
@@ -40,7 +43,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
       $("#gt-list").hidden = !tasks;
       if (!tasks || rows().map((li) => li.dataset.task).join() === tasks.map((t) => t.key).join()) return;
       for (const li of rows()) li.remove();
-      $("#gt-bar").replaceChildren();
+      $("#gt-bar").replaceChildren(); $("#gt-counters").replaceChildren();
       for (const t of tasks) {
         const li = document.createElement("li");
         li.dataset.task = t.key;
@@ -48,7 +51,11 @@ export function truthTasks({ $, icon, started, heardBy }) {
         const b = li.querySelector(".t");
         b.append(t.name);
         if (t.title) b.title = t.title;
-        $("#gt-edits").before(li);
+        $('#gt-tasks > li[data-task="submit"]').before(li);
+        const c = Object.assign(document.createElement("button"), { type: "button", innerHTML: `<span class="n"></span> ` });
+        c.dataset.task = t.key; c.hidden = true; c.append(t.name, Object.assign(document.createElement("span"), { className: "tick", ariaHidden: "true" }));
+        if (t.title) c.title = t.title;
+        $("#gt-counters").append(c);
         const p = document.createElement("span");
         p.dataset.task = t.key; p.title = t.name;
         $("#gt-bar").append(p);
@@ -61,8 +68,11 @@ export function truthTasks({ $, icon, started, heardBy }) {
     count(key, did, of, done = did != null && of > 0 && did >= of, shown) {
       const li = row(key), p = part(key);
       if (!li) return;
-      li.querySelector(".n").textContent = shown ?? (did == null ? "" : of == null ? String(did) : `${did}/${of}`);
-      li.classList.toggle("done", !!done);
+      const says = shown ?? (did == null ? "" : of == null ? String(did) : `${did}/${of}`), c = counter(key);
+      li.querySelector(".n").textContent = c.querySelector(".n").textContent = says;
+      // a task that says no count is its bar part alone
+      c.hidden = !says;
+      li.classList.toggle("done", !!done); c.classList.toggle("done", !!done);
       const whole = of == null ? 1 : Math.max(of, 1), part_ = of == null ? (done ? 1 : 0) : did != null && of ? Math.min(did / of, 1) : 0;
       p.style.flexGrow = did == null ? 1 : whole; p.style.setProperty("--done", did == null ? 0 : part_);
     },
@@ -70,7 +80,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // always null while the user is not annotating
     open(key) {
       if (!on) key = null;
-      for (const li of rows()) li.classList.toggle("now", li.dataset.task === key);
+      for (const el of [...rows(), ...$("#gt-counters").children, ...$("#gt-bar").children]) el.classList.toggle("now", el.dataset.task === key);
       return key == null ? null : row(key);
     },
     // whether the user annotates now; with a value, annotation started or ended, the study told when it changes
@@ -84,13 +94,15 @@ export function truthTasks({ $, icon, started, heardBy }) {
     row,
     // the areas the study's ground truth is walked through (req/shell/ground-truth/areas): count(), the areas each way now,
     // null for a study not walked by areas; on(fn), fn(count) heard each time the tagger chooses another; place(a), areaAt(fx,
-    // fy) and box(a, W, H), as gt_areas.js, at the count now
+    // fy) and box(a, W, H), as gt_areas.js, at the count now; map(body, {state(a), now, pick(a)}) draws them
     areas: {
       count: () => n,
       on(fn) { moved.push(fn); },
       place: (a) => Areas.place(a, n),
       areaAt: (fx, fy) => Areas.areaAt(fx, fy, n),
       box: (a, W, H) => Areas.box(a, n, W, H),
+      // the areas drawn as a map into body, an element of the study's own (req/shell/ground-truth/area-map)
+      map: (body, how) => areaMap(body, { ...how, n }),
     },
     // the study arriving: start, the count it starts at from its study.json, or none
     mount(start) {
@@ -102,18 +114,18 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // what is left to do as its tooltip
     ready(on, state, title) {
       const b = $("#gt-submit");
-      wants = !!on; b.disabled = !wants || !started(); $("#gt-download").disabled = b.disabled;
+      wants = !!on; b.disabled = !wants || !started();
       if (state) b.dataset.state = state; else delete b.dataset.state;
       if (title) b.title = title; else b.removeAttribute("title");
     },
     // the study's steps moved: Submit follows its first one
-    stepped() { $("#gt-submit").disabled = $("#gt-download").disabled = !wants || !started(); },
+    stepped() { $("#gt-submit").disabled = !wants || !started(); },
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);
       pick = submit = heard = null; n = null; moved = []; $("#gt-areas-row").hidden = true; $("#gt-areas").selectedIndex = 0;
       for (const li of rows()) li.remove();
-      $("#gt-bar").replaceChildren(); $("#gt-list").hidden = true; api.ready(false);
+      $("#gt-bar").replaceChildren(); $("#gt-counters").replaceChildren(); $("#gt-list").hidden = true; api.ready(false);
     },
   };
   return api;

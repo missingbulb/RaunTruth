@@ -190,6 +190,15 @@ export const remote = (() => {
     return { name, bytes: (await pairBytes(name, new Uint8Array(await vsi.arrayBuffer()), new Uint8Array(await ets.arrayBuffer()))).buffer };
   }
 
+  // the id of the folder's subfolder of that name, null where it has none: one request, the search narrowed to the name and to folders
+  async function folderNamed(folder, name) {
+    need();
+    const q = encodeURIComponent(`'${folder}' in parents and name = '${name.replace(/[\\']/g, "\\$&")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+    const r = await get(`${API}?q=${q}&fields=files(id,name)&pageSize=10`);
+    if (!r.ok) throw refused(r, "folder");
+    return (await r.json()).files.find((f) => f.name === name)?.id ?? null;
+  }
+
   // [{id, name, folder, size, sha, modified, properties, preview}] every file and folder in a folder, whatever its kind,
   // every page of them; modified Drive's time of its last change, properties its public ones; preview, with pictures,
   // as list gives it, else null
@@ -372,7 +381,7 @@ export const remote = (() => {
         named: ["sharing-named.svg", "Drive's Share dialog: General access set to Restricted, the named people kept"],
         editor: ["sharing-editor.svg", "Drive's Share dialog: a person's email added as an Editor"] },
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, batch, name, permissions, publicly, canWrite, writer, study,
+    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, folderNamed, batch, name, permissions, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),

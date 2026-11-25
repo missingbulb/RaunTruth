@@ -52,12 +52,14 @@ const hint = () => page.evaluate(() => {
   const b = el.getBoundingClientRect(), bar = $("#statusbar").getBoundingClientRect();
   return { centered: Math.abs(b.x + b.width / 2 - innerWidth / 2) < 2, above: b.bottom <= bar.top && bar.top - b.bottom < 60, through: getComputedStyle(el).pointerEvents === "none" };
 });
-async function escaped(from, to, during) {
+// a drag that only changes the view shows no label, and Escape cancels it all the same
+async function escaped(from, to, during, { view = false } = {}) {
   await page.mouse.move(...from); await page.mouse.down();
   await page.mouse.move(...to, { steps: 5 });
   const mid = during ? await during() : null;
   const shown = await hint();
-  await check(shown && shown.centered && shown.above && shown.through, "mid-drag, 'Hit 'esc' to cancel' shows at the bottom center, above the status bar", shown);
+  if (view) await check(shown === null, "mid-drag, a change of view shows no label", shown);
+  else await check(shown && shown.centered && shown.above && shown.through, "mid-drag, 'Hit 'esc' to cancel' shows at the bottom center, above the status bar", shown);
   await page.keyboard.press("Escape");
   await check(await hint() === null, "Escape takes the label away");
   await page.mouse.move(to[0] + 15, to[1] + 10, { steps: 3 });
@@ -76,7 +78,7 @@ await home();
 // the image's pan
 {
   const before = await scroll(), at = await middleOf("#scroller");
-  const mid = await escaped(at, [at[0] - 60, at[1] - 40], scroll);
+  const mid = await escaped(at, [at[0] - 60, at[1] - 40], scroll, { view: true });
   const after = await scroll();
   await check(mid.join() !== before.join(), "dragging the image pans it", { before, mid });
   await check(after.join() === before.join(), "Escape mid-pan puts the view back where the press found it", { before, after });
@@ -109,7 +111,7 @@ await home();
 {
   await home();
   const before = await scroll(), body = await page.locator("#minimap .mm-body").boundingBox();
-  const mid = await escaped([body.x + body.width * 0.7, body.y + body.height * 0.7], [body.x + body.width * 0.9, body.y + body.height * 0.8], scroll);
+  const mid = await escaped([body.x + body.width * 0.7, body.y + body.height * 0.7], [body.x + body.width * 0.9, body.y + body.height * 0.8], scroll, { view: true });
   await check(mid.join() !== before.join(), "dragging in the minimap moves the view", { before, mid });
   await check((await scroll()).join() === before.join(), "Escape mid-drag in the minimap puts the view back", { before, after: await scroll() });
 }
@@ -117,6 +119,7 @@ await home();
 // a drag let go, not Escaped, takes the label with it; a click that does not move never shows it
 {
   await home();
+  await page.click("#ruler-btn");
   const at = await middleOf("#scroller");
   await page.mouse.move(...at); await page.mouse.down();
   await check(await hint() === null, "a press that has not moved shows no label");
@@ -124,6 +127,7 @@ await home();
   await check(await hint() !== null, "the label shows once the press moves");
   await page.mouse.up();
   await check(await hint() === null, "letting go takes the label away");
+  await page.click("#ruler-btn");
   await home();
 }
 

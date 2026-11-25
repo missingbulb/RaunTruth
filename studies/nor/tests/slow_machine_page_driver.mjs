@@ -5,6 +5,7 @@
 // shows whenever the page runs out of memory; the status bar shows the memory in use. Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node tests/slow_machine_page_driver.mjs ANSWERS IMAGE [SHOTS]
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { repoFile } from "../../../web-tests/repo_file.mjs";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,7 @@ import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
 import { pw, launch, expecting } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
+import { stepsOf } from "../../../web-tests/page_steps.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";
 
 const [answers, image, shots] = process.argv.slice(2);
@@ -128,6 +130,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await check(selector.taken.held && !selector.taken.open, "the image selector is held while the image opens");
   await check(!selector.let.held && selector.let.open, "the selector is free again once the image is open");
   await free(page, "#image-pick");
+  await fromScratch(page, "#find");
   const detected = answered(page, "run");
   await page.click("#find");
   await check(await held(page, "#find"), "Find Candidates is held at once, with its spinner");
@@ -164,7 +167,8 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await openFromDrive(page, image); await free(page, "#image-pick");
   // the stand-in's third run answers out of memory, which the page warns of
   await expecting(/MemoryError/, async () => {
-    for (let k = 0; k < 3; k++) { await unfold(page, "#processing-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
+    await fromScratch(page, "#find");
+    for (let k = 0; k < 2; k++) { await unfold(page, "#analysis-box"); await page.click("#find"); await page.waitForFunction(() => !$("#find").classList.contains("working"), null, { timeout: 4 * LATE + 2000 }); }
   });
   const oom = await page.evaluate(() => $("#memory-dlg").open && $("#memory-never").hidden && $("#memory-why").textContent);
   await check(oom && /ran out of memory/.test(oom), `running out of memory shows it, whatever the user chose: "${oom}"`);
@@ -187,7 +191,7 @@ const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b
   await page.waitForFunction(() => !!st.img || shellForTests.work.doing.includes("waiting for the study"), null, { timeout: 4 * LATE + 2000 });
   code.release();
   await idle(page, { timeout: 4 * LATE + 2000 });
-  const steps = await page.evaluate(() => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join(" › "));
+  const steps = await stepsOf(page);
   await check(steps === "Load image › Run algorithm*" && await page.evaluate(() => !!st.img), `an image opened as the study came in is loaded, Run algorithm the step to do: ${steps}`);
   await device.close();
 }

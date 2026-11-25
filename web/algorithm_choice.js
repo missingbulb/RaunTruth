@@ -1,6 +1,6 @@
-// The study's algorithms at the top of its Processing box (req/shell/processing/algorithms): the list its study.json
-// names, joined with the numbers it names, the first the one chosen at first, each with its icon, its title and, where
-// measured, its precision (P) and recall (R); beside it a (?) opening how the study scores them, where its metrics say
+// The study's algorithms in the Start dialog (req/shell/processing/algorithms): the list its study.json names, joined
+// with the numbers it names, the first the one chosen at first, each with its icon, its title and, where measured, its
+// precision (P) and recall (R); beside it a (?) opening how the study scores them, where its metrics say
 // (req/shell/processing/scoring); under it how the chosen one works and how well it did. The study reads the choice
 // and hears it change.
 const two = (x) => x.toFixed(2).replace(/^0/, "");
@@ -15,6 +15,9 @@ const stampOf = (v) => {
   return t && typeof t.dataset_sha256 === "string" && typeof t.frozen === "string" ? t : null;
 };
 
+// how many rows the list's box shows: before any study is in, and at most
+const FEW = 4, MANY = 6;
+
 export function algorithmChoice({ $, outline, status, repo }) {
   const box = $("#algorithm-pick"), sel = $("#algorithm"), q = $("#scoring-help"), scoring = $("#scoring-note"), heard = [];
   const shut = () => { scoring.hidden = true; q.setAttribute("aria-expanded", "false"); };
@@ -23,7 +26,7 @@ export function algorithmChoice({ $, outline, status, repo }) {
   const chosen = () => list.find((a) => a.key === sel.value);
   function about() {
     stamped(); const a = chosen(); if (!a) return;
-    $("#algorithm-about summary").textContent = `How the ${a.title} algorithm works`;
+    $("#algorithm-about").textContent = `How the ${a.title} algorithm works`;
     const note = $("#algorithm-note");
     note.replaceChildren(outline(a.about));
     if (!measured(a)) return;
@@ -61,22 +64,22 @@ export function algorithmChoice({ $, outline, status, repo }) {
           if (m.scoring) { const head = document.createElement("p"); head.textContent = "How precision and recall are scored"; scoring.replaceChildren(head, outline(m.scoring)); }
           sel.replaceChildren(...list.map((a) => new Option(`${a.icon || ""} ${a.title}${measured(a) ? ` (${pr(a)})` : ""}`.trim(), a.key)));
           sel.title = list.some(measured) ? `Precision (P) and recall (R) of each algorithm${doc.measured ? " " + doc.measured : ""}` : "";
-          sel.disabled = !list.length; about();
+          sel.disabled = !list.length; sel.size = Math.max(2, Math.min(list.length, MANY)); if (list.length) sel.selectedIndex = 0; about();
           return list;
         }, (e) => { if (!signal.aborted) status(`The algorithms could not be listed: ${e.message || e}`, true); return signal.aborted ? new Promise(() => {}) : []; });
     },
     // the study leaving: the list as before any study came in
     leave() {
-      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; box.hidden = true; $("#algorithm-stamp").hidden = true;
+      heard.length = 0; list = []; doc = null; sel.replaceChildren(); sel.title = ""; sel.disabled = true; sel.size = FEW; box.hidden = true; $("#algorithm-stamp").hidden = true;
       shut(); q.hidden = true; scoring.replaceChildren();
-      $("#algorithm-about").open = false; $("#algorithm-about summary").textContent = "How the algorithm works"; $("#algorithm-note").replaceChildren();
+      $("#algorithm-about").textContent = "How the algorithm works"; $("#algorithm-note").replaceChildren();
     },
     // what the study is handed: the list once fetched, the chosen key and title, and each change of it
     api: {
       get ready() { return ready; },
       get key() { return chosen()?.key; },
       get title() { return chosen()?.title; },
-      // the list as the box shows it, and a choice made as the user's own is (a batch run, req/setup/batch, runs each of them)
+      // the list as the dialog shows it, and a choice made as the user's own is (a batch run, req/setup/batch, runs each of them)
       get list() { return list.slice(); },
       choose(key) { if (sel.value !== key && list.some((a) => a.key === key)) { sel.value = key; sel.dispatchEvent(new Event("change")); } },
       on(fn) { heard.push(fn); },

@@ -55,17 +55,17 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   function paint() {
     const on = rooted();
-    $("#gt-edits").hidden = !on;
     const undo = $("#gt-undo"), redo = $("#gt-redo"), n = on ? unsaved() : 0;
+    undo.hidden = redo.hidden = !on || !makesTruth();
     undo.disabled = !on || !log.canUndo; redo.disabled = !on || !log.canRedo;
-    undo.title = !undo.disabled ? `Undo: ${describe(active().at(-1))}` : "Nothing to undo";
-    redo.title = !redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo";
+    undo.title = `${!undo.disabled ? `Undo: ${describe(active().at(-1))}` : "Nothing to undo"} (Ctrl+Z)`;
+    redo.title = `${!redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo"} (Ctrl+Y)`;
     $("#gt-unsaved").hidden = !n; $("#gt-unsaved").textContent = n ? `· ${n} unsaved` : "";
     $("#gt-save-draft").disabled = !on || !n;
     const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!filed;
     $("#gt-offers").hidden = !offered && !earlier && !sent;
     $("#gt-load-submission").hidden = !sent;
-    if (sent) $("#gt-load-submission").textContent = `Load your extraction${filed.modified ? ` · saved ${stamp(filed.modified)}` : ""}`;
+    if (sent) $("#gt-load-submission").textContent = `Load your Analysis File${filed.modified ? ` · saved ${stamp(filed.modified)}` : ""}`;
     offer.hidden = !offered;
     offer.textContent = offered ? `Load draft · saved ${clock(stored.saved)}, ${nameOfCount(userCount(stored.log))}` : "";
     $("#gt-load-legacy").hidden = !earlier;
@@ -125,12 +125,12 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   // the person's own extraction, read now, the one download
   async function loadSubmission() {
-    if (!module || !log || !filed || !mayReplace("your extraction")) return false;
+    if (!module || !log || !filed || !mayReplace("your Analysis File")) return false;
     const { id, modified } = filed;
     let doc;
-    try { doc = await readSubmission(id); } catch (e) { notice(`Your extraction could not be read: ${e?.message || e}`); return false; }
+    try { doc = await readSubmission(id); } catch (e) { notice(`Your Analysis File could not be read: ${e?.message || e}`); return false; }
     const h = doc?.history;
-    const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your extraction");
+    const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your Analysis File");
     if (taken) { filed = null; paint(); }
     return taken;
   }
@@ -179,7 +179,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
         return null;
       });
       const sent = !makesTruth() ? null : submission().catch((e) => {
-        console.warn("the submission was not looked up:", e); status(`Your extraction of this image could not be looked up: ${e?.message || e}`, true);
+        console.warn("the submission was not looked up:", e); status(`Your Analysis File of this image could not be looked up: ${e?.message || e}`, true);
         return null;
       });
       const [d, s] = await Promise.all([device, sent]);

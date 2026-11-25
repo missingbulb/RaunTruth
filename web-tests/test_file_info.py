@@ -72,7 +72,7 @@ def details(got):
 
 
 def test_a_heic_photo_pins_its_camera_and_when_it_was_taken(tmp_path):
-    """req/shell/image/file-info: the camera and the time taken up front, the rest folded, GPS among them, no blob."""
+    """req/shell/image/file-info: the camera and the time taken up front, the rest folded, GPS among them, a blob named with its bytes unsaid."""
     import numpy as np, pillow_heif
     from PIL import Image
     p = tmp_path / 'photo.heic'
@@ -86,7 +86,7 @@ def test_a_heic_photo_pins_its_camera_and_when_it_was_taken(tmp_path):
     assert more['ExposureTime'] == '1/8' and more['ISOSpeedRatings'] == '500' and more['Orientation'] == '6'
     assert more['GPSLatitudeRef'] == 'N' and more['GPSLatitude'] == '32, 4, 30'
     assert more['Images'] == '1'
-    assert 'MakerNote' not in more and not any(len(v) > 600 for v in more.values())
+    assert more['MakerNote'] == 'base64…' and not any(len(v) > 600 for v in more.values())
 
 
 def test_a_jpeg_with_no_exif_shows_its_jfif_header_folded(tmp_path):
@@ -107,7 +107,7 @@ def test_a_jpeg_names_a_camera_its_make_spells_once(tmp_path):
     Image.fromarray(np.full((20, 30, 3), 90, np.uint8)).save(p, exif=exif(make='Acme', model='Phone 9').tobytes())
     info, more = details(open_image(tmp_path, str(p))[0])
     assert info['Camera'] == 'Acme Phone 9' and info['Taken'] == '2026-11-05 21:03:05 +02:00'
-    assert more['Make'] == 'Acme' and 'MakerNote' not in more
+    assert more['Make'] == 'Acme' and more['MakerNote'] == 'base64…'
 
 
 def test_a_png_folds_its_text_and_pixel_density(tmp_path):

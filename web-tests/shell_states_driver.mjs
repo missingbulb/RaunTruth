@@ -8,6 +8,7 @@
 // STACK is the z-stack a path loads with its stack action; ANSWERS' files[study] may name a study's own image and stack, and names the large image of the large action. Exits 1 on a difference, 2 when it cannot run.
 //   node web-tests/shell_states_driver.mjs ANSWERS STUDIES ROOT IMAGE STACK EXPECT SHARD [RENDERS]
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
@@ -16,11 +17,13 @@ import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { read } from "./page_elements.mjs";
-import { fromScratch } from "./annotating.mjs";
+import { fromScratch, loadStored } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir, image, stack, expectFile, shard, renders] = process.argv.slice(2);
-const { w, FILES, GT, drive, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
+const { w, FILES, GT, drive, settings: SETTINGS, studyFile, viewOnly, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
+// whether the study has one step with a button, which Start's Run presses for the user (req/shell/analysis/start)
+const oneRun = (study) => JSON.parse(fs.readFileSync(new URL(`../studies/${study}/study.json`, import.meta.url), "utf8")).phases.filter((p) => p.button).length === 1;
 const { elements: trees, paths: every } = JSON.parse(fs.readFileSync(expectFile, "utf8"));
 const [part, parts] = shard.split("/").map(Number);
 const paths = [...every.entries()].filter(([k]) => k % parts === part);
@@ -32,6 +35,14 @@ const FILES_OF = JSON.parse(fs.readFileSync(answers, "utf8")).files ?? {};
 // who is signed in, but for the study's owner, whom Drive lets write its root: someone who may save to its extractions folder alone
 const OTHER = "someone@example.com";
 
+// each image of the study's Drive folder has an Analysis File there, the owner's, marked GT, from before any page opens: read as
+// the image opens, it is what Load offers
+for (const image of FILES.filter((f) => !f.folder && /\.(png|jpe?g|tiff?)$/i.test(f.name))) {
+  const sha = createHash("sha256").update(image.bytes).digest("hex"), sub = `${image.name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
+  const file = w.of(GT.extractions).folder(sub).holds({ name: await personFile("owner@acme.example"), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
+    labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
+  studyFile({ marks: { ...(JSON.parse(drive.files.find((f) => f.id === SETTINGS.id).bytes.toString()).marks || {}), [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
+}
 const ready = (page) => page.waitForFunction(() => /^(Ready|Image loaded|Counted)/.test(document.querySelector("#status").textContent));
 // done: the page settled, its drawers and fades over (a spinner going round never ends, so it is left out)
 const settled = async (page) => {
@@ -76,10 +87,13 @@ const ACTIONS = {
     await page.waitForFunction(() => document.querySelector("#view").hasAttribute("data-v3"));
     await page.waitForFunction(opened, first?.button);
   },
-  // the study's first step: its button pressed, and the step done
-  async count(page, first) {
-    await page.click(first.button);
-    await page.waitForFunction((k) => /\nDone at /.test(document.querySelector(`#sb-${k}`)?.dataset.help ?? ""), first.key, { timeout: 60000 });
+  // the study's first step run, and the step done: by Start and Run where nothing was started yet, which shows the runner and, in
+  // a study of one step, presses it; else its button pressed
+  async count(page, first, files, study) {
+    const started = await page.evaluate(() => !document.querySelector("#processing-box").hidden);
+    if (!started) await fromScratch(page, first.button, { run: oneRun(study) });
+    if (started || !oneRun(study)) await page.click(first.button);
+    await page.waitForFunction((k) => shellForTests.steps.find((p) => p.key === k)?.done, first.key, { timeout: 60000 });
   },
   async items(page) {
     await page.click("#switch");
@@ -90,23 +104,15 @@ const ACTIONS = {
     await page.waitForFunction(() => document.querySelector("#view").dataset.view === "image");
   },
   // annotation mode (req/shell/annotate/choice): the study opens afresh on the same image in it
-  async scratch(page, first) { await fromScratch(page, first?.button); },
+  async scratch(page, first, files, study) { await fromScratch(page, first?.button, { run: oneRun(study) }); },
   async local(page, first) {
     await page.click("#annotate-local");
     await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
     await page.waitForFunction(() => document.querySelector("#busy").hidden);
   },
-  // the image's extraction marked GT on Drive, read-only
+  // the image's Analysis File marked GT on Drive, read-only
   async viewdrive(page) {
-    const { name, sha } = await page.evaluate(() => ({ name: st.fileName, sha: st.sha }));
-    const sub = `${name.replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
-    if (!drive.files.some((f) => f.folder && f.name === sub && f.parent === GT.extractions)) {
-      const file = w.of(GT.extractions).folder(sub).holds({ name: await personFile("owner@acme.example"), bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: "owner@acme.example",
-        labels: [{ threshold: 100, count: 7 }], marks: [{ id: "m1", x: 12, y: 12 }, { id: "m2", x: 40, y: 30 }], checked: true })) });
-      studyFile({ marks: { [sha]: { gt: { file: file.id, by: "owner@acme.example" } } } });
-    }
-    await page.click("#annotate-load");
-    await page.click("#annotate-list button[data-key]");
+    await loadStored(page);
     await page.waitForFunction(() => /^Showing/.test(document.querySelector("#annotate-say").textContent.trim()));
   },
   async edit(page) {
@@ -267,7 +273,7 @@ const walk = async (k, p) => {
   let before = null;
   const shots = [];
   for (const [i, s] of p.states.entries()) {
-    if (i > 0) await ACTIONS[p.actions[i - 1]](page, phases[0], FILES_OF[p.study] ?? {}).catch(async (e) => {
+    if (i > 0) await ACTIONS[p.actions[i - 1]](page, phases[0], FILES_OF[p.study] ?? {}, p.study).catch(async (e) => {
       for (const d of differences) console.error("DIFFERENT: " + d);
       console.error(`${p.study} · ${p.root}: ${p.actions[i - 1]} did not finish: ${e.message.split("\n")[0]}; status: ${await page.textContent("#status")}; at ${page.url()}`);
       await done(1);

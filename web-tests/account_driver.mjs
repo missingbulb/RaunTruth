@@ -108,6 +108,15 @@ try {
   await a.page.click("#user-menu summary");
   await a.page.waitForFunction(() => window.tokenClient);
   check(await a.page.isVisible("#sign-in") && await a.page.isVisible("#manage-storage"), "opening the menu offers Sign in with Google beside Manage storage");
+  // req/shell/header: the avatar before the dark/light switch, and the menu's own avatar over the header's
+  const head = await a.page.evaluate(() => {
+    const box = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); };
+    const pop = document.querySelector("#user-menu .pop").getBoundingClientRect();
+    return { bar: box("#user-menu summary .avatar"), menu: box("#who-avatar .avatar"), theme: box("#theme"), row: document.querySelector("#who-avatar").closest(".who").contains(document.querySelector("#who-name")),
+      inside: pop.left >= 0 && pop.right <= innerWidth && pop.top >= 0 };
+  });
+  check(head.bar[0] < head.theme[0], "the avatar comes before the dark/light switch, which is last", head);
+  check(head.row && head.menu.join() === head.bar.join() && head.inside, "the menu's top row holds the avatar beside the name, at the header avatar's place and size", head);
   const asked = await a.page.evaluate(() => window.tokenClient);
   const drives = asked.scope.split(" ").filter((s) => /drive/.test(s)).sort();
   check(asked.client === CLIENT && JSON.stringify(drives) === JSON.stringify(["https://www.googleapis.com/auth/drive.appdata", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.readonly"])
@@ -121,6 +130,8 @@ try {
     "signed in, the menu names the user");
   check(await a.page.evaluate(() => document.querySelector("#user-menu summary .avatar").tagName === "IMG" && document.querySelector("#sign-in").hidden),
     "the avatar is the user's picture, and Sign in is gone");
+  check(await a.page.evaluate(() => document.querySelector("#who-avatar .avatar").tagName === "IMG" && document.querySelector("#who-avatar .avatar").src === document.querySelector("#user-menu summary .avatar").src),
+    "and the menu's avatar is the same picture");
   await shot(a.page, "account_signed_in");
   check(await until(() => file()?.["nor-theme"] === "dark"), "a first sign-in starts the user's settings file from this device's");
   check(same(settings().parents, ["appDataFolder"]), "the file is in the app's hidden folder in the user's Drive");
@@ -272,6 +283,7 @@ try {
   check(await local(b.page, "nor-google-sign-in") === null, "and its answer keeps nothing of the user who left");
   check(await b.page.textContent("#who-where") === "On this device, not signed in" && await b.page.evaluate(() => document.querySelector("#user-menu summary .avatar").tagName === "svg"),
     "signing out shows the device's own avatar again");
+  check(await b.page.evaluate(() => document.querySelector("#who-avatar .avatar").tagName === "svg"), "in the menu too");
   check(await local(b.page, "nor-theme") === "dark" && await local(b.page, "nor-google-sign-in") === null, "and keeps this device's settings, forgetting the user and the token");
   await b.page.click("body", { position: { x: 700, y: 500 } });
   // signed out, a change starts no save, now or later: the sign-in record it would be kept in stays gone

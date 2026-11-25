@@ -50,16 +50,17 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 const check = async (ok, what, more) => { if (!ok) { console.error("FAILED: " + what, more === undefined ? "" : JSON.stringify(more)); await done(1); } console.log("ok: " + what); };
 const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json"), "utf8"));
 
-async function open(dev) {
+// start: Start and Run pressed, with that algorithm where one is named; false leaves the image just opened
+async function open(dev, start = true) {
   const page = await dev.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
-  await loadImage(page);
+  await loadImage(page, start);
   return page;
 }
-async function loadImage(page) {
+async function loadImage(page, start = true) {
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  await fromScratch(page, "#find");
+  if (start) await fromScratch(page, "#find", typeof start === "string" ? { algorithm: start } : {});
 }
 // drafts, keys: what the device keeps before the page opens; the tagger's Drive holding no settings of the site's yet
 function newDevice({ drafts = [], keys = {} } = {}) {
@@ -67,9 +68,10 @@ function newDevice({ drafts = [], keys = {} } = {}) {
   return w.device().signedInAs(tagger).keepsDrafts(drafts).keeps(keys);
 }
 const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b); if (e.classList.contains("folded")) e.querySelector(".sec-head h2").click(); }, box); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
+// Find Candidates pressed: by the user where the runner is on show, and as the page itself would on a route that hides it
 async function find(page) {
-  await unfold(page, "#processing-box");
-  await page.click("#find");
+  await unfold(page, "#analysis-box");
+  if (await page.isVisible("#find")) await page.click("#find"); else await page.evaluate(() => $("#find").click());
   await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working"));
 }
 // the log as Edit History words it, newest first, the actions not yet saved, and what the page reads of the model
@@ -98,20 +100,23 @@ async function saveDraft(page) {
   await page.waitForFunction(() => $("#gt-unsaved").hidden);
   return { stored: await storedDrafts(page), doc, name, actions };
 }
-// a page opened afresh on a device keeping that draft, the image opened, and the draft offered
-async function openWithDraft(drafts) {
+// a page opened afresh on a device keeping that draft, the image opened, and the draft offered: as Continue local work before an
+// analysis starts, and, started with an algorithm, as Load draft beside the tasks
+async function openWithDraft(drafts, start = false) {
   const dev = newDevice({ drafts });
-  const page = await open(dev);
-  await page.waitForFunction(() => !$("#gt-load-draft").hidden);
+  const page = await open(dev, start);
+  await page.waitForFunction((s) => (s ? !$("#gt-load-draft").hidden : $("#annotate-local").checkVisibility()), start);
   return { dev, page };
 }
+// Continue local work: annotation mode entered on the device's draft, with no run
+const continueDraft = async (page) => { await page.click("#annotate-local"); await page.waitForFunction(() => st.meta?.drafted && $("#busy").hidden && !document.documentElement.hasAttribute("data-held")); };
 const settle = (page) => page.waitForFunction(() => !document.activeViewTransition && !document.querySelector("button.working"));
 
 try {
   let dev = newDevice();
   let page = await open(dev);
   await find(page);
-  await unfold(page, "#tasks-box");
+  await unfold(page, "#analysis-box");
   await settle(page);
   const total = await page.evaluate(() => st.order.length);
   await check((await rows(page)).join() === `Algorithm ran: ${total} candidates,Image opened` && await unsaved(page) === 0,
@@ -134,7 +139,7 @@ try {
   s = await read(page);
   await check(s.forced.length === 1 && await unsaved(page) === 1, "and Ctrl+Y does it again", s);
   await page.click("#gt-undo");
-  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+  await page.click('#gt-counters > [data-task="pass"]');
   await settle(page);
 
   // a length end dragged and let go is one GT action; Escape in the middle of it records none
@@ -226,9 +231,7 @@ try {
   await dev.close();
   ({ dev, page } = await openWithDraft(draft.stored));
   await check((await read(page)).forced.length === 0 && await page.evaluate(() => !st.meta), "a draft is offered and not loaded unasked: no candidate is shown before it", await read(page));
-  await unfold(page, "#tasks-box");
-  await page.click("#gt-load-draft");
-  await page.waitForFunction(() => st.meta?.drafted);
+  await continueDraft(page);
   const back = await read(page);
   await check(JSON.stringify(back) === JSON.stringify({ ...kept, count: 0 }) || JSON.stringify([back.forced, back.edits, back.added, back.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]),
     "Load draft brings back the votes, the lengths, the added NoRs and the checked areas", { back, kept });
@@ -236,7 +239,7 @@ try {
     rows: [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits]) .t")].map((x) => x.textContent.trim()).slice(0, 3) }));
   await check(drawn.groups === total && drawn.outlines === 0 && !drawn.find, "each candidate is drawn from its box, with no outline, and Find Candidates is on", drawn);
   await settle(page);
-  await page.click("#find");
+  await page.evaluate(() => $("#find").click()); // the runner is not on show on the route from a draft: pressed as the page itself would
   await page.waitForFunction(() => st.passes && $("#busy").hidden && !document.querySelector("button.working") && !st.meta.drafted);
   const again = await read(page);
   await check(JSON.stringify([again.forced, again.edits, again.added, again.areas]) === JSON.stringify([kept.forced, kept.edits, kept.added, kept.areas]) && await page.evaluate(() => [...document.querySelectorAll("#overlay > g[data-i] path")].some((p) => p.getAttribute("d"))),
@@ -249,14 +252,13 @@ try {
   await check(draft.stored.length === 1 && JSON.stringify(draft.stored[0].model) === JSON.stringify(draft.doc) && draft.stored[0].model.finder === saved.finder,
     `Save Draft again replaces the device's draft with the work on ${saved.finder}'s candidates`, draft.stored.map((r) => r.model.finder));
   await dev.close();
-  ({ dev, page } = await openWithDraft(draft.stored));
-  const other = await page.evaluate((f) => { const a = $("#algorithm"), o = [...a.options].find((x) => x.value !== f && ["tl", "rf"].includes(x.value)); a.value = o.value; a.dispatchEvent(new Event("change", { bubbles: true })); return o.value; }, saved.finder);
-  await find(page);
+  const other = ["tl", "rf"].find((k) => k !== saved.finder);
+  ({ dev, page } = await openWithDraft(draft.stored, other));
   const others = await page.evaluate(() => st.order.map((c) => `${Math.round(c.cx)},${Math.round(c.cy)}`).sort());
   await check(other !== saved.finder && JSON.stringify(others) !== JSON.stringify(saved.places), `another finder, ${other}, finds other candidates than ${saved.finder} did`, { others: others.length, saved: saved.places.length });
-  await unfold(page, "#tasks-box");
+  await unfold(page, "#analysis-box");
   await page.click("#gt-load-draft");
-  await page.waitForFunction(() => st.meta?.drafted);
+  await page.waitForFunction((f) => $("#gt-load-draft").hidden && st.meta?.finder === f, saved.finder);
   const taken = await page.evaluate(() => ({ places: st.order.map((c) => `${Math.round(c.cx)},${Math.round(c.cy)}`).sort(), finder: st.meta.finder,
     votes: [...st.forced.keys()].every((i) => [...nor.model().cands, ...nor.model().deleted].some((c) => c.i === i && Math.round(c.x) === Math.round(st.cands[i].cx) && Math.round(c.y) === Math.round(st.cands[i].cy))) }));
   await check(JSON.stringify(taken.places) === JSON.stringify(saved.places) && taken.finder === saved.finder && taken.votes && JSON.stringify((await read(page)).forced) === JSON.stringify(kept.forced),
@@ -277,10 +279,10 @@ try {
   dev2 = newDevice({ keys: {
     [`nor-marks-v1:${seen.name}|${seen.finder}`]: JSON.stringify(old.marks), [`nor-edits-v1:${seen.name}|${seen.finder}`]: JSON.stringify(old.edits),
     [`nor-added-v1:${seen.name}`]: JSON.stringify(old.added), [`nor-areas-v1:${seen.name}`]: JSON.stringify(old.areas) } });
-  page = await open(dev2);
-  await unfold(page, "#tasks-box");
+  page = await open(dev2, false);
   await check(await page.evaluate(() => $("#gt-load-legacy").hidden), "what the older keys hold is not offered before Find Candidates has run");
-  await find(page);
+  await fromScratch(page, "#find");
+  await unfold(page, "#analysis-box");
   await page.waitForFunction(() => !$("#gt-load-legacy").hidden);
   const offer = await page.evaluate(() => ({ text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));
   await check(/^Load earlier edits/.test(offer.text) && /your earlier work in this browser/.test(offer.title) && (await read(page)).forced.length === 0 && (await keys(page)).length === 4,
@@ -322,9 +324,7 @@ try {
   const asDraft = async (f) => {
     await dev3.close();
     ({ dev: dev3, page } = await openWithDraft([{ study: "nor", sha256: f.image.sha256, name: f.image.name, saved: new Date().toISOString(), log: [], model: f, replay: "none" }]));
-    await unfold(page, "#tasks-box");
-    await page.click("#gt-load-draft");
-    await page.waitForFunction(() => st.meta?.drafted);
+    await continueDraft(page);
   };
   await asDraft(file);
   const loaded = await read(page);

@@ -61,7 +61,7 @@ def test_the_stage_is_the_study_files_when_it_is_one_of_the_five_and_else_develo
 
 def test_people_hold_the_three_shares_by_what_drive_lists(out):
     held = {p['email']: p['holds'] for p in out['people']['members']}
-    assert held == {'m@example.com': ['sees', 'manages'], 'v@example.com': ['sees', 'annotates'], 'o@example.com': ['annotates']}
+    assert held == {'m@example.com': ['sees', 'manages'], 'v@example.com': ['sees', 'analyses'], 'o@example.com': ['analyses']}
     assert out['people']['link'] is True
 
 

@@ -188,7 +188,7 @@ try {
     stayed: !!window.stayed, path: location.pathname, title: document.title, h1: document.querySelector("#title").textContent,
     image: !document.querySelector("#stage").hidden && [document.querySelector("#base").width, document.querySelector("#base").height].join(),
     file: document.querySelector("#file-name").textContent, unload: !document.querySelector("#unload").hidden,
-    loaded: !document.querySelector("#sb-load")?.classList.contains("now"), fixture: !!document.querySelector("#fx-box, #fx-result"),
+    loaded: !!shellForTests.steps.find((p) => p.name === "Load image")?.done, fixture: !!document.querySelector("#fx-box, #fx-result"),
     css: [...document.querySelectorAll("link[rel=stylesheet]")].map((l) => l.getAttribute("href")).filter((h) => h.includes("studies/")),
     channels: [...document.querySelectorAll("#channels label")].map((l) => l.textContent).join(),
     noHelp: !document.querySelector("#channels .help"), icon: document.querySelector("#favicon").href,
@@ -321,8 +321,8 @@ try {
   if (!ready.startsWith("Ready")) throw new Error("the real worker did not start: " + ready);
   await live.setInputFiles("#file", image);
   await live.waitForFunction(() => !document.querySelector("#fx-count").disabled);
+  if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before the first run");
   await fromScratch(live, "#fx-count");
-  if (await live.evaluate(() => window.__workers) !== 0) problems.push("Python started before Count");
   await live.evaluate(() => { document.querySelector("#fx-threshold").value = 100; });
   await live.click("#fx-count");
   await live.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));

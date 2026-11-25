@@ -56,7 +56,7 @@ try {
   const two = (x) => x.toFixed(2).replace(/^0/, "");
   await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
   const algos = await page.evaluate(() => ({ titles: [...$("#algorithm").options].map((o) => o.textContent), value: $("#algorithm").value,
-    about: $("#algorithm-about summary").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
+    about: $("#algorithm-about").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
     nested: !!$("#algorithm-note").querySelector("ul > li > ul > li"), bold: $("#algorithm-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
   const listed = ALGORITHMS.map((a) => { const q = quality.versions[a.key]; return `${a.icon} ${a.title} (P\u00a0${two(q.precision)}\u00a0·\u00a0R\u00a0${two(q.recall)})`; });
   check(algos.titles.join() === listed.join() && algos.value === ALGORITHMS[0].key, `Processing lists each algorithm with its icon, name, precision and recall, the default first: ${algos.titles}`);
@@ -69,7 +69,6 @@ try {
 
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
-  await fromScratch(page, "#vm-run");
   await page.evaluate(() => { $("#notice").hidden = true; });
   const before = await page.evaluate(() => ({ model: !$("#vm-review").hidden, tasks: !$("#vm-tasks").hidden,
     modes: [...document.querySelectorAll("#model-mode button")].filter((b) => !b.disabled).map((b) => b.dataset.v),
@@ -77,15 +76,14 @@ try {
   check(!before.model && !before.tasks && before.modes.join() === "", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
-  await page.selectOption("#algorithm", "v4");
-  await page.click("#vm-run");
+  await fromScratch(page, "#vm-run", { algorithm: "v4" });
   await page.waitForFunction(() => !$("#vm-review").hidden);
   const ran = await doc();
   check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
     `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
   check(await page.evaluate(() => window.vascular.model().view === "overlay"), "the model opens over the stack");
   check(await page.evaluate(() => !!($("#model-set").compareDocumentPosition($("#tasks-box")) & Node.DOCUMENT_POSITION_FOLLOWING) && !$("#tasks-box").hidden && !$("#vm-tasks").hidden),
-    "Ground Truth Tasks sits under Processing once a model is open");
+    "Analysis Tasks sits under the runner once a model is open");
 
   const view = () => page.evaluate(() => { const v = window.shellForTests.viewer.three; return { rot: v.S.rot.map((r) => [...r]), clip: v.S.clip && [...v.S.clip], held: !!v.S.held,
     mode: window.vascular.model().view, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
@@ -98,8 +96,8 @@ try {
   // the tasks are the stack's areas, a row each, 4 × 4 at first, the choice of how many first in the box
   t = await tasks();
   const r0 = await rows(), all = t.grid * t.grid;
-  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Save/.test(r0[all]),
-    `a row per area, 4 × 4 at first, then Submit: ${r0.join(" | ")}`);
+  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Upload/.test(r0[all]),
+    `a row per area, 4 × 4 at first, then Upload: ${r0.join(" | ")}`);
   check(await page.evaluate(() => $("#gt-bar").children.length === 16), "the bar has a part per area");
   check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
   check(await page.evaluate(() => !$("#m-draw") && !$("#m-lasso") && ![...document.querySelectorAll("button")].some((b) => /Draw a missed vessel|No missed vessels|Area done|Lines are right|Mark a damaged area/.test(b.textContent)) && !/Hold Ctrl/.test(document.body.textContent)),
@@ -434,17 +432,17 @@ try {
   t = await tasks();
 
   await page.click("#gt-submit");
-  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export").disabled), "Save, the last task, exports once there are verdicts");
+  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export")), "Upload, the last task, opens its dialog, which has no export of its own");
   const open = await page.evaluate(() => $("#gt-dlg").textContent);
   check(/Areas: 3 of 4 left/.test(open), `its checklist says how many areas are left: ${open.replace(/\s+/g, " ").slice(0, 200)}`);
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);
+  await page.click("#gt-close");
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
     && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
   // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
   const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
   check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
-  await page.click("#gt-close");
 
   await page.keyboard.press("Control+z");
   check(!(await doc()).reviewed_regions.length && !(await doneRows()).length, "Undo takes the area back");

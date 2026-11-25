@@ -56,10 +56,10 @@ const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ")
 const MASKED = [[[0, 0], [60, 0], [60, 60], [0, 60]]];
 // the pictures off the site the page asked for
 const pictures = [];
-// stage: the study's as served, in place of the committed one
-async function open(stage) {
+// stage: the study's as served, in place of the committed one; more: other keys of its study.json, the same way
+async function open(stage, more = {}) {
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", stage ? { stage } : {})
+  const device = w.device().signedInAs(tagger).with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", { ...(stage ? { stage } : {}), ...more })
     .keeps({ ["nor-mask-v1:" + path.basename(image)]: JSON.stringify(MASKED) });
   const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
@@ -70,9 +70,6 @@ async function open(stage) {
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
-  // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
-  await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Save is off");
-  await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await page.evaluate(() => { $("#notice").hidden = true; });
   return page;
@@ -83,6 +80,10 @@ const shown = (page, sel) => page.evaluate((s) => { const e = document.querySele
 let page = await open();
 await check(await shown(page, "#tasks-box") && await shown(page, "#summary-box"), "Ground Truth Tasks is in the left bar, beside Summary, the image carrying a model");
 await check(!(await shown(page, "#switch")), "no view switch over the image");
+// req/shell/study/article: the study's article, a link in the header that opens apart from the page
+const article = await page.$eval("#article-link", (a) => ({ shown: a.getClientRects().length > 0, href: a.href, target: a.target, rel: a.rel, text: a.textContent.trim() }));
+await check(article.shown && article.href === "https://docs.google.com/document/d/1bv3iQPHhjCzYWPgaxIca8qeHcz1cdgII0L1uc7PhdbU/edit?tab=t.0" && article.target === "_blank" && /noopener/.test(article.rel) && article.text === "Article",
+  "the header links to the study's article, opening in a tab of its own", article);
 const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
 await check(JSON.stringify(tasks) === JSON.stringify(["pass", "missed", "submit"]), "the tasks in order: the finalists, the missed NoRs, Submit", tasks);
 await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Save is the last task");
@@ -139,7 +140,7 @@ await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/
 await check(s.bar.length === 2 && s.bar[0].grow === P && s.bar[1].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
 // clicking a task goes to its next item along the walk, after the one open
-await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+await page.click('#gt-counters > [data-task="pass"]');
 const first = [...W.slice(1), W[0]].find((x) => x.t === "pass");
 s = await now();
 await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's next finalist, its row open", s);
@@ -169,11 +170,21 @@ const mark = (i) => page.evaluate((i) => {
   const g = document.querySelector(`#overlay g[data-i="${i}"]`), out = g.querySelector("path:not(.red)"), cs = getComputedStyle(out);
   const c = nor.candOf(i), holes = [...document.querySelectorAll("#done-mask-clip polygon")].map((p) => { const q = p.getAttribute("points").split(" ").map((v) => v.split(",").map(Number)), xs = q.map((v) => v[0]), ys = q.map((v) => v[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]; });
   const cut = holes.some(([x, y, w, h]) => x <= c.bb[0] - 2 + 1e-6 && y <= c.bb[1] - 2 + 1e-6 && x + w >= c.bb[2] + 2 - 1e-6 && y + h >= c.bb[3] + 2 - 1e-6);
-  return { cls: g.getAttribute("class"), stroke: cs.stroke, opacity: +cs.strokeOpacity, outline: cs.display, num: getComputedStyle(g.querySelector(".num")).display, cut };
+  const seen = (e) => { for (; e && e.id !== "overlay"; e = e.parentElement) if (getComputedStyle(e).display === "none") return false; return true; };
+  const shownLines = [...g.querySelectorAll(".lines line")].filter(seen);
+  return { cls: g.getAttribute("class"), stroke: cs.stroke, opacity: +cs.strokeOpacity, width: cs.strokeWidth, outline: cs.display, num: getComputedStyle(g.querySelector(".num")).display, cut,
+    cross: shownLines.length, red: shownLines.filter((l) => l.classList.contains("r")).length, glyphs: [...g.querySelectorAll("tspan")].filter(seen).length };
 }, i);
 const second = W.filter((x) => x.t === "pass")[1];
 let m = await mark(+second.key.slice(2));
-await check(/\btodo\b/.test(m.cls) && m.opacity <= 0.4 && !m.cut && m.num === "none" && m.stroke === "rgb(255, 255, 255)", "a candidate waiting is a faint white outline, no number", m);
+await check(/\btodo\b/.test(m.cls) && Math.abs(m.opacity - 0.8) < 0.01 && m.width === "1px" && !m.cut && m.num === "none" && m.stroke === "rgb(255, 255, 255)" && m.cross === 2 && !m.red && !m.glyphs,
+  "a candidate waiting is a thin white outline, 80% opaque, with the cross of its length and width and no glyph", m);
+// req/shell/ground-truth/area-map: while tagging the minimap shows the areas, the walk's own marked
+const areaMap = () => page.evaluate(() => { const mm = $("#minimap"), b = [...mm.querySelectorAll(".mm-areas button")];
+  return { shown: mm.checkVisibility(), title: mm.querySelector(".mm-title").textContent, cells: b.length, now: b.filter((x) => x.classList.contains("now")).map((x) => +x.dataset.area),
+    done: b.filter((x) => x.classList.contains("done")).map((x) => +x.dataset.area) }; });
+let am = await areaMap();
+await check(am.shown && am.title === "Areas" && am.cells === 100 && am.now.length === 1 && am.now[0] === first.a && !am.done.length, "while tagging the minimap shows the 100 areas, the walk's own marked, none done", am);
 const rung = await ring();
 await check(rung.shown && rung.stroke === "rgb(255, 212, 0)", "the current candidate has a yellow ring", rung);
 // the view come to rest where it was sent: the image's point x, y at its centre, or as near as the image's edge lets it
@@ -264,7 +275,7 @@ await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySe
 
 // a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
 // tagger's own switch puts it away first
-await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
+await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));
@@ -310,6 +321,15 @@ await page.click("#area-ok");
 s = await now();
 await check((await holes()).some((h) => same(h, rectOf(A))) && s.rows[1].startsWith("1/100 Areas") && s.cur === await nextOpen("a:" + A),
   "No missed NoRs here cuts the whole area out and goes on to the walk's next item", s);
+am = await areaMap();
+await check(am.done.includes(A) && am.now[0] === await page.evaluate(() => st.area), "the area done is marked done on the minimap, the walk's next one current", am);
+// a click on an area of the minimap opens it; the walk then goes back to where it was
+{
+  const was = await page.evaluate(() => st.cur), far = await page.evaluate(() => nor.walk().findLast((x) => !x.done).a);
+  await page.click(`#minimap .mm-areas button[data-area="${far}"]`);
+  await check(await page.evaluate(() => st.area) === far && same(await frame(), rectOf(far)) && (await areaMap()).now[0] === far, "clicking an area on the minimap opens it, framed", await now());
+  await page.evaluate((k) => nor.goTo(k), was);
+}
 
 // req/shell/ground-truth/areas: the shell's Areas menu, NoR starting at 10 × 10; another count walks again from its first
 // area not done, and a check stays on the pixels it covers
@@ -347,10 +367,10 @@ const key = async (code, o = {}) => {
 };
 // the key a button shows at its end, while it is shown
 const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
-// the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
+// the legend's rows while tagging: the one view of the whole image, the NoRs over it shown or not, on 1; the Show menu's other rows
+// have no row and no key; the buttons' keys on the buttons
 const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
-const VIEWS = ["Finalists 1", "Added NoRs 2"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 3", "Frame the area 4"];
-const expectRows = async () => TAGGING_VIEWS.join(", ");
+const expectRows = async () => "NoRs 1";
 const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4"].map((code) => ({ code }));
 const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
 let took;
@@ -358,7 +378,7 @@ await page.evaluate(() => document.activeElement?.blur());
 await page.evaluate((k) => nor.goTo(k), first.key);
 const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
 await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
-await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
+await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists NoRs alone, on 1, with F, J and S on their buttons", await legendRows(page));
 const heard = await studyTakes(page, KEYS);
 await check(heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
 s = await now();
@@ -415,18 +435,26 @@ took = await key("Space");
 s2 = await now();
 await check(okChip === "Space" && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2),
   "Space is No missed NoRs here, the area checked and the walk on", { okChip, s2 });
-// a view's number key switches its Show menu row, its legend row filled blue while it is held and while the view is on
+// 1 shows and hides the NoRs over the image, the finalists and the added ones together, its legend row filled blue while it is
+// held and while they show; 2, 3 and 4 switch nothing
+const norsShown = () => page.evaluate(() => ({ pass: $("#show-gt-pass").checked, added: $("#show-gt-added").checked, off: $("#overlay").classList.contains("no-gt-pass") && $("#overlay").classList.contains("no-gt-added"),
+  cut: $("#show-gt-cut").checked, frame: $("#show-gt-frame").checked }));
 await page.keyboard.down("Digit1");
-const heldRow = (await legend(page))[0], passOff = await page.evaluate(() => !$("#show-gt-pass").checked && $("#overlay").classList.contains("no-gt-pass"));
+const heldRow = (await legend(page))[0], hid = await norsShown();
 await page.keyboard.up("Digit1");
 const offRow = (await legend(page))[0];
-await check(passOff && heldRow.lit && !offRow.lit, "1 turns Finalists off: its row blue while 1 is held, grey once let go", { passOff, heldRow, offRow });
-await page.click("#key-show-pass");
-await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
+await check(!hid.pass && !hid.added && hid.off && heldRow.lit && !offRow.lit, "1 hides the NoRs, finalists and added alike: its row blue while 1 is held, grey once let go", { hid, heldRow, offRow });
+for (const k of ["Digit2", "Digit3", "Digit4"]) await page.keyboard.press(k);
+const others = await norsShown();
+await check(others.cut && others.frame && !others.pass && !others.added, "2, 3 and 4 switch nothing: cutting out what is done and framing the area have no key", others);
+await page.click("#key-show-nors");
+const back = await norsShown();
+await check(back.pass && back.added && !back.off && (await legend(page))[0].lit, "clicking its row shows the NoRs again, its row blue", back);
 await page.close();
 
 // ---- a Review study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
-page = await open("Review");
+page = await open("Review", { article: null });
+await check(!(await shown(page, "#article-link")), "a study naming no article shows no link to one");
 await check(await shown(page, "#summary-box") && !(await shown(page, "#tasks-box")) && !(await shown(page, "#switch")) && await shown(page, "#show-menu"),
   "a Review study has its summary and its Show menu, no tasks and no switch to an item view");
 await check(await page.evaluate(() => !!document.querySelector("#overlay .mask-marks .edge")), "the summary's mask is drawn with the summary");

@@ -315,8 +315,8 @@ try {
   // each study lists only the images opened in it
   const inStudy = async (id) => {
     await page.goto(origin + "/web/index.html?study=" + id);
-    // the steps are drawn once the study has mounted, as the recents are
-    await page.waitForFunction(() => document.querySelector("#sb-steps .crumb"));
+    // the steps are made once the study has mounted, as the recents are drawn
+    await page.waitForFunction(() => shellForTests.steps.length);
     return page.evaluate(() => document.querySelectorAll("#image-menu .recent").length);
   };
   const other = await inStudy("vascular");
