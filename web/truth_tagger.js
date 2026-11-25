@@ -2,7 +2,7 @@
 // (every `.gt-access` its panels hold) saying when the user may not save to it and how to get there
 // (req/shell/annotate/no-save), Save (req/shell/extractions/save) and the list of an image's extractions (req/shell/extractions/list).
 "use strict";
-import { folderOf, save, held, files, rows, marksOf, own, personKey } from "./truth_folders.js";
+import { folderOf, save, held, files, filesIn, subfolderId, rows, marksOf, own, personKey, personFile } from "./truth_folders.js";
 import { asLoaded } from "./as_loaded.js";
 
 const SAY = {
@@ -69,11 +69,22 @@ export function truthTagger({ account, remote, place, image, on, may }) {
     // the image's extractions as the list shows them (truth_folders.js rows), and the user's own among the files, whether the list
     // shows it or not, as files() gives it, or null: the study file read afresh unless told not to, for its marks follow the latest, then two listings
     // and no extraction read. member: whether the user may read the study's root, which the list's names and unmarked rows follow
-    async list(img, { member, fresh = true }) {
+    // sub: the image's subfolder where holds() found it, which leaves one listing
+    async list(img, { member, fresh = true, sub = null }) {
       const file = await studyFile({ fresh }), folder = folderOf(file);
       if (!folder) return { rows: [], mine: null };
-      const all = await files(reader, folder, img), key = account.email() ? await personKey(account.email()) : null, own = key && all.find((f) => f.by === key);
+      const all = sub ? await filesIn(reader, sub) : await files(reader, folder, img), key = account.email() ? await personKey(account.email()) : null, own = key && all.find((f) => f.by === key);
       return { rows: rows({ files: all, marks: marksOf(file?.marks, img.sha256), key, member }), mine: own || null };
+    },
+    // the id of the image's subfolder of the extractions folder, null where it has none or the study has no folder: one request
+    async holds(img) {
+      const folder = await where();
+      return folder ? subfolderId(reader, folder, img) : null;
+    },
+    // the user's own extraction in the image's subfolder already found, or null: its one listing
+    async mineIn(sub) {
+      const email = account.email(), name = email && await personFile(email);
+      return name ? (await filesIn(reader, sub)).find((f) => f.name === name) || null : null;
     },
     // the user's own extraction of the image open, its entry as truth_folders.js files() gives it, or null: two listings and no
     // file read, for an image from the remote store only (req/shell/ground-truth/draft-offer)

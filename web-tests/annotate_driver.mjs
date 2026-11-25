@@ -22,7 +22,8 @@ const OTHER = "someone@example.com", OWNER = "owner@acme.example";
 
 // the owner's extraction of IMAGE on Drive, marked GT in the study file, and the user's own, as the page's own saves are made
 const bytes = fs.readFileSync(image), sha = createHash("sha256").update(bytes).digest("hex");
-const sub = w.of(GT.extractions).folder(`${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`, { bySite: true });
+const subName = `${path.basename(image).replace(/\.[^.]*$/, "")}__${sha.slice(0, 8)}`;
+const sub = w.of(GT.extractions).folder(subName, { bySite: true });
 const seed = async (who, marks, bySite = false) => sub.holds({ name: await personFile(who),
   bytes: Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", tagger: who, image: { name: path.basename(image), sha256: sha },
     labels: [{ threshold: 100, count: 7 }], marks: marks.map(([x, y], k) => ({ id: "m" + (k + 1), x, y })), checked: true })) }, { bySite });
@@ -48,6 +49,8 @@ const holds = (ctx) => ctx.addInitScript(() => {
 });
 // how many times the store was asked to list the folder
 const listings = (id) => drive.calls.filter((c) => c.kind === "list" && c.parent === id).length;
+// how many times the store was asked whether the extractions folder holds a subfolder of that name: the one request an image's opening makes
+const askedStore = () => drive.calls.filter((c) => c.kind === "list" && c.parent === GT.extractions && c.named === subName).length;
 const annotating = (page) => page.evaluate(() => document.documentElement.hasAttribute("data-annotating"));
 const model = (page) => page.evaluate(() => window.fixture?.model() ?? null);
 const loaded = (page, name) => page.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), name);
@@ -74,18 +77,18 @@ await opened(page);
 await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done" && !$("#annotate-load").disabled);
 await check(JSON.stringify(await choices(page)) === BOTH, "after the image loads, the Analysis box offers Start and Load, no local work to continue", await choices(page));
 await check(await page.evaluate(() => !document.querySelector("#annotate-ask") && !$("#annotate-say").checkVisibility()), "with no line asking how, and none saying where the analysis is from");
-await check(listings(sub.id) === 1, "the image's Analysis Files were listed once as it opened", listings(sub.id));
+await check(askedStore() === 1 && listings(sub.id) === 0, "as the image opened the store was asked once, in one request, whether it has Analysis Files, and listed none", { asked: askedStore(), listed: listings(sub.id) });
 await check(!(await shown(page, "#processing-box")) && !(await shown(page, "#fx-count")) && !(await annotating(page)),
   "the algorithm runner is not there, and the page is not in annotation mode", { runner: await shown(page, "#fx-count") });
 await check(!(await shown(page, "#tasks-box")) && await page.evaluate(() => $("#summary-box").classList.contains("waits") && $("#summary-box").classList.contains("folded")),
   "with no model on the image, there are no Analysis Tasks and Summary waits, folded");
 
-// Load: a dialog listing the image's Analysis Files, one chosen and loaded read-only, no tool; the press lists nothing again
+// Load: a dialog listing the image's Analysis Files, one chosen and loaded read-only, no tool; the first press lists them, once
 await page.click("#annotate-load");
 await page.waitForFunction(() => $("#load-dlg").open && document.querySelectorAll("#annotate-list button[data-key]").length === 2);
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.dataset.key));
 await check(rows.join() === [mineFile.id, ownersFile.id].join(), "Load opens a dialog listing the image's Analysis Files: the user's own, then the marked", rows);
-await check(listings(sub.id) === 1, "and pressing it asked the store for no second list", listings(sub.id));
+await check(listings(sub.id) === 1 && askedStore() === 1, "the press listed the image's subfolder once, asking nothing else of the extractions folder", { listed: listings(sub.id), asked: askedStore() });
 await check(await page.evaluate(() => $("#load-go").disabled && $("#load-cancel").textContent === "Cancel" && $("#load-go").textContent === "Load"), "its actions are Cancel and Load, Load waiting for a choice");
 await page.click("#load-cancel");
 await check(await page.evaluate(() => !$("#load-dlg").open) && !(await shown(page, "#annotate-edit")), "Cancel closes it with nothing loaded");
@@ -146,13 +149,13 @@ await check(await page.evaluate(() => $("#annotate-clear").closest(".sec-head") 
 let said = await ask(page, false, () => page.click("#annotate-clear"));
 await check(/2 unsaved actions/.test(said || "") && await annotating(page) && (await model(page)) !== null && (await storedDrafts(page)).length === 1,
   "reset analysis asks, naming the unsaved actions lost, and Cancel changes nothing", said);
-const listedAtReset = listings(sub.id);
+const askedAtReset = askedStore(), listedAtReset = listings(sub.id);
 await ask(page, true, () => page.click("#annotate-clear"));
 await page.waitForFunction(() => !document.documentElement.hasAttribute("data-annotating") && window.fixture?.model() === null && !!window.shellForTests.page.get("image") && !$("#annotate-load").disabled);
 await check(!(await annotating(page)) && (await model(page)) === null && JSON.stringify(await choices(page)) === BOTH
   && (await storedDrafts(page)).length === 0 && writes.length === before,
   "accepted, the page is back just after loading, the device's draft is gone and Drive was not written", { choices: await choices(page), records: (await storedDrafts(page)).length, writes: writes.length - before });
-await check(listings(sub.id) === listedAtReset + 1, "the image open again was listed once more: nothing of the store is kept between openings", listings(sub.id) - listedAtReset);
+await check(askedStore() === askedAtReset + 1 && listings(sub.id) === listedAtReset, "the image open again asked the store once more: nothing of it is kept between openings", { asked: askedStore() - askedAtReset, listed: listings(sub.id) - listedAtReset });
 await page.context().close();
 
 // ---- the device holds a draft: Continue local work, only on that image
@@ -181,10 +184,10 @@ await page.context().close();
 // ---- who may not upload: Start and the tools, no Upload, Download Analysis on the box's header, a line saying what to do;
 // signed out, the store is asked for no list as the image opens: Load asks at its press
 page = await open(false, { prepare: standInDrive });
-const listedBefore = listings(sub.id);
+const listedBefore = listings(sub.id), askedBefore = askedStore();
 await opened(page);
-await check(JSON.stringify(await choices(page)) === BOTH && listings(sub.id) === listedBefore, "signed out, Start and Load are offered, and the store was asked for no list of the image's Analysis Files as it opened",
-  { choices: await choices(page), listed: listings(sub.id) - listedBefore });
+await check(JSON.stringify(await choices(page)) === BOTH && listings(sub.id) === listedBefore && askedStore() === askedBefore, "signed out, Start and Load are offered, and the store was asked nothing of the image's Analysis Files as it opened",
+  { choices: await choices(page), listed: listings(sub.id) - listedBefore, asked: askedStore() - askedBefore });
 await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 1);
 await check(listings(sub.id) === listedBefore + 1, "Load's press lists them, the marked one alone for someone signed out", listings(sub.id) - listedBefore);

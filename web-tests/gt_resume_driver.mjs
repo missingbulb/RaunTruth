@@ -189,7 +189,7 @@ await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
 await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
 await until(page, () => document.documentElement.dataset.gtLookup === "done");
 await quiet(page, seen);
-await check(JSON.stringify(seen.lists.filter((id) => id === GT.extractions || id === subFolder.id)) === JSON.stringify([GT.extractions, subFolder.id]) && !(await offer(page)).shown,
-  "outside annotation mode the image's opening lists the extractions folder and the image's subfolder once each, for Load, and offers no submission", seen.lists);
+await check(JSON.stringify(seen.lists.filter((id) => id === GT.extractions || id === subFolder.id)) === JSON.stringify([GT.extractions]) && !(await offer(page)).shown,
+  "outside annotation mode the image's opening asks the extractions folder once, for Load, lists no subfolder and offers no submission", seen.lists);
 await page.context().close();
 await done(0);

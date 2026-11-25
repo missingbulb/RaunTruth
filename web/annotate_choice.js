@@ -27,7 +27,7 @@ export function annotateChoice({ $, remote, start, local, load, pick, edit, clea
   const title = (el, t) => { if (el.dataset.onlineTitle === undefined) el.title = t; else el.dataset.onlineTitle = t; };
   return {
     // v: {shown, annotating, loads: whether the stage lets an Analysis File be loaded, draft: {saved, count} | null,
-    // list: null | {busy} | {failed} | {rows: [{key, label, detail, group}]}, why: what holds Load while the list cannot be
+    // list: null | {busy} | {failed} | {sub}: the store has some, not listed yet | {rows: [{key, label, detail, group}]}, why: what holds Load while the list cannot be
     // read, asks: the list is read at Load's press, so Load is on until it is known, viewing: the line saying which Analysis File is shown read-only, or null, say: a line of the mode, or ""}
     draw(v) {
       $("#annotate-choices").hidden = v.annotating;
@@ -36,8 +36,8 @@ export function annotateChoice({ $, remote, start, local, load, pick, edit, clea
       else $("#annotate-local").removeAttribute("title");
       const l = v.list, rows = l?.rows || [], load = $("#annotate-load");
       load.hidden = !v.loads;
-      load.disabled = !(rows.length || (v.asks && !v.why && !l?.rows));
-      title(load, rows.length ? `Load one of this image's Analysis Files from ${remote.short}`
+      load.disabled = !(rows.length || l?.sub || (v.asks && !v.why && !l?.rows));
+      title(load, rows.length || l?.sub ? `Load one of this image's Analysis Files from ${remote.short}`
         : l?.busy ? "Looking for Analysis Files of this image…" : l?.failed || (l?.rows ? `No Analysis File of this image on ${remote.short} yet.` : v.why || ""));
       const button = (r) => {
         const b = text("button", r.label, "item"); b.type = "button"; b.dataset.key = r.key; b.setAttribute("role", "option");

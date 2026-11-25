@@ -44,6 +44,11 @@ export async function files(reader, folder, image) {
   return sub ? (await reader.all(sub.id)).map(entry).filter(Boolean) : [];
 }
 
+// the id of the image's subfolder of folder, null where it has none: one request, where reader.folderNamed(folder, name) asks for it by name
+export const subfolderId = (reader, folder, image) => reader.folderNamed(folder, subfolderName(image.name, image.sha256));
+// the extractions in a subfolder already found, as files() gives them: its one listing
+export const filesIn = async (reader, sub) => (await reader.all(sub)).map(entry).filter(Boolean);
+
 // the person's own extraction of the image, as files() lists it, or null
 export async function own(reader, folder, image, email) {
   const mine = await personFile(email);

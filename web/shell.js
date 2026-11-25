@@ -2040,43 +2040,60 @@ function showingTruth(on) {
 const isMember = () => !!manifest && signIn.signedIn() && !!memberIds?.includes(manifest.id);
 // The extractions of the image open that the store holds (req/shell/extractions/list), mine, then the marked, then the others, each
 // {key, label, detail, group, read() -> {doc, label}}; and the user's own file among them, null for none
-async function storeAnnotations(fresh) {
+async function storeAnnotations(fresh, sub) {
   const img = { name: st.fileName, sha256: st.sha };
   if (!remote.owns(st.source) || !st.sha) return { rows: [], mine: null };
   if (signIn.signedIn()) await listedReady;
-  const { rows, mine } = await truth.list(img, { member: isMember(), fresh });
+  const { rows, mine } = await truth.list(img, { member: isMember(), fresh, sub });
   return { mine, rows: rows.map(rowOf) };
 }
 function rowOf(r) {
   return ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
     read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your Analysis File" : `the Analysis File ${r.label}` }) });
 }
-// listedFor: the image open, by its SHA-256, once its list is read, with the user's own file in it, so that the user's own looked
-// up as they start to annotate asks the store nothing more; a save, or another opening, lets it go
+// listedFor: what the store has said of the image open, by its SHA-256: sub, its subfolder's id or null for none, once its
+// opening asked; mine, the user's own file there or null, once a listing read it; a save, or another opening, lets it go
 let storeRows = new Map(), listing = 0, listedFor = null;
-// fresh: the study file read again for its marks, as a press asks; an image opening takes the minute's copy
-async function listAnnotations(fresh = true) {
-  const mine = ++listing, sha = st.sha;
+// Load's press: the image's subfolder listed, the study file read again for its marks
+async function listAnnotations() {
+  const mine = ++listing, sha = st.sha, sub = listedFor?.sha === sha ? listedFor.sub : null;
   storeList = { busy: true }; drawAnnotate();
   let rows, own;
-  try { ({ rows, mine: own } = await storeAnnotations(fresh)); } catch (e) {
+  try { ({ rows, mine: own } = await storeAnnotations(true, sub)); } catch (e) {
     console.warn("the Analysis Files were not listed:", e);
     if (mine === listing) { storeList = { failed: `The Analysis Files of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
     return;
   }
   if (mine !== listing) return;
-  listedFor = { sha, rows, mine: own };
+  listedFor = { sha, sub, mine: own };
   storeRows = new Map(rows.map((r) => [r.key, r]));
   storeList = { rows }; drawAnnotate();
+}
+// the user's own Analysis File of the image open, or null: from what a listing read, else one listing of the subfolder its opening found
+function ownFile() {
+  const l = listedFor;
+  if (l?.sha !== st.sha) return truth.mine();
+  if (l.mine !== undefined || !l.sub) return Promise.resolve(l.mine ?? null);
+  return truth.mineIn(l.sub).then((m) => { l.mine = m; return m; });
 }
 // why the store cannot be asked for the image's Analysis Files, "" where it can
 const listHeld = () => (!remote.owns(st.source) ? `Only an image from ${remote.label} has Analysis Files there.`
   : document.documentElement.classList.contains("offline") ? "Needs the internet: you are offline." : "");
-// The image's Analysis Files asked of the store as it opens (req/shell/extractions/list), so that Load is on only where there is
-// one to load: once as an image opens, signed in and online. Signed out the store is asked at Load's press, as it was.
-function wantList() {
+// Whether the store has Analysis Files of the image, asked as it opens (req/shell/extractions/list), so that Load is on only
+// where it has: one request, signed in and online. Signed out the store is asked at Load's press, as it was.
+async function wantList() {
   if (!manifest || !stageAllows("annotate") || data.on || !st.img || !st.sha || annotating || storeList || listHeld() || !signIn.signedIn()) return;
-  listAnnotations(false);
+  const mine = ++listing, sha = st.sha;
+  storeList = { busy: true }; drawAnnotate();
+  let sub;
+  try { sub = await truth.holds({ name: st.fileName, sha256: sha }); } catch (e) {
+    console.warn("the store was not asked for the image's Analysis Files:", e);
+    if (mine === listing) { storeList = { failed: `The Analysis Files of this image could not be looked up: ${e.message || e}` }; drawAnnotate(); }
+    return;
+  }
+  if (mine !== listing) return;
+  listedFor = { sha, sub };
+  storeList = sub ? { sub } : { rows: [] }; drawAnnotate();
 }
 // a stored annotation drawn read-only through the study's showTruth, its final results alone
 async function viewAnnotation(key) {
@@ -2744,7 +2761,7 @@ const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, no
   image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
   // offline there is nothing to ask the store
   submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null)
-    : listedFor?.sha === st.sha ? Promise.resolve(listedFor.mine) : truth.mine()), readSubmission: (id) => truth.read(id),
+    : ownFile()), readSubmission: (id) => truth.read(id),
   version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.

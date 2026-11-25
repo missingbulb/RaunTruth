@@ -652,17 +652,19 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_python_files.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/extractions/list` An image opening lists its Analysis Files, so Load is on only where there is one; its dialog labels each: mine, then marked (GT, official), then others folded; one loaded opens read-only with Edit this analysis.
+- `req/shell/extractions/list` An image opening asks the store once whether it has Analysis Files, so Load is on only where it has; Load's press lists them; its dialog labels each: mine, then marked (GT, official), then others folded; one loaded opens read-only with Edit this analysis.
   <details>
 
-  Changed by the owner on 2026-11-24, who approved the call: as an image from the store opens, signed in and online,
-  the page asks the store once for the image's Analysis Files, by two listings (the extractions folder, then the
-  image's subfolder of it) and the minute's copy of the study file for its marks, reading no file; Load is on only where
-  that found one to list, and its dialog shows what was found, asking nothing more. What the opening read also answers
-  whether the user has a file of their own there (`req/shell/ground-truth/draft-offer`), so starting to annotate asks
-  nothing again. Nothing of it is kept between openings. Signed out, the store is not asked as an image opens: Load
-  stays on and asks at its press, as it did, reading the study file afresh. An image from this computer, or one opened
-  offline, has Load off, saying why.
+  Set by the owner on 2026-11-25, who allowed one request as an image opens: as an image from the store opens, signed
+  in and online, the page asks the store once, in one request, whether the extractions folder holds the image's
+  subfolder: a listing of that folder narrowed to the subfolder's name and to folders. Drive answers no query reaching
+  two levels down, so the files themselves cannot be had in that one request. Load is on where the subfolder is there.
+  Load's press lists the subfolder, one listing, with the study file read afresh for its marks, and its dialog shows
+  what that found; a subfolder found to hold nothing to list turns Load off, saying so. Starting to annotate looks for
+  the user's own file (`req/shell/ground-truth/draft-offer`) in that same subfolder: one listing, none where Load's
+  press already made it, and none at all where the image has no subfolder. Nothing of it is kept between openings.
+  Signed out, the store is not asked as an image opens: Load stays on and asks at its press, as it did. An image from
+  this computer, or one opened offline, has Load off, saying why.
 
   Set by the owner on 2026-11-21. Load annotation from Drive (`req/shell/annotate/choice`) lists, from the
   extractions folder's listing and the image's subfolder's, two in all and no file read, every extraction of the image:

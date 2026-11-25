@@ -176,7 +176,7 @@ export async function previewsFolder({ reader, writer, root }) {
 // The study on show's place in the remote store, for the page: remote the store, manifest() the study.
 // Its reads are the store's own, as the signed-in user where anyone is (req/shell/drive/credentials).
 export function studyPlace(remote, manifest) {
-  const reader = { all: (id) => remote.all(id), text: async (id) => new TextDecoder().decode((await remote.file(id, SETTINGS)).bytes) };
+  const reader = { all: (id) => remote.all(id), folderNamed: (folder, name) => remote.folderNamed(folder, name), text: async (id) => new TextDecoder().decode((await remote.file(id, SETTINGS)).bytes) };
   const root = () => remote.study(manifest()).root;
   const settings = async ({ fresh = false } = {}) => (root() ? read(reader, root(), { fresh }) : null);
   // the Previews folder's listing, once a minute at most: {at, folder, items}
