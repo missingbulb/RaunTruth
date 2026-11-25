@@ -26,6 +26,7 @@ import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
 import { account, SIGNED_IN, SIGNED_IN_LABEL } from "./account.js";
 import { remote } from "./drive.js";
+import { networkCalls } from "./network_calls.js";
 import { members, offers, released } from "./members.js";
 import { STAGES, LIGHT, WHAT, NEXT, stageAllows as allows, stageOf, gates, lines as stageLines } from "./stages.js";
 import { settingsDialog } from "./settings_dialog.js";
@@ -115,6 +116,20 @@ const signIn = account({
 });
 // signed in, the remote store is read as the user (req/shell/drive/credentials)
 remote.use(signIn);
+// the calls to other servers in flight, shown in the status bar (req/shell/status-bar/calls)
+const calls = networkCalls({ bar: $("#sb-calls"), servers: {
+  store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
+  python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
+  site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
+} });
+remote.watched((sending) => calls.begin("store", "", { sending }));
+// Python and its packages coming in, from when its thread starts until it says it is ready or fails
+let pythonComing = null;
+function pythonLoads(on, failed) {
+  $("#spin").classList.toggle("on", on);
+  if (on) pythonComing ||= calls.begin("python", "Python and its packages");
+  else if (pythonComing) { pythonComing(failed ? new Error("Python did not load") : undefined); pythonComing = null; }
+}
 const remoteHint = () => { $("#remote-hint").textContent = remote.words.hint(signIn.signedIn()); };
 // the remote store's name, words and logo, where the page shows them
 $("#logos").insertAdjacentHTML("afterbegin", remote.logo.symbol);
@@ -539,7 +554,10 @@ function showAccess() {
   const manage = mayManage() && !setupOffline();
   const link = $("#open-setup");
   link.hidden = !manage;
-  link.textContent = SETUP ? "Leave Study Setup…" : "Study Setup…";
+  // Study Setup opens in a page of its own, and says so; leaving it stays in this one
+  link.querySelector(".word").textContent = SETUP ? "Leave Study Setup…" : "Study Setup…";
+  link.querySelector(".new-page").toggleAttribute("hidden", SETUP);
+  if (SETUP) { link.removeAttribute("target"); link.removeAttribute("rel"); } else { link.target = "_blank"; link.rel = "noopener"; }
   link.setAttribute("href", SETUP ? studyAddress(manifest.id) : `setup?study=${encodeURIComponent(manifest.id)}`);
   if (SETUP) { setupLive ||= manage; data.open(manage); setupNote(manage); }
   $("#gt-submit").hidden = !maySave();
@@ -740,7 +758,7 @@ async function studyAreas(source) {
 // one of the study's Python actions; its answer reaches the study's result hook. Python starts with the first, and is
 // handed the image's file as it is stored before any (req/shell/python/file-bytes)
 function call(action, args, echo) {
-  if (!st.worker) { $("#spin").classList.add("on"); pythonWorker(); }
+  if (!st.worker) { pythonLoads(true); pythonWorker(); }
   if (st.kept && st.held !== st.kept) {
     const bytes = st.kept.bytes.slice(0);
     st.worker.postMessage({ type: "open", name: st.kept.name, bytes }, [bytes]);
@@ -755,7 +773,7 @@ function call(action, args, echo) {
 const started = [];
 function pythonReady() {
   if (st.ready) return Promise.resolve();
-  if (!st.worker) { $("#spin").classList.add("on"); pythonWorker(); }
+  if (!st.worker) { pythonLoads(true); pythonWorker(); }
   return new Promise((ok, bad) => started.push({ ok, bad }));
 }
 // the run a batch waits on, ended by this when Python answers it with an error
@@ -794,7 +812,7 @@ const ended = (m) => (m.type === "result" || m.type === "error") && unloadIfDone
 // memory freed, and the next call starts it again and hands it the image again
 function unloadIfDone() {
   if (!unloading.checked || !st.worker || pyCalls.length) return;
-  st.worker.terminate();
+  st.worker.terminate(); pythonLoads(false);
   Object.assign(st, { worker: null, held: null, ready: false, heap: null, files: 0 });
   statusBar();
 }
@@ -803,14 +821,14 @@ function handle(m) {
   else if (m.type === "error") {
     // the request that failed is over: its button can be pressed again
     study.error?.();
-    if (!st.ready) { st.failed = true; $("#spin").classList.remove("on"); }
+    if (!st.ready) { st.failed = true; pythonLoads(false, true); }
     for (const w of started.splice(0)) w.bad(new Error(m.text));
     runFailed?.(new Error(m.text));
     // what being offline stops is said plainly: the online icon already says why (req/shell/offline/default)
     if (m.offline) status(m.text); else status("Error: " + m.text, true);
     if (OUT_OF_MEMORY.test(m.text)) memoryTip(true);
   } else if (m.type === "ready") {
-    st.ready = true; st.readyInfo = m.info; studyCode = m.code ?? null; $("#spin").classList.remove("on");
+    st.ready = true; st.readyInfo = m.info; studyCode = m.code ?? null; pythonLoads(false);
     for (const w of started.splice(0)) w.ok();
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
@@ -1318,7 +1336,7 @@ function drawBoxes() {
 function unfoldFirst() { boxes().forEach((b) => b.classList.toggle("folded", waits(b))); drawBoxes(); }
 // an image just in: the Load box folds, but for a preview, Load Original being what comes next, and a study with no step after it
 function foldLoad() {
-  if (st.source?.kind !== "preview" && steps.length > 1) $("#image-box").classList.add("folded");
+  if (!SETUP && st.source?.kind !== "preview" && steps.length > 1) $("#image-box").classList.add("folded");
 }
 // a Markdown outline drawn as HTML: paragraphs split by blank lines, "- " or "1. " items nested by their indent
 function outline(text) {
@@ -1615,7 +1633,7 @@ addEventListener(CONNECTION, (e) => {
   offlineCopy.keepSite().then(diskBar, () => {});
   if (!st.worker) keepPython();
   if (!st.failed || st.ready || !st.worker || !manifest) return;
-  st.failed = false; status("Loading Python in the background…"); $("#spin").classList.add("on");
+  st.failed = false; status("Loading Python in the background…"); pythonLoads(true);
   pythonWorker();
 });
 function swap() {
@@ -1625,7 +1643,7 @@ function swap() {
     // a study whose file cannot be read does not come in, and the one on show stays, at its own address
     let read;
     if (was) {
-      try { if (!/^[\w-]+$/.test(id) || !(read = await fetch(`../studies/${id}/study.json`)).ok) throw new Error(`no study "${id}"`); } catch (e) {
+      try { if (!/^[\w-]+$/.test(id) || !(read = await calls.during("site", "the study", () => fetch(`../studies/${id}/study.json`))).ok) throw new Error(`no study "${id}"`); } catch (e) {
         history.replaceState(null, "", addressOf(was) + location.hash);
         return status("Error: " + (e.message || e), true);
       }
@@ -1639,7 +1657,7 @@ function swap() {
     status("Ready. Load an image.");
     // Python, not started, starts on this study at its first Run; its files are kept meanwhile
     if (!st.worker) return keepPython();
-    $("#spin").classList.add("on");
+    pythonLoads(true);
     st.worker.postMessage({ type: "study", id: manifest.id });
   });
 }
@@ -1654,7 +1672,7 @@ const mountStudy = (id, read) => (studyIn = work.during(mountNow(id, read), `stu
 async function mountNow(id, read) {
   if (!/^[\w-]+$/.test(id)) throw new Error(`no study "${id}"`);
   base = `../studies/${id}/`;
-  const r = read ?? await fetch(base + "study.json");
+  const r = read ?? await calls.during("site", "the study", () => fetch(base + "study.json"));
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
   const no = await refusal(manifest);
@@ -1676,7 +1694,7 @@ async function mountNow(id, read) {
   $("#file").accept = manifest.files.accept; $("#empty-text").textContent = manifest.files.empty; placeLoad();
   if (manifest.web.style) { css = document.createElement("link"); css.rel = "stylesheet"; css.href = base + manifest.web.style; document.head.append(css); }
   if (manifest.web.panels) {
-    const panels = new DOMParser().parseFromString(await (await fetch(base + manifest.web.panels)).text(), "text/html");
+    const panels = new DOMParser().parseFromString(await (await calls.during("site", "the study's panels", () => fetch(base + manifest.web.panels))).text(), "text/html");
     for (const t of panels.querySelectorAll("template[data-slot]")) {
       const nodes = [...document.importNode(t.content, true).childNodes];
       for (const n of nodes) if (n.nodeType === 1) n.dataset.studyPanel = "";
@@ -1823,7 +1841,7 @@ const batchRunner = {
 // what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
 // and left bar, lent as they are
 export const lent = {
-  batchRunner, stageAllows, setStage, readStage, saveFile,
+  batchRunner, stageAllows, setStage, readStage, saveFile, calls,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
   page, views, summaryMasks, st, drawBoxes, loadOriginal, minimapView: () => view?.minimapView(),
   // the image itself, by its id, is open
@@ -1860,7 +1878,7 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; }, get steps() { return steps.map(({ key, name, done }) => ({ key, name, done })); } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, calls, mask: summaryMasks.api, get viewer() { return view; }, get steps() { return steps.map(({ key, name, done }) => ({ key, name, done })); } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);

@@ -1,9 +1,9 @@
 // Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
 // req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): Study Setup's
-// column (setup.js), for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
-// left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
-// it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
-// chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
+// folders and images (setup.js, req/setup/aspects), for a signed-in user the store lets write to the study's root: its listed folders
+// (req/shell/data/folders) as a tree, the root's other folders under it to add, and the study index written from them
+// (req/shell/data/index); a folder chosen fills the grid with its images and the side with their sums, and its actions; an image
+// chosen is read from its preview. The tree's head asks for the folders' access, and it writes only
 // files it creates.
 "use strict";
 import { PREVIEWS } from "./previews.js";
@@ -41,7 +41,7 @@ export function previewTiff(e, pages) {
 
 // ctx: what the shell lends it, named below where it is used
 export function dataMode(ctx) {
-  const { $, esc, remote, account, place, sizeText } = ctx;
+  const { $, esc, remote, account, place, sizeText, calls } = ctx;
   const sd = remote.writer(account);
   // the study's extractions folder (req/shell/extractions/save), read with no sign-in and written by the user
   const reader = place.reader;
@@ -55,6 +55,8 @@ export function dataMode(ctx) {
   // the tags file (req/shell/data/tags) and the study file's grouping and hiding (req/shell/data/hidden), as last read
   let tagsDoc = { images: {}, folders: {} }, look = { group: null, hide: [] };
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
+  // the folder whose images the grid shows, by id
+  let gridOf = null;
   const on = () => root.dataset.mode === "data";
   // whether the stage still lets the owner change the study's data (req/shell/study/stage): closed in Review and Public, where every
   // control that writes is gone and nothing here writes the study
@@ -67,7 +69,7 @@ export function dataMode(ctx) {
   const offline = () => root.classList.contains("offline");
   const msg = (el, text, err) => { el.textContent = text; el.classList.toggle("err", !!err); };
   // what a study's folders change on the page, as it loaded: put back when another study comes in
-  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box"].map((s) => $(s)), holdOwns);
+  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box", "#areas", "#image-panel"].map((s) => $(s)), holdOwns);
 
   // ---------- the folders and their access ----------
   // every folder under the study's own, listed with every file in it; once per study
@@ -75,8 +77,8 @@ export function dataMode(ctx) {
     if (loaded) return loaded;
     if (offline()) { msg($("#data-msg"), "You are offline: the study's folders can be read once you are back online."); return Promise.resolve(); }
     msg($("#data-msg"), "");
-    const of = epoch;
-    return (loaded = work.during((async () => {
+    const of = epoch, slot = calls.fill($("#data-tree"), "store", "the study's folders");
+    return (loaded = work.during((async () => { try {
       // the root's study file names the data folder and the extractions folder
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
@@ -111,8 +113,9 @@ export function dataMode(ctx) {
         if (of !== epoch) return;
       }
       await checkAccess();
+      slot.done();
       await index(of, nodes.size >= MAX_FOLDERS);
-    })(), "the study's folders listed"));
+    } finally { slot.done(); } })(), "the study's folders listed"));
   }
   async function checkAccess() {
     await Promise.all([...nodes.values(), ...gtNodes].map(async (n) => {
@@ -330,7 +333,7 @@ export function dataMode(ctx) {
     $("#data-tree").classList.add("busy");
     try { await setFolders({ reader, writer, root: top, folders: next }); }
     catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
-    nodes = new Map(); loaded = null; chosen = null; roots = next; msg($("#data-index"), "");
+    nodes = new Map(); loaded = null; chosen = null; gridOf = null; roots = next; msg($("#data-index"), "");
     await load();
     $("#data-tree").classList.remove("busy");
     if (said) msg($("#data-msg"), said);
@@ -491,17 +494,22 @@ export function dataMode(ctx) {
     if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
     ctx.setup?.chose(null);
     chosen = { kind: "folder", id: n.id }; root.dataset.sel = "folder"; ctx.relabel();
-    drawTree(); ctx.showFolder(true);
+    drawTree(); ctx.showFolder(true); drawImagePanel();
     $("#folder-name").textContent = n.name; $("#folder-title").textContent = n.name;
     msg($("#folder-msg"), "");
-    const of = epoch;
-    // read again: the folder may have changed in the store since
-    try { n.files = (await remote.all(n.id, { pictures: true })).filter((f) => !f.folder); } catch (e) { msg($("#folder-msg"), e.message || String(e), true); }
-    if (of !== epoch || chosen?.id !== n.id) return;
-    if (n.el) n.el.querySelector(".tree-images").replaceChildren();
-    drawTree();
-    const [pv, gts] = await Promise.all([previewsOf(n, true), truthStatus()]);
-    if (of !== epoch || chosen?.id !== n.id) return;
+    gridOf = n.id;
+    const of = epoch, slot = calls.fill($("#folder-items"), "store", `${n.name}'s images`, { also: [$("#folder-summary")] });
+    let pv, gts;
+    try {
+      // read again: the folder may have changed in the store since
+      try { n.files = (await remote.all(n.id, { pictures: true })).filter((f) => !f.folder); } catch (e) { msg($("#folder-msg"), e.message || String(e), true); }
+      if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+      if (n.el) n.el.querySelector(".tree-images").replaceChildren();
+      drawTree();
+      [pv, gts] = await Promise.all([previewsOf(n, true), truthStatus()]);
+    } catch (e) { slot.failed(e); throw e; }
+    if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+    slot.done();
     const all = states(n, pv, gts), count = (p) => all.filter(p).length;
     const rows = [["images", "Images", all.length], ["previews", "With a preview", count((s) => s.shown)], ["stale", "Preview out of date", count((s) => s.stale)],
       ["extracted", "With an Analysis File", count((s) => s.extracted)], ["truth", "With ground truth", count((s) => s.truth)], ["missing", "Marked as needing it", count((s) => s.marker)]];
@@ -540,6 +548,7 @@ export function dataMode(ctx) {
       picture(cell.querySelector(".pic"), pv, s.f);
       return cell;
     }));
+    drawImagePanel();
   }
   const setLayout = (l) => {
     layout = l;
@@ -596,11 +605,19 @@ export function dataMode(ctx) {
   });
 
   // ---------- an image: its preview first ----------
+  // the image chosen, beside the grid: its name, its cell outlined, and Open image… once it is read (req/setup/image)
+  function drawImagePanel(name) {
+    const image = chosen?.kind === "image";
+    $("#image-panel").hidden = !image;
+    if (name != null) $("#image-panel-name").textContent = name;
+    $("#image-open").disabled = !image || ctx.imageOpen()?.id !== chosen.id;
+    for (const c of $("#folder-items").querySelectorAll(".cell")) c.classList.toggle("chosen", image && c.dataset.id === chosen.id);
+  }
   async function chooseImage(n, f) {
     if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
     ctx.setup?.chose("image", { id: f.id, name: f.name, sha: f.sha, folder: n.id });
     chosen = { kind: "image", id: f.id, folder: n.id }; root.dataset.sel = "image"; ctx.relabel();
-    drawTree(); ctx.showFolder(false);
+    drawTree(); ctx.showFolder(gridOf === n.id); drawImagePanel(f.name);
     const pv = await previewsOf(n), e = pv?.entry(f.name, f.sha), source = remote.source(f.id, { name: f.name, folder: n.id });
     if (!e) { ctx.status(isTiff(f.name) ? `${f.name} has no preview yet: opening the image itself.` : `Opening ${f.name} itself.`); return ctx.loadOriginal(source); }
     let pages;
@@ -616,7 +633,7 @@ export function dataMode(ctx) {
   function enter(open) {
     if (open === on()) return;
     const go = () => {
-      if (open) root.dataset.mode = "data"; else { delete root.dataset.mode; delete root.dataset.sel; chosen = null; ctx.showFolder(false); }
+      if (open) root.dataset.mode = "data"; else { delete root.dataset.mode; delete root.dataset.sel; chosen = null; gridOf = null; ctx.showFolder(false); drawImagePanel(); }
       ctx.modeChanged(open);
     };
     poof(open);
@@ -634,12 +651,6 @@ export function dataMode(ctx) {
     // gone once the puff is over, whether it ran out, was cut short or (WebKit, at times) never started
     Promise.all(l.getAnimations().map((x) => x.finished.catch(() => {}))).then(() => { l.classList.remove("poof"); if (on()) l.classList.add("gone"); });
   }
-  // the chevron folds the tree to a strip, and opens it again
-  $("#data-open").onclick = () => {
-    const fold = root.dataset.tree !== "folded";
-    if (fold) root.dataset.tree = "folded"; else delete root.dataset.tree;
-    $("#data-open").setAttribute("aria-expanded", String(!fold));
-  };
   // the network back: the folders read afresh, if they could not be read before
   addEventListener(CONNECTION, (e) => {
     if (!e.detail.online || !on() || nodes.size) return;
@@ -648,16 +659,16 @@ export function dataMode(ctx) {
 
   return {
     // an image opened: whether the Tags box may mark its areas
-    opened() { if (on()) drawTags(); },
+    opened() { if (on()) { drawTags(); drawImagePanel(); } },
     // a study comes in (or the user signs in or out): who may do what in it
     mount(m) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
       if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(chosen?.kind === "folder"); return; }
-      epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
+      epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null; gridOf = null;
       showFrozen();
       ctx.setup?.leave();
       if (on()) enter(false);
-      asStarted(); delete root.dataset.tree;
+      asStarted();
       roots = []; unlisted = []; tagsDoc = { images: {}, folders: {} }; look = { group: null, hide: [] }; gt = { extractions: null }; gtNodes = []; marks = {};
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
       $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true; $("#tags-box").hidden = true; $("#study-set").hidden = true;

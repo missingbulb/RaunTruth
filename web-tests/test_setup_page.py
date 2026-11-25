@@ -1,4 +1,4 @@
-"""setup/page, setup/marks, setup/batch: Study Setup, the site page /app/setup, in headless Chromium against a stand-in Google (setup_driver.mjs): its
+"""setup/page, setup/aspects, setup/marks, setup/batch: Study Setup, the site page /app/setup, in headless Chromium against a stand-in Google (setup_driver.mjs): its
 item in the avatar's menu for those Drive lets write the study's root, the page itself, online only, and the study's own
 page keeping nothing of Data Management."""
 import numpy as np
@@ -16,6 +16,15 @@ def test_study_setup_is_a_page_for_those_who_write_the_root(answers, tmp_path):
     root = tmp_path / 'drive'
     folder(root)
     run('setup_driver.mjs', answers[0], answers[1], str(root))
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_study_setup_has_a_layout_of_its_own_and_shows_what_it_loads(answers, tmp_path):
+    """req/setup/aspects, req/setup/image, req/setup/loading, req/shell/status-bar/calls: the stages, the rail and no viewer; a place emptied
+    while the store is read and a late answer dropped; the store's calls in the status bar."""
+    root = tmp_path / 'drive'
+    folder(root)
+    run('setup_layout_driver.mjs', answers[0], answers[1], str(root), timeout=240)
 
 
 @pytest.fixture
