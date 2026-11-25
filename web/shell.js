@@ -51,8 +51,8 @@ import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
 import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
-import { summaryDownload, cell as csvCell } from "./summary_download.js";
-import { summaryMask } from "./summary_mask.js";
+import { cell as csvCell } from "./summary_download.js";
+import { summaryBox } from "./summary_box.js";
 import { imageKeeping, IMAGES, IMAGE_NAME, IMAGE_STUDY, HOLDS, THUMBS_CACHE, FOLDER_PREVIEWS, IMAGE_AT } from "./image_keeping.js";
 import { imageDialog, REMOTE_LINK, REMOTE_LINKS, THUMBS, STUDY_INDEX, LISTINGS, THROTTLE } from "./image_dialog.js";
 import { loadBox, RECENT, LOCAL_RECENT } from "./load_box.js";
@@ -1980,19 +1980,13 @@ function showBoxes() {
   $("#analysis-box").hidden = !(filled("#processing-box") || filled("#tasks-box") || runsFirst() || stageAllows("annotate"));
   drawDownloads();
   drawBoxes(); drawSteps();
-  if (summaryShown !== summaryShows()) { summaryShown = summaryShows(); summaryMasks.redraw(); }
+  summaryFollows();
 }
-// whether the Summary box shows its summary, and whether it did when the mask was last drawn
-const summaryShows = () => !$("#summary-box").hidden && !waits($("#summary-box"));
-let summaryShown = false;
-function studyBoxes() { showBoxes(); summaryShown = summaryShows(); summaryMasks.redraw(); gtSession.paint(); }
+function studyBoxes() { showBoxes(); summaryRedrawn(); gtSession.paint(); }
 const viewers = {};
 const algorithms = algorithmChoice({ $, outline, status, repo: REPO });
-// Download Summary on the Summary box's header: the study's summary, saved as the shell's one CSV
-const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
-// the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
-const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get("image"), fileName: () => st.fileName, study: () => manifest,
-  shows: () => summaryShows(), drag, readJSON, writeJSON, views });
+const { summaryCsv, summaryMasks, summaryFollows, summaryRedrawn } = summaryBox({ $, st, page, waits, saveFile, drag, readJSON, writeJSON, views,
+  get manifest() { return manifest; }, get view() { return view; } });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
