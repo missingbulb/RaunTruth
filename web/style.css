@@ -1027,7 +1027,7 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the image flat and its tools alone (req/setup/image) */
 #image-dlg :is(#left, #gutter-left, #switch, #history-btn, #gt-undo, #gt-redo) { display: none !important; }
 #image-dlg h2 { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
-#image-dlg #layout { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr); }
+#image-dlg #layout { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr); transition: none; } #image-dlg #view { grid-column: 1; margin: 0; }
 #image-dlg #areas { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; align-items: center; }
 #image-dlg #areas[hidden] { display: none; }
 #image-dlg .areas-row { margin: 0; } #image-dlg .areas-row .hint { flex: none; } #image-dlg .areas-label { min-width: 0; font-weight: 600; }

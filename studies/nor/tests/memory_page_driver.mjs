@@ -65,7 +65,7 @@ if (process.env.THROTTLE) await cdp.send("Emulation.setCPUThrottlingRate", { rat
 // the worker's next answer to an action, Python starting with the first (req/shell/python/on-run)
 const next = (action) => page.evaluate((action) => new Promise((ok) => {
   const hook = () => {
-    if (!st.worker) return requestAnimationFrame(hook);
+    if (!st.worker) return setTimeout(hook, 0);
     const w = st.worker, h = (e) => { if (e.data.type === "result" && e.data.action === action) { w.removeEventListener("message", h); ok(); } };
     w.addEventListener("message", h);
   };

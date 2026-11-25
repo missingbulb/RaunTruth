@@ -116,6 +116,8 @@ await check((await seen(page, "#view")) && (await seen(page, "#stage")) && (awai
 await page.waitForFunction(() => !$("#image-dlg").getAnimations().length);
 const dialog = await page.evaluate(() => { const d = $("#image-dlg"), r = d.getBoundingClientRect(); return { modal: d.matches(":modal"), wide: r.width / innerWidth, tall: r.height / innerHeight }; });
 await check(dialog.modal && dialog.wide > 0.9 && dialog.tall > 0.9, "... the page behind it held, and as large as the window allows", dialog);
+const fills = await page.evaluate(() => $("#view").getBoundingClientRect().width / $("#image-dlg").getBoundingClientRect().width);
+await check(fills > 0.9, "... the image's view as wide as the dialog", fills);
 const bare = [];
 for (const s of ["#left", "#channels", "#gutter-left", "#switch", "#history-btn"]) if (await seen(page, s)) bare.push(s);
 await check(!bare.length && (await seen(page, ".toolbar .zoom")) && (await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
