@@ -267,3 +267,14 @@ def test_a_control_that_looks_unlike_its_neighbours_is_named_the_odd_one_out(tmp
     assert odd and 'corner radius 9' in lines[odd[0] + 1], said
     # its neighbours, alike, are not
     assert not [line for line in lines if 'ODD ONE OUT' in line and 'Online or offline' in line], said
+
+
+def test_the_images_a_world_draws_of_one_sample_differ(tmp_path):
+    """The page names an image by its bytes (a mark, an Analysis File's subfolder), so three images of one folder are three."""
+    import hashlib
+    import sys
+    sys.path.insert(0, HERE)
+    import prepare
+    acme = tmp_path / 'acme'
+    prepare.tree([{'name': f'slide {k}.png', 'sample': 'png'} for k in range(3)], str(acme))
+    assert len({hashlib.sha256(p.read_bytes()).hexdigest() for p in acme.iterdir()}) == 3

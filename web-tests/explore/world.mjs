@@ -58,6 +58,8 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1,
     members: d.access === "private" ? d.members || [] : undefined, pageError });
   const { drive, google, w, root } = s;
   root.writableOnlyBy(...(d.writers || []));
+  // what the walk's person saves is saved now, so that the page's "saved today" is the persona's today
+  drive.clockAt(Date.now());
   if (d.gt !== false && d.extractionsWriters) w.of(s.GT.extractions).writableOnlyBy(...d.extractionsWriters);
   // the study's settings file, as the page makes it when the study is set up: the site's own, which it may replace
   for (const f of drive.files) if (/^rauntruth-/.test(f.name)) f.mine = true;
