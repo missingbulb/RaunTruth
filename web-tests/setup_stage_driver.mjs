@@ -90,6 +90,7 @@ await page.click("#stage-up");
 await asking(page);
 await page.click("#stage-change-go");
 await settledStage(page, "Analyze");
+await check(await text(page, "#status") === "Moved the study to Analyze.", "the status line says the study was moved", await text(page, "#status"));
 await idle(page);
 await check(!lists().slice(listed).includes("img1") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
 

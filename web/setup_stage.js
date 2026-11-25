@@ -92,7 +92,7 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
   async function write(to) {
     busy = true; draw(); say("");
     try {
-      const s = await setStudy({ reader, writer, root: place.root(), changes: { stage: to } });
+      const s = await calls.saving("store", `Moved the study to ${to}.`, () => setStudy({ reader, writer, root: place.root(), changes: { stage: to } }));
       busy = false;
       changed(STAGES.includes(s.stage) ? s.stage : to);
       say(`The study is in ${to}.`);

@@ -182,7 +182,8 @@ export function dataMode(ctx) {
     return out;
   };
   // the tags and the index written after an edit; what the edit said, or why it was not saved
-  const saveTags = work.counting("tags saved", async (next, said) => {
+  // line: the status line's sentence once the change is in the study file
+  const saveTags = work.counting("tags saved", async (next, line, said) => {
     const top = place.root(), was = tagsDoc;
     if (!top || offline() || !editable()) return;
     tagsDoc = next; drawTags();
@@ -190,9 +191,11 @@ export function dataMode(ctx) {
     const of = epoch, why = indexBlocked(false), ix = why ? null : indexOf();
     let done;
     try {
-      if (why) await writeTags({ reader, writer, root: top, doc: next });
-      else done = await writeStudyData({ reader, writer, root: top, tags: next, index: ix, by: account.email() });
-      if (done === "not ours") throw new Error(`${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`);
+      done = await calls.saving("store", line, async () => {
+        const r = why ? void (await writeTags({ reader, writer, root: top, doc: next })) : await writeStudyData({ reader, writer, root: top, tags: next, index: ix, by: account.email() });
+        if (r === "not ours") throw new Error(`${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`);
+        return r;
+      });
     } catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
     msg($("#tags-msg"), said || "");
     if (of !== epoch) return;
@@ -244,7 +247,7 @@ export function dataMode(ctx) {
       if (chosen?.id !== c.id) return;
       const next = withImage(tagsDoc, c.id, { [k]: [...(tagsDoc.images[c.id]?.[k] || []), pts] });
       ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
-      saveTags(next, k === "damaged" ? "Damaged area marked." : "Area of interest marked.");
+      saveTags(next, k === "damaged" ? "Saved the damaged area to the study." : "Saved the area of interest to the study.", k === "damaged" ? "Damaged area marked." : "Area of interest marked.");
     }, k === "damaged" ? "Drag around the damaged area · Esc cancels" : "Drag around the area of interest · Esc cancels");
   }
   function clearAreas(k) {
@@ -252,7 +255,7 @@ export function dataMode(ctx) {
     if (c?.kind !== "image" || !editable()) return;
     const next = withImage(tagsDoc, c.id, { [k]: [] });
     ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
-    saveTags(next);
+    saveTags(next, k === "damaged" ? "Removed the damaged areas from the study." : "Removed the area of interest from the study.");
   }
   $("#areas-damaged-mark").onclick = () => markArea("damaged");
   $("#areas-interest-mark").onclick = () => markArea("interest");
@@ -276,21 +279,21 @@ export function dataMode(ctx) {
     if (!c) return;
     if (got.error) return msg($("#tags-msg"), got.error, true);
     $("#tags-add").value = "";
-    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: addTag(tagsDoc.images[c.id]?.tags || [], got.tag) }));
-    else saveTags(withFolder(tagsDoc, c.id, addTag(folderTags(c.id), got.tag)));
+    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: addTag(tagsDoc.images[c.id]?.tags || [], got.tag) }), "Saved the tag to the study.");
+    else saveTags(withFolder(tagsDoc, c.id, addTag(folderTags(c.id), got.tag)), "Saved the tag to the study.");
   }
   function untag(t) {
     const c = chosen;
     if (!c) return;
-    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: (tagsDoc.images[c.id]?.tags || []).filter((x) => x !== t) }));
-    else saveTags(withFolder(tagsDoc, c.id, folderTags(c.id).filter((x) => x !== t)));
+    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: (tagsDoc.images[c.id]?.tags || []).filter((x) => x !== t) }), "Removed the tag from the study.");
+    else saveTags(withFolder(tagsDoc, c.id, folderTags(c.id).filter((x) => x !== t)), "Removed the tag from the study.");
   }
   $("#tags-add-go").onclick = tag;
   $("#tags-add").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); tag(); } };
   $("#tags-desc").onchange = () => {
     const c = chosen, text = $("#tags-desc").value.trim();
     if (c?.kind !== "image" || text === (tagsDoc.images[c.id]?.description || "")) return;
-    saveTags(withImage(tagsDoc, c.id, { description: text }), "Description saved.");
+    saveTags(withImage(tagsDoc, c.id, { description: text }), "Saved the description to the study.", "Description saved.");
   };
   // Study images: how Load groups the study's images, and which tags hide one
   function drawStudySet(ix) {
@@ -311,7 +314,10 @@ export function dataMode(ctx) {
   const setLook = work.counting("the study set saved", async (change) => {
     const top = place.root();
     if (!top || offline() || !editable()) return;
-    try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
+    try {
+      const s = await calls.saving("store", "group" in change ? "Saved the grouping to the study." : "Saved the hide rule to the study.", () => setStudy({ reader, writer, root: top, changes: change }));
+      look = { group: s.group, hide: s.hide };
+    }
     catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
     msg($("#study-msg"), "");
     await index(epoch);
@@ -331,7 +337,7 @@ export function dataMode(ctx) {
     const top = place.root();
     if (!top || offline() || !editable()) return;
     $("#data-tree").classList.add("busy");
-    try { await setFolders({ reader, writer, root: top, folders: next }); }
+    try { await calls.saving("store", "Saved the study's folders.", () => setFolders({ reader, writer, root: top, folders: next })); }
     catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
     nodes = new Map(); loaded = null; chosen = null; gridOf = null; roots = next; msg($("#data-index"), "");
     await load();
@@ -369,7 +375,7 @@ export function dataMode(ctx) {
     try {
       if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
       say("Making the Analysis Files folder…");
-      await setUp({ reader, writer, root: top, by: account.email() });
+      await calls.saving("store", "Set up the study's Analysis Files folder.", () => setUp({ reader, writer, root: top, by: account.email() }));
       $("#setup-dlg").close();
       msg($("#data-msg"), "Analysis Files set up: one folder, named Extractions, in the root, shared with anyone with the link to view.");
       nodes = new Map(); loaded = null; chosen = null; await load();
@@ -568,8 +574,8 @@ export function dataMode(ctx) {
     if (!editable()) return;
     b.disabled = true;
     try {
-      if (!s.marker) await tf.markNeeded({ writer, folder: gt.extractions, image: { name: s.f.name, sha256: s.f.sha } });
-      else if (await sd.ours(s.marker)) await sd.trash(s.marker);
+      if (!s.marker) await calls.saving("store", `Marked ${s.f.name} as needing ground truth.`, () => tf.markNeeded({ writer, folder: gt.extractions, image: { name: s.f.name, sha256: s.f.sha } }));
+      else if (await sd.ours(s.marker)) await calls.saving("store", `${s.f.name} is no longer marked as needing ground truth.`, () => sd.trash(s.marker));
       else throw new Error("Someone else marked it; whoever adds its ground truth drops the marker.");
       await relist(n);
     } catch (e) { msg($("#folder-msg"), e.message || String(e), true); b.disabled = false; }
@@ -593,8 +599,7 @@ export function dataMode(ctx) {
       }
       say(`Saving the previews to ${remote.label}…`);
       const blob = new Blob([await buildPreviews(kept, made)], { type: "image/tiff" });
-      if (f) await sd.replace(f.id, blob);
-      else await sd.create(await previewsFolder({ reader, writer, root: place.root() }), previewsName(n.id), blob);
+      await calls.saving("store", `Saved ${n.name}'s previews to ${remote.label}.`, async () => (f ? sd.replace(f.id, blob) : sd.create(await previewsFolder({ reader, writer, root: place.root() }), previewsName(n.id), blob)));
       place.forgetPreviews();
       await relist(n);
       say(`${made.length} preview${made.length === 1 ? "" : "s"} made, ${kept.length} kept.`);

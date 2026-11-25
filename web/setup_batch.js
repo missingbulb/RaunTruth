@@ -11,7 +11,7 @@ import { holdOwns } from "./offline.js";
 
 // $: the page's selector; runner: the shell's; remote: the store; reader, writer, place: its reads and writes and the study's place in it;
 // account: the sign-in; data: Data Management (marked() draws the folder on show with the marks written); status: the page's line
-export function setupBatch({ $, runner, remote, account, reader, writer, place, data, status }) {
+export function setupBatch({ $, runner, remote, account, reader, writer, place, data, status, calls }) {
   const box = $("#batch-box"), pick = $("#batch-algorithm"), go = $("#batch-run"), all = $("#batch-all"), official = $("#batch-official"), msg = $("#batch-msg"), items = $("#folder-items");
   // the folder on show, {id, name, images: [{id, name, sha, folder}]}; the ids of the images chosen; the batch under way (its abort);
   // the images the last batch reached, {sha, name, file}, which Mark this batch official marks
@@ -91,7 +91,7 @@ export function setupBatch({ $, runner, remote, account, reader, writer, place, 
       }
       const done = `${plural(made, "image")} run${skipped ? `, ${plural(skipped, "image")} already had it` : ""}.`;
       say(stop.signal.aborted ? `Stopped: ${done}` : `Done: ${done}`);
-      status("Batch run over.");
+      status(made ? `Batch run over: saved ${plural(made, "Analysis File")} to the study.` : "Batch run over: nothing new to save.");
     } catch (e) {
       if (e?.status === 401) account.refused();
       const ran = `${plural(made, "image")} run${skipped ? `, ${plural(skipped, "image")} already had it` : ""}`;
@@ -109,7 +109,8 @@ export function setupBatch({ $, runner, remote, account, reader, writer, place, 
   async function markBatch() {
     official.disabled = true;
     try {
-      await writeMarks({ reader, writer, root: place.root(), changes: reached.map((r) => ({ sha: r.sha, kind: "official", mark: { file: r.file, by: null } })) });
+      await calls.saving("store", `Marked ${plural(reached.length, "image")} official in the study.`,
+        () => writeMarks({ reader, writer, root: place.root(), changes: reached.map((r) => ({ sha: r.sha, kind: "official", mark: { file: r.file, by: null } })) }));
       say(`Marked ${plural(reached.length, "image")} official.`);
       await data.marked();
     } catch (e) { say(e.message || String(e), true); }

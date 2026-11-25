@@ -109,7 +109,7 @@ const calls = networkCalls({ bar: $("#sb-calls"), servers: {
   store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
   python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
   site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
-} });
+}, say: (text, err) => status(text, err) });
 // signing in (req/shell/account/sign-in): these settings follow the user to every device, in their own account's storage; the rest stay with this one
 const FOLLOWS = [THEME, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
@@ -1091,7 +1091,7 @@ const settings = settingsDialog({
     signIn.changed(k);
   },
   where: () => signIn.kept(),
-  saved: () => reapply(),
+  saved: () => { reapply(); status("Saved your settings."); },
 });
 // the settings that follow the user, drawn again once the account's or the Settings dialog's have replaced this device's
 function reapply() {
@@ -1109,6 +1109,7 @@ function saveFile(name, text, type) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
   after(1000, () => URL.revokeObjectURL(a.href));
+  calls.downloaded(name);
 }
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;

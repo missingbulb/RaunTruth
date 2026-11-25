@@ -7,6 +7,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
 import { held } from "./held.mjs";
+import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const { drive, open, check, done } = await standIn({ answers, studies, rootDir });
@@ -96,8 +97,16 @@ await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (aw
   await w.asked;
   const saving = await chip(page);
   await check(/^Saving to Google Drive/.test(saving?.text || ""), "while a tag is written the status bar says Saving to the store", saving);
+  await check(!/^Saved the tag/.test(await page.textContent("#status")), "while the store still holds the write, the status line does not say the tag is saved", await page.textContent("#status"));
   drive.hold = () => null; w.release();
   await idle(page);
+  await check(await page.textContent("#status") === "Saved the tag to the study.", "once the write is taken the status line says the tag is saved to the study", await page.textContent("#status"));
+  // a write the store refuses is said not to be saved
+  drive.outage = "writes";
+  await page.fill("#tags-add", "acme-refused");
+  await expecting(/./, async () => { await page.click("#tags-add-go"); await idle(page); }, { maybe: true });
+  await check(/^Not saved to Google Drive: /.test(await page.textContent("#status")), "a write the store refuses is said not to be saved", await page.textContent("#status"));
+  drive.outage = null;
 }
 
 // a late answer: the folder chosen since keeps the place

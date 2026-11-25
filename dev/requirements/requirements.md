@@ -1933,6 +1933,25 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_status_bar_page.py`.
   </details>
 
+- `req/shell/status-bar/saved` Whatever a person saves or downloads is said on the status line once it is in, in plain words; a save that fails is said not to have been saved.
+  <details>
+
+  Set by the owner on 2026-11-25, after the walk, where five people could not tell whether a change had been saved: "Yes,
+  in the status line". Every change a person makes that the page writes to the store ends with one sentence on the status
+  line saying what was saved and where, and every file the page hands their computer with "Saved <file name>.": a tag
+  added ("Saved the tag to the study.") or removed, a description, an area marked or cleared, the grouping, a hide rule,
+  the study's folders, the set-up of Analysis Files, a GT or official mark, a batch marked official, Needs GT, a folder's
+  previews, a correction of the sharing, a stage change ("Moved the study to Analyze."), the Settings dialog's Save
+  ("Saved your settings."), Save Draft and Upload (each said as before), a batch run ("Batch run over: saved 3 Analysis
+  Files to the study."), and the downloads: Download Summary, Download Analysis and its tables, the results' CSV, a study's
+  own files. The sentence comes when the write has been taken, not when it was asked. A write the store refuses says "Not
+  saved to Google Drive: <why>" there, beside what the box it belongs to says. They go through one function of the page's
+  network calls (`req/shell/status-bar/calls`), which also shows the write in flight; no dialog is added and no call. What
+  the page writes without being asked (the study index on reading a folder, the settings that follow the account) is not
+  said. Test: `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/setup_stage_driver.mjs`
+  and `web-tests/setup_results_driver.mjs`.
+  </details>
+
 - `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines: Start, while the study's step waits behind it.
   <details>
 
