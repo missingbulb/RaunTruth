@@ -77,7 +77,10 @@ async function settle(page) {
   }
 }
 
-async function walk({ world, worldPath, seed, budget, focus, plants, out, replay }) {
+// driver: what takes the walk's steps one at a time in place of the seeded draw (session.mjs): opened({page, w, files, out})
+// once the page is up; next({i, before, offered}) gives the step's action, or null to end the walk; around(go) runs the
+// action and its settling; done(step) hears what the step did and what the checks found. scale: device pixels a CSS pixel.
+export async function walk({ world, worldPath, seed, budget, focus, plants, out, replay, driver = null, scale = 1 }) {
   const started = Date.now();
   fs.mkdirSync(path.join(out, "shots"), { recursive: true });
   fs.mkdirSync(path.join(out, "owner"), { recursive: true });
@@ -87,7 +90,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
   let heard = [];
   const stop = listen((m) => heard.push(m));
   // a page's uncaught error is heard as the harness says it
-  const w = await boot(world, prepared, { plants, pageError: () => {} });
+  const w = await boot(world, prepared, { plants, pageError: () => {}, scale, motions: !!driver });
   const { page, ctx, drive, google } = w;
   const ROOT_REFUSED = new RegExp(`status of 404 .*%27${w.ROOT}%27`);
   const width = page.viewportSize().width;
@@ -133,12 +136,16 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     return dead;
   };
   await settle(page);
+  await driver?.opened({ page, w, files: prepared.files, out });
   let before = await look(page);
   const allowed = [...EFFECTS.allow.map((a) => a.pattern), ...(world.allow || [])].map((p) => new RegExp(p));
   for (let i = 0; i < budget; i++) {
     const offered = possible(before, { events: w.events, world, focus, tried, effects: EFFECTS, fresh: new Set(steps.at(-1)?.change.controls.added || []) });
     if (replay) {
       action = { ...replay[i] };
+    } else if (driver) {
+      action = await driver.next({ i, before, offered });
+      if (!action) break;
     } else if (!before.app) {
       action = { kind: "event", event: "returnToApp" };
     } else {
@@ -157,8 +164,11 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
     const allow = new RegExp([...allowed.map((r) => r.source), NETWORK_GONE.source, "^(warning|error): .*(offline|ERR_INTERNET_DISCONNECTED)",
       ...(tokensWhenEnded !== null ? [REFUSED.source] : []), ...(google.answer !== "grant" ? [DECLINED.source] : []), ...(accessGone ? [ROOT_REFUSED.source] : [])].map((p) => `(?:${p})`).join("|"));
     const settled = await expecting(allow, async () => {
-      try { said = await perform(w, action, prepared.files); } catch (e) { error = String(e.message ?? e).split("\n")[0]; }
-      return settle(page);
+      const go = async () => {
+        try { said = await perform(w, action, prepared.files); } catch (e) { error = String(e.message ?? e).split("\n")[0]; }
+        return settle(page);
+      };
+      return driver ? driver.around(go) : go();
     }, { maybe: true });
     if (["string", "number"].includes(typeof said)) action.said = said;
     if (action.event === "accessRemoved") accessGone = true;
@@ -219,6 +229,7 @@ async function walk({ world, worldPath, seed, budget, focus, plants, out, replay
       writes: seen.writes, settings: seen.settings.length, asked: seen.asked.length, popups: seen.popups, downloads: seen.downloads, dialogs: seen.dialogs,
       heard: heard.map((m) => ({ line: m.line.slice(0, 400), expected: m.expected || !!m.allowed, late: !!m.late })), vars: after.vars,
       shell: shell && { checked: shell.checked, wrong: shell.wrong.map((e) => e.name) }, findings: real.map((f) => f.sig), full: { before, action, change: s.change } });
+    await driver?.done({ i, action, error, settled, after, change: s.change, findings: real, seen });
     heard = [];
     lastPopups = seen.popups;
     // what the run has found so far, readable while it goes on
@@ -287,23 +298,26 @@ function shrink(file, target) {
   return shrunk;
 }
 
-if (args.shrink) {
-  process.exit(shrink(args.shrink, args.finding) ? 0 : 1);
+// run as a command, and not when the walk is taken by another script
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (args.shrink) {
+    process.exit(shrink(args.shrink, args.finding) ? 0 : 1);
+  }
+  let run;
+  if (args.replay) {
+    const plan = JSON.parse(fs.readFileSync(args.replay, "utf8"));
+    const steps = plan.steps.slice(0, args.upto === undefined ? undefined : Number(args.upto) + 1).map((s) => s.action);
+    const world = { name: plan.world.name, ...JSON.parse(fs.readFileSync(plan.world.path, "utf8")) };
+    const out = path.resolve(args.out || path.join(path.dirname(args.replay), "replay"));
+    run = await walk({ world, worldPath: plan.world.path, seed: plan.seed, budget: steps.length, focus: plan.focus, plants: plan.plants, out, replay: steps });
+  } else {
+    const worldPath = worldFile(args.world || "visitor"), name = path.basename(worldPath, ".json"), seed = Number(args.seed ?? 1);
+    const world = { name, ...JSON.parse(fs.readFileSync(worldPath, "utf8")) };
+    const focus = [...(args.focus ? args.focus.split(",").filter(Boolean) : []), ...(args["focus-diff"] ? focusFromDiff(args["focus-diff"]) : [])];
+    const out = path.resolve(args.out || path.join(os.tmpdir(), "explore", `${name}-s${seed}`));
+    run = await walk({ world, worldPath, seed, budget: Number(args.steps ?? 60), focus, plants: args.plant, out });
+  }
+  const by = (c) => run.findings.filter((f) => f.class === c).length;
+  console.log(`${run.steps.length} steps, ${by("bug")} bug(s), ${by("gap")} gap(s), ${by("call")} call(s): ${path.join(run.out, "summary.md")}`);
+  process.exit(run.findings.length ? 1 : 0);
 }
-let run;
-if (args.replay) {
-  const plan = JSON.parse(fs.readFileSync(args.replay, "utf8"));
-  const steps = plan.steps.slice(0, args.upto === undefined ? undefined : Number(args.upto) + 1).map((s) => s.action);
-  const world = { name: plan.world.name, ...JSON.parse(fs.readFileSync(plan.world.path, "utf8")) };
-  const out = path.resolve(args.out || path.join(path.dirname(args.replay), "replay"));
-  run = await walk({ world, worldPath: plan.world.path, seed: plan.seed, budget: steps.length, focus: plan.focus, plants: plan.plants, out, replay: steps });
-} else {
-  const worldPath = worldFile(args.world || "visitor"), name = path.basename(worldPath, ".json"), seed = Number(args.seed ?? 1);
-  const world = { name, ...JSON.parse(fs.readFileSync(worldPath, "utf8")) };
-  const focus = [...(args.focus ? args.focus.split(",").filter(Boolean) : []), ...(args["focus-diff"] ? focusFromDiff(args["focus-diff"]) : [])];
-  const out = path.resolve(args.out || path.join(os.tmpdir(), "explore", `${name}-s${seed}`));
-  run = await walk({ world, worldPath, seed, budget: Number(args.steps ?? 60), focus, plants: args.plant, out });
-}
-const by = (c) => run.findings.filter((f) => f.class === c).length;
-console.log(`${run.steps.length} steps, ${by("bug")} bug(s), ${by("gap")} gap(s), ${by("call")} call(s): ${path.join(run.out, "summary.md")}`);
-process.exit(run.findings.length ? 1 : 0);

@@ -1,5 +1,11 @@
 {
  "about": "Someone signed in who is not a member of a private study: Drive refuses them its folder.",
+ "goals": {
+  "person": "someone with a Google account who was given the site's address but is not part of the lab",
+  "goals": [
+   "Open the study and look at its images."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

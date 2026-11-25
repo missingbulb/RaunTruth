@@ -7,12 +7,14 @@
 //   const w = await boot(world, prepared, { plants, pageError });
 //   w.page, w.ctx, w.drive, w.google, w.events[name].run(arg), w.close()
 // plants: faults planted on purpose, for the explorer's own test: "throw:<selector>", a control that throws when
-// clicked; "write:<n>", the page writing a file to the study's folder on its own at the person's nth click.
+// clicked; "write:<n>", the page writing a file to the study's folder on its own at the person's nth click;
+// "style:<css>", a stylesheet of the test's own added to the page. motions: the page's motions recorded (page_motions.mjs, and those its script starts).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { standIn } from "../stand_in_drive.mjs";
 import { cdnFile } from "../fakes/cdn.mjs";
+import { record } from "../page_motions.mjs";
 
 const STUDIES = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "studies");
 // each file a study names to keep offline (web.offline of its study.json), which jsDelivr serves and the fake holds no
@@ -24,6 +26,7 @@ const offlineFiles = () => fs.readdirSync(STUDIES).flatMap((id) => {
 const PLANT = ([plants, root]) => {
   for (const p of plants) {
     const [kind, arg] = [p.slice(0, p.indexOf(":")), p.slice(p.indexOf(":") + 1)];
+    if (kind === "style") addEventListener("DOMContentLoaded", () => document.head.append(Object.assign(document.createElement("style"), { textContent: arg })));
     if (kind === "throw") document.addEventListener("click", (e) => { if (e.target.closest?.(arg)) throw new Error("planted fault: " + arg + " throws"); }, true);
     if (kind === "write") {
       let clicks = 0;
@@ -38,12 +41,25 @@ const PLANT = ([plants, root]) => {
   }
 };
 
-export async function boot(world, prepared, { plants = [], pageError, scale = 1 } = {}) {
+// the animations the page's own script starts, which no CSS event tells of: what each moves, in window.scriptedMotions
+const SCRIPTED = () => {
+  window.scriptedMotions = [];
+  const animate = Element.prototype.animate;
+  Element.prototype.animate = function (frames, ...rest) {
+    const moved = [...new Set([].concat(frames || []).flatMap((f) => Object.keys(f)))].filter((k) => !["offset", "easing", "composite"].includes(k));
+    window.scriptedMotions.push(moved.join("+") || "animation");
+    return animate.call(this, frames, ...rest);
+  };
+};
+
+export async function boot(world, prepared, { plants = [], pageError, scale = 1, motions = false } = {}) {
   const d = world.drive;
   const s = await standIn({ answers: prepared.answers, studies: prepared.studies, rootDir: prepared.rootDir, gt: d.gt !== false,
     members: d.access === "private" ? d.members || [] : undefined, pageError });
   const { drive, google, w, root } = s;
   root.writableOnlyBy(...(d.writers || []));
+  // what the walk's person saves is saved now, so that the page's "saved today" is the persona's today
+  drive.clockAt(Date.now());
   if (d.gt !== false && d.extractionsWriters) w.of(s.GT.extractions).writableOnlyBy(...d.extractionsWriters);
   // the study's settings file, as the page makes it when the study is set up: the site's own, which it may replace
   for (const f of drive.files) if (/^rauntruth-/.test(f.name)) f.mine = true;
@@ -56,7 +72,7 @@ export async function boot(world, prepared, { plants = [], pageError, scale = 1 
     study: { ...(world.stage ? { stage: world.stage } : {}), ...(world.studyJson || {}) },
     ...(world.viewport ? { viewport: world.viewport } : {}),
     ...(world.token?.expired ? { until: Date.now() - 60e3 } : {}),
-    prepare: plants.length ? (ctx) => ctx.addInitScript(PLANT, [plants, s.ROOT]) : undefined,
+    prepare: plants.length || motions ? async (ctx) => { if (motions) { await record(ctx); await ctx.addInitScript(SCRIPTED); } if (plants.length) await ctx.addInitScript(PLANT, [plants, s.ROOT]); } : undefined,
   });
   const ctx = page.context();
   for (const u of offlineFiles()) cdnFile(ctx, u, /\.m?js$/.test(u) ? "export {};" : "", /\.m?js$/.test(u) ? "text/javascript" : "application/octet-stream");

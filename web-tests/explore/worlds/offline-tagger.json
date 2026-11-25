@@ -1,5 +1,12 @@
 {
  "about": "An annotator whose network comes and goes: the offline and online events weighted up.",
+ "goals": {
+  "person": "a lab member whose internet keeps dropping",
+  "goals": [
+   "Open an image, count and correct it, and make sure your work is not lost when the connection drops.",
+   "Hand your work in to the lab once you are back online."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

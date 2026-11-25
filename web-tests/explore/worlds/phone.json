@@ -1,5 +1,11 @@
 {
  "about": "The owner on a phone-sized window, which the page does not support (req/shell/browsers/supported): what spills past the screen's width, or is cut off at it, is the owner's call.",
+ "goals": {
+  "person": "the researcher who runs this study, away from the desk with only a phone",
+  "goals": [
+   "Check on the study: open an image and look at its count."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

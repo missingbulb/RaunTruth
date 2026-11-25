@@ -1,5 +1,12 @@
 {
  "about": "A first visit: the welcome popup not yet answered, Google granting a sign-in when asked, as the annotator.",
+ "goals": {
+  "person": "a new lab member opening the site for the first time, with a Google account the lab uses",
+  "goals": [
+   "Get started so that your settings follow you to your other computer.",
+   "Open one of the lab's images and count what is in it."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": null,

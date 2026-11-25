@@ -76,6 +76,8 @@ function makeDrive() {
   const tick = () => new Date(clock += 1000).toISOString();
   const drive = {
     files: [], viewOnly: new Set(), writers: new Map(), readers: new Map(), hidden: new Set(), offered: new Set(), waiting: [], tick,
+    // what is made or written from here on carries times from ms on
+    clockAt(ms) { clock = ms; },
     get: (id) => drive.files.find((f) => f.id === id),
     outage: null, refuseSharing: false, checksums: true, hold: () => null, uploaded: () => {},
     linkEdit: new Set(), calls: [], writes: [], thumbs: [], shared: [], unshared: [], keptForever: [], inflight: 0,

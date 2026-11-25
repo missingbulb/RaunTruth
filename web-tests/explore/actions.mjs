@@ -29,7 +29,7 @@ export function seeded(seed) {
   };
 }
 
-const kindOf = (c) => {
+export const kindOf = (c) => {
   if (c.tag === "canvas") return ["canvas", "drag"];
   if (c.tag === "textarea" || (c.tag === "input" && ["", "text", "search", "url", "email", "number", "tel"].includes(c.type))) return ["fill"];
   if (c.type === "range") return ["range"];
@@ -141,6 +141,7 @@ export async function perform(w, a, files) {
       await page.mouse.move(b.x + a.to[0] * b.width, b.y + a.to[1] * b.height, { steps: 6 });
       return void await page.mouse.up();
     }
+    case "hover": return void await at.hover({ timeout: QUICK });
     case "key": return void await page.keyboard.press(a.press);
     case "event": return await w.events[a.event].run(a.n);
   }

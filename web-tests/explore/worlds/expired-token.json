@@ -1,5 +1,11 @@
 {
  "about": "The owner coming back after their token ran out: the page holds a sign-in whose token Google no longer takes, and the token runs out again during the walk.",
+ "goals": {
+  "person": "the study's owner, coming back to a tab left open since yesterday",
+  "goals": [
+   "Carry on: open an image from the lab's Drive and hand in a corrected count."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

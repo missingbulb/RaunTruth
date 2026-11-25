@@ -134,4 +134,13 @@ check((await get(INNER, stranger)).status === 404, "and a reader of one folder r
   check((await get(ROOT, stranger, "appProperties")).status === 404, "and one the person cannot read is still refused", made.status);
 }
 
+// the fake's clock set to a time of the test's: what is written after carries it, as a file saved now carries now
+{
+  const at = Date.parse("2031-02-03T04:05:00Z");
+  drive.clockAt(at);
+  const f = drive.file({ name: "written later.txt", bytes: Buffer.from("x") });
+  const said = Date.parse((await get(f.id, null, "modifiedTime")).json?.modifiedTime);
+  check(said > at && said - at < 60e3, "a file made after the clock is set is modified then", said);
+}
+
 process.exit(failed ? 1 : 0);
