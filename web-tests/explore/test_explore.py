@@ -3,6 +3,7 @@ walks the same steps, and a replay of a run takes them again; and a fault plante
 that throws and a Drive write nobody asked for, each with the step a replay starts from."""
 import json
 import os
+import re
 import shutil
 import subprocess
 
@@ -184,3 +185,81 @@ def test_a_refusal_the_world_itself_caused_is_not_found_wrong(tmp_path):
         {'kind': 'event', 'event': 'online'}])
     assert any('404' in m['line'] for s in run['steps'] for m in s['heard']), 'the world refused nothing, so the case proves nothing'
     assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
+
+
+SESSION = os.path.join(HERE, 'session.mjs')
+
+
+class Session:
+    """A persona's session (session.mjs) in a world: page(...) runs one command, giving its exit code and what it printed."""
+
+    def __init__(self, out, *args):
+        self.out = out
+        r = subprocess.run([NODE, SESSION, 'start', '--out', str(out), *args], capture_output=True, text=True, timeout=WALK_SECONDS)
+        assert r.returncode == 0, r.stdout + r.stderr
+        self.first = r.stdout
+
+    def page(self, *args):
+        r = subprocess.run([os.path.join(self.out, 'page'), *args], capture_output=True, text=True, timeout=WALK_SECONDS)
+        return r.returncode, r.stdout + r.stderr
+
+    def log(self):
+        code, said = self.page('end')
+        assert code == 0, said
+        with open(os.path.join(self.out, 'session.json'), encoding='utf-8') as f:
+            return json.load(f)
+
+
+def numbered(listing, words):
+    """The number a look gives the control whose line holds the words."""
+    found = [m.group(1) for m in re.finditer(r'^\s+(\d+)\. (.*)$', listing, re.M) if words in m.group(2)]
+    assert len(found) == 1, (words, listing)
+    return found[0]
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_path):
+    s = Session(tmp_path / 's', '--world', 'visitor', '--persona', 'user')
+    try:
+        # what a person sees: the words on a control and its number, never the page's own name for it
+        assert 'Switch between dark and light' in s.first
+        assert not re.search(r'#[\w-]+|\bid=|nth-of-type', s.first), s.first
+        version = numbered(s.first, 'button "v')
+        code, said = s.page('act', version)
+        assert code == 2 and 'Refused' in said and '--expect' in said, said
+        code, said = s.page('act', version, '--expect', 'a list of what changed in each version opens')
+        assert code == 0 and 'Version history' in said, said
+        # the next step waits for the verdict on this one
+        code, refused = s.page('key', 'Escape', '--expect', 'the list closes')
+        assert code == 2 and 'saw --as-expected' in refused, refused
+        code, said = s.page('saw', '--as-expected', 'partly', 'a list opened, with no dates on it')
+        assert code == 0, said
+        code, said = s.page('key', 'Escape', '--expect', 'the list closes')
+        assert code == 0, said
+        log = s.log()
+    finally:
+        s.page('end')
+    # the two refused commands made no step
+    opened, closed = log['steps']
+    assert opened['expectation'] == 'a list of what changed in each version opens'
+    assert opened['verdict'] == {'asExpected': 'partly', 'words': 'a list opened, with no dates on it'}
+    # the step never judged is in the log as such
+    assert closed['expectation'] == 'the list closes' and closed['verdict'] is None
+    # the dialog grows open: its frames are on a sheet, and the animation the page started is named
+    assert opened['happened']['frames'] > 1 and os.path.getsize(opened['happened']['sheet']) > 0, opened['happened']
+    assert opened['happened']['motions'], opened['happened']
+
+
+@pytest.mark.skipif(not NODE, reason='node missing')
+def test_a_control_that_looks_unlike_its_neighbours_is_named_the_odd_one_out(tmp_path):
+    s = Session(tmp_path / 's', '--world', 'visitor', '--plant', 'style:#sb-report { border-radius: 9px !important }')
+    try:
+        code, said = s.page('styles')
+    finally:
+        s.page('end')
+    assert code == 0, said
+    lines = said.split('\n')
+    odd = [k for k, line in enumerate(lines) if 'ODD ONE OUT' in line and 'Report a problem' in line]
+    assert odd and 'corner radius 9' in lines[odd[0] + 1], said
+    # its neighbours, alike, are not
+    assert not [line for line in lines if 'ODD ONE OUT' in line and 'Online or offline' in line], said
