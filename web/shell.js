@@ -1102,7 +1102,7 @@ function saveFile(name, text, type) {
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
 const { drawAnnotate, wantList, tasks, drawWaiting, algorithms, runsFirst, drawDownloads, ownFile, submitTruth } = analysisBox({ $, icon, outline, status, REPO, views, signIn, st, truth, stageAllows, data, showBoxes, log, restudyHeld, page, makesTruth, drawSteps, notice, readJSON,
-  writeJSON, noteSaved, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
+  writeJSON, noteSaved, savedHere, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
   get view() { return view; }, get truthShown() { return truthShown; }, set truthShown(v) { truthShown = v; }, get memberIds() { return memberIds; },
   get listedReady() { return listedReady; }, get listing() { return listing; }, set listing(v) { listing = v; }, get listedFor() { return listedFor; },
   set listedFor(v) { listedFor = v; }, get storeList() { return storeList; }, set storeList(v) { storeList = v; }, get storeRows() { return storeRows; },
