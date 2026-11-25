@@ -1045,14 +1045,14 @@ html:not(.offline) #welcome-offline { display: none; }
 #stage-steps > li[data-state=done] { opacity: .62; }
 #stage-steps > li[data-state=now] { opacity: 1; filter: drop-shadow(0 2px 4px #0006); }
 #stage-steps > li:has(.stage-act:not([hidden])) { opacity: .78; }
-#stage-steps > li:has(.stage-act:not([hidden])) .stage-say { visibility: hidden; }
-#stage-steps > li:has(.stage-act:not([hidden]):hover) { opacity: 1; }
+#stage-steps > li:has(.stage-act:not([hidden])) .stage-say { display: none; }
+#stage-steps > li:has(.stage-act:not([hidden]):is(:hover, :focus-visible)) { opacity: 1; }
 .stage-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stage-say { font-size: 11.5px; min-height: 1.3em; }
 /* the action is the whole stage: its words where the stage's say is */
-.stage-act { position: absolute; inset: 0; border: 0; border-radius: 0; background: transparent; color: #fff; font-size: 11.5px; text-decoration: underline; text-align: left; padding: 24px 22px 0 34px; cursor: pointer; }
-#stage-steps > li:first-child .stage-act { padding-left: 18px; }
-.stage-act:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.stage-act { align-self: flex-start; margin-top: 2px; padding: 1px 9px; border: 1px solid #fffc; border-radius: var(--r-ctl); background: #ffffff2e; color: #fff; font-size: 11.5px; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+.stage-act:hover:not(:disabled) { background: #ffffff52; }
+.stage-act:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .stage-act[hidden] { display: none; }
 #stage-what, #stage-msg { margin: 6px 2px 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

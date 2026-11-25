@@ -2419,14 +2419,19 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
   <details>
 
+  Set by the owner on 2026-11-25, after the walk: every stage change asks first. Promote to a stage and Move back to one each open a
+  dialog of the freeze dialog's shape, naming the stage, what it is and what the change opens and closes of the page's actions, read from
+  the stage table (`web/stages.js`), with the change's own button and Cancel, which writes nothing; promoting to Review keeps its own
+  dialog. The two actions look like buttons on their stages, not links, and each reads with "…" as one that asks.
+
   Corrected after the walk of 2026-11-25: the line under the stages says what the stage is and, after it, what moves the study on to the
   next one, as the stage popup does.
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Set by the owner on 2026-11-24: the stage is a
   progression of the five stages across the top of Study Setup, each in its own colour (Setup red, Develop yellow, Analyze green, Review
   blue, Public all four), the current one selected, those before it marked done, and what the current one means under it. Promoting is
-  the next stage's own action, "Promote to <stage>" on it ("Promote to Review…" where it asks first), and moving back the one
-  before's, "Move back to <stage>"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
+  the next stage's own action, "Promote to <stage>…" on it, and moving back the one
+  before's, "Move back to <stage>…"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
   nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
   stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the Ground Truth aspect, Find images with newer Analysis Files, lists each
   image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first;

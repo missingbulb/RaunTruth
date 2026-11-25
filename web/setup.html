@@ -387,6 +387,12 @@
   <p id="setup-msg" class="hint" role="status"></p>
   <div class="dlg-row end"><span class="grow"></span><button id="setup-go" type="button" class="primary">Set up</button><button id="setup-cancel" type="button">Cancel</button></div>
 </dialog>
+<dialog id="stage-change-dlg" aria-labelledby="stage-change-title">
+  <h2 id="stage-change-title"></h2>
+  <p id="stage-change-what"></p>
+  <p id="stage-change-moves"></p>
+  <div class="dlg-row end"><span class="grow"></span><button id="stage-change-go" type="button" class="primary" data-needs-network></button><button id="stage-change-cancel" type="button">Cancel</button></div>
+</dialog>
 <dialog id="stage-freeze-dlg" aria-labelledby="stage-freeze-title">
   <h2 id="stage-freeze-title">Promote to Review</h2>
   <p>Promoting to Review freezes the study: marking GT and official closes, and so does the study's data. What people save afterwards is kept but not counted. The study moves back a stage if the owner changes their mind.</p>

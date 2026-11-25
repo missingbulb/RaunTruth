@@ -9,14 +9,14 @@ import { setStudy } from "./study_root.js";
 import { work } from "./pending.js";
 import { asLoaded } from "./as_loaded.js";
 import { holdOwns } from "./offline.js";
-import { STAGES, WHAT, NEXT, LIGHT, next, before, frozen } from "./stages.js";
+import { STAGES, WHAT, NEXT, LIGHT, next, before, frozen, confirming } from "./stages.js";
 
 const READ_AT_ONCE = 6;
 
 // $: the page's selector; reader, writer, place: the store's reads and writes and the study's place in it; changed(stage): told once the
 // stage is written, for what follows from it to be drawn again
 export function setupStage({ $, reader, writer, place, changed, calls }) {
-  const box = $("#stage-box"), dlg = $("#stage-freeze-dlg"), msg = $("#stage-msg"), steps = $("#stage-steps");
+  const box = $("#stage-box"), dlg = $("#stage-freeze-dlg"), ask = $("#stage-change-dlg"), msg = $("#stage-msg"), steps = $("#stage-steps");
   steps.replaceChildren(...STAGES.map((name) => {
     const li = document.createElement("li");
     li.dataset.stage = name; li.dataset.light = LIGHT[name];
@@ -68,7 +68,7 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
       li.querySelector(".stage-say").textContent = state === "done" ? "done" : state === "now" ? "current" : "";
       b.hidden = !act; b.disabled = busy;
       if (act) b.id = "stage-" + act; else b.removeAttribute("id");
-      b.textContent = act === "up" ? (up === "Review" ? "Promote to Review…" : `Promote to ${up}`) : act === "back" ? `Move back to ${back}` : "";
+      b.textContent = act === "up" ? `Promote to ${up}…` : act === "back" ? `Move back to ${back}…` : "";
     }
     $("#stage-find").disabled = busy;
     // the list is of before Review: from there on marking is closed
@@ -100,10 +100,23 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
     draw();
   }
 
+  // a change asked first: the stage it goes to, what that is and what the change opens and closes; its button writes it
+  let asked = null;
+  function confirm(to, verb) {
+    const [what, moves] = confirming(stage(), to);
+    asked = to;
+    $("#stage-change-title").textContent = `${verb} ${to}`;
+    $("#stage-change-what").textContent = what; $("#stage-change-moves").textContent = moves;
+    $("#stage-change-go").textContent = `${verb} ${to}`;
+    ask.showModal();
+  }
+  $("#stage-change-cancel").onclick = () => ask.close();
+  $("#stage-change-go").onclick = () => { const to = asked; ask.close(); if (to) work.during(write(to), "the study's stage changed"); };
+
   async function promote() {
     const to = next(stage());
     if (!to) return;
-    if (to !== "Review") return write(to);
+    if (to !== "Review") return confirm(to, "Promote to");
     let l = [];
     try { l = await newerThanGT(); } catch (e) { console.warn("the extractions newer than their GT were not listed:", e); }
     listed($("#stage-freeze-newer"), l); $("#stage-freeze-newer-box").hidden = !l.length;
@@ -112,7 +125,7 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
   steps.onclick = (e) => {
     const b = e.target.closest(".stage-act");
     if (b?.id === "stage-up") work.during(promote(), "the study's stage changed");
-    else if (b?.id === "stage-back") { const to = before(stage()); if (to) work.during(write(to), "the study's stage changed"); }
+    else if (b?.id === "stage-back") { const to = before(stage()); if (to) confirm(to, "Move back to"); }
   };
   $("#stage-freeze-cancel").onclick = () => dlg.close();
   $("#stage-freeze").onclick = () => { dlg.close(); work.during(write("Review"), "the study's stage changed"); };
@@ -126,7 +139,7 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
     open() {},
     signedIn() {},
     opened() {},
-    leave() { epoch++; manifest = null; asStarted(); },
+    leave() { epoch++; manifest = null; asked = null; if (ask.open) ask.close(); asStarted(); },
     get on() { return false; },
   };
 }
