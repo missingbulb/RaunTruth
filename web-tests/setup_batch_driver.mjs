@@ -9,6 +9,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
+import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 // armed: the first batch file Drive takes is the last the token lasts for: before Drive's next listing is answered the clock is put on
@@ -34,6 +35,7 @@ const clock = (ctx) => ctx.addInitScript(() => { const now = Date.now.bind(Date)
 const folder = async (p) => {
   await p.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
   await p.click("#data-tree .tree-folder .name");
+  await aspect(p, "batch");
   await p.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3 && !document.querySelector("#batch-box").hidden);
 };
 

@@ -16,9 +16,12 @@ await check(await page.evaluate(() => !document.querySelector('[id^="data-"], #o
   "the study's page has none of Data Management's elements in its DOM");
 await page.click("#user-menu summary");
 await page.waitForSelector("#open-setup:not([hidden])");
-const item = await page.evaluate(() => [$("#open-setup").textContent, $("#open-setup").getAttribute("href")]);
+const item = await page.evaluate(() => [$("#open-setup").textContent.trim(), $("#open-setup").getAttribute("href")]);
 await check(item[0] === "Study Setup…" && item[1] === "setup?study=fixture", "the avatar's menu holds Study Setup…, pointing at the setup page of this study", item);
-await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
+const here = page.url();
+const [setup] = await Promise.all([page.waitForEvent("popup"), page.click("#open-setup")]);
+await check(page.url() === here, "it opens in a new page, the study's own staying where it was", page.url());
+page = setup;
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 await check(await page.evaluate(() => location.pathname === "/web/setup" && location.search === "?study=fixture"), "it opens /setup?study=fixture", await page.evaluate(() => location.href));
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);

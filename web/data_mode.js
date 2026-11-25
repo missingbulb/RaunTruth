@@ -69,7 +69,7 @@ export function dataMode(ctx) {
   const offline = () => root.classList.contains("offline");
   const msg = (el, text, err) => { el.textContent = text; el.classList.toggle("err", !!err); };
   // what a study's folders change on the page, as it loaded: put back when another study comes in
-  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box", "#areas", "#image-panel"].map((s) => $(s)), holdOwns);
+  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box", "#areas", "#image-panel", "#truth-panel", "#sharing-box"].map((s) => $(s)), holdOwns);
 
   // ---------- the folders and their access ----------
   // every folder under the study's own, listed with every file in it; once per study
@@ -536,8 +536,8 @@ export function dataMode(ctx) {
         `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
         `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>` +
         `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Choose ${esc(s.f.name)} for a batch run" title="Choose it for a batch run">`;
-      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f); };
-      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
+      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f, true); };
+      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f, true); };
       const mark = cell.querySelector(".mark-gt");
       const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
       const why = !gt.extractions ? "Set up Analysis Files first: the mark is kept in their folder"
@@ -613,11 +613,12 @@ export function dataMode(ctx) {
     $("#image-open").disabled = !image || ctx.imageOpen()?.id !== chosen.id;
     for (const c of $("#folder-items").querySelectorAll(".cell")) c.classList.toggle("chosen", image && c.dataset.id === chosen.id);
   }
-  async function chooseImage(n, f) {
+  // fromGrid: chosen in the grid, which then stays; chosen in the tree, the grid steps aside
+  async function chooseImage(n, f, fromGrid = false) {
     if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
     ctx.setup?.chose("image", { id: f.id, name: f.name, sha: f.sha, folder: n.id });
     chosen = { kind: "image", id: f.id, folder: n.id }; root.dataset.sel = "image"; ctx.relabel();
-    drawTree(); ctx.showFolder(gridOf === n.id); drawImagePanel(f.name);
+    drawTree(); ctx.showFolder(fromGrid && gridOf === n.id); drawImagePanel(f.name);
     const pv = await previewsOf(n), e = pv?.entry(f.name, f.sha), source = remote.source(f.id, { name: f.name, folder: n.id });
     if (!e) { ctx.status(isTiff(f.name) ? `${f.name} has no preview yet: opening the image itself.` : `Opening ${f.name} itself.`); return ctx.loadOriginal(source); }
     let pages;

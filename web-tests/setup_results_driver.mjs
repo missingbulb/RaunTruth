@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until, idle } from "./page_until.mjs";
 import { personFile, runFile } from "../web/truth_folders.js";
+import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { w, drive, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
@@ -36,7 +37,8 @@ const table = (page) => page.evaluate(() => ({
 const page = await open(true, { setup: true });
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
 await idle(page);
-await check(await page.evaluate(() => document.querySelector("#results-box")?.checkVisibility() === true), "Study Setup has a Results box");
+await aspect(page, "results");
+await check(await page.evaluate(() => document.querySelector("#results-box")?.checkVisibility() === true), "Study Setup has a Results box, in its own aspect");
 await check(await page.evaluate(() => document.querySelector("#results-show")?.textContent.trim()) === "Show results", "it offers a Show results button");
 await check(await page.evaluate(() => !document.querySelector("#results-csv")?.checkVisibility()) && (await table(page)).rows.length === 0, "with nothing read yet there is no table and no download");
 await check(readsOf(official).length === 0 && readsOf(new Set([own3.id])).length === 0, "opening Study Setup reads no extraction of an image's results", readsOf(official).map((c) => c.id));

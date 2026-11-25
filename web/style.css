@@ -1048,7 +1048,6 @@ html:not(.offline) #welcome-offline { display: none; }
 .stage-act:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
 .stage-act[hidden] { display: none; }
 #stage-what, #stage-msg { margin: 6px 2px 0; }
-#stage-msg:empty { display: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the calls in flight (req/shell/status-bar/calls): each server's logo turning beside what is read from it; and a place a call fills */
 #sb-calls { display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden; }

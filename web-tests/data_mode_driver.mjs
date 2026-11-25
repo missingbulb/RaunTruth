@@ -13,6 +13,7 @@ import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { openImage } from "./setup_page.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
 const PREVIEWS_DIR = "dmpreviewsfolder00001";
@@ -37,9 +38,6 @@ await page.context().close();
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
 page = await open(true, { study: { files: { from: ["drive"], accept: ".png,.tif,.tiff,.jpg", empty: "Load an image." } } });
 const width = () => page.evaluate(() => Math.round($("#data-col").getBoundingClientRect().width));
-// the column at a width and its slide over; the check after it says what it found when it never gets there
-const slid = (wide) => orMissed(page.waitForFunction((wide) => (wide ? $("#data-col").getBoundingClientRect().width > 200 : $("#data-col").getBoundingClientRect().width < 60)
-  && !document.getAnimations().some((a) => a.playState === "running"), wide, { timeout: 5000 }));
 // the page's handlers for what was just done have all run: a click it ignores has had every chance to act
 const turned = () => frames(page);
 await check(await page.evaluate(() => !$("#data-col") && !document.documentElement.dataset.mode), "the study's own page holds no Data Management: it is Study Setup's, chosen from the avatar's menu");
@@ -47,15 +45,8 @@ await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 // Edit Image is gone (req/shell/data/damaged): nothing in the mode splits, crops or saves a new image file
 await check(await page.evaluate(() => !document.querySelector("#preprocessing-box, #edit-open, #edit-box, #save-dlg")), "Data Management offers no Edit Image");
-await slid(true);
-await check((await width()) > 200, "choosing Study Manager slides the column out, open", await width());
-await page.click("#data-open");
-await slid(false);
-await check((await width()) < 60, "its chevron folds it to a narrow strip", await width());
-await shot("1-strip");
-await page.click("#data-open");
-await slid(true);
-await check((await width()) > 200, "the chevron opens the column again", await width());
+await check((await width()) > 200 && !(await page.evaluate(() => $("#view").checkVisibility({ visibilityProperty: true }))), "Study Setup shows the study's folders in a column of its own layout, and no viewer", await width());
+await shot("1-folders");
 await check(!(await page.isVisible("#data-approve")), "with the per-file permission given, the tree's head asks for nothing");
 const access = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => [f.querySelector(":scope > .row .name").textContent, f.querySelector(":scope > .row .access").textContent]));
 await check(JSON.stringify(access) === JSON.stringify([["Study folder one", "Writable"], ["sub", "Writable"]]), "the tree shows every folder with its access, as Drive's sharing gives it: a subfolder never picked is writable too", access);
@@ -129,10 +120,12 @@ await shot("4-preview");
 const got = await page.evaluate(() => ({ name: st.kept.name, bytes: Array.from(new Uint8Array(st.kept.bytes)) }));
 await check(got.name === "a flat.preview.tif", "the preview opens as a TIFF, the file Python is handed", got.name);
 fs.writeFileSync(out + ".preview.tif", Buffer.from(got.bytes));
+await openImage(page);
 await page.click("#load-original");
 // the name is set as the open starts, the image's source once it is done
 await orMissed(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
 await check(await page.evaluate(() => st.fileName === "a flat.tif" && shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden), "Load Original opens the image itself");
+await page.click("#image-close");
 
 // offline (req/shell/offline/default): no bar asking for folders, and nothing written to Drive
 await page.click("#data-tree .tree-folder .name");
@@ -151,11 +144,6 @@ await expecting(gone, async () => {
   await click(page, cell("e plain.tif") + " .mark-gt", { force: true });
   await turned();
   await check(writes.length === before, "offline, marking an image does nothing", writes.slice(before));
-  // Data Management as a whole needs the network: its column's chevron does nothing
-  const folded = () => page.evaluate(() => $("#data-open").getAttribute("aria-expanded"));
-  await page.click("#data-open", { force: true });
-  await turned();
-  await check(await folded() === "true", "and its chevron does nothing", await folded());
   await page.context().setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
 }, { maybe: true });

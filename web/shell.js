@@ -566,9 +566,10 @@ function showAccess() {
   drawAnnotate();
 }
 // Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
-// run out, as the store's reads do, and the page opens once the sign-in has answered
+// run out, as the store's reads do. It opens in a page of its own, the link's own doing; leaving it waits for the sign-in's answer
 $("#open-setup").onclick = (e) => {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (!SETUP) { $("#user-menu").open = false; signIn.forRead().catch(() => {}); return; }
   e.preventDefault(); $("#user-menu").open = false;
   const go = () => location.assign($("#open-setup").href);
   signIn.forRead().then(go, go);

@@ -81,5 +81,6 @@ $("#image-open").onclick = () => {
   minimapView();
 };
 $("#image-close").onclick = () => imageDialog.close();
+imageDialog.addEventListener("close", () => { $("#image-dlg-title").textContent = ""; });
 // the page's own layout shows to those the store lets write the root
 attach({ open(on) { $("#setup").hidden = !on; if (!on) imageDialog.close(); } });

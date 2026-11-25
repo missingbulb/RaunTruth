@@ -5,6 +5,7 @@
 //   node web-tests/setup_sharing_driver.mjs ANSWERS STUDIES ROOT
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
+import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { w, root: studyRoot, drive, open, check, done, ROOT, GT, studyFile, EMAIL } = await standIn({ answers, studies, rootDir });
@@ -35,7 +36,8 @@ const shown = (page) => page.evaluate(() => ({
     fix: !!li.querySelector("button.sharing-fix"), refused: li.querySelector(".sharing-refused")?.textContent ?? null })),
 }));
 const permissionWrites = () => drive.writes.filter((w) => w[0] === "share" || w[0] === "unshare");
-const opened = async (seeds) => { seed(seeds); const page = await open(true, { setup: true }); await settled(page); return page; };
+const opened = async (seeds) => { seed(seeds); const page = await open(true, { setup: true });
+await aspect(page, "people"); await aspect(page, "people"); await settled(page); return page; };
 const recheck = async (page) => { const n = await checks(page); await page.click("#sharing-recheck"); await settled(page, n); };
 
 // a Develop root shared by link: one correction, naming the root; the pictures and the link to its sharing dialog with it
@@ -74,6 +76,7 @@ await check(s.corrections.length === 0 && /Sharing is as this stage needs/.test(
 await page.context().close();
 seed({ members: [Z, Y], writers: [Y] });
 page = await open(true, { setup: true });
+await aspect(page, "people");
 await settled(page);
 const people = await page.evaluate(() => ({
   rows: Object.fromEntries([...document.querySelectorAll("#people-list [data-email]")].map((li) => [li.dataset.email, [...li.querySelectorAll(".holds")].map((x) => x.textContent)])),

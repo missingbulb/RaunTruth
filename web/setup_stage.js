@@ -56,8 +56,8 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
 
   function draw() {
     const now = stage();
-    box.hidden = !now;
-    if (!now) return;
+    if (!now) return asStarted();
+    box.hidden = false;
     box.classList.toggle("busy", busy);
     $("#stage-what").textContent = `${now}: ${WHAT[now]}`;
     const at = STAGES.indexOf(now), up = next(now), back = before(now);
