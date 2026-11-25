@@ -105,7 +105,7 @@ await page.click("#scoring-help"); q = await scoring();
 await check(!q.open && q.expanded === "false", "... and a second click shuts it", q);
 
 await page.click("#start-run");
-await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
+await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result")?.textContent));
 const once = await page.evaluate(() => document.querySelector("#fx-result").textContent);
 await check(once.includes(first.title), "Run runs the algorithm chosen, the first", once);
 // another image, and the other algorithm chosen in the dialog

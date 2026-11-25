@@ -213,7 +213,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const edge = (sel) => page.evaluate((s) => getComputedStyle(document.querySelector(s), "::after").borderTopColor, sel);
   const plain = await edge("#sb-version");
   await page.hover("#sb-version");
-  await page.waitForFunction((was) => { const c = getComputedStyle(document.querySelector("#sb-version"), "::after"); return c.borderTopColor !== was && !document.querySelector("#sb-version").getAnimations({ subtree: true }).length; }, plain).catch(() => {});
+  await page.waitForFunction((was) => { const c = getComputedStyle(document.querySelector("#sb-version"), "::after"); return c.borderTopColor !== was && !document.querySelector("#sb-version").getAnimations({ subtree: true }).length; }, plain);
   await shot(page, "1-hovered");
   const hovered = await edge("#sb-version"), fade = await page.evaluate(() => getComputedStyle(document.querySelector("#sb-version"), "::after").transitionDuration);
   await check(/, 0\)$/.test(plain) && !/, 0\)$/.test(hovered) && parseFloat(fade) > 0 && parseFloat(fade) <= 0.2, "hovering a clickable item fades a button's border in around it, quickly", { plain, hovered, fade });
