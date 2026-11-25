@@ -2316,17 +2316,19 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
   </details>
 
-- `req/setup/image` An image chosen on Study Setup is opened in a dialog, where its areas are marked.
+- `req/setup/image` An image chosen on Study Setup is opened in a dialog that draws it flat, where its areas are lassoed.
   <details>
 
-  Set by the owner on 2026-11-24: what is done on one image is in a dialog, the page having no image viewer of its own. Choosing an
-  image chooses it: in the grid, its cell is outlined and the grid stays; in the tree, the grid steps aside, as no folder is chosen. Its
-  name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read as before, its preview
-  first, so choosing asks the network for no more than it did. Open image… shows it in a dialog over the page, with the channels and
-  Load Original beside it and, under it, Damaged areas and Area of interest with their Mark and Clear; Close shuts it, and choosing a
-  folder shuts it too. Tentative, until the dialog draws the image flat with a lasso of its own (the owner's note 5, the next change):
-  the dialog shows the shell's image view. Test: `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`,
-  `web-tests/test_data_mode_page.py`.
+  Set by the owner on 2026-11-24 and 2026-11-25: what is done on one image is in a dialog, the page having no image viewer of its own, and marking
+  areas needs no 3D view. Choosing an image chooses it: in the grid, its cell is outlined and the grid stays; in the tree, the grid steps
+  aside, as no folder is chosen. Its name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read
+  as before, its preview first, and by the code that reads it on the study's own page, so choosing asks the network for no more than it did.
+  Open image… shows it in a dialog over the page, the page behind it held until the dialog shuts, as large as the window allows: the image's
+  name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler,
+  grid, minimap and zoom, Load Original while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
+  left bar, no channel rows, no 3D view and none of the study's own tools. Close and Esc shut it, and choosing a folder shuts it too; Esc
+  while an area is being lassoed gives up the lasso and leaves the dialog open. A notice raised while it is open shows over it. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/test_data_mode_page.py`.
   </details>
 
 - `req/setup/loading` What Study Setup reads from the store is shown where it will land: the place is emptied of the choice before, shows that it is loading, and a late answer for an earlier choice paints nothing.

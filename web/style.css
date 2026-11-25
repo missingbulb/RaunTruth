@@ -1020,11 +1020,14 @@ html:not(.offline) #welcome-offline { display: none; }
 #image-panel-name { font-weight: 600; overflow-wrap: anywhere; margin-bottom: 6px; }
 #folder-items .cell.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* the image's dialog (req/setup/image): the image view over the page; shut, it keeps its size off the page so the image is laid out as it will show */
-#image-dlg { position: fixed; inset: 0; margin: auto; width: min(1280px, 94vw); height: min(860px, 88vh); box-sizing: border-box; padding: var(--pad); display: flex; flex-direction: column; gap: 8px;
-  z-index: 30; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 0 0 100vmax #0007, 0 14px 40px #0008; }
+#image-dlg { position: fixed; inset: 0; margin: auto; width: calc(100vw - 32px); height: calc(100vh - 32px); max-width: none; max-height: none; box-sizing: border-box; padding: var(--pad); display: flex; flex-direction: column; gap: 8px;
+  color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 14px 40px #0008; }
+#image-dlg::backdrop { background: #0007; }
 #image-dlg:not([open]) { visibility: hidden; inset: 0 auto auto -300vw; margin: 0; pointer-events: none; }
+/* the image flat and its tools alone (req/setup/image) */
+#image-dlg :is(#left, #gutter-left, #switch, #history-btn, #gt-undo, #gt-redo) { display: none !important; }
 #image-dlg h2 { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
-#image-dlg #layout { flex: 1; min-height: 0; --lw: 270px; }
+#image-dlg #layout { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr); }
 #image-dlg #areas { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; align-items: center; }
 #image-dlg #areas[hidden] { display: none; }
 #image-dlg .areas-row { margin: 0; } #image-dlg .areas-row .hint { flex: none; } #image-dlg .areas-label { min-width: 0; font-weight: 600; }

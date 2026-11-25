@@ -74,13 +74,25 @@ $("#setup-rail").onclick = (e) => {
   aspect.dataset.aspect = b.dataset.aspect;
   for (const x of $("#setup-rail").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
 };
-// the image's dialog (req/setup/image): the image view over the page
+// the image's dialog (req/setup/image): the image flat, over the page, which waits behind it
 $("#image-open").onclick = () => {
   $("#image-dlg-title").textContent = $("#image-panel-name").textContent;
-  if (!imageDialog.open) imageDialog.show();
+  if (!imageDialog.open) imageDialog.showModal();
   minimapView();
 };
 $("#image-close").onclick = () => imageDialog.close();
+// Esc gives up a lasso being drawn before it shuts the dialog
+let lassoed = false;
+window.addEventListener("keydown", (e) => { if (e.key === "Escape") lassoed = !!imageDialog.querySelector(".lassoing"); }, true);
+imageDialog.addEventListener("cancel", (e) => { if (lassoed) e.preventDefault(); lassoed = false; });
 imageDialog.addEventListener("close", () => { $("#image-dlg-title").textContent = ""; });
+// a notice raised while the dialog holds the page shows inside it, where it can be answered
+const noticeHome = $("#notice").parentNode;
+const placeNotice = () => {
+  const into = imageDialog.open && !$("#notice").hidden ? imageDialog : noticeHome;
+  if ($("#notice").parentNode !== into) { into.append($("#notice")); if (into === imageDialog) $("#notice-ok").focus(); }
+};
+new MutationObserver(placeNotice).observe($("#notice"), { attributes: true, attributeFilter: ["hidden"] });
+imageDialog.addEventListener("close", placeNotice);
 // the page's own layout shows to those the store lets write the root
 attach({ open(on) { $("#setup").hidden = !on; if (!on) imageDialog.close(); } });

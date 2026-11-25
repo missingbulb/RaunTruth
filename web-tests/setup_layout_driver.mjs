@@ -111,7 +111,22 @@ await check((await seen(page, "#folder-items .cell.chosen")) && (await cells(pag
 await page.click("#image-open");
 await page.waitForFunction(() => $("#image-dlg").open);
 await check((await seen(page, "#view")) && (await seen(page, "#stage")) && (await seen(page, "#areas")), "Open image… shows it in a dialog, with its areas to mark");
+await page.waitForFunction(() => !$("#image-dlg").getAnimations().length);
+const dialog = await page.evaluate(() => { const d = $("#image-dlg"), r = d.getBoundingClientRect(); return { modal: d.matches(":modal"), wide: r.width / innerWidth, tall: r.height / innerHeight }; });
+await check(dialog.modal && dialog.wide > 0.9 && dialog.tall > 0.9, "... the page behind it held, and as large as the window allows", dialog);
+const bare = [];
+for (const s of ["#left", "#channels", "#gutter-left", "#switch", "#history-btn"]) if (await seen(page, s)) bare.push(s);
+await check(!bare.length && (await seen(page, ".toolbar .zoom")) && (await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
 await shot(page, "4-image");
+// a notice raised meanwhile can be answered
+await page.evaluate(() => { $("#notice-text").textContent = "A notice over the dialog."; $("#notice").hidden = false; });
+await page.click("#notice-ok");
+await check(!(await seen(page, "#notice")) && (await page.evaluate(() => $("#image-dlg").open)), "a notice raised while it is open shows over it and is answered there");
+await page.keyboard.press("Escape");
+await page.waitForFunction(() => !$("#image-dlg").open);
+await check(!(await seen(page, "#view")), "Esc shuts it");
+await page.click("#image-open");
+await page.waitForFunction(() => $("#image-dlg").open);
 await page.click("#image-close");
 await check(!(await page.evaluate(() => $("#image-dlg").open)) && !(await seen(page, "#view")), "Close shuts it");
 

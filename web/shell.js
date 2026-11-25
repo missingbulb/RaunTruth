@@ -1632,6 +1632,8 @@ function leaveStudy() {
 const shell = {
   $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
   showImage, outline,
+  // a stack shows as its slices flattened, with no 3D view (req/setup/image)
+  flatOnly: SETUP,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
   // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)
