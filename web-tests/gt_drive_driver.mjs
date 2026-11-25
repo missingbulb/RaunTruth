@@ -109,6 +109,9 @@ await check(wanted === "GT wanted" && !other, "to the tagger, the Drive dialog t
 await page.keyboard.press("Escape");
 await page.click("#fx-count");
 await page.waitForFunction(() => !$("#gt-submit").disabled);
+// a study that says nothing of what is left: Upload's tooltip names the tasks still open, from the tasks the shell draws
+const openTitle = await page.evaluate(() => $("#gt-submit").title);
+await check(/Count checked/.test(openTitle) && /still open/i.test(openTitle), "with a task still open, Upload's tooltip names it", openTitle);
 // req/shell/ground-truth/tagging: annotating, the study's task is open once there is a count; a task's name opens it again
 const tagging = () => page.evaluate(() => ({ open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null, check: !!document.querySelector("#gt-tasks li.now #fx-check"),
   start: !!$("#gt-start") }));

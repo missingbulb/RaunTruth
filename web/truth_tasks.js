@@ -29,6 +29,12 @@ export function truthTasks({ $, icon, started, heardBy }) {
   });
   $("#gt-counters").addEventListener("click", (e) => { const b = e.target.closest("button[data-task]"); if (b) pick?.(b.dataset.task); });
   $("#gt-bar").addEventListener("click", (e) => { const p = e.target.closest("span[data-task]"); if (p) pick?.(p.dataset.task); });
+  // Upload's tooltip: what the study says is left to do, else the tasks still open, by name
+  let said = "";
+  function retitle() {
+    const open = [...$("#gt-bar").children].filter((p) => !row(p.dataset.task)?.classList.contains("done")).map((p) => p.title);
+    $("#gt-submit").title = said || (open.length ? `Still open: ${open.join(", ")}` : "Upload your analysis to the study");
+  }
   function tagged(now) {
     if (!now) for (const el of [...rows(), ...$("#gt-counters").children, ...$("#gt-bar").children]) el.classList.remove("now");
   }
@@ -73,6 +79,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
       // a task that says no count is its bar part alone
       c.hidden = !says;
       li.classList.toggle("done", !!done); c.classList.toggle("done", !!done);
+      retitle();
       const whole = of == null ? 1 : Math.max(of, 1), part_ = of == null ? (done ? 1 : 0) : did != null && of ? Math.min(did / of, 1) : 0;
       p.style.flexGrow = did == null ? 1 : whole; p.style.setProperty("--done", did == null ? 0 : part_);
     },
@@ -116,7 +123,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
       const b = $("#gt-submit");
       wants = !!on; b.disabled = !wants || !started();
       if (state) b.dataset.state = state; else delete b.dataset.state;
-      if (title) b.title = title; else b.removeAttribute("title");
+      said = title || ""; retitle();
     },
     // the study's steps moved: Submit follows its first one
     stepped() { $("#gt-submit").disabled = !wants || !started(); },
