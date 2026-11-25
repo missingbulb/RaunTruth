@@ -64,7 +64,11 @@ await check(acts.filter(Boolean).length === (at > 0 ? 1 : 0) + (at < 4 ? 1 : 0) 
 for (const sel of ["#view", "#left", "#image-box", ".toolbar"]) await check(!(await seen(page, sel)), `nothing of the viewer or the left bar is on show: ${sel}`);
 await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-box")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
 await shot(page, "1-opens");
-if (shots && at < 4) { await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0); }
+if (shots && at < 4) {
+  await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0);
+  await page.click("#stage-up"); await page.waitForFunction(() => document.querySelector("#stage-change-dlg, #stage-freeze-dlg[open]")?.open || document.querySelector("#stage-freeze-dlg").open);
+  await shot(page, "1-promote-asked"); await page.keyboard.press("Escape");
+}
 
 // a folder chosen: its place emptied and marked loading while the store is read, the call in the status bar
 const [top, sub] = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => f.dataset.id));
@@ -101,6 +105,7 @@ await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (aw
   drive.hold = () => null; w.release();
   await idle(page);
   await check(await page.textContent("#status") === "Saved the tag to the study.", "once the write is taken the status line says the tag is saved to the study", await page.textContent("#status"));
+  await shot(page, "6-tag-saved");
   // a write the store refuses is said not to be saved
   drive.outage = "writes";
   await page.fill("#tags-add", "acme-refused");
