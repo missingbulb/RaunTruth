@@ -706,6 +706,10 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/extractions/save` Upload writes the person's one Analysis File for the image to the study's extractions folder, replacing their own and keeping Drive's old revision; Download Analysis saves it as a file; a count says how many images wait to upload.
   <details>
 
+  Corrected after the walk of 2026-11-25: before the press the dialog says where the analysis goes and of which image, and that it
+  replaces the person's earlier one where the page knows of one (its listing found it, or this device uploaded it); once uploaded,
+  the status line says so after the dialog is closed.
+
   Changed by the owner on 2026-11-24: the last task's button reads Upload and opens the Upload Analysis dialog, the
   checklist with two actions, Cancel and Upload, and no Export file; once uploaded, or kept waiting on this device,
   Cancel reads Close. The file itself is Download Analysis, a download icon with that tooltip on the Analysis box's
@@ -992,6 +996,8 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/ground-truth/tasks` The shell shows the study's tasks in the Analysis box, split by purpose: progress in a strip under the header, the open task under the runner, Upload last; how a task is worked through is the study's.
   <details>
+
+  Corrected after the walk of 2026-11-25: where the study says nothing of what is left, Upload's tooltip names the tasks still open.
 
   Changed by the owner on 2026-11-25, who chose to split the tasks by purpose. Progress is a strip directly under the
   Analysis box's header, there whenever the tasks are listed: the title Analysis Tasks with the Areas menu
@@ -2384,6 +2390,10 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/setup/page` Study Setup is the site page `app/setup`, opened from the avatar's menu by those Drive lets write the study's root, online only.
   <details>
 
+  Corrected after the walk of 2026-11-25: where the token has run out by the page's own record, the item opens the new page empty within
+  the click and sends it to Study Setup once the sign-in has answered, so that Study Setup reads with the renewed token; while the
+  token lasts the link opens the page itself.
+
   Set by the owner on 2026-11-22. The avatar's menu of the study's own page holds Study Setup…, for someone Drive
   lets write the study's root; it opens `/app/setup?study=<id>` in a new page (a new tab), the item carrying the small
   "opens in a new page" icon at its right edge (set by the owner on 2026-11-24), renewing a token run out in its click as Drive's
@@ -2409,6 +2419,9 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
   <details>
 
+  Corrected after the walk of 2026-11-25: the line under the stages says what the stage is and, after it, what moves the study on to the
+  next one, as the stage popup does.
+
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Set by the owner on 2026-11-24: the stage is a
   progression of the five stages across the top of Study Setup, each in its own colour (Setup red, Develop yellow, Analyze green, Review
   blue, Public all four), the current one selected, those before it marked done, and what the current one means under it. Promoting is
@@ -2429,6 +2442,9 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/setup/results` Study Setup's Results box lists one row per image with an official mark, with totals and a CSV, reading nothing until Show results is pressed.
   <details>
+
+  Corrected after the walk of 2026-11-25: the Algorithm column reads the key of the run as the studies record it. A table read before a mark
+  was made or taken off on the page is taken down when the mark is written, with no read of its own, and Show results reads again.
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP8; reading each image's official extraction on that press alone is
   approved). Nothing is read on opening Study Setup, on a mark or on a stage change. Pressing Show results reads the study file's marks and

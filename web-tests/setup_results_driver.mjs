@@ -21,7 +21,7 @@ const subOf = (name) => w.of(GT.extractions).folder(`${name.replace(/\.[^.]*$/, 
 const body = (name, extra, count) => Buffer.from(JSON.stringify({ created: "2026-11-01T10:00:00Z", image: { name, sha256: shaOf(name) }, labels: [{ threshold: 100, count }], marks: [{ id: "m1", x: 12, y: 12 }], checked: true, ...extra }));
 // img1's official extraction is a batch run's of the algorithm `above` (it names no tagger and begins with that run); img2's is y's own; img3 has no official mark
 const run1 = subOf("img1.png").holds({ name: runFile("above", "abcdef01"),
-  bytes: body("img1.png", { history: { actions: [{ type: "run", algorithm: "above", version: { site: "1.0", code: "abcdef0123456789" }, output: {} }] } }, 7) }, { bySite: true });
+  bytes: body("img1.png", { history: { actions: [{ type: "run", algorithm: { key: "above", params: { threshold: 128 } }, version: { site: "1.0", code: "abcdef0123456789" }, output: {} }] } }, 7) }, { bySite: true });
 const own2 = subOf("img2.png").holds({ name: await personFile(Y), bytes: body("img2.png", { tagger: Y }, 5) }, { bySite: true });
 const own3 = subOf("img3.png").holds({ name: await personFile(Y), bytes: body("img3.png", { tagger: Y }, 9) }, { bySite: true });
 studyFile({ stage: "Analyze", marks: { [shaOf("img1.png")]: { official: { file: run1.id, by: null } }, [shaOf("img2.png")]: { official: { file: own2.id, by: Y } },
@@ -52,6 +52,7 @@ await check(JSON.stringify(t.total) === JSON.stringify(["Total (2 images)", "", 
 await check(readsOf(official).length === 2 && readsOf(new Set([own3.id])).length === 0, "the press read the two official extractions and nothing else", readsOf(new Set([own3.id])).length);
 
 // the CSV is made on the page from those rows: no request goes out for it
+await idle(page);
 const before = drive.calls.length, seen = [];
 page.on("request", (r) => seen.push(r.url()));
 const [download] = await Promise.all([page.waitForEvent("download"), page.click("#results-csv")]);
@@ -59,6 +60,22 @@ const csv = fs.readFileSync(await download.path(), "utf8");
 await check(download.suggestedFilename() === "results.csv" || /results\.csv$/.test(download.suggestedFilename()), "Download CSV saves a file named for the results", download.suggestedFilename());
 await check(csv === "Image,Algorithm,Pixels counted\nimg1.png,above abcdef01,7\nimg2.png,by hand,5\nTotal (2 images),,12\n", "the CSV holds the same rows and the totals", csv);
 await check(drive.calls.length === before && !seen.some((u) => !u.startsWith("blob:")), "downloading it asks the network for nothing", seen);
+
+// a mark made on the page while the table shows: the table is of before the mark, so it goes, with no read of its own, until the next press
+await aspect(page, "images");
+await page.click("#data-tree .tree-folder .name");
+await page.waitForSelector("#folder-items .cell");
+await page.click('#folder-items .cell:has(.name:text-is("img3.png")) .name');
+await page.waitForSelector(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
+const readBefore = readsOf(official).length;
+await page.click(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
+await page.waitForFunction(() => /^Marked/.test(document.querySelector("#marks-msg").textContent));
+await aspect(page, "results");
+t = await table(page);
+await check(t.rows.length === 0 && await page.evaluate(() => !document.querySelector("#results-csv").checkVisibility()) && readsOf(official).length === readBefore,
+  "after a mark is made the table shown before it is gone, and nothing was read for that", t.rows);
+await page.click("#results-show");
+await until(page, () => document.querySelectorAll("#results-scroll table tbody tr").length === 3);
 
 // an official mark taken off: the next press lists one row fewer
 studyFile({ marks: { [shaOf("img1.png")]: { official: { file: run1.id, by: null } } } });

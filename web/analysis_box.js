@@ -16,7 +16,7 @@ export const OUTBOX = "nor-gt-outbox";
 
 export function analysisBox(shell) {
   const { $, icon, outline, status, REPO, views, signIn, st, truth, stageAllows, data, showBoxes, log, restudyHeld, page, makesTruth, drawSteps, notice, readJSON,
-    writeJSON, noteSaved, esc, maySave, readStage, step, working, saveFile } = shell;
+    writeJSON, noteSaved, savedHere, esc, maySave, readStage, step, working, saveFile } = shell;
   // the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
   const tasks = truthTasks({ $, icon, started: () => { const first = shell.manifest?.phases[0]?.key; return !first || !!shell.steps.find((p) => p.key === first)?.done; },
     heardBy: (on) => shell.view?.tagged?.(on) });
@@ -210,7 +210,10 @@ export function analysisBox(shell) {
       li.innerHTML = icon(t.ok ? "done" : t.level === "error" ? "todo" : "part") + `<span>${esc(t.text)}</span>`;
       return li;
     }));
-    $("#gt-msg").textContent = n ? why() : gt.empty;
+    // what is known without asking the store again: a file its listing found, or one this device uploaded
+    const replaces = (shell.listedFor?.sha === st.sha && !!shell.listedFor.mine) || savedHere().has(st.sha);
+    const goes = `Goes to the study's Analysis Files, as your analysis of ${st.fileName}${replaces ? ": it replaces the one you uploaded before" : ""}.`;
+    $("#gt-msg").textContent = n ? why() || (maySave() ? goes : "") : gt.empty;
     send.hidden = !maySave();
     send.disabled = !n || !!why() || !maySave(); send.title = why();
     const done = (is) => { $("#gt-close").textContent = is ? "Close" : "Cancel"; $("#gt-close").classList.toggle("primary", is); send.classList.toggle("primary", !is); };
@@ -229,6 +232,7 @@ export function analysisBox(shell) {
         $("#gt-msg").textContent = `Uploaded to the study's Analysis Files, as your analysis of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
         step("submit", true);
         log.add(late ? "Uploaded the analysis, after the freeze: not counted" : "Uploaded the analysis");
+        status(`Uploaded your analysis of ${st.fileName}${late ? ", after the freeze: not counted" : ""}.`);
         done(true);
       } catch (e) {
         // the store refusing is final; a sign-in run out, or no network, is not: the save waits on this device for the next click

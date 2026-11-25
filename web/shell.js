@@ -244,12 +244,13 @@ const mbOf = (n) => Math.round(n / 2 ** 20);
 function ramList() {
   const { js, total } = memoryNow(), gb = navigator.deviceMemory;
   const image = Object.values(st.img || {}).reduce((a, c) => a + (c?.byteLength || 0), 0);
+  const within = [...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
+    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true])];
   const rows = [
     ["Python", "Its memory as far as it has grown", st.heap],
     ["Python's files", "Python's library, its packages and the study's code", st.files],
-    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold, the indented rows among it", js],
-    ...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
-    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true]),
+    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold" + (within.length ? ", the indented rows among it" : ""), js],
+    ...within,
     ["Compiled code and the browser", "An estimate: a page cannot read it", UNREAD_MB * 2 ** 20],
   ];
   $("#ram-total").textContent = total == null ? "Python is still loading." : `This tab holds about ${mbOf(total)} MB` + (gb ? ` of this computer's ${gb} GB.` : ".");
@@ -419,10 +420,20 @@ function showAccess() {
   drawAnnotate();
 }
 // Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
-// run out, as the store's reads do. It opens in a page of its own, the link's own doing; leaving it waits for the sign-in's answer
+// run out, as the store's reads do. It opens in a page of its own: the link's own doing while the token lasts; with the token run out
+// the page is opened empty within the click and sent to Study Setup once the sign-in has answered, so that it reads with the new token.
+// Leaving it waits for the sign-in's answer
 $("#open-setup").onclick = (e) => {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  if (!SETUP) { $("#user-menu").open = false; signIn.forRead().catch(() => {}); return; }
+  if (!SETUP) {
+    $("#user-menu").open = false;
+    if (signIn.token()) { signIn.forRead().catch(() => {}); return; }
+    e.preventDefault();
+    const tab = window.open("", "_blank"), to = new URL($("#open-setup").getAttribute("href"), location.href).href;
+    const send = () => { if (!tab) return location.assign(to); tab.opener = null; tab.location.replace(to); };
+    signIn.forRead().then(send, send);
+    return;
+  }
   e.preventDefault(); $("#user-menu").open = false;
   const go = () => location.assign($("#open-setup").href);
   signIn.forRead().then(go, go);
@@ -1102,7 +1113,7 @@ function saveFile(name, text, type) {
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
 const { drawAnnotate, wantList, tasks, drawWaiting, algorithms, runsFirst, drawDownloads, ownFile, submitTruth } = analysisBox({ $, icon, outline, status, REPO, views, signIn, st, truth, stageAllows, data, showBoxes, log, restudyHeld, page, makesTruth, drawSteps, notice, readJSON,
-  writeJSON, noteSaved, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
+  writeJSON, noteSaved, savedHere, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
   get view() { return view; }, get truthShown() { return truthShown; }, set truthShown(v) { truthShown = v; }, get memberIds() { return memberIds; },
   get listedReady() { return listedReady; }, get listing() { return listing; }, set listing(v) { listing = v; }, get listedFor() { return listedFor; },
   set listedFor(v) { listedFor = v; }, get storeList() { return storeList; }, set storeList(v) { storeList = v; }, get storeRows() { return storeRows; },

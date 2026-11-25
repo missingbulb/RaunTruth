@@ -9,7 +9,7 @@ import { setStudy } from "./study_root.js";
 import { work } from "./pending.js";
 import { asLoaded } from "./as_loaded.js";
 import { holdOwns } from "./offline.js";
-import { STAGES, WHAT, LIGHT, next, before, frozen } from "./stages.js";
+import { STAGES, WHAT, NEXT, LIGHT, next, before, frozen } from "./stages.js";
 
 const READ_AT_ONCE = 6;
 
@@ -59,7 +59,7 @@ export function setupStage({ $, reader, writer, place, changed, calls }) {
     if (!now) return asStarted();
     box.hidden = false;
     box.classList.toggle("busy", busy);
-    $("#stage-what").textContent = `${now}: ${WHAT[now]}`;
+    $("#stage-what").textContent = `${now}: ${WHAT[now]} ${NEXT[now]}`;
     const at = STAGES.indexOf(now), up = next(now), back = before(now);
     for (const [k, li] of [...steps.children].entries()) {
       const state = k < at ? "done" : k === at ? "now" : "ahead", b = li.querySelector(".stage-act"), act = li.dataset.stage === up ? "up" : li.dataset.stage === back ? "back" : null;

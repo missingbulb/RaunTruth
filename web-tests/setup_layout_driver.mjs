@@ -87,6 +87,19 @@ await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell"
 await idle(page);
 await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (await page.evaluate(() => !$("#folder-items").hasAttribute("aria-busy"))), "its images drawn, the place and the status bar say no more of it", [await cells(page), await chip(page)]);
 
+// a tag added to the folder: while the store takes the write the status bar says it is saving, not loading
+{
+  const w = held();
+  drive.hold = (call) => (call.kind === "write" ? w.hold() : null);
+  await page.fill("#tags-add", "acme-tag");
+  await page.click("#tags-add-go");
+  await w.asked;
+  const saving = await chip(page);
+  await check(/^Saving to Google Drive/.test(saving?.text || ""), "while a tag is written the status bar says Saving to the store", saving);
+  drive.hold = () => null; w.release();
+  await idle(page);
+}
+
 // a late answer: the folder chosen since keeps the place
 h = holdListing(sub);
 await page.click(name(top));
@@ -113,7 +126,8 @@ await check(said === "Ready.", "the status line asks for no image and tells of n
 await page.click("#image-open");
 await page.waitForFunction(() => $("#image-dlg").open);
 await check((await seen(page, "#view")) && (await seen(page, "#stage")) && (await seen(page, "#areas")), "Open image… shows it in a dialog, with its areas to mark");
-await page.waitForFunction(() => !$("#image-dlg").getAnimations().length);
+// its opening motion begins a frame after it opens, so one still frame is not yet rest: three in a row with nothing moving it are
+await page.waitForFunction(() => { window.dialogStill = $("#image-dlg").getAnimations().length ? 0 : (window.dialogStill || 0) + 1; return window.dialogStill >= 3; }, null, { polling: "raf" });
 const dialog = await page.evaluate(() => { const d = $("#image-dlg"), r = d.getBoundingClientRect(); return { modal: d.matches(":modal"), wide: r.width / innerWidth, tall: r.height / innerHeight }; });
 await check(dialog.modal && dialog.wide > 0.9 && dialog.tall > 0.9, "... the page behind it held, and as large as the window allows", dialog);
 const fills = await page.evaluate(() => $("#view").getBoundingClientRect().width / $("#image-dlg").getBoundingClientRect().width);
