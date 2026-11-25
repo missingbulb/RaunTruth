@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import sys
+import zlib
 
 import numpy as np
 import tifffile
@@ -18,10 +19,13 @@ sys.path[:0] = [os.path.join(HERE, '..'), os.path.join(HERE, '..', '..', 'dev', 
 
 
 def squares(path):
-    """A grey PNG with two bright squares, which the fixture study counts."""
+    """A grey PNG with two bright squares, which the fixture study counts, and a third placed by the file's name: two
+    images are one to the page only where they share their bytes, as two of a name in two folders do."""
     a = np.zeros((60, 80), np.uint8)
     a[10:20, 10:20] = 200
     a[30:45, 50:70] = 250
+    at = zlib.crc32(os.path.basename(path).encode()) % 60
+    a[52:57, 5 + at:10 + at] = 220
     Image.fromarray(a).save(path, format='PNG')
 
 

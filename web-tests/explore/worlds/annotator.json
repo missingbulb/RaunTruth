@@ -5,7 +5,7 @@
   "goals": [
    "Open one of the lab's microscope images from its shared Drive and get the site to count what it counts in it.",
    "Check the count yourself, correct it where you think it is wrong, and hand your corrected version in to the lab.",
-   "You started on an image earlier today. Find it again without browsing the folders, and get a copy of your results onto your own computer."
+   "Open an image, get it counted, then close it as if you were done for now. Then find that image again without browsing the folders, and get a copy of your results onto your own computer."
   ]
  },
  "study": "fixture",
