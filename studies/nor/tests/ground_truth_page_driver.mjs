@@ -215,7 +215,11 @@ async function download(page) {
   const said = await popup(page);
   await check(!(await page.$("#gt-export")), "the popup has no Export file");
   await page.click("#gt-close");
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
+  await page.click("#analysis-dl");
+  const offered = await page.evaluate(() => [...document.querySelectorAll("#analysis-dl-menu:not([hidden]) [role=menuitem]")].map((b) => b.textContent.trim()));
+  await check(offered.join("|") === "Analysis (JSON)|Candidates (CSV)", `Download Analysis opens a menu of the analysis and the candidates' table (${offered.join("|")})`);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click('#analysis-dl-menu [data-key="analysis"]')]);
+  await check(await page.isHidden("#analysis-dl-menu"), "which shuts once one is chosen");
   return { said, name: dl.suggestedFilename(), gt: JSON.parse(fs.readFileSync(await dl.path(), "utf8")) };
 }
 const csvRows = async (page, id) => {
@@ -371,7 +375,12 @@ async function mask(page) {
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");
   await check(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");
-  await check(!(await page.$("#dl-cands")), "the Summary box has no Download Candidates");
+  // the candidates' table, from Download Analysis's menu
+  await page.click("#analysis-dl");
+  const [got] = await Promise.all([page.waitForEvent("download"), page.click('#analysis-dl-menu [data-key="candidates"]')]);
+  const table = fs.readFileSync(await got.path(), "utf8").trim().split("\n"), ns = table.slice(1).map((r) => r.split(",")[0]);
+  await check(/_candidates\.csv$/.test(got.suggestedFilename()) && table[0].startsWith("n,x_px,y_px,decision,lengths,"), "Download Analysis's Candidates (CSV) saves the candidates' table, a CSV with its columns named", [got.suggestedFilename(), table[0]]);
+  await check(ns.length === all.length && new Set(ns).size === ns.length && ns.every((n) => all.includes(n)), "it names each candidate by its number", ns);
   await device.close();
 }
 

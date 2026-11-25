@@ -711,7 +711,11 @@ nobody has decided: what the page does there is not a requirement yet.
   Cancel reads Close. The file itself is Download Analysis, a download icon with that tooltip on the Analysis box's
   header, there whenever the image carries a model: it saves the model's document with its history as
   `<image name>_analysis.json`, and where nothing can be uploaded, by this user or of this image, it is the last
-  step.
+  step. Set by the owner on 2026-11-25: a study may hand the shell tables of its own to offer there
+  (`shell.tables.set([{key, label, suffix, head(), rows()}])`, or `set(null)`), each read as it is saved, as the CSV
+  `<image name><suffix>`; with more than one thing to download the icon opens a menu, "Analysis (JSON)" then the
+  study's tables by their labels, and a choice downloads it and shuts the menu; with one, a press downloads it. A
+  table is offered whenever the study hands one, the analysis whenever the image carries a model.
 
   Set by the owner on 2026-11-21, in place of Submit. Save (the left bar's task row and its popup, which also holds
   the checklist and Export file) writes the user's extraction of the image, `x_<key>.json`, into the image's

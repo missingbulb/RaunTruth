@@ -56,7 +56,7 @@ import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
 import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
-import { summaryDownload } from "./summary_download.js";
+import { summaryDownload, cell as csvCell } from "./summary_download.js";
 import { summaryMask } from "./summary_mask.js";
 
 const $ = (s) => document.querySelector(s);
@@ -2257,12 +2257,41 @@ function submitTruth(gt) {
 }
 // Download Analysis, on the Analysis box's header: the model's document with its history, as a file; where nothing can be
 // uploaded, by this user or of this image, that is the last step
-$("#analysis-dl").onclick = async () => {
+const imageStem = () => st.fileName.replace(/\.[^.]*$/, "");
+// the tables a study offers beside the analysis (req/shell/extractions/save): [{key, label, suffix, head(), rows()}], read as one is saved
+let studyTables = [];
+const downloadsNow = () => [
+  ...(gtSession.on() && !!gtSession.api.model() && st.img ? [{ key: "analysis", label: "Analysis (JSON)", save: () => working($("#analysis-dl"), saveAnalysis) }] : []),
+  ...(st.img ? studyTables : []).map((t) => ({ key: t.key, label: t.label, save() {
+    saveFile(imageStem() + t.suffix, [t.head(), ...t.rows()].map((r) => r.map(csvCell).join(",")).join("\n"), "text/csv");
+    log.add(`Downloaded ${t.label}`);
+  } }))];
+const dlMenu = $("#analysis-dl-menu");
+function shutDownloads() { dlMenu.hidden = true; dlMenu.replaceChildren(); $("#analysis-dl").setAttribute("aria-expanded", "false"); }
+function drawDownloads() {
+  $("#analysis-dl").hidden = !downloadsNow().length;
+  if ($("#analysis-dl").hidden) shutDownloads();
+}
+$("#analysis-dl").onclick = () => {
+  const all = downloadsNow();
+  if (all.length < 2 || !dlMenu.hidden) { shutDownloads(); if (all.length === 1) all[0].save(); return; }
+  dlMenu.replaceChildren(...all.map((d) => {
+    const b = Object.assign(document.createElement("button"), { type: "button", className: "item", textContent: d.label });
+    b.setAttribute("role", "menuitem"); b.dataset.key = d.key;
+    b.onclick = () => { shutDownloads(); d.save(); };
+    return b;
+  }));
+  dlMenu.hidden = false; $("#analysis-dl").setAttribute("aria-expanded", "true");
+  dlMenu.firstElementChild.focus();
+};
+document.addEventListener("pointerdown", (e) => { if (!dlMenu.hidden && !e.target.closest("#analysis-dl-menu, #analysis-dl")) shutDownloads(); });
+dlMenu.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); shutDownloads(); $("#analysis-dl").focus(); } });
+async function saveAnalysis() {
   if (!gtSession.on() || !st.img) return;
-  saveFile(st.fileName.replace(/\.[^.]*$/, "") + "_analysis.json", JSON.stringify(await gtSession.fileDoc(), null, 1), "application/json");
+  saveFile(imageStem() + "_analysis.json", JSON.stringify(await gtSession.fileDoc(), null, 1), "application/json");
   log.add("Downloaded the analysis");
   if (makesTruth() && (!maySave() || truth.blocked())) step("submit", true);
-};
+}
 $("#gt-close").onclick = () => $("#gt-dlg").close();
 
 // ---------- problems: a report of what went wrong, from the status bar's icon or the avatar's menu, and whether the
@@ -2738,7 +2767,7 @@ function showBoxes() {
   $("#tasks-box").hidden = !filled("#tasks-box") || !makesTruth();
   $("#summary-box").hidden = !filled("#summary-box");
   $("#analysis-box").hidden = !(filled("#processing-box") || filled("#tasks-box") || runsFirst() || stageAllows("annotate"));
-  $("#analysis-dl").hidden = !(gtSession.on() && !!gtSession.api.model() && !!page.get("image"));
+  drawDownloads();
   drawBoxes(); drawSteps();
   if (summaryShown !== summaryShows()) { summaryShown = summaryShows(); summaryMasks.redraw(); }
 }
@@ -2772,7 +2801,7 @@ function leaveStudy() {
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) $(sel).hidden = true;
-  $("#analysis-dl").hidden = true; $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
+  studyTables = []; drawDownloads(); $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
   css?.remove(); css = null;
   $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();
@@ -2794,6 +2823,8 @@ const shell = {
   gt: gtSession.api,
   // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
   summary: summaryCsv.api,
+  // the study's own tables offered by Download Analysis (req/shell/extractions/save): set([{key, label, suffix, head(), rows()}]), or set(null)
+  tables: { set(list) { studyTables = Array.isArray(list) ? list : []; drawDownloads(); } },
   // the summary's mask (req/shell/summary/mask): polygons(), inside(x, y), on(fn, signal)
   mask: summaryMasks.api,
   // the study's declared actions (req/shell/image/keys): handle({id: fn(phase, {event, control})}), report({state: value});
@@ -2888,7 +2919,7 @@ window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, ma
 // an old address, ?study=<id> or index.html, becomes the study's own
 if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
-remoteDialog(); slow($("#analysis-dl"));
+remoteDialog();
 // the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
 const first = mountStudy(studyOf(location));
 swapping = first.catch(() => {});

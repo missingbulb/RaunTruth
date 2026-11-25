@@ -110,12 +110,15 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   options are set.
   </details>
 
-- `req/nor/downloads` The shell's Download Summary gives the summary as a CSV and its Download Analysis the analysis; Upload writes the Analysis File.
+- `req/nor/downloads` The shell's Download Summary gives the summary as a CSV and its Download Analysis the analysis and the candidates' table; Upload writes the Analysis File.
   <details>
 
   Moved by the owner on 2026-10-07; changed by the owner on 2026-11-24, who put the shell's Download Analysis
-  (`req/shell/extractions/save`) in the place of Download Candidates: the page has no CSV of the candidates, and the
-  analysis as a file holds every one of them, the user's decisions and the measurements. The shell's
+  (`req/shell/extractions/save`) in the place of Download Candidates, and on 2026-11-25, who kept the candidates' CSV
+  beside it: Download Analysis opens a menu of "Analysis (JSON)" and "Candidates (CSV)", the table the study hands the
+  shell once candidates are found, as Download Candidates gave it: one row per candidate inside the mask, the added
+  ones first, with its number, its place in pixels, the user's decision, its lengths and each measurement, saved as
+  `<image name>_candidates.csv`. The shell's
   Download Summary gives the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
   NoRs, their density and the area counted, and each measurement's statistics. Upload, the last of the Analysis Tasks (`req/nor/truth/tasks`, moved there by the owner on
   2026-11-03, and shown only while annotating is open, `req/shell/study/stage`), gives the ground truth

@@ -608,8 +608,18 @@ export function mount(shell) {
   }
 
   // ---------- downloads ----------
+  // whether the user set a candidate's lengths, or approved the finder's
+  const measured = (c) => { if (c.added) return "adjusted"; const e = st.edits.get(c.i) || {}; return e.length || e.red || e.width ? "adjusted" : e.approved ? "approved" : null; };
+  // the candidates inside the mask as a table, the added ones first, which the shell's Download Analysis offers as a CSV
+  function candidatesTable() {
+    return { key: "candidates", label: "Candidates (CSV)", suffix: "_candidates.csv",
+      head: () => ["n", "x_px", "y_px", "decision", "lengths", ...MEASURES.map(([k, , s]) => (s ? `${k}_${st.um ? "um" : "px"}` : k))],
+      rows: () => [...addedCands(), ...st.order].filter(inMask).map((c) => [numOf(c), fmt(c.cx, 1), fmt(c.cy, 1),
+        { in: "approved", out: "rejected by you" }[verdictOf(c)] || (c.added ? "added by you" : ""), measured(c) || "", ...measures(c).map(([, v]) => fmt(v, 3))]) };
+  }
   function downloads(on) {
     if (!on) shell.summary.set(null);
+    shell.tables.set(on ? [candidatesTable()] : null);
     gtButton();
   }
   // How finished the user's ground truth is, as a checklist of every issue it can have, each resolved or not
