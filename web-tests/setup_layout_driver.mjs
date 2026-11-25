@@ -3,6 +3,7 @@
 // viewer or left bar on show), an image opened in a dialog, a place emptied and marked loading while the store is read, a late
 // answer painting nothing, and the store's calls shown in the status bar. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/setup_layout_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
+import { atRest } from "./page_motions.mjs";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
@@ -126,8 +127,7 @@ await check(said === "Ready.", "the status line asks for no image and tells of n
 await page.click("#image-open");
 await page.waitForFunction(() => $("#image-dlg").open);
 await check((await seen(page, "#view")) && (await seen(page, "#stage")) && (await seen(page, "#areas")), "Open image… shows it in a dialog, with its areas to mark");
-// its opening motion begins a frame after it opens, so one still frame is not yet rest: three in a row with nothing moving it are
-await page.waitForFunction(() => { window.dialogStill = $("#image-dlg").getAnimations().length ? 0 : (window.dialogStill || 0) + 1; return window.dialogStill >= 3; }, null, { polling: "raf" });
+await atRest(page, "#image-dlg");
 const dialog = await page.evaluate(() => { const d = $("#image-dlg"), r = d.getBoundingClientRect(); return { modal: d.matches(":modal"), wide: r.width / innerWidth, tall: r.height / innerHeight }; });
 await check(dialog.modal && dialog.wide > 0.9 && dialog.tall > 0.9, "... the page behind it held, and as large as the window allows", dialog);
 const fills = await page.evaluate(() => $("#view").getBoundingClientRect().width / $("#image-dlg").getBoundingClientRect().width);

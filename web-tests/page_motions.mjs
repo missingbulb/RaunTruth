@@ -51,3 +51,12 @@ export const ran = (page, since, wants) => page.waitForFunction(([n, ws]) => {
   return ws.every((w) => all.some((x) => x.ended && Object.entries(w).every(([k, v]) => x[k] === v)));
 }, [since, wants], { timeout: WAIT }).then(() => ({}),
   async () => ({ missing: true, played: await page.evaluate((n) => window.cssMotions.slice(n).map(({ name, left, ended }) => ({ name, left, ended })), since) }));
+
+// An element at rest: a motion on it begins a frame after what starts it, so one still frame is not yet rest; three in
+// a row with nothing animating it are.
+export const atRest = (page, selector) => page.waitForFunction((sel) => {
+  const e = document.querySelector(sel), still = (window.atRestFrames ||= {});
+  still[sel] = e.getAnimations().length ? 0 : (still[sel] || 0) + 1;
+  if (still[sel] < 3) return false;
+  delete still[sel]; return true;
+}, selector, { polling: "raf" });

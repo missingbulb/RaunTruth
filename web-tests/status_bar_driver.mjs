@@ -22,6 +22,7 @@ import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { world } from "./world.mjs";
 import { STEP } from "./deadlines.mjs";
+import { atRest } from "./page_motions.mjs";
 
 
 const [answers, image, studies, shots] = process.argv.slice(2);
@@ -287,6 +288,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const memLook = await look("memory");
   // switching tabs leaves the dialog as it is: each tab, as it shows, the same box
   const boxes = [];
+  await atRest(page, "#usage-dlg");
   for (const t of ["storage", "network", "cpu", "memory"]) {
     await page.click(`#usage-dlg [role=tab][data-tab=${t}]`);
     for (let k = 0; k < 3; k++) { boxes.push(await page.evaluate(() => { const r = document.querySelector("#usage-dlg").getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(); })); await page.waitForTimeout(150); } // waits on purpose (no event): samples the box over the tab's first redraws

@@ -126,10 +126,23 @@ function heard(m) {
 // the requests a page sent while its context was offline, until each is answered or fails: the browser may report
 // such a failure only once the network is back, and the case that took it away still answers for it
 const sentOffline = new WeakSet(), awayAnswered = new Map();
-const sentAway = (q) => { sentOffline.add(q); let ok; awayAnswered.set(q, { done: new Promise((r) => { ok = r; }), ok }); };
+const sentAway = (q, ctx) => { sentOffline.add(q); let ok; awayAnswered.set(q, { done: new Promise((r) => { ok = r; }), ok, ctx }); };
 const awayEnded = (q) => { awayAnswered.get(q)?.ok(); awayAnswered.delete(q); };
-const awayHeard = () => Promise.all([...awayAnswered.values()].map((a) => Promise.race([a.done,
-  new Promise((ok) => setTimeout(ok, STEP).unref())]))); // bounds a hang: a request the browser never ends
+// a context gone takes its unanswered requests with it: the browser reports nothing more of them, and one left here
+// would hold every later close for its whole wait
+const awayGone = (ctx) => { for (const [q, a] of awayAnswered) if (a.ctx === ctx) awayEnded(q); };
+// each request sent offline answered or failed, and its page given a turn after it: what the page says of a failure
+// (and a retry it sends) comes a task later than the failure itself. One the browser never ends is waited for once.
+const awayHeard = async () => {
+  for (let round = 0; awayAnswered.size && round < 5; round++) {
+    const waiting = [...awayAnswered];
+    await Promise.all(waiting.map(([, a]) => Promise.race([a.done,
+      new Promise((ok) => setTimeout(ok, STEP).unref())]))); // bounds a hang: a request the browser never ends
+    for (const [q] of waiting) awayAnswered.delete(q);
+    const pages = [...new Set(waiting.map(([, a]) => a.ctx))].flatMap((c) => c.pages());
+    for (let turn = 0; turn < 2; turn++) await Promise.all(pages.map((p) => p.evaluate(() => 0).catch(() => {})));
+  }
+};
 // every message heard so far, said: a case's declaration waits for these before it ends
 const allHeard = () => awayHeard().then(() => Promise.all([...reading].map((e) => e.done)));
 // a browser or context closes only once what its pages said has been read from them
@@ -253,7 +266,8 @@ async function install(ctx, world, outside) {
     said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url(), declared,
       CUT?.test(message) && e.page() && leaving.has(e.page()) ? "as its page was left" : "");
   });
-  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); if (offlineNow.has(ctx)) sentAway(q); });
+  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); if (offlineNow.has(ctx)) sentAway(q, ctx); });
+  ctx.on("close", () => awayGone(ctx));
   ctx.on("requestfinished", awayEnded);
   ctx.on("requestfailed", (q) => {
     awayEnded(q);
