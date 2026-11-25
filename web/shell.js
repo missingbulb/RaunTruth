@@ -1697,6 +1697,7 @@ export const lent = {
   batchRunner, stageAllows, setStage, readStage, saveFile, calls,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
   page, views, summaryMasks, st, drawBoxes, loadOriginal, minimapView: () => view?.minimapView(),
+  studyId: () => manifest?.id ?? null,
   // the image itself, by its id, is open
   originalOpen: (id) => !!st.source && st.source.id === id && st.source.kind !== "preview" && !!page.get("image"),
   openBytes: (name, bytes, source) => openBytes(name, bytes, source),

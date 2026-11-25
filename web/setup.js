@@ -2,7 +2,8 @@
 // study's root, online only. It has a layout of its own, the stages across the top and a rail of the study's aspects, built here from
 // what the shell lends (sign-in, the store, the study's place, the image view, which shows in a dialog): Data Management
 // (data_mode.js) with the study's folders, their access, previews, tags and descriptions, hide rules, the grouping tag, areas of
-// interest, damaged areas, Needs GT and the set-up of Analysis Files; the marks, the batch run, the sharing, the stage and the results.
+// interest, damaged areas, Needs GT and the set-up of Analysis Files; the marks, the batch run, the sharing, the stage, the results and
+// the study's papers.
 "use strict";
 import { attach, lent } from "./shell.js";
 import { dataMode } from "./data_mode.js";
@@ -11,6 +12,7 @@ import { setupBatch } from "./setup_batch.js";
 import { setupStage } from "./setup_stage.js";
 import { setupResults } from "./setup_results.js";
 import { sharingPanel } from "./setup_sharing.js";
+import { setupLiterature } from "./setup_literature.js";
 
 const { $, views, summaryMasks, st, drawBoxes, openBytes, minimapView, calls, page } = lent;
 const imageDialog = $("#image-dlg");
@@ -66,6 +68,10 @@ attach(stage);
 attach(setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls }));
 attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });
 
+// the study's papers (req/setup/literature), listed when their aspect is chosen
+const literature = setupLiterature({ $, reader, place: lent.place, calls, study: lent.studyId,
+  summariesAt: new URL("literature.json", import.meta.url), linkOf: (id) => lent.remote.sharing.link("file", id) });
+
 // the aspects (req/setup/aspects): one chosen at a time in the rail, Images as the page opens
 const aspect = $("#setup-aspect");
 $("#setup-rail").onclick = (e) => {
@@ -73,6 +79,7 @@ $("#setup-rail").onclick = (e) => {
   if (!b) return;
   aspect.dataset.aspect = b.dataset.aspect;
   for (const x of $("#setup-rail").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+  if (b.dataset.aspect === "literature") literature.show();
 };
 // the image's dialog (req/setup/image): the image flat, over the page, which waits behind it
 $("#image-open").onclick = () => {

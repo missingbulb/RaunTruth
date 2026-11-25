@@ -10,6 +10,7 @@ __pycache__/
 /web/version_history.json
 # the studies the header's switcher offers (python3 dev/tools/build/build.py)
 /web/studies.json
+/web/literature.json
 # the site the build assembles for the release beside the files tracked there (python3 dev/tools/build/build.py)
 /dev/build/site/*
 !/dev/build/site/analytics.js

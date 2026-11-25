@@ -69,6 +69,7 @@
     <nav id="setup-rail" aria-label="The study's aspects">
       <button type="button" data-aspect="images" aria-pressed="true">Images</button>
       <button type="button" data-aspect="truth" aria-pressed="false">Ground Truth</button>
+      <button type="button" data-aspect="literature" aria-pressed="false">Literature</button>
       <button type="button" data-aspect="people" aria-pressed="false">People</button>
       <button type="button" data-aspect="batch" aria-pressed="false">Run on all images</button>
       <button type="button" data-aspect="results" aria-pressed="false">Results</button>
@@ -162,6 +163,17 @@
       <ul id="sharing-corrections" data-log-as="a correction of the study's sharing"></ul>
       <h3 id="people-title">People</h3>
       <ul id="people-list"></ul>
+      </section>
+      <!-- the study's papers in the store against the repo's summaries (req/setup/literature) -->
+      <section class="box" id="literature-box" data-needs-network>
+      <div class="sec-head"><h2>Literature</h2></div>
+      <p class="hint">The files of the study's Literature folder, and which the repo holds a summary of.</p>
+      <ul id="literature-papers" data-log-as="a paper in the Literature folder"></ul>
+      <div id="literature-orphans" hidden>
+      <h3>Summaries with no paper here</h3>
+      <ul id="literature-summaries"></ul>
+      </div>
+      <p id="literature-msg" class="hint" role="status"></p>
       </section>
       <!-- the study's results over the images' official Analysis Files (req/setup/results) -->
       <section class="box" id="results-box" data-needs-network hidden>

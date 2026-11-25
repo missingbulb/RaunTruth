@@ -51,7 +51,7 @@ const layout = await page.evaluate(() => ({
   rail: [...document.querySelectorAll("#setup-rail button")].map((b) => [b.textContent.trim(), b.getAttribute("aria-pressed")]),
   stages: [...document.querySelectorAll("#stage-steps > li")].map((li) => [li.dataset.stage, li.dataset.state, li.getAttribute("aria-current")]),
 }));
-await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,People,Run on all images,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false",
+await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,Literature,People,Run on all images,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false,false",
   "the rail lists the study's aspects, Images chosen", layout.rail);
 await check(layout.stages.map((s) => s[0]).join() === "Setup,Develop,Analyze,Review,Public" && layout.stages.filter((s) => s[2] === "step").length === 1,
   "the five stages run across the top, one of them the current", layout.stages);

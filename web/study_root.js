@@ -21,6 +21,8 @@ const NAMES = { data: ["data"], extractions: ["extractions"], previews: ["previe
 const MADE = { extractions: "Extractions", previews: "Previews" };
 const KEEP_MS = 60e3;
 const known = new Map();
+// per root, its Literature folder as the root's last listing had it, kept past the minute: null for none
+const literatureIn = new Map();
 
 const byName = (items, names) => {
   for (const n of names) {
@@ -54,6 +56,7 @@ export async function read(reader, root, { fresh = false } = {}) {
   // the file names a folder by id, wherever it now lives; the names count only where it names none
   const pick = (k) => doc?.[k] || byName(items, NAMES[k]);
   const data = pick("data"), listed = Array.isArray(doc?.folders) ? doc.folders.filter((id) => typeof id === "string") : null;
+  literatureIn.set(root, byName(items, ["literature"]));
   const value = { root, data, extractions: pick("extractions"), previews: pick("previews"), set: !!doc?.extractions, file: file?.id ?? null,
     doc, folders: listed || [data || root], index, tags: tags || tagsOf(null), marks: doc?.marks && typeof doc.marks === "object" ? doc.marks : {},
     stage: typeof doc?.stage === "string" ? doc.stage : null, old: { index: oldIndex?.id ?? null, tags: oldTags?.id ?? null },
@@ -183,6 +186,13 @@ export function studyPlace(remote, manifest) {
   let previews = null;
   return {
     reader, root, settings,
+    // the root's Literature folder (req/setup/literature), by id, null for none: from the root's listing the page last made, read only
+    // where it has made none
+    async literature() {
+      if (!root()) return null;
+      if (!literatureIn.has(root())) await settings();
+      return literatureIn.get(root()) ?? null;
+    },
     // the store's entry for a data folder's previews file, null for none, undefined when the store could not say;
     // fresh: read past the minute's copy
     async previewsOf(folder, { fresh = false } = {}) {

@@ -848,6 +848,23 @@
                     },
                     {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"}
                   ]
+                },
+                {"name": "Literature", "select": "#literature-box", "unwalked": "its aspect of Study Setup is one no path chooses", "box": true, "req": "req/setup/literature",
+                  "rule": [
+                    {"is": "hidden", "approval": "tentative", "about": "shows in its own aspect of Study Setup, which no path chooses"}
+                  ],
+                  "children": [
+                    {"name": "The study's papers", "select": "#literature-papers", "req": "req/setup/literature"},
+                    {"name": "Summaries with no paper", "select": "#literature-orphans", "req": "req/setup/literature", "steady": "shows only once the folder is listed, which no path does",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ],
+                      "children": [
+                        {"name": "The summaries with no paper", "select": "#literature-summaries", "req": "req/setup/literature"}
+                      ]
+                    },
+                    {"name": "Literature's message", "select": "#literature-msg", "req": "req/setup/literature"}
+                  ]
                 }
               ]
             }

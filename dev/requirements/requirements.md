@@ -1765,7 +1765,8 @@ nobody has decided: what the page does there is not a requirement yet.
   modules directly in the folders its Python is imported from (`python.paths`), which is all the
   page's importer can reach; the build runs none of a study's code (owner, 2026-11-14: a study contributes data).
   A study's docs, data, tests and lab notes stay in the repo, and nothing
-  in a study says how, where or whether it is published. The build (`dev/tools/build/build.py`)
+  in a study says how, where or whether it is published; of its docs the site carries one thing the build writes, the list of each study's
+  article summaries by file, heading and paper named (`literature.json`, `req/setup/literature`; owner, 2026-11-25), never their text. The build (`dev/tools/build/build.py`)
   assembles the set under `dev/build/site/`, the tree the release uploads. Test:
   `web-tests/test_published_site.py`.
   </details>
@@ -2273,13 +2274,14 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-24 and 2026-11-25, replacing the Data Management column beside the shell's left bar and viewer. Under the
-  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, People, Run on
+  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, Literature, People, Run on
   all images and Results, one chosen at a time, its panel filling the rest of the page; the status bar stays. Images holds the folders
   tree with the study's folders to add and the Study images rules (the grouping tag, the tags that hide), the chosen folder's images as a
   grid or a list, and beside them what is chosen: a folder's sums and Update previews, the Tags box, an image's Analysis Files and
   their marks, and Open image… (`req/setup/image`). Ground Truth holds the set-up of Analysis Files, how many images have one and
   have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Run
-  on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. The
+  on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. Literature
+  holds the study's papers against the repo's summaries (`req/setup/literature`). The
   page opens on the same layout every time: Images, nothing chosen, the tree's folders unfolded, whatever it showed the visit before;
   it keeps no aspect, fold or choice. Decided for the owner to confirm: Needs GT stays a button on each image's cell, and the folders
   and the grid are shared by Images and Run on all images, which keep the folder chosen when one changes to the other. Test:
@@ -2341,6 +2343,25 @@ nobody has decided: what the page does there is not a requirement yet.
   records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
   being read, and are named in the status bar while they are. It adds no call and moves none. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
+  </details>
+
+- `req/setup/literature` Study Setup lists the papers in the study's Literature folder against the repo's summaries of them.
+  <details>
+
+  Set by the owner on 2026-11-25: the folder named Literature in the study's root holds the papers the repo's summaries came from, and a
+  simple list of its files, with which have a summary and which summaries have no paper, is enough. The rail's Literature aspect, when it is
+  chosen and never before, lists that folder once (one listing of the store, each time it is chosen; the folder itself is found in the
+  listing of the root the page has already read) and shows its files by name, each a link that opens the file in the store in a new page.
+  The site publishes, in `literature.json` beside the page, each study's article summaries (`studies/<id>/docs/literature/*.md`): the
+  file, its first heading, and the paper it says it was read from. A file there is an article summary when its name carries a year, as the
+  intake's slugs do (`song-2022-concussion.md`), or when it names a PDF; the folder's notes and indexes are not. A summary names its paper
+  as the first file name ending `.pdf` it writes in backticks, a leading `Literature/` left off. Pairing, in this order: a paper is the one a
+  summary names when their names are equal, letter case and surrounding space aside; else a paper and a summary pair when their file names
+  are equal once the extension is dropped and everything but letters and digits is, lower-cased. A paper paired says "summary", with the
+  summary's heading; one unpaired says "no summary in the repo". The summaries no paper pairs with are listed after, under "Summaries with no
+  paper here". A root with no Literature folder says so and lists nothing of the store; a study with no summaries published says so. The
+  listing goes through the page's calls (`req/setup/loading`): the place is emptied and marked loading, and the store's logo turns. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_literature_driver.mjs`, `web-tests/test_published_site.py`.
   </details>
 
 - `req/setup/marks` The owner marks an extraction GT or official on Study Setup; a mark names the extraction's file, and so follows that file's latest content; an image has one GT mark and one official mark.

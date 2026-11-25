@@ -31,7 +31,7 @@ WEB = os.path.join(ROOT, 'web')
 OUT = os.path.join(WEB, 'vendor')
 SITE = os.path.join(ROOT, 'dev', 'build', 'site')
 # what the build writes into web/ and the page reads, published under app/
-GENERATED = ('vendor', 'version_history.json', 'studies.json')
+GENERATED = ('vendor', 'version_history.json', 'studies.json', 'literature.json')
 # the list of the app's files, the studies' included, the page keeps a copy of to open offline (req/shell/offline/default)
 OFFLINE = 'offline.json'
 OFFLINE_TREES = (APP, 'studies')
@@ -43,6 +43,8 @@ OFFLINE_NOT = ('setup.html', 'setup.js', 'data_mode.js', 'previews_writer.js')
 RESERVED = ('setup',)
 # what only Study Setup's sharing check loads (req/setup/sharing-check): left out of that list too
 OFFLINE_NOT += ('setup_stage.js', 'setup_sharing.js', 'sharing-link.svg', 'sharing-named.svg', 'sharing-editor.svg')
+# what only Study Setup's Literature loads (req/setup/literature)
+OFFLINE_NOT += ('setup_literature.js', 'literature.json')
 
 
 def wheels():
@@ -108,6 +110,29 @@ def study_ships(rel, python_dirs):
     if rel.startswith('web/'):
         return not rel.endswith('.py')
     return rel.endswith('.py') and os.path.dirname(rel) in python_dirs
+
+
+# an intake's slug carries the article's year
+YEAR_IN_NAME = re.compile(r'(?:^|-)(?:19|20)\d\d(?:-|$)')
+PDF_NAMED = re.compile(r'`(?:Literature/)?([^`\n]+?\.pdf)`', re.I)
+
+
+def literature(root):
+    """Each study's article summaries (req/setup/literature), {id: [{file, title, paper}]} by file: the Markdown files of its
+    docs/literature/ whose name carries a year or which name a PDF, each with its first heading and the PDF it names, null for none."""
+    out = {}
+    for folder in sorted(glob.glob(os.path.join(root, 'studies', '*', 'docs', 'literature'))):
+        found = []
+        for path in sorted(glob.glob(os.path.join(folder, '*.md'))):
+            text, name = open(path, encoding='utf-8').read(), os.path.basename(path)
+            paper = PDF_NAMED.search(text)
+            if not paper and not YEAR_IN_NAME.search(name[:-len('.md')]):
+                continue
+            heading = re.search(r'^#\s+(.+?)\s*$', text, re.M)
+            found.append({'file': name, 'title': heading.group(1) if heading else name, 'paper': paper.group(1).strip() if paper else None})
+        if found:
+            out[folder.split(os.sep)[-3]] = found
+    return out
 
 
 def tracked(root):
@@ -299,6 +324,7 @@ if __name__ == '__main__':
     vendor()
     write_json(version_history.OUT, version_history.history(ROOT), indent=1)
     write_json(os.path.join(WEB, 'studies.json'), studies(ROOT), indent=1)
+    write_json(os.path.join(WEB, 'literature.json'), literature(ROOT), indent=1)
     count, drive = assemble(ROOT, SITE, os.environ)
     size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(SITE) for f in fs)
     print(f'build: assembled {count} repo files under dev/build/site/, {size / 1e6:.1f} MB; '

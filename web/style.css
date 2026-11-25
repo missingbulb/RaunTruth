@@ -1003,7 +1003,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #setup-aspect:is([data-aspect=images], [data-aspect=batch]) { grid-template-columns: 270px minmax(0, 1fr) 300px; }
 #setup-aspect > * { min-height: 0; min-width: 0; overflow-y: auto; }
 #setup-aspect:not([data-aspect=images], [data-aspect=batch]) > :is(#data-col, #folder-view, #setup-side),
-#setup-aspect:not([data-aspect=truth]) > #truth-panel, #setup-aspect:not([data-aspect=people]) > #sharing-box, #setup-aspect:not([data-aspect=results]) > #results-box { display: none !important; }
+#setup-aspect:not([data-aspect=literature]) > #literature-box, #setup-aspect:not([data-aspect=truth]) > #truth-panel, #setup-aspect:not([data-aspect=people]) > #sharing-box, #setup-aspect:not([data-aspect=results]) > #results-box { display: none !important; }
 #setup-aspect[data-aspect=batch] #setup-side > :not(#batch-box, #batch-hint), #setup-aspect[data-aspect=images] :is(#batch-box, #batch-hint) { display: none !important; }
 #setup-aspect[data-aspect=batch] #batch-box:not([hidden]) ~ #batch-hint, :root[data-sel] #side-hint { display: none; }
 #setup-aspect:is([data-aspect=images], [data-aspect=batch]) > #folder-view[hidden] { display: block; visibility: hidden; }
@@ -1314,3 +1314,12 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-list .others summary { cursor: pointer; font-size: 12px; color: var(--dim); margin: 2px 0; }
 #gt-waiting { margin: 6px 0 0; }
 #gt-submit[hidden] { display: none; }
+/* the study's papers (req/setup/literature): the name takes the room left, what is known of it at the row's end */
+#literature-box ul { list-style: none; margin: 8px 0; padding: 0; }
+#literature-box li { display: flex; gap: 12px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+#literature-box li .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#literature-box li .of { color: var(--dim); font-size: 12.5px; max-width: 45%; text-align: right; }
+#literature-box li .has { flex: none; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); }
+#literature-box li .has.yes { color: var(--ok, #2e9e4f); border-color: currentColor; }
+#literature-box li .has.no { color: var(--warn); border-color: currentColor; }
+#literature-box h3 { margin: 16px 0 0; font-size: 13px; }
