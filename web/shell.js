@@ -24,13 +24,10 @@ import { every, within, after } from "./pacing.js";
 import { work } from "./pending.js";
 import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
-import { shape, stackPicture, holds, drawVolume, TURN } from "./stack.js";
-import { PREVIEWS, readPreviews } from "./previews.js";
-import { isTiff } from "./accepts.js";
 import { account, SIGNED_IN, SIGNED_IN_LABEL } from "./account.js";
 import { remote } from "./drive.js";
 import { members, offers, released } from "./members.js";
-import { STAGES, LIGHT, WHAT, NEXT, stageAllows as allows, stageOf, frozen, gates, lines as stageLines } from "./stages.js";
+import { STAGES, LIGHT, WHAT, NEXT, stageAllows as allows, stageOf, gates, lines as stageLines } from "./stages.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
@@ -38,26 +35,24 @@ import { guide } from "./guide.js";
 import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
-import { annotateChoice } from "./annotate_choice.js";
 import { dialogMotion } from "./dialog_motion.js";
 import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
-import { truthTasks } from "./truth_tasks.js";
 import { truthHistory } from "./truth_history.js";
 import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
-import { groupsOf, isHidden } from "./tags.js";
+import { isHidden } from "./tags.js";
 import { subfolderName, marksOf } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
-import { BLOB } from "./file_fields.js";
-import { storedPart } from "./vsi.js";
 import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
-import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
-import { summaryDownload, cell as csvCell } from "./summary_download.js";
-import { summaryMask } from "./summary_mask.js";
+import { summaryBox } from "./summary_box.js";
+import { imageKeeping, IMAGES, IMAGE_NAME, IMAGE_STUDY, HOLDS, THUMBS_CACHE, FOLDER_PREVIEWS, IMAGE_AT } from "./image_keeping.js";
+import { imageDialog, REMOTE_LINK, REMOTE_LINKS, THUMBS, STUDY_INDEX, LISTINGS, THROTTLE } from "./image_dialog.js";
+import { loadBox, RECENT, LOCAL_RECENT } from "./load_box.js";
+import { analysisBox, OUTBOX } from "./analysis_box.js";
 
 const $ = (s) => document.querySelector(s);
 // whether this is Study Setup's page (req/setup/page), which shows the study as the one whose root its owner may write, online only
@@ -80,53 +75,15 @@ const DEFAULT_STUDY = "viewer";
 // the browser keys the shell saves under; their names predate studies, and a user's saved state lives in them
 const THEME = "nor-theme"; // "dark" | "light"; absent = follow the system
 const BARS = "nor-bars-v1"; // {left}: the left bar's width in pixels (a right bar's, or whether it was collapsed, from before they went, is ignored)
-// the last remote link pasted, in any study
-const REMOTE_LINK = "nor-drive-link";
-// {study id: the last remote link pasted in that study}
-const REMOTE_LINKS = "nor-drive-links";
-// "on" | "off": whether the remote files dialog shows thumbnails
-const THUMBS = "nor-drive-thumbs";
 // "on" | "off": whether an image downloaded from the remote store is kept on this device
 const AUTO_SAVE = "nor-drive-autosave";
 // Auto-save images (req/shell/drive/kept-images): an image downloaded from the remote store is kept on this device
 const autoSave = () => readJSON(AUTO_SAVE, "on") !== "off";
-// where thumbnails were kept before they moved to cache storage, which moves each found here over (req/shell/storage/manage):
-// + remote id: a JPEG data URL of the image; [remote id], oldest first; {remote id: file name}
-const LEGACY_THUMB = "nor-drive-thumb:";
-const LEGACY_THUMBS = "nor-drive-thumbs-saved";
-const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 // a tagger's ground-truth draft of an image, by study, image name and SHA-256 (req/shell/ground-truth/draft)
 const GT_DRAFT = "gt-draft|";
-// the saves the store did not take, waiting on this device for the next click online (req/shell/annotate/survives)
-const OUTBOX = "nor-gt-outbox";
 // the images this device saved an extraction of, {study: [SHA-256]}, for the Load dialog to say which are yours (req/shell/extractions/marks-shown)
 const GT_SAVED = "nor-gt-saved";
-// {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
-const HOLDS = "nor-drive-holds";
 const TIPS = "nor-tips-closed"; // [tip id]: the tips the user closed, never shown again
-// when the wait after the store throttled the site's downloads ends, in ms
-const THROTTLE = "nor-drive-throttled-until";
-// [{id, name, path, study, at}], newest first: images opened from the remote store, path their folders under the link, study the one it was opened in, at when it was last opened (ms; absent for one kept before that was)
-const RECENT = "nor-drive-recent";
-const LOCAL_RECENT = "nor-local-recent"; // [{id, name, study, at}], newest first: files opened from this computer, each the browser's reference to it kept in FILE_HANDLES under id; on this device only
-const FILE_HANDLES = "nor-file-handles-v1"; // the IndexedDB database of those references
-// {folder id: {at, items: [{id, name, folder, size, created, sha}]}}: each folder as the remote files dialog last listed it, created in ms
-const LISTINGS = "nor-drive-listings";
-// {study root id: {at, index}}: each study's index as Load last read it, for working offline (req/shell/load/study-images)
-const STUDY_INDEX = "nor-study-index";
-// Cache Storage, + remote id: an image downloaded from the remote store, its file name (URI-encoded) and when it was saved
-// in the headers
-const IMAGES = "nor-images-v1", IMAGE_NAME = "x-nor-name", IMAGE_AT = "x-nor-saved-at";
-// and, for one kept since offline came, its folders under the study's link (a JSON list, URI-encoded) and the study
-const IMAGE_PATH = "x-nor-path", IMAGE_STUDY = "x-nor-study";
-// Cache Storage, + remote folder id: the folder's rauntruth-previews.tiff, its SHA-256, the folder's name and the study it was read in in the headers
-const FOLDER_PREVIEWS = "nor-previews-v1", PREVIEWS_SHA = "x-nor-sha256";
-// the paths each of those caches keeps its entries under, + remote id
-const PREVIEWS_PATH = "drive-previews/";
-const THUMB_PATH = "drive-thumb/";
-// Cache Storage, + remote id: a JPEG of an image opened from the remote store, its file name (URI-encoded) and when it was saved in the headers
-const THUMBS_CACHE = "nor-thumbs-v1";
-const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const UNLOAD_PYTHON = "nor-unload-python"; // true: Python is shut down as each of a study's runs ends
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
@@ -217,6 +174,7 @@ function restoreLoaded() {
   asStarted();
   for (const el of out) { inView.unobserve(el); inView.observe(el); }
 }
+const { moveThumbs, saveThumb, keptIds, savedImage, picture, saveImage, idOf, thumbUrl, keptPreviews, folderPreviews, know, turning, imageUrl } = imageKeeping({ st, diskBar, readJSON, writeJSON, throttle: () => throttle(), get view() { return view; }, get throttled() { return throttled; }, get manifest() { return manifest; } });
 let study = {}, view = null, manifest = null, base = "";
 // the study's Python as one hash, as the worker said when the study came up; null where it could not tell
 let studyCode = null;
@@ -898,57 +856,10 @@ function imageOpened(m) {
 }
 
 // ---------- loading ----------
-// what the file says about the image ([label, text] rows); null clears it
-// the details (req/shell/image/file-info): the fields pinned, then every other field the file carries, folded
-function fileInfo(rows, more = []) {
-  const item = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
-  const list = (r) => r.flatMap(([k, v]) => [item("dt", k), Object.assign(item("dd", v), v === BLOB ? { className: "unsaid", title: "Binary data, which the file holds and the page does not spell out" } : {})]);
-  $("#file-info").replaceChildren(...list(rows || []));
-  $("#file-more-list").replaceChildren(...list(rows ? more : []));
-  $("#file-more-n").textContent = rows ? String(more.length) : "";
-  $("#file-more").hidden = !rows || !more.length; $("#file-more").open = false;
-  $("#file-box").classList.toggle("empty", !rows);
-  if (!rows) $("#file-box").open = false;
-}
-// where the study opens images from (req/shell/load/from): Load at the box's foot for this computer alone; else the
-// image selector on its top line, with the computer's button where it opens local files and the remote store's button
-const fromRemote = () => remote.study(manifest).opens;
-const fromLocal = () => !!manifest?.files.from.includes("local");
-// the browser keeps a reference to a file a page chose only where the page chooses it itself (Chrome and Edge)
-const remembersFiles = () => typeof window.showOpenFilePicker === "function";
-const RECENT_KEEP = 30;
-// the images opened lately in the study on show (req/shell/load/selector): from the remote store, and where it opens local
-// files and the browser can keep a reference to them, from this computer; newest first
-const recentHere = (list) => list.filter((r) => r.study === manifest?.id);
-function recentAll() {
-  const local = fromLocal() && remembersFiles() ? recentHere(readJSON(LOCAL_RECENT, [])).map((r) => ({ ...r, local: true })) : [];
-  return [...recentHere(readJSON(RECENT, [])), ...local].sort((a, b) => (b.at ?? -Infinity) - (a.at ?? -Infinity)).slice(0, RECENT_KEEP);
-}
-// the control the Load image step points at, and the one held while an image opens
-const loadButton = () => (!fromRemote() ? "#load-main" : recentAll().length ? "#image-pick" : fromLocal() ? "#load-main" : "#load-remote");
-const loadHolder = () => $(fromRemote() ? "#image-pick" : "#load-main");
-function placeLoad() {
-  $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal());
-  if (fromRemote()) $("#file-tags").before($("#load")); else $("#image-foot").prepend($("#load"));
-}
-// the Image box draws from the page's state: the image's name, its tags in the study and what its file says, the
-// control to load with filled until an image is open and plain after, and Unload once one is
-function imageBox() {
-  const opening = page.get("opening"), im = page.get("image"), name = opening?.name || im?.name, remoteOn = fromRemote();
-  $("#file-name").textContent = remoteOn && name ? "Details" : name || ""; $("#file-box").hidden = !name;
-  fileInfo(opening ? null : im?.info || null, im?.more || []);
-  const tagged = page.get("tags"), tags = !opening && im && tagged && tagged.of === st.source?.id ? tagged.tags : [];
-  $("#file-tags").replaceChildren(...tags.map((t) => Object.assign(document.createElement("span"), { className: "tag-chip", textContent: t })));
-  $("#file-tags").hidden = !tags.length;
-  $("#load").classList.toggle("done", !!im); $("#unload").hidden = !im;
-  const listed = remoteOn && recentAll().length > 0;
-  $("#image-pick .pick-name").textContent = name || (listed ? "Recently Opened" : "No image opened here yet");
-  $("#image-pick").classList.toggle("dim", !name);
-  $("#image-pick").classList.toggle("primary", !im && listed); $("#load-remote").classList.toggle("primary", !im && !listed && !fromLocal());
-  $("#load-main").classList.toggle("primary", !remoteOn || (!im && !listed));
-  $("#load-original").hidden = im?.source?.kind !== "preview";
-}
-page.watch("image", imageBox); page.watch("opening", imageBox); page.watch("tags", imageBox);
+const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudy, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
+  get manifest() { return manifest; }, get openBytes() { return openBytes; }, get openRemote() { return openRemote; },
+  get gtSession() { return gtSession; }, get offlineCopy() { return offlineCopy; }, get putTruthTag() { return putTruthTag; },
+  get openRecent() { return openRecent; }, get steps() { return steps; } });
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
 async function openNow(name, bytes, source) {
@@ -990,38 +901,6 @@ function peek() {
   st.peeked = false;
   return study.painter ? view.preview(study.painter) : () => false;
 }
-$("#file").onchange = async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  const bytes = await f.arrayBuffer(); peek()(bytes, bytes.byteLength);
-  openBytes(f.name, bytes, { kind: "local" }); e.target.value = "";
-};
-// the study's own remote folders, which its dialog browses alone; a study naming none (the Image Viewer) takes a pasted
-// link instead (req/shell/drive/dialog)
-const studyFolders = () => (remote.study(manifest).root ? [remote.study(manifest).root] : []);
-// the link the remote files dialog opened on: listing it is not pasting it
-let remoteFrom = "", remoteOpened = () => {}, remoteLeft = () => {};
-function openRemote() {
-  $("#image-menu").open = false;
-  const pastes = !studyFolders().length;
-  $("#remote-dlg").classList.toggle("folders", !pastes);
-  remoteFrom = $("#remote-link").value = pastes ? readJSON(REMOTE_LINKS)[manifest.id] || readJSON(REMOTE_LINK, "") : "";
-  $("#remote-dlg").showModal(); if (pastes) $("#remote-link").select();
-  holdRemote();
-  remoteOpened();
-}
-// a file from this computer: through the browser's own picker where it keeps a reference to the file, so the file
-// opens again from the recents (req/shell/load/selector); else through the file chooser
-$("#load-main").onclick = async () => {
-  if (!remembersFiles() || !fromRemote()) return $("#file").click();
-  let handle;
-  try { [handle] = await showOpenFilePicker({ types: [{ description: "Images", accept: { "image/*": manifest.files.accept.split(",") } }] }); } catch (e) {
-    if (e.name !== "AbortError") status("Error: " + (e.message || e), true);
-    return;
-  }
-  openLocal(handle);
-};
-$("#load-remote").onclick = () => { signIn.renew(); openRemote(); };
-$("#image-pick").addEventListener("click", () => signIn.renew());
 // a setting from before each study loaded from one place (req/shell/load/from)
 try { localStorage.removeItem("nor-load-source"); localStorage.removeItem("nor-role"); } catch { /* nothing kept */ }
 // no image open, and Python, if it holds it, letting it go
@@ -1031,12 +910,6 @@ function dropImage() {
   page.set({ image: null, opening: null });
   viewing = null; storeList = null; listing++;
 }
-// Unload: no image open, the study starting over as one that has just come in
-$("#unload").onclick = () => {
-  if (!st.img || loadHolder().classList.contains("working") || !gtSession.leaving("unload it")) return;
-  // the link goes with the image: the keyboard it held is handed to the box's Load
-  restudy(false).then(() => { if (document.activeElement === document.body) $("#load-main").focus({ preventScroll: true }); });
-};
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
   if (!again) { annotating = false; route = null; resume = null; editBase = null; }
@@ -1082,103 +955,7 @@ function closeTip(id) {
   if (!t) return;
   t.remove(); writeJSON(TIPS, [...new Set([...readJSON(TIPS, []), id])]);
 }
-// the selector is what the recent-files tip asks the user to open; opened, its selected image has the focus, so
-// Enter opens it, the arrows move between them and Escape closes it
-$("#image-menu").addEventListener("toggle", () => {
-  if (!$("#image-menu").open) return;
-  closeTip("recent-files");
-  greyRecents(); markRecentTruth();
-  const rows = [...$("#recent").querySelectorAll(".recent")];
-  (rows.find((b) => b.getAttribute("aria-selected") === "true") || rows[0])?.focus();
-});
-$("#image-menu").addEventListener("keydown", (e) => {
-  const rows = [...$("#recent").querySelectorAll(".recent:not(:disabled)")], at = rows.indexOf(document.activeElement);
-  if (e.key === "Escape") { e.preventDefault(); $("#image-menu").open = false; $("#image-pick").focus(); }
-  else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && rows.length) {
-    e.preventDefault(); rows[(at + (e.key === "ArrowDown" ? 1 : rows.length - 1)) % rows.length].focus();
-  }
-});
 
-// the images opened from the remote store lately in the study on show, in the image selector; a remote id names one file wherever
-// it is, so two of one name stay apart; one kept from before recents had a study belongs to none. openRecent is the remote files dialog's, which opens the copy kept on this device when there is one.
-let openRecent = () => {}, showKept = () => {};
-const UNREACHED = "The internet cannot be reached, and this image is not kept on this device.";
-function remember(id, name, path) {
-  const study = manifest.id, rest = readJSON(RECENT, []).filter((r) => r.study && !(r.id === id && r.study === study));
-  const mine = [{ id, name, path, study, at: Date.now() }, ...rest.filter((r) => r.study === study)].slice(0, RECENT_KEEP);
-  writeJSON(RECENT, [...mine, ...rest.filter((r) => r.study !== study)]);
-  showRecent();
-}
-// the SHA-256 of an image the recents list, which names its ground truth's subfolder
-function noteSha(id, sha) {
-  const all = readJSON(RECENT, []), r = all.find((x) => x.id === id && x.study === manifest.id);
-  if (r && r.sha !== sha) { r.sha = sha; writeJSON(RECENT, all); }
-}
-// the recents' extraction tags, as the remote files dialog's (req/shell/extractions/marks-shown); an image whose SHA-256
-// this device never learned carries none
-async function markRecentTruth() {
-  if (offlineCopy.offline() || !fromRemote()) return;
-  const shas = Object.fromEntries(Object.values(readJSON(LISTINGS)).flatMap((l) => l.items || []).filter((f) => f.sha).map((f) => [f.id, f.sha]));
-  for (const r of recentHere(readJSON(RECENT, []))) if (r.sha) shas[r.id] = r.sha;
-  let map, marks;
-  try { [map, marks] = await Promise.all([truth.status(), truth.marks()]); } catch (e) { console.warn("extractions not read:", e); return; }
-  for (const r of recentAll()) {
-    if (r.local || !shas[r.id]) continue;
-    putTruthTag($("#recent").querySelector(`.recent[data-id="${r.id}"]:not([data-local]) .gt-tag`), standing(map, marks, r.name, shas[r.id]));
-  }
-}
-// the browser's references to files from this computer, by id, in IndexedDB: what a page cannot keep anywhere else
-function handles(mode, act) {
-  return new Promise((ok, bad) => {
-    const q = indexedDB.open(FILE_HANDLES, 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("files");
-    q.onerror = () => bad(q.error);
-    q.onsuccess = () => {
-      const t = q.result.transaction("files", mode), r = act(t.objectStore("files"));
-      t.oncomplete = () => { q.result.close(); ok(r?.result); }; t.onerror = () => { q.result.close(); bad(t.error); };
-    };
-  });
-}
-// a file opened from this computer, by the browser's reference to it: one entry however often it is opened, the
-// references the recents no longer list let go
-async function openLocal(handle, known) {
-  let file;
-  try {
-    if ((await handle.queryPermission({ mode: "read" })) !== "granted" && (await handle.requestPermission({ mode: "read" })) !== "granted")
-      return notice(`${handle.name} was not opened: the browser was not allowed to read it again.`);
-    file = await handle.getFile();
-  } catch (e) {
-    return notice(`${handle.name} could not be opened: it may have been moved or deleted. (${e.message || e})`);
-  }
-  const bytes = await file.arrayBuffer();
-  let id = known;
-  try {
-    if (!id) for (const r of recentHere(readJSON(LOCAL_RECENT, []))) {
-      const h = await handles("readonly", (s) => s.get(r.id));
-      if (h && (await h.isSameEntry(handle))) { id = r.id; break; }
-    }
-    id ||= crypto.randomUUID();
-    const study = manifest.id, rest = readJSON(LOCAL_RECENT, []).filter((r) => !(r.id === id && r.study === study));
-    const list = [{ id, name: file.name, study, at: Date.now() }, ...rest].filter((r, k, all) => all.filter((x) => x.study === r.study).indexOf(r) < RECENT_KEEP);
-    writeJSON(LOCAL_RECENT, list);
-    const keep = new Set(list.map((r) => r.id));
-    await handles("readwrite", (s) => { s.put(handle, id); s.getAllKeys().onsuccess = (e) => e.target.result.forEach((k) => keep.has(k) || s.delete(k)); });
-  } catch (e) { console.warn("this file is not kept among the recent ones:", e); }
-  showRecent();
-  peek()(bytes, bytes.byteLength);
-  openBytes(file.name, bytes, { kind: "local" });
-}
-async function openLocalRecent(r) {
-  const h = await handles("readonly", (s) => s.get(r.id)).catch(() => null);
-  if (!h) return notice(`${r.name} is no longer known to this browser: open it again with the computer's button.`);
-  openLocal(h, r.id);
-}
-// how long since an image was last opened, "<1h", "3h", "6d", "2mo" or "1y"; "" when that is not known
-function ago(at) {
-  if (at == null) return "";
-  const h = (Date.now() - at) / 3600000, d = h / 24;
-  return h < 1 ? "<1h" : h < 24 ? `${Math.floor(h)}h` : d < 30 ? `${Math.floor(d)}d` : d < 365 ? `${Math.floor(d / 30)}mo` : `${Math.floor(d / 365)}y`;
-}
 // what the study's extractions say of an image, {needed, marks: {gt, official}, saved}, or null where they say nothing: from the
 // extractions folder's listing, the study file's marks and this device's record of what it saved
 const savedHere = () => { const l = readJSON(GT_SAVED, {})[manifest?.id]; return new Set(Array.isArray(l) ? l : []); };
@@ -1204,583 +981,12 @@ const putTruthTag = (tag, g) => {
   const [text, title, state] = truthTag(g);
   if (tag && text) Object.assign(tag, { textContent: text, title }).dataset.state = state;
 };
-const agoTag = (at) => (at == null ? "" : `<span class="age" title="Opened ${esc(new Date(at).toLocaleString())}">${ago(at)}</span>`);
-function showRecent() {
-  const list = recentAll(), box = $("#recent"), open = page.get("image")?.source;
-  const on = remote.owns(open) && list.some((r) => r.id === open.id) ? open.id : list[0]?.id;
-  box.replaceChildren(...list.map((r) => {
-    const b = document.createElement("button"), where = r.local ? "This computer" : ["Data", ...(r.path || [])].join(" / ");
-    b.type = "button"; b.className = "item recent"; b.title = `${where} / ${r.name}`; b.dataset.id = r.id; if (r.local) b.dataset.local = "";
-    b.setAttribute("role", "option"); b.setAttribute("aria-selected", String(r.id === on));
-    const logo = r.local ? "computer-logo" : remote.logo.id;
-    b.innerHTML = `<svg class="${logo}" aria-hidden="true"><use href="#${logo}"/></svg><span class="what"><span class="name">${esc(r.name)}</span><span class="where">${esc(where)}</span></span>${r.local ? "" : '<span class="gt-tag"></span>'}${agoTag(r.at)}`;
-    b.onclick = () => { $("#image-menu").open = false; r.local ? openLocalRecent(r) : openRecent(r); };
-    return b;
-  }));
-  const how = fromLocal() ? "the buttons at the right open one" : `${remote.short}'s button, at the right, opens one`;
-  if (!list.length) box.append(Object.assign(document.createElement("p"), { className: "hint", textContent: `No image opened here yet: ${how}.` }));
-  imageBox();
-  const s = steps.find((p) => p.key === "load");
-  if (s && s.button !== loadButton()) { s.button = loadButton(); drawSteps(); }
-}
-// offline, an image not kept on this device opens nothing, and is greyed
-async function greyRecents() {
-  const off = offlineCopy.offline(), kept = off ? await keptIds() : null;
-  for (const b of $("#recent").querySelectorAll(".recent")) b.disabled = off && !b.hasAttribute("data-local") && !kept.has(b.dataset.id);
-}
-page.watch("image", () => showRecent());
-addEventListener(CONNECTION, () => greyRecents());
 
-// once the store throttles the site's downloads the remote files dialog waits WAIT, with a notice and a countdown, and
-// calls the remote store for nothing; the end is kept in the browser, so a reload does not cut it short. waitEnded is the
-// dialog's, which lists its link again.
-const WAIT = 15 * 60000;
-let ticker = 0, waitEnded = () => {};
-const throttled = () => readJSON(THROTTLE, 0) > Date.now();
-function holdRemote() {
-  const on = throttled(), left = Math.max(0, readJSON(THROTTLE, 0) - Date.now()), two = (n) => String(n).padStart(2, "0");
-  $("#remote-throttle").hidden = !on; $("#remote-dlg").classList.toggle("throttled", on);
-  $("#remote-link").disabled = $("#remote-go").disabled = on;
-  if (on) $("#remote-open").disabled = true;
-  $("#remote-clock").textContent = `${two(Math.floor(left / 60000))}:${two(Math.floor(left / 1000) % 60)}`;
-  if (on && !ticker) ticker = every(1000, holdRemote, { whenHidden: true });
-  if (!on && ticker) {
-    ticker(); ticker = 0;
-    try { localStorage.removeItem(THROTTLE); } catch { /* nothing kept */ }
-    waitEnded();
-  }
-}
-function throttle() { writeJSON(THROTTLE, Date.now() + WAIT); holdRemote(); }
+const { throttle, throttled, openRemote, openRecent, remoteLeft, remoteDialog } = imageDialog({ $, readJSON, writeJSON, savedImage, sha256, peek, remember, picture, tip, openBytes, busy, autoSave, saveImage, page, showImage, idOf, sizeText, esc,
+  thumbUrl, keptIds, recentHere, RECENT, place, keptPreviews, folderPreviews, agoTag, data, truth, standing, putTruthTag, signIn, say, know, turning,
+  get manifest() { return manifest; }, get offlineCopy() { return offlineCopy; }, get view() { return view; }, get loading() { return loading; },
+  set loading(v) { loading = v; }, get base() { return base; } });
 
-// the remote files dialog: a pasted file link loads at once; a folder link lists its images and subfolders, where a
-// click selects and Open (or a double click) opens the selection
-function remoteDialog() {
-  const msg = (t, err) => { const m = $("#remote-msg"); m.textContent = m.title = t; m.classList.toggle("err", !!err); };
-  // keptOn: the dialog lists the images kept here, offline, in place of a remote folder
-  let trail = [], chosen = null, listing = 0, keptOn = false;
-  // what browsing changes in the dialog, as the page loaded; its choices (thumbnails, auto-save) are the user's and stay
-  const asStarted = asLoaded(["#remote-path", "#remote-list", "#remote-msg", "#remote-open"].map((s) => $(s)), holdOwns);
-  // the study leaving: what the dialog was browsing goes with it
-  remoteLeft = () => { groupsSeen?.disconnect(); thumbs.stop(); trail = []; chosen = null; keptOn = false; listing++; asStarted(); $("#remote-dlg").classList.remove("folders"); };
-  // path: the folders the image is in under the link it was opened from; sha: its SHA-256 as the listing gave
-  // it (null when the store gave none), undefined when not yet asked; recent: whether it was chosen from the recents.
-  // A recent image opens from its kept copy; one chosen from the remote store does only once its SHA-256 matches the store's.
-  const take = async (id, name, path, sha, recent) => {
-    thumbs.stop();
-    const kept = await savedImage(id);
-    if (kept && !recent && sha === undefined && !throttled()) sha = await remote.checksum(id).catch(() => null);
-    // offline, a copy kept here is the only one to be had
-    if (kept && (recent || offlineCopy.offline() || (sha && sha === (await sha256(storedPart(kept.bytes)))))) {
-      $("#remote-dlg").close(); msg("");
-      peek()(kept.bytes, kept.bytes.byteLength); remember(id, kept.name, path); picture(id, kept.name, kept.bytes);
-      if (!recent) tip("recent-files", $("#image-pick"), "To load recent files click here");
-      return openBytes(kept.name, kept.bytes, remote.source(id));
-    }
-    if (throttled()) { if (!$("#remote-dlg").open) $("#remote-dlg").showModal(); return holdRemote(); }
-    msg("Downloading " + (name || "the image") + "…");
-    const mb = (n) => (n / 1048576).toFixed(1);
-    let push, what;
-    try {
-      const f = await remote.file(id, name, (n) => {
-        what = n; $("#remote-dlg").close(); msg(""); push = peek(); busy(true, `Downloading ${n}…`, "peek");
-      }, (buf, got, total) => {
-        push(buf, got);
-        $("#busy-text").textContent = `Downloading ${what} · ${mb(got)}${total ? " of " + mb(total) : ""} MB`;
-      });
-      if (f.folder) { trail = [f]; return show(); }
-      if (autoSave()) saveImage(id, f.name, f.bytes, { path, study: manifest.id });
-      remember(id, f.name, path); picture(id, f.name, f.bytes);
-      openBytes(f.name, f.bytes, remote.source(id));
-    } catch (err) {
-      busy(false); if (!$("#remote-dlg").open) $("#remote-dlg").showModal();
-      // what the download had painted goes: the image open before, or none
-      if (push) page.get("image") ? showImage() : view.clear();
-      if (err.throttled) { msg(""); return throttle(); }
-      msg(err instanceof TypeError || offlineCopy.offline() ? UNREACHED : err.message || String(err), true);
-    }
-  };
-  const choose = (f, b) => {
-    chosen = f; $("#remote-open").disabled = !f;
-    $("#remote-list").querySelectorAll(".item").forEach((e) => e.setAttribute("aria-selected", e === b));
-  };
-  // where an image is: the folders under the one it was opened from, the study's own list of folders no folder
-  const enter = (f) => (f.folder ? (trail.push(f), show()) : f.kept ? take(f.id, f.name, f.path, undefined, true)
-    : take(f.id, f.name, f.path ? f.path.slice(1) : trail.filter((t) => !t.roots).slice(1).map((t) => t.name), f.sha));
-  // offline, in place of a remote folder: the images kept on this device, the study's own first (req/shell/offline/default)
-  showKept = async () => {
-    keptOn = true; thumbs.stop(); trail = []; choose(null);
-    $("#remote-path").textContent = "You are offline: the images kept on this device"; $("#remote-list").replaceChildren();
-    const kept = [];
-    try {
-      const c = await caches.open(IMAGES);
-      for (const q of await c.keys()) {
-        const r = await c.match(q), path = r.headers.get(IMAGE_PATH);
-        kept.push({ id: idOf(q.url), name: decodeURIComponent(r.headers.get(IMAGE_NAME) || ""),
-          path: path ? JSON.parse(decodeURIComponent(path)) : [], study: r.headers.get(IMAGE_STUDY), size: (await r.blob()).size, kept: true });
-      }
-    } catch (e) { console.warn("cannot read the images kept here:", e); }
-    kept.sort((a, b) => (b.study === manifest.id) - (a.study === manifest.id) || a.name.localeCompare(b.name));
-    msg(kept.length ? "" : "No image is kept here: Make Available Offline, in Manage storage, keeps a study's.");
-    for (const f of kept) {
-      const b = document.createElement("button"); b.type = "button"; b.className = "item"; b.setAttribute("aria-selected", "false");
-      const meta = [sizeText(f.size), [remote.label, ...f.path].join(" / ")].join(" · ");
-      b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
-      markOffline(b.querySelector(".kept"), "image", true);
-      const pic = await thumbUrl(f.id);
-      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic, onload: () => URL.revokeObjectURL(pic), onerror: () => URL.revokeObjectURL(pic) }));
-      b.onclick = () => choose(f, b);
-      b.ondblclick = () => enter(f);
-      b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
-      $("#remote-list").append(b);
-    }
-  };
-  openRecent = (r) => take(r.id, r.name, r.path || [], undefined, true);
-  // the studies whose index is kept on this device, the latest read first
-  const KEEP_INDEXES = 5;
-  // the folders as last listed, kept on this device so the dialog opens offline too (req/shell/drive/offline-listing),
-  // the latest KEEP_LISTINGS of them; created in ms, size and sha null where the store gave none
-  const KEEP_LISTINGS = 50;
-  const keptListing = (id) => readJSON(LISTINGS)[id]?.items.map((f) => ({ ...f, created: f.created == null ? null : new Date(f.created) })) || null;
-  const keepListing = (id, all, name) => {
-    const items = all.map((f) => ({ id: f.id, name: f.name, folder: f.folder, size: f.size, created: f.created ? f.created.getTime() : null, sha: f.sha }));
-    const latest = Object.entries({ ...readJSON(LISTINGS), [id]: { at: Date.now(), name, items } }).sort((x, y) => y[1].at - x[1].at).slice(0, KEEP_LISTINGS);
-    writeJSON(LISTINGS, Object.fromEntries(latest));
-  };
-  // a folder's rows; offline, an image not kept here and a folder never listed are greyed and open nothing; seen: the
-  // ids the folder held when last listed here, an image not among them new, or null when it was never listed
-  const draw = async (at, all, off, asked, seen = null) => {
-    const kept = await keptIds();
-    if (asked !== listing) return;
-    const beside = all.find((f) => !f.folder && f.name === PREVIEWS), items = all.filter((f) => f !== beside);
-    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS);
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    // a study with a root keeps each folder's previews in the root's Previews folder; one with none, beside its images
-    thumbs.cover((async () => {
-      const file = place.root() ? await place.previewsOf(at.id) : beside;
-      return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
-    })());
-    msg(items.length ? "" : "No TIFF or PNG images here.");
-    for (const f of items) row(f, { kept, opened, listings, off, seen });
-    if (!off) markTruth(items, asked);
-  };
-  // one row of the list, appended: a folder or an image; seen as draw takes it
-  const row = (f, { kept, opened, listings, off, seen = null }) => {
-    const b = document.createElement("button"); b.type = "button"; b.className = "item" + (f.folder ? " folder" : "");
-    b.setAttribute("aria-selected", "false");
-    const meta = f.size == null ? "" : sizeText(f.size);
-    const added = f.created ? `Added to ${remote.label} on ${f.created.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : `When it was added to ${remote.label} is not known`;
-    const fresh = !f.folder && seen && !seen.has(f.id) ? `<span class="new" title="${esc(added)}">new</span>` : "";
-    // what only some rows show sits inward, what every image shows at the row's edge
-    // an index row's description under its name, its tags and whether it is hidden inward (req/shell/load/study-images)
-    const label = `<span class="label"><span class="name">${esc(f.name)}</span>${f.description ? `<span class="desc">${esc(f.description)}</span>` : ""}</span>`;
-    const tags = (f.hidden ? '<span class="tag-chip hidden-mark" title="Hidden from viewers and taggers by the study\'s hiding rules">hidden</span>' : "")
-      + (f.tags || []).map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("");
-    b.innerHTML = `<span class="pic"></span>${label}${fresh}${f.folder ? "" : agoTag(opened[f.id])}${tags ? `<span class="tags">${tags}</span>` : ""}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
-    if (!f.folder) { b.dataset.id = f.id; markOffline(b.querySelector(".kept"), "image", kept.has(f.id)); }
-    if (off && (f.folder ? !listings[f.id] : !kept.has(f.id))) {
-      b.disabled = true; b.title = f.folder ? "Not listed on this device yet: it needs the internet." : "Not kept on this device: it needs the internet.";
-    }
-    b.onclick = () => choose(f, b);
-    b.ondblclick = () => enter(f);
-    b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
-    const list = $("#remote-list");
-    list.append(b);
-    if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, list.childElementCount - 1);
-  };
-  // Load study images (req/shell/load/study-images): the study index's images in groups, by folder or by the
-  // multi-value tag the study names, less those its rules hide but to a study owner; each folder's previews file read
-  // once one of its images scrolls into view
-  let groupsSeen = null;
-  const unfolded = new Set();
-  const showIndex = async (ix, off) => {
-    keptOn = false; trail = [{ index: true, name: "" }];
-    const asked = ++listing, kept = await keptIds();
-    if (asked !== listing) return;
-    $("#remote-path").replaceChildren();
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    groupsSeen?.disconnect();
-    const manager = data.on, hide = ix.hide || [];
-    const images = ix.images.map((im) => ({ ...im, hidden: isHidden(im.tags || [], hide) })).filter((im) => manager || !im.hidden);
-    const groups = groupsOf(images, ix.group);
-    // a folder's previews read once one of its images is in view
-    const covers = new Map(), starts = new Map(), dirOf = new Map();
-    const coverOf = (dir) => {
-      if (!covers.has(dir)) covers.set(dir, new Promise((ok) => starts.set(dir, ok)).then(async () => {
-        const at = { id: dir }, file = off ? undefined : await place.previewsOf(dir);
-        return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
-      }).catch(() => null));
-      return covers.get(dir);
-    };
-    groupsSeen = new IntersectionObserver((seen) => { for (const e of seen) if (e.isIntersecting) { starts.get(dirOf.get(e.target))?.(); groupsSeen.unobserve(e.target); } }, { root: $("#remote-list") });
-    thumbs.cover((f) => coverOf(f.dir));
-    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
-    msg(groups.length ? "" : "No images in the study's index.");
-    for (const g of groups) {
-      // a group folded until its head is clicked, and as it was left while the page lives; a lone group open
-      const head = Object.assign(document.createElement("button"), { type: "button", className: "group" }), rows = [];
-      head.innerHTML = `<svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg><svg class="folder-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M1.5 4.2c0-.7.5-1.2 1.2-1.2h3.1l1.4 1.5h6.1c.7 0 1.2.5 1.2 1.2v6.1c0 .7-.5 1.2-1.2 1.2H2.7c-.7 0-1.2-.5-1.2-1.2Z"/></svg><span class="group-name">${esc(g.label)}</span><span class="group-count">(${g.items.length})</span>`;
-      const unfold = (on) => { head.setAttribute("aria-expanded", String(on)); for (const r of rows) r.hidden = !on; };
-      head.onclick = () => { const on = head.getAttribute("aria-expanded") !== "true"; if (on) unfolded.add(g.label); else unfolded.delete(g.label); unfold(on); thumbs.later(); };
-      $("#remote-list").append(head);
-      for (const im of g.items) {
-        const f = { id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path,
-          tags: im.tags || [], description: im.description || "", hidden: im.hidden };
-        coverOf(f.dir);
-        row(f, { kept, opened, listings, off }); items.push(f);
-        const el = $("#remote-list").lastElementChild;
-        dirOf.set(el, f.dir); groupsSeen.observe(el); rows.push(el);
-      }
-      unfold(groups.length === 1 || unfolded.has(g.label));
-    }
-    if (!off) markTruth(items, asked);
-  };
-  // which images have an extraction of yours saved, or marked GT or official, and which another's marked; one line of the popup counts them
-  const markTruth = async (items, asked) => {
-    let map, marks;
-    try { [map, marks] = await Promise.all([truth.status(), truth.marks()]); } catch (e) { console.warn("extractions not read:", e); return; }
-    if (asked !== listing) return;
-    const count = { saved: 0, gt: 0, official: 0, other: 0 };
-    for (const f of items) {
-      const g = !f.folder && f.sha && standing(map, marks, f.name, f.sha), tag = $("#remote-list").querySelector(`.item[data-id="${f.id}"] .gt-tag`);
-      if (!g || !tag) continue;
-      putTruthTag(tag, g);
-      const me = signIn.email()?.toLowerCase(), ours = (m) => !!m?.file && !!me && m.by?.toLowerCase() === me;
-      if (ours(g.marks.official)) count.official++; else if (ours(g.marks.gt)) count.gt++; else if (g.saved) count.saved++;
-      if ([g.marks.gt, g.marks.official].some((m) => m?.file && !ours(m))) count.other++;
-    }
-    const line = [count.saved && `${count.saved} saved`, count.gt && `${count.gt} GT`, count.official && `${count.official} official`].filter(Boolean).join(", ");
-    const says = [line && `Yours: ${line}.`, count.other && `${count.other} with another's marked.`].filter(Boolean).join(" ");
-    if (says && items.length) msg(says);
-  };
-  // the study's own folders to choose from, by name (req/shell/drive/dialog)
-  const showRoots = async () => {
-    keptOn = false;
-    const off = offlineCopy.offline(), listings = readJSON(LISTINGS), asked = ++listing;
-    $("#remote-path").textContent = trail[0].name;
-    const roots = studyFolders().map((id) => ({ id, name: listings[id]?.name || "Folder", folder: true }));
-    await draw(trail[0], roots, off, asked);
-    if (off) return;
-    const named = await Promise.all(roots.map((f) => (listings[f.id]?.name ? f : remote.name(f.id).then((name) => ({ ...f, name }), () => f))));
-    if (named.some((f, k) => f.name !== roots[k].name)) await draw(trail[0], named, false, asked);
-  };
-  const show = async () => {
-    groupsSeen?.disconnect();
-    if (trail[trail.length - 1].roots) return showRoots();
-    keptOn = false;
-    const at = trail[trail.length - 1], off = offlineCopy.offline(), before = keptListing(at.id);
-    $("#remote-path").innerHTML = trail.map((t, k) => `<button type="button" class="link" data-k="${k}">${esc(t.name)}</button>`).join(" / ");
-    $("#remote-path").querySelectorAll("button").forEach((b) => (b.onclick = () => { trail = trail.slice(0, +b.dataset.k + 1); show(); }));
-    $("#remote-path").scrollLeft = $("#remote-path").scrollWidth;
-    // a listing the user has moved on from by the time it arrives is dropped
-    const asked = ++listing;
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    if (before) await draw(at, before, off, asked);
-    if (off) { if (!before && asked === listing) msg("This folder is not listed on this device yet: it needs the internet.", true); return; }
-    if (!before) msg("Reading the folder…");
-    try {
-      const all = await remote.list(at.id, manifest.files.accept);
-      if (asked !== listing) return;
-      keepListing(at.id, all, at.unnamed ? readJSON(LISTINGS)[at.id]?.name : at.name);
-      // what the store says now takes the kept listing's place, redrawn only where it differs
-      if (!before || JSON.stringify(keptListing(at.id)) !== JSON.stringify(before)) await draw(at, all, false, asked, before && new Set(before.map((f) => f.id)));
-    } catch (err) {
-      if (asked !== listing) return;
-      if (err.throttled) throttle(); else if (!before) msg(err.message || String(err), true);
-    }
-  };
-  // each image's thumbnail: the one saved when it was last opened here, else the study's ready-made one,
-  // fetched for the rows in view and the next AHEAD, in order, as the user scrolls; never read from the remote store,
-  // which refuses a burst of reads and then the image itself. One fetched stays for the page's life. A TIFF's
-  // row also says what the file holds, read once from the file's first HEAD bytes for the same rows. Progress
-  // shows beside the checkbox and in the status bar.
-  const thumbs = (() => {
-    const made = new Map(), AT_ONCE = 4, AHEAD = 10, HEAD = 65536;
-    // rows: the listing's image rows that await a ready-made thumbnail or what the file holds, in the list's
-    // order, each {at, row, f, thumb, holds, asked, done}, at its place in the list; epoch: which listing they
-    // belong to; dir: the study on show's ready-made thumbnails
-    // asked, done and bytes count the thumbnails, which the note beside the checkbox reports; a header read for
-    // what a file holds is not one
-    let ctl = new AbortController(), running = 0, rows = [], epoch = 0, ready, frame = 0, asked = 0, done = 0, bytes = 0, dir = null;
-    const put = (pic, url, own) => {
-      const i = new Image(); i.alt = "";
-      if (own) i.addEventListener("load", () => URL.revokeObjectURL(url), { once: true }), i.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
-      i.src = url; pic.replaceChildren(i);
-    };
-    const tell = () => {
-      const t = asked ? `${done} of ${asked} · ${sizeText(bytes)}` : "";
-      loading = running && t ? "Thumbnails " + t : ""; say();
-    };
-    // the rows from the first in view to AHEAD past the last, that no fetch has been started for
-    const wanted = () => {
-      const list = $("#remote-list"), items = [...list.children].filter((e) => !e.hidden);
-      if (!$("#remote-dlg").open || readJSON(THUMBS, "on") === "off" || throttled() || !items.length) return [];
-      const box = list.getBoundingClientRect();
-      let first = 0, last = items.length - 1;
-      for (let hi = last; first < hi; ) { const m = (first + hi) >> 1; if (items[m].getBoundingClientRect().bottom > box.top) hi = m; else first = m + 1; }
-      for (last = first; last + 1 < items.length && items[last + 1].getBoundingClientRect().top < box.bottom; ) last++;
-      const near = new Set(items.slice(first, last + AHEAD + 1));
-      return rows.filter((r) => !r.asked && near.has(r.row));
-    };
-    const next = () => {
-      frame = 0;
-      for (const want = wanted(); running < AT_ONCE && want.length; ) {
-        const r = want.shift(), signal = ctl.signal;
-        r.asked = true; running++; if (r.thumb) asked++;
-        job(r, signal).catch((e) => { if (e.throttled) throttle(); })
-          .finally(() => { if (signal.aborted) return; r.done = true; running--; if (r.thumb) done++; tell(); next(); });
-      }
-      tell();
-    };
-    const job = async (r, signal) => {
-      if (r.thumb) {
-        const res = await fetch(`${dir}${r.f.id}.jpg`, { signal }), b = res.ok ? await res.blob() : null;
-        if (b && !signal.aborted) { bytes += b.size; made.set(r.f.id, URL.createObjectURL(b)); put(r.row.querySelector(".pic"), made.get(r.f.id)); }
-      }
-      if (r.holds) {
-        const buf = await remote.head(r.f.id, HEAD, signal);
-        if (signal.aborted) return;
-        r.row.querySelector(".shape").textContent = know(r.f.id, shape(buf));
-      }
-    };
-    const later = () => { frame = frame || requestAnimationFrame(next); };
-    // fetches in flight are dropped, and their rows fetched again when next wanted
-    const stop = () => {
-      ctl.abort(); ctl = new AbortController(); running = asked = done = bytes = 0;
-      for (const r of rows) if (!r.done) r.asked = false;
-      tell();
-    };
-    const reset = () => {
-      stop(); rows = []; epoch++; covered = Promise.resolve(null);
-      const own = remote.study(manifest).thumbs ? base + remote.study(manifest).thumbs : null;
-      if (own !== dir) { dir = own; ready = null; }
-      ready = ready || (dir ? fetch(dir + "index.json").then((r) => r.json()).then((ids) => new Set(ids)).catch(() => new Set()) : Promise.resolve(new Set()));
-    };
-    // the folder's previews file, once read, or for a list of several folders the image's folder's, by a function of
-    // the image; an image it covers is shown from it with no read of its own
-    let covered = Promise.resolve(null);
-    const cover = (p) => { covered = p || Promise.resolve(null); };
-    const fromPreviews = async (pic, e, pv) => {
-      const row = pic.closest(".item");
-      if (isTiff(e.name)) row.querySelector(".shape").textContent = holds({ images: 1, slices: e.slices, channels: e.channels });
-      put(pic, await pv.picture(e));
-      if (e.kind === "stack") turning(row, pic, pv.volume(e));
-    };
-    const watch = async (pic, f, at) => {
-      const of = epoch, pv = await (typeof covered === "function" ? covered(f) : covered), e = pv?.entry(f.name, f.sha);
-      if (of !== epoch) return;
-      if (e) return fromPreviews(pic, e, pv);
-      const saved = made.get(f.id) ? "" : await thumbUrl(f.id);
-      if (of !== epoch) { if (saved) URL.revokeObjectURL(saved); return; }
-      const url = made.get(f.id) || saved || f.preview;
-      if (url) put(pic, url, !!saved);
-      const holds = isTiff(f.name) && remote.ready && !offlineCopy.offline() && !(f.id in readJSON(HOLDS)), thumb = !url && (await ready).has(f.id);
-      if (of !== epoch || !(thumb || holds)) return;
-      rows.push({ at, row: pic.closest(".item"), f, thumb, holds, asked: false, done: false }); later();
-    };
-    $("#remote-list").addEventListener("scroll", later, { passive: true });
-    $("#remote-dlg").addEventListener("close", stop);
-    return { reset, watch, stop, later, cover };
-  })();
-  $("#remote-open").onclick = () => chosen && enter(chosen);
-  if (!remote.ready) {
-    const d = $("#load-remote");
-    d.disabled = true; d.title = remote.words.unready;
-  }
-  // offline, a folder link opens on the folder as last listed, and anything else on the images kept here
-  const open = async () => {
-    // a study's own folders: straight into the one, else a list of them
-    const roots = studyFolders().length ? await place.dataFolders() : [];
-    if (roots.length) {
-      // the index as read now, kept for working offline; offline, the one kept
-      const off = offlineCopy.offline(), top = place.root(), keptIx = readJSON(STUDY_INDEX)[top]?.index || null;
-      let ix = keptIx;
-      if (!off) {
-        try {
-          ix = await place.index();
-          const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
-          // the folders and images alone: who built it stays in the store
-          writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images, group: ix.group ?? null, hide: ix.hide ?? [] } }], ...rest] : rest));
-        } catch (e) { if (!e?.noAccess) console.warn("the study index was not read:", e); }
-      }
-      if (ix?.images.length) return showIndex(ix, off);
-    }
-    if (roots.length) {
-      if (offlineCopy.offline() && !roots.some((id) => keptListing(id))) return showKept();
-      keptOn = false; $("#remote-list").replaceChildren(); choose(null); msg("");
-      const name = readJSON(LISTINGS)[roots[0]]?.name || (offlineCopy.offline() ? null : await remote.name(roots[0]).catch(() => null));
-      trail = roots.length === 1 ? [{ id: roots[0], name: name || "Folder" }] : [{ roots: true, name: "The study's folders" }];
-      return show();
-    }
-    const link = $("#remote-link").value, ref = remote.parse(link);
-    if (offlineCopy.offline() && !(ref?.kind === "folder" && keptListing(ref.id))) return showKept();
-    keptOn = false;
-    $("#remote-list").replaceChildren(); $("#remote-path").replaceChildren(); choose(null);
-    if (!ref) return msg(remote.words.notLink, true);
-    if (link !== remoteFrom) { writeJSON(REMOTE_LINK, link); writeJSON(REMOTE_LINKS, { ...readJSON(REMOTE_LINKS), [manifest.id]: link }); remoteFrom = link; }
-    if (ref.kind === "file") return take(ref.id, undefined, []);
-    // a pasted folder's name is not asked of the remote store: "Folder" stands in, and is not kept as its name
-    trail = [{ id: ref.id, name: "Folder", unnamed: true }]; show();
-  };
-  $("#remote-go").onclick = open;
-  waitEnded = () => { if ($("#remote-dlg").open) open(); };
-  // the dialog opened: offline on what is kept here, online on its folder link read afresh
-  remoteOpened = () => {
-    if (offlineCopy.offline()) return open();
-    if (!throttled() && (studyFolders().length || remote.parse($("#remote-link").value)?.kind === "folder")) open();
-  };
-  // the open dialog follows the network: once it goes, the folder on show greyed where it cannot open (or the
-  // images kept here); once it is back, the folder read afresh
-  addEventListener(CONNECTION, (e) => {
-    if (!$("#remote-dlg").open) return;
-    if (!e.detail.online) { if (keptOn) return; return trail.length && keptListing(trail[trail.length - 1].id) ? show() : showKept(); }
-    if (trail.length && !keptOn) return show();
-    if (remote.parse($("#remote-link").value)) return open();
-    keptOn = false; $("#remote-path").replaceChildren(); $("#remote-list").replaceChildren(); msg("");
-  });
-  holdRemote();
-  $("#remote-link").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); open(); } });
-}
-
-// the open image's thumbnail, every colour on show, for the remote files dialog to show next time without a download;
-// shrunk and brightened as the studies' ready-made ones are, and only the latest few hundred are kept
-function saveThumb(id, name) {
-  const SIDE = 96, GAIN = 2;
-  const full = view.picture();
-  const k = SIDE / Math.max(st.W, st.H), c = document.createElement("canvas");
-  c.width = Math.round(st.W * k); c.height = Math.round(st.H * k);
-  const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(full, 0, 0, c.width, c.height);
-  const small = x.getImageData(0, 0, c.width, c.height), p = small.data, v = [];
-  for (let j = 0; j < p.length; j += 4) v.push(p[j], p[j + 1], p[j + 2]);
-  v.sort((a, b) => a - b);
-  const gain = Math.min(GAIN, 255 / Math.max(1, v[Math.floor(0.995 * (v.length - 1))]));
-  for (let j = 0; j < p.length; j += 4) { p[j] *= gain; p[j + 1] *= gain; p[j + 2] *= gain; }
-  x.putImageData(small, 0, 0);
-  return keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
-}
-const thumbUrlOf = (id) => new URL(THUMB_PATH + encodeURIComponent(id), location.href).href;
-// the thumbnail kept for a remote image, as an object URL to revoke once shown; "" when none is kept
-async function thumbUrl(id) {
-  try {
-    const kept = await (await caches.open(THUMBS_CACHE)).match(thumbUrlOf(id));
-    return kept ? URL.createObjectURL(await kept.blob()) : "";
-  } catch { return ""; }
-}
-// when each thumbnail was saved: strictly increasing, so the latest are told apart within one millisecond
-let thumbClock = 0;
-// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept. Returns whether it was kept.
-async function keepThumb(id, name, url) {
-  const KEEP = 100;
-  let kept = false;
-  try {
-    const cache = await caches.open(THUMBS_CACHE), blob = await (await fetch(url)).blob();
-    thumbClock = Math.max(Date.now(), thumbClock + 1);
-    await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
-    kept = true;
-    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q))?.headers.get(IMAGE_AT)) || 0 })));
-    all.sort((x, y) => x.at - y.at);
-    for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
-  } catch (e) { console.warn("the thumbnail could not be kept:", e); }
-  diskBar();
-  return kept;
-}
-// thumbnails an earlier page kept in the settings' storage move to the cache: each key goes once its picture is kept
-// there or holds none, and the two lists once no picture is left behind
-async function moveThumbs() {
-  let keys = [];
-  try { keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_THUMB)); } catch { return; }
-  const names = readJSON(LEGACY_THUMB_NAMES), saved = readJSON(LEGACY_THUMBS, []), order = Array.isArray(saved) ? saved : [];
-  const rank = (k) => order.indexOf(k.slice(LEGACY_THUMB.length));
-  const done = [LEGACY_THUMBS, LEGACY_THUMB_NAMES];
-  let behind = 0;
-  for (const k of keys.sort((a, b) => rank(a) - rank(b))) {
-    const id = k.slice(LEGACY_THUMB.length), url = readJSON(k, "");
-    const picture = typeof url === "string" && url.startsWith("data:image/");
-    if (picture && !(await keepThumb(id, names[id] || "", url))) behind++;
-    else done.unshift(k);
-  }
-  for (const k of behind ? done.slice(0, -2) : done) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
-}
-
-// what each remote file holds, remembered so it is read once; the latest KEEP. Returns its words for the row.
-function know(id, s) {
-  const KEEP = 1000, said = holds(s), all = readJSON(HOLDS);
-  delete all[id]; all[id] = said;
-  const ids = Object.keys(all);
-  for (const old of ids.slice(0, Math.max(0, ids.length - KEEP))) delete all[old];
-  writeJSON(HOLDS, all);
-  return said;
-}
-// a remote image about to open: what it holds is remembered, and a stack's 3D thumbnail is saved at once, drawn
-// from the bytes in hand; a flat image's waits until it shows
-function picture(id, name, bytes) {
-  const s = shape(bytes);
-  know(id, s); st.pictured = null;
-  const url = s && s.slices > 1 && stackPicture(bytes, s);
-  if (url) { keepThumb(id, name, url); st.pictured = id; }
-}
-
-const keptPreviewsUrl = (folder) => new URL(PREVIEWS_PATH + encodeURIComponent(folder.id), location.href).href;
-// a folder's previews file (req/shell/drive/previews), read: the copy kept on this device while the store gives the
-// file the same SHA-256, else downloaded and kept; null when there is none to read
-async function folderPreviews(folder, f) {
-  const url = keptPreviewsUrl(folder);
-  try {
-    const cache = await caches.open(FOLDER_PREVIEWS), kept = await cache.match(url);
-    if (kept && f.sha && kept.headers.get(PREVIEWS_SHA) === f.sha) return readPreviews(await kept.arrayBuffer());
-    if (throttled()) return null;
-    const got = await remote.file(f.id, f.name);
-    await cache.put(url, new Response(new Blob([got.bytes]), { headers: { [PREVIEWS_SHA]: f.sha || "", [IMAGE_NAME]: encodeURIComponent(folder.name), [IMAGE_STUDY]: manifest?.id || "" } }));
-    diskBar();
-    return readPreviews(got.bytes);
-  } catch (e) {
-    if (e.throttled) throttle();
-    else console.warn("no previews for this folder:", e);
-    return null;
-  }
-}
-// the copy of a folder's previews kept on this device, while the store cannot say which file is current (offline)
-async function keptPreviews(folder) {
-  try { const kept = await (await caches.open(FOLDER_PREVIEWS)).match(keptPreviewsUrl(folder)); return kept ? readPreviews(await kept.arrayBuffer()) : null; } catch { return null; }
-}
-// a stack's row turns its volume while the pointer is over it, and shows its still again after
-function turning(row, pic, volume) {
-  let frame = 0, still = null;
-  row.addEventListener("mouseenter", async () => {
-    const v = await volume, start = performance.now();
-    still = still || pic.firstChild;
-    const spin = (now) => {
-      const cv = drawVolume(v, TURN + ((now - start) / 1000) * (Math.PI / 2));
-      cv.className = "turning"; pic.replaceChildren(cv);
-      frame = requestAnimationFrame(spin);
-    };
-    cancelAnimationFrame(frame); frame = requestAnimationFrame(spin);
-  });
-  row.addEventListener("mouseleave", () => { cancelAnimationFrame(frame); if (still) pic.replaceChildren(still); });
-}
-
-// images downloaded from the remote store, kept on this device while Auto-save images is on
-const imageUrl = (id) => new URL(CACHED_IMAGE_PATH + encodeURIComponent(id), location.href).href;
-const idOf = (url) => decodeURIComponent(new URL(url).pathname.split("/").pop());
-// the remote ids of the images kept here
-async function keptIds() {
-  try { return new Set((await (await caches.open(IMAGES)).keys()).map((q) => idOf(q.url))); } catch { return new Set(); }
-}
-async function savedImage(id) {
-  try {
-    const r = await (await caches.open(IMAGES)).match(imageUrl(id));
-    return r ? { name: decodeURIComponent(r.headers.get(IMAGE_NAME)), bytes: await r.arrayBuffer() } : null;
-  } catch { return null; }
-}
-// copies the bytes at once, before the caller hands them to Python
-// where: {path, study}, the folders it is in under the study's link and the study it was kept in
-async function saveImage(id, name, bytes, where = {}) {
-  const body = new Blob([bytes]);
-  const headers = { [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(Date.now()), [IMAGE_PATH]: encodeURIComponent(JSON.stringify(where.path || [])), [IMAGE_STUDY]: where.study || "" };
-  try {
-    await (await caches.open(IMAGES)).put(imageUrl(id), new Response(body, { headers }));
-  } catch (e) { console.warn("image not saved:", e); }
-  diskBar();
-}
 const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); // UTF-16
 
 // ---------- the user: whoever opened the page on this device, and what the site keeps here ----------
@@ -2023,276 +1229,23 @@ function saveFile(name, text, type) {
 }
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
-// the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
-const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.phases[0]?.key; return !first || !!steps.find((p) => p.key === first)?.done; },
-  heardBy: (on) => view?.tagged?.(on) });
-// An annotation of the store shown read-only (req/shell/annotate/choice), through the study's showTruth(doc), which draws only
-// its final results and returns a line of its counts. truthShown: the open image shows one, which takes the place of the
+const { drawAnnotate, wantList, tasks, drawWaiting, algorithms, runsFirst, drawDownloads, ownFile, submitTruth } = analysisBox({ $, icon, outline, status, REPO, views, signIn, st, truth, stageAllows, data, showBoxes, log, restudyHeld, page, makesTruth, drawSteps, notice, readJSON,
+  writeJSON, noteSaved, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
+  get view() { return view; }, get truthShown() { return truthShown; }, set truthShown(v) { truthShown = v; }, get memberIds() { return memberIds; },
+  get listedReady() { return listedReady; }, get listing() { return listing; }, set listing(v) { listing = v; }, get listedFor() { return listedFor; },
+  set listedFor(v) { listedFor = v; }, get storeList() { return storeList; }, set storeList(v) { storeList = v; }, get storeRows() { return storeRows; },
+  set storeRows(v) { storeRows = v; }, get annotating() { return annotating; }, set annotating(v) { annotating = v; }, get study() { return study; },
+  get viewing() { return viewing; }, set viewing(v) { viewing = v; }, get route() { return route; }, set route(v) { route = v; },
+  get resume() { return resume; }, set resume(v) { resume = v; }, get lifetime() { return lifetime; }, get gtSession() { return gtSession; },
+  get editBase() { return editBase; }, set editBase(v) { editBase = v; }, get studyTables() { return studyTables; } });
+// whether the open image shows an Analysis File of the store read-only (req/shell/annotate/choice), which takes the place of the
 // Items view
 let truthShown = false;
-function showingTruth(on) {
-  truthShown = on;
-  if (on) views.show("image");
-  views.draw();
-}
-// Whether the user may read the study's root, as the studies' list last said: the list shows who made each extraction to them, and to
-// someone who is not one only the marked, by algorithm version or by hand (req/shell/extractions/outsiders). Not known counts as not.
-const isMember = () => !!manifest && signIn.signedIn() && !!memberIds?.includes(manifest.id);
-// The extractions of the image open that the store holds (req/shell/extractions/list), mine, then the marked, then the others, each
-// {key, label, detail, group, read() -> {doc, label}}; and the user's own file among them, null for none
-async function storeAnnotations(fresh, sub) {
-  const img = { name: st.fileName, sha256: st.sha };
-  if (!remote.owns(st.source) || !st.sha) return { rows: [], mine: null };
-  if (signIn.signedIn()) await listedReady;
-  const { rows, mine } = await truth.list(img, { member: isMember(), fresh, sub });
-  return { mine, rows: rows.map(rowOf) };
-}
-function rowOf(r) {
-  return ({ key: r.id, label: r.label, group: r.group, detail: r.modified ? new Date(r.modified).toLocaleString() : "",
-    read: async () => ({ doc: await truth.read(r.id), id: r.id, label: r.mine ? "your Analysis File" : `the Analysis File ${r.label}` }) });
-}
 // listedFor: what the store has said of the image open, by its SHA-256: sub, its subfolder's id or null for none, once its
 // opening asked; mine, the user's own file there or null, once a listing read it; a save, or another opening, lets it go
 let storeRows = new Map(), listing = 0, listedFor = null;
-// Load's press: the image's subfolder listed, the study file read again for its marks
-async function listAnnotations() {
-  const mine = ++listing, sha = st.sha, sub = listedFor?.sha === sha ? listedFor.sub : null;
-  storeList = { busy: true }; drawAnnotate();
-  let rows, own;
-  try { ({ rows, mine: own } = await storeAnnotations(true, sub)); } catch (e) {
-    console.warn("the Analysis Files were not listed:", e);
-    if (mine === listing) { storeList = { failed: `The Analysis Files of this image could not be listed: ${e.message || e}` }; drawAnnotate(); }
-    return;
-  }
-  if (mine !== listing) return;
-  listedFor = { sha, sub, mine: own };
-  storeRows = new Map(rows.map((r) => [r.key, r]));
-  storeList = { rows }; drawAnnotate();
-}
-// the user's own Analysis File of the image open, or null: from what a listing read, else one listing of the subfolder its opening found
-function ownFile() {
-  const l = listedFor;
-  if (l?.sha !== st.sha) return truth.mine();
-  if (l.mine !== undefined || !l.sub) return Promise.resolve(l.mine ?? null);
-  return truth.mineIn(l.sub).then((m) => { l.mine = m; return m; });
-}
-// why the store cannot be asked for the image's Analysis Files, "" where it can
-const listHeld = () => (!remote.owns(st.source) ? `Only an image from ${remote.label} has Analysis Files there.`
-  : document.documentElement.classList.contains("offline") ? "Needs the internet: you are offline." : "");
-// Whether the store has Analysis Files of the image, asked as it opens (req/shell/extractions/list), so that Load is on only
-// where it has: one request, signed in and online. Signed out the store is asked at Load's press, as it was.
-async function wantList() {
-  if (!manifest || !stageAllows("annotate") || data.on || !st.img || !st.sha || annotating || storeList || listHeld() || !signIn.signedIn()) return;
-  const mine = ++listing, sha = st.sha;
-  storeList = { busy: true }; drawAnnotate();
-  let sub;
-  try { sub = await truth.holds({ name: st.fileName, sha256: sha }); } catch (e) {
-    console.warn("the store was not asked for the image's Analysis Files:", e);
-    if (mine === listing) { storeList = { failed: `The Analysis Files of this image could not be looked up: ${e.message || e}` }; drawAnnotate(); }
-    return;
-  }
-  if (mine !== listing) return;
-  listedFor = { sha, sub };
-  storeList = sub ? { sub } : { rows: [] }; drawAnnotate();
-}
-// a stored annotation drawn read-only through the study's showTruth, its final results alone
-async function viewAnnotation(key) {
-  const row = storeRows.get(key), mine = listing;
-  if (!row) return;
-  let got;
-  try { got = await row.read(); } catch (e) { return status(`The Analysis File could not be read: ${e.message || e}`, true); }
-  if (mine !== listing || annotating || !st.img) return;
-  const { history: _, ...plain } = got.doc;
-  const counts = study.showTruth ? study.showTruth(plain) : "";
-  viewing = { label: got.label, doc: got.doc, id: got.id, counts };
-  showingTruth(true); showBoxes(); drawAnnotate();
-  log.add(`Loaded ${got.label}, read-only`);
-}
-// annotation mode entered: the study mounted again on the same image, in it; then() runs once the image is open
-function enterAnnotating(how, then) {
-  if (!st.img || annotating) return;
-  annotating = true; route = how; resume = { then };
-  log.add(`Chose to analyse ${how === "scratch" ? "from the start" : how === "local" ? "from this device's work" : "from an Analysis File of the store"}`);
-  restudyHeld();
-}
-// Start (req/shell/analysis/start): the study's algorithms in a dialog, where it names any and has a first step to press; Run
-// starts the analysis with the one chosen, pressing that step for the user where it is the study's one step with a button: a
-// study of several such steps is worked through its runner, which Run opens
-const runsFirst = () => !!manifest?.algorithms && !!manifest.phases[0]?.button;
-const oneRun = () => manifest.phases.filter((p) => p.button).length === 1;
-function startAnalysis() {
-  if (!st.img || annotating) return;
-  if (!runsFirst()) return beginAnalysis();
-  $("#start-dlg").showModal();
-}
-$("#start-cancel").onclick = () => $("#start-dlg").close();
-$("#start-run").onclick = () => { $("#start-dlg").close(); beginAnalysis(); };
-function beginAnalysis() {
-  const key = algorithms.api.key;
-  const run = async () => {
-    if (!runsFirst()) return;
-    await algorithms.api.ready; algorithms.api.choose(key);
-    $("#algorithm-ran").textContent = algorithms.api.title ? `Algorithm: ${algorithms.api.title}` : ""; $("#algorithm-ran").hidden = !algorithms.api.title;
-    if (oneRun()) pressWhenAble($(manifest.phases[0].button));
-  };
-  if (stageAllows("annotate")) return enterAnnotating("scratch", run);
-  route = "scratch"; log.add("Started an analysis");
-  showBoxes(); drawAnnotate(); run();
-}
-// a button pressed for the user as soon as it can be, while the study on show stays
-function pressWhenAble(b) {
-  const press = () => { if (b.disabled) return false; b.click(); return true; };
-  if (press()) return;
-  const watch = new MutationObserver(() => { if (press()) watch.disconnect(); });
-  watch.observe(b, { attributes: true, attributeFilter: ["disabled"] });
-  lifetime.signal.addEventListener("abort", () => watch.disconnect());
-}
-const choice = annotateChoice({ $, remote,
-  start: () => startAnalysis(),
-  local: () => enterAnnotating("local", () => gtSession.loadDraft()),
-  load: () => { signIn.renew(); if (!storeList?.rows) listAnnotations(); },
-  pick: (key) => viewAnnotation(key),
-  edit: () => { const v = viewing; if (v) { editBase = v.id; enterAnnotating("stored", () => gtSession.loadDocument(v.doc, "Analysis File")); } },
-  clear: () => clearAnnotations() });
-// the boxes that follow whether an image is open
-page.watch("image", () => { showBoxes(); drawAnnotate(); });
-// the choice drawn from where things stand
-function drawAnnotate() {
-  document.documentElement.toggleAttribute("data-annotating", !!manifest && makesTruth());
-  const loads = !!manifest && stageAllows("annotate");
-  const shown = !!manifest && (loads || runsFirst()) && !!page.get("image") && !data.on;
-  const says = { local: "From the work kept on this device.", stored: `From ${remote.short}'s Analysis File${viewing ? `: ${viewing.label}` : ""}.` };
-  choice.draw({ shown, annotating, loads, say: says[route] || "", draft: shown && loads && !annotating ? gtSession.draft() : null,
-    list: storeList, why: shown && loads ? listHeld() : "", asks: !signIn.signedIn(), viewing: viewing && `Showing ${viewing.label}, read-only${viewing.counts ? `: ${viewing.counts}` : "."}` });
-  drawSteps();
-}
-// reset analysis: the page back to just after the image loaded, this device's draft of it let go and the store untouched
-async function clearAnnotations() {
-  if (!annotating || !st.img) return;
-  const n = gtSession.unsaved();
-  if (!confirm(`Reset the analysis of ${st.fileName}? ${n ? `Your ${n} unsaved action${n === 1 ? "" : "s"} will be lost. ` : ""}This device's draft of it is discarded; ${remote.label} is not touched.`)) return;
-  try { await gtSession.discard(); } catch (e) { return notice(`The draft could not be cleared: ${e?.message || e}`); }
-  annotating = false; route = null; viewing = null; storeList = null; editBase = null;
-  log.add("Reset the analysis of the image");
-  restudyHeld();
-}
-
-// Saves that could not reach the store, kept on this device until a click finds it back: [{study, sha256, name, source, doc, base}]
-// (req/shell/annotate/survives)
-const outbox = () => { const l = readJSON(OUTBOX, []); return Array.isArray(l) ? l : []; };
-const unsentCount = () => outbox().length;
-function drawWaiting() {
-  const n = unsentCount();
-  $("#gt-waiting").hidden = !n;
-  $("#gt-waiting").textContent = n ? `${n} image${n === 1 ? "" : "s"} waiting to upload: they go with your next click online.` : "";
-}
-function queueSave(entry) {
-  writeJSON(OUTBOX, [...outbox().filter((w) => !(w.study === entry.study && w.sha256 === entry.sha256)), entry]);
-  drawWaiting();
-}
-let sending = false;
-// the waiting saves of the study on show, tried in the user's click, which a token run out needs to be renewed
-async function sendWaiting() {
-  if (sending || !manifest || !unsentCount() || document.documentElement.classList.contains("offline") || !signIn.signedIn()) return;
-  sending = true;
-  try {
-    for (const w of outbox().filter((x) => x.study === manifest.id)) {
-      try { await truth.save(w.doc, { name: w.name, sha256: w.sha256, source: w.source }, w.base); } catch (e) { console.warn("a waiting save did not go:", e); break; }
-      noteSaved(w.sha256);
-      writeJSON(OUTBOX, outbox().filter((x) => !(x.study === w.study && x.sha256 === w.sha256)));
-      drawWaiting();
-      listedFor = null;
-      log.add(`Uploaded the waiting analysis of ${w.name}`);
-    }
-  } finally { sending = false; }
-}
-document.addEventListener("click", () => { sendWaiting(); });
-
-// The Upload dialog (req/shell/extractions/save): a checklist of what is still open, and Upload, which writes the person's
-// Analysis File of the image to the study's extractions folder, replacing their own. gt: {doc, count, items: [{level, ok, text}],
-// empty}, count how many of its marks the document holds, nothing to send at 0.
-function submitTruth(gt) {
-  if (!makesTruth()) return;
-  const n = gt.count, send = $("#gt-send"), why = () => truth.blocked();
-  $("#gt-problems").replaceChildren(...gt.items.map((t) => {
-    const li = document.createElement("li"); li.className = t.ok ? "ok" : t.level;
-    li.innerHTML = icon(t.ok ? "done" : t.level === "error" ? "todo" : "part") + `<span>${esc(t.text)}</span>`;
-    return li;
-  }));
-  $("#gt-msg").textContent = n ? why() : gt.empty;
-  send.hidden = !maySave();
-  send.disabled = !n || !!why() || !maySave(); send.title = why();
-  const done = (is) => { $("#gt-close").textContent = is ? "Close" : "Cancel"; $("#gt-close").classList.toggle("primary", is); send.classList.toggle("primary", !is); };
-  done(false);
-  // a study with GT actions saves the model's document with its history
-  const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
-  send.onclick = async () => {
-    send.disabled = true; $("#gt-msg").textContent = "Uploading…";
-    const doc = await docOf(), image = { name: st.fileName, sha256: st.sha, source: st.source };
-    try {
-      await truth.save(doc, image, editBase);
-      noteSaved(image.sha256); listedFor = null;
-      if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-      // a session begun before the owner froze the study saves still, and the Analysis File is said not to count (req/setup/promote)
-      const late = frozen(await readStage({ fresh: true }));
-      $("#gt-msg").textContent = `Uploaded to the study's Analysis Files, as your analysis of ${st.fileName}${late ? ", after the freeze, not counted" : ""}.`;
-      step("submit", true);
-      log.add(late ? "Uploaded the analysis, after the freeze: not counted" : "Uploaded the analysis");
-      done(true);
-    } catch (e) {
-      // the store refusing is final; a sign-in run out, or no network, is not: the save waits on this device for the next click
-      if (!e.status) {
-        queueSave({ study: manifest.id, ...image, doc, base: editBase });
-        if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-        $("#gt-msg").textContent = `${remote.label} could not be reached, so the analysis of ${st.fileName} waits on this device and goes with your next click online.`;
-        step("submit", true);
-        log.add("The analysis waits to be uploaded");
-        return done(true);
-      }
-      $("#gt-msg").textContent = `It was not uploaded: ${e.message || e}. Download Analysis, on the Analysis box, keeps a copy.`;
-      send.disabled = false;
-    }
-  };
-  $("#gt-dlg").showModal();
-}
-// Download Analysis, on the Analysis box's header: the model's document with its history, as a file; where nothing can be
-// uploaded, by this user or of this image, that is the last step
-const imageStem = () => st.fileName.replace(/\.[^.]*$/, "");
 // the tables a study offers beside the analysis (req/shell/extractions/save): [{key, label, suffix, head(), rows()}], read as one is saved
 let studyTables = [];
-const downloadsNow = () => [
-  ...(gtSession.on() && !!gtSession.api.model() && st.img ? [{ key: "analysis", label: "Analysis (JSON)", save: () => working($("#analysis-dl"), saveAnalysis) }] : []),
-  ...(st.img ? studyTables : []).map((t) => ({ key: t.key, label: t.label, save() {
-    saveFile(imageStem() + t.suffix, [t.head(), ...t.rows()].map((r) => r.map(csvCell).join(",")).join("\n"), "text/csv");
-    log.add(`Downloaded ${t.label}`);
-  } }))];
-const dlMenu = $("#analysis-dl-menu");
-function shutDownloads() { dlMenu.hidden = true; dlMenu.replaceChildren(); $("#analysis-dl").setAttribute("aria-expanded", "false"); }
-function drawDownloads() {
-  $("#analysis-dl").hidden = !downloadsNow().length;
-  if ($("#analysis-dl").hidden) shutDownloads();
-}
-$("#analysis-dl").onclick = () => {
-  const all = downloadsNow();
-  if (all.length < 2 || !dlMenu.hidden) { shutDownloads(); if (all.length === 1) all[0].save(); return; }
-  dlMenu.replaceChildren(...all.map((d) => {
-    const b = Object.assign(document.createElement("button"), { type: "button", className: "item", textContent: d.label });
-    b.setAttribute("role", "menuitem"); b.dataset.key = d.key;
-    b.onclick = () => { shutDownloads(); d.save(); };
-    return b;
-  }));
-  dlMenu.hidden = false; $("#analysis-dl").setAttribute("aria-expanded", "true");
-  dlMenu.firstElementChild.focus();
-};
-document.addEventListener("pointerdown", (e) => { if (!dlMenu.hidden && !e.target.closest("#analysis-dl-menu, #analysis-dl")) shutDownloads(); });
-dlMenu.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); shutDownloads(); $("#analysis-dl").focus(); } });
-async function saveAnalysis() {
-  if (!gtSession.on() || !st.img) return;
-  saveFile(imageStem() + "_analysis.json", JSON.stringify(await gtSession.fileDoc(), null, 1), "application/json");
-  log.add("Downloaded the analysis");
-  if (makesTruth() && (!maySave() || truth.blocked())) step("submit", true);
-}
-$("#gt-close").onclick = () => $("#gt-dlg").close();
 
 // ---------- problems: a report of what went wrong, from the status bar's icon or the avatar's menu, and whether the
 // page supports this browser (req/shell/report/bug, req/shell/browsers/supported). The verdict is null until browsers.json
@@ -2769,19 +1722,12 @@ function showBoxes() {
   $("#analysis-box").hidden = !(filled("#processing-box") || filled("#tasks-box") || runsFirst() || stageAllows("annotate"));
   drawDownloads();
   drawBoxes(); drawSteps();
-  if (summaryShown !== summaryShows()) { summaryShown = summaryShows(); summaryMasks.redraw(); }
+  summaryFollows();
 }
-// whether the Summary box shows its summary, and whether it did when the mask was last drawn
-const summaryShows = () => !$("#summary-box").hidden && !waits($("#summary-box"));
-let summaryShown = false;
-function studyBoxes() { showBoxes(); summaryShown = summaryShows(); summaryMasks.redraw(); gtSession.paint(); }
+function studyBoxes() { showBoxes(); summaryRedrawn(); gtSession.paint(); }
 const viewers = {};
-const algorithms = algorithmChoice({ $, outline, status, repo: REPO });
-// Download Summary on the Summary box's header: the study's summary, saved as the shell's one CSV
-const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
-// the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
-const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get("image"), fileName: () => st.fileName, study: () => manifest,
-  shows: () => summaryShows(), drag, readJSON, writeJSON, views });
+const { summaryCsv, summaryMasks, summaryFollows, summaryRedrawn } = summaryBox({ $, st, page, waits, saveFile, drag, readJSON, writeJSON, views,
+  get manifest() { return manifest; }, get view() { return view; } });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
