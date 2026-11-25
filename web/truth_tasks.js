@@ -33,6 +33,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
   let said = "";
   function retitle() {
     const open = [...$("#gt-bar").children].filter((p) => !row(p.dataset.task)?.classList.contains("done")).map((p) => p.title);
+    if (!said && !$("#gt-bar").children.length) return $("#gt-submit").removeAttribute("title");
     $("#gt-submit").title = said || (open.length ? `Still open: ${open.join(", ")}` : "Upload your analysis to the study");
   }
   function tagged(now) {

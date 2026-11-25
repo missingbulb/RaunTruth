@@ -56,7 +56,7 @@ export function mount(shell) {
   return {
     order,
     opening() { ran = null; MV.stackOpened(); canRun(); },
-    opened() { canRun(); shell.status("Stack loaded. Press Execute to draw its vessel model."); },
+    opened() { canRun(); shell.status(truth ? "Stack loaded. Press Execute to draw its vessel model." : "Stack loaded. Press Start to draw its vessel model."); },
     result(action, meta) {
       if (action !== "run") return;
       shell.busy(false);

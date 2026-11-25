@@ -1016,7 +1016,7 @@ export function mount(shell) {
     },
     opened() {
       updateFind(); drawAdded();
-      status("Image loaded. Press Find Candidates.");
+      status(TRUTH ? "Image loaded. Press Find Candidates." : "Image loaded. Press Start.");
     },
     result(action, meta, bytes) {
       if (action === "run") {
