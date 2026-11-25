@@ -244,12 +244,13 @@ const mbOf = (n) => Math.round(n / 2 ** 20);
 function ramList() {
   const { js, total } = memoryNow(), gb = navigator.deviceMemory;
   const image = Object.values(st.img || {}).reduce((a, c) => a + (c?.byteLength || 0), 0);
+  const within = [...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
+    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true])];
   const rows = [
     ["Python", "Its memory as far as it has grown", st.heap],
     ["Python's files", "Python's library, its packages and the study's code", st.files],
-    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold, the indented rows among it", js],
-    ...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
-    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true]),
+    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold" + (within.length ? ", the indented rows among it" : ""), js],
+    ...within,
     ["Compiled code and the browser", "An estimate: a page cannot read it", UNREAD_MB * 2 ** 20],
   ];
   $("#ram-total").textContent = total == null ? "Python is still loading." : `This tab holds about ${mbOf(total)} MB` + (gb ? ` of this computer's ${gb} GB.` : ".");

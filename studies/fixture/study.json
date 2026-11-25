@@ -38,7 +38,7 @@
       "drive"
     ],
     "accept": ".png",
-    "empty": "Load a greyscale PNG, then press Count."
+    "empty": "Load a greyscale PNG, then press Start."
   },
   "channels": [
     {
