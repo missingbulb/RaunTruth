@@ -1,5 +1,12 @@
 {
  "about": "The study's owner, whom Drive lets write the study's folder, signed in, who may open Study Setup from the avatar's menu.",
+ "goals": {
+  "person": "the researcher who runs this study",
+  "goals": [
+   "See what a lab member sees when they open the study, then go to where you manage the study.",
+   "Count an image and save your version as the one the lab should trust."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

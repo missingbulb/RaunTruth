@@ -236,15 +236,19 @@ def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_
         assert code == 0, said
         code, said = s.page('key', 'Escape', '--expect', 'the list closes')
         assert code == 0, said
+        # a name the page has for one of its parts, which nothing shown says, and one the screen does say
+        s.page('saw', '--as-expected', 'yes', 'history-dlg closed')
+        s.page('act', numbered(said, 'named "You, on this device"'), '--expect', 'a menu with Sign in opens')
         log = s.log()
     finally:
         s.page('end')
     # the two refused commands made no step
-    opened, closed = log['steps']
+    opened, closed, menu = log['steps']
     assert opened['expectation'] == 'a list of what changed in each version opens'
     assert opened['verdict'] == {'asExpected': 'partly', 'words': 'a list opened, with no dates on it'}
     # the step never judged is in the log as such
-    assert closed['expectation'] == 'the list closes' and closed['verdict'] is None
+    assert menu['expectation'] == 'a menu with Sign in opens' and menu['verdict'] is None
+    assert log['beyondTheScreen'] == [{'step': 2, 'word': 'history-dlg'}], log['beyondTheScreen']
     # the dialog grows open: its frames are on a sheet, and the animation the page started is named
     assert opened['happened']['frames'] > 1 and os.path.getsize(opened['happened']['sheet']) > 0, opened['happened']
     assert opened['happened']['motions'], opened['happened']

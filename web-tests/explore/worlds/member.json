@@ -1,5 +1,12 @@
 {
  "about": "A member of a private study: its folder shared with the members alone, this one signed in and reading.",
+ "goals": {
+  "person": "a member of a lab whose study is private to its members",
+  "goals": [
+   "Find the lab's images and open the one taken on day 7.",
+   "You will be on a train tomorrow with no internet. Prepare so that you can still work on this study there."
+  ]
+ },
  "study": "fixture",
  "stage": "Develop",
  "user": {

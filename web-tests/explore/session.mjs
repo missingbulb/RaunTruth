@@ -162,7 +162,7 @@ function styleReport(described, looked) {
       out.push(`  ${differs.length <= 2 ? "ODD ONE OUT" : "another look"} (${g.length}): ${names(g)}`,
         `    unlike ${names(larger)} in: ${differs.map(([p, v]) => `${p} ${v} (theirs ${larger[0].look[p]})`).join(", ")}`);
     }
-    const wordy = all.filter((c) => c.words > 4);
+    const wordy = WORDED.has(kind) ? [] : all.filter((c) => c.words > 4);
     if (wordy.length) out.push(`  more than four words: ${wordy.map((c) => `${called(c.d)} (${c.words})`).join(", ")}`);
   }
   return out.join("\n");
@@ -182,6 +182,15 @@ async function serve(flags) {
   const wait = () => { ready = new Promise((ok) => { isReady = ok; }); };
   wait();
   let chosen = [];
+  // the page's own names for its parts, and everything the persona was shown: a name of the first kind in the
+  // persona's words that it was never shown is knowledge from beyond the screen
+  const pageIds = new Set();
+  let printed = "";
+  const beyondTheScreen = (words) => {
+    const said = words.toLowerCase(), out = said.match(/#[a-z][\w-]*/g) || [];
+    for (const id of pageIds) if (/[-_]/.test(id) && said.includes(id) && !printed.includes(id) && !printed.includes(id.replace(/[-_]/g, " "))) out.push(id);
+    return [...new Set(out)];
+  };
 
   const motions = () => page.evaluate(() => ({ css: (window.cssMotions || []).map((m) => m.name), scripted: [...(window.scriptedMotions || [])], views: (window.viewTransitions || []).length }))
     .catch((e) => { console.error("motions unread: " + e.message.split("\n")[0]); return { css: [], scripted: [], views: 0 }; });
@@ -269,6 +278,8 @@ async function serve(flags) {
     if (grey.length) lines.push("", "Greyed out, cannot be used now:", ...grey.map(of).filter(Boolean).map((d) => `  - ${line(d)}`));
     if (out.length) lines.push("", "Links that leave the app, not followed in this session:", ...out.map(of).filter(Boolean).map((d) => `  - ${line(d)}`));
     shown = { numbered, shot, marked: hasMarks ? marked : null, text: lines.join("\n") };
+    for (const id of await page.evaluate(() => [...document.querySelectorAll("[id]")].map((e) => e.id))) pageIds.add(id.toLowerCase());
+    printed += "\n" + shown.text.toLowerCase();
     fs.writeFileSync(path.join(seenDir, `look-${id}.txt`), shown.text + "\n");
     return shown;
   }
@@ -291,7 +302,9 @@ async function serve(flags) {
     if (h.error) lines.push("The page did not take it: what you aimed at did not answer (it may be covered, gone or not usable).");
     lines.push(`The page was still again after ${h.ms} ms.` + (h.frames > 1 ? ` The screen went on changing for about ${h.changedFor} ms: its ${h.frames} frames, in order, are in ${h.sheet || "(no picture could be made)"}`
       : " Nothing on the screen changed that a frame caught."));
-    lines.push(h.motions || h.viewTransitions ? `Animations the page started: ${[h.motions, h.viewTransitions ? `${h.viewTransitions} whole-view transition(s)` : ""].filter(Boolean).join("; ")}.`
+    // what each animation is called is the stylesheet's word for it: a designer's to read, never a user's
+    lines.push(h.motions || h.viewTransitions ? (log.persona === "user" ? "The page animated the change."
+      : `Animations the page started: ${[h.motions, h.viewTransitions ? `${h.viewTransitions} whole-view transition(s)` : ""].filter(Boolean).join("; ")}.`)
       : `The page started no animation or transition${h.frames > 2 ? ": what changed over those frames arrived in steps, unanimated" : ""}.`);
     for (const f of h.pickedFiles) lines.push(`The computer's file picker opened, and ${f} was chosen for you.`);
     for (const d of h.downloads) lines.push(`A file was downloaded: ${d}`);
@@ -369,6 +382,7 @@ async function serve(flags) {
       give(null);
       const run = await walking;
       const mismatches = log.steps.filter((s) => s.verdict && s.verdict.asExpected !== "yes");
+      log.beyondTheScreen = log.steps.flatMap((s) => beyondTheScreen([s.expectation, s.verdict?.words || "", ...s.notes.map((n) => n.words)].join(" ")).map((word) => ({ step: s.i + 1, word })));
       Object.assign(log, { ended: new Date().toISOString(), qa: { steps: path.join(out, "steps.json"), summary: path.join(out, "summary.md"), findings: run.findings.length } });
       fs.writeFileSync(path.join(out, "session.json"), JSON.stringify(log, null, 1) + "\n");
       const md = [`# Session: ${log.persona || "a persona"} in ${log.world}`, "", ...(log.person ? [`Who: ${log.person}`, ""] : []), ...(log.goal ? [`Goal: ${log.goal}`, ""] : []),
@@ -381,6 +395,8 @@ async function serve(flags) {
         for (const f of s.qa) md.push(`- the walk's check, ${f.class}: ${f.what}`);
         md.push("");
       }
+      if (log.beyondTheScreen.length) md.push("## Words only the code has", "", "The persona used the page's own names for its parts, which nothing it was shown says: it read more than the screen.", "",
+        ...log.beyondTheScreen.map((l) => `- step ${l.step}: ${l.word}`), "");
       if (log.notes.length) md.push("## Notes", "", ...log.notes.map((n) => `- after step ${n.after + 1}: ${n.words}`), "");
       fs.writeFileSync(path.join(out, "session.md"), md.filter((l) => l !== null).join("\n"));
       return { code: 0, text: `Session ended: ${log.steps.length} steps, ${mismatches.length} otherwise than expected.\n${path.join(out, "session.md")}\n${path.join(out, "session.json")}`, close: true };
