@@ -59,6 +59,8 @@ import { statusResources } from "./status_resources.js";
 const $ = (s) => document.querySelector(s);
 // whether this is Study Setup's page (req/setup/page), which shows the study as the one whose root its owner may write, online only
 const SETUP = document.documentElement.dataset.page === "setup";
+// the status line with nothing under way: Study Setup has no Load to ask for
+const READY = SETUP ? "Ready." : "Ready. Load an image.";
 // what Study Setup's own script (setup.js) attached: the study's folders and what is set on them; the study's own page has none
 const attached = [];
 const data = {
@@ -557,7 +559,7 @@ async function start() {
     } catch (e) { console.warn("no cache for third-party files:", e); }
     offlineCopy.keepSite().then(diskBar, (e) => console.warn("no copy of the site for offline:", e));
   }
-  status("Ready. Load an image."); statusBar(); diskBar();
+  status(READY); statusBar(); diskBar();
   moveThumbs().catch((e) => console.warn("the thumbnails kept before could not be moved:", e));
   keepPython();
   if (navigator.deviceMemory <= LOW_GB) memoryTip();
@@ -576,7 +578,7 @@ async function keepPython() {
       if (manifest?.id !== id || st.worker) return;
       if (!(await caches.match(u))) await (await fetch(u, { priority: "low" })).arrayBuffer();
     }
-    if (st.notHere) { st.notHere = false; status("Ready. Load an image."); }
+    if (st.notHere) { st.notHere = false; status(READY); }
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
     if (manifest?.id === id && !st.worker) st.unkept = true;
@@ -702,7 +704,7 @@ function imageOpened(m) {
   const from = remote.owns(st.source) ? remote.label : st.source?.kind === "preview" ? `its preview in ${remote.label}` : "this computer";
   step("load", true);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
-  status("Image loaded."); // the study's opened hook says what comes next, if anything
+  status(SETUP ? READY : "Image loaded."); // the study's opened hook says what comes next, if anything
   summaryMasks.opened(); studyAreas(st.source); data.opened();
   study.opened?.(m.meta);
   // annotation mode lasts as long as the image: this one is in it only when the choice that entered it brought it here
@@ -790,7 +792,7 @@ function restudy(again = true) {
     leaveStudy();
     try { await mountStudy(id); } catch (e) { return status("Error: " + (e.message || e), true); }
     if (ready) { st.ready = true; st.readyInfo = readyInfo; study.ready?.(readyInfo); }
-    statusBar(); status("Ready. Load an image.");
+    statusBar(); status(READY);
     if (image) await openBytes(image.name, image.bytes, image.source);
   });
 }
@@ -1505,7 +1507,7 @@ function swap() {
     try {
       await mountStudy(id, read);
     } catch (e) { return status("Error: " + (e.message || e), true); }
-    status("Ready. Load an image.");
+    status(READY);
     // Python, not started, starts on this study at its first Run; its files are kept meanwhile
     if (!st.worker) return keepPython();
     pythonLoads(true);

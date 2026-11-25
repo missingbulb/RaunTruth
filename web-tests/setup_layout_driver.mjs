@@ -108,6 +108,8 @@ await shot(page, "3-folder");
 await page.click("#folder-items .cell");
 await page.waitForFunction(() => !$("#image-panel").hidden && !$("#image-open").disabled);
 await check((await seen(page, "#folder-items .cell.chosen")) && (await cells(page)).join() === first.join() && !(await seen(page, "#view")), "an image chosen is outlined in its grid, which stays, and no viewer shows", await cells(page));
+const said = await page.evaluate(() => $("#status").textContent);
+await check(said === "Ready.", "the status line asks for no image and tells of none loaded: the page has no Load", said);
 await page.click("#image-open");
 await page.waitForFunction(() => $("#image-dlg").open);
 await check((await seen(page, "#view")) && (await seen(page, "#stage")) && (await seen(page, "#areas")), "Open image… shows it in a dialog, with its areas to mark");

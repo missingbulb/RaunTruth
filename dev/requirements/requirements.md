@@ -2281,7 +2281,8 @@ nobody has decided: what the page does there is not a requirement yet.
   their marks, and Open image… (`req/setup/image`). Ground Truth holds the set-up of Analysis Files, how many images have one and
   have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Run
   on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. Literature
-  holds the study's papers against the repo's summaries (`req/setup/literature`). The
+  holds the study's papers against the repo's summaries (`req/setup/literature`). The status line, where the study's own page asks for an image
+  or tells of one loaded, says Ready.: the page has no Load. The
   page opens on the same layout every time: Images, nothing chosen, the tree's folders unfolded, whatever it showed the visit before;
   it keeps no aspect, fold or choice. Decided for the owner to confirm: Needs GT stays a button on each image's cell, and the folders
   and the grid are shared by Images and Run on all images, which keep the folder chosen when one changes to the other. Test:

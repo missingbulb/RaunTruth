@@ -22,7 +22,7 @@ const here = page.url();
 const [setup] = await Promise.all([page.waitForEvent("popup"), page.click("#open-setup")]);
 await check(page.url() === here, "it opens in a new page, the study's own staying where it was", page.url());
 page = setup;
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+await page.waitForFunction(() => document.querySelector("#status")?.textContent.startsWith("Ready"));
 await check(await page.evaluate(() => location.pathname === "/web/setup" && location.search === "?study=fixture"), "it opens /setup?study=fixture", await page.evaluate(() => location.href));
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 await check(await page.evaluate(() => document.documentElement.dataset.mode === "data" && !$("#data-col").hidden), "the setup page shows the study's folders");
