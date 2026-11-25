@@ -1,4 +1,5 @@
-// Stage (req/setup/promote): Study Setup's box for the study's stage. The owner promotes the study to the next stage and moves it back; the
+// Stage (req/setup/promote): the study's five stages across the top of Study Setup, the current one selected. The owner promotes the
+// study through the next stage's action and moves it back through the one before's; the
 // stage is one key of the study file (study_root.js setStudy), and promoting is always the owner's act, however the page measures the
 // gate. Before Review a button lists the images whose extractions are newer than their GT, which the owner may want to mark first, and so
 // does promoting to Review, once, before it asks to confirm, since that freezes marking and data (stages.js). Nothing else reads them.
@@ -8,14 +9,21 @@ import { setStudy } from "./study_root.js";
 import { work } from "./pending.js";
 import { asLoaded } from "./as_loaded.js";
 import { holdOwns } from "./offline.js";
-import { STAGES, WHAT, next, before, frozen } from "./stages.js";
+import { STAGES, WHAT, LIGHT, next, before, frozen } from "./stages.js";
 
 const READ_AT_ONCE = 6;
 
 // $: the page's selector; reader, writer, place: the store's reads and writes and the study's place in it; changed(stage): told once the
 // stage is written, for what follows from it to be drawn again
-export function setupStage({ $, reader, writer, place, changed }) {
-  const box = $("#stage-box"), dlg = $("#stage-freeze-dlg"), msg = $("#stage-msg");
+export function setupStage({ $, reader, writer, place, changed, calls }) {
+  const box = $("#stage-box"), dlg = $("#stage-freeze-dlg"), msg = $("#stage-msg"), steps = $("#stage-steps");
+  steps.replaceChildren(...STAGES.map((name) => {
+    const li = document.createElement("li");
+    li.dataset.stage = name; li.dataset.light = LIGHT[name];
+    li.innerHTML = '<span class="stage-name"></span><span class="stage-say"></span><button type="button" class="stage-act" data-needs-network hidden></button>';
+    li.querySelector(".stage-name").textContent = name;
+    return li;
+  }));
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([box], holdOwns);
   let manifest = null, epoch = 0, busy = false;
@@ -48,16 +56,21 @@ export function setupStage({ $, reader, writer, place, changed }) {
 
   function draw() {
     const now = stage();
-    box.hidden = !now;
-    if (!now) return;
+    if (!now) return asStarted();
+    box.hidden = false;
     box.classList.toggle("busy", busy);
-    $("#stage-now").textContent = now;
-    $("#stage-what").textContent = WHAT[now];
-    const up = next(now), back = before(now);
-    $("#stage-up").hidden = !up; $("#stage-back").hidden = !back;
-    if (up) $("#stage-up").textContent = up === "Review" ? "Promote to Review…" : `Promote to ${up}`;
-    if (back) $("#stage-back").textContent = `Move back to ${back}`;
-    for (const id of ["#stage-up", "#stage-back", "#stage-find"]) $(id).disabled = busy;
+    $("#stage-what").textContent = `${now}: ${WHAT[now]}`;
+    const at = STAGES.indexOf(now), up = next(now), back = before(now);
+    for (const [k, li] of [...steps.children].entries()) {
+      const state = k < at ? "done" : k === at ? "now" : "ahead", b = li.querySelector(".stage-act"), act = li.dataset.stage === up ? "up" : li.dataset.stage === back ? "back" : null;
+      li.dataset.state = state;
+      if (state === "now") li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+      li.querySelector(".stage-say").textContent = state === "done" ? "done" : state === "now" ? "current" : "";
+      b.hidden = !act; b.disabled = busy;
+      if (act) b.id = "stage-" + act; else b.removeAttribute("id");
+      b.textContent = act === "up" ? (up === "Review" ? "Promote to Review…" : `Promote to ${up}`) : act === "back" ? `Move back to ${back}` : "";
+    }
+    $("#stage-find").disabled = busy;
     // the list is of before Review: from there on marking is closed
     $("#stage-find").hidden = frozen(now);
     if (frozen(now)) shown([]);
@@ -69,7 +82,7 @@ export function setupStage({ $, reader, writer, place, changed }) {
     busy = true; draw(); say("");
     const mine = epoch, now = stage();
     try {
-      const l = await newerThanGT();
+      const l = await calls.during("store", "the Analysis Files newer than their GT", newerThanGT);
       if (mine === epoch && stage() === now) shown(l, true);
     } catch (e) { console.warn("the extractions newer than their GT were not listed:", e); say("The Analysis Files could not be listed.", true); }
     busy = false; draw();
@@ -96,8 +109,11 @@ export function setupStage({ $, reader, writer, place, changed }) {
     listed($("#stage-freeze-newer"), l); $("#stage-freeze-newer-box").hidden = !l.length;
     dlg.showModal();
   }
-  $("#stage-up").onclick = () => work.during(promote(), "the study's stage changed");
-  $("#stage-back").onclick = () => { const to = before(stage()); if (to) work.during(write(to), "the study's stage changed"); };
+  steps.onclick = (e) => {
+    const b = e.target.closest(".stage-act");
+    if (b?.id === "stage-up") work.during(promote(), "the study's stage changed");
+    else if (b?.id === "stage-back") { const to = before(stage()); if (to) work.during(write(to), "the study's stage changed"); }
+  };
   $("#stage-freeze-cancel").onclick = () => dlg.close();
   $("#stage-freeze").onclick = () => { dlg.close(); work.during(write("Review"), "the study's stage changed"); };
 

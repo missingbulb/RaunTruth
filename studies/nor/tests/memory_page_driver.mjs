@@ -55,6 +55,11 @@ const fail = async (why) => { console.error(why); await browser.close(); server.
 // a device whose welcome popup is not answered yet
 const device = world(browser, origin).device().welcomed(null), ctx = await device.context();
 await standInDrive(ctx);
+// each worker the page makes is told as it is made, so its first answer is heard however soon it comes
+await ctx.addInitScript(() => {
+  const Made = window.Worker;
+  window.Worker = class extends Made { constructor(...args) { super(...args); window.dispatchEvent(new CustomEvent("worker-made", { detail: this })); } };
+});
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fail("page error: " + e.message));
 const cdp = await ctx.newCDPSession(page);
@@ -64,12 +69,11 @@ if (process.env.THROTTLE) await cdp.send("Emulation.setCPUThrottlingRate", { rat
 // resolves with the worker's next message of this type, or answer to this action (the page's own handler still gets it)
 // the worker's next answer to an action, Python starting with the first (req/shell/python/on-run)
 const next = (action) => page.evaluate((action) => new Promise((ok) => {
-  const hook = () => {
-    if (!st.worker) return requestAnimationFrame(hook);
-    const w = st.worker, h = (e) => { if (e.data.type === "result" && e.data.action === action) { w.removeEventListener("message", h); ok(); } };
+  const hook = (w) => {
+    const h = (e) => { if (e.data.type === "result" && e.data.action === action) { w.removeEventListener("message", h); ok(); } };
     w.addEventListener("message", h);
   };
-  hook();
+  if (st.worker) hook(st.worker); else window.addEventListener("worker-made", (e) => hook(e.detail), { once: true });
 }), action);
 const settled = () => page.waitForFunction(() => !st.running && $("#busy").hidden);
 

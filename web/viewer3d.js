@@ -540,7 +540,7 @@ export function viewer3d(shell, flat) {
   placed(true);
 
   function show3d(on) {
-    mode3d = on && !!vol;
+    mode3d = on && !!vol && !shell.flatOnly;
     stage.hidden = !mode3d; tools.hidden = !mode3d; $("#scroller").hidden = mode3d;
     flat.rowsAfter(mode3d ? [slicesRow] : []); flat.rowsWith(mode3d ? depthRow : null);
     flat.zoomWith(mode3d ? (k) => { S.dist = Math.min(Math.max(S.dist / k, MIN_DIST), 12); redraw(); } : null);

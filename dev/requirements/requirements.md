@@ -1765,7 +1765,8 @@ nobody has decided: what the page does there is not a requirement yet.
   modules directly in the folders its Python is imported from (`python.paths`), which is all the
   page's importer can reach; the build runs none of a study's code (owner, 2026-11-14: a study contributes data).
   A study's docs, data, tests and lab notes stay in the repo, and nothing
-  in a study says how, where or whether it is published. The build (`dev/tools/build/build.py`)
+  in a study says how, where or whether it is published; of its docs the site carries one thing the build writes, the list of each study's
+  article summaries by file, heading and paper named (`literature.json`, `req/setup/literature`; owner, 2026-11-25), never their text. The build (`dev/tools/build/build.py`)
   assembles the set under `dev/build/site/`, the tree the release uploads. Test:
   `web-tests/test_published_site.py`.
   </details>
@@ -1798,6 +1799,21 @@ nobody has decided: what the page does there is not a requirement yet.
   question mark. Set by the owner on 2026-11-24: the status bar holds no breadcrumbs of the study's steps, neither
   the steps done nor the one to do next. Test:
   `web-tests/test_status_bar_page.py`.
+  </details>
+
+- `req/shell/status-bar/calls` A call to another server shows in the status bar while it is in flight: that server's logo, turning, and what is being read from it.
+  <details>
+
+  Set by the owner on 2026-11-24. Every call the page makes to Google Drive, the loading of Python and its packages, and the reading
+  of a study from this site goes through one helper (`web/network_calls.js`), which shows it beside the status line for as long as it
+  is in flight: the server's small logo, turning, and "Loading from Google Drive: <what>" ("Saving to …" for a write; the bare
+  server where the call names nothing). Calls to several servers show side by side; a server's calls share its one logo, which
+  names the oldest of them, and goes when the last ends. A call that fails says so there, "Google Drive did not answer: <what>", until
+  the next call to that server or six seconds on. The helper also gives a call a place on the page (`req/setup/loading`). It adds no
+  call and changes none's time: it only watches. The account's settings kept in Drive, the list of studies, the version history and
+  the supported browsers go through it too. Not yet through it, and so not shown: the offline download, thumbnails, a study's list of
+  algorithms and what the Python worker fetches itself. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_layout_driver.mjs`.
   </details>
 
 - `req/shell/status-bar/cpu` The CPU, a processor icon and "12%", is how busy this tab's threads are now.
@@ -2255,6 +2271,25 @@ nobody has decided: what the page does there is not a requirement yet.
 
 ## `req/setup` Study Setup, the study owner's page
 
+- `req/setup/aspects` Study Setup is a layout of its own: the five stages across the top, a rail of the study's aspects at the left, the chosen aspect filling the rest, and no image viewer or left bar.
+  <details>
+
+  Set by the owner on 2026-11-24 and 2026-11-25, replacing the Data Management column beside the shell's left bar and viewer. Under the
+  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, Literature, People, Run on
+  all images and Results, one chosen at a time, its panel filling the rest of the page; the status bar stays. Images holds the folders
+  tree with the study's folders to add and the Study images rules (the grouping tag, the tags that hide), the chosen folder's images as a
+  grid or a list, and beside them what is chosen: a folder's sums and Update previews, the Tags box, an image's Analysis Files and
+  their marks, and Open image… (`req/setup/image`). Ground Truth holds the set-up of Analysis Files, how many images have one and
+  have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Run
+  on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. Literature
+  holds the study's papers against the repo's summaries (`req/setup/literature`). The status line, where the study's own page asks for an image
+  or tells of one loaded, says Ready.: the page has no Load. The
+  page opens on the same layout every time: Images, nothing chosen, the tree's folders unfolded, whatever it showed the visit before;
+  it keeps no aspect, fold or choice. Decided for the owner to confirm: Needs GT stays a button on each image's cell, and the folders
+  and the grid are shared by Images and Run on all images, which keep the folder chosen when one changes to the other. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
+  </details>
+
 - `req/setup/batch` The owner runs a chosen algorithm over chosen images on Study Setup; each gets an extraction at that version, images already done are skipped, and a token running out holds the batch until the next click.
   <details>
 
@@ -2274,14 +2309,61 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_setup_page.py` with `web-tests/setup_batch_driver.mjs`.
   </details>
 
-- `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, extractions set-up, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
+- `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, the set-up of Analysis Files, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
   <details>
 
-  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5). Unchanged in behaviour, moved to
-  `/setup`: the data requirements of `req/shell` (those tagged `data/...`) are those of Study Setup's Data Management column and its
-  boxes, and each now reads as they do there. Set up extractions makes the one extractions folder
-  (`req/shell/ground-truth/setup`). Study Setup shows images in the shell's plain view: the study's own drawers,
-  item view and steps do not show on it. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5), and placed on 2026-11-24 in Study Setup's own
+  layout (`req/setup/aspects`): the data requirements of `req/shell` (those tagged `data/...`) are those of Study Setup's Images and
+  Ground Truth aspects, and each reads as it does there, a folder's images filling the grid beside the tree and an image's areas
+  marked in its dialog (`req/setup/image`). Set up Analysis Files makes the one folder they are kept in
+  (`req/shell/ground-truth/setup`). The study's own drawers, item view and steps do not show on Study Setup. Test:
+  `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
+  </details>
+
+- `req/setup/image` An image chosen on Study Setup is opened in a dialog that draws it flat, where its areas are lassoed.
+  <details>
+
+  Set by the owner on 2026-11-24 and 2026-11-25: what is done on one image is in a dialog, the page having no image viewer of its own, and marking
+  areas needs no 3D view. Choosing an image chooses it: in the grid, its cell is outlined and the grid stays; in the tree, the grid steps
+  aside, as no folder is chosen. Its name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read
+  as before, its preview first, and by the code that reads it on the study's own page, so choosing asks the network for no more than it did.
+  Open image… shows it in a dialog over the page, the page behind it held until the dialog shuts, as large as the window allows: the image's
+  name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler,
+  grid, minimap and zoom, Load Original (the dialog's own button) while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
+  left bar, no channel rows, no 3D view and none of the study's own tools. Close and Esc shut it, and choosing a folder shuts it too; Esc
+  while an area is being lassoed gives up the lasso and leaves the dialog open. A notice raised while it is open shows over it. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/test_data_mode_page.py`.
+  </details>
+
+- `req/setup/literature` Study Setup lists the papers in the study's Literature folder against the repo's summaries of them.
+  <details>
+
+  Set by the owner on 2026-11-25: the folder named Literature in the study's root holds the papers the repo's summaries came from, and a
+  simple list of its files, with which have a summary and which summaries have no paper, is enough. The rail's Literature aspect, when it is
+  chosen and never before, lists that folder once (one listing of the store, each time it is chosen; the folder itself is found in the
+  listing of the root the page has already read) and shows its files by name, each a link that opens the file in the store in a new page.
+  The site publishes, in `literature.json` beside the page, each study's article summaries (`studies/<id>/docs/literature/*.md`): the
+  file, its first heading, and the paper it says it was read from. A file there is an article summary when its name carries a year, as the
+  intake's slugs do (`song-2022-concussion.md`), or when it names a PDF; the folder's notes and indexes are not. A summary names its paper
+  as the first file name ending `.pdf` it writes in backticks, a leading `Literature/` left off. Pairing, in this order: a paper is the one a
+  summary names when their names are equal, letter case and surrounding space aside; else a paper and a summary pair when their file names
+  are equal once the extension is dropped and everything but letters and digits is, lower-cased. A paper paired says "summary", with the
+  summary's heading; one unpaired says "no summary in the repo". The summaries no paper pairs with are listed after, under "Summaries with no
+  paper here". A root with no Literature folder says so and lists nothing of the store; a study with no summaries published says so. The
+  listing goes through the page's calls (`req/setup/loading`): the place is emptied and marked loading, and the store's logo turns. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_literature_driver.mjs`, `web-tests/test_published_site.py`.
+  </details>
+
+- `req/setup/loading` What Study Setup reads from the store is shown where it will land: the place is emptied of the choice before, shows that it is loading, and a late answer for an earlier choice paints nothing.
+  <details>
+
+  Set by the owner on 2026-11-24. Choosing a folder empties the grid and the folder's sums at once and shows a progress bar there,
+  "Loading <folder>'s images from Google Drive…", until its images are drawn; the same holds for the folders tree while the study's
+  folders are read and for an image's Analysis Files. Each goes through the page's network calls (`req/shell/status-bar/calls`),
+  which gives the place to the latest call for it: an answer that arrives for a choice since replaced is dropped, and the page
+  records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
+  being read, and are named in the status bar while they are. It adds no call and moves none. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
   </details>
 
 - `req/setup/marks` The owner marks an extraction GT or official on Study Setup; a mark names the extraction's file, and so follows that file's latest content; an image has one GT mark and one official mark.
@@ -2303,10 +2385,11 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-22. The avatar's menu of the study's own page holds Study Setup…, for someone Drive
-  lets write the study's root; it opens `/app/setup?study=<id>`, renewing a token run out in its click as Drive's
+  lets write the study's root; it opens `/app/setup?study=<id>` in a new page (a new tab), the item carrying the small
+  "opens in a new page" icon at its right edge (set by the owner on 2026-11-24), renewing a token run out in its click as Drive's
   reads do. The study's own page holds none of Data Management's elements (no `#data-*`, folder view, Tags or
   Selected Folder box). On Study Setup the same menu item reads Leave Study Setup… and goes back to the study. The
-  page is the shell's, loaded with `setup.js`, which attaches Data Management; its study is the one `?study=`
+  page has a layout of its own (`req/setup/aspects`), loaded with `setup.js`, which attaches Data Management to the shell; its study is the one `?study=`
   names, its switcher lists the studies' setups. Someone Drive does not let write the root is told so in place of the
   folders; opened offline, it says it needs the internet and makes no Drive call, and shows the folders once the
   network is back. The page and what only it loads are left out of the list kept for working offline; no study may
@@ -2326,10 +2409,13 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
   <details>
 
-  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Study Setup's Stage box shows the study's stage and what it
-  means, a button to promote to the next stage and one to move back to the one before; only the owner (whoever may write the root) reaches it, and
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Set by the owner on 2026-11-24: the stage is a
+  progression of the five stages across the top of Study Setup, each in its own colour (Setup red, Develop yellow, Analyze green, Review
+  blue, Public all four), the current one selected, those before it marked done, and what the current one means under it. Promoting is
+  the next stage's own action, "Promote to <stage>" on it ("Promote to Review…" where it asks first), and moving back the one
+  before's, "Move back to <stage>"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
   nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
-  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the box, Find images with newer extractions, lists each
+  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the Ground Truth aspect, Find images with newer Analysis Files, lists each
   image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first;
   the listing (one extractions listing per GT-marked image) runs on that press and never on opening Study Setup, on a mark or on a stage change
   (set by the owner on 2026-11-22).

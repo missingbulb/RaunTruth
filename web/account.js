@@ -51,8 +51,9 @@ export const SIGNED_IN = "nor-google-sign-in";
 export const SIGNED_IN_LABEL = "Who is signed in with Google, and Google's token for the hour";
 
 // keys: the browser keys whose settings follow the user; applied(): runs once Drive's settings have replaced them;
-// changed(): runs whenever who is signed in may have changed; guide: the guide to Google's windows (guide.js)
-export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {}, guide }) {
+// changed(): runs whenever who is signed in may have changed; guide: the guide to Google's windows (guide.js); watched(sending): told as
+// each call to Google with the user's token begins, it returns what ends it, with the error it failed with if it did
+export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {}, guide, watched = () => () => {} }) {
   const $ = (s) => menu.querySelector(s);
   // waiting: {ok, fail} of a sign-in the popup is waiting on (req/shell/account/welcome)
   let me = read(), client = null, script = null, waiting = null;
@@ -81,7 +82,10 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
 
   // a call to Google with the user's token; a refused token is forgotten, to be renewed on the next click
   async function google(url, init = {}) {
-    const r = await fetch(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + me.token } });
+    const end = watched(!!init.method && init.method !== "GET");
+    let r;
+    try { r = await fetch(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + me.token } }); } catch (e) { end(e); throw e; }
+    end();
     if (r.status === 401) { me.token = null; keep(); throw new Error("Google refused the token"); }
     if (!r.ok) throw new Error(`Google answered ${r.status}`);
     return r;

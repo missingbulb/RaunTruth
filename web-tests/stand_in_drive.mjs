@@ -164,7 +164,9 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     await page.waitForSelector("#open-setup:not([hidden])");
     const now = await page.evaluate(() => document.documentElement.dataset.page === "setup");
     if (now === on) return void (await page.click("#user-menu summary"));
-    await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
+    // the item opens Study Setup in a new page, which a driver that goes on in this one reaches by its address; leaving stays in the page
+    if (on) { const to = await page.evaluate(() => document.querySelector("#open-setup").href); await page.goto(to); }
+    else await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }

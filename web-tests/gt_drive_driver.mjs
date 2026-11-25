@@ -11,6 +11,7 @@ import { standIn } from "./stand_in_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { personFile } from "../web/truth_folders.js";
+import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true });
@@ -51,9 +52,14 @@ await asTagger(page);
 await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosave");
 await check(!(await saves(page)).save && (await saves(page)).download, "with no extractions folder, no one may save: there is no Upload, and Download Analysis is there", await saves(page));
 await dataManagement(page);
+const nudge = () => page.evaluate(() => getComputedStyle(document.querySelector('#setup-rail button[data-aspect="truth"]'), "::after").content);
+await page.waitForFunction(() => !$("#gt-setup").hidden);
+const dotted = await nudge();
+await aspect(page, "truth");
 await page.waitForSelector("#gt-setup:not([hidden])");
-const top = await page.evaluate(() => ({ first: document.querySelector("#data-body").firstElementChild?.id, nudged: $("#gt-setup").classList.contains("nudge"), text: $("#gt-setup").textContent.trim() }));
-await check(top.text === "Set up Analysis Files…" && top.first === "gt-setup" && top.nudged, "a study manager is offered Set up extractions at the top of the bar, highlighted while the folder is missing", top);
+const top = await page.evaluate(() => ({ first: document.querySelector("#truth-panel").firstElementChild?.id, nudged: $("#gt-setup").classList.contains("nudge"), text: $("#gt-setup").textContent.trim() }));
+await check(dotted !== "none" && dotted !== "normal", "while the folder is missing, the rail marks Ground Truth", dotted);
+await check(top.text === "Set up Analysis Files…" && top.first === "gt-setup" && top.nudged, "a study manager is offered Set up Analysis Files at the top of Ground Truth, highlighted while the folder is missing", top);
 await check(await page.isHidden("#gt-box"), "with no extractions folder, there is no Extractions box");
 await page.click("#gt-setup");
 await page.click("#setup-go");
@@ -69,8 +75,9 @@ const tree = await page.evaluate(() => [...document.querySelectorAll("#data-tree
 await check(!tree.some((n) => /^Extractions/.test(n)), "the tree leaves the extractions folder out of the data", tree);
 await check(await orMissed(page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 })), "set up, nothing offers to set it up again");
 await page.waitForFunction(() => /No image/.test($("#gt-box").textContent));
-const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!($("#gt-box").compareDocumentPosition($("#data-tree")) & Node.DOCUMENT_POSITION_FOLLOWING) }));
-await check(box.above && /Analysis Files folder/.test(box.text) && !(await page.$("#gt-switch")), "an Analysis Files box above the folders says where they are kept and that no image has one yet, with no switch between reviewed and not", box);
+const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!$("#gt-box").closest("#truth-panel") && $("#gt-box").checkVisibility() }));
+await aspect(page, "images");
+await check(box.above && /Analysis Files folder/.test(box.text) && !(await page.$("#gt-switch")), "an Analysis Files box in Ground Truth says where they are kept and that no image has one yet, with no switch between reviewed and not", box);
 // Needs GT: a marker in the extractions folder named as the image's subfolder, nothing written beside the image
 let marked = await markNeeded(page, png);
 const marker = FILES.find((f) => f.name === neededOf(png));

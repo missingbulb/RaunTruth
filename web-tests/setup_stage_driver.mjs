@@ -12,6 +12,7 @@ import { pressDrive } from "./drive_open.mjs";
 import { until, idle } from "./page_until.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
+import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { w, root, drive, ROOT, FILES, GT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
@@ -41,7 +42,7 @@ const openFromStudy = async (page, file) => {
 const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent.trim() ?? null, sel);
 const names = (page, sel) => page.evaluate((s) => [...document.querySelectorAll(s)].map((li) => li.dataset.name), sel);
 const visible = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
-const settledStage = (page, stage) => page.waitForFunction((s) => document.querySelector("#stage-now")?.textContent.trim() === s && !document.querySelector("#stage-box").classList.contains("busy"), stage);
+const settledStage = (page, stage) => page.waitForFunction((s) => document.querySelector("#stage-steps > li[aria-current] .stage-name")?.textContent.trim() === s && !document.querySelector("#stage-box").classList.contains("busy"), stage);
 const checks = (page) => page.evaluate(() => +document.querySelector("#sharing-box").dataset.checks);
 
 let page = await open(true, { setup: true });
@@ -55,8 +56,10 @@ const lists = () => drive.calls.filter((c) => c.kind === "list" && FILES.some((f
   .map((c) => FILES.find((f) => f.id === c.parent).name).filter((n) => n !== "Extractions").map((n) => n.split("__")[0]);
 const subs = () => new Set(lists());
 await idle(page);
-await check(lists().length === 0 && !(await visible(page, "#stage-newer-box")), "opening Study Setup lists no image's extractions and shows no list", lists());
-await check(await text(page, "#stage-find") === "Find images with newer Analysis Files" && await visible(page, "#stage-find"), "the Stage box has a button, Find images with newer Analysis Files", await text(page, "#stage-find"));
+await check(lists().length === 0 && (await page.evaluate(() => $("#stage-newer-box").hidden)), "opening Study Setup lists no image's extractions and shows no list", lists());
+await aspect(page, "truth");
+await check(await text(page, "#stage-find") === "Find images with newer Analysis Files" && await visible(page, "#stage-find"), "Ground Truth has a button, Find images with newer Analysis Files", await text(page, "#stage-find"));
+await aspect(page, "images");
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
 await page.click('#folder-items .cell:has(.name:text-is("img2.png")) .name');
@@ -65,7 +68,7 @@ await page.click(`#marks-list .mark-row[data-id="${y2.id}"] button[data-kind="of
 await page.waitForFunction(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent));
 await idle(page);
 await check(study().marks[shaOf("img2.png")].official?.file === y2.id, "a mark is written", study().marks);
-await check([...subs()].every((n) => n === "img2") && !(await visible(page, "#stage-newer-box")), "writing a mark lists only the extractions of the image it is on, and no list of newer ones", lists());
+await check([...subs()].every((n) => n === "img2") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "writing a mark lists only the extractions of the image it is on, and no list of newer ones", lists());
 
 // promote to Analyze: the stage is written into the study file, its other keys kept, and the sharing is checked again
 const was = await checks(page);
@@ -74,9 +77,10 @@ const listed = lists().length;
 await page.click("#stage-up");
 await settledStage(page, "Analyze");
 await idle(page);
-await check(!lists().slice(listed).includes("img1") && !(await visible(page, "#stage-newer-box")), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
+await check(!lists().slice(listed).includes("img1") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
 
 // the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
+await aspect(page, "truth");
 await page.click("#stage-find");
 await page.waitForFunction(() => document.querySelectorAll("#stage-newer li").length >= 1);
 await check(JSON.stringify(await names(page, "#stage-newer li")) === JSON.stringify(["img1.png"]), "pressing it lists the image with an extraction newer than its GT, and not the one without", await names(page, "#stage-newer li"));
@@ -103,6 +107,7 @@ await settledStage(page, "Review");
 await check(study().stage === "Review", "Freeze writes Review into the study file", study().stage);
 
 // frozen: no data control, no mark button; the stage and the way back stay
+await aspect(page, "images");
 await page.click("#data-tree .tree-folder .name");
 await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3);
 await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');

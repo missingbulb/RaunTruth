@@ -39,7 +39,7 @@
     {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
     {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
     {"family": "start or load an analysis", "match": {"key": "^#(annotate-|start-(run|cancel)$|load-(go|cancel)$)"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
-    {"family": "study setup", "match": {"key": "^#open-setup$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": "any"},
+    {"family": "study setup", "match": {"key": "^#open-setup$"}, "may": ["url", "popup", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": "any"},
     {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
     {"family": "marks on an image", "match": {"text": "^(Needs GT|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},
     {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},

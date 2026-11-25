@@ -49,6 +49,12 @@ export const remote = (() => {
   let received = 0;
   // the sign-in (account.js), once the page hands it over: {signedIn(), forRead(), refused()}
   let signIn = null;
+  // told as each request to Drive begins, with whether it writes; what it returns is called as the request ends, with its error
+  let watch = () => () => {};
+  const sent = async (url, init = {}) => {
+    const end = watch(!!init.method && init.method !== "GET");
+    try { const r = await fetch(url, init); end(); return r; } catch (e) { end(e); throw e; }
+  };
   const signedIn = () => !!signIn?.signedIn();
   const get = async (url, init = {}) => {
     const u = new URL(url), mine = signedIn();
@@ -59,7 +65,7 @@ export const remote = (() => {
     } else u.searchParams.set("key", key);
     u.searchParams.set("supportsAllDrives", "true");
     if (u.searchParams.has("q")) u.searchParams.set("includeItemsFromAllDrives", "true");
-    const r = await fetch(u, init);
+    const r = await sent(u, init);
     if (mine && r.status === 401) signIn.refused();
     return r.body ? new Response(r.body.pipeThrough(new TransformStream({ transform(c, out) { received += c.byteLength; out.enqueue(c); } })), r) : r;
   };
@@ -229,7 +235,7 @@ export const remote = (() => {
   // or null when the site has no key to ask with (req/shell/data/folders)
   async function publicly(id) {
     if (!key) return null;
-    const r = await fetch(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
+    const r = await sent(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
     if (r.status === 404 || r.status === 403) return false;
     return r.ok ? true : null;
   }
@@ -286,7 +292,7 @@ export const remote = (() => {
     };
     // Google's answer, or an Error with Google's own words for a refusal
     async function google(url, init = {}) {
-      const r = await fetch(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + await token() } });
+      const r = await sent(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + await token() } });
       if (r.ok) return r;
       let why = "";
       try { why = (await r.json()).error?.message || ""; } catch { /* no words */ }
@@ -381,7 +387,7 @@ export const remote = (() => {
         named: ["sharing-named.svg", "Drive's Share dialog: General access set to Restricted, the named people kept"],
         editor: ["sharing-editor.svg", "Drive's Share dialog: a person's email added as an Editor"] },
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, folderNamed, batch, name, permissions, publicly, canWrite, writer, study,
+    use: (s) => { signIn = s; }, watched: (w) => { watch = w; }, signedIn, parse, file, head, checksum, list, all, folderNamed, batch, name, permissions, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),

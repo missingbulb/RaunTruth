@@ -12,8 +12,8 @@ const KINDS = [["gt", "GT", "the ground truth the lab scores against"], ["offici
 
 // $: the page's selector; reader, writer, place: the store's reads and writes and the study's place in it; data: Data Management
 // (marked() draws the folder on show with the marks written); allows(action): whether the stage opens it, the buttons being there only while
-// it opens marking (req/shell/study/stage)
-export function setupMarks({ $, reader, writer, place, data, allows }) {
+// it opens marking (req/shell/study/stage); calls: the page's network calls, which the list is a place of (req/setup/loading)
+export function setupMarks({ $, reader, writer, place, data, allows, calls }) {
   const box = $("#marks-box"), list = $("#marks-list"), msg = $("#marks-msg");
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([$("#marks-box")], holdOwns);
@@ -52,14 +52,16 @@ export function setupMarks({ $, reader, writer, place, data, allows }) {
     box.hidden = false;
     $("#marks-for").textContent = img.name;
     if (!img.sha) return say("The store does not say this image's SHA-256, which a mark is kept under.", true);
+    say("");
+    const slot = calls.fill(list, "store", `${img.name}'s Analysis Files`);
     let rows;
     try {
       const s = await place.settings({ fresh: true }), folder = tf.folderOf(s);
-      if (!folder) return say("Set up Analysis Files first: the files marked are kept in their folder.");
+      if (!folder) { slot.done(); return say("Set up Analysis Files first: the files marked are kept in their folder."); }
       const files = await tf.files(reader, folder, { name: img.name, sha256: img.sha });
       rows = tf.rows({ files, marks: tf.marksOf(s.marks, img.sha), key: null, member: true });
-    } catch (e) { return say("The image's Analysis Files could not be read: " + (e.message || e), true); }
-    if (mine !== epoch) return;
+    } catch (e) { slot.failed(e); return mine === epoch && say("The image's Analysis Files could not be read: " + (e.message || e), true); }
+    if (mine !== epoch || !slot.done()) return;
     if (!rows.length) return say("No Analysis File of this image yet.");
     list.replaceChildren(...rows.map((row) => {
       const el = Object.assign(document.createElement("div"), { className: "mark-row" });

@@ -17,6 +17,7 @@ import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { read } from "./page_elements.mjs";
+import { openImage } from "./setup_page.mjs";
 import { fromScratch, loadStored } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
@@ -180,9 +181,12 @@ const ACTIONS = {
     for (let k = 0; k < 12 && !(await page.isVisible("#minimap")); k++) await page.click("#zoom-in");
     await page.waitForFunction(() => document.querySelector("#minimap").checkVisibility());
   },
+  // on Study Setup, in the image's dialog, shut again once the image itself is open
   async original(page) {
-    await page.click("#load-original");
+    await openImage(page);
+    await page.click("#image-original");
     await page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive");
+    await page.click("#image-close");
   },
 };
 

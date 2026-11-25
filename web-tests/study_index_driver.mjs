@@ -12,6 +12,7 @@ import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { openImage } from "./setup_page.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
@@ -239,23 +240,29 @@ const lasso = async (x0, y0, x1, y1) => {
   for (const p of [...pts.slice(1), pts[0]]) await page.mouse.move(...p, { steps: 6 });
   await page.mouse.up();
 };
-page = await open(true, { study: masked });
+page = await open(true, { study: masked, scale: shots ? 2 : 1 });
 await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await chooseImage("Data", "acme.png");
 await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }));
-await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open, its areas can be marked");
+await openImage(page);
+await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open in its dialog, its areas can be marked");
+await page.click("#areas-damaged-mark");
+await page.waitForFunction(() => !!document.querySelector("#image-dlg .lassoing"));
+await page.keyboard.press("Escape");
+await check(await page.evaluate(() => $("#image-dlg").open && !document.querySelector("#image-dlg .lassoing")), "Esc while an area is being lassoed gives the lasso up and leaves the dialog open");
 await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
 await idle(page);
 await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
 await idle(page);
+await shoot("#image-dlg", "areas-lassoed.png");
 const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
 await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
   "a damaged area and the area of interest go into the tags file, the image's description kept", acmeAreas);
 await check(imageOf(indexes.at(-1), "acme.png")?.damaged?.length === 1 && imageOf(indexes.at(-1), "acme.png")?.interest?.length === 1, "and into the index", imageOf(indexes.at(-1), "acme.png"));
-await check(/1 damaged area/.test(await page.textContent("#areas-damaged-count")), "the Tags box counts the damaged areas", await page.textContent("#areas-damaged-count"));
-await shoot("#tags-box", "areas-box.png");
+await check(/1 damaged area/.test(await page.textContent("#areas-damaged-count")), "the dialog counts the damaged areas", await page.textContent("#areas-damaged-count"));
+await shoot("#areas", "areas-box.png");
 await page.context().close();
 
 page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => {

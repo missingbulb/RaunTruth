@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { standIn } from "./stand_in_drive.mjs";
 import { pressDrive } from "./drive_open.mjs";
 import { personFile } from "../web/truth_folders.js";
+import { aspect, aspectOf } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 const { w, GT, FILES, ROOT, studyFile, open, check, done } = await standIn({ answers, studies, rootDir, rooted: true });
@@ -59,8 +60,9 @@ for (const [k, stage] of TABLE.stages.entries()) {
   await check(await here(page, "#stage-box"), `${stage}: the stage box shows`);
   await page.click("#data-tree .tree-folder .name");
   await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3 && !document.querySelector("#batch-box").hidden);
-  const holds = async (a, action) => check(await here(page, a.control.selector) === want(action), `${stage}: ${action} is ${want(action) ? "open" : "closed"}: ${a.control.selector} is ${want(action) ? "there" : "not there"}`);
+  const holds = async (a, action) => check((await aspectOf(page, a.control.selector), await here(page, a.control.selector)) === want(action), `${stage}: ${action} is ${want(action) ? "open" : "closed"}: ${a.control.selector} is ${want(action) ? "there" : "not there"}`);
   for (const [action, a] of where("setup").filter(([, x]) => !x.control.after)) await holds(a, action);
+  await aspect(page, "images");
   await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');
   await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 1);
   for (const [action, a] of where("setup").filter(([, x]) => x.control.after)) await holds(a, action);

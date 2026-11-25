@@ -332,3 +332,19 @@ def test_the_build_lists_every_file_the_app_needs_offline_with_its_hash(tmp_path
     for f in files:
         assert f['sha256'] == hashlib.sha256(open(app / f['path'], 'rb').read()).hexdigest(), f['path']
     assert {'index.html', 'shell.js', 'sw.js', '../studies/nor/study.json'} <= {f['path'] for f in files}
+
+
+def test_the_build_lists_each_studys_article_summaries_with_the_paper_each_names(tmp_path):
+    """req/setup/literature: a summary is a file with a year in its name or one naming a PDF; its paper is the first PDF it names in backticks."""
+    lit = tmp_path / 'studies' / 'acme' / 'docs' / 'literature'
+    lit.mkdir(parents=True)
+    (lit / 'README.md').write_text('# Index\n\nThe notes.\n')
+    (lit / 'doe-2021-widgets.md').write_text('# Doe 2021 — Widgets\n\n*PDF: kept in the Drive `Literature` folder as\n`Widgets, counted.pdf`, then `Other.pdf`.*\n')
+    (lit / 'roe-1999-gears.md').write_text('# Roe 1999 — Gears\n\nNo file is named.\n')
+    (lit / 'biology.md').write_text('Read from `Literature/A review.PDF`.\n')
+    (tmp_path / 'studies' / 'bare' / 'docs' / 'literature').mkdir(parents=True)
+    assert build.literature(str(tmp_path)) == {'acme': [
+        {'file': 'biology.md', 'title': 'biology.md', 'paper': 'A review.PDF'},
+        {'file': 'doe-2021-widgets.md', 'title': 'Doe 2021 — Widgets', 'paper': 'Widgets, counted.pdf'},
+        {'file': 'roe-1999-gears.md', 'title': 'Roe 1999 — Gears', 'paper': None},
+    ]}
