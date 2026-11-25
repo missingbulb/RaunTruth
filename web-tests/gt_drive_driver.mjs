@@ -107,7 +107,7 @@ const tagging = () => page.evaluate(() => ({ open: document.querySelector("#gt-t
   start: !!$("#gt-start") }));
 let tg = await tagging();
 await check(tg.open === "check" && tg.check && !tg.start, "counted while annotating, the study's task is open and there is no Start GT tagging", tg);
-await page.click('#gt-tasks > li[data-task="check"] .task-head .t');
+await page.click('#gt-counters > [data-task="check"]');
 tg = await tagging();
 await check(tg.open === "check", "clicking a task's name opens it", tg);
 const submit = async () => {

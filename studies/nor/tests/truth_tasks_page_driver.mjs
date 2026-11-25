@@ -140,7 +140,7 @@ await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/
 await check(s.bar.length === 2 && s.bar[0].grow === P && s.bar[1].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
 // clicking a task goes to its next item along the walk, after the one open
-await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+await page.click('#gt-counters > [data-task="pass"]');
 const first = [...W.slice(1), W[0]].find((x) => x.t === "pass");
 s = await now();
 await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's next finalist, its row open", s);

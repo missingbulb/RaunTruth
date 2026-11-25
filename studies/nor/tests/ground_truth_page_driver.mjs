@@ -174,11 +174,11 @@ async function markAndVote(page) {
   await page.click("#task-card .verdict .up");
   await check(await page.$$eval("#overlay .added .glow", (c) => c.length) === 0, "approving it stops the glow");
   // in the finalists' task, a thumbs up on the first candidate, a thumbs down on the third; the second, skipped, stays undecided
-  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+  await page.click('#gt-counters > [data-task="pass"]');
   await page.click("#task-card .verdict .up");
   await page.click("#task-skip");
   // the area's check may come next, so the finalists' task is asked for its next one again
-  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+  await page.click('#gt-counters > [data-task="pass"]');
   // a found candidate's red end dragged off the axis only slides along it: the green ends stay put
   L = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
   if (L) {
@@ -333,7 +333,7 @@ async function mask(page) {
   await page.click("#gt-close");
   await page.evaluate(() => st.order.filter((c) => !st.forced.has(c.i)).forEach((c) => nor.decide(c.i, "approve")));
   await check(await gtColour(page) === "part", "with every candidate voted on but the areas not checked the button is orange");
-  await page.click('#gt-tasks > li[data-task="missed"] .task-head .t');
+  await page.click('#gt-counters > [data-task="missed"]');
   // every area checked by its own button, clicked in the page one after another with no draw awaited between: the walk
   // by hand, area by area, is the tasks test's
   await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });

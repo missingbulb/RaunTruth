@@ -112,6 +112,23 @@ const parts = await page.evaluate(() => ({ runner: document.querySelector("#fx-c
   title: document.querySelector("#tasks-title").checkVisibility() && document.querySelector("#tasks-title").textContent.trim(), drawers: document.querySelectorAll("#left > .box.foldable").length }));
 await check(parts.runner === "analysis-box" && parts.tasks === "analysis-box" && parts.title === "Analysis Tasks" && parts.drawers === 3,
   "the study's runner and its tasks, titled Analysis Tasks, are in the Analysis drawer: the bar has three drawers and no more", parts);
+// the tasks split by purpose (req/shell/ground-truth/tasks): progress a strip under the header, the open task alone under the
+// runner, Undo and Redo in the image's toolbar, the unsaved count beside Upload
+const split = await page.evaluate(() => {
+  const q = (sel) => document.querySelector(sel), top = (sel) => q(sel).getBoundingClientRect().top;
+  return { strip: !!q("#gt-strip")?.checkVisibility() && q("#gt-strip").previousElementSibling === q("#analysis-box > .sec-head"),
+    holds: ["#tasks-title", "#gt-areas-row", "#gt-bar", "#gt-counters"].filter((sel) => !q("#gt-strip")?.contains(q(sel))),
+    counters: [...document.querySelectorAll("#gt-counters > button")].map((b) => b.textContent.trim().replace(/\s+/g, " ")),
+    aboveRunner: !!q("#gt-strip") && top("#gt-strip") < top("#fx-count"),
+    rows: [...document.querySelectorAll("#gt-tasks > li")].filter((li) => li.checkVisibility()).map((li) => li.dataset.task),
+    tools: [q("#history-btn").nextElementSibling?.id, q("#history-btn").nextElementSibling?.nextElementSibling?.id], toolsShown: !!q("#gt-undo").checkVisibility() && !!q("#gt-redo").checkVisibility(),
+    keys: [q("#gt-undo").title, q("#gt-redo").title], unsavedBy: q("#gt-unsaved").closest("li")?.dataset.task };
+});
+await check(split.strip && !split.holds.length && split.aboveRunner, "the tasks' progress is a strip directly under the Analysis header, above the runner: the title, the Areas menu, the bar and the counters", split);
+await check(split.counters.join() === "0/1 Count checked", "each task is a counter in the strip", split.counters);
+await check(split.rows.join() === "check,submit", "under the runner the open task alone is drawn, and Upload's row last", split.rows);
+await check(split.tools.join() === "gt-undo,gt-redo" && split.toolsShown && /Ctrl\+Z/.test(split.keys[0]) && /Ctrl\+Y/.test(split.keys[1]) && split.unsavedBy === "submit",
+  "Undo and Redo are tool buttons after Edit History's, each naming its key, and the unsaved count stands in Upload's row", split);
 await check((await beside(1)).join() === "annotate-clear,analysis-dl" && (await beside(2)).join() === "summary-dl", "the Analysis header carries reset analysis and Download Analysis, the Summary header Download Summary",
   { analysis: await beside(1), summary: await beside(2) });
 // the header's controls sit at its far edge, the title at its near one (row-indicators-edges)

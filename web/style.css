@@ -705,7 +705,22 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .box.foldable.waits > .sec-head h2 { cursor: default; color: var(--dim); opacity: .6; }
 /* the study's parts of the Analysis box, one under the other */
 #analysis-box > div:not(.sec-head):not([hidden]) ~ div:not([hidden]) { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-#tasks-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+#tasks-title { margin: 0; font-size: 13px; font-weight: 600; }
+/* the tasks' progress, under the Analysis header: there while the tasks are listed and the user annotates */
+#gt-strip { margin: 0 0 4px; }
+#analysis-box:has(#tasks-box[hidden]) #gt-strip, #analysis-box:has(#gt-list[hidden]) #gt-strip { display: none; }
+#gt-strip .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; margin-bottom: 6px; }
+#gt-counters { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+#gt-counters > button { border: 0; background: none; padding: 1px 0; font-size: 12px; color: var(--text); white-space: nowrap; }
+#gt-counters > button:hover { color: var(--accent); }
+#gt-counters > button[hidden] { display: none; }
+#gt-counters:not(:has(> button:not([hidden]))) { display: none; }
+#gt-bar > span { cursor: pointer; }
+#gt-counters .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+#gt-counters > .now { font-weight: 600; }
+#gt-counters > .done { color: var(--dim); }
+#gt-counters > .done .tick::after { content: " ✓"; color: var(--yes); font-weight: 700; }
+.toolbar .tool > kbd.key-on { display: none; }
 #algorithm-ran { margin: 0 0 8px; }
 #processing-box[hidden], #tasks-box[hidden], #algorithm-ran[hidden] { display: none; }
 /* folding wins over any box's own layout for its parts */
@@ -1132,10 +1147,11 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
-#gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
+#gt-areas-row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 0; }
 #gt-areas-row[hidden] { display: none; }
 #gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
-#gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
+#gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 6px; }
+#gt-bar > span.now { outline: 1.5px solid var(--text); outline-offset: 1px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
 #gt-tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -1155,12 +1171,13 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the two share one line of the box */
 #gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
-#gt-offers[hidden], #gt-edits[hidden] { display: none; }
+#gt-offers[hidden] { display: none; }
+#gt-tasks > li:not(.now):not([data-task="submit"]) { display: none; }
+#gt-tasks li.now .task-head .n, #gt-tasks li.now .tick { display: none; }
+#gt-tasks > li.now { border-top: 0; }
 #gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
 #gt-load-draft[hidden], #gt-load-legacy[hidden], #gt-load-submission[hidden] { display: none; }
 #gt-offers button + button { margin-top: 4px; }
-#gt-tasks li[data-task="edits"] .gt-edit-row { display: flex; align-items: center; gap: 4px; padding: 6px 0; font-size: 13px; }
-#gt-tasks li[data-task="edits"] .gt-edit-row button { white-space: nowrap; padding-inline: 5px; }
 #gt-tasks .unsaved { font-size: 12px; color: var(--warn); font-variant-numeric: tabular-nums; white-space: nowrap; }
 #gt-tasks .unsaved[hidden] { display: none; }
 #gt-submit { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }

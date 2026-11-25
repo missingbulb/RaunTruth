@@ -139,7 +139,7 @@ try {
   s = await read(page);
   await check(s.forced.length === 1 && await unsaved(page) === 1, "and Ctrl+Y does it again", s);
   await page.click("#gt-undo");
-  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+  await page.click('#gt-counters > [data-task="pass"]');
   await settle(page);
 
   // a length end dragged and let go is one GT action; Escape in the middle of it records none

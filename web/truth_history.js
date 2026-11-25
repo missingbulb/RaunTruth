@@ -55,11 +55,11 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   function paint() {
     const on = rooted();
-    $("#gt-edits").hidden = !on;
     const undo = $("#gt-undo"), redo = $("#gt-redo"), n = on ? unsaved() : 0;
+    undo.hidden = redo.hidden = !on || !makesTruth();
     undo.disabled = !on || !log.canUndo; redo.disabled = !on || !log.canRedo;
-    undo.title = !undo.disabled ? `Undo: ${describe(active().at(-1))}` : "Nothing to undo";
-    redo.title = !redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo";
+    undo.title = `${!undo.disabled ? `Undo: ${describe(active().at(-1))}` : "Nothing to undo"} (Ctrl+Z)`;
+    redo.title = `${!redo.disabled ? `Redo: ${describe(log.undone[0])}` : "Nothing to redo"} (Ctrl+Y)`;
     $("#gt-unsaved").hidden = !n; $("#gt-unsaved").textContent = n ? `· ${n} unsaved` : "";
     $("#gt-save-draft").disabled = !on || !n;
     const offer = $("#gt-load-draft"), offered = !!stored && stored.saved !== lastSaved, earlier = on && !!old && !oldTaken, sent = !!filed;

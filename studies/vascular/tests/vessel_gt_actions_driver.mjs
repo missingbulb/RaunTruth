@@ -109,7 +109,7 @@ try {
     await page.mouse.move(cv[0] + (tipOf.p[0] + tipOf.q[0]) / 2, cv[1] + (tipOf.p[1] + tipOf.q[1]) / 2, { steps: 4 });
     await page.mouse.move(cv[0] + tipOf.q[0], cv[1] + tipOf.q[1], { steps: 4 }); await page.mouse.up();
     const title = await page.getAttribute("#gt-undo", "title");
-    check((await count()) === had + 1 && title === "Undo: Moved a point", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
+    check((await count()) === had + 1 && title === "Undo: Moved a point (Ctrl+Z)", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
     await page.click("#gt-undo");
     check((await count()) === had, "and Undo takes it back");
   }

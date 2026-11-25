@@ -108,7 +108,7 @@ for (const width of [1000, 1600]) {
 for (const width of [1000, 1600]) {
   const { device, page } = await found(width, "Develop");
   // the walk may open on an area's check; the finalists' row goes to a candidate
-  await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+  await page.click('#gt-counters > [data-task="pass"]');
   await page.waitForFunction(() => document.querySelector("#task-card canvas"));
   const got = await measure(page), task = got.filter((g) => g.where === "task-card").length;
   console.log(`${width}px GT: ${got.length} images, ${task} task card`);

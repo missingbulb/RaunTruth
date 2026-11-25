@@ -80,6 +80,7 @@
 
     <section class="box foldable study-box" id="analysis-box">
       <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
+      <div id="gt-strip"><div class="strip-head"><h3 id="tasks-title">Analysis Tasks</h3><label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label></div><div id="gt-bar"></div><div id="gt-counters" data-log-as="a task's counter"></div></div>
       <div id="annotate-box" hidden>
         <div id="annotate-choices">
           <button id="annotate-local" type="button" hidden>Continue local work</button>
@@ -93,14 +94,11 @@
         <slot-here data-slot-for="processing"></slot-here>
       </div>
       <div class="study-box" id="tasks-box" hidden>
-      <h3 id="tasks-title">Analysis Tasks</h3>
       <div class="gt-access" hidden></div>
       <slot-here data-slot-for="tasks"></slot-here>
       <div id="gt-offers" hidden><button id="gt-load-draft" type="button" hidden></button><button id="gt-load-legacy" type="button" hidden>Load earlier edits</button><button id="gt-load-submission" type="button" data-needs-network hidden></button></div>
       <div id="gt-list" hidden>
-        <label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label>
-        <div id="gt-bar"></div>
-        <ol id="gt-tasks"><li data-task="edits" id="gt-edits" hidden><div class="gt-edit-row"><button id="gt-undo" type="button" disabled autocomplete="off">Undo</button><button id="gt-redo" type="button" disabled autocomplete="off">Redo</button><span id="gt-unsaved" class="unsaved" hidden></span></div></li><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled autocomplete="off">Save Draft</button><button id="gt-submit" type="button" disabled autocomplete="off"><span class="gt-ico" aria-hidden="true"></span>Upload</button></div><p id="gt-waiting" class="hint" role="status" hidden></p></li></ol>
+        <ol id="gt-tasks"><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled autocomplete="off">Save Draft</button><button id="gt-submit" type="button" disabled autocomplete="off"><span class="gt-ico" aria-hidden="true"></span>Upload</button><span id="gt-unsaved" class="unsaved" hidden></span></div><p id="gt-waiting" class="hint" role="status" hidden></p></li></ol>
       </div>
       </div>
     </section>
@@ -129,6 +127,8 @@
         <p class="hint">Opaque while the pointer is over it.</p>
       </div>
       <button id="history-btn" class="for-image tool" type="button" aria-pressed="false" hidden title="Edit History: what you did to the analysis, listed over the image. Click a row there to go back to it." aria-label="Edit History"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 6h10M10 12h10M10 18h10"/></g><g fill="currentColor" font-size="7" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle"><text x="5" y="8.5">1</text><text x="5" y="14.5">2</text><text x="5" y="20.5">3</text></g></svg></button>
+      <button id="gt-undo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Undo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 5 4 9l4 4M4 9h10a6 6 0 0 1 0 12h-4"/></svg></button>
+      <button id="gt-redo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Redo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m16 5 4 4-4 4M20 9H10a6 6 0 0 0 0 12h4"/></svg></button>
       <div class="for-image zoom" role="group" aria-label="Zoom">
         <button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
       </div>

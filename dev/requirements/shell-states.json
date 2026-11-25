@@ -496,6 +496,24 @@
                     {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"}
                   ]
                 },
+                {"name": "Tasks' progress", "select": "#gt-strip", "req": "req/shell/ground-truth/tasks",
+                  "rule": [
+                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "the strip is there while the tasks are listed"}
+                  ],
+                  "children": [
+                    {"name": "Analysis Tasks' title", "select": "#tasks-title", "req": "req/shell/ground-truth/tasks"},
+                    {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas",
+                      "rule": [
+                        {"when": {"walksAreas": [false]}, "is": "hidden", "req": "req/shell/ground-truth/areas"}
+                      ],
+                      "children": [
+                        {"name": "How many areas", "select": "#gt-areas", "control": true, "req": "req/shell/ground-truth/areas"}
+                      ]
+                    },
+                    {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
+                    {"name": "Tasks' counters", "select": "#gt-counters", "req": "req/shell/ground-truth/tasks", "approval": "tentative"}
+                  ]
+                },
                 {"name": "Start and Load", "select": "#annotate-box", "req": "req/shell/annotate/choice",
                   "rule": [
                     {"when": {"image": ["none"]}, "is": "hidden", "unwalked": "the Analysis box is folded, waiting, until an image is open"},
@@ -553,7 +571,6 @@
                     {"when": {"makesTruth": [false]}, "is": "hidden"}
                   ],
                   "children": [
-                    {"name": "Analysis Tasks' title", "select": "#tasks-title", "req": "req/shell/ground-truth/tasks"},
                     {"name": "Drafts offered", "select": "#gt-offers", "req": "req/shell/ground-truth/draft-offer", "steady": "hidden while no draft of the image is on this device, no study offers an old store and the store holds no submission of the tagger's, which no path makes",
                       "rule": [
                         {"is": "hidden", "approval": "tentative", "about": "no draft of the image is on this device, no old store is offered, and the store holds no submission of the tagger's"}
@@ -566,39 +583,8 @@
                     },
                     {"name": "Tasks' list", "select": "#gt-list", "req": "req/shell/ground-truth/tasks",
                       "children": [
-                        {"name": "Areas menu", "select": "#gt-areas-row", "req": "req/shell/ground-truth/areas",
-                          "rule": [
-                            {"when": {"walksAreas": [false]}, "is": "hidden", "req": "req/shell/ground-truth/areas"}
-                          ],
-                          "children": [
-                            {"name": "How many areas", "select": "#gt-areas", "control": true, "req": "req/shell/ground-truth/areas"}
-                          ]
-                        },
-                        {"name": "Tasks' bar", "select": "#gt-bar", "req": "req/shell/ground-truth/tasks"},
                         {"name": "Tasks", "select": "#gt-tasks", "req": "req/shell/ground-truth/tasks",
                           "children": [
-                            {"name": "Undo and Redo", "select": "#gt-edits", "req": "req/shell/ground-truth/history",
-                              "rule": [
-                                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"}
-                              ],
-                              "children": [
-                                {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
-                                  "rule": [
-                                    {"when": {"edited": [false]}, "is": "disabled", "approval": "tentative", "about": "nothing is made to undo until a mark is added, or a draft of one loaded"}
-                                  ]
-                                },
-                                {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
-                                  "rule": [
-                                    {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
-                                  ]
-                                },
-                                {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is, which is all any path reaches",
-                                  "rule": [
-                                    {"is": "hidden", "about": "no path makes a GT action"}
-                                  ]
-                                }
-                              ]
-                            },
                             {"name": "Save Draft", "select": "#gt-save-draft", "control": true, "req": "req/shell/ground-truth/save-draft",
                               "rule": [
                                 {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
@@ -613,6 +599,11 @@
                               "rule": [
                                 {"when": {"maySave": [false]}, "is": "hidden", "req": "req/shell/annotate/no-save"},
                                 {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "annotating, an image carries no model only in a study of several steps before its first, where the tasks list is not yet shown"}
+                              ]
+                            },
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is, which is all any path reaches",
+                              "rule": [
+                                {"is": "hidden", "about": "no path makes a GT action"}
                               ]
                             }
                           ]
@@ -690,6 +681,22 @@
                 {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
                 {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only someone annotating has a log to show"},
                 {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+              ]
+            },
+            {"name": "Undo a GT action", "select": "#gt-undo", "control": true, "req": "req/shell/ground-truth/history",
+              "rule": [
+                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
+                {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"edited": [false]}, "is": "disabled", "approval": "tentative", "about": "nothing is made to undo until a mark is added, or a draft of one loaded"}
+              ]
+            },
+            {"name": "Redo a GT action", "select": "#gt-redo", "control": true, "req": "req/shell/ground-truth/history",
+              "rule": [
+                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
+                {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative"},
+                {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative"},
+                {"is": "disabled", "approval": "tentative", "about": "no path makes a GT action"}
               ]
             },
             {"name": "Reset view group", "select": "#v3-tools", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d",

@@ -990,8 +990,19 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shell/ground-truth/tasks` The shell lists the study's tasks under Analysis Tasks, in the Analysis box, Upload last; how a task is worked through is the study's.
+- `req/shell/ground-truth/tasks` The shell shows the study's tasks in the Analysis box, split by purpose: progress in a strip under the header, the open task under the runner, Upload last; how a task is worked through is the study's.
   <details>
+
+  Changed by the owner on 2026-11-25, who chose to split the tasks by purpose. Progress is a strip directly under the
+  Analysis box's header, there whenever the tasks are listed: the title Analysis Tasks with the Areas menu
+  (`req/shell/ground-truth/areas`) at its far end, the bar under it, and under the bar each task as a small counter,
+  "13/47 Finalists", with its check once done and the open one in bold; a click on a counter, or on a task's part of
+  the bar, goes to that task, as a click on its name did. A task that says no count (Vascular Measurements' areas) has
+  no counter: its part of the bar, outlined while it is the open one and named in its tooltip, stands for it. Under the runner the open task alone is drawn, its name with what the study puts beside it
+  and the study's item under it; a task that is not open shows only as its counter. Undo and Redo
+  (`req/shell/ground-truth/history`) are tool buttons in the image's toolbar, after Edit History's, there while
+  the analysis has a run or a base to go back to, each naming its key in its tooltip; the count of unsaved actions
+  stands beside Upload. Save Draft and Upload stay last in the box.
 
   Set by the owner on 2026-11-07. The study names its tasks in order (a name, and a tooltip saying what the
   task is) and how far each has got, done of all; the shell draws them in its Analysis Tasks box

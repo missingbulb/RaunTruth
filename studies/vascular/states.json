@@ -103,7 +103,13 @@
     ]}
   ],
   "samples": "tests/state_samples.py",
-  "differ": {},
+  "differ": {
+    "Tasks' counters": {"steady": "its tasks, the areas, say no count on every path",
+      "rule": [
+        {"is": "hidden", "approval": "tentative", "req": "req/shell/ground-truth/tasks", "about": "its tasks, the areas, say no count: each is its part of the bar alone"}
+      ]
+    }
+  },
   "roots": {
     "Public, signed out": {"stage": "Public", "signedIn": false},
     "Develop, Annotator": {"stage": "Develop", "signedIn": true, "maySave": true}
