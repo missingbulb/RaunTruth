@@ -15,8 +15,12 @@ const page = await open(true, { id: "nor" });
 // the person goes to another study while the finder runs
 await page.setInputFiles("#file", nor);
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Image loaded"));
-// the run's button pressed wherever the page has it, before the choice of how to annotate shows its box
-const press = () => page.evaluate(() => document.querySelector("#find").click());
+// the run's button pressed wherever the page has it, before the choice of how to annotate shows its box, once the study has
+// taken the image: the status says "Image loaded" a step before the study enables its button, and a press before that is lost
+const press = async () => {
+  await page.waitForFunction(() => document.querySelector("#find")?.disabled === false, null, { timeout: STEP });
+  await page.evaluate(() => document.querySelector("#find").click());
+};
 await press();
 await page.waitForFunction(() => st.running, null, { polling: "raf" });
 await page.evaluate(() => document.querySelector('#study-list a[data-id="viewer"]').click());
