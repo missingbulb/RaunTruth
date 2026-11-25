@@ -19,8 +19,8 @@ const imageDialog = $("#image-dlg");
 
 // the marks and the batch run (req/setup/marks, req/setup/batch): their boxes, told what Data Management has chosen
 const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
-let data, stage;
-const marked = { marked: () => data.marked() };
+let data, stage, results;
+const marked = { marked: () => { data.marked(); results?.marksChanged(); } };
 const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked, allows: lent.stageAllows, calls });
 const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status });
 const setup = {
@@ -65,7 +65,7 @@ attach(sharing);
 stage = setupStage({ $, reader, writer: sd, place: lent.place, changed: (to) => lent.setStage(to), calls });
 attach(stage);
 // the results (req/setup/results): the official extractions' numbers, read on a press
-attach(setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls }));
+attach(results = setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls }));
 attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });
 
 // the study's papers (req/setup/literature), listed when their aspect is chosen

@@ -121,15 +121,19 @@ const submit = async () => {
   // the button sits in the item view's bar: pressed where it is
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
+  const before = await page.textContent("#gt-msg");
   await page.click("#gt-send");
   await page.waitForFunction(() => /Uploaded/.test($("#gt-msg").textContent) || /not uploaded/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
-  return msg;
+  return Object.assign(new String(msg), { before, status: await page.textContent("#status") });
 };
 let msg = await submit();
 const sub = subOf(png);
 await check(/^Uploaded/.test(msg), "Save says the file landed", msg);
+await check(msg.before.includes(png.name) && /Analysis Files/.test(msg.before) && !/replaces/.test(msg.before),
+  "before the first upload the dialog says where the analysis goes and of which image, and names nothing it replaces", msg.before);
+await check(/^Uploaded/.test(msg.status) && msg.status.includes(png.name), "once the dialog is closed the status line still says it was uploaded", msg.status);
 const folder = FILES.find((f) => f.folder && f.name === sub);
 await check(!!folder && folder.parent === EXT, "Save makes the image's subfolder in the extractions folder", sub);
 const file = FILES.find((f) => f.parent === folder.id);
@@ -143,6 +147,7 @@ await check(run?.version?.site === (await page.evaluate(() => $("#site-version")
 msg = await submit();
 await check(/^Uploaded/.test(msg) && writes.filter(([w, n]) => w === "folder" && n === sub).length === 1 && JSON.stringify(writes.slice(-1)) === JSON.stringify([["replace", file.name]]) && keptForever.includes(file.name),
   "saving again replaces the person's own file, keeping the old version, and writes nothing else", writes);
+await check(/replaces/.test(msg.before), "before uploading again the dialog says it replaces the person's earlier Analysis File", msg.before);
 
 // Clear all history, at the Edit History window's foot: asks first, naming the image, then forgets the draft Submit kept
 let asked = null;
