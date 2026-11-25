@@ -3,12 +3,13 @@
 // was there, marks as loading, and keeps for the latest call alone. It makes no call itself: whoever calls tells it when one begins
 // and when it ends.
 "use strict";
+import { after } from "./pacing.js";
 
 const RECORDED = 200;
 
 // bar: the element the calls in flight show in; servers: {key: {name, logo: SVG markup}}; failedFor: how long a failure stays said, ms
 export function networkCalls({ bar, servers, failedFor = 6000 }) {
-  // per server: its calls in flight, oldest first, its chip in the bar, and the timer of a failure still said
+  // per server: its calls in flight, oldest first, its chip in the bar, and what cancels the wait of a failure still said
   const flying = new Map(), chips = new Map(), fading = new Map();
   // what became of each call given a place, latest last: {server, what, into, outcome: "painted" | "superseded" | "failed"}
   const record = [];
@@ -25,11 +26,11 @@ export function networkCalls({ bar, servers, failedFor = 6000 }) {
     chips.set(key, c); bar.append(c);
     return c;
   }
-  function drop(key) { clearTimeout(fading.get(key)); fading.delete(key); chips.get(key)?.remove(); chips.delete(key); }
+  function drop(key) { fading.get(key)?.(); fading.delete(key); chips.get(key)?.remove(); chips.delete(key); }
   function draw(key) {
     const calls = flying.get(key) || [];
     if (!calls.length) { if (!fading.has(key)) drop(key); return; }
-    clearTimeout(fading.get(key)); fading.delete(key);
+    fading.get(key)?.(); fading.delete(key);
     // the oldest call that names what it reads speaks for the server
     const named = calls.find((c) => c.what) || calls[0], c = chipOf(key);
     c.classList.add("on"); c.classList.remove("failed");
@@ -39,8 +40,8 @@ export function networkCalls({ bar, servers, failedFor = 6000 }) {
     const c = chipOf(key);
     c.classList.add("failed"); c.classList.toggle("on", !!flying.get(key)?.length);
     c.querySelector(".net-text").textContent = `${servers[key].name} did not answer${what ? ": " + what : ""}`;
-    clearTimeout(fading.get(key));
-    fading.set(key, setTimeout(() => { fading.delete(key); draw(key); }, failedFor));
+    fading.get(key)?.();
+    fading.set(key, after(failedFor, () => { fading.delete(key); draw(key); }));
   }
 
   // A call to `key`'s server begins; the function returned ends it, with the error it failed with if it did

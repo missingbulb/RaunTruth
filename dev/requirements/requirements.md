@@ -2320,8 +2320,8 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-24: what is done on one image is in a dialog, the page having no image viewer of its own. Choosing an
-  image, in the tree or in the grid, chooses it: its cell is outlined, the grid staying where the image is of the folder on show, and
-  its name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read as before, its preview
+  image chooses it: in the grid, its cell is outlined and the grid stays; in the tree, the grid steps aside, as no folder is chosen. Its
+  name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read as before, its preview
   first, so choosing asks the network for no more than it did. Open image… shows it in a dialog over the page, with the channels and
   Load Original beside it and, under it, Damaged areas and Area of interest with their Mark and Clear; Close shuts it, and choosing a
   folder shuts it too. Tentative, until the dialog draws the image flat with a lasso of its own (the owner's note 5, the next change):
@@ -2334,9 +2334,10 @@ nobody has decided: what the page does there is not a requirement yet.
 
   Set by the owner on 2026-11-24. Choosing a folder empties the grid and the folder's sums at once and shows a progress bar there,
   "Loading <folder>'s images from Google Drive…", until its images are drawn; the same holds for the folders tree while the study's
-  folders are read, an image's Analysis Files, the people and the sharing check, the images newer than their GT and the results. Each
-  goes through the page's network calls (`req/shell/status-bar/calls`), which gives the place to the latest call for it: an answer
-  that arrives for a choice since replaced is dropped, and the page records that it was. It adds no call and moves none. Test:
+  folders are read and for an image's Analysis Files. Each goes through the page's network calls (`req/shell/status-bar/calls`),
+  which gives the place to the latest call for it: an answer that arrives for a choice since replaced is dropped, and the page
+  records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
+  being read, and are named in the status bar while they are. It adds no call and moves none. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
   </details>
 

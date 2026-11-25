@@ -31,7 +31,7 @@ export function howOf(doc) {
 }
 
 // $: the page's selector; reader, place: the store's reads and the study's place in it; saveFile(name, text, type): the page's own download
-export function setupResults({ $, reader, place, saveFile }) {
+export function setupResults({ $, reader, place, saveFile, calls }) {
   const box = $("#results-box"), msg = $("#results-msg"), csv = $("#results-csv"), scroll = $("#results-scroll"), table = $("#results-scroll table");
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([box], holdOwns);
@@ -84,7 +84,7 @@ export function setupResults({ $, reader, place, saveFile }) {
     const mine = ++epoch;
     busy = true; say(""); draw();
     try {
-      const got = await read();
+      const got = await calls.during("store", "the official Analysis Files", read);
       if (mine !== epoch) return;
       shown = got.rows;
       say(got.failed.length ? `Not read: ${got.failed.join(", ")}.` : shown.length ? "" : "No image has an official mark.", !!got.failed.length);

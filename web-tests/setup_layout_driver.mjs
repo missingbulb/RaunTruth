@@ -11,6 +11,8 @@ import { held } from "./held.mjs";
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const { drive, open, check, done } = await standIn({ answers, studies, rootDir });
 const shot = (page, name) => shots && page.screenshot({ path: path.join(shots, name + ".png") });
+// a shot for a person to look at has two device pixels to a CSS pixel
+const SHARP = shots ? { scale: 2 } : {};
 const folders = (page) => page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 const seen = (page, sel) => page.evaluate((sel) => !!document.querySelector(sel)?.checkVisibility({ visibilityProperty: true }), sel);
 const cells = (page) => page.evaluate(() => [...document.querySelectorAll("#folder-items .cell .name")].map((n) => n.textContent));
@@ -19,9 +21,10 @@ const chip = (page) => page.evaluate(() => { const c = document.querySelector('#
 const holdListing = (id) => { const h = held(); drive.hold = (call) => (call.kind === "list" && call.parent === id ? h.hold() : null); return h; };
 
 // the study's own page: its menu item opens Study Setup in a new page, and says so
-let page = await open(true);
+let page = await open(true, SHARP);
 await page.click("#user-menu summary");
 await page.waitForSelector("#open-setup:not([hidden])");
+await shot(page, "0-menu");
 const item = await page.evaluate(() => { const a = $("#open-setup"); return [a.target, a.rel, !!a.querySelector("svg.new-page"), a.lastElementChild?.matches("svg.new-page")]; });
 await check(item[0] === "_blank" && /noopener/.test(item[1]) && item[2] && item[3], "Study Setup… opens in a new page and carries the new-page icon at its end", item);
 // a call to the store shows in the status bar while it is in flight, here too
@@ -41,7 +44,7 @@ await page.context().close();
 // Study Setup: the default layout
 // the images Study Setup lists are the kinds the study opens: here TIFFs, a PNG and a JPEG
 const KINDS = { files: { from: ["drive"], accept: ".png,.tif,.tiff,.jpg", empty: "Load an image." } };
-page = await open(true, { setup: true, study: KINDS });
+page = await open(true, { setup: true, study: KINDS, ...SHARP });
 await folders(page);
 await idle(page);
 const layout = await page.evaluate(() => ({
@@ -60,6 +63,7 @@ await check(acts.filter(Boolean).length === (at > 0 ? 1 : 0) + (at < 4 ? 1 : 0) 
 for (const sel of ["#view", "#left", "#image-box", ".toolbar"]) await check(!(await seen(page, sel)), `nothing of the viewer or the left bar is on show: ${sel}`);
 await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-box")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
 await shot(page, "1-opens");
+if (shots && at < 4) { await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0); }
 
 // a folder chosen: its place emptied and marked loading while the store is read, the call in the status bar
 const [top, sub] = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => f.dataset.id));

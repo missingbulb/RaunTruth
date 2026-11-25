@@ -81,7 +81,7 @@ const CONFIRM = {
 
 // ctx: what the shell lends it, named below where it is used
 export function sharingPanel(ctx) {
-  const { $, remote, account, place } = ctx;
+  const { $, remote, account, place, calls } = ctx;
   const sd = remote.writer(account);
   const box = $("#sharing-box"), root = document.documentElement;
   // manifest and who: the study and account last mounted; last: what the check found; confirming: the key of the correction whose Fix awaits its
@@ -118,7 +118,7 @@ export function sharingPanel(ctx) {
     box.dataset.state = "checking"; $("#sharing-recheck").disabled = true; say("Checking the study's sharing…");
     return work.during((async () => {
       let got = null;
-      try { got = await read(); } catch (e) { if (of === epoch) say(e.message || String(e), true); }
+      try { got = await calls.during("store", "the study's sharing", read); } catch (e) { if (of === epoch) say(e.message || String(e), true); }
       if (of !== epoch) return;
       last = got;
       draw();

@@ -63,7 +63,7 @@ attach(sharing);
 stage = setupStage({ $, reader, writer: sd, place: lent.place, changed: (to) => lent.setStage(to), calls });
 attach(stage);
 // the results (req/setup/results): the official extractions' numbers, read on a press
-attach(setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile }));
+attach(setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls }));
 attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });
 
 // the aspects (req/setup/aspects): one chosen at a time in the rail, Images as the page opens

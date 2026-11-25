@@ -1014,6 +1014,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #setup-side .box { margin: 0; }
 #truth-panel, #sharing-box, #results-box { max-width: 880px; }
 #truth-panel h2, #newer-box h2 { font-size: 14px; margin: 0 0 6px; }
+#truth-panel > * { margin: 0 0 var(--pad); } #truth-panel #gt-setup { display: block; }
+#truth-panel #gt-setup[hidden] { display: none; }
 #newer-box { border: 1px solid var(--line); border-radius: var(--r-chip); padding: 8px; }
 #image-panel-name { font-weight: 600; overflow-wrap: anywhere; margin-bottom: 6px; }
 #folder-items .cell.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
