@@ -1,5 +1,5 @@
 // The Analysis box of the left bar (req/shell/annotate/choice, req/shell/analysis/start, req/shell/extractions/list, req/shell/extractions/save,
-// req/shell/ground-truth/tasks): Start and its dialog of the study's algorithms, Load and its dialog of the store's Analysis Files of the image,
+// req/shell/ground-truth/tasks): Start, Load and its dialog of the store's Analysis Files of the image,
 // one shown read-only, the Analysis Tasks, reset analysis, the Upload dialog with the saves waiting for the network, and Download Analysis on
 // the box's header. The shell owns the mode (annotating, its route, what is on view) and hands it here with the study and the image on show,
 // the sign-in and the store, the study's steps and what mounts the study again.
@@ -106,24 +106,23 @@ export function analysisBox(shell) {
     log.add(`Chose to analyse ${how === "scratch" ? "from the start" : how === "local" ? "from this device's work" : "from an Analysis File of the store"}`);
     restudyHeld();
   }
-  // Start (req/shell/analysis/start): the study's algorithms in a dialog, where it names any and has a first step to press; Run
-  // starts the analysis with the one chosen, pressing that step for the user where it is the study's one step with a button: a
-  // study of several such steps is worked through its runner, which Run opens
+  // Start (req/shell/analysis/start): the analysis started with the study's default algorithm, its first step pressed for the user
+  // where it is the study's one step with a button: a study of several such steps is worked through its runner, which Start opens
   const runsFirst = () => !!shell.manifest?.algorithms && !!shell.manifest.phases[0]?.button;
   const oneRun = () => shell.manifest.phases.filter((p) => p.button).length === 1;
-  function startAnalysis() {
+  async function startAnalysis() {
     if (!st.img || shell.annotating) return;
-    if (!runsFirst()) return beginAnalysis();
-    $("#start-dlg").showModal();
+    if (runsFirst()) {
+      await algorithms.api.ready;
+      if (!algorithms.api.default) return status("The study names no default algorithm, so nothing ran.", true);
+      if (!st.img || shell.annotating) return;
+    }
+    beginAnalysis();
   }
-  $("#start-cancel").onclick = () => $("#start-dlg").close();
-  $("#start-run").onclick = () => { $("#start-dlg").close(); beginAnalysis(); };
   function beginAnalysis() {
-    const key = algorithms.api.key;
     const run = async () => {
       if (!runsFirst()) return;
-      await algorithms.api.ready; algorithms.api.choose(key);
-      $("#algorithm-ran").textContent = algorithms.api.title ? `Algorithm: ${algorithms.api.title}` : ""; $("#algorithm-ran").hidden = !algorithms.api.title;
+      await algorithms.api.ready; algorithms.api.choose(algorithms.api.default);
       if (oneRun()) pressWhenAble($(shell.manifest.phases[0].button));
     };
     if (stageAllows("annotate")) return enterAnnotating("scratch", run);

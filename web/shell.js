@@ -1630,7 +1630,7 @@ function leaveStudy() {
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) $(sel).hidden = true;
-  studyTables = []; drawDownloads(); $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
+  studyTables = []; drawDownloads();
   css?.remove(); css = null;
   $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();

@@ -230,8 +230,13 @@
         <button id="annotate-edit" type="button" hidden>Edit this analysis</button>
       </div>
       <div class="study-box" id="processing-box" hidden>
-        <p id="algorithm-ran" class="hint" hidden></p>
         <slot-here data-slot-for="processing"></slot-here>
+        <details id="algorithm-pick" class="fold" hidden>
+          <summary>How the analysis works</summary>
+          <p id="algorithm-stamp" class="hint" hidden></p>
+          <div id="algorithm-note" class="hint"></div>
+          <details id="scoring-fold" class="fold" hidden><summary>How precision and recall are scored</summary><div id="scoring-note" class="hint"></div></details>
+        </details>
       </div>
       <div class="study-box" id="tasks-box" hidden>
       <div class="gt-access" hidden></div>
@@ -361,20 +366,6 @@
   <div class="dlg-row end">
     <span class="grow"></span><button id="gt-close" type="button">Cancel</button><button id="gt-send" class="primary" type="button" data-needs-network>Upload</button>
   </div>
-</dialog>
-<dialog id="start-dlg" aria-labelledby="start-title">
-  <h2 id="start-title">Start Analysis</h2>
-  <div id="algorithm-pick" hidden>
-    <div class="algorithm-row">
-      <select id="algorithm" size="4" disabled autocomplete="off" aria-label="Algorithm"></select>
-      <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
-    </div>
-    <div id="scoring-note" class="hint" hidden></div>
-    <p id="algorithm-stamp" class="hint" hidden></p>
-    <h3 id="algorithm-about">How the algorithm works</h3>
-    <div id="algorithm-note" class="hint"></div>
-  </div>
-  <div class="dlg-row end"><span class="grow"></span><button id="start-cancel" type="button">Cancel</button><button id="start-run" type="button" class="primary">Run</button></div>
 </dialog>
 <dialog id="load-dlg" aria-labelledby="load-dlg-title">
   <h2 id="load-dlg-title">Load Analysis</h2>

@@ -1,6 +1,7 @@
 [
  {
   "key": "tl",
+  "default": true,
   "title": "traffic light",
   "icon": "🚦",
   "about": "- Slide a green-red-green stencil over the whole image\n  - at every angle\n  - at a few spacings\n- Mark the spots where all three windows show their own colour\n- Keep only spots with both greens already in place: these are the candidates\n- For each candidate, colour in the red and the two greens under the stencil"
