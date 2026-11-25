@@ -1810,8 +1810,9 @@ nobody has decided: what the page does there is not a requirement yet.
   server where the call names nothing). Calls to several servers show side by side; a server's calls share its one logo, which
   names the oldest of them, and goes when the last ends. A call that fails says so there, "Google Drive did not answer: <what>", until
   the next call to that server or six seconds on. The helper also gives a call a place on the page (`req/setup/loading`). It adds no
-  call and changes none's time: it only watches. Not yet through it, and so not shown: the account's settings kept in Drive
-  (`web/account.js`), the offline download, thumbnails and the page's own files. Test: `web-tests/test_setup_page.py` with
+  call and changes none's time: it only watches. The account's settings kept in Drive, the list of studies, the version history and
+  the supported browsers go through it too. Not yet through it, and so not shown: the offline download, thumbnails, a study's list of
+  algorithms and what the Python worker fetches itself. Test: `web-tests/test_setup_page.py` with
   `web-tests/setup_layout_driver.mjs`.
   </details>
 

@@ -104,10 +104,17 @@ const UNREAD_MB = 190;
 const REPO = "missingbulb/RaunTruth";
 // the issue form a proposal for a new study is written on
 const STUDY_REQUEST = "new-study.yml";
+// the calls to other servers in flight, shown in the status bar (req/shell/status-bar/calls)
+const calls = networkCalls({ bar: $("#sb-calls"), servers: {
+  store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
+  python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
+  site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
+} });
 // signing in (req/shell/account/sign-in): these settings follow the user to every device, in their own account's storage; the rest stay with this one
 const FOLLOWS = [THEME, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
   keys: FOLLOWS,
+  watched: (sending) => calls.begin("store", "your settings", { sending }),
   guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),
@@ -119,12 +126,6 @@ const signIn = account({
 });
 // signed in, the remote store is read as the user (req/shell/drive/credentials)
 remote.use(signIn);
-// the calls to other servers in flight, shown in the status bar (req/shell/status-bar/calls)
-const calls = networkCalls({ bar: $("#sb-calls"), servers: {
-  store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
-  python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
-  site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
-} });
 remote.watched((sending) => calls.begin("store", "", { sending }));
 // Python and its packages coming in, from when its thread starts until it says it is ready or fails
 let pythonComing = null;
@@ -1123,7 +1124,7 @@ let studyTables = [];
 // is read: unknown, and the icon stays the plain one.
 const thisBrowser = identify(navigator.userAgent, navigator.maxTouchPoints);
 let browserVerdict = null, fullVersion = null;
-fetch(new URL("browsers.json", import.meta.url)).then((r) => r.json()).then(({ supported }) => {
+calls.during("site", "the supported browsers", () => fetch(new URL("browsers.json", import.meta.url))).then((r) => r.json()).then(({ supported }) => {
   browserVerdict = verdict(thisBrowser, supported);
   if (browserVerdict.ok) return;
   const b = $("#sb-report");
@@ -1300,7 +1301,7 @@ const releaseDay = (version) => { // the middle part is years since 2025, then m
   return m ? new Date(Date.UTC(2025 + Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
 };
 let historyLoad = null;
-const loadHistory = () => historyLoad ||= fetch("version_history.json", { cache: "no-cache" })
+const loadHistory = () => historyLoad ||= calls.during("site", "the version history", () => fetch("version_history.json", { cache: "no-cache" }))
   .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
 async function showHistory(since) {
   const list = $("#history-list");
@@ -1382,7 +1383,7 @@ async function readMembers() {
 let listFetched = Promise.resolve(), listedReady = Promise.resolve();
 function studyMenu() {
   listFetched = (async () => {
-    try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("no list of studies:", e); }
+    try { listed = await (await calls.during("site", "the list of studies", () => fetch(HOME + "studies.json", { cache: "no-cache" }))).json(); } catch (e) { console.warn("no list of studies:", e); }
   })();
   listedReady = (async () => { await listFetched; await readMembers(); drawStudies(); })().catch((e) => console.warn("the study list was not drawn:", e));
 }
