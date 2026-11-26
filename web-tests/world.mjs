@@ -46,6 +46,8 @@ export function foldersOn(drive) {
       public() { record.access = "public"; return f; },
       // no one by the link: Drive's sharing alone says who reads it
       private() { record.access = "private"; return f; },
+      // its link sharing is the folder's it is in, with none of its own
+      sharedAsItsFolder() { delete record.access; return f; },
       // Drive's sharing names no one on it to read it or add to it, the link's access kept; readableBy and writableBy
       // then name exactly those
       namesNoOne() { drive.readers.delete(record.id); drive.writers.delete(record.id); return f; },

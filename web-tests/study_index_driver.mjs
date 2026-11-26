@@ -161,6 +161,8 @@ const kept = await page.evaluate(() => ({ folder: document.querySelector("#data-
   sums: document.querySelector("#folder-box").checkVisibility(), image: document.querySelector("#image-panel").checkVisibility() }));
 await check(kept.folder === "sub" && kept.grid && kept.cells >= 1 && kept.outlined === "beta.png" && kept.sums && kept.image,
   "an image chosen in the tree keeps its folder chosen: highlighted, its images and sums on show, the image's panel beside them", kept);
+const onCell = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell.chosen .tags .tag-chip")].map((c) => c.textContent + (c.classList.contains("inherited") ? " (dashed)" : "")));
+await check(JSON.stringify(onCell) === JSON.stringify(["group:wild-type (dashed)"]), "the image's cell shows the tag its folder gives it, dashed", onCell);
 await tagIt("group:sick");
 await check(JSON.stringify(imageOf(indexes.at(-1), "beta.png")?.tags) === JSON.stringify(["group:sick"]), "an image's own value of a multi-value tag wins over its folder's", imageOf(indexes.at(-1), "beta.png"));
 await shoot("#tags-box", "tags-box.png");
