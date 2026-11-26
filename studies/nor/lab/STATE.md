@@ -5,7 +5,7 @@ Read this first, then `lab/ledger.md` (everything tried, with verdicts). The met
 [`studies/nor/docs/requirements.md`](../docs/requirements.md) R7. Update this file in the PR that changes the
 state.
 
-_Last updated 2026-11-18._
+_Last updated 2026-11-26._
 
 ## Setup
 1. `python3 -m pip install -r requirements.txt`
@@ -38,6 +38,11 @@ _Last updated 2026-11-18._
   `../web/algorithm_metrics.json`, written by `python3 lab/run.py nor --write`, naming
   the data it was measured on: each image's and ground-truth file's SHA-256 and the dataset SHA. Quote
   that dataset SHA with any precision or recall.
+  Since 2026-11-26 (issue 1100) the scorer reads a ground-truth file's model alone. A candidate a person rejected is
+  gone from a /3 or /4 file, so it counts against an answer only where a checked area covers it. Before, the scorer read
+  it from the history and counted it everywhere. On the committed dataset (`b3752a3f…`, one image scored against the
+  lab's /2 labels, whose 'not a NoR' marks are in the model) the move is 0 in precision and in recall. It shows once
+  people's files are scored.
   Presets, the lab's settings and not on the page: precise / balanced (the finder's own) / recalling, every filter 40% towards a fixed
   strict or loose end. Fitting filter values to the labels does not survive held-out labels
   (ledger §5), so don't tune filters per finder on these labels.

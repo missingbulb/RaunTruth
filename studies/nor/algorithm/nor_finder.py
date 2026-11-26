@@ -183,5 +183,3 @@ SCORING = truth.SCORING
 def score(answer, doc, damaged=()):
     return truth.score(answer['cands'], doc, damaged)
 
-
-rejected_of = truth.rejected_of

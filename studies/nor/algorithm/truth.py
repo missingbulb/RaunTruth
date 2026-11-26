@@ -1,18 +1,15 @@
 """A ground-truth file read as its elements, and one answer's NoRs paired one-to-one with the truth's, each pair
 credited by how well it is placed and, where the truth carries lengths, how well it is measured.
 
-A file is the page's (norfinder-ground-truth/4: the candidates that remain, the NoRs added, the boxes checked for
-missed NoRs and the GT history; /3: the same with the areas checked of its `grid`; /2: its `labels`) or the lab's own
+A file is the page's (norfinder-ground-truth/4: the candidates that remain, the NoRs added and the boxes checked for
+missed NoRs; /3: the same with the areas checked of its `grid`; /2: its `labels`) or the lab's own
 (its `labels`, as /2 has them).
 
 A ground-truth element is read for its own state only: a NoR, not a NoR, or undecided; where it came from (a finder's
 candidate, a mark somebody added) changes nothing. An answer's NoR is a candidate its filters pass; a failed
 candidate is not part of the answer.
 """
-import base64
-import json
 import math
-import zlib
 
 import numpy as np
 
@@ -63,12 +60,6 @@ def _mid(seg):
     return (a + c) / 2, (b + d) / 2
 
 
-def _unpacked(output):
-    if isinstance(output, dict) and isinstance(output.get('deflate'), str):
-        return json.loads(zlib.decompress(base64.b64decode(output['deflate'])))
-    return output
-
-
 def _element(state, eid=None, x=None, y=None, lines=None, sizes=None):
     """One element: its state, its place and its lengths in pixels. Its place is told two ways, by whichever the
     element carries: its own point (x, y) and the middle of its red line (rx, ry); x, y fall back on the latter."""
@@ -84,38 +75,12 @@ def _element(state, eid=None, x=None, y=None, lines=None, sizes=None):
     return dict(id=eid, state=state, x=float(x), y=float(y), own=own, rx=rx, ry=ry, **{k: sizes.get(k) for k in LINES})
 
 
-def rejected_of(doc):
-    """The elements the file's history says were deleted and the file no longer lists, as the history last showed
-    them, [{id, x, y, lines}]: whichever kind of element they were. The lab keeps this list in the frozen form of a
-    file, whose history it drops."""
-    actions = [a for a in (doc.get('history') or {}).get('actions') or [] if isinstance(a, dict)]
-    have = {c.get('id') for c in (doc.get('candidates') or []) + (doc.get('added') or [])}
-    gone = {a.get('cand') for a in actions if a.get('type') == 'delete'} - have
-    seen = {}
-    runs = [a for a in actions if a.get('type') == 'run']
-    for c in (_unpacked(runs[-1].get('output')).get('cands') or []) if runs else []:
-        seen[c.get('id')] = dict(x=c['x'], y=c['y'], lines=c.get('lines'))
-    for a in actions:
-        if a.get('type') == 'add' and a.get('lines'):
-            seen[a.get('cand')] = dict(lines=a['lines'])
-        elif a.get('type') == 'set-lines' and a.get('lines') and a.get('cand') in seen:
-            seen[a['cand']] = dict(seen[a['cand']], lines=dict(seen[a['cand']].get('lines') or {}, **a['lines']))
-    return [dict(id=i, x=seen[i].get('x'), y=seen[i].get('y'), lines=seen[i].get('lines')) for i in sorted(gone & set(seen), key=str)]
-
-
-def _removed(doc):
-    """The rejected elements as not-NoRs: from the file's `rejected` list when it carries one (the lab's frozen form),
-    else from its history."""
-    rejected = doc['rejected'] if 'rejected' in doc else rejected_of(doc)
-    return [_element('not', r.get('id'), r.get('x'), r.get('y'), r.get('lines')) for r in rejected]
-
-
 def truth_of(doc):
     """(elements, known): every element of a ground-truth file as {id, state, x, y, length, red, width}, state one
     of 'nor', 'not' and 'undecided'; and known(x, y), whether the file says that place was checked for missed NoRs.
 
-    /3 and /4: an element marked approved is a NoR, one the file still lists unapproved is undecided, one its history
-    deleted is not a NoR. /2 and the lab's files: a label 1 is a NoR, 0 not one, null undecided."""
+    /3 and /4: an element marked approved is a NoR, one the file lists unapproved is undecided; the file's history is
+    never read. /2 and the lab's files: a label 1 is a NoR, 0 not one, null undecided."""
     if doc.get('format') not in FORMATS[1:]:
         out = []
         for L in doc.get('labels') or []:
@@ -127,7 +92,6 @@ def truth_of(doc):
     for e in (doc.get('candidates') or []) + (doc.get('added') or []):
         lines = dict(e.get('lines') or {}, **(e.get('edited') or {})) or None
         out.append(_element('nor' if e.get('approved') else 'undecided', e.get('id'), e.get('x'), e.get('y'), lines))
-    out += _removed(doc)
     image = doc.get('image') or {}
     W, H = image.get('width'), image.get('height')
     if doc.get('format') == FORMATS[2]:

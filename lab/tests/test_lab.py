@@ -446,15 +446,11 @@ def test_the_stamp_step_names_the_commit_that_holds_the_files_and_waits_for_ther
     assert open(s.metrics_path(), 'rb').read() != before
 
 
-def test_a_frozen_nor_file_still_counts_its_rejected_candidate_as_a_known_non_nor():
+def test_a_frozen_nor_file_is_its_model_alone():
+    """issue 1100: the frozen form carries no rejected candidates read from the history, so the dataset SHA is the model's."""
     sys.path.insert(0, os.path.join(lab_study.STUDIES, 'nor', 'tests'))
     import test_truth as nor_truth
-    nor = lab_study.Study('nor')
-    doc = nor_truth.three(deleted=[(300, 300)])
-    with_reject = fetch.model_form(doc, nor.module)
-    assert 'history' not in with_reject
-    elements, _ = nor_truth.S.truth_of(with_reject)
-    assert sorted(e['state'] for e in elements).count('not') == 1
-    without = fetch.model_form(nor_truth.three(), nor.module)
-    assert fetch.model_sha256(with_reject) != fetch.model_sha256(without), 'the dataset SHA covers the rejects'
-    assert fetch.model_form(with_reject, nor.module) == with_reject, 'the committed form, read again, is itself'
+    frozen = fetch.model_only(nor_truth.three(deleted=[(300, 300)]))
+    assert 'history' not in frozen and 'rejected' not in frozen
+    assert fetch.model_sha256(frozen) == fetch.model_sha256(nor_truth.three()), 'a reject in the history changes no SHA'
+    assert fetch.model_only(frozen) == frozen, 'the committed form, read again, is itself'

@@ -35,7 +35,7 @@ real file is the lab's own `lab/truth/claude_v1.json` (/2 shape: 200 points, 72 
 |---|---|---|
 | /3 candidate or added NoR with `approved` | a NoR | a truth NoR, with its lines (edited ones over the first) |
 | /3 candidate or added NoR without `approved` | undecided | neither a miss nor an invention |
-| /3 element its history deleted and the file no longer lists (either kind) | not a NoR | an answer NoR on it is an invention |
+| /3 element its history deleted and the file no longer lists (either kind) | not in the truth | the scorer reads the model alone, never the history (owner's call, issue 1100, 2026-11-26): an answer NoR there is an invention only where a check covers it |
 | /4 `checked` box, or /3 `areas` | those pixels, that area, were checked for missed NoRs | every answer NoR in it is judged |
 | /2 label 1 / 0 / null | a NoR / not / undecided | as above; points, with no lengths unless the label carries them |
 
@@ -199,7 +199,5 @@ Open:
 - **A split that adds coverage should cost less.** The owner ruled so for Shelves (a spare piece that adds coverage).
   Not applied here: a NoR is paired as a whole, so crediting a second half needs pairing by parts of the node, which
   is neither cheap nor tested yet.
-- **The /3 file should list rejected elements itself.** "Not a NoR" is today read from the file's history (a
-  `delete` and the run or `add` that showed the element), the one place the scorer opens it. A follow-up.
 - **The lab's item tools** (`lab/items.py`) read one yes or no per graded element: `hit` is quality of at least 0.5
   for a NoR, and an answer NoR at least 0.5 close for an element marked not one. A soft version is theirs to grow.

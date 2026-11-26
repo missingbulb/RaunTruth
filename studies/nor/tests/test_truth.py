@@ -97,7 +97,9 @@ def test_each_unit_invented_costs_more_where_the_truth_knows():
     # in areas checked for missed NoRs, and on spots marked not a NoR
     assert falls([F(right() + extra[:n], three()) for n in range(5)])
     assert falls([F(right() + extra[:n], two(nots=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
-    assert falls([F(right() + extra[:n], three(areas=(), deleted=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
+    # a candidate the file no longer lists is not part of the truth, whatever its history says (issue 1100): where no
+    # area was checked, an invented NoR on it costs nothing more than on a spot nobody looked at
+    assert F(right() + extra, three(areas=(), deleted=[(e['cx'], e['cy']) for e in extra])) == pytest.approx(F(right() + extra, three(areas=())))
 
 
 def test_an_answer_where_the_truth_says_nothing_counts_for_nothing():
@@ -191,11 +193,10 @@ def test_where_an_element_came_from_changes_nothing():
     as_candidates = S.score(cands, three())
     as_added = S.score(cands, three(PLACES[:10], added=PLACES[10:]))
     assert all(as_added[k] == pytest.approx(as_candidates[k]) for k in ('tp', 'fp', 'fn', 'measured', 'red_err'))
-    # an added NoR the history deleted is not a NoR, as a deleted candidate is
+    # an added NoR the history deleted is gone from the truth, as a deleted candidate is
     doc = three(areas=())
     doc['history']['actions'] += [{'type': 'add', 'cand': 'u1', 'lines': lines_at(300.0, 20.0)}, {'type': 'delete', 'cand': 'u1'}]
-    assert F(cands, doc) < F(cands, three(areas=()))
-    assert S.score(cands, doc)['fp'] == pytest.approx(S.score(cands, three(areas=(), deleted=[(300.0, 20.0)]))['fp'])
+    assert S.score(cands, doc)['fp'] == pytest.approx(S.score(cands, three(areas=()))['fp'])
 
 
 def test_a_failed_candidate_is_not_in_the_answer_and_is_told_apart():
@@ -258,7 +259,7 @@ def states(doc):
 def test_a_three_file_gives_each_element_its_state():
     doc = three(PLACES[:2], undecided=[(100.0, 100.0)], deleted=[(200.0, 100.0)], added=[(300.0, 100.0)])
     doc['added'].append(dict(id='u9', lines=lines_at(350.0, 100.0)))
-    assert states(doc) == [('nor', 60, 60), ('nor', 140, 60), ('nor', 300, 100), ('not', 200, 100), ('undecided', 100, 100), ('undecided', 350, 100)]
+    assert states(doc) == [('nor', 60, 60), ('nor', 140, 60), ('nor', 300, 100), ('undecided', 100, 100), ('undecided', 350, 100)]
     known = S.truth_of(doc)[1]
     assert known(20, 20) and not S.truth_of(three(areas=[0]))[1](20, 100) and not known(-1, 20)
     # the areas walk each second row backwards, as the page numbers them
@@ -284,20 +285,20 @@ def test_an_element_is_measured_on_the_lines_it_stands_on():
     assert (e['red'], e['length'], e['width']) == (14.0, LENGTH, WIDTH) and (e['rx'], e['ry']) == (57.0, 60.0)
 
 
-def test_a_deleted_element_is_not_a_nor_only_where_the_history_says_so():
+def test_the_truth_is_the_model_alone():
+    """issue 1100: the scorer compares the answer with the model the file lists, never its history; a candidate the
+    history deleted is simply not there, packed history or not, and a file without its history scores the same."""
     doc = three(PLACES[:1], deleted=[(200.0, 100.0)])
     packed = copy.deepcopy(doc)
     run = packed['history']['actions'][0]
     run['output'] = {'deflate': base64.b64encode(zlib.compress(json.dumps(run['output']).encode())).decode()}
-    assert states(packed) == states(doc) == [('nor', 60, 60), ('not', 200, 100)]
-    # a delete taken back leaves the element in the file, undecided; one of an element no run or add shows marks nothing
-    back = copy.deepcopy(doc)
-    back['candidates'].append(dict(doc['history']['actions'][0]['output']['cands'][1]))
-    back['history']['actions'].append({'type': 'delete', 'cand': 'c99'})
-    assert states(back) == [('nor', 60, 60), ('undecided', 200, 100)]
-    # with no history a file gives what it lists
-    del doc['history']
-    assert states(doc) == [('nor', 60, 60)]
+    bare = copy.deepcopy(doc)
+    del bare['history']
+    assert states(packed) == states(doc) == states(bare) == [('nor', 60, 60)]
+    cands = right(PLACES[:1]) + [cand(200.0, 100.0)]
+    assert S.score(cands, dict(doc, areas=[]))['fp'] == pytest.approx(S.score(cands, dict(bare, areas=[]))['fp']) == 0.0
+    # the contrast: where the area was checked, the same invented NoR is wrong, from the model alone
+    assert S.score(cands, bare)['fp'] > 0
 
 
 def test_a_two_file_and_a_lab_file_read_alike():
