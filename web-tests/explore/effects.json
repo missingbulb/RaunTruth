@@ -8,7 +8,12 @@
   "shellStates": {"openedBy": [
     {"select": "#file-info", "by": "#file-name", "why": "the image's name unfolds the details (req/shell/image/file-info), which the rules leave at hidden"},
     {"select": "#lasso-hint", "by": "#mask-add", "why": "Define Area of Interest starts a lasso (req/shell/summary/mask), which no path of the rules takes"},
-    {"select": "#scoring-note", "by": "#scoring-help", "why": "the (?) shows how the study scores (req/shell/processing/scoring), which the rules leave at hidden"}
+    {"select": "#scoring-note", "by": "#scoring-help", "why": "the (?) shows how the study scores (req/shell/processing/scoring), which the rules leave at hidden"},
+    {"select": "#whats-new", "by": "#settings-save", "why": "Settings lets the person type the version they saw last (req/shell/account/settings); an older one saved earns the notice (req/shell/version-history), which no path of the rules takes"},
+    {"select": "#gt-save-draft", "by": "#fx-add", "why": "a mark added is an action not yet saved (req/shell/ground-truth/save-draft), which no path of the rules makes"},
+    {"select": "#gt-unsaved", "by": "#fx-add", "why": "a mark added is an action not yet saved (req/shell/ground-truth/save-draft), which no path of the rules makes"},
+    {"select": "#gt-save-draft", "by": "#fx-check", "why": "a tick is an action not yet saved (req/shell/ground-truth/save-draft), which no path of the rules makes"},
+    {"select": "#gt-unsaved", "by": "#fx-check", "why": "a tick is an action not yet saved (req/shell/ground-truth/save-draft), which no path of the rules makes"}
   ], "unread": [
     {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
   ]},
@@ -34,7 +39,7 @@
     {"family": "redo", "match": {"key": "^#gt-redo$"}, "may": ["storage.*"], "writes": 0},
     {"family": "previews", "match": {"key": "^#update-previews$"}, "may": ["storage.*", "html.*"], "writes": "any"},
     {"family": "tags and areas", "match": {"key": "^#(tags-|study-hide-|study-group|areas-)"}, "may": ["storage.*", "html.*", "dialog"], "writes": "any"},
-    {"family": "folders", "match": {"key": "^#(data-add|gt-setup|setup-)"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
+    {"family": "folders", "match": {"key": "^#(data-add|gt-setup|setup-(?!rail))"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
     {"family": "settings", "match": {"key": "^#(settings-save|open-settings|settings-)"}, "may": ["settings", "storage.*", "dialog", "html.*", "class.*", "open"], "writes": 0},
     {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
     {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
@@ -45,7 +50,8 @@
     {"family": "marks on an image", "match": {"text": "^(Request GT|GT requested|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},
     {"family": "the images selected", "match": {"key": "^#batch-(all|run|hide|gt|official)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
     {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},
-    {"family": "the stage", "match": {"key": "^#stage-(up|back|freeze)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
+    {"family": "the stage", "match": {"key": "^#stage-(up|back|freeze|change-go|change-cancel)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
+    {"family": "Study Setup's parts", "match": {"within": "^setup-rail$"}, "may": ["open", "html.*", "storage.*", "dialog"], "writes": 0},
     {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
     {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|gt-load-|recent > button)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
     {"family": "report a problem", "match": {"key": "^#(report-problem|sb-report|report-go|report-cancel|problem-)"}, "may": ["dialog", "popup", "open", "storage.*"], "writes": 0},
