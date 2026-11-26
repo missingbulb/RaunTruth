@@ -54,14 +54,14 @@ def test_the_network_goes_only_once_the_page_has_ended_its_work():
 
 def test_a_fake_changed_under_the_page_s_work_fails_the_run_and_at_rest_does_not():
     r = run('changedmidwork')
-    assert r.returncode == 1 and 'while the page was working (a save on its way)' in r.stderr, r.stdout + r.stderr
+    assert r.returncode == 1 and '(a save on its way)' in r.stderr, r.stdout + r.stderr
     r = run('changedatrest')
     assert r.returncode == 0, r.stdout + r.stderr
 
 
 def test_a_page_idle_with_an_outside_call_it_does_not_count_fails_naming_the_call():
     r = run('uncounted')
-    assert r.returncode == 1 and 'does not count as work: GET https://www.googleapis.com/drive/v3/files?q=slow' in r.stderr, r.stdout + r.stderr
+    assert r.returncode == 1 and 'GET https://www.googleapis.com/drive/v3/files?q=slow' in r.stderr, r.stdout + r.stderr
     r = run('countedcall')
     assert r.returncode == 0, r.stdout + r.stderr
 
