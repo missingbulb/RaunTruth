@@ -54,6 +54,14 @@ const CASES = {
   // what came before a failure, of every kind, is printed with it
   lately: async () => { await page.evaluate(() => { console.log("a step the page took"); return fetch("/missing"); }); },
   unanswered: () => expecting(/went wrong/, async () => {}),
+  // work the case set off, and left under way, says its warning after the case's own steps have ended
+  outlives: () => expecting(/went wrong/, () => page.evaluate(() => {
+    const work = { pending: 1, started: 1, doing: ["a save on its way"] };
+    window.shellForTests = { work };
+    setTimeout(() => { console.warn("the thing went wrong"); work.pending = 0; work.doing = []; }, 300); // waits on purpose (no event): the work's own answer, coming after the case's last step
+  })),
+  // a run that never ends, stopped by its test
+  hangs: async () => { console.log("ok: a step before the hang"); await page.evaluate(() => { console.log("a step the page took"); }); await page.waitForFunction(() => window.never, null, { timeout: 0 }); },
   uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after
   offsite: async () => console.log(await page.evaluate(() => fetch("https://acme.example/x").then((r) => "reached " + r.status, () => "turned away"))),
   // a worker's failed request leaves no line in the console of its own

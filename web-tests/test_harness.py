@@ -4,12 +4,15 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 
 import pytest
 
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -30,6 +33,19 @@ def test_an_undeclared_warning_fails_the_run_and_is_named():
 def test_a_failed_check_fails_the_run_whatever_exit_code_the_test_sets():
     r = run('failedcheck')
     assert r.returncode == 1 and 'ok: a check that held' in r.stdout and 'FAILED: a check that did not: {"seen":1}' in r.stderr, r.stdout + r.stderr
+
+
+def test_a_declared_warning_of_work_the_case_left_under_way_is_expected_too():
+    r = run('outlives')
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_run_stopped_at_its_bound_says_how_far_it_got_and_what_the_page_did():
+    with pytest.raises(pytest.fail.Exception) as stopped:
+        run_driver(os.path.join(HERE, 'harness_driver.mjs'), 'hangs', timeout=15)
+    said = str(stopped.value)
+    assert 'still running after 15 s' in said and 'ok: a step before the hang' in said, said
+    assert 'a step the page took' in said.partition('before the run ended')[2], said
 
 
 def test_a_declared_warning_passes():
