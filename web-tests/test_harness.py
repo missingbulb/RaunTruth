@@ -48,6 +48,18 @@ def test_a_run_stopped_at_its_bound_says_how_far_it_got_and_what_the_page_did():
     assert 'a step the page took' in said.partition('before the run ended')[2], said
 
 
+def test_the_network_goes_only_once_the_page_has_ended_its_work():
+    r = run('offlineafterwork')
+    assert r.returncode == 0 and 'the page had 0 under way' in r.stdout, r.stdout + r.stderr
+
+
+def test_a_fake_changed_under_the_page_s_work_fails_the_run_and_at_rest_does_not():
+    r = run('changedmidwork')
+    assert r.returncode == 1 and 'while the page was working (a save on its way)' in r.stderr, r.stdout + r.stderr
+    r = run('changedatrest')
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
 def test_a_declared_warning_passes():
     r = run('declared')
     assert r.returncode == 0, r.stdout + r.stderr

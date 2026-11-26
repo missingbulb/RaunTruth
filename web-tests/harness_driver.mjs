@@ -24,6 +24,12 @@ const browser = await launch(pw);
 const page = await browser.newPage();
 await page.goto(origin);
 const warn = () => page.evaluate(() => console.warn("the thing went wrong"));
+// in the page: work of its own under way for ms, counted as the site's pages count theirs
+const working = (ms) => {
+  const work = { pending: 1, started: 1, doing: ["a save on its way"] };
+  window.shellForTests = { work };
+  setTimeout(() => { work.pending = 0; work.doing = []; }, ms); // waits on purpose (no event): the work's own end, after the test's next step
+};
 const got = (u) => page.evaluate((u) => fetch(u).then((r) => r.text()), u);
 const CASES = {
   settings: async () => {
@@ -60,6 +66,19 @@ const CASES = {
     window.shellForTests = { work };
     setTimeout(() => { console.warn("the thing went wrong"); work.pending = 0; work.doing = []; }, 300); // waits on purpose (no event): the work's own answer, coming after the case's last step
   })),
+  // the network going waits for work the page has under way, which then ends as it would have
+  offlineafterwork: async () => {
+    await page.evaluate(working, 300);
+    await page.context().setOffline(true);
+    console.log("as the network went, the page had " + await page.evaluate(() => shellForTests.work.pending) + " under way");
+  },
+  // a fake's answers changed under work the page has under way is said, as a mistake of the test's
+  changedmidwork: async () => {
+    await page.evaluate(working, 300);
+    googleDrive(page.context()).outage = "down";
+    await page.waitForFunction(() => shellForTests.work.pending === 0);
+  },
+  changedatrest: async () => { await page.evaluate(working, 0); await page.waitForFunction(() => shellForTests.work.pending === 0); googleDrive(page.context()).outage = "down"; },
   // a run that never ends, stopped by its test
   hangs: async () => { console.log("ok: a step before the hang"); await page.evaluate(() => { console.log("a step the page took"); }); await page.waitForFunction(() => window.never, null, { timeout: 0 }); },
   uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after
