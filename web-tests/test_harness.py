@@ -2,7 +2,6 @@
 case declared, and answers the outside systems with their fakes (harness_driver.mjs, one case a run)."""
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -11,13 +10,11 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
+import drivers
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 def run(case):
-    if not NODE:
-        pytest.skip('node missing')
     r = run_driver(os.path.join(HERE, 'harness_driver.mjs'), case, timeout=60, check=False)
     if r.returncode == 2:
         pytest.skip(r.stderr.strip())
@@ -32,6 +29,23 @@ def test_an_undeclared_warning_fails_the_run_and_is_named():
 def test_a_failed_check_fails_the_run_whatever_exit_code_the_test_sets():
     r = run('failedcheck')
     assert r.returncode == 1 and 'ok: a check that held' in r.stdout and 'FAILED: a check that did not: {"seen":1}' in r.stderr, r.stdout + r.stderr
+
+
+def test_a_check_the_rest_needs_ends_the_run_where_it_fails():
+    r = run('musthold')
+    assert r.returncode == 1 and 'FAILED: a check the rest needs: {"seen":2}' in r.stderr and 'a check after it' not in r.stdout, r.stdout + r.stderr
+
+
+def test_a_failed_check_fails_a_run_of_plain_code_too():
+    code = f'import {{ check }} from {json.dumps("file://" + os.path.join(HERE, "checks.mjs"))}; check(false, "plain"); process.exitCode = 0;'
+    r = run_driver(None, node_args=['--input-type=module', '-e', code], timeout=30, check=False)
+    assert r.returncode == 1 and 'FAILED: plain' in r.stderr, r.stdout + r.stderr
+
+
+def test_a_machine_without_node_skips_the_test(monkeypatch):
+    monkeypatch.setattr(drivers, 'NODE', None)
+    with pytest.raises(pytest.skip.Exception):
+        drivers.run_driver(os.path.join(HERE, 'harness_driver.mjs'), 'declared')
 
 
 def test_a_declared_warning_of_work_the_case_left_under_way_is_expected_too():

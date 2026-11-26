@@ -7,7 +7,7 @@
 //   node web-tests/harness_driver.mjs CASE
 import http from "node:http";
 import path from "node:path";
-import { pw, launch, expecting, siteOf, check } from "./harness.mjs";
+import { pw, launch, expecting, siteOf, check, mustHold } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
 import { until, idle } from "./page_until.mjs";
@@ -48,6 +48,7 @@ const CASES = {
   },
   // a failed check fails the run, whatever the test sets its exit code to
   failedcheck: async () => { check(true, "a check that held"); check(false, "a check that did not", { seen: 1 }); process.exitCode = 0; },
+  musthold: async () => { mustHold(true, "a check that held"); mustHold(false, "a check the rest needs", { seen: 2 }); check(true, "a check after it"); },
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
   // values that are not strings, said as what they hold

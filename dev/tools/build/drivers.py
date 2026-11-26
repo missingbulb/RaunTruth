@@ -1,6 +1,6 @@
-"""Runs a test's Node driver for a pytest test: its output printed, which pytest shows for a failed test; exit 2, the
-driver saying it cannot run here (no Playwright, no browser), a skip, which CI fails (pytest_ci.py); any other non-zero
-exit a failure carrying what it said. One still running at timeout is asked to stop, then stopped, and the failure says
+"""Runs a test's Node driver for a pytest test: its output printed, which pytest shows for a failed test; no Node here,
+or exit 2, the driver saying it cannot run here (no Playwright, no browser), a skip, which CI fails (pytest_ci.py); any
+other non-zero exit a failure carrying what it said. One still running at timeout is asked to stop, then stopped, and the failure says
 how far it got. check=False: for a test that reads the exit code and the output itself; node_args: Node's own
 arguments, before the script (an inline one: node_args=['--input-type=module', '-e', code], path=None)."""
 import shutil
@@ -14,6 +14,8 @@ STOPPING = 10
 
 
 def run_driver(path, *args, timeout=120, env=None, cwd=None, check=True, node_args=()):
+    if not NODE:
+        pytest.skip('node missing')
     command = [NODE, *node_args, *([path] if path else []), *map(str, args)]
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=cwd) as p:
         try:
