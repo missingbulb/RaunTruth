@@ -38,11 +38,12 @@ _Last updated 2026-11-26._
   `../web/algorithm_metrics.json`, written by `python3 lab/run.py nor --write`, naming
   the data it was measured on: each image's and ground-truth file's SHA-256 and the dataset SHA. Quote
   that dataset SHA with any precision or recall.
-  Since 2026-11-26 (issue 1100) the scorer reads a ground-truth file's model alone. A candidate a person rejected is
-  gone from a /3 or /4 file, so it counts against an answer only where a checked area covers it. Before, the scorer read
-  it from the history and counted it everywhere. On the committed dataset (`b3752a3f…`, one image scored against the
-  lab's /2 labels, whose 'not a NoR' marks are in the model) the move is 0 in precision and in recall. It shows once
-  people's files are scored.
+  Since 2026-11-26 (issue 1100) the score is the expected set against the answer's, model to model: every answer
+  NoR matching none of the truth's is an invention, and neither the history nor the tagging tasks are read. Only
+  ground truth with every task done is scored, and `lab/truth/claude_v1.json` never had its check for missed NoRs, so
+  it is left out. Until people submit complete ground truth, NoR has no measured precision or recall. The committed
+  metrics file still holds the numbers measured on 2026-11-20 under the old rule (its own `scoring` text says which)
+  until `python3 lab/run.py nor --write` is run where the study file is reachable.
   Presets, the lab's settings and not on the page: precise / balanced (the finder's own) / recalling, every filter 40% towards a fixed
   strict or loose end. Fitting filter values to the labels does not survive held-out labels
   (ledger §5), so don't tune filters per finder on these labels.

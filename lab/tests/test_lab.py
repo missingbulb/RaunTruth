@@ -446,6 +446,23 @@ def test_the_stamp_step_names_the_commit_that_holds_the_files_and_waits_for_ther
     assert open(s.metrics_path(), 'rb').read() != before
 
 
+def test_ground_truth_with_a_tagging_task_undone_is_left_out_saying_which(acme, monkeypatch, capsys):
+    """Only ground truth with every task done is scored (the owner, 2026-11-26): a study's undone(doc) names the task a
+    file left undone, from the GT marks and from the study's own lab/truth/ alike."""
+    s, drive = acme
+    monkeypatch.setattr(s.module, 'undone', lambda doc: 'acme-task undone' if doc['labels'][0]['count'] == 10 else None, raising=False)
+    kept, refused = fetch.truth('acme', drive)
+    assert [t['doc']['labels'][0]['count'] for t in kept] == [18]
+    assert list(refused.values()) == ['a tagging task undone: acme-task undone']
+    os.makedirs(os.path.join(s.dir, 'lab', 'truth'))
+    for n, count in enumerate((10, 30)):
+        with open(os.path.join(s.dir, 'lab', 'truth', f'acme-{n}.json'), 'wb') as f:
+            f.write(extraction(TWENTY, count))
+    pairs = run.corpus(s, drive, which='lab')
+    assert [t['doc']['labels'][0]['count'] for _, t in pairs] == [30]
+    assert 'acme-task undone' in capsys.readouterr().err
+
+
 def test_a_frozen_nor_file_is_its_model_alone():
     """issue 1100: the frozen form carries no rejected candidates read from the history, so the dataset SHA is the model's."""
     sys.path.insert(0, os.path.join(lab_study.STUDIES, 'nor', 'tests'))

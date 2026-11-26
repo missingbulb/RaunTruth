@@ -52,10 +52,15 @@ class Services(dict):
 
 
 def committed_truth(study):
-    """The study's own ground-truth files (its lab/truth/), each as fetch.truth gives one."""
+    """The study's own ground-truth files (its lab/truth/), each as fetch.truth gives one; one with a tagging task
+    undone is left out, saying which."""
     out = []
     for path in sorted(glob.glob(os.path.join(study.dir, 'lab', 'truth', '*.json'))):
         doc = json.load(open(path))
+        why = fetch.undone(study.module, doc)
+        if why:
+            print(f'ground truth {os.path.relpath(path, study.dir)} left out: a tagging task undone: {why}', file=sys.stderr)
+            continue
         out.append(dict(subfolder=os.path.relpath(path, study.dir), path=path, doc=doc, sha256=fetch.sha256_of(path)))
     return out
 

@@ -43,6 +43,15 @@ under `req/lab` and cited by it, as in the shell's spec (`web-tests/test_require
   `lab/tests/test_lab.py`.
   </details>
 
+- `req/lab/gt-tasks-done` The lab scores only ground truth with every tagging task done, and says why it leaves one out.
+  <details>
+
+  Set by the owner on 2026-11-26 (issue 1100): scoring is model to model, the expected set against the answer's, so a
+  file whose tagging is not finished is not ground truth yet. A study's module words the task a file left undone
+  (its `undone(doc)`, NoR's in `studies/nor/algorithm/truth.py`); the lab leaves such a file out, from the GT marks
+  and from the study's own `lab/truth/` alike, and prints the task. Test: `lab/tests/test_lab.py`.
+  </details>
+
 - `req/lab/stage` The lab prints the study's stage from the study file, and unattended tasks stop on Review or Public.
   <details>
 

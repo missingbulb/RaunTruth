@@ -183,3 +183,6 @@ SCORING = truth.SCORING
 def score(answer, doc, damaged=()):
     return truth.score(answer['cands'], doc, damaged)
 
+
+undone = truth.undone
+

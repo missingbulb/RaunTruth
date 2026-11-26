@@ -19,7 +19,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from study import STUDIES
+from study import STUDIES, Study
 
 # the stages from which a study's ground truth and scores are frozen
 FROZEN_STAGES = ('review', 'public')
@@ -75,6 +75,13 @@ def model_only(doc):
     if isinstance(out.get('image'), dict):
         out['image'] = {k: v for k, v in out['image'].items() if k not in NOT_MODEL_IN_IMAGE}
     return out
+
+
+def undone(module, doc):
+    """The tagging task a ground-truth file left undone, as the study's module words it (its `undone`), or None. Only
+    ground truth with every task done is scored."""
+    said = getattr(module, 'undone', None)
+    return said(doc) if said else None
 
 
 def model_sha256(doc):
@@ -203,6 +210,7 @@ def truth(sid, transport=None, sf=None):
     form, which is what the dataset SHA covers."""
     sf = sf or study_file(sid, transport)
     raw = os.path.join(STUDIES, sid, 'data', 'raw')
+    module = Study(sid).module
     kept, refused = [], {}
     for sha, fid in sf.marks('gt').items():
         label = f'gt/{sha[:8]}'
@@ -215,6 +223,10 @@ def truth(sid, transport=None, sf=None):
             continue
         if not isinstance(doc, dict) or (doc.get('image') or {}).get('sha256') != sha:
             refused[label] = 'the file names another image than the mark'
+            continue
+        why = undone(module, doc)
+        if why:
+            refused[label] = f'a tagging task undone: {why}'
             continue
         form = model_only(doc)
         kept.append(dict(subfolder=label, path=out, doc=form, sha256=model_sha256(form)))
