@@ -7,16 +7,25 @@ import subprocess
 import pytest
 
 NODE = shutil.which('node')
+# how long a driver asked to stop has to say how far it got
+STOPPING = 10
 
 
 def run_driver(path, *args, timeout=120, env=None):
-    try:
-        r = subprocess.run([NODE, path, *args], capture_output=True, text=True, timeout=timeout, env=env)
-    except subprocess.TimeoutExpired as e:
-        out = lambda b: (b.decode() if isinstance(b, bytes) else b) or ''
-        pytest.fail(f'{path} still running after {e.timeout:g} s; it had got this far:\n{out(e.stdout)}{out(e.stderr)}')
-    print(r.stdout, r.stderr)
-    if r.returncode == 2:
-        pytest.skip(r.stderr.strip())
-    assert r.returncode == 0, r.stdout + r.stderr
-    return r
+    with subprocess.Popen([NODE, path, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env) as p:
+        try:
+            out, err = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # asked to stop first, so it says what it was doing; killed if it does not
+            p.terminate()
+            try:
+                out, err = p.communicate(timeout=STOPPING)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                out, err = p.communicate()
+            pytest.fail(f'{path} still running after {timeout:g} s; it had got this far:\n{out}{err}')
+    print(out, err)
+    if p.returncode == 2:
+        pytest.skip(err.strip())
+    assert p.returncode == 0, out + err
+    return subprocess.CompletedProcess(p.args, p.returncode, out, err)

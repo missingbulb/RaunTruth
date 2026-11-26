@@ -18,6 +18,7 @@ import { FAKES } from "./fakes/index.mjs";
 import { outsideServer, offSite, FAKED } from "./fakes/outside_server.mjs";
 import { COPY } from "./page_pixels.mjs";
 import { STEP } from "./deadlines.mjs";
+import { idle } from "./page_until.mjs";
 import { driveIn } from "./fakes/google_drive.mjs";
 import { signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
@@ -241,6 +242,7 @@ const offlineNow = new WeakSet();
 // world: the outside systems' state a browser's contexts share, one Google for all of them as for a person's devices
 async function install(ctx, world, outside) {
   onSitePages(ctx); leaves(ctx); closesHeard(ctx);
+  live.add(ctx); ctx.on("close", () => live.delete(ctx));
   // offline as its test sets it: the fakes answer nothing then, on an engine whose offline leaves a proxy reachable too
   const setOffline = ctx.setOffline.bind(ctx);
   // (a request the browser sent before its network went is answered: it was online when it asked)
@@ -334,6 +336,26 @@ export const keptContext = async (pw, options, world = {}) => {
 // failed load, and the words each engine's fetch() rejects with, which the page's own warnings repeat.
 export const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|Failed to fetch|NetworkError|Load failed/;
 
+// the contexts open now
+const live = new Set();
+// Every page of the site's still open has ended the work it was doing: what a case set off says its warnings and
+// errors while the case's declaration still stands, not into the case after it. A page a case leaves working for good
+// (an answer its stand-in holds) fails the case, naming the work.
+async function atRest() {
+  for (const ctx of live) {
+    for (const page of ctx.pages()) {
+      if (page.isClosed() || leaving.has(page) || closing.has(ctx)) continue;
+      if (!await page.evaluate(() => !!window.shellForTests?.work).catch(() => false)) continue;
+      await idle(page, { timeout: STEP }).catch(async (e) => {
+        if (page.isClosed() || leaving.has(page)) return;
+        const doing = await page.evaluate(() => window.shellForTests?.work.doing).catch(() => null);
+        if (!doing) return;
+        throw new Error(`the case ended with its page still working (${doing.join(", ") || e.message.split("\n")[0]}): end the case once that work has, or release what holds it`);
+      });
+    }
+  }
+}
+
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
 // none matching it fails the case, unless maybe: for one that comes only when work in the background is under way as
 // the case acts (a download the network's going cuts short). A loose pattern, a word or two, so a rewording leaves the
@@ -342,7 +364,7 @@ export async function expecting(pattern, during, { maybe = false } = {}) {
   const d = { pattern, seen: 0 };
   declared.add(d);
   let result;
-  try { result = await during(); await allHeard(); } finally { declared.delete(d); }
+  try { result = await during(); await atRest(); await allHeard(); } finally { declared.delete(d); }
   if (!d.seen && !maybe) throw new Error(`expected a warning or error matching ${pattern}, and none came`);
   return result;
 }
@@ -355,6 +377,9 @@ export function check(ok, what, seen) {
   else { failedChecks++; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); }
   return !!ok;
 }
+
+// stopped by its test at the test's bound: the run ends as a failed one, saying what the page did lately
+process.on("SIGTERM", () => { console.error("stopped by its test, still running"); process.exit(1); });
 
 process.on("exit", (code) => {
   for (const e of [...reading]) { reading.delete(e); e.late(); }
