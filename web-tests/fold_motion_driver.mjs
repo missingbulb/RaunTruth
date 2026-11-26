@@ -34,8 +34,8 @@ const gone = (page, sel) => page.evaluate((s) => !document.querySelector(s).chec
 // ---- with animations on ----
 {
   const { ctx, page } = await open();
-  // a part that makes room for itself: the image's details
   // the step to do: its button shines three times, then rests, still the one to press
+  await page.waitForFunction(() => document.querySelector(".shine"));
   const shining = await page.evaluate(() => { const b = document.querySelector(".shine"); return b && { id: b.id, times: getComputedStyle(b, "::after").animationIterationCount }; });
   await check(shining?.times === "3", "the button of the step to do shines three times", shining);
   await page.waitForFunction(() => window.cssMotions.some((m) => m.name === "shine" && m.ended), null, { timeout: 15000 });
@@ -45,6 +45,10 @@ const gone = (page, sel) => page.evaluate((s) => !document.querySelector(s).chec
   await page.setInputFiles("#file", PNG);
   await page.waitForFunction(() => !$("#file-box").hidden);
   const unfolded = await ran(page, n, [{ name: "height" }]);
+  // the Image box folds to its title once the image is open: the part is measured with its box open again
+  if (await page.evaluate(() => $("#image-box").classList.contains("folded"))) await page.click("#image-box .sec-head h2");
+  await page.waitForFunction(() => !$("#image-box").classList.contains("folded"));
+  await atRest(page, "#file-box");
   await check(!unfolded.missing && (await on(page, n, "#file-box")).some(([name, ended]) => name === "height" && ended) && await page.evaluate(() => $("#file-box").getBoundingClientRect().height > 10),
     "a part that makes room for itself draws out with a motion, at its own height at the end", { unfolded, on: await on(page, n, "#file-box") });
   await usage(page);
