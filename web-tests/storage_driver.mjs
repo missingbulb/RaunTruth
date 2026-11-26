@@ -195,6 +195,21 @@ try {
   await page.uncheck('#settings-dlg input[name="device-only"][value="nor-filter-settings-v1"]');
   await page.click("#settings-save");
   check(await page.evaluate(() => localStorage.getItem("nor-filter-settings-v1") === null && localStorage.getItem("nor-theme") === "dark"), "clearing one there forgets it on Save, and only it");
+  // the Storage tab says what it cannot count, and its Settings is the way there; Clear all forgets at once and says so
+  await page.click("#user-menu summary"); await page.click("#manage-storage");
+  await page.waitForFunction(() => $("#usage-dlg").open && /keeps/.test($("#storage-total").textContent));
+  const cache = await page.textContent("#storage-cache");
+  check(/50 MB/.test(cache) && /browser/.test(cache) && /cache/.test(cache) && /clear/i.test(cache), "the Storage tab says Python's files sit in the browser's own cache, uncounted, and how that is cleared: " + cache);
+  await page.click("#storage-settings");
+  await page.waitForFunction(() => $("#settings-dlg").open);
+  check(await page.evaluate(() => !$("#usage-dlg").open), "the total's Settings opens Settings in the dialog's place");
+  const before = await page.$$eval('#settings-dlg input[name="device-only"]', (is) => is.map((i) => i.value));
+  await page.click('#settings-dlg [data-clear="device-only"]');
+  const after = await page.evaluate((keys) => ({ kept: keys.filter((k) => localStorage.getItem(k) !== null), open: $("#settings-dlg").open, status: $("#status").textContent,
+    listed: document.querySelectorAll('#settings-dlg input[name="device-only"]').length }), before);
+  check(before.length > 0 && after.open && after.status === "Cleared what this device alone kept." && after.kept.every((k) => k === "nor-actions") && after.listed <= 1,
+    "Clear all forgets them at once, with no Save, the dialog staying open, and the status line says so", { before, after });
+  await page.click("#settings-cancel");
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
 

@@ -46,6 +46,8 @@ export function foldersOn(drive) {
       public() { record.access = "public"; return f; },
       // no one by the link: Drive's sharing alone says who reads it
       private() { record.access = "private"; return f; },
+      // its link sharing is the folder's it is in, with none of its own
+      sharedAsItsFolder() { delete record.access; return f; },
       // Drive's sharing names no one on it to read it or add to it, the link's access kept; readableBy and writableBy
       // then name exactly those
       namesNoOne() { drive.readers.delete(record.id); drive.writers.delete(record.id); return f; },
@@ -143,7 +145,7 @@ export function world(browser, origin) {
     },
 
     device() {
-      const kept = {}, options = { viewport: { width: 1400, height: 900 } };
+      const kept = {}, visit = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [], served = [];
       let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
       const device = {
@@ -156,6 +158,8 @@ export function world(browser, origin) {
         // Remember this choice was ticked
         welcomed(answer, { remembered = true } = {}) { welcome = answer; remember = remembered; return device; },
         keeps(keys) { Object.assign(kept, keys); return device; },
+        // the Edit History window open, as after a press of its button earlier in the visit (it opens closed)
+        withEditHistoryShown() { visit["nor-gt-history"] = "on"; return device; },
         // ground-truth drafts kept, as device_storage.mjs reads them back
         keepsDrafts(records) { drafts = records; return device; },
         // the Drive dialog's folder link kept from before
@@ -187,10 +191,11 @@ export function world(browser, origin) {
           const answer = welcome === undefined ? (who ? "google" : "anonymous") : welcome;
           if (answer) seed["nor-welcome"] = JSON.stringify({ choice: answer, remember });
           // written once a tab, before any script of the page's runs, so a page that changes it keeps its change
-          await ctx.addInitScript(([seed, drafts, worker, cached]) => {
+          await ctx.addInitScript(([seed, drafts, worker, cached, visit]) => {
             if (!worker) delete Navigator.prototype.serviceWorker;
             if (window !== window.top || sessionStorage.getItem("world-kept")) return;
             sessionStorage.setItem("world-kept", "1");
+            for (const [k, v] of Object.entries(visit)) sessionStorage.setItem(k, v);
             for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
             window.worldCached = Promise.all(cached.map((e) => caches.open(e.cache).then((c) =>
               c.put(e.url, new Response(Uint8Array.from(atob(e.bytes), (ch) => ch.charCodeAt(0)), { headers: e.headers })))));
@@ -202,7 +207,7 @@ export function world(browser, origin) {
               for (const r of drafts) t.objectStore("drafts").put(r);
               t.oncomplete = t.onabort = () => q.result.close();
             };
-          }, [seed, drafts, worker, cached]);
+          }, [seed, drafts, worker, cached, visit]);
           return ctx;
         },
         // a page on the study's own address, or the site's with none; until: ready, title or none

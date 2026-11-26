@@ -16,9 +16,9 @@ export const FORMAT = "rauntruth-study/2";
 const OLD_INDEX = "rauntruth-index.json", OLD_INDEX_FORMAT = "rauntruth-index/1";
 const OLD_TAGS = "rauntruth-tags.json", OLD_TAGS_FORMAT = "rauntruth-tags/1";
 // the names a folder is found by, lower-cased, best first, while the study file does not name it
-const NAMES = { data: ["data"], extractions: ["extractions"], previews: ["previews"] };
+const NAMES = { data: ["data"], extractions: ["analysis", "extractions"], previews: ["previews"] };
 // the names setup() and previewsFolder() give the folders they make
-const MADE = { extractions: "Extractions", previews: "Previews" };
+const MADE = { extractions: "Analysis", previews: "Previews" };
 const KEEP_MS = 60e3;
 const known = new Map();
 // per root, its Literature folder as the root's last listing had it, kept past the minute: null for none
@@ -37,7 +37,8 @@ const parsed = async (reader, id) => { try { return JSON.parse(await reader.text
 const indexOf = (d) => (Array.isArray(d?.folders) && Array.isArray(d?.images) ? { built_by: d.built_by ?? null, built_at: d.built_at ?? null, folders: d.folders, images: d.images } : null);
 const tagsOf = (d) => ({ images: d?.images && typeof d.images === "object" ? d.images : {}, folders: d?.folders && typeof d.folders === "object" ? d.folders : {} });
 
-// {root, data, extractions, previews, set, file, doc, folders, group, hide, stage, tags, marks, index, old}: the folders under root by id, each null while there is none; set whether the study file named them;
+// {root, data, extractions, extractionsName, previews, set, file, doc, folders, group, hide, stage, tags, marks, index, old}: the folders under root by id, each null while there is none
+// (extractionsName the Analysis folder's name in the root, null where it is not there); set whether the study file named them;
 // file its id or null and doc what it holds; folders the listed folders (req/shell/data/folders), the data folder or
 // else the root while the file names none; group and hide its grouping tag and hide rules; stage its stage or null;
 // tags {images, folders} and marks {} as it holds them; index its study index {folders, images, built_by, built_at}
@@ -57,7 +58,8 @@ export async function read(reader, root, { fresh = false } = {}) {
   const pick = (k) => doc?.[k] || byName(items, NAMES[k]);
   const data = pick("data"), listed = Array.isArray(doc?.folders) ? doc.folders.filter((id) => typeof id === "string") : null;
   literatureIn.set(root, byName(items, ["literature"]));
-  const value = { root, data, extractions: pick("extractions"), previews: pick("previews"), set: !!doc?.extractions, file: file?.id ?? null,
+  const extractions = pick("extractions");
+  const value = { root, data, extractions, extractionsName: items.find((x) => x.id === extractions)?.name ?? null, previews: pick("previews"), set: !!doc?.extractions, file: file?.id ?? null,
     doc, folders: listed || [data || root], index, tags: tags || tagsOf(null), marks: doc?.marks && typeof doc.marks === "object" ? doc.marks : {},
     stage: typeof doc?.stage === "string" ? doc.stage : null, old: { index: oldIndex?.id ?? null, tags: oldTags?.id ?? null },
     group: typeof doc?.group === "string" ? doc.group : null, hide: Array.isArray(doc?.hide) ? doc.hide.filter((t) => typeof t === "string") : [] };
@@ -90,7 +92,7 @@ async function save({ reader, writer, root, change, guard = true }) {
   return read(reader, root, { fresh: true });
 }
 
-// The study's Extractions folder made where missing, shared to view by link, and the study file written naming it. by: who set it
+// The study's Analysis folder made where missing, shared to view by link, and the study file written naming it. by: who set it
 // up; at: when. Returns read()'s answer afresh.
 export async function setup({ reader, writer, root, by, at = new Date() }) {
   const was = await read(reader, root, { fresh: true });

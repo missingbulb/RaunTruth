@@ -21,12 +21,13 @@ export const RULES = {
 const BY_LINK = ["data", "previews", "extractions", "file"];
 const WRITES = ["owner", "organizer", "fileOrganizer", "writer"];
 const PERSON = ["user", "group"];
+const HANDS_IN = "hands in work";
 
 const WHY = {
   named: "Before Review the root is for the study's named people: anyone with a link could open its files.",
   link: "From Review on the study opens by its address, so its root is shared by link.",
   linked: "Visitors and the lab read it with no sign-in, so it is shared by link.",
-  writer: "In this stage people analyse images: someone must be able to add files to the Analysis Files folder.",
+  writer: "In this stage people analyse images: someone must be able to add files to the Analysis folder.",
   linkEdit: "Anyone with the link may edit it, which no stage allows; a link that only reads is offered once this is off.",
   unread: "This account may not read its sharing from here, so the page cannot check it.",
 };
@@ -55,8 +56,8 @@ export function corrections(stage, items, sharing) {
 }
 
 // Who holds which of the three shares, from the root's and the extractions folder's items: {members: [{email, name, holds}], link}.
-// holds, in order, "sees" (reads the root), "analyses" (writes the extractions folder), "manages" (writes the root); link whether the root
-// is shared by link
+// holds, in order, "sees" (reads the root), "hands in work" (writes the Analysis folder), "manages" (writes the root); link whether the
+// root is shared by link
 export function people(items) {
   const found = new Map(), root = items.find((i) => i.kind === "root"), extractions = items.find((i) => i.kind === "extractions");
   const hold = (perms, held, roles) => {
@@ -68,15 +69,17 @@ export function people(items) {
     }
   };
   hold(root?.perms, "root", (p) => [["sees", true], ["manages", WRITES.includes(p.role)]]);
-  hold(extractions?.perms, "extractions", (p) => [["analyses", WRITES.includes(p.role)]]);
-  const order = ["sees", "analyses", "manages"];
+  hold(extractions?.perms, "extractions", (p) => [[HANDS_IN, WRITES.includes(p.role)]]);
+  const order = ["sees", HANDS_IN, "manages"];
   return { members: [...found.values()].map((m) => ({ email: m.email, name: m.name, holds: order.filter((h) => m.held.has(h)) })).filter((m) => m.holds.length),
     link: !!root?.perms?.some((p) => p.type === "anyone") };
 }
 
+// c.then: the item whose link went with this one's, which the same Confirm then shares by link itself
 const CONFIRM = {
   share: (c) => `${c.label} will be shared with anyone with the link, to view.`,
-  unshare: (c) => c.edit ? `Anyone with the link will no longer edit ${c.label.toLowerCase()}; the people named on it keep their access.` : `Anyone with the link will no longer open ${c.label.toLowerCase()}; the people named on it keep their access.`,
+  unshare: (c) => (c.then ? CONFIRM.plain(c) + ` ${c.then.label} is read with no sign-in, so it will then be shared by link itself.` : CONFIRM.plain(c)),
+  plain: (c) => c.edit ? `Anyone with the link will no longer edit ${c.label.toLowerCase()}; the people named on it keep their access.` : `Anyone with the link will no longer open ${c.label.toLowerCase()}; the people named on it keep their access.`,
 };
 
 // ctx: what the shell lends it, named below where it is used
@@ -105,7 +108,7 @@ export function sharingPanel(ctx) {
     const spec = [{ kind: "root", id: top, label: "The study's root" },
       ...folders.map((id, k) => ({ kind: "data", id, label: `The "${names[k] || "data"}" folder` })),
       ...(s.previews ? [{ kind: "previews", id: s.previews, label: "The Previews folder" }] : []),
-      ...(s.extractions ? [{ kind: "extractions", id: s.extractions, label: "The Analysis Files folder" }] : []),
+      ...(s.extractions ? [{ kind: "extractions", id: s.extractions, label: "The Analysis folder" }] : []),
       ...(s.file ? [{ kind: "file", id: s.file, label: "The study file" }] : [])];
     const items = await Promise.all(spec.map(async (it) => ({ ...it, perms: await remote.permissions(it.id).catch((e) => { console.warn(`${it.label}'s sharing was not read:`, e); return null; }) })));
     return { stage: stageOf(s, manifest), items };
@@ -132,20 +135,28 @@ export function sharingPanel(ctx) {
     $("#sharing-title").textContent = `Sharing (${last.stage})`;
     const fixes = corrections(last.stage, last.items, remote.sharing);
     say(fixes.length ? `${fixes.length} thing${fixes.length === 1 ? "" : "s"} to change for this stage:` : "Sharing is as this stage needs.");
+    const shownHow = new Set([...list.querySelectorAll("details.sharing-how[open]")].map((d) => d.closest("[data-key]").dataset.key));
     list.replaceChildren(...fixes.map(card));
+    for (const d of list.querySelectorAll("details.sharing-how")) d.open = shownHow.has(d.closest("[data-key]").dataset.key);
     const { members, link } = people(last.items);
     const rootItem = last.items.find((i) => i.kind === "root"), gt = last.items.find((i) => i.kind === "extractions");
+    const others = members.filter((m) => m.holds.includes(HANDS_IN) && m.email !== account.email()).map((m) => m.email);
+    const hands = !gt ? null : others.length ? `${others.join(", ")} can hand in work.` : "Nobody but you can hand in work.";
     folks.replaceChildren(
       ...(link ? [h("li", { class: "people-link", text: "Anyone with the link reads the root." })] : []),
-      ...(members.length || link ? [] : [h("li", { class: "hint", text: "No one is named on the root or the Analysis Files folder." })]),
+      ...(members.length || link ? [] : [h("li", { class: "hint", text: "No one is named on the root or the Analysis folder." })]),
       ...members.map((m) => h("li", { "data-email": m.email }, h("span", { class: "who", text: m.name ? `${m.name} (${m.email})` : m.email }), " ",
         ...m.holds.map((x) => h("span", { class: "holds", text: x }))
           .flatMap((s) => [s, " "]))),
-      h("li", { class: "people-where" }, ...[[rootItem, "Root sharing"], [gt, "Analysis Files folder sharing"]].filter(([i]) => i).flatMap(([i, text]) =>
+      hands && h("li", { class: "people-hands", text: hands }),
+      h("li", { class: "people-where" }, ...[[rootItem, "Root sharing"], [gt, "Analysis folder sharing"]].filter(([i]) => i).flatMap(([i, text]) =>
         [h("a", { href: remote.sharing.link("folder", i.id), target: "_blank", rel: "noopener", text }), " "])));
   }
 
+  // the study file, where taking the link off the root is what the correction asks: its own link is then made in the same press
+  const follows = (c) => (c.kind === "root" && c.how === "unshare" && !c.edit ? last?.items.find((i) => i.kind === "file") || null : null);
   function card(c) {
+    c.then = follows(c);
     const [src, alt] = remote.sharing.pictures[c.picture] || [];
     const fixable = c.how !== "ask" && !refused.has(c.key);
     const actions = h("div", { class: "sharing-actions" });
@@ -174,7 +185,16 @@ export function sharingPanel(ctx) {
   async function fix(c) {
     confirming = null;
     try {
-      await work.during(c.how === "share" ? sd.share(c.id) : sd.unshare(c.id, c.permission), "an item's sharing changed");
+      await work.during(calls.saving("store", "Changed the sharing, as the correction said.", async () => {
+        await (c.how === "share" ? sd.share(c.id) : sd.unshare(c.id, c.permission));
+        // the item that was read through this one's link gets its own, where it has none; refused, the first change stands and the
+        // check that follows shows its correction
+        if (!c.then) return;
+        try {
+          const perms = await remote.permissions(c.then.id);
+          if (!perms.some((p) => p.type === "anyone")) await sd.share(c.then.id);
+        } catch (e) { console.warn(`${c.then.label} was not shared by link:`, e); }
+      }), "an item's sharing changed");
     } catch (e) {
       if (e.status === 403 || e.status === 404) refused.add(c.key);
       else { draw(); say(e.message || String(e), true); return; }
@@ -182,7 +202,12 @@ export function sharingPanel(ctx) {
     return check();
   }
 
-  $("#sharing-recheck").onclick = () => check();
+  $("#sharing-recheck").onclick = async () => {
+    await check();
+    if (!last) return;
+    const n = corrections(last.stage, last.items, remote.sharing).length;
+    ctx.status(n ? `Checked the study's sharing: ${n} thing${n === 1 ? "" : "s"} to change.` : "Checked the study's sharing: it is as this stage needs.");
+  };
   addEventListener(CONNECTION, (e) => { if (e.detail.online && shownOn && !last) check(); });
 
   return {

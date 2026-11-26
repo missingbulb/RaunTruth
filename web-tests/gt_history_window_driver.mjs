@@ -4,6 +4,7 @@
 // long list drawn by what is in view, a hover's ring and a click's pan, its switch, Clear all history and a draft whose
 // history did not replay. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_window_driver.mjs ANSWERS STUDIES ROOT
+import { atRest } from "./page_motions.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
@@ -18,6 +19,10 @@ const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sha = createHash("sha256").update(png.bytes).digest("hex");
 const { openImage, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
+// the window opened by its button, for a page that goes on to look at it
+const shown = async (page) => { if (await page.isHidden("#edit-history")) await page.click("#history-btn"); };
+// hidden, once its drawing in has ended
+const hiddenNow = async () => { await atRest(page, "#edit-history"); return page.isHidden("#edit-history"); };
 
 const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list > li")].map((li) => ({ cls: li.className, text: li.querySelector(".what")?.textContent ?? li.textContent, when: li.querySelector(".when")?.textContent ?? "", go: li.dataset.go ?? null })));
 const real = (rows) => rows.filter((r) => !/\b(day|spacer)\b/.test(r.cls));
@@ -37,17 +42,24 @@ const loaded = async (page) => { await until(page, () => !$("#gt-offers").hidden
 // where it floats and how big it is
 let page = await open(true);
 await openImage(page);
-await check(await page.isHidden("#edit-history") && await page.isHidden("#history-btn"), "before an analysis starts there is no run: the window is not shown, nor its button");
+await check(await hiddenNow() && await page.isHidden("#history-btn"), "before an analysis starts there is no run: the window is not shown, nor its button");
 await fromScratch(page, "#fx-count");
 await counted(page);
 await settle(page);
-await check(await page.isVisible("#edit-history"), "once the image has a run it is shown");
-const [saveBtn, submitBtn] = [await box(page, "#gt-save-draft"), await box(page, "#gt-submit")];
+await check(await hiddenNow() && await page.isVisible("#history-btn") && await page.getAttribute("#history-btn", "aria-pressed") === "false",
+  "once the image has a run its button shows, up, and the window stays closed until it is pressed");
+await page.click("#history-btn");
+await check(await page.isVisible("#edit-history"), "pressed, the window shows");
+// both in one look: the row moves while the bar's parts fold, and two looks apart would differ by its motion
+const [saveBtn, submitBtn] = await page.evaluate(() => ["#gt-save-draft", "#gt-submit"].map((s) => {
+  const r = document.querySelector(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height };
+}));
 await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Save, each on one line", { saveBtn, submitBtn });
 const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
   return { right: v.r - w.r, bottom: v.b - w.b, w: w.w, h: w.h, expectW: vars * 1.4, expectH: Math.min((vars + 24) * 2.5, v.b - v.t - 24) };
 };
+await atRest(page, "#edit-history");
 let g = await geo();
 await check(g.right === 12 && g.bottom === 12 && Math.abs(g.w - g.expectW) < 0.5 && Math.abs(g.h - g.expectH) < 0.5 && g.h === 560, "it floats at the image's bottom right, 12 px in, 1.4 times the minimap's width and 2.5 times its height", g);
 await page.setViewportSize({ width: 1400, height: 520 });
@@ -100,6 +112,7 @@ await page.context().close();
 // runs of one type fold into one row, unfolded by its chevron; Undo still takes one action
 page = await open(true);
 await tagger(page);
+await shown(page);
 await counted(page);
 await moved(page, "m1", 12, 12); await moved(page, "m2", 10, 10); await moved(page, "m1", -6, -6);
 rows = real(await rowsOf(page));
@@ -119,6 +132,7 @@ await page.context().close();
 // a draft from yesterday: a day rule, and a fold's span of time
 const old = [...head(yesterday(12, 0)), ...[0, 5, 10, 20].map((m, k) => ({ type: "move-mark", at: yesterday(12, m + 1), mark: "m1", to: [30 + k, 30] })), { type: "check", at: yesterday(12, 40), on: true }];
 page = await openKept({ drafts: [draft(old)] });
+await shown(page);
 await loaded(page);
 rows = await rowsOf(page);
 const fold = rows.find((r) => /Moved 4 marks/.test(r.text));
@@ -133,6 +147,7 @@ await page.context().close();
 const long = [...head(yesterday(8, 0))];
 for (let k = 0; k < 1500; k++) long.push(k % 2 ? { type: "check", at: yesterday(9, Math.floor(k / 60), k % 60), on: k % 4 === 1 } : { type: "move-mark", at: yesterday(9, Math.floor(k / 60), k % 60), mark: "m1", to: [20 + (k % 50), 20] });
 page = await openKept({ drafts: [draft(long)] });
+await shown(page);
 await loaded(page);
 const drawn = () => page.evaluate(() => ({ li: document.querySelectorAll("#eh-list > li").length, here: !!document.querySelector("#eh-list > li.here"), top: document.querySelector("#eh-list").scrollTop }));
 let d = await drawn();
@@ -150,11 +165,13 @@ await page.context().close();
 // hovering a row rings its item; a click pans there when it is out of view
 page = await open(true);
 await tagger(page);
+await shown(page);
 await counted(page);
 await moved(page, "m2", 4, 4);
 const m2 = (await model(page)).marks.find((m) => m.id === "m2");
 const ringBox = () => page.evaluate(() => document.querySelector('#overlay g[data-layer="ring"]')?.dataset.box ?? null);
-const hover = async (text) => { const r = await page.evaluate((t) => { const b = [...document.querySelectorAll("#eh-list > li")].find((li) => li.textContent.includes(t)).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, text); await page.mouse.move(r[0], r[1]); };
+// a row is where it will stay once the window has drawn out
+const hover = async (text) => { await atRest(page, "#edit-history"); const r = await page.evaluate((t) => { const b = [...document.querySelectorAll("#eh-list > li")].find((li) => li.textContent.includes(t)).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, text); await page.mouse.move(r[0], r[1]); };
 await hover("Moved mark m2");
 await until(page, () => !!document.querySelector('#overlay g[data-layer="ring"]'));
 await check((await ringBox()) === [m2.x - 3, m2.y - 3, m2.x + 3, m2.y + 3].join(","), "hovering a row rings its item on the image, in the image's pixels, as the study's where says", await ringBox());
@@ -186,32 +203,35 @@ await until(page, () => { const s = document.querySelector("#scroller"), b = doc
 await check(true, "a click on its row pans to it");
 await page.context().close();
 
-// the switch, a button in the toolbar beside the minimap's: pressed while the window shows; pressing it hides the window and is
-// remembered; ✕ hides it and lets the button up
+// the switch, a button in the toolbar beside the minimap's: pressed while the window shows; pressing it hides the window; the choice
+// lasts the visit, in the tab's own storage; ✕ hides it and lets the button up
 page = await open(true);
 await tagger(page);
 await counted(page);
 const pressed = () => page.getAttribute("#history-btn", "aria-pressed");
+await check(await hiddenNow() && await pressed() === "false", "a page opened afresh has the window closed and the button up");
+await page.click("#history-btn");
 const place = await page.evaluate(() => ({ toolbar: !!$("#history-btn").closest("#view > .toolbar"), tool: $("#history-btn").classList.contains("tool"), icon: !!$("#history-btn svg") && !$("#history-btn").textContent.replace(/[123\s]/g, ""),
   afterMinimap: !!($("#minimap-btn").compareDocumentPosition($("#history-btn")) & Node.DOCUMENT_POSITION_FOLLOWING), box: !!document.querySelector("#left input[type=checkbox]#gt-history-on") }));
-await check(place.toolbar && place.tool && place.icon && place.afterMinimap && !place.box && await pressed() === "true",
+await check(place.toolbar && place.tool && place.icon && place.afterMinimap && !place.box && await page.isVisible("#edit-history") && await pressed() === "true",
   "Edit History's switch is an icon button among the toolbar's tools, after the minimap's, pressed while the window shows; the left bar has no checkbox for it", place);
+const kept = await page.evaluate(() => [sessionStorage.getItem("nor-gt-history"), localStorage.getItem("nor-gt-history")]);
+await check(kept[0] === "on" && kept[1] === null, "the choice is kept for the visit, in the tab's storage, and not on the device", kept);
+await page.reload(); // visits again on purpose (a reload is the subject): the choice is the visit's, kept by the tab across a reload
+await tagger(page);
+await counted(page);
+await check(await page.isVisible("#edit-history") && await pressed() === "true", "the page loaded again in the same tab shows it still");
 await page.click("#history-btn");
-const off = await page.evaluate(() => localStorage.getItem("nor-gt-history"));
-await check(await page.isHidden("#edit-history") && off === '"off"' && await pressed() === "false", "pressed again it hides the window, lets the button up, and is kept in the browser", off);
-await page.context().close();
-page = await openKept({ seed: { "nor-gt-history": off } });
-await page.evaluate(() => $("#fx-count").click()); await until(page, () => !!window.fixture.model());
-await check(await page.isHidden("#edit-history") && await pressed() === "false", "a page opened with it kept off opens with the window hidden and the button up");
+await check(await hiddenNow() && await pressed() === "false", "pressed again it hides the window and lets the button up");
 await page.click("#history-btn");
-await check(await page.isVisible("#edit-history") && await pressed() === "true", "pressed, the window shows");
 await page.click("#eh-close");
-await check(await page.isHidden("#edit-history") && await pressed() === "false" && (await page.evaluate(() => localStorage.getItem("nor-gt-history"))) === '"off"', "its ✕ hides it, lets the button up and is remembered");
+await check(await hiddenNow() && await pressed() === "false", "its ✕ hides it and lets the button up");
 await page.context().close();
 
 // Clear all history: asks, naming the image, forgets the draft and goes back to the run
 page = await open(true);
 await tagger(page);
+await shown(page);
 await counted(page);
 const runOf = await marks(page);
 await moved(page, "m1", 12, 12);
@@ -229,6 +249,7 @@ await page.context().close();
 const carried = [...head(yesterday(12, 0)), { type: "move-mark", at: yesterday(12, 1), mark: "m2", to: [61, 38] },
   { type: "run", at: yesterday(12, 2), algorithm: { key: "fixture", params: { threshold: 200 } }, output: { threshold: 200, count: 150, spots: [[27, 27]] } }];
 page = await openKept({ drafts: [draft(carried)] });
+await shown(page);
 await loaded(page);
 rows = real(await rowsOf(page));
 await check(rows.some((r) => /skipped/.test(r.cls) && /Moved mark m2 \(didn't carry over\)/.test(r.text)) && (await model(page)).marks.length === 1, "an action a later run could not carry over is greyed", rows);
@@ -237,6 +258,7 @@ await page.context().close();
 // a draft whose history does not replay to its model: the stored model wins, the earlier rows are greyed
 const log = [...head(yesterday(12, 0)), { type: "move-mark", at: yesterday(12, 1), mark: "m1", to: [30, 30] }];
 page = await openKept({ drafts: [draft(log, { labels: [{ threshold: 99, count: 7 }], marks: [{ id: "m1", x: 1, y: 2 }], checked: true })] });
+await shown(page);
 await loaded(page);
 await until(page, () => /did not replay/.test($("#status").textContent));
 rows = await rowsOf(page);

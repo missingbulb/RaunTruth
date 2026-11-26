@@ -14,7 +14,7 @@ export const LOCAL_RECENT = "nor-local-recent"; // [{id, name, study, at}], newe
 const FILE_HANDLES = "nor-file-handles-v1"; // the IndexedDB database of those references
 
 export function loadBox(shell) {
-  const { $, readJSON, page, st, peek, status, signIn, restudy, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds } = shell;
+  const { $, readJSON, page, st, peek, status, signIn, restudyHeld, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds } = shell;
   // what the file says about the image ([label, text] rows); null clears it
   // the details (req/shell/image/file-info): the fields pinned, then every other field the file carries, folded
   function fileInfo(rows, more = []) {
@@ -90,7 +90,7 @@ export function loadBox(shell) {
   $("#unload").onclick = () => {
     if (!st.img || loadHolder().classList.contains("working") || !shell.gtSession.leaving("unload it")) return;
     // the link goes with the image: the keyboard it held is handed to the box's Load
-    restudy(false).then(() => { if (document.activeElement === document.body) $("#load-main").focus({ preventScroll: true }); });
+    restudyHeld(false).then(() => { if (document.activeElement === document.body) $("#load-main").focus({ preventScroll: true }); });
   };
 
   // the selector is what the recent-files tip asks the user to open; opened, its selected image has the focus, so

@@ -1,7 +1,7 @@
 // Checks req/shell/browsers/supported, req/shell/report/bug and req/shell/report/action-log: which browsers the page tells
 // apart and supports, from a table of user-agent strings; then drives the page (web/) in a headless browser, with a worker
 // that never answers: no icon in a supported browser; in an unsupported one a warning icon in the status bar saying
-// why, which opens a new GitHub issue on the bug-report form filled in with the browser, the page's state and the
+// why, which says where the report goes and then opens a new GitHub issue on the bug-report form filled in with the browser, the page's state and the
 // last five actions; Report a problem in the avatar's menu opening the same; the actions kept on this device,
 // listed in Settings and cleared there; an error the page meets kept apart from the actions; and no image's name
 // reaching the log or the report. Exits 1 on a failed check, 2 when it cannot run.
@@ -14,6 +14,7 @@ import { watchReads, readsDone } from "./page_reads.mjs";
 import { pw, launch, expecting } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
+import { githubIssues } from "./fakes/github_issues.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { identify, verdict } = await import(pathToFileURL(path.join(repo, "web", "browsers.js")).href);
@@ -65,11 +66,11 @@ const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 
 // a page in a browser saying it is `ua` (the engine's own when null), with one image from Drive among the recents;
 // window.open records the address it is given; seed: browser keys kept before the page opens
-async function open(ua, seed = {}) {
+async function open(ua, seed = {}, { stubbed = true } = {}) {
   const device = w.device().with(ua ? { userAgent: ua } : {})
     .keeps({ "nor-drive-recent": JSON.stringify([{ id: "d1", name: SECRET, path: ["Lab"], study: "fixture" }]), ...seed });
   const ctx = await device.context();
-  await ctx.addInitScript(() => { window.open = (url) => { window.opened = url; return null; }; });
+  if (stubbed) await ctx.addInitScript(() => { window.open = (url) => { window.opened = url; return null; }; });
   // whether the page supports this browser waits on browsers.json, which a supported one shows nothing of
   await watchReads(ctx, ["browsers.json"]);
   // the device opens the fixture on this tab, heard from the start
@@ -80,6 +81,8 @@ async function open(ua, seed = {}) {
   return { ctx, page };
 }
 const kept = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("nor-actions")) || []);
+// the report's line read and gone on from: Continue
+const goOn = async (page) => { await page.waitForFunction(() => $("#report-dlg").open); await page.click("#report-go"); };
 const issue = async (page) => { const u = new URL(await page.evaluate(() => window.opened)); return Object.fromEntries(u.searchParams); };
 
 // the status bar's report icon: shown, at the bar's right, its look and words
@@ -93,8 +96,16 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await check(icon.shown && icon.right && !icon.warns && icon.label === "Report a problem" && /GitHub issue/.test(icon.title),
     `in a supported browser the status bar's right side shows the plain report icon: "${icon.title}"`);
   await page.click("#sb-report");
+  await page.waitForFunction(() => $("#report-dlg").open);
+  const says = await page.evaluate(() => ({ words: $("#report-dlg").textContent, opened: window.opened ?? null, actions: [...$("#report-dlg").querySelectorAll("button")].map((b) => b.textContent).join() }));
+  await check(/public/.test(says.words) && /GitHub account/.test(says.words) && says.opened === null && says.actions === "Cancel,Continue",
+    "pressed, it first says the report is a public GitHub issue needing a GitHub account, with Cancel and Continue, nothing opened yet", says);
+  await page.click("#report-cancel");
+  await check(await page.evaluate(() => !$("#report-dlg").open && (window.opened ?? null) === null), "Cancel closes it and opens nothing");
+  await page.click("#sb-report");
+  await goOn(page);
   const q = await issue(page);
-  await check(q.template === "bug-report.yml" && q.title === "Problem: " && !/not supported/.test(q.browser), `it opens a new issue on the bug-report form titled "${q.title}": ${q.browser}`);
+  await check(q.template === "bug-report.yml" && q.title === "Problem: " && !/not supported/.test(q.browser), `Continue opens a new issue on the bug-report form titled "${q.title}": ${q.browser}`);
   await ctx.close();
 }
 
@@ -121,6 +132,7 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
     await page.waitForFunction(() => (JSON.parse(localStorage.getItem("nor-actions")) || []).some((e) => /thrown-for-the-test/.test(e.text)));
   });
   await page.click("#sb-report");
+  await goOn(page);
   const q = await issue(page);
   await check(q.template === "bug-report.yml" && q.title === "Unsupported browser: ", `the icon opens a new issue on the bug-report form: ${q.template}, "${q.title}"`);
   await check(/^Opera 120 on Windows, not supported \(Mozilla/.test(q.browser), `it names the browser: ${q.browser}`);
@@ -139,6 +151,7 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   ({ ctx, page } = await open(UA.opera, { "nor-actions": JSON.stringify(log) }));
   await page.click("#user-menu summary");
   await page.click("#report-problem");
+  await goOn(page);
   const again = await issue(page);
   await check(again.title === "Unsupported browser: " && /Clicked “Report a problem…”$/.test(again.actions.split("\n").at(-1)) && /Clicked “Unsupported browser”/.test(again.actions),
     "a page opened with the log kept still has the actions, and Report a problem in the avatar's menu opens the same report");
@@ -159,8 +172,24 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   const { ctx, page } = await open(UA.chrome);
   await page.click("#user-menu summary");
   await page.click("#report-problem");
+  await goOn(page);
   const q = await issue(page);
   await check(q.title === "Problem: " && !/not supported/.test(q.browser), `in a supported browser the menu opens a report titled "${q.title}": ${q.browser}`);
+  await ctx.close();
+}
+
+// ---- the report as it leaves the page: a new tab on GitHub's new-issue form, here its stand-in, carrying what the page filled in ----
+{
+  const { ctx, page } = await open(UA.chrome, {}, { stubbed: false });
+  await page.click("#sb-report");
+  const tab = ctx.waitForEvent("page");
+  await goOn(page);
+  const form = await tab;
+  await form.waitForSelector('[data-field="title"]');
+  const sent = githubIssues(ctx).opened;
+  await check(sent.length === 1 && sent[0].template === "bug-report.yml" && /\//.test(sent[0].repo) && (await form.textContent('[data-field="title"]')) === "Problem: "
+    && (await form.textContent('[data-field="actions"]')).includes("Clicked “Report a problem”"),
+    "Continue opens one new tab on the repo's new-issue form, filled in with the title and the last actions", sent.map((o) => [o.repo, o.template, o.title]));
   await ctx.close();
 }
 await done(failed ? 1 : 0);

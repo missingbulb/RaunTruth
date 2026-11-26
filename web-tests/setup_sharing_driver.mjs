@@ -63,7 +63,7 @@ study.private();
 await recheck(page);
 s = await shown(page);
 await check(s.corrections.length === 2 && /study file/i.test(s.corrections[1].item) && s.corrections[1].where === `https://drive.google.com/file/d/${study.id}/view?usp=sharing`
-  && /Analysis Files/.test(s.corrections[0].item) && !s.corrections[0].fix && s.corrections[0].where === link(GT.extractions),
+  && /Analysis folder/.test(s.corrections[0].item) && !s.corrections[0].fix && s.corrections[0].where === link(GT.extractions),
   "an unreadable study file and an extractions folder no one may write: each its correction, the extractions one with no Fix", s);
 await page.context().close();
 
@@ -81,8 +81,10 @@ await settled(page);
 const people = await page.evaluate(() => ({
   rows: Object.fromEntries([...document.querySelectorAll("#people-list [data-email]")].map((li) => [li.dataset.email, [...li.querySelectorAll(".holds")].map((x) => x.textContent)])),
   links: [...document.querySelectorAll("#people-list a")].map((a) => a.href) }));
-await check(JSON.stringify(Object.entries(people.rows).sort()) === JSON.stringify([[EMAIL, ["sees", "manages"]], [Y, ["sees", "analyses"]], [Z, ["sees"]]].sort()),
-  "People lists each member with the shares they hold: sees, analyses, manages", people.rows);
+await check(JSON.stringify(Object.entries(people.rows).sort()) === JSON.stringify([[EMAIL, ["sees", "manages"]], [Y, ["sees", "hands in work"]], [Z, ["sees"]]].sort()),
+  "People lists each member with the shares they hold: sees, hands in work, manages", people.rows);
+const hands = await page.textContent("#people-list .people-hands");
+await check(hands === `${Y} can hand in work.`, "and says who can hand in work", hands);
 await check(people.links.includes(link(ROOT)) && people.links.includes(link(GT.extractions)), "and links to the sharing dialog of the root and of the extractions folder", people.links);
 
 // the promotion to Review with the root still members-only: the correction appears; the share seeded and Check again pressed, it clears
@@ -129,13 +131,35 @@ await check(JSON.stringify(drive.unshared) === JSON.stringify([["Study folder on
 await check(s.corrections.length === 0, "and the correction clears", s);
 await page.context().close();
 
+// a study file with no link of its own would lose the root's: the root's confirmation says so, and the one Confirm shares it by link too
+seed({ root: "link" }); study.sharedAsItsFolder();
+page = await open(true, { setup: true });
+await aspect(page, "people"); await aspect(page, "people"); await settled(page);
+const both = await checks(page), wroteBefore = permissionWrites().length;
+await page.click("#sharing-corrections .sharing-fix");
+const foretold = await page.textContent("#sharing-corrections .sharing-confirm p");
+await check(/study file/i.test(foretold) && /shared by link/i.test(foretold), "the root's confirmation says the study file will then be shared by link itself", foretold);
+await page.click("#sharing-corrections .sharing-confirm-go");
+await settled(page, both);
+s = await shown(page);
+await check(JSON.stringify(permissionWrites().slice(wroteBefore)) === JSON.stringify([["unshare", "Study folder one"], ["share", "rauntruth-study.json"]]),
+  "the one Confirm takes the link off the root and shares the study file by link", permissionWrites().slice(wroteBefore));
+await check(s.corrections.length === 0, "and nothing is left to change", s);
+await page.context().close();
+
+// no named person may write the Analysis folder but the one signed in: People says so
+page = await opened({ writers: [] });
+const alone = await page.textContent("#people-list .people-hands");
+await check(alone === "Nobody but you can hand in work.", "with no one else named on the Analysis folder, People says nobody but you can hand in work", alone);
+await page.context().close();
+
 // anyone with the link may edit the extractions folder: a correction taking that off, not a writer; Fix removes that one permission, then a link that reads is offered
 page = await opened({ writers: [EMAIL] });
 extractions.public();
 drive.linkEdit.add(GT.extractions);
 await recheck(page);
 s = await shown(page);
-await check(s.corrections.length === 1 && /Analysis Files/.test(s.corrections[0].item) && s.corrections[0].change === "Take off the link's edit access" && s.corrections[0].fix,
+await check(s.corrections.length === 1 && /Analysis folder/.test(s.corrections[0].item) && s.corrections[0].change === "Take off the link's edit access" && s.corrections[0].fix,
   "anyone with the link may edit the extractions folder: one correction, with a Fix", s);
 const q = await checks(page), wrote = permissionWrites().length;
 await page.click("#sharing-corrections .sharing-fix");
@@ -166,7 +190,10 @@ await check(s.corrections.length === 2 && /root/i.test(root.item) && !root.fix &
   "Drive refusing the change: the root's correction drops its Fix, keeps its link and pictures and says to change it there", root);
 await check(previews.fix && previews.refused === null, "the other correction keeps its Fix", previews);
 await check(permissionWrites().length === before, "and nothing was changed", permissionWrites());
+await page.evaluate(() => { document.querySelector("#sharing-corrections details.sharing-how").open = true; });
 await recheck(page);
 s = await shown(page);
 await check(!s.corrections[0].fix && /change it/i.test(s.corrections[0].refused ?? ""), "Check again keeps the refused correction without its Fix", s.corrections[0]);
+const again = await page.evaluate(() => ({ how: document.querySelector("#sharing-corrections details.sharing-how").open, status: document.querySelector("#status").textContent }));
+await check(again.how && /^Checked the study's sharing: 2 things to change\.$/.test(again.status), "Check again leaves an opened Show how open, and the status line says the check ran and what it found", again);
 await done(0);

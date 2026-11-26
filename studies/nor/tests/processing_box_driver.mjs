@@ -34,51 +34,37 @@ const page = await (await device.context()).newPage();
 page.on("pageerror", (e) => problems.push("page error: " + e.message));
 try {
   await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
-  // the list's numbers arrive with the study's measured quality
-  await page.waitForFunction(() => /\(P\s/.test(document.querySelector("#algorithm").options[0].textContent));
-  // how the chosen algorithm works is in the Start dialog, under the list, with nothing to unfold
-  const about = await page.evaluate(() => ({ inDialog: !!document.querySelector("#start-dlg #algorithm-note"), fold: !!document.querySelector("#start-dlg details") }));
-  console.log("about", JSON.stringify(about));
-  if (!about.inDialog || about.fold) problems.push("how the algorithm works is not in the Start dialog, plain under the list");
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   // the algorithm gives a list of NoRs and nothing else: no setting, filter or preset anywhere on the page
   const controls = await page.evaluate(() => ["#settings-box", "#filters-fold", "#filters", "#presets", "#main-params", "#detect-params", "#reset-detect"]
     .filter((id) => document.querySelector(id)));
   console.log("controls", JSON.stringify(controls));
   if (controls.length) problems.push(`the page still has the algorithm's controls: ${controls.join(", ")}`);
 
-  const options = await page.evaluate(() => [...document.querySelector("#algorithm").options].map((o) => [o.value, o.textContent]));
-  console.log("options", JSON.stringify(options));
-  if (options.length !== Object.keys(LISTED).length) problems.push(`the list shows ${options.length} of ${Object.keys(LISTED).length} finders`);
-  let nested = 0;
-  for (const [k, text] of options) {
-    const icon = LISTED[k].icon;
-    if (!icon || !text.startsWith(icon + " " + LISTED[k].title)) problems.push(`${k} in the list does not start with its icon: ${text}`);
-    // the dialog is shut until an image opens and Start is pressed, so the choice is made as the list would make it
-    await page.evaluate((k) => { const s = document.querySelector("#algorithm"); s.value = k; s.dispatchEvent(new Event("change")); }, k);
-    await orMissed(page.waitForFunction((n) => document.querySelector("#algorithm-about").textContent.includes(n) && document.querySelector("#algorithm-note strong"), LISTED[k].title));
-    const note = await page.evaluate(() => {
-      const n = document.querySelector("#algorithm-note"), sel = document.querySelector("#algorithm");
-      return {
-        title: document.querySelector("#algorithm-about").textContent, nested: !!n.querySelector("li > ul > li, li > ol > li"),
-        text: n.textContent, strong: n.querySelector("strong")?.textContent, line: n.querySelector("strong")?.parentElement.textContent, raw: /(^|\n)\s*- /.test(n.innerText), option: sel.selectedOptions[0].textContent,
-      };
-    });
-    console.log(k, JSON.stringify(note));
-    if (note.nested) nested++;
-    if (note.title !== `How the ${LISTED[k].title} algorithm works`) problems.push(`${k}: the note's title does not name the algorithm: ${note.title}`);
-    if (note.raw) problems.push(`${k}: the note shows its list's markup instead of a list`);
-    // the bold line gives the finder as the page runs it, as the list does, and what it was measured on; its note follows, not bold
-    const def = QUALITY.versions[k];
-    const [, lp, lr] = note.option.match(/\(P\s(\.\d+)\s·\sR\s(\.\d+)\)/) || [];
-    if (+lp !== +def.precision.toFixed(2) || +lr !== +def.recall.toFixed(2)) problems.push(`${k}: the list's ${lp}, ${lr} are not its default's ${def.precision}, ${def.recall}`);
-    const name = LISTED[k].title[0].toUpperCase() + LISTED[k].title.slice(1);
-    const bold = `${name} algorithm shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} ${QUALITY.measured}`;
-    const plain = `(${def.note})`;
-    if (note.strong !== bold) problems.push(`${k}: the bold line reads "${note.strong}", not "${bold}"`);
-    if (!note.line || note.line.replace(/\s+/g, " ") !== `${bold} ${plain}`) problems.push(`${k}: the numbers' line reads "${note.line}", not "${bold} ${plain}"`);
-  }
-  if (!nested) problems.push("no finder's note draws a step with steps of its own");
+  // the page offers no choice of finder: no list of them anywhere, before an image or after
+  const lists = await page.evaluate(() => document.querySelectorAll("#algorithm, select[aria-label=Algorithm]").length);
+  if (lists) problems.push(`the page lists ${lists} options, where it offers no choice of algorithm`);
+  // how the default finder works is a fold of the Analysis box, as the shell draws it once the study's list is read
+  const k = Object.values(LISTED).find((a) => a.default === true)?.key;
+  if (!k) problems.push("the study's list marks no default");
+  await orMissed(page.waitForFunction(() => !!document.querySelector("#algorithm-note strong")));
+  const note = await page.evaluate(() => {
+    const n = document.querySelector("#algorithm-note"), fold = document.querySelector("#algorithm-pick");
+    return {
+      title: fold.querySelector(":scope > summary").textContent, inBox: !!document.querySelector("#processing-box #algorithm-pick"), nested: !!n.querySelector("li > ul > li, li > ol > li"),
+      text: n.textContent, strong: n.querySelector("strong")?.textContent, line: n.querySelector("strong")?.parentElement.textContent, raw: /(^|\n)\s*- /.test(n.textContent),
+    };
+  });
+  console.log(k, JSON.stringify(note));
+  if (note.title !== "How the analysis works" || !note.inBox) problems.push(`the fold is not How the analysis works, in the Analysis box: ${note.title}`);
+  if (!note.nested) problems.push("the default finder's note draws no step with steps of its own");
+  if (note.raw) problems.push("the note shows its list's markup instead of a list");
+  // the bold line gives the finder as the page runs it and what it was measured on; its note follows, not bold
+  const def = QUALITY.versions[k];
+  const bold = `It shows precision of ${def.precision.toFixed(2)} and recall of ${def.recall.toFixed(2)} ${QUALITY.measured}`;
+  const plain = `(${def.note})`;
+  if (note.strong !== bold) problems.push(`the bold line reads "${note.strong}", not "${bold}"`);
+  if (!note.line || note.line.replace(/\s+/g, " ") !== `${bold} ${plain}`) problems.push(`the numbers' line reads "${note.line}", not "${bold} ${plain}"`);
 } catch (e) {
   problems.push(e.stack || String(e));
 }

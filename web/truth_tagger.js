@@ -8,8 +8,8 @@ import { asLoaded } from "./as_loaded.js";
 const SAY = {
   signedout: "You are not signed in, so nothing here can be saved to the study. Sign in to save; you can download your work meanwhile.",
   nosave: "You may not save to this study. Ask the study owner for access; you can download your work meanwhile.",
-  unset: "This study has not set up its Analysis Files folder yet, so nothing can be uploaded to it.",
-  view: "View only: the store lets you only view the study's Analysis Files folder. Ask its owner for edit access.",
+  unset: "This study has not set up its Analysis folder yet, so nothing can be uploaded to it.",
+  view: "View only: the store lets you only view the study's Analysis folder. Ask its owner for edit access.",
   unpermitted: "No permission: you did not let this site add files for you. Sign out, then sign in again and tick that box.",
   unknown: "Your sign-in ran out. Sign in again to save.",
 };

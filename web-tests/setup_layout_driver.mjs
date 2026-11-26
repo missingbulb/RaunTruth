@@ -8,6 +8,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
 import { held } from "./held.mjs";
+import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const { drive, open, check, done } = await standIn({ answers, studies, rootDir });
@@ -52,7 +53,7 @@ const layout = await page.evaluate(() => ({
   rail: [...document.querySelectorAll("#setup-rail button")].map((b) => [b.textContent.trim(), b.getAttribute("aria-pressed")]),
   stages: [...document.querySelectorAll("#stage-steps > li")].map((li) => [li.dataset.stage, li.dataset.state, li.getAttribute("aria-current")]),
 }));
-await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,Literature,People,Run on all images,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false,false",
+await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,Literature,People,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false",
   "the rail lists the study's aspects, Images chosen", layout.rail);
 await check(layout.stages.map((s) => s[0]).join() === "Setup,Develop,Analyze,Review,Public" && layout.stages.filter((s) => s[2] === "step").length === 1,
   "the five stages run across the top, one of them the current", layout.stages);
@@ -62,9 +63,13 @@ const acts = await page.evaluate(() => [...document.querySelectorAll("#stage-ste
 await check(acts.filter(Boolean).length === (at > 0 ? 1 : 0) + (at < 4 ? 1 : 0) && (at === 4 || /^Promote to /.test(acts[at + 1])) && (at === 0 || /^Move back to /.test(acts[at - 1])),
   "promoting is the next stage's action and moving back the one before's", acts);
 for (const sel of ["#view", "#left", "#image-box", ".toolbar"]) await check(!(await seen(page, sel)), `nothing of the viewer or the left bar is on show: ${sel}`);
-await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-box")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
+await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-bar")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
 await shot(page, "1-opens");
-if (shots && at < 4) { await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0); }
+if (shots && at < 4) {
+  await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0);
+  await page.click("#stage-up"); await page.waitForFunction(() => document.querySelector("#stage-change-dlg, #stage-freeze-dlg[open]")?.open || document.querySelector("#stage-freeze-dlg").open);
+  await shot(page, "1-promote-asked"); await page.keyboard.press("Escape");
+}
 
 // a folder chosen: its place emptied and marked loading while the store is read, the call in the status bar
 const [top, sub] = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder")].map((f) => f.dataset.id));
@@ -97,8 +102,19 @@ await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (aw
   await w.asked;
   const saving = await chip(page);
   await check(/^Saving to Google Drive/.test(saving?.text || ""), "while a tag is written the status bar says Saving to the store", saving);
+  await check(!/^Saved the tag/.test(await page.textContent("#status")), "while the store still holds the write, the status line does not say the tag is saved", await page.textContent("#status"));
   drive.hold = () => null; w.release();
   await idle(page);
+  await check(await page.textContent("#status") === "Saved the tag acme-tag to the study.", "once the write is taken the status line says the tag, as it was kept, is saved to the study", await page.textContent("#status"));
+  const onTiles = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell")].map((c) => [...c.querySelectorAll(".tag-chip.inherited")].map((t) => t.textContent).join()));
+  await check(onTiles.length === 1 && onTiles[0] === "acme-tag", "and the folder's images show it at once, with no reading of the folder again", onTiles);
+  await shot(page, "6-tag-saved");
+  // a write the store refuses is said not to be saved
+  drive.outage = "writes";
+  await page.fill("#tags-add", "acme-refused");
+  await expecting(/./, async () => { await page.click("#tags-add-go"); await idle(page); }, { maybe: true });
+  await check(/^Not saved to Google Drive: /.test(await page.textContent("#status")), "a write the store refuses is said not to be saved", await page.textContent("#status"));
+  drive.outage = null;
 }
 
 // a late answer: the folder chosen since keeps the place
@@ -119,8 +135,11 @@ await check((await cells(page)).join() === first.join() && late.title !== "sub" 
 await shot(page, "3-folder");
 
 // an image chosen: beside the grid, and in a dialog on Open image…
+const openSays = () => page.evaluate(() => $("#image-open").title);
+await check(/choose one image/i.test(await openSays()), "with no image chosen, Open image… says to choose one", await openSays());
 await page.click("#folder-items .cell");
 await page.waitForFunction(() => !$("#image-panel").hidden && !$("#image-open").disabled);
+await check((await openSays()) === "", "... and says nothing more once it can be pressed", await openSays());
 await check((await seen(page, "#folder-items .cell.chosen")) && (await cells(page)).join() === first.join() && !(await seen(page, "#view")), "an image chosen is outlined in its grid, which stays, and no viewer shows", await cells(page));
 const said = await page.evaluate(() => $("#status").textContent);
 await check(said === "Ready.", "the status line asks for no image and tells of none loaded: the page has no Load", said);
@@ -134,7 +153,7 @@ const fills = await page.evaluate(() => $("#view").getBoundingClientRect().width
 await check(fills > 0.9, "... the image's view as wide as the dialog", fills);
 const bare = [];
 for (const s of ["#left", "#channels", "#gutter-left", "#switch", "#history-btn"]) if (await seen(page, s)) bare.push(s);
-await check(!bare.length && (await seen(page, ".toolbar .zoom")) && (await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
+await check(!bare.length && (await seen(page, ".toolbar .zoom")) && !(await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
 await shot(page, "4-image");
 // a notice raised meanwhile can be answered
 await page.evaluate(() => { $("#notice-text").textContent = "A notice over the dialog."; $("#notice").hidden = false; });
@@ -158,15 +177,9 @@ const aspect = async (word, shows, hides) => {
     && document.querySelectorAll('#setup-rail button[aria-pressed="true"]').length === 1, word)), `${word} shows its own panel alone`, got);
   await shot(page, "5-" + word);
 };
-await aspect("truth", ["#truth-panel"], ["#data-tree", "#folder-view", "#sharing-box", "#batch-box", "#results-box"]);
-await aspect("people", ["#sharing-box"], ["#data-tree", "#folder-view", "#truth-panel", "#batch-box", "#results-box"]);
-// a batch runs over a folder's images: the folder chosen again
-await page.click('#setup-rail button[data-aspect="images"]');
-await page.click(name(top));
-await page.waitForFunction((n) => document.querySelectorAll("#folder-items .cell").length === n && !$("#batch-box").hidden, first.length);
-await idle(page);
-await aspect("batch", ["#data-tree", "#folder-view", "#batch-box"], ["#tags-box", "#marks-box", "#sharing-box", "#results-box", "#truth-panel"]);
-await aspect("results", ["#results-box"], ["#data-tree", "#folder-view", "#sharing-box", "#batch-box", "#truth-panel"]);
+await aspect("truth", ["#truth-panel"], ["#data-tree", "#folder-view", "#sharing-box", "#results-box"]);
+await aspect("people", ["#sharing-box"], ["#data-tree", "#folder-view", "#truth-panel", "#results-box"]);
+await aspect("results", ["#results-box"], ["#data-tree", "#folder-view", "#sharing-box", "#truth-panel"]);
 
 // the page opened again starts from the default layout, whatever it showed
 await page.reload(); // visits again on purpose (a reload is the subject): the layout a second visit opens on is the requirement

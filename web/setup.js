@@ -2,7 +2,8 @@
 // study's root, online only. It has a layout of its own, the stages across the top and a rail of the study's aspects, built here from
 // what the shell lends (sign-in, the store, the study's place, the image view, which shows in a dialog): Data Management
 // (data_mode.js) with the study's folders, their access, previews, tags and descriptions, hide rules, the grouping tag, areas of
-// interest, damaged areas, Needs GT and the set-up of Analysis Files; the marks, the batch run, the sharing, the stage, the results and
+// interest, damaged areas, requests for ground truth and the set-up of Analysis Files; the marks, what is done to the images selected,
+// the sharing, the stage, the results and
 // the study's papers.
 "use strict";
 import { attach, lent } from "./shell.js";
@@ -17,14 +18,18 @@ import { setupLiterature } from "./setup_literature.js";
 const { $, views, summaryMasks, st, drawBoxes, openBytes, minimapView, calls, page } = lent;
 const imageDialog = $("#image-dlg");
 
-// the marks and the batch run (req/setup/marks, req/setup/batch): their boxes, told what Data Management has chosen
+// the marks and the selection's actions (req/setup/marks, req/setup/batch), told what Data Management has chosen
 const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
 let data, stage, results;
-const marked = { marked: () => { data.marked(); results?.marksChanged(); } };
+const marked = { marked: () => { data.marked(); results?.marksChanged(); }, hide: (images) => data.hideImages(images), requestTruth: (images) => data.requestTruth(images) };
 const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked, allows: lent.stageAllows, calls });
-const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status });
+const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status, calls,
+  allows: lent.stageAllows, measured: (doc) => results.measured(doc) });
 const setup = {
-  chose(kind, info) { marks.chose(kind, info); batch.chose(kind, info); },
+  chose(kind, info) { marks.chose(kind, info); },
+  // the folder whose images are on show, read; or being read again
+  folderShown: (info) => batch.chose("folder", info),
+  folderGone: () => batch.chose(null),
   busy: () => batch.busy(),
   // the study file's index or marks were written: what the stage box lists of them is read again
   indexed: () => stage?.stageChanged(),
@@ -41,7 +46,7 @@ attach(data = dataMode({
   // whether the grid shows; a folder chosen shuts the image's dialog
   showFolder(on) {
     $("#folder-view").hidden = !on;
-    if (document.documentElement.dataset.sel !== "image") imageDialog.close();
+    if (document.documentElement.dataset.sel !== "image" && imageDialog.open) imageDialog.close();
   },
   // the image open in the image view, by its source, or null
   imageOpen: () => (page.get("image") ? st.source : null),
@@ -65,8 +70,8 @@ attach(sharing);
 stage = setupStage({ $, reader, writer: sd, place: lent.place, changed: (to) => lent.setStage(to), calls });
 attach(stage);
 // the results (req/setup/results): the official extractions' numbers, read on a press
-attach(results = setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls }));
-attach({ stageChanged() { marks.stageChanged(); sharing.recheck(); } });
+attach(results = setupResults({ $, reader, place: lent.place, saveFile: lent.saveFile, calls, unmarked: () => batch.unmarked() }));
+attach({ stageChanged() { marks.stageChanged(); batch.stageChanged(); sharing.recheck(); } });
 
 // the study's papers (req/setup/literature), listed when their aspect is chosen
 const literature = setupLiterature({ $, reader, place: lent.place, calls, study: lent.studyId,
@@ -74,13 +79,14 @@ const literature = setupLiterature({ $, reader, place: lent.place, calls, study:
 
 // the aspects (req/setup/aspects): one chosen at a time in the rail, Images as the page opens
 const aspect = $("#setup-aspect");
-$("#setup-rail").onclick = (e) => {
-  const b = e.target.closest("button[data-aspect]");
-  if (!b) return;
-  aspect.dataset.aspect = b.dataset.aspect;
-  for (const x of $("#setup-rail").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
-  if (b.dataset.aspect === "literature") literature.show();
+const showAspect = (word) => {
+  aspect.dataset.aspect = word;
+  for (const x of $("#setup-rail").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x.dataset.aspect === word));
+  if (word === "literature") literature.show();
+  if (word === "results") results.shown();
 };
+$("#setup-rail").onclick = (e) => { const b = e.target.closest("button[data-aspect]"); if (b) showAspect(b.dataset.aspect); };
+$("#results-to-images").onclick = () => { showAspect("images"); $("#setup-rail").querySelector('[data-aspect="images"]').focus(); };
 // the image's dialog (req/setup/image): the image flat, over the page, which waits behind it
 $("#image-open").onclick = () => {
   $("#image-dlg-title").textContent = $("#image-panel-name").textContent;

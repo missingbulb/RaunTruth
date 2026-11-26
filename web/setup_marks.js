@@ -37,7 +37,8 @@ export function setupMarks({ $, reader, writer, place, data, allows, calls }) {
     let said = null;
     try {
       const by = on ? null : await authorOf(row);
-      await writeMarks({ reader, writer, root: place.root(), changes: [{ sha, kind, mark: on ? null : { file: row.id, by } }] });
+      await calls.saving("store", on ? `Removed the ${word} mark from the study.` : `Saved the ${word} mark to the study.`,
+        () => writeMarks({ reader, writer, root: place.root(), changes: [{ sha, kind, mark: on ? null : { file: row.id, by } }] }));
       await data.marked();
       said = [on ? `Took the ${word} mark off.` : `Marked ${word}.`];
     } catch (e) { said = [e.message || String(e), true]; }

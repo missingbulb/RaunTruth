@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 150" width="280" height="150" role="img" aria-label="Drive's Share dialog: a person's email added with the Editor role">
   <rect width="280" height="150" rx="8" fill="#f4f6f8"/>
   <rect x="10" y="8" width="260" height="134" rx="8" fill="#fff" stroke="#c9d1d9"/>
-  <text x="22" y="30" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2328">Share "Extractions"</text>
-  <rect x="22" y="40" width="170" height="26" rx="4" fill="#fff" stroke="#0969da" stroke-width="2"/>
+  <text x="22" y="30" font-family="sans-serif" font-size="13" font-weight="600" fill="#1f2328">Share "Analysis"</text>
+  <rect x="22" y="40" width="170" height="26" rx="4" fill="#fff" stroke="#c9d1d9" stroke-dasharray="3 2"/>
   <text x="30" y="57" font-family="sans-serif" font-size="11" fill="#57606a">annotator@example.com</text>
-  <rect x="200" y="40" width="62" height="26" rx="13" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
-  <text x="212" y="57" font-family="sans-serif" font-size="11" fill="#0969da">Editor</text>
-  <text x="22" y="92" font-family="sans-serif" font-size="11" fill="#1f2328">1  Open Share on the Extractions folder</text>
+  <rect x="200" y="40" width="62" height="26" rx="13" fill="#f4f6f8" stroke="#c9d1d9" stroke-dasharray="3 2"/>
+  <text x="212" y="57" font-family="sans-serif" font-size="11" fill="#57606a">Editor</text>
+  <text x="22" y="92" font-family="sans-serif" font-size="11" fill="#1f2328">1  Open Share on the Analysis folder</text>
   <text x="22" y="108" font-family="sans-serif" font-size="11" fill="#1f2328">2  Type the annotator's Google account</text>
   <text x="22" y="124" font-family="sans-serif" font-size="11" fill="#1f2328">3  Role: Editor, then Send</text>
+  <text x="262" y="30" text-anchor="end" font-family="sans-serif" font-size="10" font-style="italic" fill="#8c959f">Illustration</text>
 </svg>

@@ -11,7 +11,7 @@ import { siteOf } from "../../../web-tests/harness.mjs";
 import { TAGGER } from "../../../web-tests/tagger.mjs";
 
 export const ALGORITHMS = [
-  { key: "v5", name: "v5-no-short-islands", title: "island-free", icon: "🏝️", about: "- Start from the dead-end check's network\n- Drop every vessel shorter than 45 µm\n  - that touches no junction at either end" },
+  { key: "v5", default: true, name: "v5-no-short-islands", title: "island-free", icon: "🏝️", about: "- Start from the dead-end check's network\n- Drop every vessel shorter than 45 µm\n  - that touches no junction at either end" },
   { key: "v4", name: "v4-line-evidence", title: "dead-end check", icon: "🔍", about: "- Start from the bridges network\n- Drop a short dead end that is no line" },
 ];
 
