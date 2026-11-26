@@ -70,7 +70,9 @@ def test_the_list_is_mine_then_marked_then_others_and_names_no_one(out):
 
 def test_someone_who_is_not_a_member_is_listed_only_the_marked_with_no_persons_name(out):
     marked = [['by hand · GT', 'marked', ['gt']], ['count 1.2 · official', 'marked', ['official']]]
-    assert out['list']['outsider'] == marked and out['list']['signedInNonMember'] == marked
+    assert out['list']['outsider'] == marked
+    # someone signed in who is not a member is listed their own file too, and nobody else's unmarked one
+    assert out['list']['signedInNonMember'] == [['Yours', 'mine', []]] + marked
     assert '@' not in out['list']['outsiderNames'] and 'lab.org' not in out['list']['outsiderNames']
     # a mark that names no file the image holds lists nothing
     assert out['list']['staleMark'] == []

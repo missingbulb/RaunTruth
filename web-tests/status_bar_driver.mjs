@@ -256,6 +256,20 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const l1 = await list();
   await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
+  // done, the task stays as one ticked line, its tools folded away, and the tick takes it back (owner, 2026-11-26)
+  const line = await page.evaluate(() => {
+    const li = document.querySelector('#gt-tasks > li[data-task="check"]'), tick = li.querySelector(".tick");
+    return { shown: li.checkVisibility(), tools: document.querySelector("#fx-marks-tools").checkVisibility() || document.querySelector("#fx-done").checkVisibility(),
+      ticked: tick.getAttribute("role") === "checkbox" && tick.getAttribute("aria-checked") === "true" && tick.checkVisibility(), words: li.querySelector(".t").textContent.trim() };
+  });
+  await check(line.shown && !line.tools && line.ticked && line.words === "1/1 Count checked", "a done task stays as one ticked line, its tools folded away", line);
+  await page.click('#gt-tasks > li[data-task="check"] .tick');
+  await page.waitForFunction(() => !window.fixture.model().checked);
+  const back = await list();
+  await check(back.open && !back.done && back.body && await page.evaluate(() => !document.querySelector("#fx-done").checked && document.querySelector("#fx-done").checkVisibility()),
+    "its tick pressed, the task is open again and not done, the study's own check unticked", back);
+  await page.check("#fx-done");
+  await page.waitForFunction(() => window.fixture.model().checked);
   await shot(page, "2-submit");
   await page.click("#gt-submit");
   await page.waitForFunction(() => document.querySelector("#gt-dlg").open);

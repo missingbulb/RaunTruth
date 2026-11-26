@@ -40,7 +40,7 @@ const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + 
 
 w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
-const device = w.device().signedInAs(tagger(w));
+const device = w.device().signedInAs(tagger(w)).withEditHistoryShown();
 await record(await device.context());
 const page = await device.opens("fixture");
 
@@ -71,16 +71,16 @@ await check(gaps.every((g) => g <= 0), "the drawers stack with no gap between th
 const bars = () => page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => getComputedStyle(b).boxShadow !== "none"));
 
 const marks = await page.evaluate(() => document.querySelectorAll("#left .step-mark, #left .sec-head h2 img, #left .sec-head h2 canvas").length);
-await boxes(["Load open", "Analysis folded waits", "Summary folded waits"], "before an image the three drawers are there: Load open, Analysis and Summary folded to their titles, waiting");
+await boxes(["Image open", "Analysis folded waits", "Summary folded waits"], "before an image the three drawers are there: Image open, Analysis and Summary folded to their titles, waiting");
 await check(marks === 0, "no drawer carries a number, a check or a picture beside its title", marks);
 await check((await bars()).join() === "true,false,false", "the open drawer, and only it, carries the accent bar", await bars());
 // a waiting drawer is inert: a click on it, or Enter on its title, opens nothing
 await page.locator("#left > .box.foldable:visible > .sec-head").nth(1).click();
 await page.locator("#left > .box.foldable:visible > .sec-head").nth(2).click();
 await page.evaluate(() => document.querySelector("#summary-box h2").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
-await boxes(["Load open", "Analysis folded waits", "Summary folded waits"], "a waiting drawer does not open when pressed");
+await boxes(["Image open", "Analysis folded waits", "Summary folded waits"], "a waiting drawer does not open when pressed");
 await loadImage();
-await boxes(["Load folded", "Analysis open", "Summary folded waits"], "an image open: Load folds to its title alone, Analysis opens, Summary still waits");
+await boxes(["Image folded", "Analysis open", "Summary folded waits"], "an image open: Image folds to its title alone, Analysis opens, Summary still waits");
 await check((await beside(0)).length === 0, "the folded Load drawer shows nothing beside its title", await beside(0));
 // a drawer slides open or shut, and the drawers below slide to their new places: the slide starts and ends
 const before = await begun(page);
@@ -89,25 +89,25 @@ await title(0);
 const slides = await page.evaluate(() => !!document.startViewTransition && CSS.supports("view-transition-group", "contain"));
 const slid = slides ? await moved(page, before, /^drawer-/) : null;
 await check(!slides || (!slid.missing && slid.groups.filter((g) => g.startsWith("drawer-")).length >= 2), slides ? "a drawer slides open, and the drawers below it slide down" : "a browser without the view transitions the slide takes: the drawers change at once", slid);
-await boxes(["Load open", "Analysis open", "Summary folded waits"], "its title opens a folded drawer");
+await boxes(["Image open", "Analysis open", "Summary folded waits"], "its title opens a folded drawer");
 await check((await beside(0)).join() === "unload", "open, the Load drawer's header carries unload image", await beside(0));
 await title(0);
-await boxes(["Load folded", "Analysis open", "Summary folded waits"], "and folds it again");
+await boxes(["Image folded", "Analysis open", "Summary folded waits"], "and folds it again");
 // a folded drawer opens from anywhere on it, not only its title: a click at the far end of its row; an open one folds
 // only from its title
 const rowEnd = async (k) => { const r = await page.locator("#left > .box.foldable:visible > .sec-head").nth(k).boundingBox();
   await page.mouse.click(r.x + r.width - 4, r.y + r.height / 2); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 await rowEnd(0);
-await boxes(["Load open", "Analysis open", "Summary folded waits"], "a click anywhere on a folded drawer opens it");
+await boxes(["Image open", "Analysis open", "Summary folded waits"], "a click anywhere on a folded drawer opens it");
 await title(0);
 await title(1);
-await boxes(["Load folded", "Analysis folded", "Summary folded waits"], "a drawer no longer waiting folds from its title");
+await boxes(["Image folded", "Analysis folded", "Summary folded waits"], "a drawer no longer waiting folds from its title");
 await rowEnd(1);
-await boxes(["Load folded", "Analysis open", "Summary folded waits"], "and opens again");
+await boxes(["Image folded", "Analysis open", "Summary folded waits"], "and opens again");
 // Start, Run: the study's runner and its tasks are parts of the one Analysis drawer, and Summary opens with the model
 await fromScratch(page, "#fx-count");
 await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
-await boxes(["Load folded", "Analysis open", "Summary open"], "the algorithm run: Analysis stays open and Summary, the image carrying a model, opens");
+await boxes(["Image folded", "Analysis open", "Summary open"], "the algorithm run: Analysis stays open and Summary, the image carrying a model, opens");
 const parts = await page.evaluate(() => ({ runner: document.querySelector("#fx-count").closest(".box").id, tasks: document.querySelector("#gt-tasks").closest(".box").id,
   title: document.querySelector("#tasks-title").checkVisibility() && document.querySelector("#tasks-title").textContent.trim(), drawers: document.querySelectorAll("#left > .box.foldable").length }));
 await check(parts.runner === "analysis-box" && parts.tasks === "analysis-box" && parts.title === "Analysis Tasks" && parts.drawers === 3,
@@ -136,10 +136,10 @@ const edges = await page.evaluate(() => { const h = document.querySelector("#ana
   d = document.querySelector("#analysis-dl").getBoundingClientRect(); return { title: Math.round(t.left - h.left), icon: Math.round(h.right - d.right) }; });
 await check(edges.title <= 14 && edges.icon <= 14, "the title at the header's near edge, the download icon at its far one", edges);
 await loadImage();
-await boxes(["Load folded", "Analysis open", "Summary folded waits"], "another image starts over: Summary waits again");
+await boxes(["Image folded", "Analysis open", "Summary folded waits"], "another image starts over: Summary waits again");
 await title(0); await page.click("#unload");
 await page.waitForFunction(() => document.querySelector("#unload").hidden && [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).length === 3);
-await boxes(["Load open", "Analysis folded waits", "Summary folded waits"], "Unload: every drawer waits again, as at first");
+await boxes(["Image open", "Analysis folded waits", "Summary folded waits"], "Unload: every drawer waits again, as at first");
 
 // req/shell/left-bar/static: the bar stays open, with no chevron, no Steps label or strip, and the gutter only resizes it
 const left = () => page.evaluate(() => Math.round(document.querySelector("#left").getBoundingClientRect().width));

@@ -14,6 +14,7 @@
   ]},
   "allow": [
     {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"},
+    {"pattern": "status of 404 \\(Not Found\\).*doesnotexist0000001", "why": "the walk pastes a link to a folder that does not exist, which Drive answers 404 as the real one does; the browser's console names every refused load"},
     {"pattern": "expected a 3-channel ImageJ TIFF", "why": "the walk opens an image the NoR study's Python cannot read, which it answers as the real one does, and the page says so in its status"}
   ],
   "families": [
@@ -47,7 +48,7 @@
     {"family": "the stage", "match": {"key": "^#stage-(up|back|freeze)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
     {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
     {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|gt-load-|recent > button)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
-    {"family": "report a problem", "match": {"key": "^#(report-problem|sb-report|problem-)"}, "may": ["dialog", "popup", "open", "storage.*"], "writes": 0},
+    {"family": "report a problem", "match": {"key": "^#(report-problem|sb-report|report-go|report-cancel|problem-)"}, "may": ["dialog", "popup", "open", "storage.*"], "writes": 0},
     {"family": "cancel or close", "match": {"text": "^(Cancel|Close|×|OK)$"}, "may": ["dialog", "storage.*", "open", "html.*"], "writes": 0},
     {"family": "a link", "match": {"kind": "^click$", "key": "(^| )a(:|$)|a:nth|> a$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "popup", "download"], "writes": 0},
     {"family": "a menu", "match": {"key": "summary"}, "may": ["open", "dialog", "storage.nor-tips-closed"], "writes": 0},

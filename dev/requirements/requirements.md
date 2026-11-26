@@ -35,6 +35,11 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/account/settings` The avatar's menu opens Settings: every setting that follows the user, to change and save.
   <details>
 
+  Set by the owner on 2026-11-26, after the walk: Clear all, under what is kept on this device only, forgets those at
+  once, with no Save, the dialog staying open, and the status line says "Cleared what this device alone kept."; a single
+  tick cleared is still forgotten on Save. Edit History's window is no longer among the settings: it is the visit's
+  (`req/shell/ground-truth/tasks`).
+
   Set by the owner on 2026-10-31. Settings… in the avatar's menu opens a dialog listing each setting
   that follows the user (`req/shell/account/sign-in`), whether or not they are signed in, each with a control to change it:
   the theme (follow the system, dark or light); Show thumbnails in the Drive
@@ -143,8 +148,14 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_annotate_mode_page.py`, `web-tests/test_algorithm_choice_page.py`.
   </details>
 
-- `req/shell/annotate/choice` Once an image is open the Analysis box offers Start and Load, per image; only Start shows the algorithm runner.
+- `req/shell/annotate/choice` Once an image is open the Analysis box offers Start and Open saved analysis, per image, and Continue first where the device keeps work of it; only Start shows the algorithm runner.
   <details>
+
+  Set by the owner on 2026-11-26, after the walk: the button beside Start reads Open saved analysis, and so does its
+  dialog, whose action is Open, since Load named three things on one screen. Where the device keeps unfinished work of
+  the image, Continue leads: it is the primary button and the one the step shines on, and says when the work was saved
+  (the time alone for today, else the date too) and how many edits it holds, as "Continue · saved today 07:34 · 2
+  edits"; Start is then plain and reads Start over. What follows reads with those names.
 
   Set by the owner on 2026-11-21, in place of the role menu (the header has none: one page for everyone, to which
   what Drive's sharing lets a person do only adds) and of Start GT tagging; changed by the owner on 2026-11-24, who
@@ -179,6 +190,9 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/annotate/held` While the study comes in again on the image open, the page stays on screen as it was until the image is open in it.
   <details>
+
+  Changed after the walk of 2026-11-25: unload image holds the page the same way, until the study is back with no image,
+  so the box's controls do not show for a moment as those of a study that opens from this computer.
 
   Set by the owner on 2026-11-24, on seeing the page clear nearly everything after Start, and after the clearing of
   annotations, before the algorithm loaded. Entering annotation mode, and reset analysis, mount the study afresh on the
@@ -709,8 +723,12 @@ nobody has decided: what the page does there is not a requirement yet.
   marked here. Tests: `web-tests/test_study_index_page.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no person's name.
+- `req/shell/extractions/outsiders` Someone who is not a member is listed their own extraction and the GT and official ones, with no person's name.
   <details>
+
+  Set by the owner on 2026-11-26, after the walk: someone signed in who is not a member is listed their own file too,
+  first, as Yours, so that what they uploaded can be opened again; nobody else's unmarked file is listed to them. The
+  requests are the ones made before: the one as the image opens and the one listing at the press.
 
   Set by the owner on 2026-11-21. Signed out, or signed in with an account that cannot read the study's root, the
   list of an image's extractions (`req/shell/extractions/list`) holds the marked extractions alone, each labelled by
@@ -754,6 +772,9 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/ground-truth/area-map` While the user annotates, the areas of the walk show as a map, each done, begun or not started; clicking one opens it.
   <details>
+
+  Changed by the owner on 2026-11-26: the areas are what the minimap is for; it shows for nothing else
+  (`req/shell/image/minimap`).
 
   Set by the owner on 2026-11-24 ("the minimap in NoR is not repurposed to show the GT area progress like in vascular.
   It should"). The shell draws the map once, for every study that walks by areas (`req/shell/ground-truth/areas`): a
@@ -1016,6 +1037,13 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/tasks` The shell shows the study's tasks in the Analysis box, split by purpose: progress in a strip under the header, the open task under the runner, Upload last; how a task is worked through is the study's.
   <details>
 
+  Set by the owner on 2026-11-26, after the walk: a done task that says a count stays, under the open one, as one ticked
+  line with its tools folded away; its tick takes it back where the study says how (the fixture unticks its check, a GT
+  action like any other) and else opens the task again, as its name does. A task that says no count is its bar part
+  alone, done or not. Edit History opens closed: its window shows once its toolbar button is pressed, and the choice
+  lasts the visit, kept in the tab's own storage and not on the device. Save Draft and Upload rest at the foot of the
+  bar while the task above them is taller than it.
+
   Corrected after the walk of 2026-11-25: where the study says nothing of what is left, Upload's tooltip names the tasks still open.
 
   Changed by the owner on 2026-11-25, who chose to split the tasks by purpose. Progress is a strip directly under the
@@ -1184,8 +1212,17 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_image_point_page.py`.
   </details>
 
-- `req/shell/image/minimap` A minimap hovers over the image, showing the part in view; drag, zoom and step by mouse.
+- `req/shell/image/minimap` A minimap hovers over the image only while an analysis's areas are worked: the whole image, the part in view outlined, the areas over it.
   <details>
+
+  Set by the owner on 2026-11-26: "we don't need it for general viewing. The image is small enough. It's certainly
+  needed for the GT tagging of areas, but before analysis stage - drop the minimap." The minimap and its toolbar button
+  show only while the user annotates in a study that hands the viewer the areas of its walk
+  (`req/shell/ground-truth/area-map`); there is none before Start, in plain viewing, while an Analysis File is shown read-only, in the
+  Image Viewer or in Study Setup's image dialog, however far the image is zoomed. Its title reads Areas, each area is a
+  button on it, and a click or a drag on it no longer moves the view. Its collapse, its hide into the toolbar's button,
+  its opacity and their keeping stay as below; what below says of when it shows, and of moving the view by it, is
+  replaced by this.
 
   Set by the owner on 2026-10-31. The minimap (a small picture of the whole image, the part in view
   outlined; never called a thumbnail, which is a file's picture in a list) hovers over the image's top
@@ -1317,8 +1354,11 @@ nobody has decided: what the page does there is not a requirement yet.
   over. Test: `web-tests/test_left_bar_page.py`.
   </details>
 
-- `req/shell/left-bar/shells` The shell lays out the whole left bar, Load, Analysis and Summary; a study only fills its parts of them.
+- `req/shell/left-bar/shells` The shell lays out the whole left bar, Image, Analysis and Summary; a study only fills its parts of them.
   <details>
+
+  Changed by the owner on 2026-11-26: the first box is titled Image, its own button still Load; where what follows names
+  the box Load, it is this one.
 
   Set by the owner on 2026-11-24, in place of the four boxes Load Image, Processing, Ground Truth Tasks and Summary.
   The left bar has three boxes, the shell's own: Load (the image, its details and channels); Analysis, which holds the
@@ -1650,8 +1690,15 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_problem_report_page.py`.
   </details>
 
-- `req/shell/report/bug` A bug icon in the status bar, always there, opens a new GitHub issue filled in with the browser, the study, its state and the last five actions.
+- `req/shell/report/bug` A bug icon in the status bar, always there, says where a report goes and then opens a new GitHub issue filled in with the browser, the study, its state and the last five actions.
   <details>
+
+  Set by the owner on 2026-11-26, after the walk: pressing the icon, or Report a problem in the avatar's menu, first
+  shows a dialog saying the report opens a new issue on GitHub filled in for the person to read and send, that an issue
+  there is public and that sending one needs a GitHub account, with Cancel and Continue; Continue opens the issue as
+  before, Cancel opens nothing. The report is made as it is asked for, so the actions it quotes end with the asking.
+  Test: `web-tests/test_problem_report_page.py`, the new tab answered by the tests' stand-in for GitHub's new-issue page
+  (`web-tests/fakes/github_issues.mjs`, approved by the owner on 2026-11-26).
 
   Set by the owner on 2026-11-03: the regular way to report any problem. A small grey bug, the status bar's
   first item from the left of its right-hand items, in every browser (in one not supported, a warning sign:
@@ -1985,6 +2032,11 @@ nobody has decided: what the page does there is not a requirement yet.
 
 - `req/shell/storage/manage` The user sees, and can clear, what this device keeps, study by study.
   <details>
+
+  Set by the owner on 2026-11-26, after the walk: in the total's line Settings is a link that opens Settings in the
+  dialog's place, and a line under it says what the total does not count: Python's files, about 50 MB, in the browser's
+  own cache for 30 days, which the site can neither measure nor clear and the browser's clearing of cached files does.
+  Test: `web-tests/test_storage_page.py`.
 
   Not signed in (`req/shell/account/sign-in`), the user is whoever opened the page on this device. An avatar at the right of
   the header opens a menu whose **Manage storage** opens the Storage tab of the resources dialog

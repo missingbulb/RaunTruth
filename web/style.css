@@ -729,9 +729,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #notice p { margin: 0; }
 #notice button { align-self: flex-end; }
 :root { --gt-part: #e8890c; }
-#gt-dlg, #load-dlg, #stage-freeze-dlg, #stage-change-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#gt-dlg, #load-dlg, #stage-freeze-dlg, #stage-change-dlg, #report-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#gt-dlg::backdrop, #load-dlg::backdrop, #stage-freeze-dlg::backdrop, #stage-change-dlg::backdrop { background: #0007; }
+#gt-dlg::backdrop, #load-dlg::backdrop, #stage-freeze-dlg::backdrop, #stage-change-dlg::backdrop, #report-dlg::backdrop { background: #0007; }
 /* the popup's checklist: every issue the ground truth can have, crossed out with a green check once resolved */
 .checklist { list-style: none; margin: 4px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .checklist li { display: flex; gap: 8px; align-items: flex-start; }
@@ -742,7 +742,7 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .checklist li.warn svg { color: var(--gt-part); }
 .checklist li.error svg { color: var(--no); }
 #gt-msg:empty { display: none; }
-#gt-dlg .grow, #load-dlg .grow, #stage-freeze-dlg .grow, #stage-change-dlg .grow { flex: 1; }
+#gt-dlg .grow, #load-dlg .grow, #stage-freeze-dlg .grow, #stage-change-dlg .grow, #report-dlg .grow { flex: 1; }
 
 
 /* the low-memory popup */
@@ -1226,18 +1226,20 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks .task-head .t:hover { color: var(--accent); }
 #gt-tasks .task-head .n { font-weight: 600; font-variant-numeric: tabular-nums; }
 #gt-tasks li.now .t { font-weight: 600; }
-#gt-tasks .tick { order: 1; display: none; color: var(--yes); font-weight: 700; }
+#gt-tasks .tick { order: -1; display: none; color: var(--yes); font-weight: 700; border: 0; background: none; padding: 0; font-size: inherit; }
 #gt-tasks li.done .tick { display: inline; }
 #gt-tasks .tick::after { content: "✓"; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
+/* Save Draft and Upload stay in reach while the task above them is taller than the bar: they rest at its foot */
+#gt-tasks > li[data-task="submit"] { position: sticky; bottom: calc(-1 * var(--pad)); padding-bottom: 6px; background: var(--panel); z-index: 1; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
 #gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
 #gt-offers[hidden] { display: none; }
-#gt-tasks > li:not(.now):not([data-task="submit"]) { display: none; }
+#gt-tasks > li:not(.now):not(.done):not([data-task="submit"]), #gt-tasks > li.bare:not(.now) { display: none; }
 #gt-tasks li.now .task-head .n, #gt-tasks li.now .tick { display: none; }
 #gt-tasks > li.now { border-top: 0; }
 #gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
@@ -1298,7 +1300,9 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-choices { display: flex; flex-direction: column; gap: 6px; }
 #annotate-choices > button, #annotate-edit { width: 100%; }
 #annotate-choices .pair { display: flex; gap: 6px; }
-#annotate-choices .pair > button { flex: 1 1 0; min-width: 0; }
+#annotate-choices .pair > button { flex: 1 1 auto; min-width: 0; padding-inline: 8px; white-space: nowrap; }
+/* the kept work's button says when and how much on one line, cut short where the bar is narrow */
+#annotate-local { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline: 8px; }
 #annotate-choices .pair > button[hidden] { display: none; }
 #annotate-say { margin: 8px 0 0; }
 #annotate-edit { margin-top: 8px; }

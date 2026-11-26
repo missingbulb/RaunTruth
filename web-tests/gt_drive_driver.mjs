@@ -14,7 +14,7 @@ import { personFile } from "../web/truth_folders.js";
 import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true });
+const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true, editHistory: true });
 const { ROOT, FILES, writes, keptForever, viewOnly, sharedOut, studyFile, open, dataManagement, check, done } = drive;
 const id = (name) => FILES.find((f) => f.folder && f.name === name)?.id;
 // the access line once read: what it says, and whether it takes any room

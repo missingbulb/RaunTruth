@@ -239,7 +239,7 @@
                         {"when": {"annotating": [true]}, "is": "hidden"}
                       ],
                       "children": [
-                        {"name": "Continue local work", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
+                        {"name": "Continue", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
                           "rule": [
                             {"when": {"stage": ["Review", "Public"]}, "is": "hidden"},
                             {"when": {"hasDraft": [false]}, "is": "hidden"}
@@ -383,11 +383,9 @@
                 {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
               ]
             },
-            {"name": "Minimap button", "select": "#minimap-btn", "control": true, "req": "req/shell/image/minimap",
+            {"name": "Minimap button", "select": "#minimap-btn", "control": true, "req": "req/shell/image/minimap", "steady": "hidden unless a study hands the minimap its areas",
               "rule": [
-                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
-                {"when": {"image": ["none"]}, "is": "disabled"}
+                {"is": "hidden", "approval": "tentative", "about": "shown only while a study hands the minimap the areas of its walk"}
               ]
             },
             {"name": "Edit History button", "select": "#history-btn", "control": true, "req": "req/shell/ground-truth/history",
@@ -503,10 +501,9 @@
                     {"name": "Drawn over the 3D view", "select": "#v3-hud", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d"}
                   ]
                 },
-                {"name": "Minimap", "select": "#minimap", "req": "req/shell/image/minimap",
+                {"name": "Minimap", "select": "#minimap", "req": "req/shell/image/minimap", "steady": "hidden unless a study hands the minimap its areas",
                   "rule": [
-                    {"when": {"image": ["none"]}, "is": "hidden"},
-                    {"when": {"imageFits": [true]}, "is": "hidden"}
+                    {"is": "hidden", "approval": "tentative", "about": "shown only while a study hands it the areas of its walk"}
                   ],
                   "children": [
                     {"name": "Hide the minimap", "select": "#minimap-hide", "control": true, "req": "req/shell/image/minimap"},
@@ -514,22 +511,21 @@
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
                     {"name": "Minimap's areas", "select": "#minimap-areas", "req": "req/shell/ground-truth/area-map", "steady": "hidden unless a study hands the minimap its areas",
                       "rule": [
-                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas"}
+                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas", "unwalked": "the minimap is hidden with them"}
                       ]
                     },
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
                   ]
                 },
-                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
+                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/tasks", "steady": "closed until its toolbar button is pressed, which no path here does",
                   "rule": [
-                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only someone annotating has a log to show"},
-                    {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                    {"is": "hidden", "approval": "tentative", "about": "it opens closed, and shows once its button is pressed"}
                   ],
                   "children": [
-                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
-                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history"},
-                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history"},
-                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear"}
+                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]}
                   ]
                 },
                 {"name": "Keys legend", "select": "#keys-legend", "made": "by the shell, as the page starts", "req": "req/shell/image/keys",

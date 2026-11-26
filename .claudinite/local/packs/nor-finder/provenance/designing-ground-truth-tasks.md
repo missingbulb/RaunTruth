@@ -69,3 +69,11 @@
   Develop and Analyze.
 - **Actor:** Claude, work package WP6 of the study-stages plan (owner's decisions of 2026-11-22).
 - **Model:** claude-opus-5-5
+
+## 2026-11-26 · reworded · a done task stays as a ticked line
+- **Source:** the three-persona walk of 2026-11-25; a persona ticked the fixture's one task and lost
+  its controls with only Undo to get back.
+- **Reason:** the owner chose "Keep a ticked row": the finished task stays as one ticked line that
+  can be unticked, only its tools fold away.
+- **Actor:** @missingbulb (owner).
+- **Model:** claude-fable-5-2
