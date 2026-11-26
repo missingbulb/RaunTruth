@@ -6,6 +6,8 @@
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
+import { held } from "./held.mjs";
+import { idle } from "./page_until.mjs";
 
 const [answers, studies, rootDir, image, nor] = process.argv.slice(2);
 const errors = [];
@@ -21,6 +23,9 @@ const press = async () => {
   await page.waitForFunction(() => document.querySelector("#find")?.disabled === false, null, { timeout: STEP });
   await page.evaluate(() => document.querySelector("#find").click());
 };
+// Python's answer to this run kept back until the person has left and come back
+const late = held();
+drive.python.hold = () => late.hold();
 await press();
 await page.waitForFunction(() => st.running, null, { polling: "raf" });
 await page.evaluate(() => document.querySelector('#study-list a[data-id="viewer"]').click());
@@ -30,6 +35,11 @@ await page.evaluate(() => document.querySelector('#study-list a[data-id="nor"]')
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
 await page.setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Image loaded"));
+// the run they left answers now, on another image: its answer is for a study that is gone
+drive.python.hold = () => null; late.release();
+await idle(page);
+await check(await page.evaluate(() => document.querySelector("#status").textContent.startsWith("Image loaded") && !st.running && !st.passes),
+  "the answer to a run the person left, come once they are back in the study, is not taken", await page.textContent("#status"));
 // the button's wait warns of the failure when it still waits as the failure comes, and not when the failure came first
 await expecting(/Traceback|3-channel/, async () => {
   await press();

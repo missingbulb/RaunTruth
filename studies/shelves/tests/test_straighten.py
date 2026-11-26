@@ -5,7 +5,6 @@ import base64
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import numpy as np
@@ -17,6 +16,7 @@ import books
 
 pytestmark = pytest.mark.full
 
+from drivers import run_driver
 NODE = shutil.which('node')
 BOXES = [
     [[40, 50], [90, 50], [90, 200], [40, 200]],
@@ -37,8 +37,7 @@ def page_crops(rgb, grey, tmp_path):
     doc = dict(W=rgb.shape[1], H=rgb.shape[0], boxes=BOXES,
                planes=base64.b64encode(np.ascontiguousarray(planes.transpose(2, 0, 1)).tobytes()).decode())
     (tmp_path / 'in.json').write_text(json.dumps(doc))
-    r = subprocess.run([NODE, os.path.join(HERE, 'straighten_driver.mjs'), str(tmp_path / 'in.json'), str(tmp_path / 'out.json')],
-                       capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'straighten_driver.mjs'), str(tmp_path / 'in.json'), str(tmp_path / 'out.json'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return [np.frombuffer(base64.b64decode(c['data']), np.uint8).reshape(c['height'], c['width'], 4)
             for c in json.loads((tmp_path / 'out.json').read_text())]

@@ -102,7 +102,7 @@ await settle();
 { const f = await focus(); await check(f === "body", "a click on nothing, then a redraw: the keyboard stays where the click left it", f); }
 
 // every dialog of both pages wears the page's own frame, a hairline and round corners, none the browser's
-for (const [at, atLeast] of [["/web/index.html", 12], ["/web/setup.html", 14]]) {
+for (const [at, atLeast] of [["/web/index.html", 11], ["/web/setup.html", 14]]) {
   const p = await w.device().visits(at, { until: "none" });
   await p.waitForFunction(() => document.querySelectorAll("dialog").length > 0 && [...document.styleSheets].some((s) => /style\.css/.test(s.href || "")));
   const looks = await p.evaluate(() => [...document.querySelectorAll("dialog")].map((d) => { const c = getComputedStyle(d); return [d.id, c.borderTopWidth, parseFloat(c.borderTopLeftRadius)]; }));

@@ -135,6 +135,8 @@ def test_a_study_offering_algorithms_lists_them_for_the_shell(path):
     assert set(named) <= {'list', 'metrics'} and 'list' in named, f"{m['id']}: algorithms names its list, and its numbers if any: {named}"
     own = json.load(open(os.path.join(base, named['list'])))
     assert len(own) >= 2, f"{m['id']} lists {len(own)} algorithms"
+    marked = [a['key'] for a in own if a.get('default') is True]
+    assert len(marked) == 1, f"{m['id']}: its list marks one algorithm default, the one the page runs, never taken from the order: {marked}"
     keys = [a['key'] for a in own]
     assert len(set(keys)) == len(keys), keys
     for a in own:

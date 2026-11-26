@@ -9,7 +9,7 @@ import { areaMap } from "./gt_area_map.js";
 // started(): whether the study's first step is done; until it is, Submit stays off whatever the study says; heardBy(on):
 // the shell's own listener, told as the study is each time tagging starts or stops
 export function truthTasks({ $, icon, started, heardBy }) {
-  let pick = null, submit = null, heard = null, wants = false, on = false;
+  let pick = null, submit = null, heard = null, untick = null, wants = false, on = false;
   // the areas each way the study's walk takes, null for a study not walked by areas; who hears each change of it
   let n = null, moved = [];
   $("#gt-areas").replaceChildren(...Areas.COUNTS.map((k) => new Option(k === 1 ? "The whole field" : `${k} × ${k}`, String(k))));
@@ -23,8 +23,10 @@ export function truthTasks({ $, icon, started, heardBy }) {
 
   $("#gt-submit").onclick = () => submit?.();
   $("#gt-tasks").addEventListener("click", (e) => {
-    const t = e.target.closest("button.t"), li = t?.closest("li");
+    const t = e.target.closest("button.t, button.tick"), li = t?.closest("li");
     if (!li || li.parentElement !== $("#gt-tasks")) return;
+    // a done task's tick takes it back where the study says how, else opens it again as its name does
+    if (t.classList.contains("tick") && untick) return untick(li.dataset.task);
     pick?.(li.dataset.task);
   });
   $("#gt-counters").addEventListener("click", (e) => { const b = e.target.closest("button[data-task]"); if (b) pick?.(b.dataset.task); });
@@ -42,10 +44,10 @@ export function truthTasks({ $, icon, started, heardBy }) {
 
   const api = {
     // tasks: [{key, name, title}] in the order they are done, or null to show none for now; hooks: {pick(key), submit(),
-    // tagging(on)}, tagging heard each time tagging starts or stops. The same tasks again keep their rows, and what the
+    // tagging(on), untick(key)}, tagging heard each time tagging starts or stops, untick how the study takes a done task back. The same tasks again keep their rows, and what the
     // study put on them.
     list(tasks, hooks = {}) {
-      pick = hooks.pick || pick; submit = hooks.submit || submit; heard = hooks.tagging || heard;
+      pick = hooks.pick || pick; submit = hooks.submit || submit; heard = hooks.tagging || heard; untick = hooks.untick || untick;
       if (!tasks) api.tagging(false);
       $("#gt-list").hidden = !tasks;
       if (!tasks || rows().map((li) => li.dataset.task).join() === tasks.map((t) => t.key).join()) return;
@@ -54,7 +56,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
       for (const t of tasks) {
         const li = document.createElement("li");
         li.dataset.task = t.key;
-        li.innerHTML = `<div class="task-head"><span class="tick" aria-hidden="true"></span><button class="t" type="button"><span class="n"></span> </button></div><div class="task-body"></div>`;
+        li.innerHTML = `<div class="task-head"><button class="tick" type="button" role="checkbox" aria-checked="true" title="Done. Press to open it again"></button><button class="t" type="button"><span class="n"></span> </button></div><div class="task-body"></div>`;
         const b = li.querySelector(".t");
         b.append(t.name);
         if (t.title) b.title = t.title;
@@ -77,8 +79,8 @@ export function truthTasks({ $, icon, started, heardBy }) {
       if (!li) return;
       const says = shown ?? (did == null ? "" : of == null ? String(did) : `${did}/${of}`), c = counter(key);
       li.querySelector(".n").textContent = c.querySelector(".n").textContent = says;
-      // a task that says no count is its bar part alone
-      c.hidden = !says;
+      // a task that says no count is its bar part alone, done or not
+      c.hidden = !says; li.classList.toggle("bare", !says);
       li.classList.toggle("done", !!done); c.classList.toggle("done", !!done);
       retitle();
       const whole = of == null ? 1 : Math.max(of, 1), part_ = of == null ? (done ? 1 : 0) : did != null && of ? Math.min(did / of, 1) : 0;
@@ -131,7 +133,7 @@ export function truthTasks({ $, icon, started, heardBy }) {
     // the study leaving: its tasks go
     leave() {
       api.tagging(false);
-      pick = submit = heard = null; n = null; moved = []; $("#gt-areas-row").hidden = true; $("#gt-areas").selectedIndex = 0;
+      pick = submit = heard = untick = null; n = null; moved = []; $("#gt-areas-row").hidden = true; $("#gt-areas").selectedIndex = 0;
       for (const li of rows()) li.remove();
       $("#gt-bar").replaceChildren(); $("#gt-counters").replaceChildren(); $("#gt-list").hidden = true; api.ready(false);
     },

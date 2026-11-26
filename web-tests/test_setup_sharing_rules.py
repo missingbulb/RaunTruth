@@ -3,12 +3,12 @@ setup_sharing_rules_driver.mjs: what each of the five stages needs of the sharin
 import json
 import os
 import shutil
-import subprocess
 
 import pytest
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -16,7 +16,7 @@ NODE = shutil.which('node')
 def out():
     if not NODE:
         pytest.skip('node missing')
-    r = subprocess.run([NODE, os.path.join(HERE, 'setup_sharing_rules_driver.mjs')], capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'setup_sharing_rules_driver.mjs'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 
@@ -61,7 +61,7 @@ def test_the_stage_is_the_study_files_when_it_is_one_of_the_five_and_else_develo
 
 def test_people_hold_the_three_shares_by_what_drive_lists(out):
     held = {p['email']: p['holds'] for p in out['people']['members']}
-    assert held == {'m@example.com': ['sees', 'manages'], 'v@example.com': ['sees', 'analyses'], 'o@example.com': ['analyses']}
+    assert held == {'m@example.com': ['sees', 'manages'], 'v@example.com': ['sees', 'hands in work'], 'o@example.com': ['hands in work']}
     assert out['people']['link'] is True
 
 

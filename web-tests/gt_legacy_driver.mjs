@@ -8,7 +8,7 @@ import { until } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const drive = await standIn({ answers, studies, rootDir });
+const drive = await standIn({ answers, studies, rootDir, editHistory: true });
 const { GT, FILES, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const { tagger, openKept, marks, label, records, ask } = kit({ drive, png });

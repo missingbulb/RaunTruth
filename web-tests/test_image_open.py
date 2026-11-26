@@ -6,7 +6,6 @@ decoded by the page's own libheif build to the pixels Pillow's HEIF plugin reads
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import numpy as np
@@ -17,6 +16,7 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
+from drivers import run_driver
 NODE = shutil.which('node')
 from numpy_view import View
 
@@ -30,7 +30,7 @@ def opened(tmp_path, *jobs):
         j.update(planes=str(tmp_path / f'p{k}.bin'), volume=str(tmp_path / f'v{k}.bin'))
     f = tmp_path / 'jobs.json'
     f.write_text(json.dumps(jobs))
-    r = subprocess.run([NODE, os.path.join(HERE, 'image_open_driver.mjs'), str(f)], capture_output=True, text=True, timeout=120)
+    r = run_driver(os.path.join(HERE, 'image_open_driver.mjs'), str(f), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     out = [json.loads(l) for l in r.stdout.splitlines()]
     for j, o in zip(jobs, out):

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rauntruth.com app</title>
-<meta name="version" id="site-version" title="version 0.11126.161">
+<meta name="version" id="site-version" title="version 0.11126.162">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -60,7 +60,7 @@
 <div id="layout">
   <aside id="left">
     <section class="box foldable" id="image-box" data-folds="load">
-      <div class="sec-head"><h2>Load</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">unload image</button></div>
+      <div class="sec-head"><h2>Image</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">Unload image</button></div>
       <div id="load">
         <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Recently Opened" data-log-as="the image selector"><span class="pick-name">Recently Opened</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
           <div class="pop" role="dialog" aria-label="Images opened lately"><div id="recent" role="listbox" data-log-as="a recent image"></div></div>
@@ -69,7 +69,7 @@
         <button id="load-remote" type="button"><svg class="remote-logo" aria-hidden="true"><use href="#remote-logo"/></svg></button>
       </div>
       <div id="file-tags" aria-label="The image's tags" hidden></div>
-      <details id="file-box" class="empty" hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
+      <details id="file-box" class="empty" data-fold hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
       <div id="channels"></div>
       <div id="image-foot">
         <button id="load-original" class="primary" type="button" hidden>Load Original</button>
@@ -79,19 +79,24 @@
     </section>
 
     <section class="box foldable study-box" id="analysis-box">
-      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
+      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">Reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
       <div id="gt-strip"><div class="strip-head"><h3 id="tasks-title">Analysis Tasks</h3><label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label></div><div id="gt-bar"></div><div id="gt-counters" data-log-as="a task's counter"></div></div>
       <div id="annotate-box" hidden>
         <div id="annotate-choices">
-          <button id="annotate-local" type="button" hidden>Continue local work</button>
-          <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Load</button></div>
+          <button id="annotate-local" type="button" class="primary" hidden>Continue</button>
+          <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Open saved analysis</button></div>
         </div>
-        <p id="annotate-say" class="hint" role="status" hidden></p>
+        <p id="annotate-say" class="hint" role="status" data-fold hidden></p>
         <button id="annotate-edit" type="button" hidden>Edit this analysis</button>
       </div>
       <div class="study-box" id="processing-box" hidden>
-        <p id="algorithm-ran" class="hint" hidden></p>
         <slot-here data-slot-for="processing"></slot-here>
+        <details id="algorithm-pick" class="fold" hidden>
+          <summary>How the analysis works</summary>
+          <p id="algorithm-stamp" class="hint" hidden></p>
+          <div id="algorithm-note" class="hint"></div>
+          <details id="scoring-fold" class="fold" hidden><summary>How precision and recall are scored</summary><div id="scoring-note" class="hint"></div></details>
+        </details>
       </div>
       <div class="study-box" id="tasks-box" hidden>
       <div class="gt-access" hidden></div>
@@ -147,7 +152,7 @@
       </div>
       <div id="point-menu" class="pop" role="menu" hidden></div>
       <div id="minimap" hidden>
-        <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
+        <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Areas</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
         <div class="mm-body"><canvas id="minimap-canvas"></canvas><div class="mm-areas" id="minimap-areas" role="group" aria-label="The areas: pick one" hidden></div><div id="minimap-view"></div></div>
       </div>
       <section id="edit-history" class="float" aria-label="Edit History" hidden>
@@ -190,7 +195,7 @@
     <div id="remote-path"></div>
     <div id="remote-list" data-log-as="an item in the remote list"></div>
     <div id="remote-throttle" hidden><p id="remote-throttle-say"></p><div id="remote-clock">15:00</div></div>
-    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button><button value="close">Close</button></div>
+    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button value="close">Cancel</button><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button></div>
   </form>
 </dialog>
 <dialog id="memory-dlg" aria-labelledby="memory-title">
@@ -214,30 +219,22 @@
     <span class="grow"></span><button id="gt-close" type="button">Cancel</button><button id="gt-send" class="primary" type="button" data-needs-network>Upload</button>
   </div>
 </dialog>
-<dialog id="start-dlg" aria-labelledby="start-title">
-  <h2 id="start-title">Start Analysis</h2>
-  <div id="algorithm-pick" hidden>
-    <div class="algorithm-row">
-      <select id="algorithm" size="4" disabled autocomplete="off" aria-label="Algorithm"></select>
-      <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
-    </div>
-    <div id="scoring-note" class="hint" hidden></div>
-    <p id="algorithm-stamp" class="hint" hidden></p>
-    <h3 id="algorithm-about">How the algorithm works</h3>
-    <div id="algorithm-note" class="hint"></div>
-  </div>
-  <div class="dlg-row end"><span class="grow"></span><button id="start-cancel" type="button">Cancel</button><button id="start-run" type="button" class="primary">Run</button></div>
-</dialog>
 <dialog id="load-dlg" aria-labelledby="load-dlg-title">
-  <h2 id="load-dlg-title">Load Analysis</h2>
+  <h2 id="load-dlg-title">Open saved analysis</h2>
   <div id="annotate-list" role="listbox" aria-labelledby="load-dlg-title"></div>
-  <div class="dlg-row end"><span id="load-dlg-msg" class="hint" role="status"></span><span class="grow"></span><button id="load-cancel" type="button">Cancel</button><button id="load-go" type="button" class="primary" disabled autocomplete="off">Load</button></div>
+  <div class="dlg-row end"><span id="load-dlg-msg" class="hint" role="status"></span><span class="grow"></span><button id="load-cancel" type="button">Cancel</button><button id="load-go" type="button" class="primary" disabled autocomplete="off">Open</button></div>
 </dialog>
 <dialog id="setup-dlg" aria-labelledby="setup-title">
   <h2 id="setup-title">Set up Analysis Files</h2>
-  <p class="hint">Makes the study's Analysis Files folder, named Extractions, in its root, shared with anyone with the link to view, and names it in the study file. Everyone's uploaded Analysis Files of its images go there; who may upload is whoever may write it.</p>
+  <p class="hint">Makes the study's Analysis folder, named Analysis, in its root, shared with anyone with the link to view, and names it in the study file. Everyone's uploaded Analysis Files of its images go there; who may upload is whoever may write it.</p>
   <p id="setup-msg" class="hint" role="status"></p>
   <div class="dlg-row end"><span class="grow"></span><button id="setup-go" type="button" class="primary">Set up</button><button id="setup-cancel" type="button">Cancel</button></div>
+</dialog>
+<dialog id="report-dlg" aria-labelledby="report-title">
+  <h2 id="report-title">Report a problem</h2>
+  <p>This opens a new issue on GitHub, filled in with your browser, the study, where you are in it and your last actions, for you to read, add to and send.</p>
+  <p class="hint">An issue on GitHub is public, and sending one needs a GitHub account.</p>
+  <div class="dlg-row end"><span class="grow"></span><button id="report-cancel" type="button">Cancel</button><button id="report-go" type="button" class="primary">Continue</button></div>
 </dialog>
 <dialog id="history-dlg" aria-labelledby="history-title">
   <form method="dialog">
@@ -286,7 +283,7 @@
   <form method="dialog">
     <h2 id="usage-title">Resource Usage</h2>
     <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div></div>
-    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
+    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><p class="hint" id="storage-cache"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
     <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>

@@ -68,6 +68,21 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   through `web-tests/page_frames.mjs`; a count of frames says only that frames passed, and a view that draws on
   demand may have drawn in none of them. (wait-for-the-draw)
 
+- **Changing what the page reaches or keeps mid-test, or leaving it** (the network, a token, another device's write,
+  a reload) - wait for `idle(page)` first, or hold the answer its work waits on with `held()`: work under way meets
+  the change at a moment no test chose. (idle-before-world-change)
+
+- **Starting work in the page that nothing awaits** (a debounce, a sync, a retry, a send on a click) - count it
+  through `web/pending.js`, so a test's `idle()` covers it; uncounted, it outlives the case that set it off.
+  (page-work-counted)
+
+- **Waiting in a test for what an action causes** (a worker's answer, a request, a new tab) - start listening
+  before the action: a listener attached after hears nothing, and the driver hangs to its bound.
+  (listen-before-acting)
+
+- **A test failing on every run of one engine** - file it as that engine's bug, in an issue of its own, never under
+  a `flaky` mark: the mark is for a failure that comes and goes. (engine-failure-not-flaky)
+
 - **Testing code that needs a study's image** - draw a small one in the test (NoR's is
   `studies/nor/tests/synthetic_nor.py`); never a study's real data, which no test downloads.
   (tests-draw-images)
@@ -79,6 +94,16 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 - **Finishing feature work on the page, before handing it to the owner** - play with it through the explorer,
   `web-tests/explore/`, as the `exploring-the-ui` skill says: the change's worlds and focus, several seeds, each bug
   fixed test-first, each owner's call asked with its screenshots. (exploring-the-ui)
+
+## Telling of a test run
+
+- **Telling the owner how a test run went** - account for every test in one line, never only those that ran: ran
+  of all there are, passed, failed, ignored under a `flaky` mark, postponed to another trigger with their last result
+  there, then the Claudinite checks. The totals: (tests-said-in-full)
+
+  ```
+  python3 dev/tools/build/test_census.py
+  ```
 
 ## What the page reaches
 

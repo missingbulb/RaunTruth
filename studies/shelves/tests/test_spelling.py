@@ -4,7 +4,6 @@ makes look alike, the most frequent such word first, and leaves every other word
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
@@ -16,6 +15,7 @@ READING_JS = os.path.join(HERE, '..', 'web', 'reading.js')
 NAMES = os.path.join(HERE, '..', 'web', 'words', 'names.txt')
 sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 import reading
+from drivers import run_driver
 
 
 def spell(words, texts):
@@ -25,7 +25,7 @@ def spell(words, texts):
     script = (f'import {{ spelling }} from {json.dumps("file://" + os.path.abspath(READING_JS))};'
               f'const s = spelling({json.dumps(words)});'
               f'console.log(JSON.stringify({json.dumps(texts)}.map(s)));')
-    out = json.loads(subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True, timeout=60).stdout)
+    out = json.loads(run_driver(None, node_args=['--input-type=module', '-e', script], timeout=60).stdout)
     py = reading.spelling(words)
     assert [py(t) for t in texts] == out, 'the algorithm spells otherwise than the page'
     return out
@@ -80,7 +80,7 @@ def test_the_page_keeps_offline_the_word_list_it_fetches():
     if not node:
         pytest.skip('node missing')
     script = f'import {{ WORDS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(WORDS.list);'
-    fetched = subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True, timeout=60).stdout.strip()
+    fetched = run_driver(None, node_args=['--input-type=module', '-e', script], timeout=60).stdout.strip()
     study = json.load(open(os.path.join(HERE, '..', 'study.json')))
     assert fetched in study['web']['offline'] and fetched in study['services']['words']
 
@@ -92,6 +92,6 @@ def test_the_lab_runs_the_text_finder_the_page_keeps_offline():
     if not node:
         pytest.skip('node missing')
     script = f'import {{ MODELS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(MODELS.find);'
-    name = subprocess.run([node, '--input-type=module', '-e', script], capture_output=True, text=True, check=True, timeout=60).stdout.strip()
+    name = run_driver(None, node_args=['--input-type=module', '-e', script], timeout=60).stdout.strip()
     study = json.load(open(os.path.join(HERE, '..', 'study.json')))
     assert study['services']['det'] in study['web']['offline'] and study['services']['det'].endswith('/' + name)

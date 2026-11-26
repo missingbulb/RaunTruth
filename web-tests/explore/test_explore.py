@@ -12,14 +12,14 @@ import pytest
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 # a walk of a few steps: booting its world and settling after each step, well inside this
 WALK_SECONDS = 300
 
 
 def explore(out, *args):
-    r = subprocess.run([NODE, os.path.join(HERE, 'explore.mjs'), '--out', str(out), '--quiet', *args],
-                       capture_output=True, text=True, timeout=WALK_SECONDS)
+    r = run_driver(os.path.join(HERE, 'explore.mjs'), '--out', str(out), '--quiet', *args, timeout=WALK_SECONDS, check=False)
     if r.returncode == 2:
         pytest.skip(r.stderr.strip())
     assert r.returncode in (0, 1), r.stdout + r.stderr
@@ -135,7 +135,7 @@ def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
     ];
     console.log(JSON.stringify(out));
     """
-    r = subprocess.run([NODE, '--input-type=module', '-e', script], cwd=HERE, capture_output=True, text=True)
+    r = run_driver(None, node_args=['--input-type=module', '-e', script], cwd=HERE, check=False)
     assert r.returncode == 0, r.stderr
     closes, opens, pressed, nothing, signed = json.loads(r.stdout)
     assert closes == ['open'] and opens == [] and pressed == [] and nothing == []
@@ -167,7 +167,7 @@ def test_undo_is_held_to_put_back_only_a_step_that_made_history():
         change: { controls: { added: [], removed: [], changed: made } } } });
     console.log(JSON.stringify([ORACLES.reverts(step(['#show-gt-added'])).length, ORACLES.reverts(step(['#show-gt-added', '#eh-list'])).length]));
     """
-    r = subprocess.run([NODE, '--input-type=module', '-e', script], cwd=HERE, capture_output=True, text=True)
+    r = run_driver(None, node_args=['--input-type=module', '-e', script], cwd=HERE, check=False)
     assert r.returncode == 0, r.stderr
     view_toggle, history_made = json.loads(r.stdout)
     assert view_toggle == 0 and history_made == 1
@@ -195,7 +195,7 @@ class Session:
 
     def __init__(self, out, *args):
         self.out = out
-        r = subprocess.run([NODE, SESSION, 'start', '--out', str(out), *args], capture_output=True, text=True, timeout=WALK_SECONDS)
+        r = run_driver(SESSION, 'start', '--out', str(out), *args, timeout=WALK_SECONDS, check=False)
         assert r.returncode == 0, r.stdout + r.stderr
         self.first = r.stdout
 

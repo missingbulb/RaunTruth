@@ -1,14 +1,15 @@
 // The page's calls to other servers, shown while they are in flight (req/shell/status-bar/calls, req/setup/loading): beside the status
 // line each server's logo turns and says what is read from it, and a call may be given a place on the page, which it empties of what
-// was there, marks as loading, and keeps for the latest call alone. It makes no call itself: whoever calls tells it when one begins
-// and when it ends.
+// was there, marks as loading, and keeps for the latest call alone. What a person saved or downloaded is said on the status line once
+// it is in (req/shell/status-bar/saved). It makes no call itself: whoever calls tells it when one begins and when it ends.
 "use strict";
 import { after } from "./pacing.js";
 
 const RECORDED = 200;
 
-// bar: the element the calls in flight show in; servers: {key: {name, logo: SVG markup}}; failedFor: how long a failure stays said, ms
-export function networkCalls({ bar, servers, failedFor = 6000 }) {
+// bar: the element the calls in flight show in; servers: {key: {name, logo: SVG markup}}; failedFor: how long a failure stays said, ms;
+// say(text, err): the page's status line
+export function networkCalls({ bar, servers, failedFor = 6000, say = () => {} }) {
   // per server: its calls in flight, oldest first, its chip in the bar, and what cancels the wait of a failure still said
   const flying = new Map(), chips = new Map(), fading = new Map();
   // what became of each call given a place, latest last: {server, what, into, outcome: "painted" | "superseded" | "failed"}
@@ -87,5 +88,13 @@ export function networkCalls({ bar, servers, failedFor = 6000 }) {
     holder.set(el, slot);
     return slot;
   }
-  return { begin, during, fill, record };
+  // A change a person made, written to `key`'s server by run(): shown as a call that saves and, once it is in, said on the status line
+  // in `said`'s words; one that fails is said not to have been saved, and fails as run() did
+  function saving(key, said, run) {
+    return during(key, "", run, { sending: true }).then((v) => { say(said); return v; },
+      (e) => { say(`Not saved to ${servers[key].name}: ${e?.message || e}`, true); throw e; });
+  }
+  // a file handed to the person's computer
+  const downloaded = (name) => say(`Saved ${name}.`);
+  return { begin, during, fill, saving, downloaded, say, record };
 }

@@ -69,7 +69,7 @@ export function rows({ files, marks, key, member }) {
     return { id: f.id, modified: f.modified, mine, marks: t, label: words.join(" · "), group: mine ? "mine" : t.length ? "marked" : "other" };
   });
   const order = { mine: 0, marked: 1, other: 2 };
-  const shown = member ? out : out.filter((r) => r.marks.length);
+  const shown = member ? out : out.filter((r) => r.mine || r.marks.length);
   return shown.sort((a, b) => order[a.group] - order[b.group] || (b.marks.includes("gt") - a.marks.includes("gt")) || String(b.modified).localeCompare(String(a.modified)));
 }
 

@@ -36,7 +36,7 @@ const out = {};
   out.bare = { data: !!s.data, extractions: s.extractions, set: s.set, calls: m.calls.length };
 }
 
-// set up: the one Extractions folder made, shared to view by link, the study file naming it; read back from the file
+// set up: the one Analysis folder made, shared to view by link, the study file naming it; read back from the file
 {
   const m = memory(); const data = m.add({ parent: "ROOT", name: "Data", folder: true });
   const s = await sr.setup({ reader: m.reader, writer: m.writer, root: "ROOT", by: "dm@acme.example", at: AT });
@@ -58,7 +58,16 @@ const out = {};
   const e = m.add({ parent: "ROOT", name: "EXTRACTIONS", folder: true });
   m.add({ parent: "ROOT", name: "GT curated", folder: true });
   const s = await sr.read(m.reader, "ROOT", { fresh: true });
-  out.byName = { extractions: s.extractions === e.id, set: s.set, old: "curated" in s || "submissions" in s };
+  out.byName = { extractions: s.extractions === e.id, set: s.set, old: "curated" in s || "submissions" in s, named: s.extractionsName };
+}
+
+// the folder under its name of today, found by it, and before one still named as before
+{
+  const m = memory();
+  m.add({ parent: "ROOT", name: "Extractions", folder: true });
+  const a = m.add({ parent: "ROOT", name: "Analysis", folder: true });
+  const s = await sr.read(m.reader, "ROOT", { fresh: true });
+  out.byNewName = { extractions: s.extractions === a.id, named: s.extractionsName };
 }
 
 // a study file naming the folder by id wins over the names, so a renamed folder still counts

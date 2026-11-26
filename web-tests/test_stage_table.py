@@ -3,13 +3,13 @@ web-tests/stage_table.json: every cell of its rows is the map's, word for word, 
 import json
 import os
 import shutil
-import subprocess
 
 import pytest
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
+from drivers import run_driver
 NODE = shutil.which('node')
 TABLE = json.load(open(os.path.join(HERE, 'stage_table.json')))
 
@@ -43,7 +43,7 @@ def test_a_cell_closes_an_action_exactly_when_it_says_so():
 def out():
     if not NODE:
         pytest.skip('node missing')
-    r = subprocess.run([NODE, os.path.join(HERE, 'stage_rules_driver.mjs')], capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'stage_rules_driver.mjs'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 

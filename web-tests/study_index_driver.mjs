@@ -153,8 +153,16 @@ const chooseImage = async (folder, name) => {
   await page.waitForFunction((n) => document.querySelector("#tags-for").textContent === "Image " + n, name);
 };
 await chooseImage("sub", "beta.png");
-const shownTags = () => page.evaluate(() => [...document.querySelectorAll("#tags-list .tag-chip")].map((c) => c.dataset.tag + (c.classList.contains("inherited") ? " (from " + c.title.replace("From the folder ", "") + ")" : "")));
-await check(JSON.stringify(await shownTags()) === JSON.stringify(["group:wild-type (from Data)"]), "an image shows the tags its folders give it, dimmed, naming the folder", await shownTags());
+const shownTags = () => page.evaluate(() => [...document.querySelectorAll("#tags-list .tag-chip")].map((c) => c.dataset.tag + (c.classList.contains("inherited") ? " (" + c.querySelector(".from").textContent.trim() + ")" : "")));
+await check(JSON.stringify(await shownTags()) === JSON.stringify(["group:wild-type (from folder Data)"]), "an image shows the tags its folders give it, dimmed, naming the folder in words", await shownTags());
+// an image chosen in the tree keeps its folder chosen: highlighted, its images and its sums on show beside the image's own
+const kept = await page.evaluate(() => ({ folder: document.querySelector("#data-tree .tree-folder.chosen > .row .name span")?.textContent, grid: !document.querySelector("#folder-view").hidden,
+  cells: document.querySelectorAll("#folder-items .cell").length, outlined: document.querySelector("#folder-items .cell.chosen .name")?.textContent,
+  sums: document.querySelector("#folder-box").checkVisibility(), image: document.querySelector("#image-panel").checkVisibility() }));
+await check(kept.folder === "sub" && kept.grid && kept.cells >= 1 && kept.outlined === "beta.png" && kept.sums && kept.image,
+  "an image chosen in the tree keeps its folder chosen: highlighted, its images and sums on show, the image's panel beside them", kept);
+const onCell = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell.chosen .tags .tag-chip")].map((c) => c.textContent + (c.classList.contains("inherited") ? " (dashed)" : "")));
+await check(JSON.stringify(onCell) === JSON.stringify(["group:wild-type (dashed)"]), "the image's cell shows the tag its folder gives it, dashed", onCell);
 await tagIt("group:sick");
 await check(JSON.stringify(imageOf(indexes.at(-1), "beta.png")?.tags) === JSON.stringify(["group:sick"]), "an image's own value of a multi-value tag wins over its folder's", imageOf(indexes.at(-1), "beta.png"));
 await shoot("#tags-box", "tags-box.png");

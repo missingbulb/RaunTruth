@@ -79,8 +79,7 @@ const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(s
 
 // the page's own start has run: the study mounted, the status bar filled and the low-memory popup asked for; the
 // algorithm list, fetched without the page waiting on it, can be ready before it
-const started = (page) => page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false
-  && document.querySelector("#status").textContent === "Ready. Load an image.");
+const started = (page) => page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent === "Ready. Load an image.");
 // an annotator's computer reporting gb of memory, on a deploy with Google; seed: browser keys kept before the
 // page opens
 async function open(gb, seed = {}) {

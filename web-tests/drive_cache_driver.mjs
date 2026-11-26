@@ -9,7 +9,7 @@
 //   node web-tests/drive_cache_driver.mjs [SHOTS]
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -110,6 +110,7 @@ try {
   check(downloads() === 0, "after which it opens from this device again");
 
   // Drive gives no SHA-256, or cannot be asked: downloaded
+  await idle(page);
   drive.checksums = false; calls.length = 0;
   await fromDialog(); await settle();
   check(downloads() === 1, `with no SHA-256 in the listing, it is downloaded: ${kinds()}`);
@@ -117,6 +118,7 @@ try {
   await fromLink(); await settle();
   check(downloads() === 1, `with no SHA-256 in the file's details, it is downloaded: ${kinds()}`);
   // a link's details also name the file, so with them unreachable nothing opens: the dialog shows the error
+  await idle(page);
   drive.checksums = true; drive.outage = "details"; calls.length = 0;
   await expecting(/ERR_FAILED/, async () => {
     await pressDrive(page);
@@ -126,10 +128,13 @@ try {
   });
   check(!(await page.evaluate(() => st.fileName)), `with the file's details unreachable, the kept copy does not open, and the dialog shows the error: "${await page.textContent("#remote-msg")}"`);
   await page.click("#remote-dlg button[value=close]");
+  await idle(page);
   drive.outage = null;
+  await idle(page);
   drive.checksums = false; calls.length = 0;
   await fromRecents(); await settle();
   check(calls.length === 0, `from the recents it still opens from this device, with no call to Drive: ${kinds()}`);
+  await idle(page);
   drive.checksums = true;
 
   // ---- req/shell/load/recents-tip ----

@@ -59,14 +59,14 @@ const pictures = [];
 // stage: the study's as served, in place of the committed one; more: other keys of its study.json, the same way
 async function open(stage, more = {}) {
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", { ...(stage ? { stage } : {}), ...more })
+  const device = w.device().signedInAs(tagger).withEditHistoryShown().with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", { ...(stage ? { stage } : {}), ...more })
     .keeps({ ["nor-mask-v1:" + path.basename(image)]: JSON.stringify(MASKED) });
   const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
   await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");

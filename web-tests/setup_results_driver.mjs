@@ -60,6 +60,7 @@ const csv = fs.readFileSync(await download.path(), "utf8");
 await check(download.suggestedFilename() === "results.csv" || /results\.csv$/.test(download.suggestedFilename()), "Download CSV saves a file named for the results", download.suggestedFilename());
 await check(csv === "Image,Algorithm,Pixels counted\nimg1.png,above abcdef01,7\nimg2.png,by hand,5\nTotal (2 images),,12\n", "the CSV holds the same rows and the totals", csv);
 await check(drive.calls.length === before && !seen.some((u) => !u.startsWith("blob:")), "downloading it asks the network for nothing", seen);
+await check(await page.textContent("#status") === "Saved results.csv.", "and the status line says the file was saved", await page.textContent("#status"));
 
 // a mark made on the page while the table shows: the table is of before the mark, so it goes, with no read of its own, until the next press
 await aspect(page, "images");

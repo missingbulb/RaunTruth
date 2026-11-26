@@ -5,7 +5,6 @@ nothing of cellSens). The Google Drive dialog side runs in headless Chromium (ce
 import json
 import os
 import shutil
-import subprocess
 
 import numpy as np
 import pytest
@@ -18,6 +17,7 @@ from test_study_runs import run as run_page
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 COLOURS = [(0, 0, 255), (255, 0, 255)]
 NAMES = ['DAPI', 'Iba1']
@@ -34,7 +34,7 @@ def run(tmp_path, *files):
             for k, f in enumerate(files)]
     spec = tmp_path / 'jobs.json'
     spec.write_text(json.dumps(jobs))
-    r = subprocess.run([NODE, os.path.join(HERE, 'image_open_driver.mjs'), str(spec)], capture_output=True, text=True, timeout=120)
+    r = run_driver(os.path.join(HERE, 'image_open_driver.mjs'), str(spec), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     out = []
     for j, line in zip(jobs, r.stdout.splitlines()):

@@ -2,7 +2,6 @@
 study.json names, through web/bridge.js (extract_bridge_driver.mjs, under Node), on a drawn stack of crossing tubes."""
 import os
 import shutil
-import subprocess
 
 import numpy as np
 import pytest
@@ -11,6 +10,7 @@ import tifffile
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -32,8 +32,7 @@ def stack(path):
 def test_the_page_runs_the_extraction(tmp_path):
     path = str(tmp_path / 'stack.tif')
     stack(path)
-    r = subprocess.run([NODE, os.path.join(HERE, 'extract_bridge_driver.mjs'), path, os.path.dirname(tifffile.__file__), 'v4', 'v5'],
-                       capture_output=True, text=True, timeout=300)
+    r = run_driver(os.path.join(HERE, 'extract_bridge_driver.mjs'), path, os.path.dirname(tifffile.__file__), 'v4', 'v5', timeout=300, check=False)
     print(r.stdout, r.stderr)
     if r.returncode == 2:
         pytest.skip(r.stderr.strip())

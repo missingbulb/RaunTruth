@@ -50,7 +50,7 @@ const settled = async (page) => {
   // nothing of the page's own work under way: its store's and Python's calls, its folders' listing
   await idle(page);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")
-    && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
+    && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity || a.animationName === "shine"));
   // and the disk's count, which the page makes once it is ready and the Storage item waits for; one that never comes
   // is reported as the item not showing
   await orMissed(page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }));
@@ -176,10 +176,11 @@ const ACTIONS = {
     await page.click("#notice-ok");
     await page.waitForFunction(() => document.querySelector("#notice").hidden);
   },
-  // in until the image no longer fits, its minimap shown
+  // in until the image no longer fits the view
   async zoom(page) {
-    for (let k = 0; k < 12 && !(await page.isVisible("#minimap")); k++) await page.click("#zoom-in");
-    await page.waitForFunction(() => document.querySelector("#minimap").checkVisibility());
+    const fits = () => page.evaluate(() => { const sc = document.querySelector("#scroller"); return st.W * st.zoom <= sc.clientWidth && st.H * st.zoom <= sc.clientHeight; });
+    for (let k = 0; k < 12 && await fits(); k++) await page.click("#zoom-in");
+    if (await fits()) throw new Error("the image still fits the view after zooming in");
   },
   // on Study Setup, in the image's dialog, shut again once the image itself is open
   async original(page) {

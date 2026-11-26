@@ -5,7 +5,6 @@ into."""
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
@@ -13,6 +12,7 @@ import pytest
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -23,7 +23,7 @@ def test_vessel_widths_page(tmp_path):
     import build
     studies = tmp_path / 'studies.json'
     studies.write_text(json.dumps(build.studies(os.path.join(HERE, '..', '..', '..'))))
-    r = subprocess.run([NODE, os.path.join(HERE, 'vessel_widths_driver.mjs'), str(studies), *filter(None, [os.environ.get('SHOTS')])], capture_output=True, text=True, timeout=180)
+    r = run_driver(os.path.join(HERE, 'vessel_widths_driver.mjs'), str(studies), *filter(None, [os.environ.get('SHOTS')]), timeout=180, check=False)
     print(r.stdout, r.stderr)
     if r.returncode == 2:
         pytest.skip(r.stderr.strip())

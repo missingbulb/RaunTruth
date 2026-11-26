@@ -11,7 +11,7 @@ import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const drive = await standIn({ answers, studies, rootDir });
+const drive = await standIn({ answers, studies, rootDir, editHistory: true });
 const { FILES, GT, ROOT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;

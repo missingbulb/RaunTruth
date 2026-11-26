@@ -11,6 +11,7 @@ import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
+import { idle } from "../../../web-tests/page_until.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 
 const [answers, image] = process.argv.slice(2);
@@ -49,12 +50,14 @@ async function found(width, stage) {
   const ctx = await device.context();
   await standInDrive(ctx);
   const page = await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
+  // and what the run set off drawn: the cards, and the ground truth's walk, which a click before them would be lost to
+  await idle(page);
   return { device, page };
 }
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };

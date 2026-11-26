@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Study Setup</title>
-<meta name="version" id="site-version" title="version 0.11126.161">
+<meta name="version" id="site-version" title="version 0.11126.162">
 <meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
 <link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
@@ -71,7 +71,6 @@
       <button type="button" data-aspect="truth" aria-pressed="false">Ground Truth</button>
       <button type="button" data-aspect="literature" aria-pressed="false">Literature</button>
       <button type="button" data-aspect="people" aria-pressed="false">People</button>
-      <button type="button" data-aspect="batch" aria-pressed="false">Run on all images</button>
       <button type="button" data-aspect="results" aria-pressed="false">Results</button>
     </nav>
     <div id="setup-aspect" data-aspect="images">
@@ -83,7 +82,7 @@
       <h3 id="data-unlisted-title">Not in the study</h3>
       <div id="data-unlisted-list" data-log-as="a folder of the root not in the study"></div>
       </section>
-      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="Paste a folder's link to add it" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
+      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="A folder's link" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
       <p id="data-msg" class="hint" role="status"></p>
       <p id="data-index" class="hint" role="status"></p>
       <section id="study-set" aria-labelledby="study-set-title" hidden>
@@ -97,7 +96,11 @@
       </div>
       </aside>
       <div id="folder-view" hidden>
-      <div class="folder-bar"><h2 id="folder-title"></h2><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+      <div class="folder-bar"><h2 id="folder-title"></h2><label id="batch-select"><input type="checkbox" id="batch-all" data-needs-network autocomplete="off" aria-label="Select all the folder's images" data-log-as="Select all"><span id="batch-for"></span></label><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+      <!-- what can be done to the images selected (req/setup/batch) -->
+      <div id="batch-bar" role="group" aria-label="The selected images" data-needs-network data-fold hidden><button id="batch-run" type="button" class="primary" data-needs-network>Run analysis</button><button id="batch-hide" type="button" data-needs-network title="Take the selected images out of what the study shows: each is tagged hidden">Hide</button><button id="batch-gt" type="button" data-needs-network title="Mark each selected image as needing ground truth">Request GT</button><button id="batch-official" type="button" data-needs-network hidden>Mark official</button></div>
+      <p id="batch-msg" class="hint" role="status"></p>
+      <ol id="batch-results" data-log-as="an image's result of the run" data-fold hidden></ol>
       <div id="folder-items" data-layout="grid" data-log-as="an image in the folder view"></div>
       </div>
       <aside id="setup-side">
@@ -117,7 +120,7 @@
         <div class="sec-head"><h2>Tags</h2></div>
         <p id="tags-for" class="hint"></p>
         <div id="tags-list" data-log-as="a tag of the folder or image chosen"></div>
-        <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag: damaged-slide, group:wild-type" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
+        <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
         <label id="tags-desc-row" hidden><span class="hint">Description</span><textarea id="tags-desc" rows="3" data-log-as="an image's description" data-needs-network></textarea></label>
         <p id="tags-msg" class="hint" role="status"></p>
         </section>
@@ -128,16 +131,6 @@
         <div id="marks-list" role="list" data-log-as="an Analysis File of the image, to mark"></div>
         <p id="marks-msg" class="hint" role="status"></p>
         </section>
-        <!-- a batch run over the folder's images (req/setup/batch) -->
-        <section class="box" id="batch-box" data-needs-network hidden>
-        <div class="sec-head"><h2>Batch run</h2></div>
-        <p id="batch-for" class="hint"></p>
-        <label class="study-row"><span>Algorithm</span><select id="batch-algorithm" data-log-as="the algorithm a batch runs"></select></label>
-        <div class="folder-actions"><button id="batch-all" type="button" data-needs-network>Choose all</button><button id="batch-run" type="button" class="primary" data-needs-network disabled>Run</button></div>
-        <div class="folder-actions"><button id="batch-official" type="button" data-needs-network hidden>Mark this batch official</button></div>
-        <p id="batch-msg" class="hint" role="status"></p>
-        </section>
-        <p id="batch-hint" class="hint">Choose a folder: a batch runs over its images.</p>
         <p id="side-hint" class="hint">Choose a folder or an image to see what is set on it.</p>
       </aside>
       <section id="truth-panel" aria-label="Ground Truth">
@@ -150,7 +143,7 @@
         <section id="newer-box" aria-labelledby="newer-title">
           <h2 id="newer-title">Analysis Files newer than their GT</h2>
           <div class="folder-actions"><button id="stage-find" type="button" data-needs-network hidden>Find images with newer Analysis Files</button></div>
-          <div id="stage-newer-box" hidden>
+          <div id="stage-newer-box" data-fold hidden>
           <h3 id="stage-newer-title">Newer than their GT</h3>
           <ul id="stage-newer" data-log-as="an image with an Analysis File newer than its GT"></ul>
           <p id="stage-newer-none" class="hint" hidden>No image has an Analysis File newer than its GT.</p>
@@ -184,6 +177,7 @@
       <table><thead></thead><tbody data-log-as="an image's official result"></tbody><tfoot></tfoot></table>
       </div>
       <p id="results-msg" class="hint" role="status"></p>
+      <p id="results-pending" class="hint" hidden><span></span> <button id="results-to-images" type="button" class="link">Back to the images</button></p>
       </section>
     </div>
   </div>
@@ -195,7 +189,7 @@
 <div id="layout">
   <aside id="left">
     <section class="box foldable" id="image-box" data-folds="load">
-      <div class="sec-head"><h2>Load</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">unload image</button></div>
+      <div class="sec-head"><h2>Image</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">Unload image</button></div>
       <div id="load">
         <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Recently Opened" data-log-as="the image selector"><span class="pick-name">Recently Opened</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
           <div class="pop" role="dialog" aria-label="Images opened lately"><div id="recent" role="listbox" data-log-as="a recent image"></div></div>
@@ -204,7 +198,7 @@
         <button id="load-remote" type="button"><svg class="remote-logo" aria-hidden="true"><use href="#remote-logo"/></svg></button>
       </div>
       <div id="file-tags" aria-label="The image's tags" hidden></div>
-      <details id="file-box" class="empty" hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
+      <details id="file-box" class="empty" data-fold hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
       <div id="channels"></div>
       <div id="image-foot">
         <button id="load-original" class="primary" type="button" hidden>Load Original</button>
@@ -219,19 +213,24 @@
 
 
     <section class="box foldable study-box" id="analysis-box">
-      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
+      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">Reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
       <div id="gt-strip"><div class="strip-head"><h3 id="tasks-title">Analysis Tasks</h3><label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label></div><div id="gt-bar"></div><div id="gt-counters" data-log-as="a task's counter"></div></div>
       <div id="annotate-box" hidden>
         <div id="annotate-choices">
-          <button id="annotate-local" type="button" hidden>Continue local work</button>
-          <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Load</button></div>
+          <button id="annotate-local" type="button" class="primary" hidden>Continue</button>
+          <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Open saved analysis</button></div>
         </div>
-        <p id="annotate-say" class="hint" role="status" hidden></p>
+        <p id="annotate-say" class="hint" role="status" data-fold hidden></p>
         <button id="annotate-edit" type="button" hidden>Edit this analysis</button>
       </div>
       <div class="study-box" id="processing-box" hidden>
-        <p id="algorithm-ran" class="hint" hidden></p>
         <slot-here data-slot-for="processing"></slot-here>
+        <details id="algorithm-pick" class="fold" hidden>
+          <summary>How the analysis works</summary>
+          <p id="algorithm-stamp" class="hint" hidden></p>
+          <div id="algorithm-note" class="hint"></div>
+          <details id="scoring-fold" class="fold" hidden><summary>How precision and recall are scored</summary><div id="scoring-note" class="hint"></div></details>
+        </details>
       </div>
       <div class="study-box" id="tasks-box" hidden>
       <div class="gt-access" hidden></div>
@@ -287,7 +286,7 @@
       </div>
       <div id="point-menu" class="pop" role="menu" hidden></div>
       <div id="minimap" hidden>
-        <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
+        <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Areas</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
         <div class="mm-body"><canvas id="minimap-canvas"></canvas><div class="mm-areas" id="minimap-areas" role="group" aria-label="The areas: pick one" hidden></div><div id="minimap-view"></div></div>
       </div>
       <section id="edit-history" class="float" aria-label="Edit History" hidden>
@@ -338,7 +337,7 @@
     <div id="remote-path"></div>
     <div id="remote-list" data-log-as="an item in the remote list"></div>
     <div id="remote-throttle" hidden><p id="remote-throttle-say"></p><div id="remote-clock">15:00</div></div>
-    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button><button value="close">Close</button></div>
+    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button value="close">Cancel</button><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button></div>
   </form>
 </dialog>
 <dialog id="memory-dlg" aria-labelledby="memory-title">
@@ -362,30 +361,22 @@
     <span class="grow"></span><button id="gt-close" type="button">Cancel</button><button id="gt-send" class="primary" type="button" data-needs-network>Upload</button>
   </div>
 </dialog>
-<dialog id="start-dlg" aria-labelledby="start-title">
-  <h2 id="start-title">Start Analysis</h2>
-  <div id="algorithm-pick" hidden>
-    <div class="algorithm-row">
-      <select id="algorithm" size="4" disabled autocomplete="off" aria-label="Algorithm"></select>
-      <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
-    </div>
-    <div id="scoring-note" class="hint" hidden></div>
-    <p id="algorithm-stamp" class="hint" hidden></p>
-    <h3 id="algorithm-about">How the algorithm works</h3>
-    <div id="algorithm-note" class="hint"></div>
-  </div>
-  <div class="dlg-row end"><span class="grow"></span><button id="start-cancel" type="button">Cancel</button><button id="start-run" type="button" class="primary">Run</button></div>
-</dialog>
 <dialog id="load-dlg" aria-labelledby="load-dlg-title">
-  <h2 id="load-dlg-title">Load Analysis</h2>
+  <h2 id="load-dlg-title">Open saved analysis</h2>
   <div id="annotate-list" role="listbox" aria-labelledby="load-dlg-title"></div>
-  <div class="dlg-row end"><span id="load-dlg-msg" class="hint" role="status"></span><span class="grow"></span><button id="load-cancel" type="button">Cancel</button><button id="load-go" type="button" class="primary" disabled autocomplete="off">Load</button></div>
+  <div class="dlg-row end"><span id="load-dlg-msg" class="hint" role="status"></span><span class="grow"></span><button id="load-cancel" type="button">Cancel</button><button id="load-go" type="button" class="primary" disabled autocomplete="off">Open</button></div>
 </dialog>
 <dialog id="setup-dlg" aria-labelledby="setup-title">
   <h2 id="setup-title">Set up Analysis Files</h2>
-  <p class="hint">Makes the study's Analysis Files folder, named Extractions, in its root, shared with anyone with the link to view, and names it in the study file. Everyone's uploaded Analysis Files of its images go there; who may upload is whoever may write it.</p>
+  <p class="hint">Makes the study's Analysis folder, named Analysis, in its root, shared with anyone with the link to view, and names it in the study file. Everyone's uploaded Analysis Files of its images go there; who may upload is whoever may write it.</p>
   <p id="setup-msg" class="hint" role="status"></p>
   <div class="dlg-row end"><span class="grow"></span><button id="setup-go" type="button" class="primary">Set up</button><button id="setup-cancel" type="button">Cancel</button></div>
+</dialog>
+<dialog id="stage-change-dlg" aria-labelledby="stage-change-title">
+  <h2 id="stage-change-title"></h2>
+  <p id="stage-change-what"></p>
+  <p id="stage-change-moves"></p>
+  <div class="dlg-row end"><span class="grow"></span><button id="stage-change-go" type="button" class="primary" data-needs-network></button><button id="stage-change-cancel" type="button">Cancel</button></div>
 </dialog>
 <dialog id="stage-freeze-dlg" aria-labelledby="stage-freeze-title">
   <h2 id="stage-freeze-title">Promote to Review</h2>
@@ -395,6 +386,12 @@
     <ul id="stage-freeze-newer"></ul>
   </div>
   <div class="dlg-row end"><span class="grow"></span><button id="stage-freeze" type="button" class="primary" data-needs-network>Freeze</button><button id="stage-freeze-cancel" type="button">Cancel</button></div>
+</dialog>
+<dialog id="report-dlg" aria-labelledby="report-title">
+  <h2 id="report-title">Report a problem</h2>
+  <p>This opens a new issue on GitHub, filled in with your browser, the study, where you are in it and your last actions, for you to read, add to and send.</p>
+  <p class="hint">An issue on GitHub is public, and sending one needs a GitHub account.</p>
+  <div class="dlg-row end"><span class="grow"></span><button id="report-cancel" type="button">Cancel</button><button id="report-go" type="button" class="primary">Continue</button></div>
 </dialog>
 <dialog id="history-dlg" aria-labelledby="history-title">
   <form method="dialog">
@@ -443,7 +440,7 @@
   <form method="dialog">
     <h2 id="usage-title">Resource Usage</h2>
     <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div></div>
-    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
+    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><p class="hint" id="storage-cache"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
     <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>
