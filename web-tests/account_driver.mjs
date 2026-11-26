@@ -139,7 +139,9 @@ try {
     "the file holds the settings that follow the user, not the left bar's width");
   await a.page.click("body", { position: { x: 700, y: 500 } });
   await a.page.click("#theme");
+  check(await a.page.evaluate(() => shellForTests.work.doing.join()).then((d) => /settings/.test(d)), "... and until it has, the save still owed counts as the page's work");
   check(await until(() => file()?.["nor-theme"] === "light"), "switching to light while signed in saves it to the file");
+  check(await until(() => a.page.evaluate(() => !/settings/.test(shellForTests.work.doing.join()))), "... no longer once it is saved");
 
   // req/shell/account/settings: Settings, from the avatar's menu
   const openSettings = async (page) => {

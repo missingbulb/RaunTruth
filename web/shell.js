@@ -114,6 +114,7 @@ const FOLLOWS = [THEME, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINK
 const signIn = account({
   keys: FOLLOWS,
   watched: (sending) => calls.begin("store", "your settings", { sending }),
+  owed: (what) => work.begin(what),
   guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),

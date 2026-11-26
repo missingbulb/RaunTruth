@@ -52,12 +52,17 @@ export const SIGNED_IN_LABEL = "Who is signed in with Google, and Google's token
 
 // keys: the browser keys whose settings follow the user; applied(): runs once Drive's settings have replaced them;
 // changed(): runs whenever who is signed in may have changed; guide: the guide to Google's windows (guide.js); watched(sending): told as
-// each call to Google with the user's token begins, it returns what ends it, with the error it failed with if it did
-export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {}, guide, watched = () => () => {} }) {
+// each call to Google with the user's token begins, it returns what ends it, with the error it failed with if it did; owed(what): told
+// as a save of the settings is first asked for, it returns what ends it once Drive has them or the save is given up
+export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.NOR_CONFIG.google) || {}).clientId || "", applied, changed = () => {}, guide, watched = () => () => {}, owed = () => () => {} }) {
   const $ = (s) => menu.querySelector(s);
   // waiting: {ok, fail} of a sign-in the popup is waiting on (req/shell/account/welcome)
   let me = read(), client = null, script = null, waiting = null;
-  const saving = afterQuiet(SAVE_AFTER_MS, () => save().catch((e) => console.warn("settings not saved to Google Drive:", e.message)));
+  // a save waits for a quiet spell, and is the page's work from the change that asked for it until it is in Drive
+  let settled = null;
+  const paid = () => { const end = settled; settled = null; end?.(); };
+  const later = afterQuiet(SAVE_AFTER_MS, () => { const end = settled; settled = null; save().catch((e) => console.warn("settings not saved to Google Drive:", e.message)).finally(() => end?.()); });
+  const saving = Object.assign(() => { settled ||= owed("your settings to save"); later(); }, { cancel() { later.cancel(); paid(); } });
   // renewal: the token Google's window is being asked for, {promise, done(token or null)}
   let renewal = null;
   const settle = (token) => { const r = renewal; renewal = null; r?.done(token); };
