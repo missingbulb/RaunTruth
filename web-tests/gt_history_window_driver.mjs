@@ -50,7 +50,10 @@ await check(await hiddenNow() && await page.isVisible("#history-btn") && await p
   "once the image has a run its button shows, up, and the window stays closed until it is pressed");
 await page.click("#history-btn");
 await check(await page.isVisible("#edit-history"), "pressed, the window shows");
-const [saveBtn, submitBtn] = [await box(page, "#gt-save-draft"), await box(page, "#gt-submit")];
+// both in one look: the row moves while the bar's parts fold, and two looks apart would differ by its motion
+const [saveBtn, submitBtn] = await page.evaluate(() => ["#gt-save-draft", "#gt-submit"].map((s) => {
+  const r = document.querySelector(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height };
+}));
 await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Save, each on one line", { saveBtn, submitBtn });
 const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
