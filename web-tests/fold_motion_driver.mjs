@@ -55,6 +55,15 @@ const gone = (page, sel) => page.evaluate((s) => !document.querySelector(s).chec
   const closing = await ran(page, n, [{ name: "opacity" }]);
   await check(!closing.missing && (await on(page, n, "#usage-dlg")).some(([name, ended]) => name === "opacity" && ended) && await gone(page, "#usage-dlg"),
     "and it closes with a motion of its own, gone at its end", { closing, on: await on(page, n, "#usage-dlg") });
+  // a dialog closed by its own action goes at once: what the action started is what shows next
+  await page.evaluate(() => $("#open-settings").click());
+  await page.waitForFunction(() => $("#settings-dlg").open);
+  await atRest(page, "#settings-dlg");
+  n = await played(page);
+  await page.click("#settings-save");
+  await page.waitForFunction(() => !$("#settings-dlg").checkVisibility());
+  const acted = await on(page, n, "#settings-dlg");
+  await check(!acted.length, "a dialog closed by its own action goes at once", acted);
   await ctx.close();
 }
 

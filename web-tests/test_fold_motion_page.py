@@ -2,14 +2,11 @@
 shines three times and rests (fold_motion_driver.mjs)."""
 import os
 import shutil
-import sys
 
 import pytest
+from drivers import run_driver
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
-from drivers import run_driver  # noqa: E402
-
 NODE = shutil.which('node')
 pytestmark = pytest.mark.full
 

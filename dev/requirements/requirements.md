@@ -503,7 +503,8 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-26, after the designers' walk found dialogs opening with a motion and closing in a cut,
   and content jumping wherever it made room. A modal dialog a press opened shrinks back toward that control as it
   closes, fading, in the time it took to grow (`req/shell/dialogs/open-from-button`); one nothing pressed open, and every
-  dialog with animations off or reduced motion asked for, closes at once. A confirmation opens where it stands, never
+  dialog with animations off or reduced motion asked for, closes at once; so does one closed by its own primary action,
+  what that action started being what the page shows next. A confirmation opens where it stands, never
   from the page's corner. What makes room for itself on the page folds open and folds shut over a fifth of a second,
   through one fold the page's parts share (a part marked `data-fold`): the opened image's details, the line under the
   choice of an analysis, the bar of a selection's actions and a run's results, the list of images newer than their

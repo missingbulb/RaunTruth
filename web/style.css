@@ -1334,7 +1334,7 @@ html:not(.offline) #welcome-offline { display: none; }
   font-size: 12px; line-height: 1.4; padding: calc((var(--bar-h) - 2px - 1.4em) / 2) 10px; }
 /* a button of an icon alone: a square of its place's height, with the controls' corners */
 button.icon { width: var(--ctl-h); height: var(--ctl-h); border-radius: var(--r-ctl); }
-button.tool, .sec-head .head-icon { width: var(--bar-h); height: var(--bar-h); padding: 0; border-color: var(--line); }
+button.tool, .sec-head .head-icon { width: var(--bar-h); height: var(--bar-h); padding: 0; border-color: var(--line); background: var(--panel); color: var(--text); }
 /* Upload with tasks still open is not ready, which is no failure: a plain ring in the quiet colour */
 #gt-submit[data-state=todo] .gt-ico { color: var(--dim); animation: none; }
 #gt-submit[data-state=todo] .gt-ico svg.todo path { display: none; }

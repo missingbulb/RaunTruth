@@ -12,13 +12,23 @@ export function dialogMotion(still) {
 
   // req/shell/dialogs/close-as-opened: where each dialog grew from, which the stylesheet sends it back to as it closes. Kept in a
   // sheet of the page's own, so that a dialog's own attributes say nothing of how it was opened
-  const sheet = new CSSStyleSheet(), came = new Map();
+  const sheet = new CSSStyleSheet(), came = new Map(), acted = new Set();
   document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  const write = () => sheet.replaceSync([...[...came].map(([id, t]) => `#${CSS.escape(id)} { --grew-from: ${t}; }`),
+    ...[...acted].map((id) => `#${CSS.escape(id)}, #${CSS.escape(id)}::backdrop { transition: none; }`)].join("\n"));
   function back(d, from) {
     if (!d.id) return;
     if (from) came.set(d.id, from); else came.delete(d.id);
-    sheet.replaceSync([...came].map(([id, t]) => `#${CSS.escape(id)} { --grew-from: ${t}; }`).join("\n"));
+    acted.delete(d.id);
+    write();
   }
+  // a dialog whose own action was pressed goes at once: what the action started is what the page shows next, and its
+  // work would hold a closing motion half way
+  document.addEventListener("click", (e) => {
+    const d = e.target.closest?.("dialog[open]");
+    const b = d?.id && e.target.closest("button.primary");
+    if (b && b.value !== "close" && !/^(Close|Cancel|OK)$/.test(b.textContent.trim()) && !acted.has(d.id)) { acted.add(d.id); write(); }
+  }, true);
 
   function grow(d) {
     const from = pressed;
