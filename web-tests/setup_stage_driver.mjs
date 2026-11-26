@@ -81,7 +81,7 @@ await page.click("#stage-up");
 await asking(page);
 await check(await text(page, "#stage-change-title") === "Promote to Analyze" && (await text(page, "#stage-change-what")).startsWith("Analyze: ") && await text(page, "#stage-change-go") === "Promote to Analyze",
   "Promote to Analyze asks first, naming the stage and what it is", await text(page, "#stage-change-dlg"));
-await check(/opens the study's numbers|opens and closes nothing/.test(await text(page, "#stage-change-moves")), "and says what the change opens and closes", await text(page, "#stage-change-moves"));
+await check(/opens the study's numbers|changes nothing people may do/.test(await text(page, "#stage-change-moves")), "and says what the change opens and closes", await text(page, "#stage-change-moves"));
 await page.click("#stage-change-cancel");
 await page.waitForFunction(() => !document.querySelector("#stage-change-dlg").open);
 await idle(page);
@@ -92,6 +92,8 @@ await page.click("#stage-change-go");
 await settledStage(page, "Analyze");
 await check(await text(page, "#status") === "Moved the study to Analyze.", "the status line says the study was moved", await text(page, "#status"));
 await idle(page);
+const kept = await page.evaluate(() => ({ on: document.activeElement?.className || document.activeElement?.localName, text: document.activeElement?.textContent.trim() }));
+await check(/stage-act/.test(kept.on) && /Analyze|Review|Develop/.test(kept.text), "the keyboard is left on one of the stage's actions, the one pressed being gone with the old stage", kept);
 await check(!lists().slice(listed).includes("img1") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
 
 // the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
@@ -141,6 +143,9 @@ await check(study().stage === "Review", "and writes nothing until its button is 
 await page.click("#stage-change-go");
 await settledStage(page, "Analyze");
 await check(study().stage === "Analyze", "Move back writes the earlier stage", study().stage);
+await idle(page);
+const after = await page.evaluate(() => document.activeElement?.className || document.activeElement?.localName);
+await check(/stage-act/.test(after), "and the keyboard is on one of the stage's actions again", after);
 await page.waitForFunction(() => document.querySelectorAll("#marks-list button.mark-gt").length === 2);
 await check(await visible(page, "#data-add"), "and marking and data are open again");
 await page.context().close();

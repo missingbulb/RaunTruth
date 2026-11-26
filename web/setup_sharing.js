@@ -135,7 +135,9 @@ export function sharingPanel(ctx) {
     $("#sharing-title").textContent = `Sharing (${last.stage})`;
     const fixes = corrections(last.stage, last.items, remote.sharing);
     say(fixes.length ? `${fixes.length} thing${fixes.length === 1 ? "" : "s"} to change for this stage:` : "Sharing is as this stage needs.");
+    const shownHow = new Set([...list.querySelectorAll("details.sharing-how[open]")].map((d) => d.closest("[data-key]").dataset.key));
     list.replaceChildren(...fixes.map(card));
+    for (const d of list.querySelectorAll("details.sharing-how")) d.open = shownHow.has(d.closest("[data-key]").dataset.key);
     const { members, link } = people(last.items);
     const rootItem = last.items.find((i) => i.kind === "root"), gt = last.items.find((i) => i.kind === "extractions");
     const others = members.filter((m) => m.holds.includes(HANDS_IN) && m.email !== account.email()).map((m) => m.email);
@@ -200,7 +202,12 @@ export function sharingPanel(ctx) {
     return check();
   }
 
-  $("#sharing-recheck").onclick = () => check();
+  $("#sharing-recheck").onclick = async () => {
+    await check();
+    if (!last) return;
+    const n = corrections(last.stage, last.items, remote.sharing).length;
+    ctx.status(n ? `Checked the study's sharing: ${n} thing${n === 1 ? "" : "s"} to change.` : "Checked the study's sharing: it is as this stage needs.");
+  };
   addEventListener(CONNECTION, (e) => { if (e.detail.online && shownOn && !last) check(); });
 
   return {

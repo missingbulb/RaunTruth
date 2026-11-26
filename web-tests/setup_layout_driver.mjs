@@ -105,7 +105,9 @@ await check((await cells(page)).join() === "c.png" && !(await chip(page)) && (aw
   await check(!/^Saved the tag/.test(await page.textContent("#status")), "while the store still holds the write, the status line does not say the tag is saved", await page.textContent("#status"));
   drive.hold = () => null; w.release();
   await idle(page);
-  await check(await page.textContent("#status") === "Saved the tag to the study.", "once the write is taken the status line says the tag is saved to the study", await page.textContent("#status"));
+  await check(await page.textContent("#status") === "Saved the tag acme-tag to the study.", "once the write is taken the status line says the tag, as it was kept, is saved to the study", await page.textContent("#status"));
+  const onTiles = await page.evaluate(() => [...document.querySelectorAll("#folder-items .cell")].map((c) => [...c.querySelectorAll(".tag-chip.inherited")].map((t) => t.textContent).join()));
+  await check(onTiles.length === 1 && onTiles[0] === "acme-tag", "and the folder's images show it at once, with no reading of the folder again", onTiles);
   await shot(page, "6-tag-saved");
   // a write the store refuses is said not to be saved
   drive.outage = "writes";

@@ -190,7 +190,10 @@ await check(s.corrections.length === 2 && /root/i.test(root.item) && !root.fix &
   "Drive refusing the change: the root's correction drops its Fix, keeps its link and pictures and says to change it there", root);
 await check(previews.fix && previews.refused === null, "the other correction keeps its Fix", previews);
 await check(permissionWrites().length === before, "and nothing was changed", permissionWrites());
+await page.evaluate(() => { document.querySelector("#sharing-corrections details.sharing-how").open = true; });
 await recheck(page);
 s = await shown(page);
 await check(!s.corrections[0].fix && /change it/i.test(s.corrections[0].refused ?? ""), "Check again keeps the refused correction without its Fix", s.corrections[0]);
+const again = await page.evaluate(() => ({ how: document.querySelector("#sharing-corrections details.sharing-how").open, status: document.querySelector("#status").textContent }));
+await check(again.how && /^Checked the study's sharing: 2 things to change\.$/.test(again.status), "Check again leaves an opened Show how open, and the status line says the check ran and what it found", again);
 await done(0);

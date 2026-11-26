@@ -209,6 +209,7 @@ export function dataMode(ctx) {
   });
   // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
   function drawTags() {
+    drawTileTags();
     const box = $("#tags-box"), c = chosen;
     box.hidden = !c || !on();
     if (box.hidden) return;
@@ -285,8 +286,8 @@ export function dataMode(ctx) {
     if (!c) return;
     if (got.error) return msg($("#tags-msg"), got.error, true);
     $("#tags-add").value = "";
-    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: addTag(tagsDoc.images[c.id]?.tags || [], got.tag) }), "Saved the tag to the study.");
-    else saveTags(withFolder(tagsDoc, c.id, addTag(folderTags(c.id), got.tag)), "Saved the tag to the study.");
+    if (c.kind === "image") saveTags(withImage(tagsDoc, c.id, { tags: addTag(tagsDoc.images[c.id]?.tags || [], got.tag) }), `Saved the tag ${got.tag} to the study.`);
+    else saveTags(withFolder(tagsDoc, c.id, addTag(folderTags(c.id), got.tag)), `Saved the tag ${got.tag} to the study.`);
   }
   function untag(t) {
     const c = chosen;
@@ -540,6 +541,19 @@ export function dataMode(ctx) {
     ctx.setup?.folderShown({ id: n.id, name: n.name, images: all.map((s) => ({ id: s.f.id, name: s.f.name, sha: s.f.sha, folder: n.id })) });
   }
 
+  // an image's own tags, then those its folders give it, as its tile shows them
+  function tileChips(folderId, fileId) {
+    const own = tagsDoc.images[fileId]?.tags || [], given = [...new Set(inheritedOf(folderId, false).flatMap((l) => l.tags))].filter((t) => !own.includes(t));
+    return own.map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("") + given.map((t) => `<span class="tag-chip inherited">${esc(t)}</span>`).join("");
+  }
+  function drawTileTags() {
+    if (!gridOf) return;
+    for (const cell of $("#folder-items").querySelectorAll(".cell")) {
+      const tags = cell.querySelector(".tags");
+      for (const c of tags.querySelectorAll(".tag-chip")) c.remove();
+      tags.insertAdjacentHTML("beforeend", tileChips(gridOf, cell.dataset.id));
+    }
+  }
   // the folder's images in the main area, a grid of previews or a list
   function drawItems(n, all, pv) {
     $("#folder-items").dataset.layout = layout;
@@ -547,8 +561,7 @@ export function dataMode(ctx) {
       const cell = document.createElement("div");
       cell.className = "cell"; cell.dataset.id = s.f.id; cell.tabIndex = 0;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
-      const own = tagsDoc.images[s.f.id]?.tags || [], given = [...new Set(inheritedOf(n.id, false).flatMap((l) => l.tags))].filter((t) => !own.includes(t));
-      const chips = own.map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("") + given.map((t) => `<span class="tag-chip inherited">${esc(t)}</span>`).join("");
+      const chips = tileChips(n.id, s.f.id);
       cell.innerHTML = `<span class="pic"></span><span class="name">${esc(s.f.name)}</span><span class="meta">${esc(s.f.size == null ? "" : sizeText(s.f.size))}</span>` +
         `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}${chips}</span>` +
         `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">${s.marker ? "GT requested" : "Request GT"}</button>` +
@@ -654,6 +667,7 @@ export function dataMode(ctx) {
     $("#image-panel").hidden = !image;
     if (name != null) $("#image-panel-name").textContent = name;
     $("#image-open").disabled = !image || ctx.imageOpen()?.id !== chosen.id;
+    $("#image-open").title = !image ? "Choose one image to open it" : $("#image-open").disabled ? "The image is still being read" : "";
     for (const c of $("#folder-items").querySelectorAll(".cell")) c.classList.toggle("chosen", image && c.dataset.id === chosen.id);
   }
   // an image chosen, in the grid or in the tree: its folder stays the one chosen and on show, read first where another's was

@@ -1633,7 +1633,9 @@ const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, no
   // offline there is nothing to ask the store
   submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null)
     : ownFile()), readSubmission: (id) => truth.read(id),
-  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
+  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate(),
+  // where the work on show now comes from, which the Analysis box says
+  took: (from) => { if (annotating && (route === "local" || route === "stored")) { route = from; drawAnnotate(); } } });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {

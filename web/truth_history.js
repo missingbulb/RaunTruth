@@ -21,7 +21,7 @@ const stamp = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MONTH
 // submission(): the person's own extraction of the image open in the remote store, {id, modified} or null, looked up as the
 // image opens; readSubmission(id): its file, parsed; version(): {site, code} of the page and the study's code, which a run records
 export function truthHistory({ $, drafts, keys, dragging, status, notice, confirmBox = (t) => confirm(t), image, studyId, makesTruth, viewer, remoteLabel, readJSON, writeJSON,
-  submission = async () => null, readSubmission = async () => { throw new Error("no store"); }, version = () => null, drawn = () => {} }) {
+  submission = async () => null, readSubmission = async () => { throw new Error("no store"); }, version = () => null, drawn = () => {}, took = () => {} }) {
   let module = null, log = null, replayState = "verified";
   // what the device's draft of the image open held when last seen, the saved time of the one this visit loaded or saved,
   // and the actions in force then
@@ -120,7 +120,9 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
 
   async function load(record) {
     if (!module || !log || !mayReplace("the draft")) return false;
-    return take(record, "Draft");
+    const taken = await take(record, "Draft");
+    if (taken) took("local");
+    return taken;
   }
 
   // the person's own extraction, read now, the one download
@@ -131,7 +133,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
     try { doc = await readSubmission(id); } catch (e) { notice(`Your Analysis File could not be read: ${e?.message || e}`); return false; }
     const h = doc?.history;
     const taken = await take({ log: h?.format === HISTORY_FORMAT && Array.isArray(h.actions) ? h.actions : [], model: doc, saved: modified }, "Your Analysis File");
-    if (taken) { filed = null; paint(); }
+    if (taken) { filed = null; paint(); took("stored"); }
     return taken;
   }
 

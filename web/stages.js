@@ -68,7 +68,7 @@ export function changes(from, to) {
 export function confirming(from, to) {
   const { opens, closes } = changes(from, to), list = (l) => l.length > 1 ? `${l.slice(0, -1).join(", ")} and ${l.at(-1)}` : l[0];
   const moves = [opens.length ? `opens ${list(opens)}` : "", closes.length ? `closes ${list(closes)}` : ""].filter(Boolean).join(", and ");
-  return [`${to}: ${WHAT[to]}`, moves ? `Moving from ${from} ${moves}.` : `Moving from ${from} opens and closes nothing of what people may do.`];
+  return [`${to}: ${WHAT[to]}`, moves ? `Moving from ${from} ${moves}.` : `Moving from ${from} changes nothing people may do.`];
 }
 export const next = (stage) => STAGES[STAGES.indexOf(stage) + 1] || null;
 export const before = (stage) => STAGES[STAGES.indexOf(stage) - 1] || null;

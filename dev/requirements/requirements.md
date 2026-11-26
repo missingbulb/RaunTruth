@@ -2028,7 +2028,7 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-25, after the walk, where five people could not tell whether a change had been saved: "Yes,
   in the status line". Every change a person makes that the page writes to the store ends with one sentence on the status
   line saying what was saved and where, and every file the page hands their computer with "Saved <file name>.": a tag
-  added ("Saved the tag to the study.") or removed, a description, an area marked or cleared, the grouping, a hide rule,
+  added ("Saved the tag <tag> to the study.") or removed, a description, an area marked or cleared, the grouping, a hide rule,
   the study's folders, the set-up of Analysis Files, a GT or official mark, a batch marked official, Needs GT, a folder's
   previews, a correction of the sharing, a stage change ("Moved the study to Analyze."), the Settings dialog's Save
   ("Saved your settings."), Save Draft and Upload (each said as before), a batch run ("Batch run over: saved 3 Analysis
@@ -2633,7 +2633,7 @@ nobody has decided: what the page does there is not a requirement yet.
   takes off that one permission, and a link that only reads is then offered by its own correction (owner, 2026-11-23). Set by the owner on
   2026-11-26, after the walk of 2026-11-25: taking the link off the root takes it off the study file too, where the file had none of its own, so
   the root's confirmation says the study file will then be shared by link itself, and the one Confirm makes both changes; where the
-  second is refused the first stands, and the study file's own correction shows. Test: `web-tests/test_setup_sharing_page.py` (the fake
+  second is refused the first stands, and the study file's own correction shows. Set by the owner's second walk, 2026-11-26: Check again says on the status line that the check ran and how many things it found to change, and leaves a Show how the person opened open. Test: `web-tests/test_setup_sharing_page.py` (the fake
   Drive's permissions seeded per case, each rule, Fix, Cancel, Drive refusing), `web-tests/test_setup_sharing_rules.py`
   (the rules per stage).
   </details>
