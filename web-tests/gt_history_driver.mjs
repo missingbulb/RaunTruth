@@ -9,7 +9,7 @@
 import { loadStored, fromScratch } from "./annotating.mjs";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 import { expecting } from "./harness.mjs";
 
@@ -202,7 +202,9 @@ await tagger(page);
 await page.click("#study-menu summary"); await page.click('#study-list a[data-id="viewer"]');
 await page.waitForFunction(() => document.title === "Image Viewer" && !st.img);
 await page.goBack();
-await page.waitForFunction(() => /\/fixture$/.test(location.pathname) && !!window.fixture);
+// the study back on show, not only its address: what the first visit left on the page says nothing of this one
+await page.waitForFunction(() => /\/fixture$/.test(location.pathname) && document.title === "Fixture");
+await idle(page);
 await ready(page);
 await tagger(page);
 await counted(page);
