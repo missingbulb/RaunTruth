@@ -95,6 +95,16 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   `web-tests/explore/`, as the `exploring-the-ui` skill says: the change's worlds and focus, several seeds, each bug
   fixed test-first, each owner's call asked with its screenshots. (exploring-the-ui)
 
+## Telling of a test run
+
+- **Telling the owner how a test run went** - account for every test in one line, never only those that ran: ran
+  of all there are, passed, failed, ignored under a `flaky` mark, postponed to another trigger with their last result
+  there, then the Claudinite checks. The totals: (tests-said-in-full)
+
+  ```
+  python3 dev/tools/build/test_census.py
+  ```
+
 ## What the page reaches
 
 - **Planning a change that adds or alters a network call or a permission request** (the page's,
