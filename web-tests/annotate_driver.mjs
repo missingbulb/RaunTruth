@@ -12,7 +12,7 @@ import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { storedDrafts, seedDrafts } from "./device_storage.mjs";
-import { fromScratch, openStart } from "./annotating.mjs";
+import { fromScratch } from "./annotating.mjs";
 
 import { personFile } from "../web/truth_folders.js";
 
@@ -33,17 +33,18 @@ studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
 // the choices on show, a disabled one in brackets
 const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-scratch", "#annotate-load"].map((s) => document.querySelector(s)).filter((b) => b.checkVisibility()).map((b) => (b.disabled ? `(${b.textContent.trim()})` : b.textContent.trim())));
-const BOTH = JSON.stringify(["Start", "Load"]), NO_LOAD = JSON.stringify(["Start", "(Load)"]);
-// each view transition the page starts, noted as its change ends: whether the page annotated before and after it, and whether an
+const BOTH = JSON.stringify(["Start", "Open saved analysis"]), NO_LOAD = JSON.stringify(["Start", "(Open saved analysis)"]);
+// each view transition the page starts, noted as its change ends: whether it held the page for a study coming in again, whether the
+// page annotated before and after it, and whether an
 // image was open by then
 const holds = (ctx) => ctx.addInitScript(() => {
   window.holds = [];
   const start = Document.prototype.startViewTransition;
   if (start) Document.prototype.startViewTransition = function (change) {
-    const annotatingBefore = document.documentElement.hasAttribute("data-annotating");
+    const annotatingBefore = document.documentElement.hasAttribute("data-annotating"), held = "held" in document.documentElement.dataset;
     return start.call(this, async () => {
       await change?.();
-      window.holds.push({ annotatingBefore, annotatingAfter: document.documentElement.hasAttribute("data-annotating"), imageAfter: !!window.shellForTests?.page.get("image") });
+      window.holds.push({ held, annotatingBefore, annotatingAfter: document.documentElement.hasAttribute("data-annotating"), imageAfter: !!window.shellForTests?.page.get("image") });
     });
   };
 });
@@ -89,7 +90,7 @@ await page.waitForFunction(() => $("#load-dlg").open && document.querySelectorAl
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.dataset.key));
 await check(rows.join() === [mineFile.id, ownersFile.id].join(), "Load opens a dialog listing the image's Analysis Files: the user's own, then the marked", rows);
 await check(listings(sub.id) === 1 && askedStore() === 1, "the press listed the image's subfolder once, asking nothing else of the extractions folder", { listed: listings(sub.id), asked: askedStore() });
-await check(await page.evaluate(() => $("#load-go").disabled && $("#load-cancel").textContent === "Cancel" && $("#load-go").textContent === "Load"), "its actions are Cancel and Load, Load waiting for a choice");
+await check(await page.evaluate(() => $("#load-go").disabled && $("#load-cancel").textContent === "Cancel" && $("#load-go").textContent === "Open" && $("#load-dlg-title").textContent === "Open saved analysis"), "titled Open saved analysis, its actions are Cancel and Open, Open waiting for a choice");
 await page.click("#load-cancel");
 await check(await page.evaluate(() => !$("#load-dlg").open) && !(await shown(page, "#annotate-edit")), "Cancel closes it with nothing loaded");
 await page.click("#annotate-load");
@@ -116,26 +117,15 @@ await check(/unsaved/.test(asked || "") && !(await annotating(page)) && JSON.str
   "loading another image leaves annotation mode and offers Start again, Load off for an image with no Analysis File, the runner gone", { asked, choices: await choices(page) });
 await page.context().close();
 
-// ---- Start: its dialog, Run, a draft kept on the device, reset analysis
+// ---- Start, a draft kept on the device, reset analysis
 page = await open(true, { email: OTHER, prepare: standInDrive });
 await opened(page);
-await check(await openStart(page), "Start opens a dialog");
-await page.waitForFunction(() => $("#algorithm").options.length > 0);
-const dialog = await page.evaluate(() => ({ list: [...$("#algorithm").options].map((o) => o.value), box: $("#algorithm").size > 1, about: $("#algorithm-note").textContent.trim().length > 0,
-  under: $("#algorithm-note").getBoundingClientRect().top >= $("#algorithm").getBoundingClientRect().bottom, actions: [...$("#start-dlg").querySelectorAll(".dlg-row button")].map((b) => b.textContent.trim()) }));
-await check(dialog.list.length >= 2 && dialog.box && dialog.about && dialog.under && dialog.actions.join() === "Cancel,Run",
-  "it lists the study's algorithms in a box, how the chosen one works under it, and its actions are Cancel and Run", dialog);
-await page.click("#start-cancel");
-await check(await page.evaluate(() => !$("#start-dlg").open) && !(await annotating(page)) && (await model(page)) === null, "Cancel closes it: nothing ran, the page is not in annotation mode");
-await openStart(page);
-await page.selectOption("#algorithm", dialog.list[1]);
-await page.click("#start-run");
+await page.click("#annotate-scratch");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
-await check(await annotating(page) && /at or above the threshold/.test(await page.textContent("#fx-result")),
-  "Run enters annotation mode and runs the algorithm chosen, with no further press", await page.textContent("#fx-result"));
-await check(await shown(page, "#fx-count") && await shown(page, "#tasks-box") && await shown(page, "#summary-box") && !(await shown(page, "#algorithm")) && /./.test(await page.textContent("#algorithm-ran")),
-  "the Analysis box then shows the study's runner and its Analysis Tasks, says which algorithm ran and holds no list of algorithms; Summary shows beside it",
-  { ran: await page.textContent("#algorithm-ran") });
+await check(await annotating(page) && !(await page.evaluate(() => !!document.querySelector("dialog[open]"))) && /pixels above the threshold/.test(await page.textContent("#fx-result")),
+  "Start opens no dialog: it enters annotation mode and runs the study's default algorithm, with no further press", await page.textContent("#fx-result"));
+await check(await shown(page, "#fx-count") && await shown(page, "#tasks-box") && await shown(page, "#summary-box") && await shown(page, "#algorithm-pick") && !(await page.evaluate(() => $("#algorithm-pick").open || !!document.querySelector("#algorithm"))),
+  "the Analysis box then shows the study's runner, its Analysis Tasks and a shut fold on how the analysis works, with no list of algorithms; Summary shows beside it");
 await check(await page.evaluate(() => !$("#annotate-say").checkVisibility()), "no line says the analysis started from scratch");
 await page.click("#fx-add"); await page.click("#fx-add");
 await page.click("#gt-save-draft");
@@ -144,7 +134,7 @@ await page.click("#fx-add"); await page.click("#fx-add");
 await until(page, () => window.fixture.model().marks.length >= 4);
 const before = writes.length;
 await check(await unsaved(page) === "· 2 unsaved" && (await storedDrafts(page)).length === 1, "two actions are unsaved after the draft kept", await unsaved(page));
-await check(await page.evaluate(() => $("#annotate-clear").closest(".sec-head") === $("#analysis-box > .sec-head") && $("#annotate-clear").textContent.trim() === "reset analysis"),
+await check(await page.evaluate(() => $("#annotate-clear").closest(".sec-head") === $("#analysis-box > .sec-head") && $("#annotate-clear").textContent.trim() === "Reset analysis"),
   "reset analysis is a link on the Analysis box's header");
 let said = await ask(page, false, () => page.click("#annotate-clear"));
 await check(/2 unsaved actions/.test(said || "") && await annotating(page) && (await model(page)) !== null && (await storedDrafts(page)).length === 1,
@@ -171,8 +161,12 @@ await page.context().close();
 page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await seedDrafts(ctx, drafts); } });
 await opened(page);
 await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done" && document.querySelector("#annotate-local").checkVisibility() && !$("#annotate-load").disabled);
-await check(JSON.stringify(await choices(page)) === JSON.stringify(["Continue local work", "Start", "Load"]),
-  "the image the device holds a draft of offers Continue local work first", await choices(page));
+const offered = await choices(page);
+await check(/^Continue · saved today \d\d:\d\d · \d+ edits?$/.test(offered[0]) && offered.slice(1).join() === "Start over,Open saved analysis",
+  "the image the device holds a draft of offers Continue first, saying when it was saved and how many edits, and Start reads Start over", offered);
+const lead = await page.evaluate(() => ({ local: $("#annotate-local").classList.contains("primary"), start: $("#annotate-scratch").classList.contains("primary"),
+  shine: [...document.querySelectorAll(".shine")].map((e) => e.id).join() }));
+await check(lead.local && !lead.start && lead.shine === "annotate-local", "Continue is the primary button and the one that shines, Start over plain", lead);
 await page.click("#annotate-local");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 4);
 await check(await annotating(page) && !(await shown(page, "#fx-count")), "continuing enters annotation mode with the draft loaded and no runner", { marks: (await model(page))?.marks.length });
@@ -284,5 +278,15 @@ await page.click("#study-menu summary");
 await page.click('#study-list a[data-id="viewer"]');
 await page.waitForFunction(() => document.title === "Image Viewer");
 await check(true, "the page asked whether to be left between two studies of a swap throws nothing");
+await page.context().close();
+
+// ---- unload image: the page is held as it was until the study has come in again, so nothing of the change between shows
+page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await holds(ctx); } });
+await opened(page);
+const heldBefore = await page.evaluate(() => window.holds.length);
+await page.evaluate(() => $("#unload").click());
+await page.waitForFunction(() => !st.img && $("#status").textContent.startsWith("Ready"));
+const unloaded = await page.evaluate((n) => window.holds.slice(n), heldBefore);
+await check(unloaded.some((h) => h.held && !h.imageAfter), "unloading holds the page as it was until the study is back with no image", unloaded);
 await page.context().close();
 await done(0);

@@ -197,7 +197,7 @@
                 {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
-                {"name": "reset analysis", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
+                {"name": "Reset analysis", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
                   "rule": [
                     {"when": {"annotating": [true]}, "is": "shown"},
                     {"is": "hidden"}
@@ -239,7 +239,7 @@
                         {"when": {"annotating": [true]}, "is": "hidden"}
                       ],
                       "children": [
-                        {"name": "Continue local work", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
+                        {"name": "Continue", "select": "#annotate-local", "control": true, "req": "req/shell/annotate/choice",
                           "rule": [
                             {"when": {"stage": ["Review", "Public"]}, "is": "hidden"},
                             {"when": {"hasDraft": [false]}, "is": "hidden"}
@@ -277,7 +277,7 @@
                     {"when": {"route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"}
                   ],
                   "children": [
-                    {"name": "Algorithm that ran", "select": "#algorithm-ran", "req": "req/shell/analysis/start"}
+                    {"name": "How the analysis works", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms"}
                   ]
                 },
                 {"name": "Analysis Tasks", "select": "#tasks-box", "req": "req/shell/left-bar/shells",
@@ -383,11 +383,9 @@
                 {"when": {"image": ["none"]}, "is": "disabled", "req": "req/shell/image/minimap"}
               ]
             },
-            {"name": "Minimap button", "select": "#minimap-btn", "control": true, "req": "req/shell/image/minimap",
+            {"name": "Minimap button", "select": "#minimap-btn", "control": true, "req": "req/shell/image/minimap", "steady": "hidden unless a study hands the minimap its areas",
               "rule": [
-                {"when": {"view": ["items"]}, "is": "hidden", "req": "req/shell/views/second"},
-                {"when": {"stack": [true], "shows3d": [true]}, "is": "hidden", "req": "req/shell/viewer-3d"},
-                {"when": {"image": ["none"]}, "is": "disabled"}
+                {"is": "hidden", "approval": "tentative", "about": "shown only while a study hands the minimap the areas of its walk"}
               ]
             },
             {"name": "Edit History button", "select": "#history-btn", "control": true, "req": "req/shell/ground-truth/history",
@@ -503,10 +501,9 @@
                     {"name": "Drawn over the 3D view", "select": "#v3-hud", "made": "by the 3D view, once a stack opens", "req": "req/shell/viewer-3d"}
                   ]
                 },
-                {"name": "Minimap", "select": "#minimap", "req": "req/shell/image/minimap",
+                {"name": "Minimap", "select": "#minimap", "req": "req/shell/image/minimap", "steady": "hidden unless a study hands the minimap its areas",
                   "rule": [
-                    {"when": {"image": ["none"]}, "is": "hidden"},
-                    {"when": {"imageFits": [true]}, "is": "hidden"}
+                    {"is": "hidden", "approval": "tentative", "about": "shown only while a study hands it the areas of its walk"}
                   ],
                   "children": [
                     {"name": "Hide the minimap", "select": "#minimap-hide", "control": true, "req": "req/shell/image/minimap"},
@@ -514,22 +511,21 @@
                     {"name": "Minimap's picture", "select": "#minimap-canvas", "req": "req/shell/image/minimap"},
                     {"name": "Minimap's areas", "select": "#minimap-areas", "req": "req/shell/ground-truth/area-map", "steady": "hidden unless a study hands the minimap its areas",
                       "rule": [
-                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas"}
+                        {"is": "hidden", "about": "shown only by a study that hands the minimap its areas", "unwalked": "the minimap is hidden with them"}
                       ]
                     },
                     {"name": "Minimap's view", "select": "#minimap-view", "req": "req/shell/image/minimap"}
                   ]
                 },
-                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/history",
+                {"name": "Edit History", "select": "#edit-history", "req": "req/shell/ground-truth/tasks", "steady": "closed until its toolbar button is pressed, which no path here does",
                   "rule": [
-                    {"when": {"makesTruth": [false]}, "is": "hidden", "approval": "tentative", "about": "only someone annotating has a log to show"},
-                    {"when": {"hasModel": [false]}, "is": "hidden", "approval": "tentative", "about": "the log has no run yet"}
+                    {"is": "hidden", "approval": "tentative", "about": "it opens closed, and shows once its button is pressed"}
                   ],
                   "children": [
-                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history"},
-                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history"},
-                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history"},
-                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear"}
+                    {"name": "Edit History's count", "select": "#eh-count", "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Hide Edit History", "select": "#eh-close", "control": true, "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Edit History's rows", "select": "#eh-list", "req": "req/shell/ground-truth/history", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]},
+                    {"name": "Clear all history", "select": "#eh-clear", "control": true, "req": "req/shell/ground-truth/clear", "steady": "under a window no path opens", "rule": [{"is": "shown", "unwalked": "the window is closed until its button is pressed, which no path does"}]}
                   ]
                 },
                 {"name": "Keys legend", "select": "#keys-legend", "made": "by the shell, as the page starts", "req": "req/shell/image/keys",
@@ -654,11 +650,39 @@
                 },
                 {"name": "Folder view", "select": "#folder-view", "req": "req/shell/data/folder",
                   "rule": [
-                    {"when": {"selected": ["nothing", "image"]}, "is": "hidden"}
+                    {"when": {"selected": ["nothing"]}, "is": "hidden"},
+                    {"when": {"selected": ["image"]}, "is": "shown", "approval": "tentative", "req": "req/setup/aspects", "about": "an image chosen keeps its folder's images on show"}
                   ],
                   "children": [
                     {"name": "Folder's title", "select": "#folder-title", "req": "req/shell/data/folder"},
+                    {"name": "Select all", "select": "#batch-select", "req": "req/setup/batch",
+                      "children": [
+                        {"name": "Select all's checkbox", "select": "#batch-all", "control": true, "req": "req/setup/batch",
+                          "rule": [
+                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                          ]
+                        },
+                        {"name": "How many are selected", "select": "#batch-for", "req": "req/setup/batch"}
+                      ]
+                    },
                     {"name": "Grid or list", "select": "#folder-layout", "req": "req/shell/data/folder"},
+                    {"name": "The selection's actions", "select": "#batch-bar", "unwalked": "shows only with an image selected, which no path does", "req": "req/setup/batch",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative", "about": "shows once an image is selected, which no path does"}
+                      ],
+                      "children": [
+                        {"name": "Run analysis", "select": "#batch-run", "control": true, "req": "req/setup/batch"},
+                        {"name": "Hide the selected", "select": "#batch-hide", "control": true, "req": "req/setup/batch"},
+                        {"name": "Request GT for the selected", "select": "#batch-gt", "control": true, "req": "req/setup/batch"},
+                        {"name": "Mark official", "select": "#batch-official", "control": true, "req": "req/setup/batch"}
+                      ]
+                    },
+                    {"name": "The run's message", "select": "#batch-msg", "req": "req/setup/batch"},
+                    {"name": "The run's results", "select": "#batch-results", "req": "req/setup/batch", "steady": "shows only once a run has reached an image, which no path does",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    },
                     {"name": "Folder's images", "select": "#folder-items", "req": "req/shell/data/folder"}
                   ]
                 },
@@ -666,7 +690,8 @@
                   "children": [
                     {"name": "Selected Folder", "select": "#folder-box", "box": true, "req": "req/shell/data/folder",
                       "rule": [
-                        {"when": {"selected": ["nothing", "image"]}, "is": "hidden"},
+                        {"when": {"selected": ["nothing"]}, "is": "hidden"},
+                        {"when": {"selected": ["image"], "online": [true]}, "is": "shown", "approval": "tentative", "req": "req/setup/aspects", "about": "an image chosen keeps its folder's sums on show"},
                         {"when": {"online": [false]}, "is": "held", "req": "req/shell/data/mode"}
                       ],
                       "children": [
@@ -736,33 +761,6 @@
                         {"name": "Extractions' message", "select": "#marks-msg", "req": "req/setup/marks"}
                       ]
                     },
-                    {"name": "Batch run", "select": "#batch-box", "unwalked": "its aspect of Study Setup is one no path chooses", "box": true, "req": "req/setup/batch",
-                      "rule": [
-                        {"is": "hidden", "approval": "tentative", "about": "shows in its own aspect of Study Setup, which no path chooses"}
-                      ],
-                      "children": [
-                        {"name": "What the batch runs on", "select": "#batch-for", "req": "req/setup/batch"},
-                        {"name": "Batch's algorithm", "select": "#batch-algorithm", "control": true, "req": "req/setup/batch"},
-                        {"name": "Choose all", "select": "#batch-all", "control": true, "req": "req/setup/batch",
-                          "rule": [
-                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                          ]
-                        },
-                        {"name": "Run the batch", "select": "#batch-run", "control": true, "req": "req/setup/batch",
-                          "rule": [
-                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"},
-                            {"is": "disabled", "approval": "tentative", "about": "Run waits until an image is chosen, which no path does"}
-                          ]
-                        },
-                        {"name": "Mark the batch official", "select": "#batch-official", "control": true, "req": "req/setup/batch", "steady": "shows only once a batch has run, which no path does",
-                          "rule": [
-                            {"is": "hidden"}
-                          ]
-                        },
-                        {"name": "Batch's message", "select": "#batch-msg", "req": "req/setup/batch"}
-                      ]
-                    },
-                    {"name": "Batch's hint", "select": "#batch-hint", "unwalked": "its aspect of Study Setup is one no path chooses", "req": "req/setup/aspects", "rule": [{"is": "hidden", "approval": "tentative", "about": "shows in its own aspect of Study Setup, which no path chooses"}]},
                     {"name": "Nothing chosen", "select": "#side-hint", "req": "req/setup/aspects", "rule": [{"when": {"selected": ["folder", "image"]}, "is": "hidden", "approval": "tentative", "about": "it asks for a choice"}]}
                   ]
                 },
@@ -846,7 +844,15 @@
                         {"is": "hidden", "approval": "tentative"}
                       ]
                     },
-                    {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"}
+                    {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"},
+                    {"name": "Run and not marked official", "select": "#results-pending", "req": "req/setup/batch", "steady": "shows only once a run has reached an image, which no path does",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ],
+                      "children": [
+                        {"name": "Back to the images", "select": "#results-to-images", "control": true, "req": "req/setup/batch"}
+                      ]
+                    }
                   ]
                 },
                 {"name": "Literature", "select": "#literature-box", "unwalked": "its aspect of Study Setup is one no path chooses", "box": true, "req": "req/setup/literature",

@@ -40,7 +40,6 @@ import { dialogMotion } from "./dialog_motion.js";
 import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthHistory } from "./truth_history.js";
-import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
 import { isHidden } from "./tags.js";
 import { subfolderName, marksOf } from "./truth_folders.js";
@@ -109,12 +108,13 @@ const calls = networkCalls({ bar: $("#sb-calls"), servers: {
   store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
   python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
   site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
-} });
+}, say: (text, err) => status(text, err) });
 // signing in (req/shell/account/sign-in): these settings follow the user to every device, in their own account's storage; the rest stay with this one
 const FOLLOWS = [THEME, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
   keys: FOLLOWS,
   watched: (sending) => calls.begin("store", "your settings", { sending }),
+  owed: (what) => work.begin(what),
   guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),
@@ -513,7 +513,7 @@ function drawSteps() {
   for (const b of shone.splice(0)) b.classList.remove("shine");
   steps.forEach((p, k) => {
     // a step of the study's whose button waits behind Start: Start is what to press now
-    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? $("#annotate-scratch") : own;
+    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? ($("#annotate-local").hidden ? $("#annotate-scratch") : $("#annotate-local")) : own;
     if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); }
   });
 }
@@ -742,7 +742,7 @@ function imageOpened(m) {
 }
 
 // ---------- loading ----------
-const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudy, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
+const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudyHeld, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
   get manifest() { return manifest; }, get openBytes() { return openBytes; }, get openRemote() { return openRemote; },
   get gtSession() { return gtSession; }, get offlineCopy() { return offlineCopy; }, get putTruthTag() { return putTruthTag; },
   get openRecent() { return openRecent; }, get steps() { return steps; } });
@@ -811,15 +811,17 @@ function restudy(again = true) {
     if (image) await openBytes(image.name, image.bytes, image.source);
   });
 }
-// The study mounted again on the image open, the page held on screen as it is until the image is open in it
+// The study mounted again, on the image open or (again false) with none, the page held on screen as it is until it is back
 // (req/shell/annotate/held): the browser keeps showing what it showed while the change is made, where it can
-function restudyHeld() {
-  if (!document.startViewTransition) return restudy();
+function restudyHeld(again = true) {
+  if (!document.startViewTransition) return restudy(again);
   const root = document.documentElement;
   root.dataset.held = "";
-  const t = document.startViewTransition(() => restudy());
+  let mounted;
+  const t = document.startViewTransition(() => (mounted = restudy(again)));
   t.ready.catch(() => {}); // the browser giving the hold up shows the page as it then is: only the hold is lost
   t.finished.finally(() => { delete root.dataset.held; });
+  return t.updateCallbackDone.then(() => mounted, () => mounted);
 }
 
 // a tip: a bubble below its anchor, pointing at it, until the user closes it, after which it never shows again
@@ -879,7 +881,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1053,8 +1055,12 @@ async function storageTab(fresh) {
   }));
   const est = await navigator.storage?.estimate?.().catch(() => null);
   showDisk(total);
-  $("#storage-total").textContent = `This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which Settings clears` +
-    (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : ".");
+  const link = Object.assign(document.createElement("button"), { type: "button", className: "link", id: "storage-settings", textContent: "Settings" });
+  link.onclick = () => { $("#usage-dlg").close(); $("#open-settings").click(); };
+  $("#storage-total").replaceChildren(`This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which `, link, " clears" +
+    (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : "."));
+  $("#storage-cache").textContent = "Not counted here: Python's files, about 50 MB, which the browser keeps in its own cache for 30 days. " +
+    "The site can neither measure nor clear that cache; the browser's own \"clear browsing data\" for cached files does.";
 }
 // the menu's avatar lies over the header's: a click on it closes the menu, as one on the header's would
 $("#who-avatar").onclick = () => { $("#user-menu").open = false; };
@@ -1079,7 +1085,7 @@ const settings = settingsDialog({
     { key: MEMORY_TIP, label: "Show the low-memory popup", kind: "toggle", on: false, off: true, fallback: false },
     { key: REMOTE_LINK, label: `Last ${remote.label} link`, kind: "text" },
     { key: REMOTE_LINKS, label: `Last ${remote.label} link in each study`, kind: "map" },
-    { key: TIPS, label: "Tips you closed (clear one to see it again)", kind: "set" },
+    { key: TIPS, label: "Tips you have seen (clear one to see it again)", kind: "set" },
     { key: RECENT, label: `Recent images from ${remote.label} (clear one to drop it)`, kind: "list", name: (r) => (r.study ? `${r.study}: ` : "") + (r.path?.length ? `${r.path.join("/")}/` : "") + r.name },
     { key: MOTION, label: "Animations", kind: "toggle", on: true, off: false, fallback: true },
     { key: UNLOAD_PYTHON, label: "Unload Python after each run", kind: "toggle", on: true, off: false, fallback: false },
@@ -1094,7 +1100,8 @@ const settings = settingsDialog({
     signIn.changed(k);
   },
   where: () => signIn.kept(),
-  saved: () => reapply(),
+  saved: () => { reapply(); status("Saved your settings."); },
+  cleared: () => { reapply(); status("Cleared what this device alone kept."); },
 });
 // the settings that follow the user, drawn again once the account's or the Settings dialog's have replaced this device's
 function reapply() {
@@ -1112,6 +1119,7 @@ function saveFile(name, text, type) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
   after(1000, () => URL.revokeObjectURL(a.href));
+  calls.downloaded(name);
 }
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
@@ -1169,12 +1177,17 @@ function pageNow() {
     ["Memory", navigator.deviceMemory ? `about ${navigator.deviceMemory} GB` : "not said by this browser"],
   ];
 }
+// the report says first where it goes: a public issue on GitHub, which needs an account there (req/shell/report/bug). It is
+// made as it is asked for, so the actions it quotes end with the asking
+let reporting = null;
 function reportProblem() {
   $("#user-menu").open = false;
-  const url = problemUrl({ repo: REPO, browser: { text: browserText(), supported: browserVerdict?.ok !== false }, state: pageNow(),
+  reporting = problemUrl({ repo: REPO, browser: { text: browserText(), supported: browserVerdict?.ok !== false }, state: pageNow(),
     actions: log.last(ACTIONS_QUOTED, "action"), errors: log.last(ERRORS_QUOTED, "error") });
-  window.open(url, "_blank", "noopener");
+  $("#report-dlg").showModal();
 }
+$("#report-cancel").onclick = () => $("#report-dlg").close();
+$("#report-go").onclick = () => { $("#report-dlg").close(); window.open(reporting, "_blank", "noopener"); };
 $("#sb-report").onclick = reportProblem;
 $("#report-problem").onclick = reportProblem;
 
@@ -1623,7 +1636,9 @@ const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, no
   // offline there is nothing to ask the store
   submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null)
     : ownFile()), readSubmission: (id) => truth.read(id),
-  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
+  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate(),
+  // where the work on show now comes from, which the Analysis box says
+  took: (from) => { if (annotating && (route === "local" || route === "stored")) { route = from; drawAnnotate(); } } });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
@@ -1634,7 +1649,7 @@ function leaveStudy() {
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
   for (const sel of Object.values(STUDY_BOXES)) $(sel).hidden = true;
-  studyTables = []; drawDownloads(); $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
+  studyTables = []; drawDownloads();
   css?.remove(); css = null;
   $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();

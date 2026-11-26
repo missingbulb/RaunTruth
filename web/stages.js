@@ -48,6 +48,28 @@ export const NEXT = {
   Review: "To move on to Public: the article is accepted.",
   Public: "This is the last stage.",
 };
+// what an owner calls each action a stage change can open or close; the ones open in every stage need no word
+const SAYS = {
+  "setup-data": "changing the study's folders, tags and areas",
+  annotate: "analysing its images and uploading the analyses",
+  mark: "marking an Analysis File GT or official",
+  numbers: "the study's numbers",
+};
+// What moving a study from one stage to another opens and closes, as the phrases of SAYS: {opens, closes}
+export function changes(from, to) {
+  const opens = [], closes = [];
+  for (const a of Object.keys(SAYS)) {
+    const was = stageAllows(from, a), is = stageAllows(to, a);
+    if (is && !was) opens.push(SAYS[a]); else if (was && !is) closes.push(SAYS[a]);
+  }
+  return { opens, closes };
+}
+// The sentences a stage change is confirmed with: what the stage is, then what the change opens and closes
+export function confirming(from, to) {
+  const { opens, closes } = changes(from, to), list = (l) => l.length > 1 ? `${l.slice(0, -1).join(", ")} and ${l.at(-1)}` : l[0];
+  const moves = [opens.length ? `opens ${list(opens)}` : "", closes.length ? `closes ${list(closes)}` : ""].filter(Boolean).join(", and ");
+  return [`${to}: ${WHAT[to]}`, moves ? `Moving from ${from} ${moves}.` : `Moving from ${from} changes nothing people may do.`];
+}
 export const next = (stage) => STAGES[STAGES.indexOf(stage) + 1] || null;
 export const before = (stage) => STAGES[STAGES.indexOf(stage) - 1] || null;
 

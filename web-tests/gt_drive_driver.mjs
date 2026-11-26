@@ -14,7 +14,7 @@ import { personFile } from "../web/truth_folders.js";
 import { aspect } from "./setup_page.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true });
+const drive = await standIn({ answers, studies, rootDir, gt: false, rooted: true, editHistory: true });
 const { ROOT, FILES, writes, keptForever, viewOnly, sharedOut, studyFile, open, dataManagement, check, done } = drive;
 const id = (name) => FILES.find((f) => f.folder && f.name === name)?.id;
 // the access line once read: what it says, and whether it takes any room
@@ -65,19 +65,19 @@ await page.click("#gt-setup");
 await page.click("#setup-go");
 await page.waitForFunction(() => !$("#setup-dlg").open || $("#setup-msg").classList.contains("err"), null, { timeout: 15000 });
 await check(!(await page.evaluate(() => $("#setup-dlg").open)), "confirming sets it up and closes the dialog", await page.textContent("#setup-msg"));
-const EXT = id("Extractions");
+const EXT = id("Analysis");
 const settings = FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json");
 const doc = settings && JSON.parse(settings.bytes.toString());
 await check(!!EXT && doc?.extractions === EXT && doc.set_by === "tester@example.com" && !("curated" in doc) && !("submissions" in doc),
-  "Set up makes the Extractions folder in the root and names it in its study file", { msg: await page.textContent("#setup-msg"), doc });
-await check(JSON.stringify(sharedOut) === JSON.stringify([["Extractions", { type: "anyone", role: "reader" }]]), "and shares it with anyone with the link to view", sharedOut);
+  "Set up makes the Analysis folder in the root and names it in its study file", { msg: await page.textContent("#setup-msg"), doc });
+await check(JSON.stringify(sharedOut) === JSON.stringify([["Analysis", { type: "anyone", role: "reader" }]]), "and shares it with anyone with the link to view", sharedOut);
 const tree = await page.evaluate(() => [...document.querySelectorAll("#data-tree .tree-folder .name")].map((n) => n.textContent));
-await check(!tree.some((n) => /^Extractions/.test(n)), "the tree leaves the extractions folder out of the data", tree);
+await check(!tree.some((n) => /^Analysis/.test(n)), "the tree leaves the Analysis folder out of the data", tree);
 await check(await orMissed(page.waitForSelector("#gt-setup", { state: "hidden", timeout: 5000 })), "set up, nothing offers to set it up again");
 await page.waitForFunction(() => /No image/.test($("#gt-box").textContent));
 const box = await page.evaluate(() => ({ text: $("#gt-box").textContent, above: !!$("#gt-box").closest("#truth-panel") && $("#gt-box").checkVisibility() }));
 await aspect(page, "images");
-await check(box.above && /Analysis Files folder/.test(box.text) && !(await page.$("#gt-switch")), "an Analysis Files box in Ground Truth says where they are kept and that no image has one yet, with no switch between reviewed and not", box);
+await check(box.above && /its Analysis folder,/.test(box.text) && !(await page.$("#gt-switch")), "an Analysis Files box in Ground Truth says where they are kept and that no image has one yet, with no switch between reviewed and not", box);
 // Needs GT: a marker in the extractions folder named as the image's subfolder, nothing written beside the image
 let marked = await markNeeded(page, png);
 const marker = FILES.find((f) => f.name === neededOf(png));
@@ -236,5 +236,15 @@ await check(/^Ground truth: \d+ pixels/.test(shown) && await page.evaluate(() =>
 // ground truth loaded or the algorithm run, never both: Processing is not shown, nor the Items switch
 const afterGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden, view: $("#view").dataset.view }));
 await check(!afterGt.processing && !afterGt.items && afterGt.view === "image", "with an extraction loaded, Processing and the Items switch are gone, the image in view", afterGt);
+await page.context().close();
+
+// a study whose folder still has its name of before: Ground Truth says the name it has in the store
+FILES.find((f) => f.id === EXT).name = "Extractions";
+page = await open(true);
+await dataManagement(page);
+await aspect(page, "truth");
+await page.waitForFunction(() => !$("#gt-box").hidden && $("#gt-mode").textContent);
+const named = await page.textContent("#gt-mode");
+await check(/its Analysis folder \(named Extractions in [^)]*Drive\)/.test(named), "a folder still named Extractions is the Analysis folder, its name in the store said", named);
 await page.context().close();
 await done(0);

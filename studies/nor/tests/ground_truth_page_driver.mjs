@@ -65,7 +65,7 @@ async function open(drive, stage) {
   // a local image: NoR Finder loads from Drive alone, the shell's handling of a local image kept tested on it
   if (!drive) studies.fromThisComputer("nor");
   const page = await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   if (drive) {
     await page.click("#load-remote");
     await page.dblclick(`#remote-list .item[data-id="${DRIVE_ID}"]`);

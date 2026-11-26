@@ -19,7 +19,8 @@ export function mount(shell) {
     if (body) body.append($("#fx-check"), $("#fx-marks-tools"));
   };
   const pick = (key) => { if (model()) shell.tasks.open(key).querySelector(".task-body").append($("#fx-check"), $("#fx-marks-tools")); };
-  shell.tasks.list([{ key: "check", name: "Count checked", title: "Whether the count is right" }], { submit, pick, tagging: () => task(model()) });
+  shell.tasks.list([{ key: "check", name: "Count checked", title: "Whether the count is right" }], { submit, pick, tagging: () => task(model()),
+    untick: () => { shell.gt.act({ type: "check", on: false }); } });
 
   // the layer's two groups: the counted pixels of this visit's Count, and a ring per mark
   const groups = () => {

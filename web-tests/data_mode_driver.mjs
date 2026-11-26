@@ -32,7 +32,7 @@ const shot = (name) => shots && page.screenshot({ path: path.join(shots, name + 
 // not signed in: the three drawers, by their titles alone
 let page = await open(false);
 const drawers = await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.querySelector(".sec-head h2").textContent.trim()).join());
-await check(drawers === "Load,Analysis,Summary", "the drawers on show before an image are Load, Analysis and Summary, each its title alone", drawers);
+await check(drawers === "Image,Analysis,Summary", "the drawers on show before an image are Image, Analysis and Summary, each its title alone", drawers);
 await page.context().close();
 
 // the images Data Management lists are the kinds the study opens: here TIFFs, a PNG and a JPEG

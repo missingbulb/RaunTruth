@@ -49,7 +49,7 @@ let page = await open(true, { setup: true });
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
 await settledStage(page, "Develop");
 await check(await visible(page, "#stage-box"), "Study Setup has a stage box, whatever the stage");
-await check(await text(page, "#stage-up") === "Promote to Analyze" && await text(page, "#stage-back") === "Move back to Setup", "it offers the next stage and the one before", { up: await text(page, "#stage-up"), back: await text(page, "#stage-back") });
+await check(await text(page, "#stage-up") === "Promote to Analyze…" && await text(page, "#stage-back") === "Move back to Setup…", "it offers the next stage and the one before", { up: await text(page, "#stage-up"), back: await text(page, "#stage-back") });
 await check(/^Develop: /.test(await text(page, "#stage-what")) && (await text(page, "#stage-what")).includes("To move on to Analyze:"), "under the stages it says what the stage is and what moves the study on", await text(page, "#stage-what"));
 
 // no listing of an image's extractions on opening, on a mark being written or on a stage change: the list of newer extractions is read on a press alone
@@ -75,9 +75,25 @@ await check([...subs()].every((n) => n === "img2") && (await page.evaluate(() =>
 const was = await checks(page);
 const wrote = drive.writes.length;
 const listed = lists().length;
+// every stage change asks first (the owner, 2026-11-25): what the stage is and what the change opens and closes; Cancel writes nothing
+const asking = (page) => page.waitForFunction(() => document.querySelector("#stage-change-dlg").open);
 await page.click("#stage-up");
-await settledStage(page, "Analyze");
+await asking(page);
+await check(await text(page, "#stage-change-title") === "Promote to Analyze" && (await text(page, "#stage-change-what")).startsWith("Analyze: ") && await text(page, "#stage-change-go") === "Promote to Analyze",
+  "Promote to Analyze asks first, naming the stage and what it is", await text(page, "#stage-change-dlg"));
+await check(/opens the study's numbers|changes nothing people may do/.test(await text(page, "#stage-change-moves")), "and says what the change opens and closes", await text(page, "#stage-change-moves"));
+await page.click("#stage-change-cancel");
+await page.waitForFunction(() => !document.querySelector("#stage-change-dlg").open);
 await idle(page);
+await check(study().stage === "Develop" && drive.writes.length === wrote, "Cancel writes nothing", { stage: study().stage, writes: drive.writes.slice(wrote) });
+await page.click("#stage-up");
+await asking(page);
+await page.click("#stage-change-go");
+await settledStage(page, "Analyze");
+await check(await text(page, "#status") === "Moved the study to Analyze.", "the status line says the study was moved", await text(page, "#status"));
+await idle(page);
+const kept = await page.evaluate(() => ({ on: document.activeElement?.className || document.activeElement?.localName, text: document.activeElement?.textContent.trim() }));
+await check(/stage-act/.test(kept.on) && /Analyze|Review|Develop/.test(kept.text), "the keyboard is left on one of the stage's actions, the one pressed being gone with the old stage", kept);
 await check(!lists().slice(listed).includes("img1") && (await page.evaluate(() => $("#stage-newer-box").hidden)), "a stage change lists no other image's extractions than the open one's, and no list of newer ones", lists().slice(listed));
 
 // the button runs the listing and shows the image with an extraction newer than its GT, and not the one without
@@ -115,13 +131,21 @@ await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');
 await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 2);
 await check(!(await visible(page, "#marks-list button.mark-gt")) && !(await visible(page, "#marks-list button.mark-official")), "after the freeze the extractions show with no mark button", await page.evaluate(() => document.querySelector("#marks-list").innerHTML));
 await check(!(await visible(page, "#data-add")) && !(await visible(page, "#data-tree .unlist")), "and the data controls are gone");
-await check(await visible(page, "#stage-back") && await text(page, "#stage-back") === "Move back to Analyze" && await text(page, "#stage-up") === "Promote to Public", "while the stage's own buttons remain", { up: await text(page, "#stage-up") });
+await check(await visible(page, "#stage-back") && await text(page, "#stage-back") === "Move back to Analyze…" && await text(page, "#stage-up") === "Promote to Public…", "while the stage's own buttons remain", { up: await text(page, "#stage-up") });
 await check(await text(page, "#stage-newer") === null || !(await visible(page, "#stage-newer li")), "the list of newer extractions is a thing of before Review");
 
 // moving back reopens them
 await page.click("#stage-back");
+await asking(page);
+await check(await text(page, "#stage-change-title") === "Move back to Analyze" && /^Moving from Review opens /.test(await text(page, "#stage-change-moves")) && /marking an Analysis File GT or official/.test(await text(page, "#stage-change-moves")) && /changing the study's folders, tags and areas/.test(await text(page, "#stage-change-moves")),
+  "Move back asks first too, saying what reopens", await text(page, "#stage-change-dlg"));
+await check(study().stage === "Review", "and writes nothing until its button is pressed", study().stage);
+await page.click("#stage-change-go");
 await settledStage(page, "Analyze");
 await check(study().stage === "Analyze", "Move back writes the earlier stage", study().stage);
+await idle(page);
+const after = await page.evaluate(() => document.activeElement?.className || document.activeElement?.localName);
+await check(/stage-act/.test(after), "and the keyboard is on one of the stage's actions again", after);
 await page.waitForFunction(() => document.querySelectorAll("#marks-list button.mark-gt").length === 2);
 await check(await visible(page, "#data-add"), "and marking and data are open again");
 await page.context().close();

@@ -59,7 +59,7 @@ for (const [k, stage] of TABLE.stages.entries()) {
   await check(await here(page, "#data-col"), `${stage}: Study Setup opens whatever the stage, its stage, sharing and people there`);
   await check(await here(page, "#stage-box"), `${stage}: the stage box shows`);
   await page.click("#data-tree .tree-folder .name");
-  await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3 && !document.querySelector("#batch-box").hidden);
+  await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 3 && /of 3 selected/.test(document.querySelector("#batch-for").textContent));
   const holds = async (a, action) => check((await aspectOf(page, a.control.selector), await here(page, a.control.selector)) === want(action), `${stage}: ${action} is ${want(action) ? "open" : "closed"}: ${a.control.selector} is ${want(action) ? "there" : "not there"}`);
   for (const [action, a] of where("setup").filter(([, x]) => !x.control.after)) await holds(a, action);
   await aspect(page, "images");

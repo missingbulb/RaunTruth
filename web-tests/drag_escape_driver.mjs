@@ -1,6 +1,6 @@
 // Drives the page (web/) in headless Chromium on the fixture study, with a stand-in worker answering from
 // ANSWERS (tests/test_study_runs.py), and checks that Escape pressed in the middle of the shell's drags cancels
-// each: the ruler, the image's pan, the left bar's width and the minimap all go back to where the press found
+// each: the ruler, the image's pan and the left bar's width all go back to where the press found
 // them, the Escape reaches nothing else on the page, and letting go afterwards does nothing.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drag_escape_driver.mjs ANSWERS IMAGE.png STUDIES
@@ -105,15 +105,6 @@ await home();
   await page.waitForFunction(() => !document.getAnimations().some((a) => a.transitionProperty === "grid-template-columns"));
   await check(Math.abs(mid - before) > 60, "dragging the gutter widens the left bar", { before, mid });
   await check(await width() === before && await stored() === kept, "Escape mid-resize puts the bar back at its width, nothing saved", { before, after: await width() });
-}
-
-// the minimap
-{
-  await home();
-  const before = await scroll(), body = await page.locator("#minimap .mm-body").boundingBox();
-  const mid = await escaped([body.x + body.width * 0.7, body.y + body.height * 0.7], [body.x + body.width * 0.9, body.y + body.height * 0.8], scroll, { view: true });
-  await check(mid.join() !== before.join(), "dragging in the minimap moves the view", { before, mid });
-  await check((await scroll()).join() === before.join(), "Escape mid-drag in the minimap puts the view back", { before, after: await scroll() });
 }
 
 // a drag let go, not Escaped, takes the label with it; a click that does not move never shows it

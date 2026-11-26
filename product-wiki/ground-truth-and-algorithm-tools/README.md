@@ -18,7 +18,7 @@ the version the repo pins.
 - Cellpose and StarDist cannot run in Pyodide. Cellpose-SAM's weights alone are about 1.23 GB.
 - Point-detection scoring is a one-to-one assignment within a distance cutoff. Spotiflow's default of 3 px should be set in µm for our data.
 - "GeoJSON" from image annotation tools is not standard GeoJSON, because the standard fixes coordinates to Earth longitude and latitude.
-- CVAT lists TIFF as supported, but a user reports it shows high-bit-depth grayscale only after squeezing it to 8 bits.
+- CVAT lists TIFF as supported, but its own maintainers say it converts 16-bit images to 8-bit.
 
 
 ## (a) Annotation and ground-truth creation
@@ -35,7 +35,7 @@ the version the repo pins.
 | **QuPath** annotations | Polygons, points, lines, ellipses, plus interactive classification | GeoJSON (`exportObjectsToGeoJson`), ROI zip via ImageJ RoiManager, binary or labeled images ([exporting annotations](https://qupath.readthedocs.io/en/stable/docs/advanced/exporting_annotations.html)) | GPL-3.0 | "Using GeoJSON does impose some limitations; notably, ellipses become polygons." |
 | **ilastik** | Brush scribbles per class | Probability maps and segmentations (export formats not verified) | GPL-2.0-or-later ([LICENSE](https://github.com/ilastik/ilastik/blob/main/LICENSE)) | The Pixel Classification workflow trains "a Random Forest classifier… from user annotations interactively" on "generic pixel features, such as smoothed pixel intensity, edge filters and texture descriptors" ([docs](https://www.ilastik.org/documentation/pixelclassification/pixelclassification)). |
 | **Cellpose GUI** (human-in-the-loop) | Masks drawn and corrected over model output | `_seg.npy`, plus ROIs through `roifile` | BSD-3-Clause ([LICENSE](https://github.com/MouseLand/cellpose/blob/main/LICENSE)) | "Cellpose 2.0 allows human-in-the-loop training of models" ([README](https://github.com/MouseLand/cellpose); [paper](https://www.nature.com/articles/s41592-022-01663-4)). The workflow is: annotate, retrain, correct, repeat. |
-| **CVAT Community** | Boxes, polygons, masks, keypoints, tags; SAM interactor | "20+ supported formats: CVAT (XML), COCO (JSON), YOLO…, Pascal VOC…" ([README](https://github.com/cvat-ai/cvat)) | MIT | Self-hosted web app (Docker). Built for general computer vision; not microscopy-aware. Docs list TIFF among the image formats it takes, via Pillow ([overview](https://docs.cvat.ai/docs/getting_started/overview/)). One user's report is that 12-bit grayscale is downsampled to 8-bit for display, and that the docs tie this to the browser UI ([CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178), open, Jan 2026; one voice, not confirmed by the maintainers). See *Gaps*. |
+| **CVAT Community** | Boxes, polygons, masks, keypoints, tags; SAM interactor | "20+ supported formats: CVAT (XML), COCO (JSON), YOLO…, Pascal VOC…" ([README](https://github.com/cvat-ai/cvat)) | MIT | Self-hosted web app (Docker). Built for general computer vision; not microscopy-aware. Docs list TIFF among the image formats it takes, via Pillow ([overview](https://docs.cvat.ai/docs/getting_started/overview/)). One user's report is that 12-bit grayscale is downsampled to 8-bit for display, and that the docs tie this to the browser UI ([CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178), open, Jan 2026; one voice). The maintainers' own statements point the same way: CVAT's GSoC 2023 ideas page says "Right now CVAT converts 16-bit images into 8-bit" ([GSoC 2023](https://github.com/cvat-ai/cvat/wiki/GSoC-2023)), and when merging a fix that makes 16-bit TIFFs load ([PR #5005](https://github.com/cvat-ai/cvat/pull/5005), merged Jan 2023) the maintainer said a 16-bit UI for dynamic contrast and brightness would be "non-trivial". Neither source is recent, so current behaviour is still untested. See *Gaps*. |
 | **Label Studio** | Images, text, audio, video, time series | "Various model formats" | Apache-2.0 ([LICENSE](https://github.com/HumanSignal/label-studio/blob/develop/LICENSE)) | Self-hosted with Docker ([README](https://github.com/HumanSignal/label-studio)). Same caveat as CVAT. |
 | **arivis Cloud** (formerly APEER) | Partial annotation for training cloud models | — | Proprietary | Renamed from APEER, not discontinued ([ZEISS KB](https://knowledge.zeiss.com/rms/en/arivis-cloud/getting-started/what-is-arivis-cloud)). |
 
@@ -145,6 +145,8 @@ segmenter. Its runtime in WebAssembly on a 1200 × 1200 × 2-channel image was *
 - [overview](https://docs.cvat.ai/docs/getting_started/overview/)
 - [CVAT #10178](https://github.com/cvat-ai/cvat/issues/10178)
 - [CVAT #2987](https://github.com/cvat-ai/cvat/issues/2987)
+- [CVAT PR #5005](https://github.com/cvat-ai/cvat/pull/5005)
+- [GSoC 2023](https://github.com/cvat-ai/cvat/wiki/GSoC-2023)
 
 ## Growth log
 
@@ -152,6 +154,7 @@ segmenter. Its runtime in WebAssembly on a 1200 × 1200 × 2-channel image was *
   against the Pyodide 314 lock, and scoring practice.
 - **2026-11-15** — CVAT 16-bit question partly answered: TIFF is listed as supported, but the only
   bit-depth evidence is one user's report of 8-bit downsampling. Label Studio still unchecked.
+- **2026-11-22** — CVAT 16-bit question: two maintainer-side sources added (a GSoC 2023 ideas page and the merged PR #5005 that made `I;16` TIFFs load). Both say display is 8-bit; neither is recent, so the open question stands.
 
 ## Open questions
 
@@ -167,7 +170,8 @@ segmenter. Its runtime in WebAssembly on a 1200 × 1200 × 2-channel image was *
   to 8-bit, with no maintainer reply. An older issue,
   [CVAT #2987](https://github.com/cvat-ai/cvat/issues/2987) "Loading 16-bit tiff images" (open,
   opened 2021, 7 comments), opens with a TIFF upload failing on the online test version. Only
-  its opening post was read, so it says nothing about current behaviour. Whether CVAT keeps
+  its opening post was read, so it says nothing about current behaviour. Maintainer-side sources (2026-11-22): the GSoC 2023 ideas page says CVAT converts 16-bit to 8-bit, and
+  [PR #5005](https://github.com/cvat-ai/cvat/pull/5005) (merged Jan 2023) fixed loading of `I;16` TIFFs while the maintainer called a 16-bit contrast UI non-trivial. Both are 2023; export bit depth is not addressed by either. Whether CVAT keeps
   16-bit multichannel TIFFs intact is still unverified: test a real file before suggesting it to a lab.
 - **16-bit support in Label Studio** was not checked. Its task-import guide (fetched 2026-11-15)
   does not mention TIFF or bit depth, which is an absence in that page and not a finding about the product.

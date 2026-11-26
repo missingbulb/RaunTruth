@@ -54,16 +54,15 @@ try {
   // the numbers the page shows are the shipped metrics file's, which the lab writes
   const quality = JSON.parse(fs.readFileSync(path.join(repo, "studies", "vascular", "web", "algorithm_metrics.json"), "utf8"));
   const two = (x) => x.toFixed(2).replace(/^0/, "");
-  await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
-  const algos = await page.evaluate(() => ({ titles: [...$("#algorithm").options].map((o) => o.textContent), value: $("#algorithm").value,
-    about: $("#algorithm-about").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
+  await page.waitForFunction(() => !!$("#algorithm-note strong"));
+  const algos = await page.evaluate(() => ({ lists: document.querySelectorAll("#left select#algorithm, dialog select").length, title: $("#algorithm-pick > summary").textContent,
+    note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
     nested: !!$("#algorithm-note").querySelector("ul > li > ul > li"), bold: $("#algorithm-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
-  const listed = ALGORITHMS.map((a) => { const q = quality.versions[a.key]; return `${a.icon} ${a.title} (P\u00a0${two(q.precision)}\u00a0·\u00a0R\u00a0${two(q.recall)})`; });
-  check(algos.titles.join() === listed.join() && algos.value === ALGORITHMS[0].key, `Processing lists each algorithm with its icon, name, precision and recall, the default first: ${algos.titles}`);
-  check(algos.about === `How the ${ALGORITHMS[0].title} algorithm works` && algos.note.includes("touches no junction") && algos.nested,
-    `How the algorithm works gives the chosen one's steps as a nested list: ${algos.about}`);
+  check(!algos.lists, "the page lists no algorithms to choose from", algos.lists);
+  check(algos.title === "How the analysis works" && algos.note.includes("touches no junction") && algos.nested,
+    `How the analysis works gives the default algorithm's steps as a nested list: ${algos.title}`);
   const q0 = quality.versions[ALGORITHMS[0].key], said = `precision of ${q0.precision.toFixed(2)} and recall of ${q0.recall.toFixed(2)}`;
-  check(algos.bold === `Island-free algorithm shows ${said} ${quality.measured}`,
+  check(algos.bold === `It shows ${said} ${quality.measured}`,
     `... and ends with its precision and recall in bold, and what they were measured on: ${algos.bold}`);
   check(algos.run && algos.last === "vm-run", "Execute ends the box, off until a stack is open");
 
@@ -76,11 +75,11 @@ try {
   check(!before.model && !before.tasks && before.modes.join() === "", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
-  await fromScratch(page, "#vm-run", { algorithm: "v4" });
+  await fromScratch(page, "#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
   const ran = await doc();
-  check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
-    `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
+  check(ran.algorithm === ALGORITHMS[0].name && ran.asked?.algorithm === ALGORITHMS[0].key && ran.asked.z_step === 1 && ran.asked.source === model.source,
+    `Execute runs the study's default algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
   check(await page.evaluate(() => window.vascular.model().view === "overlay"), "the model opens over the stack");
   check(await page.evaluate(() => !!($("#model-set").compareDocumentPosition($("#tasks-box")) & Node.DOCUMENT_POSITION_FOLLOWING) && !$("#tasks-box").hidden && !$("#vm-tasks").hidden),
     "Analysis Tasks sits under the runner once a model is open");

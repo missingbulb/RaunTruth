@@ -1,7 +1,7 @@
 {
   "about": "The NoR Finder's own elements in the shell's states (req/checks/shell-states, req/checks/spec-layout): each graft puts its tree under the shell's element `under`, after its child `after` or first, in the tree of dev/requirements/shell-states.json, whose rules they follow; its roots and paths open this study. `samples` names the module writing the image or z-stack its paths load; `differ` says where a shell element shows otherwise in this study. `counted` is its first step, Run algorithm, done.",
   "grafts": [
-    {"under": "The study's runner", "after": "Algorithm that ran", "tree": [
+    {"under": "The study's runner", "tree": [
       {"name": "The finder", "select": "#finder-box", "req": "req/nor/find/finders",
         "children": [
           {"name": "Run algorithm", "select": "#find", "control": true, "req": "req/nor/find/one-slow-step"}
@@ -77,15 +77,20 @@
   "differ": {
     "Minimap": {
       "rule": [
-        {"when": {"image": ["none"]}, "is": "hidden"},
-        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map", "about": "it carries the areas, so it shows though the whole image is in view"},
-        {"when": {"imageFits": [true]}, "is": "hidden"}
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map", "about": "it carries the walk's areas"},
+        {"is": "hidden"}
+      ]
+    },
+    "Minimap button": {
+      "rule": [
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/image/minimap"},
+        {"is": "hidden"}
       ]
     },
     "Minimap's areas": {
       "rule": [
         {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map"},
-        {"is": "hidden"}
+        {"is": "hidden", "unwalked": "the minimap is hidden with them"}
       ]
     }
   },
