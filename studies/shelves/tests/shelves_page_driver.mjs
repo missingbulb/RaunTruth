@@ -11,7 +11,7 @@
 // req/shell/waiting/visible (the light sweeping the photo while the study works). The real
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/shelves/tests/shelves_page_driver.mjs STUDIES
-import { fromScratch } from "../../../web-tests/annotating.mjs";
+import { fromScratch, defaultIs } from "../../../web-tests/annotating.mjs";
 import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -97,11 +97,13 @@ async function load(page, name = "shelf.png", png = PNG) {
 }
 // the tagger's device, annotating, or only viewing what the finder finds: the study as a published one shows it, which
 // has no annotating to start; seed: browser keys and drafts: the ground-truth drafts it keeps before the page opens
-async function open(role, seed = {}, finder = {}, drafts = []) {
+// first(ctx): what the device's context is given before the page opens
+async function open(role, seed = {}, finder = {}, drafts = [], first = null) {
   tagger.savedSettings(null);
   const device = w.device().signedInAs(tagger).withStudy("shelves", role === "viewer" ? { stage: "Public" } : {}).keeps(seed).keepsDrafts(drafts).with({ acceptDownloads: true });
   const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
+  if (first) await first(ctx);
   await prepare(ctx, finder);
   // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
   await ctx.addInitScript(() => {
@@ -142,8 +144,8 @@ try {
   const drawn = await books(page);
   check(drawn.length === 3 && drawn.filter((c) => c.includes("cover")).length === 1, "Find books draws each book on the photo, the cover marked as one", drawn);
   const found = () => page.evaluate(() => $("#status").textContent);
-  check(await page.evaluate(() => window.textRuns) === 1 && !/without the text finder/.test(await found()),
-    "Find books runs the text finder over Python's view of the photo and hands the finder its map", [await page.evaluate(() => window.textRuns), await found()]);
+  check(await page.evaluate(() => window.textRuns) === 1 && !/without the text finder/.test(await found()) && / text-guided: 3 books found/.test(await found()),
+    "Find books runs the study's default finder, the text-guided one: the text finder over Python's view of the photo, its map handed to the finder", [await page.evaluate(() => window.textRuns), await found()]);
   check(await page.evaluate(() => tess.reads) === 6, "and reads every book's title in the same run, at both turns its shape allows", await page.evaluate(() => tess.reads));
   const titles = await page.$$eval("#bs-list li", (l) => l.map((x) => x.textContent));
   // a tall spine reads across once turned a quarter, so its crop is read as its height by its width
@@ -197,18 +199,19 @@ try {
   await page.click("#mask-clear");
   check((await count()) === "3 books: 2 spines, 1 covers.", "Clear mask counts every book again", await count());
 
-  // req/shelves/books/versions: the finders offered, the text-guided one first, the edge-only one finding without the
-  // text finder
-  const listed = await page.$$eval("#algorithm option", (o) => o.map((x) => [x.value, x.textContent]));
-  check(listed.map(([k]) => k).join() === "r9,r8,r5" && listed.every(([, t]) => /\(P\u00a0\.\d+\u00a0·\u00a0R\u00a0\.\d+\)$/.test(t)),
-    "three finders are offered, the text-guided one first, each with its precision and recall", listed);
-  const scoring = await page.evaluate(() => !$("#scoring-help").hidden && $("#scoring-note").textContent);
-  check(/A book/.test(scoring) && /title/.test(scoring), "beside them a (?) says how a book's box and its title are scored", scoring);
-  // the list is in the Start dialog, shut by now: the choice made as the list would make it
-  await page.evaluate(() => { const s = $("#algorithm"); s.value = "r5"; s.dispatchEvent(new Event("change")); });
+  // req/shelves/books/versions: the page runs the study's default finder, the text-guided one, and offers no other; how it
+  // works, how well and how a book is scored are in the fold of the Analysis box
+  const fold = await page.evaluate(() => ({ lists: document.querySelectorAll("#left select#algorithm, dialog select").length, shown: $("#algorithm-pick").checkVisibility(),
+    bold: $("#algorithm-note strong")?.textContent || "", scoring: !$("#scoring-fold").hidden && $("#scoring-note").textContent }));
+  check(!fold.lists && fold.shown && /^It shows precision of 0\.\d\d and recall of 0\.\d\d /.test(fold.bold), "no finder is offered to choose; a fold says how the default one did", fold);
+  check(/A book/.test(fold.scoring) && /title/.test(fold.scoring), "and within it how a book's box and its title are scored", fold.scoring);
+  await page.context().close();
+
+  // the edge-only finder, where the study's list marks it default, finds without the text finder
+  page = await open("viewer", KEPT, {}, [], (ctx) => defaultIs(ctx, "shelves", "r5"));
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && $("#bs-list").children.length === 2);
-  check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && / edge-only: 2 books found;/.test(await found()),
+  check((await books(page)).length === 2 && !(await page.evaluate(() => window.textRuns)) && / edge-only: 2 books found;/.test(await found()),
     "the edge-only finder runs without the text finder, and the status names it", [await page.evaluate(() => window.textRuns), await found()]);
   await page.context().close();
 

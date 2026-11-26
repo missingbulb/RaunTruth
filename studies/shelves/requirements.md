@@ -72,8 +72,12 @@ read for a title matcher; matching the titles is not part of it.
   `studies/shelves/tests/test_books.py`, `web-tests/test_image_open.py`.
   </details>
 
-- `req/shelves/books/versions` Find books runs the finder chosen: text-guided (R9), the default, precise (R8) or edge-only (R5).
+- `req/shelves/books/versions` Find books runs the study's default finder, text-guided (R9); precise (R8) and edge-only (R5) stay in its list for a batch run and the lab.
   <details>
+
+  Changed by the owner on 2026-11-25 (`req/shell/analysis/start`): the page offers no choice of finder. Find books runs the
+  one the study's list marks default, and how it works and scores is in the Analysis box's fold; the other finders are
+  run where the list's default names them, and by a batch on Study Setup. What follows is how they were offered before.
 
   Set by the owner on 2026-11-13: the finder's versions are offered side by side, as NoR's and Vascular's are, in
   the shell's list (`req/shell/processing/algorithms`), today's first under a name of its own and beside it an

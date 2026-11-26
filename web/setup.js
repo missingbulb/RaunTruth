@@ -22,7 +22,7 @@ const sd = lent.remote.writer(lent.account), reader = lent.place.reader;
 let data, stage, results;
 const marked = { marked: () => { data.marked(); results?.marksChanged(); } };
 const marks = setupMarks({ $, reader, writer: sd, place: lent.place, data: marked, allows: lent.stageAllows, calls });
-const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status });
+const batch = setupBatch({ $, runner: lent.batchRunner, remote: lent.remote, account: lent.account, reader, writer: sd, place: lent.place, data: marked, status: lent.status, calls });
 const setup = {
   chose(kind, info) { marks.chose(kind, info); batch.chose(kind, info); },
   busy: () => batch.busy(),

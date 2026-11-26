@@ -12,7 +12,7 @@ import { standInDrive, openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { storedDrafts, seedDrafts } from "./device_storage.mjs";
-import { fromScratch, openStart } from "./annotating.mjs";
+import { fromScratch } from "./annotating.mjs";
 
 import { personFile } from "../web/truth_folders.js";
 
@@ -116,26 +116,15 @@ await check(/unsaved/.test(asked || "") && !(await annotating(page)) && JSON.str
   "loading another image leaves annotation mode and offers Start again, Load off for an image with no Analysis File, the runner gone", { asked, choices: await choices(page) });
 await page.context().close();
 
-// ---- Start: its dialog, Run, a draft kept on the device, reset analysis
+// ---- Start, a draft kept on the device, reset analysis
 page = await open(true, { email: OTHER, prepare: standInDrive });
 await opened(page);
-await check(await openStart(page), "Start opens a dialog");
-await page.waitForFunction(() => $("#algorithm").options.length > 0);
-const dialog = await page.evaluate(() => ({ list: [...$("#algorithm").options].map((o) => o.value), box: $("#algorithm").size > 1, about: $("#algorithm-note").textContent.trim().length > 0,
-  under: $("#algorithm-note").getBoundingClientRect().top >= $("#algorithm").getBoundingClientRect().bottom, actions: [...$("#start-dlg").querySelectorAll(".dlg-row button")].map((b) => b.textContent.trim()) }));
-await check(dialog.list.length >= 2 && dialog.box && dialog.about && dialog.under && dialog.actions.join() === "Cancel,Run",
-  "it lists the study's algorithms in a box, how the chosen one works under it, and its actions are Cancel and Run", dialog);
-await page.click("#start-cancel");
-await check(await page.evaluate(() => !$("#start-dlg").open) && !(await annotating(page)) && (await model(page)) === null, "Cancel closes it: nothing ran, the page is not in annotation mode");
-await openStart(page);
-await page.selectOption("#algorithm", dialog.list[1]);
-await page.click("#start-run");
+await page.click("#annotate-scratch");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
-await check(await annotating(page) && /at or above the threshold/.test(await page.textContent("#fx-result")),
-  "Run enters annotation mode and runs the algorithm chosen, with no further press", await page.textContent("#fx-result"));
-await check(await shown(page, "#fx-count") && await shown(page, "#tasks-box") && await shown(page, "#summary-box") && !(await shown(page, "#algorithm")) && /./.test(await page.textContent("#algorithm-ran")),
-  "the Analysis box then shows the study's runner and its Analysis Tasks, says which algorithm ran and holds no list of algorithms; Summary shows beside it",
-  { ran: await page.textContent("#algorithm-ran") });
+await check(await annotating(page) && !(await page.evaluate(() => !!document.querySelector("dialog[open]"))) && /pixels above the threshold/.test(await page.textContent("#fx-result")),
+  "Start opens no dialog: it enters annotation mode and runs the study's default algorithm, with no further press", await page.textContent("#fx-result"));
+await check(await shown(page, "#fx-count") && await shown(page, "#tasks-box") && await shown(page, "#summary-box") && await shown(page, "#algorithm-pick") && !(await page.evaluate(() => $("#algorithm-pick").open || !!document.querySelector("#algorithm"))),
+  "the Analysis box then shows the study's runner, its Analysis Tasks and a shut fold on how the analysis works, with no list of algorithms; Summary shows beside it");
 await check(await page.evaluate(() => !$("#annotate-say").checkVisibility()), "no line says the analysis started from scratch");
 await page.click("#fx-add"); await page.click("#fx-add");
 await page.click("#gt-save-draft");

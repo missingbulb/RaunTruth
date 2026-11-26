@@ -66,7 +66,7 @@ async function open(stage, more = {}) {
   await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
