@@ -602,7 +602,7 @@ const notHere = () => { st.notHere = true; status(NOT_HERE); };
 // Python's thread, on the study the address names, in place of any before it
 function pythonWorker() {
   st.worker?.terminate();
-  for (const end of pyCalls.splice(0)) end();
+  for (const asked of pyCalls.splice(0)) asked.end();
   st.heap = null; // Python's memory, unknown until it says (Python not started holds none)
   st.worker = new Worker("worker.js?study=" + encodeURIComponent(studyOf(location)), { type: "module" });
   st.worker.onmessage = (e) => onWorker(e.data);
@@ -630,7 +630,7 @@ function call(action, args, echo) {
     st.held = st.kept;
   }
   // the study owner's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
-  pyCalls.push(work.begin(`Python ${action}`));
+  pyCalls.push({ end: work.begin(`Python ${action}`), left: false });
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
 
@@ -659,10 +659,13 @@ function memoryTip(ranOut) {
 }
 $("#memory-off").onchange = () => writeJSON(MEMORY_TIP, $("#memory-off").checked);
 
-// Python's calls on their way, each ended by its answer, its error, or Python stopped
+// Python's calls on their way, each ended by its answer, its error, or Python stopped; left: asked by a study the
+// person has since left, whose answer is nobody's, even once they are back in that study
 const pyCalls = [];
 function onWorker(m) {
-  if (m.type === "result" || m.type === "error") pyCalls.shift()?.();
+  const asked = m.type === "result" || m.type === "error" ? pyCalls.shift() : null;
+  asked?.end();
+  if (asked?.left) { statusBar(); return ended(m); }
   if (m.heap != null) { st.heap = m.heap; st.files = m.files || 0; }
   if (m.busy) cpu.py = m.busy;
   if (m.net != null) net.worker = m.net;
@@ -1624,6 +1627,7 @@ const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, no
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
+  for (const asked of pyCalls) asked.left = true;
   // tagging ends while the study's panels are still there for it to put away
   tasks.tagging(false);
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
