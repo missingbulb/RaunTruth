@@ -111,8 +111,22 @@ nobody has decided: what the page does there is not a requirement yet.
   follows what it points at when the window resizes. Test: `web-tests/test_welcome_page.py`.
   </details>
 
-- `req/shell/analysis/start` Start opens a dialog listing the study's algorithms, how the chosen one works under the list, with Cancel and Run; Run starts the analysis with the one chosen.
+- `req/shell/analysis/start` Start starts the analysis with the study's default algorithm, with no dialog and no choice of algorithm on the page.
   <details>
+
+  Set by the owner on 2026-11-25, after the walk: "we don't need the algorithmic options in the UI. There shouldn't be a
+  selection, algorithm names, or anything fancy. We can keep the explanation, we can keep the scoring explanation, and the
+  precision/recall numbers, but the user will just get the 'most current' algorithm, as deemed by the repo's 'default'."
+  Start, in the Analysis box (`req/shell/annotate/choice`), opens nothing: it starts the analysis with the algorithm the
+  study's list marks default (`req/shell/processing/algorithms`). Where the stage lets the user annotate, the page enters
+  annotation mode; the study's runner shows in the Analysis box and its first step is pressed for the user as soon as
+  its button can be, so the run needs no second press. Under the runner a fold, How the analysis works, holds how the
+  algorithm works, its precision and recall and how they are scored. The page names no algorithm as a choice and lists
+  none. The rest stands as set on 2026-11-24: Start shines while the study's first step waits behind it
+  (`req/shell/steps`); a study naming no algorithms, or with no first step to press, enters annotation mode at once;
+  tentative, a study whose analysis is several steps, each with a button (Bookshelf Reader), has its runner opened and no
+  step pressed, and in a stage that does not annotate (Review, Public) Start runs the algorithm with no annotation mode.
+  What follows is the dialog as it was set before, kept for the record.
 
   Set by the owner on 2026-11-24. Start, in the Analysis box (`req/shell/annotate/choice`), opens the Start Analysis
   dialog: the study's algorithms in a box of rows (`req/shell/processing/algorithms`), the first chosen, under it how
@@ -138,7 +152,7 @@ nobody has decided: what the page does there is not a requirement yet.
   scratch, and named the buttons. In a study whose stage lets its users annotate (Setup, Develop and Analyze;
   `req/shell/study/stage`), once an image is open the Analysis box offers, for that image: **Continue local work**,
   only when this device holds a draft of the image (`req/shell/ground-truth/save-draft`), entering annotation mode
-  with it loaded; **Start**, which opens the algorithms' dialog and runs the one chosen (`req/shell/analysis/start`)
+  with it loaded; **Start**, which runs the study's default algorithm (`req/shell/analysis/start`)
   and is the only way that shows the algorithm runner; and beside it **Load**, on only where the image has an Analysis
   File to load (`req/shell/extractions/list`), which opens the Load Analysis dialog: the image's Analysis Files, one to
   choose, and Cancel and Load. The one loaded shows read-only, as the study's final results with no tool and no
@@ -1519,8 +1533,18 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_image_box_page.py`.
   </details>
 
-- `req/shell/processing/algorithms` A study offering several algorithms lists them in the Start dialog, in a box of rows, the first the default, each with its icon, title and precision and recall.
+- `req/shell/processing/algorithms` A study's list of algorithms marks one default, which is the one the page runs; a fold in the Analysis box says how it works and how it scored.
   <details>
+
+  Set by the owner on 2026-11-25 (`req/shell/analysis/start`): the page offers no choice of algorithm. The study's `list`
+  marks exactly one entry `"default": true`, stated and never taken from the order; a list marking none, or several, is the
+  study's error: Start runs nothing and says on the status line that the study names no default algorithm. Once an analysis has started, the Analysis box holds a fold
+  under the study's runner, How the analysis works: the default's `about` as a Markdown outline, ending in bold with its
+  precision and recall and what they were measured on, its `note` beside it, where it has them; its stamp from Review on
+  (`req/shell/processing/stamp`); and, folded within, how they are scored (`req/shell/processing/scoring`). No algorithm's
+  title or icon is shown as a choice. The study reads which one runs (`shell.algorithm`: `ready`, `key`, `title`, `default`,
+  `list`, `on(fn)`), and a batch run on Study Setup, which runs any of them, chooses through `choose(key)`
+  (`req/setup/batch`). What follows is how the list was shown before, kept for the record.
 
   Changed by the owner on 2026-11-24: the list is not atop a Processing box but in the Start dialog
   (`req/shell/analysis/start`), a box of rows with how the chosen algorithm works plain under it, nothing to unfold;
@@ -1539,8 +1563,12 @@ nobody has decided: what the page does there is not a requirement yet.
   list of its own. Test: `web-tests/test_study_contract.py`, `web-tests/test_algorithm_choice_page.py`.
   </details>
 
-- `req/shell/processing/scoring` Beside the algorithm list, a (?) shows how the study scores its precision and recall.
+- `req/shell/processing/scoring` Within the fold How the analysis works, a second fold shows how the study scores its precision and recall.
   <details>
+
+  Changed by the owner on 2026-11-25 (`req/shell/analysis/start`): with no list to stand beside, the (?) is a fold, How
+  precision and recall are scored, inside How the analysis works, shut until opened; a study whose metrics carry no
+  `scoring` shows none.
 
   Set by the owner on 2026-11-18: every study's precision and recall can be explained, so the method is shown, not
   only the numbers. The study's metrics file carries `scoring`, a short Markdown outline of how its scorer counts,
@@ -1554,8 +1582,8 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-22 (WP8 of `dev/requirements/study-stages-spec.md`). The lab's freeze (`req/lab/freeze`) writes, for each version
-  in the study's metrics file, a stamp `{version, dataset_sha256, frozen, commit}`. Under the algorithm list the chosen algorithm's stamp
-  is shown as one line, outside the fold: the freeze date, the algorithm version, the first eight hex of the dataset SHA and, once the lab
+  in the study's metrics file, a stamp `{version, dataset_sha256, frozen, commit}`. In the fold How the analysis works (set by the owner on 2026-11-25; it was under the algorithm list) the default algorithm's stamp
+  is shown as one line: the freeze date, the algorithm version, the first eight hex of the dataset SHA and, once the lab
   has named the commit that holds the frozen ground truth, a link to it on GitHub. Metrics with no stamp (every Develop study) show no line,
   and an algorithm whose score carries none shows none. Test: `web-tests/test_algorithm_choice_page.py`.
   </details>
@@ -1903,6 +1931,25 @@ nobody has decided: what the page does there is not a requirement yet.
   1 MB/s), its icon and number turn the warning colour for three seconds, then fade back. With
   reduced motion asked for, the digits change without rolling. Test:
   `web-tests/test_status_bar_page.py`.
+  </details>
+
+- `req/shell/status-bar/saved` Whatever a person saves or downloads is said on the status line once it is in, in plain words; a save that fails is said not to have been saved.
+  <details>
+
+  Set by the owner on 2026-11-25, after the walk, where five people could not tell whether a change had been saved: "Yes,
+  in the status line". Every change a person makes that the page writes to the store ends with one sentence on the status
+  line saying what was saved and where, and every file the page hands their computer with "Saved <file name>.": a tag
+  added ("Saved the tag to the study.") or removed, a description, an area marked or cleared, the grouping, a hide rule,
+  the study's folders, the set-up of Analysis Files, a GT or official mark, a batch marked official, Needs GT, a folder's
+  previews, a correction of the sharing, a stage change ("Moved the study to Analyze."), the Settings dialog's Save
+  ("Saved your settings."), Save Draft and Upload (each said as before), a batch run ("Batch run over: saved 3 Analysis
+  Files to the study."), and the downloads: Download Summary, Download Analysis and its tables, the results' CSV, a study's
+  own files. The sentence comes when the write has been taken, not when it was asked. A write the store refuses says "Not
+  saved to Google Drive: <why>" there, beside what the box it belongs to says. They go through one function of the page's
+  network calls (`req/shell/status-bar/calls`), which also shows the write in flight; no dialog is added and no call. What
+  the page writes without being asked (the study index on reading a folder, the settings that follow the account) is not
+  said. Test: `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/setup_stage_driver.mjs`
+  and `web-tests/setup_results_driver.mjs`.
   </details>
 
 - `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines: Start, while the study's step waits behind it.
@@ -2419,14 +2466,19 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
   <details>
 
+  Set by the owner on 2026-11-25, after the walk: every stage change asks first. Promote to a stage and Move back to one each open a
+  dialog of the freeze dialog's shape, naming the stage, what it is and what the change opens and closes of the page's actions, read from
+  the stage table (`web/stages.js`), with the change's own button and Cancel, which writes nothing; promoting to Review keeps its own
+  dialog. The two actions look like buttons on their stages, not links, and each reads with "…" as one that asks.
+
   Corrected after the walk of 2026-11-25: the line under the stages says what the stage is and, after it, what moves the study on to the
   next one, as the stage popup does.
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Set by the owner on 2026-11-24: the stage is a
   progression of the five stages across the top of Study Setup, each in its own colour (Setup red, Develop yellow, Analyze green, Review
   blue, Public all four), the current one selected, those before it marked done, and what the current one means under it. Promoting is
-  the next stage's own action, "Promote to <stage>" on it ("Promote to Review…" where it asks first), and moving back the one
-  before's, "Move back to <stage>"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
+  the next stage's own action, "Promote to <stage>…" on it, and moving back the one
+  before's, "Move back to <stage>…"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
   nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
   stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the Ground Truth aspect, Find images with newer Analysis Files, lists each
   image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first;

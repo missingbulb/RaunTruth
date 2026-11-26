@@ -277,7 +277,7 @@
                     {"when": {"route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"}
                   ],
                   "children": [
-                    {"name": "Algorithm that ran", "select": "#algorithm-ran", "req": "req/shell/analysis/start"}
+                    {"name": "How the analysis works", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms"}
                   ]
                 },
                 {"name": "Analysis Tasks", "select": "#tasks-box", "req": "req/shell/left-bar/shells",

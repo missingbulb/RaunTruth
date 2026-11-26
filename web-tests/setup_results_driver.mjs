@@ -60,6 +60,23 @@ const csv = fs.readFileSync(await download.path(), "utf8");
 await check(download.suggestedFilename() === "results.csv" || /results\.csv$/.test(download.suggestedFilename()), "Download CSV saves a file named for the results", download.suggestedFilename());
 await check(csv === "Image,Algorithm,Pixels counted\nimg1.png,above abcdef01,7\nimg2.png,by hand,5\nTotal (2 images),,12\n", "the CSV holds the same rows and the totals", csv);
 await check(drive.calls.length === before && !seen.some((u) => !u.startsWith("blob:")), "downloading it asks the network for nothing", seen);
+await check(await page.textContent("#status") === "Saved results.csv.", "and the status line says the file was saved", await page.textContent("#status"));
+
+// a mark made on the page while the table shows: the table is of before the mark, so it goes, with no read of its own, until the next press
+await aspect(page, "images");
+await page.click("#data-tree .tree-folder .name");
+await page.waitForSelector("#folder-items .cell");
+await page.click('#folder-items .cell:has(.name:text-is("img3.png")) .name');
+await page.waitForSelector(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
+const readBefore = readsOf(official).length;
+await page.click(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
+await page.waitForFunction(() => /^Marked/.test(document.querySelector("#marks-msg").textContent));
+await aspect(page, "results");
+t = await table(page);
+await check(t.rows.length === 0 && await page.evaluate(() => !document.querySelector("#results-csv").checkVisibility()) && readsOf(official).length === readBefore,
+  "after a mark is made the table shown before it is gone, and nothing was read for that", t.rows);
+await page.click("#results-show");
+await until(page, () => document.querySelectorAll("#results-scroll table tbody tr").length === 3);
 
 // a mark made on the page while the table shows: the table is of before the mark, so it goes, with no read of its own, until the next press
 await aspect(page, "images");

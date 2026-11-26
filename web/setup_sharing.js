@@ -174,7 +174,7 @@ export function sharingPanel(ctx) {
   async function fix(c) {
     confirming = null;
     try {
-      await work.during(c.how === "share" ? sd.share(c.id) : sd.unshare(c.id, c.permission), "an item's sharing changed");
+      await work.during(calls.saving("store", "Changed the sharing, as the correction said.", () => (c.how === "share" ? sd.share(c.id) : sd.unshare(c.id, c.permission))), "an item's sharing changed");
     } catch (e) {
       if (e.status === 403 || e.status === 404) refused.add(c.key);
       else { draw(); say(e.message || String(e), true); return; }

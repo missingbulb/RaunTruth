@@ -1,6 +1,7 @@
 [
  {
   "key": "v5",
+  "default": true,
   "title": "island-free",
   "icon": "🏝️",
   "about": "- Run the dead-end check algorithm\n- Drop every vessel shorter than 45 µm, one typical capillary segment\n  - that touches no junction at either end"

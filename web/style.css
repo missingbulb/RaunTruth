@@ -279,16 +279,12 @@ details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::before, .box.foldable > .sec-head h2::before { content: ""; flex: none; width: 0; height: 0;
   border-style: solid; border-width: 5px 0 5px 7px; border-color: transparent transparent transparent var(--dim); transition: transform .15s; }
 details.fold[open] > summary::before, .box.foldable:not(.folded) > .sec-head h2::before { transform: rotate(90deg); }
-/* the study's algorithms, atop its Processing box (req/shell/processing/algorithms) */
-#algorithm { width: 100%; min-width: 0; }
-.algorithm-row { display: flex; align-items: center; gap: 6px; }
-.scoring-q { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 1; }
-.scoring-q[aria-expanded="true"] { background: var(--accent); color: var(--bg); }
+/* how the study's analysis works, a fold in the Analysis box (req/shell/processing/algorithms) */
 #scoring-note { margin: 8px 0 0; }
 #scoring-note p { margin: 0 0 4px; font-weight: 600; }
 #scoring-note ul, #scoring-note ol { margin: 4px 0 0; padding-left: 16px; }
 #scoring-note li > ul, #scoring-note li > ol { margin-top: 2px; }
-#algorithm-pick { margin-bottom: 10px; }
+#algorithm-pick[hidden], #scoring-fold[hidden] { display: none; }
 #algorithm-note { margin: 8px 0 0; }
 #algorithm-note p { margin: 6px 0 0; }
 #algorithm-note ul, #algorithm-note ol { margin: 4px 0 0; padding-left: 16px; }
@@ -721,8 +717,7 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #gt-counters > .done { color: var(--dim); }
 #gt-counters > .done .tick::after { content: " ✓"; color: var(--yes); font-weight: 700; }
 .toolbar .tool > kbd.key-on { display: none; }
-#algorithm-ran { margin: 0 0 8px; }
-#processing-box[hidden], #tasks-box[hidden], #algorithm-ran[hidden] { display: none; }
+#processing-box[hidden], #tasks-box[hidden] { display: none; }
 /* folding wins over any box's own layout for its parts */
 .box.foldable.folded > :not(.sec-head) { display: none !important; }
 .box.foldable.folded > .sec-head > :not(h2) { display: none; }
@@ -734,9 +729,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #notice p { margin: 0; }
 #notice button { align-self: flex-end; }
 :root { --gt-part: #e8890c; }
-#gt-dlg, #start-dlg, #load-dlg, #stage-freeze-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#gt-dlg, #load-dlg, #stage-freeze-dlg, #stage-change-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#gt-dlg::backdrop, #start-dlg::backdrop, #load-dlg::backdrop, #stage-freeze-dlg::backdrop { background: #0007; }
+#gt-dlg::backdrop, #load-dlg::backdrop, #stage-freeze-dlg::backdrop, #stage-change-dlg::backdrop { background: #0007; }
 /* the popup's checklist: every issue the ground truth can have, crossed out with a green check once resolved */
 .checklist { list-style: none; margin: 4px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .checklist li { display: flex; gap: 8px; align-items: flex-start; }
@@ -747,7 +742,7 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .checklist li.warn svg { color: var(--gt-part); }
 .checklist li.error svg { color: var(--no); }
 #gt-msg:empty { display: none; }
-#gt-dlg .grow, #start-dlg .grow, #load-dlg .grow, #stage-freeze-dlg .grow { flex: 1; }
+#gt-dlg .grow, #load-dlg .grow, #stage-freeze-dlg .grow, #stage-change-dlg .grow { flex: 1; }
 
 
 /* the low-memory popup */
@@ -1045,14 +1040,14 @@ html:not(.offline) #welcome-offline { display: none; }
 #stage-steps > li[data-state=done] { opacity: .62; }
 #stage-steps > li[data-state=now] { opacity: 1; filter: drop-shadow(0 2px 4px #0006); }
 #stage-steps > li:has(.stage-act:not([hidden])) { opacity: .78; }
-#stage-steps > li:has(.stage-act:not([hidden])) .stage-say { visibility: hidden; }
-#stage-steps > li:has(.stage-act:not([hidden]):hover) { opacity: 1; }
+#stage-steps > li:has(.stage-act:not([hidden])) .stage-say { display: none; }
+#stage-steps > li:has(.stage-act:not([hidden]):is(:hover, :focus-visible)) { opacity: 1; }
 .stage-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stage-say { font-size: 11.5px; min-height: 1.3em; }
 /* the action is the whole stage: its words where the stage's say is */
-.stage-act { position: absolute; inset: 0; border: 0; border-radius: 0; background: transparent; color: #fff; font-size: 11.5px; text-decoration: underline; text-align: left; padding: 24px 22px 0 34px; cursor: pointer; }
-#stage-steps > li:first-child .stage-act { padding-left: 18px; }
-.stage-act:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.stage-act { align-self: flex-start; margin-top: 2px; padding: 1px 9px; border: 1px solid #fffc; border-radius: var(--r-ctl); background: #ffffff2e; color: #fff; font-size: 11.5px; line-height: 1.5; white-space: nowrap; cursor: pointer; }
+.stage-act:hover:not(:disabled) { background: #ffffff52; }
+.stage-act:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .stage-act[hidden] { display: none; }
 #stage-what, #stage-msg { margin: 6px 2px 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -1302,11 +1297,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-choices .pair > button[hidden] { display: none; }
 #annotate-say { margin: 8px 0 0; }
 #annotate-edit { margin-top: 8px; }
-#start-dlg h3 { margin: 12px 0 0; font-size: 13px; }
-#start-dlg #algorithm { height: auto; padding: 4px; }
-#start-dlg #algorithm option { padding: 4px 6px; border-radius: 4px; }
-#start-dlg #algorithm-pick { margin: 0; }
-#start-dlg #algorithm-note { max-height: 40vh; overflow: auto; }
 #annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 0; max-height: 50vh; overflow: auto; }
 #annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
 #annotate-list .item[aria-selected=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
