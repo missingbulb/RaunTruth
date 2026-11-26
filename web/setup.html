@@ -393,6 +393,12 @@
   </div>
   <div class="dlg-row end"><span class="grow"></span><button id="stage-freeze" type="button" class="primary" data-needs-network>Freeze</button><button id="stage-freeze-cancel" type="button">Cancel</button></div>
 </dialog>
+<dialog id="report-dlg" aria-labelledby="report-title">
+  <h2 id="report-title">Report a problem</h2>
+  <p>This opens a new issue on GitHub, filled in with your browser, the study, where you are in it and your last actions, for you to read, add to and send.</p>
+  <p class="hint">An issue on GitHub is public, and sending one needs a GitHub account.</p>
+  <div class="dlg-row end"><span class="grow"></span><button id="report-cancel" type="button">Cancel</button><button id="report-go" type="button" class="primary">Continue</button></div>
+</dialog>
 <dialog id="history-dlg" aria-labelledby="history-title">
   <form method="dialog">
     <h2 id="history-title">Version history</h2>
@@ -440,7 +446,7 @@
   <form method="dialog">
     <h2 id="usage-title">Resource Usage</h2>
     <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div></div>
-    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
+    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><p class="hint" id="storage-cache"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
     <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
     <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>

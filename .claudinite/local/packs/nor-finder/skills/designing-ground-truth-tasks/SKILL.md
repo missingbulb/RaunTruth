@@ -48,7 +48,8 @@ reference build: `req/nor/truth/tasks`, `req/nor/truth/order` and `req/nor/truth
   person's extraction (`req/shell/extractions/save`), is the last task, not a toolbar button.
 - **One row per task, saying only what is not already said.** "13/47 Finalists": the count once,
   done over total, no "Review the …" (the whole box is the review), no second count anywhere.
-  No radio buttons or circles: a done task gets a check, the others nothing.
+  No radio buttons or circles: a done task gets a check, the others nothing. A done task stays as
+  one ticked line, its tools folded away, and its tick opens it again or takes it back.
 - **A progress bar split into one part per task**, each as wide as its task is long and filled as
   far as it is done, so a finished batch reads at a glance. No total written beside it.
 - **The open task's tools go on its own row**: a cogwheel opening the item's options as a popup,

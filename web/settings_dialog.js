@@ -3,13 +3,13 @@
 //   choice  options [[value, label]], fallback: a select;           toggle  on, off, fallback, label: a checkbox;
 //   text    a text box, empty forgets it;                           map     {name: text}: a text box per name;
 //   set     [string]: a tick per entry, cleared to drop it;         list    [object], name(entry): the same, by name;
-//   device  entries(): [{key, label, size}], other keys the browser keeps: a tick each, cleared to forget it, and Clear all;
+//   device  entries(): [{key, label, size}], other keys the browser keeps: a tick each, cleared to forget it on Save, and Clear all, which forgets them at once;
 // raw: the browser keeps the value as it is, not as JSON. get(key) is what the browser keeps under a key, null for
 // nothing; set(key, value) keeps it, null forgetting it.
 "use strict";
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export function settingsDialog({ dialog, fields, get, set, where, saved }) {
+export function settingsDialog({ dialog, fields, get, set, where, saved, cleared }) {
   const $ = (s) => dialog.querySelector(s);
   const parse = (f) => {
     const raw = get(f.key);
@@ -78,11 +78,19 @@ export function settingsDialog({ dialog, fields, get, set, where, saved }) {
     dialog.close();
     saved();
   };
+  // Clear all forgets what the device kept at once, with no Save, and says so
+  function draw() {
+    $("#settings-list").innerHTML = fields().map(row).join("");
+    for (const b of dialog.querySelectorAll("[data-clear]")) b.onclick = () => {
+      for (const i of dialog.querySelectorAll(`[name="${CSS.escape(b.dataset.clear)}"]`)) set(i.value, null);
+      draw();
+      cleared();
+    };
+  }
   return {
     open() {
       $("#settings-where").textContent = where();
-      $("#settings-list").innerHTML = fields().map(row).join("");
-      for (const b of dialog.querySelectorAll("[data-clear]")) b.onclick = () => dialog.querySelectorAll(`[name="${CSS.escape(b.dataset.clear)}"]`).forEach((i) => { i.checked = false; });
+      draw();
       dialog.showModal();
     },
   };

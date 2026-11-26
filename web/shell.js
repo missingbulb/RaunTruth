@@ -1049,8 +1049,12 @@ async function storageTab(fresh) {
   }));
   const est = await navigator.storage?.estimate?.().catch(() => null);
   showDisk(total);
-  $("#storage-total").textContent = `This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which Settings clears` +
-    (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : ".");
+  const link = Object.assign(document.createElement("button"), { type: "button", className: "link", id: "storage-settings", textContent: "Settings" });
+  link.onclick = () => { $("#usage-dlg").close(); $("#open-settings").click(); };
+  $("#storage-total").replaceChildren(`This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which `, link, " clears" +
+    (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : "."));
+  $("#storage-cache").textContent = "Not counted here: Python's files, about 50 MB, which the browser keeps in its own cache for 30 days. " +
+    "The site can neither measure nor clear that cache; the browser's own \"clear browsing data\" for cached files does.";
 }
 // the menu's avatar lies over the header's: a click on it closes the menu, as one on the header's would
 $("#who-avatar").onclick = () => { $("#user-menu").open = false; };
@@ -1091,6 +1095,7 @@ const settings = settingsDialog({
   },
   where: () => signIn.kept(),
   saved: () => { reapply(); status("Saved your settings."); },
+  cleared: () => { reapply(); status("Cleared what this device alone kept."); },
 });
 // the settings that follow the user, drawn again once the account's or the Settings dialog's have replaced this device's
 function reapply() {
@@ -1166,12 +1171,17 @@ function pageNow() {
     ["Memory", navigator.deviceMemory ? `about ${navigator.deviceMemory} GB` : "not said by this browser"],
   ];
 }
+// the report says first where it goes: a public issue on GitHub, which needs an account there (req/shell/report/bug). It is
+// made as it is asked for, so the actions it quotes end with the asking
+let reporting = null;
 function reportProblem() {
   $("#user-menu").open = false;
-  const url = problemUrl({ repo: REPO, browser: { text: browserText(), supported: browserVerdict?.ok !== false }, state: pageNow(),
+  reporting = problemUrl({ repo: REPO, browser: { text: browserText(), supported: browserVerdict?.ok !== false }, state: pageNow(),
     actions: log.last(ACTIONS_QUOTED, "action"), errors: log.last(ERRORS_QUOTED, "error") });
-  window.open(url, "_blank", "noopener");
+  $("#report-dlg").showModal();
 }
+$("#report-cancel").onclick = () => $("#report-dlg").close();
+$("#report-go").onclick = () => { $("#report-dlg").close(); window.open(reporting, "_blank", "noopener"); };
 $("#sb-report").onclick = reportProblem;
 $("#report-problem").onclick = reportProblem;
 
