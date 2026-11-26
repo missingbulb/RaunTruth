@@ -50,6 +50,7 @@ await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-fol
 await settledStage(page, "Develop");
 await check(await visible(page, "#stage-box"), "Study Setup has a stage box, whatever the stage");
 await check(await text(page, "#stage-up") === "Promote to Analyze" && await text(page, "#stage-back") === "Move back to Setup", "it offers the next stage and the one before", { up: await text(page, "#stage-up"), back: await text(page, "#stage-back") });
+await check(/^Develop: /.test(await text(page, "#stage-what")) && (await text(page, "#stage-what")).includes("To move on to Analyze:"), "under the stages it says what the stage is and what moves the study on", await text(page, "#stage-what"));
 
 // no listing of an image's extractions on opening, on a mark being written or on a stage change: the list of newer extractions is read on a press alone
 const lists = () => drive.calls.filter((c) => c.kind === "list" && FILES.some((f) => f.id === c.parent && f.folder && (f.parent === GT.extractions || f.id === GT.extractions)))

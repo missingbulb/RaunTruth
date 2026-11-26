@@ -3,6 +3,7 @@
 // waits for one begun since then that moved the group named (a name, or a pattern) and finished. CSS transitions and
 // animations: played(page) counts them; ran(page, since, wants) waits for each want, a { name, left } with either
 // left out, to be matched by one begun since then and ended. Each gives what it found, missing: true when it did not.
+// atRest(page, selector) waits until nothing animates the element, for a check that measures it.
 
 // what the motion was doing, for a check that timed out waiting on it: whether a view transition is under way, what
 // is animating, and whether the page still draws frames at all
@@ -51,3 +52,11 @@ export const ran = (page, since, wants) => page.waitForFunction(([n, ws]) => {
   return ws.every((w) => all.some((x) => x.ended && Object.entries(w).every(([k, v]) => x[k] === v)));
 }, [since, wants], { timeout: WAIT }).then(() => ({}),
   async () => ({ missing: true, played: await page.evaluate((n) => window.cssMotions.slice(n).map(({ name, left, ended }) => ({ name, left, ended })), since) }));
+
+// a motion on an element begins a frame after what starts it, so one still frame is not yet rest; three in a row are
+export const atRest = (page, selector) => page.waitForFunction((sel) => {
+  const e = document.querySelector(sel), still = (window.atRestFrames ||= {});
+  still[sel] = e.getAnimations().length ? 0 : (still[sel] || 0) + 1;
+  if (still[sel] < 3) return false;
+  delete still[sel]; return true;
+}, selector, { polling: "raf" });

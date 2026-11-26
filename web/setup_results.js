@@ -27,7 +27,7 @@ export function measureOf(doc, m) {
 export function howOf(doc) {
   if (typeof doc?.tagger === "string") return "by hand";
   const run = (doc?.history?.actions || []).find((a) => a?.type === "run" && a.algorithm);
-  return run ? [run.algorithm, run.version?.code && String(run.version.code).slice(0, 8)].filter(Boolean).join(" ") : "by hand";
+  return run ? [run.algorithm.key ?? run.algorithm, run.version?.code && String(run.version.code).slice(0, 8)].filter(Boolean).join(" ") : "by hand";
 }
 
 // $: the page's selector; reader, place: the store's reads and the study's place in it; saveFile(name, text, type): the page's own download
@@ -101,6 +101,8 @@ export function setupResults({ $, reader, place, saveFile, calls }) {
   return {
     // a study comes in: the measures its study.json names
     mount(m) { epoch++; measures = (m?.results?.measures || []).filter((x) => x?.title && (x.path || Array.isArray(x.count))); shown = null; busy = false; say(""); box.hidden = false; draw(); },
+    // a mark was made or taken off on the page: a table read before it is no longer the study's, and a read under way is let go
+    marksChanged() { if (!shown && !busy) return; epoch++; shown = null; busy = false; say(""); draw(); },
     open() {},
     signedIn() {},
     opened() {},
