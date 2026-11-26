@@ -738,7 +738,7 @@ function imageOpened(m) {
 }
 
 // ---------- loading ----------
-const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudy, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
+const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudyHeld, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
   get manifest() { return manifest; }, get openBytes() { return openBytes; }, get openRemote() { return openRemote; },
   get gtSession() { return gtSession; }, get offlineCopy() { return offlineCopy; }, get putTruthTag() { return putTruthTag; },
   get openRecent() { return openRecent; }, get steps() { return steps; } });
@@ -807,15 +807,17 @@ function restudy(again = true) {
     if (image) await openBytes(image.name, image.bytes, image.source);
   });
 }
-// The study mounted again on the image open, the page held on screen as it is until the image is open in it
+// The study mounted again, on the image open or (again false) with none, the page held on screen as it is until it is back
 // (req/shell/annotate/held): the browser keeps showing what it showed while the change is made, where it can
-function restudyHeld() {
-  if (!document.startViewTransition) return restudy();
+function restudyHeld(again = true) {
+  if (!document.startViewTransition) return restudy(again);
   const root = document.documentElement;
   root.dataset.held = "";
-  const t = document.startViewTransition(() => restudy());
+  let mounted;
+  const t = document.startViewTransition(() => (mounted = restudy(again)));
   t.ready.catch(() => {}); // the browser giving the hold up shows the page as it then is: only the hold is lost
   t.finished.finally(() => { delete root.dataset.held; });
+  return t.updateCallbackDone.then(() => mounted, () => mounted);
 }
 
 // a tip: a bubble below its anchor, pointing at it, until the user closes it, after which it never shows again

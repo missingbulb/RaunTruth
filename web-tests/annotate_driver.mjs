@@ -34,16 +34,17 @@ const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.c
 // the choices on show, a disabled one in brackets
 const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-scratch", "#annotate-load"].map((s) => document.querySelector(s)).filter((b) => b.checkVisibility()).map((b) => (b.disabled ? `(${b.textContent.trim()})` : b.textContent.trim())));
 const BOTH = JSON.stringify(["Start", "Open saved analysis"]), NO_LOAD = JSON.stringify(["Start", "(Open saved analysis)"]);
-// each view transition the page starts, noted as its change ends: whether the page annotated before and after it, and whether an
+// each view transition the page starts, noted as its change ends: whether it held the page for a study coming in again, whether the
+// page annotated before and after it, and whether an
 // image was open by then
 const holds = (ctx) => ctx.addInitScript(() => {
   window.holds = [];
   const start = Document.prototype.startViewTransition;
   if (start) Document.prototype.startViewTransition = function (change) {
-    const annotatingBefore = document.documentElement.hasAttribute("data-annotating");
+    const annotatingBefore = document.documentElement.hasAttribute("data-annotating"), held = "held" in document.documentElement.dataset;
     return start.call(this, async () => {
       await change?.();
-      window.holds.push({ annotatingBefore, annotatingAfter: document.documentElement.hasAttribute("data-annotating"), imageAfter: !!window.shellForTests?.page.get("image") });
+      window.holds.push({ held, annotatingBefore, annotatingAfter: document.documentElement.hasAttribute("data-annotating"), imageAfter: !!window.shellForTests?.page.get("image") });
     });
   };
 });
@@ -277,5 +278,15 @@ await page.click("#study-menu summary");
 await page.click('#study-list a[data-id="viewer"]');
 await page.waitForFunction(() => document.title === "Image Viewer");
 await check(true, "the page asked whether to be left between two studies of a swap throws nothing");
+await page.context().close();
+
+// ---- unload image: the page is held as it was until the study has come in again, so nothing of the change between shows
+page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await holds(ctx); } });
+await opened(page);
+const heldBefore = await page.evaluate(() => window.holds.length);
+await page.evaluate(() => $("#unload").click());
+await page.waitForFunction(() => !st.img && $("#status").textContent.startsWith("Ready"));
+const unloaded = await page.evaluate((n) => window.holds.slice(n), heldBefore);
+await check(unloaded.some((h) => h.held && !h.imageAfter), "unloading holds the page as it was until the study is back with no image", unloaded);
 await page.context().close();
 await done(0);

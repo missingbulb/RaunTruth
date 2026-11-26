@@ -1227,6 +1227,8 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
+/* Save Draft and Upload stay in reach while the task above them is taller than the bar: they rest at its foot */
+#gt-tasks > li[data-task="submit"] { position: sticky; bottom: calc(-1 * var(--pad)); padding-bottom: 6px; background: var(--panel); z-index: 1; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
 #gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
