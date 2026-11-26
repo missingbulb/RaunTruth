@@ -8,7 +8,7 @@
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_throttle_driver.mjs [SHOTS]
 import path from "node:path";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -53,6 +53,7 @@ try {
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 1);
 
   // throttled: opening a.png is refused
+  await idle(page);
   drive.outage = "throttled";
   await expecting(/ERR_FAILED/, async () => {
     await pressDrive(page); await listed();
@@ -97,6 +98,7 @@ try {
   await page.click("#remote-dlg button[value=close]");
 
   // the countdown ends: the notice goes and the dialog lists its link again
+  await idle(page);
   drive.outage = null;
   await pressDrive(page);
   await page.clock.fastForward(15 * 60000);
@@ -105,6 +107,7 @@ try {
   check(!shown.notice && !shown.held && kinds().includes("list"), `after 15 minutes the notice goes and the link is listed again: ${JSON.stringify(shown)}`);
 
   // a failure where the details fail too is an error, not a wait
+  await idle(page);
   drive.outage = "down";
   await expecting(/ERR_FAILED/, async () => {
     await page.dblclick("#remote-list .item:nth-child(1)");
@@ -114,6 +117,7 @@ try {
   check(!shown.notice && !shown.held, `with Drive unreachable, the dialog shows an error and does not wait: "${await page.textContent("#remote-msg")}"`);
 
   // a refused read for a row's badge starts the wait too
+  await idle(page);
   drive.outage = "throttled";
   await page.evaluate(() => localStorage.removeItem("nor-drive-holds"));
   await expecting(/ERR_FAILED/, async () => {
