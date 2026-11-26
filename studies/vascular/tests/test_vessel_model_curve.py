@@ -8,7 +8,6 @@ Run: python3 tests/test_vessel_model_curve.py
 """
 import json
 import os
-import subprocess
 import sys
 
 import numpy as np
@@ -17,6 +16,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 import vessel_model as vm
+from drivers import run_driver
 
 pytestmark = pytest.mark.full
 
@@ -39,8 +39,7 @@ def test_python_and_viewer_draw_the_same_curve():
     quads[0][0] = (2 * np.array(pts[0]) - np.array(pts[1])).tolist()
     ts = np.linspace(0, 1, 11).tolist()
     url = 'file://' + os.path.abspath(MODEL_JS)
-    out = subprocess.run(['node', '--input-type=module', '-e', JS, url, json.dumps(quads), json.dumps(ts)],
-                         capture_output=True, text=True, check=True, timeout=60).stdout
+    out = run_driver(None, url, json.dumps(quads), json.dumps(ts), node_args=['--input-type=module', '-e', JS], timeout=60).stdout
     js = np.array(json.loads(out))
     py = np.array([vm.catmull_rom(*q, ts) for q in quads])
     assert np.allclose(js, py, atol=1e-9), np.abs(js - py).max()

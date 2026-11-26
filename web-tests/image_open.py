@@ -5,7 +5,7 @@ naming its channels' order, puts them in it as the page does."""
 import json
 import os
 import shutil
-import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -16,6 +16,8 @@ import pillow_heif
 pillow_heif.register_heif_opener()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -34,7 +36,7 @@ def open_images(tmp_path, *files, view=None, order=None):
         jobs.append(job)
     spec = tmp_path / 'open_jobs.json'
     spec.write_text(json.dumps(jobs))
-    r = subprocess.run([NODE, os.path.join(HERE, 'image_open_driver.mjs'), str(spec)], capture_output=True, text=True, timeout=120)
+    r = run_driver(os.path.join(HERE, 'image_open_driver.mjs'), str(spec), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     out = []
     for job, line in zip(jobs, r.stdout.splitlines()):

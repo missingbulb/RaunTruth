@@ -9,7 +9,6 @@ import json
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import zlib
 
@@ -23,6 +22,8 @@ import perf
 import run
 import stage as lab_stage
 import study as lab_study
+sys.path.insert(0, os.path.join(HERE, '..', '..', 'dev', 'tools', 'build'))
+from drivers import run_driver
 
 
 def png(width, height, pixels):
@@ -220,7 +221,7 @@ def test_the_mutation_sweep_task_stops_clean_when_the_study_is_frozen(tmp_path):
         script = ('import { worker } from "./worker.mjs";'
                   f'const logs = []; const r = await worker({{ root: {str(work / "repo")!r}, log: (m) => logs.push(m) }});'
                   'console.log(JSON.stringify({ r: r ?? null, logs }));')
-        return subprocess.run(['node', '--input-type=module', '-e', script], cwd=work, capture_output=True, text=True)
+        return run_driver(None, node_args=['--input-type=module', '-e', script], cwd=work, check=False)
 
     frozen = worker_says(3, 'the study is in Review, so its ground truth and scores are frozen')
     assert frozen.returncode == 0, frozen.stderr

@@ -263,6 +263,20 @@
     ]
   },
   {
+    "id": "node-through-run-driver",
+    "on_fail": "block",
+    "failureMessage": "a test that launches Node itself is killed in silence when its driver hangs, so the failure says nothing of the step it stopped at",
+    "fix": "launch it with run_driver() from dev/tools/build/drivers.py: check=False for a test that reads the exit code itself, node_args for an inline script",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.py$/",
+    "matchLines": [
+      {
+        "match": "/subprocess\\.(run|Popen|check_output|check_call|call)\\(\\s*\\[\\s*(NODE|node|[\"']node[\"'])\\s*,/",
+        "what": "launches Node outside run_driver: {match}",
+        "unlessLineMatches": "/^\\s*#/"
+      }
+    ]
+  },
+  {
     "id": "world-set-up",
     "on_fail": "block",
     "failureMessage": "set-up written by hand has to know how each fake and the page keep their state, and says each set-up differently from every other test",

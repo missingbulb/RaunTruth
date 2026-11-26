@@ -91,6 +91,8 @@ const signInVia = async (page) => {
   });
 };
 const local = (page, k) => page.evaluate((k) => localStorage.getItem(k), k);
+// the sign-in the page keeps on this device
+const signedIn = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")));
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png"), clip: { x: 1000, y: 0, width: 400, height: 260 } }); };
 
 try {
@@ -140,6 +142,9 @@ try {
   await a.page.click("body", { position: { x: 700, y: 500 } });
   await a.page.click("#theme");
   check(await a.page.evaluate(() => shellForTests.work.doing.join()).then((d) => /settings/.test(d)), "... and until it has, the save still owed counts as the page's work");
+  await idle(a.page);
+  check(file()?.["nor-theme"] === "light" && (await signedIn(a.page)).changed.length === 0,
+    "and once the page is idle the save has reached the file and the page has taken its answer", { file: file()?.["nor-theme"], changed: (await signedIn(a.page)).changed });
   check(await until(() => file()?.["nor-theme"] === "light"), "switching to light while signed in saves it to the file");
   check(await until(() => a.page.evaluate(() => !/settings/.test(shellForTests.work.doing.join()))), "... no longer once it is saved");
 
@@ -235,6 +240,8 @@ try {
     // off the page first, to a file of the site's that runs none of its code: a sync still running on it would write
     // the sign-in back, an hour long, and a request still on its way would meet the revoked token
     const at = b.page.url();
+    // and its own saves ended first: one cut short by leaving stays this device's to save, over what another wrote since
+    await idle(b.page);
     await b.page.goto(origin + "/web/logo.svg");
     await b.dev.tokenRunsOut(b.page);
     // the page writes it again as it loads: a setting that changes with no click

@@ -3,13 +3,13 @@ release, as its offline list names them (studyModules, web/python_files.js), run
 import json
 import os
 import shutil
-import subprocess
 
 import pytest
 
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 MODULE = os.path.join(HERE, '..', 'web', 'python_files.js')
 
@@ -18,7 +18,7 @@ def run(call):
     if not NODE:
         pytest.skip('node missing')
     code = f'import * as m from {json.dumps("file://" + os.path.abspath(MODULE))};console.log(JSON.stringify(await ({call})(m)))'
-    r = subprocess.run([NODE, '--input-type=module', '-e', code], capture_output=True, text=True, timeout=60)
+    r = run_driver(None, node_args=['--input-type=module', '-e', code], timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 
@@ -28,7 +28,7 @@ def modules(listing, bases, app):
         pytest.skip('node missing')
     code = (f'import {{ studyModules }} from {json.dumps("file://" + os.path.abspath(MODULE))};'
             f'console.log(JSON.stringify(studyModules({json.dumps(listing)}, {json.dumps(bases)}, {json.dumps(app)})))')
-    r = subprocess.run([NODE, '--input-type=module', '-e', code], capture_output=True, text=True, timeout=60)
+    r = run_driver(None, node_args=['--input-type=module', '-e', code], timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 

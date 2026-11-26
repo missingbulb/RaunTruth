@@ -4,7 +4,6 @@ handling could part on (Unicode digits and whitespace, NFKC forms, case folding)
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
@@ -15,6 +14,7 @@ import fields as F
 
 pytestmark = pytest.mark.full
 
+from drivers import run_driver
 NODE = shutil.which('node')
 TEXTS = [
     '', '   ', 'חולית',
@@ -34,8 +34,7 @@ TEXTS = [
 @pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_labels_a_text_as_the_study_does(tmp_path):
     (tmp_path / 'in.json').write_text(json.dumps(TEXTS))
-    r = subprocess.run([NODE, os.path.join(HERE, 'fields_driver.mjs'), str(tmp_path / 'in.json'), str(tmp_path / 'out.json')],
-                       capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'fields_driver.mjs'), str(tmp_path / 'in.json'), str(tmp_path / 'out.json'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     got = json.loads((tmp_path / 'out.json').read_text())
     assert len(got) == len(TEXTS) == 41

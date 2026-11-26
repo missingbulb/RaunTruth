@@ -4,13 +4,13 @@ the groups Load study images draws."""
 import json
 import os
 import shutil
-import subprocess
 
 import pytest
 
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+from drivers import run_driver
 NODE = shutil.which('node')
 
 
@@ -18,7 +18,7 @@ NODE = shutil.which('node')
 def out():
     if not NODE:
         pytest.skip('node missing')
-    r = subprocess.run([NODE, os.path.join(HERE, 'tags_driver.mjs')], capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'tags_driver.mjs'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 
