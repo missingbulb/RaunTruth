@@ -7,6 +7,7 @@ import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { frames } from "./page_frames.mjs";
 import { world } from "./world.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
@@ -60,7 +61,7 @@ await settle();
 
 // ---- req/shell/dialogs/focus-kept: the control with the keyboard redrawn, hidden or disabled ----
 // a redraw stands in as the test's own: the control replaced by a copy of itself, as a list that draws itself again does
-const kept = (want) => page.waitForFunction((w) => { const a = document.activeElement; return a !== document.body && (!w || a.id === w); }, want, { timeout: 3000 }).then(() => true, () => false);
+const kept = async (want) => !!(await orMissed(page.waitForFunction((w) => { const a = document.activeElement; return a !== document.body && (!w || a.id === w); }, want, { timeout: 3000 })));
 await page.focus("#sb-version");
 await page.evaluate(() => { const b = $("#sb-version"); b.replaceWith(b.cloneNode(true)); });
 await settle();

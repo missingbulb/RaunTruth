@@ -2,6 +2,8 @@
 // opened it; where that control is gone or hidden by then, to the one that leads back to it.
 // req/shell/dialogs/focus-kept: when the control holding the keyboard is redrawn, hidden or disabled, the keyboard goes
 // to the one in its place, else the nearest one still there, never the page's body.
+import { after } from "./pacing.js";
+
 const SINCE_CLICK_MS = 1000, FOCUS_KEPT = 30;
 const PRESSABLE = "button, a, summary, input, select, [role=button], [role=menuitem], [role=tab]";
 // what a click can give the keyboard to; a click on anything else leaves it on the body, by the person's choice
@@ -62,7 +64,7 @@ export function focusReturn() {
     (target(kept) || (from && target(from)) || nearby(kept))?.focus();
   };
   document.addEventListener("pointerdown", (e) => { if (!e.target.closest?.(TAKES)) kept = null; }, true);
-  document.addEventListener("focusout", (e) => { if (!e.relatedTarget) setTimeout(keep); });
+  document.addEventListener("focusout", (e) => { if (!e.relatedTarget) after(0, keep); });
   new MutationObserver(keep).observe(document.body, { subtree: true, childList: true, attributes: true,
     attributeFilter: ["hidden", "disabled", "class", "style", "open", "inert"] });
 
