@@ -307,7 +307,7 @@
   {
     "id": "site-through-serve-site",
     "on_fail": "block",
-    "failureMessage": "a test serving the site from a server of its own answers the site's files its own way, and a change to how the site is served reaches every test but that one",
+    "failureMessage": "a test serving the site from its own server answers the site's files its own way, so a change to how the site is served misses that test",
     "fix": "serve it with serveSite() from web-tests/site_server.mjs, passing the addresses the test answers itself",
     "scanFiles": "/^(?!web-tests\\/(site_server\\.mjs|fakes\\/|explore\\/))(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.mjs$/",
     "matchLines": [
