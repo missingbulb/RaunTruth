@@ -80,6 +80,13 @@ await settle();
 await check(await kept(), "a control disabled with the keyboard on it: the keyboard stays on the page", await focus());
 await page.evaluate(() => { $("#sb-version").disabled = false; });
 
+// disabled only while the page is busy, as a stage's buttons are while it is written: the keyboard waits for it
+await page.focus("#sb-version");
+await page.evaluate(() => { $("#sb-version").disabled = true; setTimeout(() => { $("#sb-version").disabled = false; }, 300); });
+await page.waitForFunction(() => !$("#sb-version").disabled);
+await settle();
+{ const f = await focus(); await check(f === "sb-version", "a control disabled for a moment: the keyboard is back on it once it is enabled again", f); }
+
 // in an open dialog, the control with the keyboard disabled: the next control of the dialog, never one the dialog holds off
 await page.click("#user-menu summary");
 await page.click("#open-settings");

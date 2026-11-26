@@ -147,7 +147,9 @@ def test_a_study_offering_algorithms_lists_them_for_the_shell(path):
         assert isinstance(q.get('measured'), str) and q['measured'], f"{m['id']}: its numbers say what they were measured on"
         assert set(q['versions']) & set(keys), f"{m['id']}: its numbers are for none of the algorithms it lists"
         for k, v in q['versions'].items():
-            assert 0 <= v['precision'] <= 1 and 0 <= v['recall'] <= 1, (k, v)
+            # unmeasured, with no ground truth to score on, is unknown: both null, never a zero
+            unknown = v['precision'] is None and v['recall'] is None
+            assert unknown or (0 <= v['precision'] <= 1 and 0 <= v['recall'] <= 1), (k, v)
 
 
 class Panels(HTMLParser):
