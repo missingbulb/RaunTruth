@@ -10,9 +10,20 @@ export function dialogMotion(still) {
     at = performance.now();
   }, true);
 
+  // req/shell/dialogs/close-as-opened: where each dialog grew from, which the stylesheet sends it back to as it closes. Kept in a
+  // sheet of the page's own, so that a dialog's own attributes say nothing of how it was opened
+  const sheet = new CSSStyleSheet(), came = new Map();
+  document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  function back(d, from) {
+    if (!d.id) return;
+    if (from) came.set(d.id, from); else came.delete(d.id);
+    sheet.replaceSync([...came].map(([id, t]) => `#${CSS.escape(id)} { --grew-from: ${t}; }`).join("\n"));
+  }
+
   function grow(d) {
     const from = pressed;
     pressed = null;
+    back(d, null);
     if (!from?.isConnected || d.contains(from) || performance.now() - at > SINCE_CLICK_MS || still()) return;
     // measured just before the first paint, once what the opener fills in at once is in
     requestAnimationFrame(() => d.open && start(d, from));
@@ -22,6 +33,7 @@ export function dialogMotion(still) {
     const b = from.getBoundingClientRect(), r = d.getBoundingClientRect();
     if (!b.width || !b.height || !r.width || !r.height) return;
     const dx = b.left + b.width / 2 - (r.left + r.width / 2), dy = b.top + b.height / 2 - (r.top + r.height / 2);
+    back(d, `translate(${dx}px, ${dy}px) scale(${b.width / r.width}, ${b.height / r.height})`);
     d.animate([
       { transform: `translate(${dx}px, ${dy}px) scale(${b.width / r.width}, ${b.height / r.height})`, opacity: 0 },
       { transform: "none", opacity: 1 },

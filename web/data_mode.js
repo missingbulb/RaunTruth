@@ -546,7 +546,6 @@ export function dataMode(ctx) {
     $("#folder-items").replaceChildren(...all.map((s, k) => {
       const cell = document.createElement("div");
       cell.className = "cell"; cell.dataset.id = s.f.id; cell.tabIndex = 0;
-      if (k < 60) cell.style.viewTransitionName = "cell-" + k;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
       const own = tagsDoc.images[s.f.id]?.tags || [], given = [...new Set(inheritedOf(n.id, false).flatMap((l) => l.tags))].filter((t) => !own.includes(t));
       const chips = own.map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("") + given.map((t) => `<span class="tag-chip inherited">${esc(t)}</span>`).join("");

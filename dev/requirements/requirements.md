@@ -347,7 +347,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-02. Choosing a folder in the tree fills the main area with its images,
-  a grid of previews or a list, a button switching them with a slide. A folder's images, in the tree and the
+  a grid of previews or a list, a button switching them, one fading into the other (changed by the owner on 2026-11-26, the tiles no longer sliding over one another). A folder's images, in the tree and the
   folder view, are the kinds the study opens, those its `files.accept` names (set by the owner on 2026-11-07:
   the Bookshelf Reader's JPEG photos among them). A photo's preview, in the tree and the folder view, is Drive's own
   small picture of it, linked from the folder's listing; only a TIFF's comes from the folder's previews file (set by
@@ -505,11 +505,13 @@ nobody has decided: what the page does there is not a requirement yet.
   closes, fading, in the time it took to grow (`req/shell/dialogs/open-from-button`); one nothing pressed open, and every
   dialog with animations off or reduced motion asked for, closes at once. A confirmation opens where it stands, never
   from the page's corner. What makes room for itself on the page folds open and folds shut over a fifth of a second,
-  through one fold the page's parts share: an inline confirmation, the steps of Show how, a correction leaving the
-  sharing list, a finished task drawing in to its ticked line, an explanation under its heading, the line saying the
-  study's stage. A box that fills as something is chosen keeps its place from the start, so nothing below it is pushed.
-  Edit History draws in toward its toolbar button as it hides. Grid and List change by one fading into the other. A
-  mark made on images shows on their tiles where they stand, the grid not drawn again. The button of the step to do
+  through one fold the page's parts share (a part marked `data-fold`): the opened image's details, the line under the
+  choice of an analysis, the bar of a selection's actions and a run's results, the list of images newer than their
+  ground truth; and a finished task draws in to its ticked line. Not folded yet, and still a cut: a details under its
+  heading (Show how, an explanation), an inline confirmation, and a correction leaving the sharing list. The line
+  saying the study's stage keeps its place from the start, so nothing below it is pushed.
+  Edit History draws in toward its toolbar button as it hides. Grid and List change by one fading into the other. The
+  button of the step to do
   shines three times and then rests, still the primary. With animations off or reduced motion asked for each of these
   happens at once. Test: `web-tests/test_dialog_motion_page.py`, `web-tests/test_fold_motion_page.py`.
   </details>

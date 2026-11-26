@@ -272,7 +272,7 @@ body.resizing #layout { transition: none; }
 /* a button shines while it is the next thing to press */
 .shine { position: relative; overflow: hidden; box-shadow: 0 0 10px var(--accent); }
 .shine::after { pointer-events: none; content: ""; position: absolute; inset: 0; width: 40%;
-  background: linear-gradient(100deg, transparent, #ffffff90, transparent); animation: shine 1.8s ease-in-out infinite; }
+  background: linear-gradient(100deg, transparent, #ffffff90, transparent); animation: shine 1.8s ease-in-out 3 both; }
 .offscreen, .offscreen::before, .offscreen::after { animation-play-state: paused !important; }
 @keyframes shine { from { transform: translateX(-120%); } to { transform: translateX(320%); } }
 /* folding parts of a box */
@@ -1199,8 +1199,10 @@ html:not(.offline) #welcome-offline { display: none; }
 /* the page held while the study comes in again on the image open: the new page takes the old one's place at once */
 :root[data-held]::view-transition-group(*), :root[data-held]::view-transition-old(*), :root[data-held]::view-transition-new(*) { animation: none; }
 :root[data-held]::view-transition-old(*) { display: none; }
+:root[data-cells] #folder-items { view-transition-name: folder-items; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
-:root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
+::view-transition-group(folder-items) { animation: none; }
+::view-transition-old(folder-items), ::view-transition-new(folder-items) { animation-duration: .2s; height: auto; width: 100%; object-fit: none; object-position: 0 0; }
 
 /* the line in a study's ground-truth box saying whether the user may save to the study (req/shell/annotate/no-save) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
@@ -1349,3 +1351,31 @@ button.link { font-size: 12px; line-height: 1.4; }
 /* the row of the last actions keeps its buttons' widths as the count of unsaved actions comes and goes */
 #gt-tasks .unsaved[hidden] { display: inline; visibility: hidden; }
 #gt-tasks .unsaved { min-width: 5.5em; }
+
+/* req/shell/dialogs/close-as-opened. One fold for whatever makes room for itself on the page: a part marked data-fold, shown
+   and hidden by its hidden attribute, draws out to its own height and back in, the page reading it as shown or hidden
+   from the first moment */
+:root { --fold: .2s cubic-bezier(.2, .8, .2, 1); interpolate-size: allow-keywords; }
+[data-fold] { overflow: clip; transition: height var(--fold), opacity var(--fold), display var(--fold) allow-discrete; }
+[data-fold][hidden] { display: none; height: 0; opacity: 0; }
+/* a box folding takes its parts with it at once: the box's own motion is the one that shows */
+.box.folded [data-fold] { transition: none; }
+@starting-style { [data-fold]:not([hidden]) { height: 0; opacity: 0; } }
+/* a task done draws in to its ticked line */
+#gt-tasks .task-body { overflow: clip; transition: height var(--fold), opacity var(--fold), display var(--fold) allow-discrete; }
+#gt-tasks li:not(.now) .task-body { height: 0; opacity: 0; }
+@starting-style { #gt-tasks li.now .task-body { height: 0; opacity: 0; } }
+/* a dialog a press opened goes back toward what opened it as it closes, read as closed from the first moment */
+dialog { transition: opacity var(--fold), transform var(--fold), overlay var(--fold) allow-discrete, display var(--fold) allow-discrete; }
+dialog:not([open]) { opacity: 0; transform: var(--grew-from, scale(.96)); }
+dialog::backdrop { transition: opacity var(--fold), overlay var(--fold) allow-discrete, display var(--fold) allow-discrete; }
+dialog:not([open])::backdrop { opacity: 0; }
+/* Edit History draws in toward its button in the toolbar, up and to the right of it */
+#edit-history { transform-origin: 100% -40px; transition: opacity var(--fold), transform var(--fold), display var(--fold) allow-discrete; }
+#edit-history[hidden] { opacity: 0; transform: scale(.2); }
+@starting-style { #edit-history:not([hidden]) { opacity: 0; transform: scale(.2); } }
+/* the places that fill as something is chosen keep their room from the start */
+#stage-msg { min-height: 1.4em; }
+@media (prefers-reduced-motion: reduce) {
+  [data-fold], #gt-tasks .task-body, dialog, dialog::backdrop, #edit-history { transition: none; }
+}

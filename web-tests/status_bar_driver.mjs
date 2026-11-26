@@ -257,6 +257,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
   // done, the task stays as one ticked line, its tools folded away, and the tick takes it back (owner, 2026-11-26)
+  await atRest(page, '#gt-tasks > li[data-task="check"] .task-body');
   const line = await page.evaluate(() => {
     const li = document.querySelector('#gt-tasks > li[data-task="check"]'), tick = li.querySelector(".tick");
     return { shown: li.checkVisibility(), tools: document.querySelector("#fx-marks-tools").checkVisibility() || document.querySelector("#fx-done").checkVisibility(),

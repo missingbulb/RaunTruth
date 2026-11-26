@@ -4,6 +4,7 @@
 // long list drawn by what is in view, a hover's ring and a click's pan, its switch, Clear all history and a draft whose
 // history did not replay. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_window_driver.mjs ANSWERS STUDIES ROOT
+import { atRest } from "./page_motions.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
@@ -20,6 +21,8 @@ const sha = createHash("sha256").update(png.bytes).digest("hex");
 const { openImage, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 // the window opened by its button, for a page that goes on to look at it
 const shown = async (page) => { if (await page.isHidden("#edit-history")) await page.click("#history-btn"); };
+// hidden, once its drawing in has ended
+const hiddenNow = async () => { await atRest(page, "#edit-history"); return page.isHidden("#edit-history"); };
 
 const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list > li")].map((li) => ({ cls: li.className, text: li.querySelector(".what")?.textContent ?? li.textContent, when: li.querySelector(".when")?.textContent ?? "", go: li.dataset.go ?? null })));
 const real = (rows) => rows.filter((r) => !/\b(day|spacer)\b/.test(r.cls));
@@ -39,11 +42,11 @@ const loaded = async (page) => { await until(page, () => !$("#gt-offers").hidden
 // where it floats and how big it is
 let page = await open(true);
 await openImage(page);
-await check(await page.isHidden("#edit-history") && await page.isHidden("#history-btn"), "before an analysis starts there is no run: the window is not shown, nor its button");
+await check(await hiddenNow() && await page.isHidden("#history-btn"), "before an analysis starts there is no run: the window is not shown, nor its button");
 await fromScratch(page, "#fx-count");
 await counted(page);
 await settle(page);
-await check(await page.isHidden("#edit-history") && await page.isVisible("#history-btn") && await page.getAttribute("#history-btn", "aria-pressed") === "false",
+await check(await hiddenNow() && await page.isVisible("#history-btn") && await page.getAttribute("#history-btn", "aria-pressed") === "false",
   "once the image has a run its button shows, up, and the window stays closed until it is pressed");
 await page.click("#history-btn");
 await check(await page.isVisible("#edit-history"), "pressed, the window shows");
@@ -53,6 +56,7 @@ const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
   return { right: v.r - w.r, bottom: v.b - w.b, w: w.w, h: w.h, expectW: vars * 1.4, expectH: Math.min((vars + 24) * 2.5, v.b - v.t - 24) };
 };
+await atRest(page, "#edit-history");
 let g = await geo();
 await check(g.right === 12 && g.bottom === 12 && Math.abs(g.w - g.expectW) < 0.5 && Math.abs(g.h - g.expectH) < 0.5 && g.h === 560, "it floats at the image's bottom right, 12 px in, 1.4 times the minimap's width and 2.5 times its height", g);
 await page.setViewportSize({ width: 1400, height: 520 });
@@ -201,7 +205,7 @@ page = await open(true);
 await tagger(page);
 await counted(page);
 const pressed = () => page.getAttribute("#history-btn", "aria-pressed");
-await check(await page.isHidden("#edit-history") && await pressed() === "false", "a page opened afresh has the window closed and the button up");
+await check(await hiddenNow() && await pressed() === "false", "a page opened afresh has the window closed and the button up");
 await page.click("#history-btn");
 const place = await page.evaluate(() => ({ toolbar: !!$("#history-btn").closest("#view > .toolbar"), tool: $("#history-btn").classList.contains("tool"), icon: !!$("#history-btn svg") && !$("#history-btn").textContent.replace(/[123\s]/g, ""),
   afterMinimap: !!($("#minimap-btn").compareDocumentPosition($("#history-btn")) & Node.DOCUMENT_POSITION_FOLLOWING), box: !!document.querySelector("#left input[type=checkbox]#gt-history-on") }));
@@ -214,10 +218,10 @@ await tagger(page);
 await counted(page);
 await check(await page.isVisible("#edit-history") && await pressed() === "true", "the page loaded again in the same tab shows it still");
 await page.click("#history-btn");
-await check(await page.isHidden("#edit-history") && await pressed() === "false", "pressed again it hides the window and lets the button up");
+await check(await hiddenNow() && await pressed() === "false", "pressed again it hides the window and lets the button up");
 await page.click("#history-btn");
 await page.click("#eh-close");
-await check(await page.isHidden("#edit-history") && await pressed() === "false", "its ✕ hides it and lets the button up");
+await check(await hiddenNow() && await pressed() === "false", "its ✕ hides it and lets the button up");
 await page.context().close();
 
 // Clear all history: asks, naming the image, forgets the draft and goes back to the run

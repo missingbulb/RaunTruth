@@ -98,9 +98,9 @@
       <div id="folder-view" hidden>
       <div class="folder-bar"><h2 id="folder-title"></h2><label id="batch-select"><input type="checkbox" id="batch-all" data-needs-network autocomplete="off" aria-label="Select all the folder's images" data-log-as="Select all"><span id="batch-for"></span></label><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
       <!-- what can be done to the images selected (req/setup/batch) -->
-      <div id="batch-bar" role="group" aria-label="The selected images" data-needs-network hidden><button id="batch-run" type="button" class="primary" data-needs-network>Run analysis</button><button id="batch-hide" type="button" data-needs-network title="Take the selected images out of what the study shows: each is tagged hidden">Hide</button><button id="batch-gt" type="button" data-needs-network title="Mark each selected image as needing ground truth">Request GT</button><button id="batch-official" type="button" data-needs-network hidden>Mark official</button></div>
+      <div id="batch-bar" role="group" aria-label="The selected images" data-needs-network data-fold hidden><button id="batch-run" type="button" class="primary" data-needs-network>Run analysis</button><button id="batch-hide" type="button" data-needs-network title="Take the selected images out of what the study shows: each is tagged hidden">Hide</button><button id="batch-gt" type="button" data-needs-network title="Mark each selected image as needing ground truth">Request GT</button><button id="batch-official" type="button" data-needs-network hidden>Mark official</button></div>
       <p id="batch-msg" class="hint" role="status"></p>
-      <ol id="batch-results" data-log-as="an image's result of the run" hidden></ol>
+      <ol id="batch-results" data-log-as="an image's result of the run" data-fold hidden></ol>
       <div id="folder-items" data-layout="grid" data-log-as="an image in the folder view"></div>
       </div>
       <aside id="setup-side">
@@ -143,7 +143,7 @@
         <section id="newer-box" aria-labelledby="newer-title">
           <h2 id="newer-title">Analysis Files newer than their GT</h2>
           <div class="folder-actions"><button id="stage-find" type="button" data-needs-network hidden>Find images with newer Analysis Files</button></div>
-          <div id="stage-newer-box" hidden>
+          <div id="stage-newer-box" data-fold hidden>
           <h3 id="stage-newer-title">Newer than their GT</h3>
           <ul id="stage-newer" data-log-as="an image with an Analysis File newer than its GT"></ul>
           <p id="stage-newer-none" class="hint" hidden>No image has an Analysis File newer than its GT.</p>
@@ -198,7 +198,7 @@
         <button id="load-remote" type="button"><svg class="remote-logo" aria-hidden="true"><use href="#remote-logo"/></svg></button>
       </div>
       <div id="file-tags" aria-label="The image's tags" hidden></div>
-      <details id="file-box" class="empty" hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
+      <details id="file-box" class="empty" data-fold hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
       <div id="channels"></div>
       <div id="image-foot">
         <button id="load-original" class="primary" type="button" hidden>Load Original</button>
@@ -220,7 +220,7 @@
           <button id="annotate-local" type="button" class="primary" hidden>Continue</button>
           <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Open saved analysis</button></div>
         </div>
-        <p id="annotate-say" class="hint" role="status" hidden></p>
+        <p id="annotate-say" class="hint" role="status" data-fold hidden></p>
         <button id="annotate-edit" type="button" hidden>Edit this analysis</button>
       </div>
       <div class="study-box" id="processing-box" hidden>

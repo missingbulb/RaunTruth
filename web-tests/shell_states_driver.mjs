@@ -50,7 +50,7 @@ const settled = async (page) => {
   // nothing of the page's own work under way: its store's and Python's calls, its folders' listing
   await idle(page);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")
-    && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
+    && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity || a.animationName === "shine"));
   // and the disk's count, which the page makes once it is ready and the Storage item waits for; one that never comes
   // is reported as the item not showing
   await orMissed(page.waitForFunction(() => document.querySelector("#sb-disk .v")?.textContent !== "", null, { timeout: 5000 }));

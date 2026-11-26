@@ -68,7 +68,7 @@ async function settle(page) {
     await page.waitForLoadState("load", { timeout: STEP });
     await idle(page, { timeout: STEP });
     await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")
-      && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity), null, { timeout: STEP });
+      && document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity || a.animationName === "shine"), null, { timeout: STEP });
     if (await page.evaluate(() => !!document.querySelector("#view")?.hasAttribute("data-v3"))) await viewDrawn(page);
     else await frames(page);
     return true;
