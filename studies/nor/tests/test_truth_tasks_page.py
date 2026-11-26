@@ -4,7 +4,7 @@ key, and the image shows what is reviewed. Drives web/ in headless Chromium with
 test, answering from real results on a drawn image whose first area holds a candidate, so the walk's first step is a
 candidate's card (truth_tasks_page_driver.mjs)."""
 from synthetic_nor import nor_image
-from test_memory import SIDE, needs_node, page_answers, run  # noqa: F401  (fixtures)
+from test_memory import SIDE, page_answers, run  # noqa: F401  (fixtures)
 import pytest
 
 pytestmark = pytest.mark.full
@@ -16,6 +16,5 @@ def crop(tmp_path_factory):
     return nor_image(str(tmp_path_factory.mktemp('crop') / 'corner.tif'), side=SIDE, n=20, seed=21)
 
 
-@needs_node
 def test_truth_tasks(crop, page_answers):
     run('truth_tasks_page_driver.mjs', page_answers, crop)
