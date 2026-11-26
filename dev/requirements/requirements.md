@@ -406,7 +406,8 @@ nobody has decided: what the page does there is not a requirement yet.
   in the study's viewer, a stack in 3D, quick and the same for everyone; the Image box's Load, or its
   top line (`req/shell/load/selector`), gives way to Load Original, which opens the image itself from the copy kept on this device when it has one,
   else from Drive. A preview that cannot be read (a damaged previews file) shows as no preview, and the image,
-  chosen, opens itself instead. A study owner can mark an image as needing ground truth (Needs GT), once the study's ground
+  chosen, opens itself instead. A study owner can mark an image as needing ground truth (Request GT, reading GT requested once it is
+  marked: set by the owner on 2026-11-26, where it read Needs GT and looked like the status pills beside it), once the study's ground
   truth is set up (`req/shell/ground-truth/setup`): the page creates an empty `<stem>__<sha8>.needs_gt`, named as the image's ground-truth subfolder
   (`req/shell/ground-truth/layout`), in the extractions folder,
   never in the data folder (set by the owner on 2026-11-10); unmarking trashes only a marker the page made. Two
@@ -439,7 +440,9 @@ nobody has decided: what the page does there is not a requirement yet.
   down, given by the page and never edited. What a file holds, "2D · 3 channels" or "3D · 24 slices"
   (`req/shell/drive/stacks`), is not a tag. In Data Management the Tags box, below the Image box, edits the tags of the
   folder or image chosen, and an image's description: Enter adds a tag, a tag's × takes it off, and a folder's tags
-  show on its images, dimmed, naming the folder they come from. Tentative: a tag is written in lower case, words of
+  show on its images, dimmed, naming the folder they come from. Set by the owner on 2026-11-26: the naming is in words beside the tag,
+  "from folder Day 1", not a tooltip alone, and each image's cell in the folder's grid or list shows its tags, those a folder gives it
+  dashed. Tentative: a tag is written in lower case, words of
   letters and digits joined by hyphens, and a multi-value tag's name and value alike; `folder` is the page's own name
   and no tag may use it. Tentative: an image's own value of a multi-value tag wins over one a folder gives it, and a
   folder's over one the folder holding it gives. The tags and descriptions are written by the page into the study file in the study's root, under `tags`
@@ -966,7 +969,7 @@ nobody has decided: what the page does there is not a requirement yet.
   The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/setup` Set up extractions, in Data Management, makes the study's Extractions folder and names it in the root's study file.
+- `req/shell/ground-truth/setup` Set up Analysis Files, on Study Setup, makes the study's Analysis folder and names it in the root's study file.
   <details>
 
   Set by the owner on 2026-11-07, changed on 2026-11-21 (one store, `req/shell/extractions/file`). For a study owner of a study in Setup, Develop
@@ -976,7 +979,9 @@ nobody has decided: what the page does there is not a requirement yet.
   page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites
   the file; it never makes a second folder of a name. Google's own words show when it refuses. It sits at the top of Data
   Management's column, highlighted while the root has no such folder, and is no longer offered once the study file names
-  it. There is no review of submissions to choose: nothing is submitted. Tests: `web-tests/test_study_root.py`,
+  it. There is no review of submissions to choose: nothing is submitted. Set by the owner on 2026-11-26: the folder is made as `Analysis`,
+  and where the study file names none it is found by that name, or by `Extractions`, the name of before, which the owner renames in the
+  store; the page says "the Analysis folder", adding "named Extractions in Drive" while that is its name there. Tests: `web-tests/test_study_root.py`,
   `web-tests/test_gt_drive_page.py`.
   </details>
 
@@ -2328,38 +2333,47 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-24 and 2026-11-25, replacing the Data Management column beside the shell's left bar and viewer. Under the
-  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, Literature, People, Run on
-  all images and Results, one chosen at a time, its panel filling the rest of the page; the status bar stays. Images holds the folders
+  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, Literature, People and Results,
+  one chosen at a time, its panel filling the rest of the page; the status bar stays. Images holds the folders
   tree with the study's folders to add and the Study images rules (the grouping tag, the tags that hide), the chosen folder's images as a
   grid or a list, and beside them what is chosen: a folder's sums and Update previews, the Tags box, an image's Analysis Files and
   their marks, and Open image… (`req/setup/image`). Ground Truth holds the set-up of Analysis Files, how many images have one and
-  have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Run
-  on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. Literature
+  have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Results holds the results. Literature
   holds the study's papers against the repo's summaries (`req/setup/literature`). The status line, where the study's own page asks for an image
   or tells of one loaded, says Ready.: the page has no Load. The
   page opens on the same layout every time: Images, nothing chosen, the tree's folders unfolded, whatever it showed the visit before;
-  it keeps no aspect, fold or choice. Decided for the owner to confirm: Needs GT stays a button on each image's cell, and the folders
-  and the grid are shared by Images and Run on all images, which keep the folder chosen when one changes to the other. Test:
+  it keeps no aspect, fold or choice. Set by the owner on 2026-11-26, after the walk of 2026-11-25: there is no Run on all images aspect,
+  the images of a folder being selected on Images and acted on together (`req/setup/batch`); and an image chosen, in the grid or in the
+  tree, keeps its folder chosen: the folder stays highlighted in the tree, its images and its sums stay on show, and what is set on the
+  image shows beside them. Test:
   `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
   </details>
 
-- `req/setup/batch` The owner runs a chosen algorithm over chosen images on Study Setup; each gets an extraction at that version, images already done are skipped, and a token running out holds the batch until the next click.
+- `req/setup/batch` On Study Setup the owner selects images of a folder and acts on the selection: runs the study's analysis on them, hides them, or requests their ground truth.
   <details>
 
-  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5), batch runs being a write to the store the owner approved. With a
-  folder chosen, Study Setup's Batch run box lists the study's algorithms; each image of the folder has a checkbox, and Choose
-  all ticks or unticks them. Run presses the study's first step on each chosen image in turn, as the main app's user does, so
-  the study's own run is the one that runs, and writes the document that makes (the model and the log that made it, with
-  the version of the site and of the study's code, and no person's name) to the image's subfolder of the extractions folder
-  as `run_<algorithm>__<code version>.json`. An image whose subfolder already holds that file is skipped, so a stopped
-  batch goes on from where it was; a batch that has run, or skipped, an image has reached it. The study's code version is
-  the first eight characters of its hash, or `unknown` where Python did not tell it. A token that has run out stops the
-  batch before the next image runs, says so, and the next click on Run renews it and goes on; any other failure stops it
-  naming the image. While a batch runs the tree, the cells and the choices wait. Mark this batch official marks
-  each image the batch reached official, in one write. In Review and Public a batch is exploratory and counts only once marked
-  (`req/setup/marks`). Decided by the owner, 2026-11-23: the parameters of a run are the study's own at the time (a threshold in its panel);
-  they are kept in the file but do not tell one batch from another, which the algorithm and the code version do. Test:
-  `web-tests/test_setup_page.py` with `web-tests/setup_batch_driver.mjs`.
+  Set by the owner on 2026-11-26, after the walk of 2026-11-25, reversing the Batch run box of 2026-11-22 (`dev/requirements/study-stages-spec.md`,
+  WP5), which chose an action and then its images: "we should have the option to select images, and then allow the user batch operations".
+  Each image of the folder on show has a checkbox, and Select all above them ticks or unticks them all and says how many are selected.
+  A selection shows a bar of what can be done to it. **Run analysis** presses the study's first step on each selected image in turn, as
+  the main app's user does, with the study's default algorithm (`req/shell/processing/algorithms`): no algorithm is chosen here. It writes the
+  document that makes (the model and the log that made it, with the version of the site and of the study's code, and no person's name) to
+  the image's subfolder of the Analysis folder as `run_<algorithm>__<code version>.json`. An image whose subfolder already holds that file
+  is skipped, so a stopped run goes on from where it was; a run that has run, or skipped, an image has reached it. The study's code
+  version is the first eight characters of its hash, or `unknown` where Python did not tell it. A token that has run out stops the run
+  before the next image, says so, and the next click on Run analysis renews it and goes on; any other failure stops it naming the image.
+  While it runs the tree, the cells and the selection wait. As each image is run its result is listed under the bar, the study's
+  measures (`req/setup/results`) read from the document the run made and from no file; an image skipped says it already had one. Once
+  a run has reached images the bar says to mark them official to see them in Results, and **Mark official** marks each official, in one
+  write; it then reads Official ✓ · Undo, and Undo takes those marks off, in one write. In Review and Public a run is exploratory and
+  counts only once marked (`req/setup/marks`). **Hide** takes the selected images out of what the study shows: each is tagged `hidden`, and
+  `hidden` is added to the tags that hide (`req/shell/data/hidden`) where it is not one, so the owner brings an image back by taking the tag
+  off it. **Request GT** marks each selected image that has no ground truth and no request as needing it (`req/shell/data/preview-images`),
+  a file each, and says how many. Hide and Request GT show while the stage lets the study's data change. Decided by the owner, 2026-11-23:
+  the parameters of a run are the study's own at the time (a threshold in its panel); they are kept in the file but do not tell one run
+  from another, which the algorithm and the code version do. Not built: deleting the selected images, which the owner approved as a move
+  to the store's trash, since the sign-in's permission lets the page change only files it made. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_batch_driver.mjs`.
   </details>
 
 - `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, the set-up of Analysis Files, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
@@ -2457,8 +2471,9 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5; reading a study's sharing is
-  approved). The three shares: reading the root (sees), writing the extractions folder (annotates), writing the root
-  (manages); a person who holds none is not listed. Anyone with the link is said once, beside the people. The
+  approved). The three shares: reading the root (sees), writing the Analysis folder (hands in work), writing the root
+  (manages); a person who holds none is not listed. Set by the owner on 2026-11-26: under the people a line says who may hand in work, and
+  "Nobody but you can hand in work." where no named person other than the one signed in may write that folder. Anyone with the link is said once, beside the people. The
   links are the Drive sharing forms, `https://drive.google.com/drive/folders/<id>?usp=sharing`, for the root and the
   extractions folder. Test: `web-tests/test_setup_sharing_page.py`, `web-tests/test_setup_sharing_rules.py`.
   </details>
@@ -2526,7 +2541,10 @@ nobody has decided: what the page does there is not a requirement yet.
   says to change it there. A correction for an item whose sharing this account may not read has no Fix,
   only the link; the owner of the extractions folder counts as someone who may write it; an `anyone`-with-the-link edit
   permission on an item is wrong sharing, not a writer: it has its own correction, whose Fix (after its confirmation, like any other)
-  takes off that one permission, and a link that only reads is then offered by its own correction (owner, 2026-11-23). Test: `web-tests/test_setup_sharing_page.py` (the fake
+  takes off that one permission, and a link that only reads is then offered by its own correction (owner, 2026-11-23). Set by the owner on
+  2026-11-26, after the walk of 2026-11-25: taking the link off the root takes it off the study file too, where the file had none of its own, so
+  the root's confirmation says the study file will then be shared by link itself, and the one Confirm makes both changes; where the
+  second is refused the first stands, and the study file's own correction shows. Test: `web-tests/test_setup_sharing_page.py` (the fake
   Drive's permissions seeded per case, each rule, Fix, Cancel, Drive refusing), `web-tests/test_setup_sharing_rules.py`
   (the rules per stage).
   </details>
