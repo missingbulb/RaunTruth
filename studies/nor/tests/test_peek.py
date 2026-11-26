@@ -1,6 +1,6 @@
 """The study's web/peek.js paints the lab's TIFFs while they download, in grey until every byte is in and then
 each channel in the colour of the role Python gives it, never a colour the image does not end in."""
-import glob, json, os, shutil, subprocess, tempfile
+import glob, json, os, shutil, tempfile
 import numpy as np
 import pytest
 import tifffile
@@ -10,6 +10,7 @@ pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 from synthetic_nor import nor_image
 sys_path = os.path.join(HERE, '..', 'algorithm')
+from drivers import run_driver
 NODE = shutil.which('node')
 TIFS = [nor_image(os.path.join(tempfile.mkdtemp(), f'slide {k}.tif'), side=160 + 40 * k, seed=k) for k in range(3)]
 
@@ -25,7 +26,7 @@ def paint(paths, chunk=65536, frames=False):
     for k, p in enumerate(paths):
         copies.append(os.path.join(d, f'{k}.tif')); shutil.copy(p, copies[-1])
     opt = ['--frames', str(EVERY)] if frames else []
-    r = subprocess.run([NODE, os.path.join(HERE, 'peek_driver.mjs'), str(chunk), *opt, *copies], capture_output=True, text=True, check=True, timeout=120)
+    r = run_driver(os.path.join(HERE, 'peek_driver.mjs'), str(chunk), *opt, *copies, timeout=120)
     out = []
     for line, c in zip(r.stdout.splitlines(), copies):
         info = json.loads(line)

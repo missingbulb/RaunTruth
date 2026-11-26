@@ -17,13 +17,13 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.join(HERE, '..')
+from drivers import run_driver
 NODE = shutil.which('node')
 TOOL = os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py')
 
 
 def write(images, out, old=None, tiffs=None):
-    r = subprocess.run([NODE, os.path.join(HERE, 'previews_writer_driver.mjs'), str(images), str(out), str(old or '-'), *([str(tiffs)] if tiffs else [])],
-                       capture_output=True, text=True, timeout=120)
+    r = run_driver(os.path.join(HERE, 'previews_writer_driver.mjs'), str(images), str(out), str(old or '-'), *([str(tiffs)] if tiffs else []), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 
