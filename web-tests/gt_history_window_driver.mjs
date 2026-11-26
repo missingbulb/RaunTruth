@@ -167,7 +167,8 @@ await counted(page);
 await moved(page, "m2", 4, 4);
 const m2 = (await model(page)).marks.find((m) => m.id === "m2");
 const ringBox = () => page.evaluate(() => document.querySelector('#overlay g[data-layer="ring"]')?.dataset.box ?? null);
-const hover = async (text) => { const r = await page.evaluate((t) => { const b = [...document.querySelectorAll("#eh-list > li")].find((li) => li.textContent.includes(t)).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, text); await page.mouse.move(r[0], r[1]); };
+// a row is where it will stay once the window has drawn out
+const hover = async (text) => { await atRest(page, "#edit-history"); const r = await page.evaluate((t) => { const b = [...document.querySelectorAll("#eh-list > li")].find((li) => li.textContent.includes(t)).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, text); await page.mouse.move(r[0], r[1]); };
 await hover("Moved mark m2");
 await until(page, () => !!document.querySelector('#overlay g[data-layer="ring"]'));
 await check((await ringBox()) === [m2.x - 3, m2.y - 3, m2.x + 3, m2.y + 3].join(","), "hovering a row rings its item on the image, in the image's pixels, as the study's where says", await ringBox());
