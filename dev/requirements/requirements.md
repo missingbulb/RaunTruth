@@ -181,8 +181,8 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-21 as the button Clear all annotations from image; changed by the owner on 2026-11-24:
-  it is not a top-level action but a link, "reset analysis", on the Analysis box's header, shown while the user
-  annotates and the box is open, as the Load box's "unload image" is. It asks first, naming how many unsaved actions
+  it is not a top-level action but a link, "Reset analysis", on the Analysis box's header, shown while the user
+  annotates and the box is open, as the Image box's "Unload image" is. It asks first, naming how many unsaved actions
   would be lost; accepted, annotation mode ends, the page is as it was just after the image opened, with Start and Load
   offered again, this device's draft of the image is discarded, and nothing in the store is touched. Test:
   `web-tests/test_annotate_mode_page.py`.
@@ -277,6 +277,23 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-10, a study may show no channel rows at all, naming `channels` in its
   `study.json`'s `view.hide`: the Bookshelf Reader's photos are the camera's colours, nothing to unmix
   (`studies/shelves/tests/test_shelves_page.py`).
+  </details>
+
+- `req/shell/controls/one-look` The page's controls of one kind share one look for their place: two button heights, one icon button, one field, one link.
+  <details>
+
+  Set by the owner on 2026-11-26, after the designers' walk measured buttons of one rank at 28, 30 and 32 px, four shapes
+  of icon button and three looks of text field. The stylesheet names the sizes once (`--ctl-h`, 32 px; `--bar-h`, 28 px;
+  `--field-pad`) and every control takes them. A button with words is 32 px tall where it stands in a panel or a dialog,
+  and 28 px where it sits in a bar or in a row among other things: the toolbar, a box's header, the stage band, an
+  image's tile or row. A button of an icon alone is a square of its place's height with the controls' corners, bordered;
+  the header's dark and light switch too. A text field or a menu is 32 px tall with one padding and one background.
+  A link, the page's own or one leading away, has the accent colour and is underlined only under the pointer. Every
+  control's words begin with a capital. A status is a pill and an action is a button, never alike. In a dialog the
+  primary button is the last of its row; what dismisses a dialog before it acts reads Cancel, and once it has acted the
+  one button left reads Close. A row of actions keeps its buttons' widths when a count appears beside them. Rows of a
+  list, tabs, the cells of a map, the rail's entries, the zoom's pair and the status bar's items are not buttons of a
+  rank and keep their own looks. Test: `web-tests/test_control_styles_page.py`.
   </details>
 
 - `req/shell/data/area-of-interest` A study owner marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
@@ -478,6 +495,23 @@ nobody has decided: what the page does there is not a requirement yet.
   page did not make is left alone, and the page says to delete it in Drive to let the page manage it;
   deleting the page's own makes it start over. Test: `web-tests/test_data_mode_page.py`,
   `web-tests/test_previews_writer.py`.
+  </details>
+
+- `req/shell/dialogs/close-as-opened` A dialog closes with the mirror of the motion it opened with, and what makes room on the page folds open and shut.
+  <details>
+
+  Set by the owner on 2026-11-26, after the designers' walk found dialogs opening with a motion and closing in a cut,
+  and content jumping wherever it made room. A modal dialog a press opened shrinks back toward that control as it
+  closes, fading, in the time it took to grow (`req/shell/dialogs/open-from-button`); one nothing pressed open, and every
+  dialog with animations off or reduced motion asked for, closes at once. A confirmation opens where it stands, never
+  from the page's corner. What makes room for itself on the page folds open and folds shut over a fifth of a second,
+  through one fold the page's parts share: an inline confirmation, the steps of Show how, a correction leaving the
+  sharing list, a finished task drawing in to its ticked line, an explanation under its heading, the line saying the
+  study's stage. A box that fills as something is chosen keeps its place from the start, so nothing below it is pushed.
+  Edit History draws in toward its toolbar button as it hides. Grid and List change by one fading into the other. A
+  mark made on images shows on their tiles where they stand, the grid not drawn again. The button of the step to do
+  shines three times and then rests, still the primary. With animations off or reduced motion asked for each of these
+  happens at once. Test: `web-tests/test_dialog_motion_page.py`, `web-tests/test_fold_motion_page.py`.
   </details>
 
 - `req/shell/dialogs/focus-returns` When a dialog or menu closes, keyboard focus goes back to the control that opened it.
@@ -1398,7 +1432,7 @@ nobody has decided: what the page does there is not a requirement yet.
   computer's own file chooser, filled and glowing until an image is open and a plain button with a blue border
   after. Load sits at the foot, not in the box's title, so the title keeps its place whether the box is folded or
   open. Set by the owner on 2026-11-24, in place of an Unload button beside Load: once an image is open the box's
-  header carries a link, "unload image", at its right, shown while the box is open and not while it is folded, so
+  header carries a link, "Unload image", at its right, shown while the box is open and not while it is folded, so
   that the line of controls to load with looks as it did before the image. It clears the page back to before any image:
   no image, no minimap, the steps starting over at Load image, the boxes folded as at first, and the
   study starting over too, its panels as they were before any image; Python, if it has started, lets the image go. Test:
@@ -1423,7 +1457,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the image selector (`req/shell/load/selector`), its arrow pointing at it, says "To load recent files click here". Its ×
   closes it for good, and so does opening the selector, which is what it asks for. Each tip has an
   id, and the ids of the tips closed are kept in the browser (listed in Manage storage's settings as
-  "Tips you closed"), so a closed tip never shows again, after a reload too. Test:
+  "Tips you have seen"), so a closed tip never shows again, after a reload too. Test:
   `web-tests/test_drive_cache_page.py`.
   </details>
 
@@ -1451,7 +1485,7 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/drive/offline-listing`). Until an image is open, the selector, or when it lists nothing the
   computer's button, else Drive's, is filled and glowing, as Load is (`req/shell/load/button`). Set by the owner
   on 2026-11-24: the line holds no Unload button, so its controls stand where they stood before the image; the box's
-  header carries "unload image" (`req/shell/load/button`). The selector's list
+  header carries "Unload image" (`req/shell/load/button`). The selector's list
   stays inside the left bar, a long name cut short. The references to files on this computer stay with this
   device, listed in Settings among what is kept on this device only (`req/shell/account/settings`), and the
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
@@ -2423,8 +2457,8 @@ nobody has decided: what the page does there is not a requirement yet.
   off it. **Request GT** marks each selected image that has no ground truth and no request as needing it (`req/shell/data/preview-images`),
   a file each, and says how many. Hide and Request GT show while the stage lets the study's data change. Decided by the owner, 2026-11-23:
   the parameters of a run are the study's own at the time (a threshold in its panel); they are kept in the file but do not tell one run
-  from another, which the algorithm and the code version do. Not built: deleting the selected images, which the owner approved as a move
-  to the store's trash, since the sign-in's permission lets the page change only files it made. Test: `web-tests/test_setup_page.py` with
+  from another, which the algorithm and the code version do. The bar offers no Delete: the owner dropped it on
+  2026-11-26, the sign-in's permission letting the page change only files it made; Hide takes images out of the study, and Drive itself deletes them. Test: `web-tests/test_setup_page.py` with
   `web-tests/setup_batch_driver.mjs`.
   </details>
 

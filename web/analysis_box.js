@@ -215,7 +215,7 @@ export function analysisBox(shell) {
     $("#gt-msg").textContent = n ? why() || (maySave() ? goes : "") : gt.empty;
     send.hidden = !maySave();
     send.disabled = !n || !!why() || !maySave(); send.title = why();
-    const done = (is) => { $("#gt-close").textContent = is ? "Close" : "Cancel"; $("#gt-close").classList.toggle("primary", is); send.classList.toggle("primary", !is); };
+    const done = (is) => { $("#gt-close").textContent = is ? "Close" : "Cancel"; $("#gt-close").classList.toggle("primary", is); send.hidden = is; };
     done(false);
     // a study with GT actions saves the model's document with its history
     const docOf = () => (shell.gtSession.on() ? shell.gtSession.fileDoc() : gt.doc);

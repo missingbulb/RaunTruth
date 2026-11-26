@@ -1082,7 +1082,7 @@ const settings = settingsDialog({
     { key: MEMORY_TIP, label: "Show the low-memory popup", kind: "toggle", on: false, off: true, fallback: false },
     { key: REMOTE_LINK, label: `Last ${remote.label} link`, kind: "text" },
     { key: REMOTE_LINKS, label: `Last ${remote.label} link in each study`, kind: "map" },
-    { key: TIPS, label: "Tips you closed (clear one to see it again)", kind: "set" },
+    { key: TIPS, label: "Tips you have seen (clear one to see it again)", kind: "set" },
     { key: RECENT, label: `Recent images from ${remote.label} (clear one to drop it)`, kind: "list", name: (r) => (r.study ? `${r.study}: ` : "") + (r.path?.length ? `${r.path.join("/")}/` : "") + r.name },
     { key: MOTION, label: "Animations", kind: "toggle", on: true, off: false, fallback: true },
     { key: UNLOAD_PYTHON, label: "Unload Python after each run", kind: "toggle", on: true, off: false, fallback: false },

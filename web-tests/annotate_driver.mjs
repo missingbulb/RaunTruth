@@ -134,7 +134,7 @@ await page.click("#fx-add"); await page.click("#fx-add");
 await until(page, () => window.fixture.model().marks.length >= 4);
 const before = writes.length;
 await check(await unsaved(page) === "· 2 unsaved" && (await storedDrafts(page)).length === 1, "two actions are unsaved after the draft kept", await unsaved(page));
-await check(await page.evaluate(() => $("#annotate-clear").closest(".sec-head") === $("#analysis-box > .sec-head") && $("#annotate-clear").textContent.trim() === "reset analysis"),
+await check(await page.evaluate(() => $("#annotate-clear").closest(".sec-head") === $("#analysis-box > .sec-head") && $("#annotate-clear").textContent.trim() === "Reset analysis"),
   "reset analysis is a link on the Analysis box's header");
 let said = await ask(page, false, () => page.click("#annotate-clear"));
 await check(/2 unsaved actions/.test(said || "") && await annotating(page) && (await model(page)) !== null && (await storedDrafts(page)).length === 1,

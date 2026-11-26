@@ -93,9 +93,13 @@ slot-here { display: none; }
 h2 { font-size: 15px; margin: 0 0 6px; }
 .dim { color: var(--dim); }
 button, select, input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); }
-button { padding: 5px 12px; cursor: pointer; }
+/* req/shell/controls/one-look: a control's sizes are named once. A button with words is --ctl-h tall wherever it stands,
+   whatever the type around it; in a bar or a row among other things it is --bar-h */
+:root { --ctl-h: 32px; --bar-h: 28px; --ctl-pad: 12px; --field-pad: 8px; }
+button { font-size: 14px; line-height: 1.4; padding: calc((var(--ctl-h) - 2px - 1.4em) / 2) var(--ctl-pad); cursor: pointer; }
 button:not(:disabled):hover { border-color: var(--dim); }
 select, input[type=text], input[type=number] { padding: 4px 8px; background: var(--bg); }
+select, input:is([type=text], [type=search], [type=url]) { height: var(--ctl-h); padding: 0 var(--field-pad); background: var(--bg); }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 button:disabled { opacity: .45; cursor: default; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -1164,7 +1168,7 @@ html:not(.offline) #welcome-offline { display: none; }
 #folder-items .tags { display: flex; gap: 4px; flex-wrap: wrap; }
 #folder-items .tag { font-size: 10.5px; padding: 0 5px; border-radius: 8px; border: 1px solid currentColor; }
 #folder-items .tag.warn { color: var(--warn); } #folder-items .tag.yes { color: var(--yes); }
-#folder-items .mark-gt { font-size: 11px; padding: 2px 8px; justify-self: start; }
+#folder-items .mark-gt { justify-self: start; align-self: start; height: var(--bar-h); }
 #folder-items .mark-gt[aria-pressed=true] { background: var(--warn); border-color: var(--warn); color: #000; }
 /* Study Setup: a cell's checkbox choosing it for a batch run, an image's extractions with their marks, and the batch box (req/setup/marks, req/setup/batch) */
 #folder-items .cell .pick { position: absolute; top: 12px; left: 12px; margin: 0; }
@@ -1322,3 +1326,26 @@ html:not(.offline) #welcome-offline { display: none; }
 #literature-box li .has.yes { color: var(--ok, #2e9e4f); border-color: currentColor; }
 #literature-box li .has.no { color: var(--warn); border-color: currentColor; }
 #literature-box h3 { margin: 16px 0 0; font-size: 13px; }
+
+/* req/shell/controls/one-look: in a bar or a row among other things */
+.toolbar button:not(.big, .tool):not(.zoom *), .sec-head button:not(.link, .head-icon), .stage-act, #folder-items .mark-gt, .mark-row button, .mask-btns button {
+  font-size: 12px; line-height: 1.4; padding: calc((var(--bar-h) - 2px - 1.4em) / 2) 10px; }
+/* a button of an icon alone: a square of its place's height, with the controls' corners */
+button.icon { width: var(--ctl-h); height: var(--ctl-h); border-radius: var(--r-ctl); }
+button.tool, .sec-head .head-icon { width: var(--bar-h); height: var(--bar-h); padding: 0; border-color: var(--line); }
+/* Upload with tasks still open is not ready, which is no failure: a plain ring in the quiet colour */
+#gt-submit[data-state=todo] .gt-ico { color: var(--dim); animation: none; }
+#gt-submit[data-state=todo] .gt-ico svg.todo path { display: none; }
+/* a link, the page's own or one leading away */
+button.link { font-size: 12px; line-height: 1.4; }
+:is(#setup-body, #left, dialog) a[href] { color: var(--accent); text-decoration: none; }
+:is(#setup-body, #left, dialog) a[href]:hover { text-decoration: underline; }
+/* Continue says when its work was saved in smaller type, the first to give way where the bar is narrow */
+#annotate-local small { font-size: 12px; opacity: .85; }
+/* the links to where the study is shared stand apart, each a link of its own */
+.people-where { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+/* with no tasks on show the choice is the Analysis box's first part, and no rule stands over it */
+#analysis-box:is(:has(#tasks-box[hidden]), :has(#gt-list[hidden])) > #annotate-box { margin-top: 0; padding-top: 0; border-top: 0; }
+/* the row of the last actions keeps its buttons' widths as the count of unsaved actions comes and goes */
+#gt-tasks .unsaved[hidden] { display: inline; visibility: hidden; }
+#gt-tasks .unsaved { min-width: 5.5em; }

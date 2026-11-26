@@ -82,7 +82,7 @@
       <h3 id="data-unlisted-title">Not in the study</h3>
       <div id="data-unlisted-list" data-log-as="a folder of the root not in the study"></div>
       </section>
-      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="Paste a folder's link to add it" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
+      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="A folder's link" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
       <p id="data-msg" class="hint" role="status"></p>
       <p id="data-index" class="hint" role="status"></p>
       <section id="study-set" aria-labelledby="study-set-title" hidden>
@@ -120,7 +120,7 @@
         <div class="sec-head"><h2>Tags</h2></div>
         <p id="tags-for" class="hint"></p>
         <div id="tags-list" data-log-as="a tag of the folder or image chosen"></div>
-        <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag: damaged-slide, group:wild-type" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
+        <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
         <label id="tags-desc-row" hidden><span class="hint">Description</span><textarea id="tags-desc" rows="3" data-log-as="an image's description" data-needs-network></textarea></label>
         <p id="tags-msg" class="hint" role="status"></p>
         </section>
@@ -189,7 +189,7 @@
 <div id="layout">
   <aside id="left">
     <section class="box foldable" id="image-box" data-folds="load">
-      <div class="sec-head"><h2>Image</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">unload image</button></div>
+      <div class="sec-head"><h2>Image</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">Unload image</button></div>
       <div id="load">
         <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Recently Opened" data-log-as="the image selector"><span class="pick-name">Recently Opened</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
           <div class="pop" role="dialog" aria-label="Images opened lately"><div id="recent" role="listbox" data-log-as="a recent image"></div></div>
@@ -213,7 +213,7 @@
 
 
     <section class="box foldable study-box" id="analysis-box">
-      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
+      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">Reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
       <div id="gt-strip"><div class="strip-head"><h3 id="tasks-title">Analysis Tasks</h3><label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label></div><div id="gt-bar"></div><div id="gt-counters" data-log-as="a task's counter"></div></div>
       <div id="annotate-box" hidden>
         <div id="annotate-choices">
@@ -337,7 +337,7 @@
     <div id="remote-path"></div>
     <div id="remote-list" data-log-as="an item in the remote list"></div>
     <div id="remote-throttle" hidden><p id="remote-throttle-say"></p><div id="remote-clock">15:00</div></div>
-    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button><button value="close">Close</button></div>
+    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button value="close">Cancel</button><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button></div>
   </form>
 </dialog>
 <dialog id="memory-dlg" aria-labelledby="memory-title">

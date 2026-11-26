@@ -197,7 +197,7 @@
                 {"when": {"image": ["none"]}, "is": "folded", "req": "req/shell/left-bar/folding"}
               ],
               "children": [
-                {"name": "reset analysis", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
+                {"name": "Reset analysis", "select": "#annotate-clear", "control": true, "req": "req/shell/annotate/clear",
                   "rule": [
                     {"when": {"annotating": [true]}, "is": "shown"},
                     {"is": "hidden"}

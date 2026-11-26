@@ -87,7 +87,7 @@ await loadImage();
 await title(); // the box folds when an image opens; open it to look inside
 await check(await visible("#unload"), "an image open: Unload shows");
 const unload = await page.evaluate(() => { const u = document.querySelector("#unload"); return { head: u.parentElement.matches("#image-box > .sec-head"), text: u.textContent.trim(), link: u.classList.contains("link") }; });
-await check(unload.head && unload.text === "unload image" && unload.link, "as a link reading unload image, on the box's header", unload);
+await check(unload.head && unload.text === "Unload image" && unload.link, "as a link reading unload image, on the box's header", unload);
 const loadAfter = await box("#load");
 await check(loadAfter.x === loadBefore.x && loadAfter.w === loadBefore.w && loadAfter.h === loadBefore.h, "the line of controls to load with is as it was before the image", { loadBefore, loadAfter });
 await title();

@@ -192,7 +192,7 @@ try {
   check(/kept\.png/.test(await page.textContent("#image-pick")), "once open, the selector names the image");
   check(await shown("#unload"), "and Unload shows");
   const [p2, d2, l2] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
-  check(await page.evaluate(() => $("#unload").parentElement.matches("#image-box > .sec-head") && $("#unload").textContent.trim() === "unload image"), "as a link on the box's header");
+  check(await page.evaluate(() => $("#unload").parentElement.matches("#image-box > .sec-head") && $("#unload").textContent.trim() === "Unload image"), "as a link on the box's header");
   check(p2.w === pick.w && d2.x === driveButton.x && d2.w === driveButton.w && l2.w === lineBefore.w && l2.h === lineBefore.h, "the selector's line keeps its controls where they were before the image", { pick, p2, driveButton, d2 });
   check(await page.evaluate(() => $("#file-name").textContent.trim() === "Details"), "the details below are titled Details");
   await shot("loaded", "#image-box");
