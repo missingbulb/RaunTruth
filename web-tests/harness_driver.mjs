@@ -10,7 +10,8 @@ import path from "node:path";
 import { pw, launch, expecting, siteOf, check } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
+import { held } from "./held.mjs";
 
 const [which] = process.argv.slice(2);
 const server = http.createServer((q, r) => {
@@ -79,6 +80,29 @@ const CASES = {
     await page.waitForFunction(() => shellForTests.work.pending === 0);
   },
   changedatrest: async () => { await page.evaluate(working, 0); await page.waitForFunction(() => shellForTests.work.pending === 0); googleDrive(page.context()).outage = "down"; },
+  // a call to an outside system on its way while the page says it has no work under way is work it does not count
+  uncounted: async () => {
+    const drive = googleDrive(page.context()), kept = held();
+    drive.hold = () => kept.hold();
+    await page.evaluate(() => {
+      window.shellForTests = { work: { pending: 0, started: 0, doing: [] } };
+      fetch("https://www.googleapis.com/drive/v3/files?q=slow", { headers: { authorization: "Bearer nobody" } }).catch(() => 0);
+    });
+    await kept.asked;
+    try { await idle(page); } finally { drive.hold = () => null; kept.release(); }
+  },
+  // and one the page counts, or one to the site itself, is not
+  countedcall: async () => {
+    await expecting(/status of 401/, async () => {
+      await page.evaluate(() => {
+        const work = { pending: 1, started: 1, doing: ["a listing"] };
+        window.shellForTests = { work };
+        fetch("https://www.googleapis.com/drive/v3/files?q=slow", { headers: { authorization: "Bearer nobody" } }).catch(() => 0).then(() => { work.pending = 0; work.doing = []; });
+        fetch("/").catch(() => 0);
+      });
+      await idle(page);
+    });
+  },
   // a run that never ends, stopped by its test
   hangs: async () => { console.log("ok: a step before the hang"); await page.evaluate(() => { console.log("a step the page took"); }); await page.waitForFunction(() => window.never, null, { timeout: 0 }); },
   uncaught: () => page.evaluate(() => { setTimeout(() => { throw new Error("thrown by the page"); }); return new Promise((ok) => setTimeout(ok, 50)); }), // waits on purpose (no event): the page's own throw, a task after

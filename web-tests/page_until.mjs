@@ -16,14 +16,18 @@ export async function until(page, fn, arg, { timeout = 10000, every = 100 } = {}
 }
 
 // Waits until the page's own work (web/pending.js) is done and stays done over a frame drawn after it, nothing begun
-// meanwhile: what the page was doing has ended, and what that set off has been drawn.
+// meanwhile: what the page was doing has ended, and what that set off has been drawn. Fails where the page is then
+// still calling an outside system: work it started and does not count.
 export async function idle(page, { timeout = 10000 } = {}) {
   const end = Date.now() + timeout;
   for (;;) {
     await page.waitForFunction(() => window.shellForTests?.work.pending === 0, null, { timeout: Math.max(1, end - Date.now()) });
     const begun = await page.evaluate(() => shellForTests.work.started);
     await frames(page);
-    if (await page.evaluate((n) => shellForTests.work.pending === 0 && shellForTests.work.started === n, begun)) return;
+    const at = await page.evaluate((n) => ({ rest: shellForTests.work.pending === 0 && shellForTests.work.started === n, wire: [...(window.callsOnTheWire || [])] }), begun);
+    // a call still on its way with nothing counted is work web/pending.js does not know of, which the next step would race
+    if (at.rest && at.wire.length) throw new Error(`the page says it is idle with a call on its way that it does not count as work: ${at.wire.join(", ")}`);
+    if (at.rest) return;
     if (Date.now() > end) throw new Error(`the page was still working after ${timeout} ms`);
   }
 }

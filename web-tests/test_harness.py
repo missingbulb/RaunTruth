@@ -3,7 +3,6 @@ case declared, and answers the outside systems with their fakes (harness_driver.
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 import pytest
@@ -19,7 +18,7 @@ NODE = shutil.which('node')
 def run(case):
     if not NODE:
         pytest.skip('node missing')
-    r = subprocess.run([NODE, os.path.join(HERE, 'harness_driver.mjs'), case], capture_output=True, text=True, timeout=60)
+    r = run_driver(os.path.join(HERE, 'harness_driver.mjs'), case, timeout=60, check=False)
     if r.returncode == 2:
         pytest.skip(r.stderr.strip())
     return r
@@ -57,6 +56,13 @@ def test_a_fake_changed_under_the_page_s_work_fails_the_run_and_at_rest_does_not
     r = run('changedmidwork')
     assert r.returncode == 1 and 'while the page was working (a save on its way)' in r.stderr, r.stdout + r.stderr
     r = run('changedatrest')
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_page_idle_with_an_outside_call_it_does_not_count_fails_naming_the_call():
+    r = run('uncounted')
+    assert r.returncode == 1 and 'does not count as work: GET https://www.googleapis.com/drive/v3/files?q=slow' in r.stderr, r.stdout + r.stderr
+    r = run('countedcall')
     assert r.returncode == 0, r.stdout + r.stderr
 
 

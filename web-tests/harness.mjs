@@ -260,9 +260,11 @@ async function install(ctx, world, outside) {
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); crashesHeard(page); return page; };
   for (const fake of FAKES) await fake(ctx, world, outside);
   underWork(driveIn(world), "outage", "Drive's outage");
+  underWork(driveIn(world), "checksums", "whether Drive gives checksums");
   underWork(signInIn(world), "savedSettings", "the settings another device saved");
   ctx.on("close", () => outside.close());
   await ctx.addInitScript(COPY);
+  await ctx.addInitScript(ON_THE_WIRE);
   ownRoutes(ctx);
   ctx.on("console", (m) => {
     if ((m.type() !== "warning" && m.type() !== "error") || ofWorker(m)) return note(`${m.type()}: ${m.text()}`);
@@ -360,6 +362,24 @@ export async function atRest() {
     }
   }
 }
+
+// In each page: its calls to the outside systems now on their way (a library's download is not one), kept where
+// idle() reads them beside the page's own count of its work. A call ends here before the page's code takes its answer.
+const ON_THE_WIRE = () => {
+  const ask = window.fetch, wire = (window.callsOnTheWire = new Set());
+  window.fetch = function (what, init) {
+    const asked = ask.call(this, what, init);
+    try {
+      const to = new URL(String(what?.url ?? what), location.href);
+      if (to.origin !== location.origin && /^https?:$/.test(to.protocol) && to.host !== "cdn.jsdelivr.net") {
+        const call = `${(init?.method ?? what?.method ?? "GET").toUpperCase()} ${to.href}`, end = () => wire.delete(call);
+        wire.add(call);
+        asked.then(end, end);
+      }
+    } catch { /* no address to read: the page's own failure to say */ }
+    return asked;
+  };
+};
 
 // A fake's knob a test turns as a plain step, which cannot wait: turned under work a page has under way, the work
 // meets the change at a moment no test chose, so it is said, and fails the run unless the case declares it. A knob
