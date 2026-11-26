@@ -4,12 +4,10 @@
 themselves. It is a how-to, watched with a purpose and often paused; each chapter stands alone and is published
 as its own clip as well as in the whole, chaptered.
 **Tone:** documentary: unhurried camera moves onto the control in use, a light piano bed, a soft tick for each press.
-**Voice:** `en_US-lessac-medium` at length scale 1.08 (the draft; a cast voice replaces it).
-**Length:** whatever its moments take (see [how a scene is built](README.md#how-a-scene-is-built)); the animatic
-gives the running time. A how-to moment is an action the viewer must be able to repeat, so most are carried by
-both: the picture shows where the control is and what it does, while the voice names it and says why. It is cut in
-the documentary tone: unhurried camera moves onto the control in use, a light piano bed under the voice, a soft tick
-for each press. Camera and sound cues are the backticked tokens, read by the animatic; the rest is direction.
+**Length:** whatever its moments take (see [how a scene is built](README.md#how-a-scene-is-built)). A how-to moment is
+an action the viewer must be able to repeat, so most are carried by both: the picture shows where the control is and
+what it does, while the voice names it and says why. The Camera and Sound columns are direction for the edit.
+**Status:** not made yet; it waits on the UI of PR 1036, which it shows.
 
 The UI is the design in PR 1036 (`dev/requirements/study-stages-map.md`, `study-stages-spec.md`): two apps (the
 main app and **Study Setup**), five stages (**Setup → Develop → Analyze → Review → Public**), one store of
