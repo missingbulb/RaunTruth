@@ -100,7 +100,7 @@ async function load(page, name = "shelf.png", png = PNG) {
 // first(ctx): what the device's context is given before the page opens
 async function open(role, seed = {}, finder = {}, drafts = [], first = null) {
   tagger.savedSettings(null);
-  const device = w.device().signedInAs(tagger).withStudy("shelves", role === "viewer" ? { stage: "Public" } : {}).keeps(seed).keepsDrafts(drafts).with({ acceptDownloads: true });
+  const device = w.device().signedInAs(tagger).withEditHistoryShown().withStudy("shelves", role === "viewer" ? { stage: "Public" } : {}).keeps(seed).keepsDrafts(drafts).with({ acceptDownloads: true });
   const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
   if (first) await first(ctx);

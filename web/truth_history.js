@@ -74,7 +74,7 @@ export function truthHistory({ $, drafts, keys, dragging, status, notice, confir
   }
 
   const editWindow = editHistory({ $, log: () => log, study: () => module, viewer, shown: () => rooted() && makesTruth(),
-    goto: (n) => session.api.goto(n), clearAll: () => clearAll(), readJSON, writeJSON });
+    goto: (n) => session.api.goto(n), clearAll: () => clearAll() });
 
   const mutated = (why) => { paint(); notify(log.model, why); };
 

@@ -40,7 +40,6 @@ import { dialogMotion } from "./dialog_motion.js";
 import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthHistory } from "./truth_history.js";
-import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
 import { isHidden } from "./tags.js";
 import { subfolderName, marksOf } from "./truth_folders.js";
@@ -513,7 +512,7 @@ function drawSteps() {
   for (const b of shone.splice(0)) b.classList.remove("shine");
   steps.forEach((p, k) => {
     // a step of the study's whose button waits behind Start: Start is what to press now
-    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? $("#annotate-scratch") : own;
+    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? ($("#annotate-local").hidden ? $("#annotate-scratch") : $("#annotate-local")) : own;
     if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); }
   });
 }
@@ -876,7 +875,7 @@ const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); 
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
   [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del

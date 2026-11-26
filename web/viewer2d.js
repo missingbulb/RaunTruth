@@ -231,31 +231,30 @@ export function viewer(shell) {
 
   // ---------- the minimap ----------
   // Over the image's corner, a little see-through until the pointer is on it: the whole image, the part in view
-  // outlined, and a click or a drag moves the view there. Its header's ^ collapses it to the header, and the
+  // outlined, and the walk's areas over it, each a button. Its header's ^ collapses it to the header, and the
   // same spot, now v, expands it again; the X across the title hides it, and the toolbar's button brings it back.
-  // It shows only while the image is larger than the view.
+  // It shows only while the walk's areas are on it.
   // Its mode and opacity are the page's state, kept for the next visit.
   const minimap = (() => {
     const box = $("#minimap"), cv = $("#minimap-canvas"), btn = $("#minimap-btn"), fold = $("#minimap-fold"), range = $("#minimap-opacity");
     const saved = { mode: "open", opacity: 1, ...shell.readJSON(MINIMAP) };
     page.set({ minimap: ["open", "collapsed", "hidden"].includes(saved.mode) ? saved.mode : "open", minimapOpacity: saved.opacity });
     const keep = () => shell.writeJSON(MINIMAP, { mode: page.get("minimap"), opacity: page.get("minimapOpacity") });
-    // the whole image in view leaves nothing to navigate: the minimap waits until it is larger than the view
-    const fits = () => { const sc = $("#scroller"); return st.W * st.zoom <= sc.clientWidth && st.H * st.zoom <= sc.clientHeight; };
     // the areas of the walk over the picture while the user tags (req/shell/ground-truth/area-map), null for none
     let walked = null;
     const grid = $("#minimap-areas");
     function areas(map) {
       if (map !== undefined) walked = map;
       const on = !!walked && tagging;
-      grid.hidden = !on; box.querySelector(".mm-title").textContent = on ? "Areas" : "Minimap";
+      grid.hidden = !on;
       if (on) areaMap(grid, walked); else grid.replaceChildren();
       place();
     }
     function place() {
       const mode = page.get("minimap");
-      // with the areas on it the map is worth showing even when the whole image is in view
-      box.hidden = !st.img || mode === "hidden" || (fits() && grid.hidden); box.classList.toggle("collapsed", mode === "collapsed");
+      // the map is for the walk's areas alone: with none on it, it and its button stay away (req/shell/image/minimap)
+      btn.hidden = grid.hidden;
+      box.hidden = !st.img || mode === "hidden" || grid.hidden; box.classList.toggle("collapsed", mode === "collapsed");
       btn.setAttribute("aria-pressed", mode !== "hidden");
       fold.ariaLabel = fold.title = mode === "open" ? "Collapse the minimap" : "Expand the minimap";
       view();
@@ -285,7 +284,7 @@ export function viewer(shell) {
     // stylesheet's, under the flight's name, between the two places only a snapshot of the page can know. A copy
     // of the button over it is the flight's end there, so the button itself stands still throughout.
     const fly = (minimap) => {
-      const still = !document.startViewTransition || fits() || shell.still();
+      const still = !document.startViewTransition || shell.still();
       if (still) return page.set({ minimap });
       const root = document.documentElement, fold = minimap === "hidden";
       const r = btn.getBoundingClientRect(), copy = btn.cloneNode(true);
@@ -301,19 +300,6 @@ export function viewer(shell) {
     $("#minimap-hide").onclick = () => fly("hidden");
     btn.onclick = () => fly(page.get("minimap") === "hidden" ? "open" : "hidden");
     range.addEventListener("input", () => page.set({ minimapOpacity: +range.value / 100 }));
-    const go = (e) => {
-      const t = cv.getBoundingClientRect(), sc = $("#scroller");
-      const x = ((e.clientX - t.left) / t.width) * st.W, y = ((e.clientY - t.top) / t.height) * st.H;
-      sc.scrollTo(x * st.zoom - sc.clientWidth / 2, y * st.zoom - sc.clientHeight / 2);
-    };
-    const body = box.querySelector(".mm-body");
-    body.addEventListener("pointerdown", (e) => {
-      // an area's button takes its own click
-      if (e.target.closest(".mm-areas button")) return;
-      const sc = $("#scroller"), was = [sc.scrollLeft, sc.scrollTop];
-      drag(body, e, { move: go, cancel: () => sc.scrollTo(...was), view: true });
-      shell.showImage(); go(e);
-    });
     $("#scroller").addEventListener("scroll", view);
     addEventListener("resize", place);
     return { draw, view, place, areas };

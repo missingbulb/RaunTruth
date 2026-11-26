@@ -33,7 +33,7 @@ studyFile({ marks: { [sha]: { gt: { file: ownersFile.id, by: OWNER } } } });
 const shown = (page, sel) => page.evaluate((s) => !!document.querySelector(s)?.checkVisibility(), sel);
 // the choices on show, a disabled one in brackets
 const choices = (page) => page.evaluate(() => ["#annotate-local", "#annotate-scratch", "#annotate-load"].map((s) => document.querySelector(s)).filter((b) => b.checkVisibility()).map((b) => (b.disabled ? `(${b.textContent.trim()})` : b.textContent.trim())));
-const BOTH = JSON.stringify(["Start", "Load"]), NO_LOAD = JSON.stringify(["Start", "(Load)"]);
+const BOTH = JSON.stringify(["Start", "Open saved analysis"]), NO_LOAD = JSON.stringify(["Start", "(Open saved analysis)"]);
 // each view transition the page starts, noted as its change ends: whether the page annotated before and after it, and whether an
 // image was open by then
 const holds = (ctx) => ctx.addInitScript(() => {
@@ -89,7 +89,7 @@ await page.waitForFunction(() => $("#load-dlg").open && document.querySelectorAl
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.dataset.key));
 await check(rows.join() === [mineFile.id, ownersFile.id].join(), "Load opens a dialog listing the image's Analysis Files: the user's own, then the marked", rows);
 await check(listings(sub.id) === 1 && askedStore() === 1, "the press listed the image's subfolder once, asking nothing else of the extractions folder", { listed: listings(sub.id), asked: askedStore() });
-await check(await page.evaluate(() => $("#load-go").disabled && $("#load-cancel").textContent === "Cancel" && $("#load-go").textContent === "Load"), "its actions are Cancel and Load, Load waiting for a choice");
+await check(await page.evaluate(() => $("#load-go").disabled && $("#load-cancel").textContent === "Cancel" && $("#load-go").textContent === "Open" && $("#load-dlg-title").textContent === "Open saved analysis"), "titled Open saved analysis, its actions are Cancel and Open, Open waiting for a choice");
 await page.click("#load-cancel");
 await check(await page.evaluate(() => !$("#load-dlg").open) && !(await shown(page, "#annotate-edit")), "Cancel closes it with nothing loaded");
 await page.click("#annotate-load");
@@ -160,8 +160,12 @@ await page.context().close();
 page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await seedDrafts(ctx, drafts); } });
 await opened(page);
 await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done" && document.querySelector("#annotate-local").checkVisibility() && !$("#annotate-load").disabled);
-await check(JSON.stringify(await choices(page)) === JSON.stringify(["Continue local work", "Start", "Load"]),
-  "the image the device holds a draft of offers Continue local work first", await choices(page));
+const offered = await choices(page);
+await check(/^Continue · saved today \d\d:\d\d · \d+ edits?$/.test(offered[0]) && offered.slice(1).join() === "Start over,Open saved analysis",
+  "the image the device holds a draft of offers Continue first, saying when it was saved and how many edits, and Start reads Start over", offered);
+const lead = await page.evaluate(() => ({ local: $("#annotate-local").classList.contains("primary"), start: $("#annotate-scratch").classList.contains("primary"),
+  shine: [...document.querySelectorAll(".shine")].map((e) => e.id).join() }));
+await check(lead.local && !lead.start && lead.shine === "annotate-local", "Continue is the primary button and the one that shines, Start over plain", lead);
 await page.click("#annotate-local");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 4);
 await check(await annotating(page) && !(await shown(page, "#fx-count")), "continuing enters annotation mode with the draft loaded and no runner", { marks: (await model(page))?.marks.length });

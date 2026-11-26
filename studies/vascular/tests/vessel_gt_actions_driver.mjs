@@ -31,7 +31,7 @@ let failed = false;
 let device, page;
 // a page of a device of its own, ready; drafts, keys: what the device keeps before it opens
 async function open({ drafts = [], keys = {} } = {}) {
-  device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
+  device = taggersDevice(w).withEditHistoryShown().with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
   await standInDrive(await device.context());
   page = await device.opens("vascular");
 }

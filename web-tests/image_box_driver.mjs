@@ -19,6 +19,7 @@ import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { stepsOf } from "./page_steps.mjs";
+import { areaAt } from "../web/gt_areas.js";
 
 const [answers, image, studies, three, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -70,13 +71,13 @@ const title = async () => { await page.click("#image-box > .sec-head h2"); await
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----
 const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [[...h.children].filter((e) => e.checkVisibility()).length, h.querySelector("h2").textContent.trim()]; });
-await check(JSON.stringify(await head()) === '[1,"Load"]', "the box is titled Load, with nothing else showing in its head", await head());
+await check(JSON.stringify(await head()) === '[1,"Image"]', "the box is titled Image, with nothing else showing in its head", await head());
 const order = await page.evaluate(() => [...document.querySelector("#image-box").children].map((e) => e.id || e.className));
 await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")), "Load sits at the box's foot", order);
 const loadBefore = await box("#load");
 await check(!(await page.$("#left canvas")), "the left bar holds no picture of the image");
 await check(!(await visible("#unload")), "no Unload before an image");
-await check(!(await visible("#minimap")) && (await page.$eval("#minimap-btn", (b) => b.disabled)), "no minimap, and its button off, before an image");
+await check(!(await visible("#minimap")) && !(await visible("#minimap-btn")), "no minimap, nor its button, before an image");
 const open = await box("#image-box > .sec-head h2");
 await title(); const folded = await box("#image-box > .sec-head h2"); await title();
 await check(open.y === folded.y && open.h === folded.h && open.x === folded.x, "folding the box leaves its title where it was", [open, folded]);
@@ -94,24 +95,30 @@ await check(!(await visible("#unload")), "the box folded: no Unload");
 await title();
 await shot("image_box", "#image-box");
 
-await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "true", "the whole image in view: no minimap, nothing to navigate, its button still pressed");
-for (let k = 0; k < 13; k++) await page.click("#zoom-in"); // the fixture is small: as near as it goes, so the view scrolls
-await check(await visible("#minimap"), "zoomed past the view, the minimap shows");
+const zoomIn = async () => { for (let k = 0; k < 13; k++) await page.click("#zoom-in"); }; // the fixture is small: as near as it goes, so the view scrolls
+await zoomIn();
+await check(!(await visible("#minimap")) && !(await visible("#minimap-btn")), "an image open with no analysis under way, even zoomed past the view: no minimap, nor its button");
+// the minimap is for the areas of an analysis: the page annotating, and a study that hands the viewer its walk's areas
+await fromScratch(page, "#fx-count");
+await page.waitForFunction(() => !!window.fixture.model());
+await title(); // the image opening again in the analysis folded the box
+await check(!(await visible("#minimap")) && !(await visible("#minimap-btn")), "annotating in a study with no areas to walk: still none");
+await page.evaluate(() => shellForTests.viewer.areaMap({ n: 2, state: () => ({ mark: "", title: "" }), now: 0, pick(a) { window.pickedArea = a; } }));
+await check((await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "true", "the walk's areas handed over, the minimap shows with its button, pressed");
+await zoomIn();
 const mm = await box("#minimap"), sc = await box("#scroller");
 await check(mm && mm.x >= sc.x && mm.y >= sc.y && mm.x + mm.w <= sc.x + sc.w && mm.y + mm.h <= sc.y + sc.h, "the minimap hovers over the image", [mm, sc]);
 await check(mm.x - sc.x < 40 && mm.y - sc.y < 40, "in its top left corner", [mm, sc]);
 await check(await page.$eval("#minimap", (m) => { const s = getComputedStyle(m); return s.borderTopStyle === "solid" && parseFloat(s.borderTopWidth) >= 2 && s.borderTopColor === "rgb(255, 255, 255)"; }), "framed by a solid white border");
-await check(await page.textContent("#minimap .mm-head") === "Minimap" || (await page.textContent("#minimap .mm-title")) === "Minimap", "its header says Minimap");
+await check((await page.textContent("#minimap .mm-title")) === "Areas", "its header says Areas");
 await page.mouse.move(5, 5); await opacityNear(1);
 await check((await opacity()) === 1, "opaque at first", await opacity());
 await shot("minimap", "#view");
 
-// the view moves where the minimap is clicked
-const before = await page.evaluate(() => [document.querySelector("#scroller").scrollLeft, document.querySelector("#scroller").scrollTop]);
+// each of the walk's areas is a button on it: a click picks that area
 const c = await box("#minimap canvas");
 await page.mouse.click(c.x + c.w * 0.9, c.y + c.h * 0.9);
-const after = await page.evaluate(() => [document.querySelector("#scroller").scrollLeft, document.querySelector("#scroller").scrollTop]);
-await check(after[0] > before[0] && after[1] > before[1], "a click on the minimap moves the view there", [before, after]);
+await check(await page.evaluate(() => window.pickedArea) === areaAt(0.9, 0.9, 2), "a click on the minimap picks the area there", await page.evaluate(() => window.pickedArea));
 
 // ^ collapses it and the same spot, now v, expands it again; an X across the title hides it
 const glyph = () => page.$eval("#minimap-fold", (b) => [...b.querySelectorAll("svg")].find((g) => getComputedStyle(g).display !== "none").dataset.glyph);
@@ -148,7 +155,7 @@ await check(under.gap >= 4 && under.gap <= 8 && Math.abs(under.right) <= 1 && un
 await page.$eval("#minimap-opacity", (i) => { i.value = 40; i.dispatchEvent(new Event("input", { bubbles: true })); });
 await page.mouse.move(5, 5); await opacityNear(0.4);
 await check(Math.abs((await opacity()) - 0.4) < 0.01, "its popup sets the minimap's opacity at rest", await opacity());
-await page.hover("#minimap canvas"); await opacityNear(1);
+await page.hover("#minimap .mm-head"); await opacityNear(1);
 await check((await opacity()) === 1, "and it is opaque under the pointer", await opacity());
 await page.mouse.move(5, 5);
 await check(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-minimap")).opacity) === 0.4, "and the opacity is kept for the next visit");

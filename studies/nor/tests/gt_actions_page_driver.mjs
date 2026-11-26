@@ -65,7 +65,7 @@ async function loadImage(page, start = true) {
 // drafts, keys: what the device keeps before the page opens; the tagger's Drive holding no settings of the site's yet
 function newDevice({ drafts = [], keys = {} } = {}) {
   tagger.savedSettings(null);
-  return w.device().signedInAs(tagger).keepsDrafts(drafts).keeps(keys);
+  return w.device().signedInAs(tagger).keepsDrafts(drafts).keeps(keys).withEditHistoryShown();
 }
 const unfold = async (page, box) => { await page.evaluate((b) => { const e = $(b); if (e.classList.contains("folded")) e.querySelector(".sec-head h2").click(); }, box); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 // Find Candidates pressed: by the user where the runner is on show, and as the page itself would on a route that hides it

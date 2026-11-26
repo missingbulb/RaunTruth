@@ -5,8 +5,12 @@
 "use strict";
 import { leftOut } from "./truth_actions.js";
 
-// "on" | "off": whether the window shows, on by default
-export const GT_HISTORY = "nor-gt-history";
+// whether the window shows, "on" once its button was pressed, for the visit alone: the tab's own storage, gone with the tab
+const SHOWN = "nor-gt-history";
+const visit = {
+  get: () => { try { return sessionStorage.getItem(SHOWN); } catch { return null; } },
+  set: (v) => { try { sessionStorage.setItem(SHOWN, v); } catch { /* no storage */ } },
+};
 
 const pad = (n) => String(n).padStart(2, "0");
 const clock = (iso) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -23,11 +27,10 @@ function dayName(day, today) {
 }
 
 // log(): the session's action log, or null; study(): the study's actions module, or null; viewer(): the viewer, for the
-// ring; shown(): whether the tagger tags now and the image has a run or a base; goto(n) and clearAll(): the session's;
-// readJSON and writeJSON: the shell's storage
-export function editHistory({ $, log, study, viewer, shown, goto, clearAll, readJSON, writeJSON }) {
+// ring; shown(): whether the tagger tags now and the image has a run or a base; goto(n) and clearAll(): the session's
+export function editHistory({ $, log, study, viewer, shown, goto, clearAll }) {
   const win = $("#edit-history"), list = $("#eh-list");
-  let switchedOn = readJSON(GT_HISTORY, "on") !== "off";
+  let switchedOn = visit.get() === "on";
   const unfolded = new Set();
   let built = [], windowed = false;
 
@@ -157,7 +160,7 @@ export function editHistory({ $, log, study, viewer, shown, goto, clearAll, read
     draw();
   }
 
-  const setSwitch = (on) => { switchedOn = on; writeJSON(GT_HISTORY, on ? "on" : "off"); paint(); };
+  const setSwitch = (on) => { switchedOn = on; visit.set(on ? "on" : "off"); paint(); };
   $("#history-btn").onclick = () => setSwitch(!switchedOn);
   $("#eh-close").onclick = () => setSwitch(false);
   $("#eh-clear").onclick = () => clearAll();

@@ -148,7 +148,7 @@ const fills = await page.evaluate(() => $("#view").getBoundingClientRect().width
 await check(fills > 0.9, "... the image's view as wide as the dialog", fills);
 const bare = [];
 for (const s of ["#left", "#channels", "#gutter-left", "#switch", "#history-btn"]) if (await seen(page, s)) bare.push(s);
-await check(!bare.length && (await seen(page, ".toolbar .zoom")) && (await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
+await check(!bare.length && (await seen(page, ".toolbar .zoom")) && !(await seen(page, "#minimap-btn")), "... with the zoom and the image's tools, and no left bar, channel rows or study tools", bare);
 await shot(page, "4-image");
 // a notice raised meanwhile can be answered
 await page.evaluate(() => { $("#notice-text").textContent = "A notice over the dialog."; $("#notice").hidden = false; });

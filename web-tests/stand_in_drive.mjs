@@ -18,10 +18,11 @@ import { world } from "./world.mjs";
 import { SCOPES } from "./fakes/google_sign_in.mjs";
 import { studies as studiesOf } from "./fakes/studies.mjs";
 
-// uploaded(file): each file the page creates or replaces, {name, bytes}; members: emails Drive's sharing lets read ROOT
+// uploaded(file): each file the page creates or replaces, {name, bytes}; editHistory: its pages open with the Edit History window
+// shown; members: emails Drive's sharing lets read ROOT
 // (and what it holds, until a folder has readers of its own), which then no longer shares it with anyone with the link
 // rooted: see inList below; pageError(e): what a page's uncaught error does, in place of ending the run
-export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, rooted: inList = false, pageError }) {
+export async function standIn({ answers, studies, rootDir, uploaded = () => {}, gt = true, members, rooted: inList = false, pageError, editHistory = false }) {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const EMAIL = "tester@example.com";
   const STAND_IN = `
@@ -144,6 +145,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
     if (!keepSettings) for (const { owner } of [...google.settings]) google.savedSettings(owner, null);
     const device = w.device().with({ deviceScaleFactor: scale, ...(viewport ? { viewport } : {}) }).keeps(seed);
+    if (editHistory) device.withEditHistoryShown();
     const who = (email && email !== EMAIL) || name !== tester.name ? { email: email || EMAIL, name, scopes: SCOPES } : tester;
     if (signedIn && !("nor-google-sign-in" in seed)) device.signedInAs(who, { scopes, learned, ...(until ? { tokenLeft: until - Date.now() } : {}) });
     // the welcome popup answered before, and remembered (req/shell/account/welcome), unless a first visit

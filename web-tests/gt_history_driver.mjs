@@ -14,7 +14,7 @@ import { kit } from "./gt_history_kit.mjs";
 import { expecting } from "./harness.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const drive = await standIn({ answers, studies, rootDir });
+const drive = await standIn({ answers, studies, rootDir, editHistory: true });
 const { FILES, GT, studyFile, open, dataManagement, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sub = `${png.name.replace(/\.[^.]*$/, "")}__${createHash("sha256").update(png.bytes).digest("hex").slice(0, 8)}`;
