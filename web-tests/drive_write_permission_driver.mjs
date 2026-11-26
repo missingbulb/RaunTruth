@@ -9,7 +9,7 @@ import { standIn } from "./stand_in_drive.mjs";
 import { orMissed } from "./page_until.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
-const { google, writes, open, role, check, done } = await standIn({ answers, studies, rootDir });
+const { google, writes, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir });
 const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
 const BEFORE = "openid email profile https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.readonly";
 
@@ -22,9 +22,9 @@ const access = (page, all) => orMissed(page.waitForFunction((all) => {
 let page = await open(true, { scopes: BEFORE });
 const pickers = [];
 page.on("request", (r) => { if (new URL(r.url()).host === "apis.google.com") pickers.push(r.url()); });
-await role(page, "Study Manager");
+await dataManagement(page);
 const asked = google.asked.map((o) => o.scope).find((s) => s?.split(" ").includes(DRIVE_FILE)) ?? null;
-await check(!!asked, "a token from before is renewed on the click choosing the role, Google asked for the per-file permission too", google.asked);
+await check(!!asked, "a token from before is renewed on the click opening Data Management, Google asked for the per-file permission too", google.asked);
 const writable = await access(page, "Writable");
 await check(!!writable, "then every folder the user may add to is writable, none of them picked", writable);
 await check(await page.evaluate(() => !document.querySelector("#data-approve, .gt-approve")), "nothing offers to approve the site or its folders");
@@ -35,7 +35,7 @@ await page.context().close();
 google.withhold = [DRIVE_FILE];
 writes.length = 0;
 page = await open(true, { scopes: BEFORE });
-await role(page, "Study Manager");
+await dataManagement(page);
 const viewOnly = await access(page, "No permission");
 await check(!!viewOnly, "a sign-in without the per-file permission reads every folder as No permission", viewOnly);
 const why = await page.getAttribute("#data-tree .tree-folder .access", "title");
@@ -43,6 +43,6 @@ await check(/sign out/i.test(why || "") && /tick/i.test(why || "") && !/owner/.t
 await check(await orMissed(page.waitForFunction(() => /not written/.test($("#data-index").textContent), null, { timeout: 5000 })) && !writes.length,
   "and writes nothing, saying the study index was not written", writes);
 const after = google.asked.length;
-await page.click("#role-menu summary"); await page.click("#role-menu summary");
+await page.click("#user-menu summary"); await page.click("#who-avatar");
 await check(google.asked.length === after, "and a later click asks Google nothing more", google.asked.length - after);
 await done(0);

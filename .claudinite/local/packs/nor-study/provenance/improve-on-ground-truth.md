@@ -89,3 +89,9 @@
 - **Reason:** the owner ruled that scoring never reads a ground-truth element's origin; the new
   scorer reports `proposed` over every true NoR (#1011).
 - **Actor:** @missingbulb (owner).
+
+## 2026-11-22 · reworded · the lab reads the study file's GT marks, not the curated folder
+- **Reason:** WP7 of the study-stages plan: the lab reads each GT mark's extraction file through the study file
+  (`RAUNTRUTH_STUDY_NOR`), so the skill no longer says new annotations are missing from what it scores.
+- **Actor:** @missingbulb (owner), through the study-stages plan.
+- **Model:** claude-sonnet-5-5

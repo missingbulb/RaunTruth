@@ -4,14 +4,25 @@
 //   studies(ctx).edit(id, (m) => m);       study id's study.json as the test needs it, made from the one served; an
 //                                          edit may change m in place or return another
 //   studies(ctx).editList((list) => list); the list of studies, the same way
+//   studies(ctx).summarised(id, [{file, title, paper}]); the article summaries the site lists for the study, in place
+//                                          of the build's list, which a checkout may not have made
+//   studies(ctx).atStage(id, "Analyze");   the study in that stage; fromThisComputer(id): it opens files from this
+//                                          computer alone; rootedAt(id, folder): its own Drive folder is that one;
+//                                          shownTo(id, ...accounts): shown to those accounts alone
 const fakes = new WeakMap();
 export const studies = (ctx) => fakes.get(ctx);
 
 const making = (parent) => {
-  const own = { edits: new Map(), list: [] };
+  const own = { edits: new Map(), list: [], literature: new Map() };
   return {
     edit(id, fn) { own.edits.set(id, [...(own.edits.get(id) || []), fn]); },
     editList(fn) { own.list.push(fn); },
+    atStage(id, stage) { this.edit(id, (m) => ({ ...m, stage })); },
+    fromThisComputer(id) { this.edit(id, (m) => ({ ...m, files: { ...m.files, from: ["local"] } })); },
+    rootedAt(id, folder) { this.edit(id, (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${folder.id ?? folder}` })); },
+    shownTo(id, ...accounts) { this.edit(id, (m) => ({ ...m, visibility: { accounts } })); },
+    summarised(id, summaries) { own.literature.set(id, summaries); },
+    literatureOf: () => ({ ...(parent?.literatureOf() || {}), ...Object.fromEntries(own.literature) }),
     // the browser's edits, then the context's own
     editsOf: (id) => [...(parent?.editsOf(id) || []), ...(own.edits.get(id) || [])],
     listEdits: () => [...(parent?.listEdits() || []), ...own.list],
@@ -26,6 +37,7 @@ const STUDY = /\/studies\/([\w-]+)\/study\.json$/, LIST = /\/web\/studies\.json$
 export async function fakeStudies(ctx, world, outside) {
   const mine = making(studiesIn(world));
   fakes.set(ctx, mine);
+  outside.route((u) => /\/web\/literature\.json$/.test(u.pathname), (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mine.literatureOf()) }));
   outside.route((u) => STUDY.test(u.pathname) || LIST.test(u.pathname), async (route) => {
     const p = new URL(route.request().url()).pathname, id = p.match(STUDY)?.[1];
     const edits = id ? mine.editsOf(id) : mine.listEdits();

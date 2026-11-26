@@ -1,0 +1,88 @@
+{
+ "about": "An annotator, signed in: Drive lets them add to the Extractions folder alone, so they may save, and not open Study Setup.",
+ "goals": {
+  "person": "a biology student who was asked to help with a lab's image study and has used the site once before",
+  "goals": [
+   "Open one of the lab's microscope images from its shared Drive and get the site to count what it counts in it.",
+   "Check the count yourself, correct it where you think it is wrong, and hand your corrected version in to the lab.",
+   "Open an image, get it counted, then close it as if you were done for now. Then find that image again without browsing the folders, and get a copy of your results onto your own computer."
+  ]
+ },
+ "study": "fixture",
+ "stage": "Develop",
+ "user": {
+  "email": "annotator@acme.example",
+  "name": "Acme Annotator"
+ },
+ "drive": {
+  "access": "public",
+  "writers": [
+   "owner@acme.example"
+  ],
+  "gt": true,
+  "extractionsWriters": [
+   "annotator@acme.example"
+  ],
+  "tree": [
+   {
+    "name": "Cohort A",
+    "children": [
+     {
+      "name": "Day 1",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse01_slice03.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse02 slice1 (copy).png",
+        "sample": "png"
+       }
+      ]
+     },
+     {
+      "name": "Day 7",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "bench notes.jpg",
+        "sample": "photo"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Empty folder",
+    "children": []
+   },
+   {
+    "name": "2026-03-14 two channels.tif",
+    "sample": "tif"
+   },
+   {
+    "name": "z-stack 40x.tif",
+    "sample": "stack"
+   },
+   {
+    "name": "upload cut short.png",
+    "sample": "broken"
+   },
+   {
+    "name": "Überblick ölfärbung.png",
+    "sample": "png"
+   },
+   {
+    "name": "wide scan.png",
+    "sample": "large"
+   }
+  ]
+ }
+}

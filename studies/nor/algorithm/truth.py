@@ -84,9 +84,10 @@ def _element(state, eid=None, x=None, y=None, lines=None, sizes=None):
     return dict(id=eid, state=state, x=float(x), y=float(y), own=own, rx=rx, ry=ry, **{k: sizes.get(k) for k in LINES})
 
 
-def _removed(doc):
+def rejected_of(doc):
     """The elements the file's history says were deleted and the file no longer lists, as the history last showed
-    them: whichever kind of element they were."""
+    them, [{id, x, y, lines}]: whichever kind of element they were. The lab keeps this list in the frozen form of a
+    file, whose history it drops."""
     actions = [a for a in (doc.get('history') or {}).get('actions') or [] if isinstance(a, dict)]
     have = {c.get('id') for c in (doc.get('candidates') or []) + (doc.get('added') or [])}
     gone = {a.get('cand') for a in actions if a.get('type') == 'delete'} - have
@@ -99,7 +100,14 @@ def _removed(doc):
             seen[a.get('cand')] = dict(lines=a['lines'])
         elif a.get('type') == 'set-lines' and a.get('lines') and a.get('cand') in seen:
             seen[a['cand']] = dict(seen[a['cand']], lines=dict(seen[a['cand']].get('lines') or {}, **a['lines']))
-    return [_element('not', i, **seen[i]) for i in sorted(gone & set(seen), key=str)]
+    return [dict(id=i, x=seen[i].get('x'), y=seen[i].get('y'), lines=seen[i].get('lines')) for i in sorted(gone & set(seen), key=str)]
+
+
+def _removed(doc):
+    """The rejected elements as not-NoRs: from the file's `rejected` list when it carries one (the lab's frozen form),
+    else from its history."""
+    rejected = doc['rejected'] if 'rejected' in doc else rejected_of(doc)
+    return [_element('not', r.get('id'), r.get('x'), r.get('y'), r.get('lines')) for r in rejected]
 
 
 def truth_of(doc):

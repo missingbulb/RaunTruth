@@ -7,8 +7,7 @@ export function mount(shell) {
   const model = () => shell.gt.model();
 
   const submit = () => {
-    const name = shell.state.fileName.replace(/\.[^.]*$/, "");
-    shell.submitTruth({ count: model() ? 1 : 0, file: name + "_gt.json", items: [], empty: "Count first." });
+    shell.submitTruth({ count: model() ? 1 : 0, items: [], empty: "Count first." });
   };
   // its one task, checking the count, open once there is one and the tagger tags
   const task = (m) => {
@@ -64,8 +63,7 @@ export function mount(shell) {
     shell.summary.set({ over: "the whole image", rows: [
       { measurement: "Pixels above the threshold", unit: "pixels", value: m.count },
       { measurement: "Threshold", unit: "grey level", value: m.threshold }] });
-    shell.step("count", true, `${m.count} pixels above ${m.threshold}`);
-    shell.boxDone($("#fx-box"), `Counted at ${m.threshold}`);
+    shell.step("count", true);
   }
   shell.gt.on(render, shell.signal);
 

@@ -71,7 +71,7 @@ owner's decisions on the stacks and the vessel model, are
 - `req/vascular/model/damaged` The model leaves the damaged areas out of its measurements, and the scorer out of the score.
   <details>
 
-  Set by the owner on 2026-11-19. Each version extracts on the whole stack; the Study Manager's damaged areas
+  Set by the owner on 2026-11-19. Each version extracts on the whole stack; the study owner's damaged areas
   (`req/shell/data/damaged`) then join the model's `excluded_regions`, in µm, through every slice, so whatever lies in
   one is left out of the analysis as damaged sample is: the summary's lengths, counts and tissue volume, and the
   model's segment count. The summary also leaves out the damaged areas of the image open, whatever model is shown.
@@ -100,7 +100,7 @@ owner's decisions on the stacks and the vessel model, are
 - `req/vascular/model/ground-truth` The corrected model is the study's ground truth.
   <details>
 
-  Submit Ground Truth (`req/shell/ground-truth/submit`), the last of the Ground Truth Tasks
+  Save (`req/shell/extractions/save`), the last of the Analysis Tasks
   (`req/vascular/truth/tasks`), exports the corrected `vessel-model/2` file, `status` corrected and
   labelled `vascular-ground-truth`; it is off until the model carries a
   correction, and its checklist says what of each task is still open. Each verdict is in the file:
@@ -140,7 +140,7 @@ owner's decisions on the stacks and the vessel model, are
   page shows), and the model it draws opens over the stack. The study ships no drawn models: a
   stack opens with none until Execute, and no model file is loaded in its place: an image, then the
   algorithm, as NoR's (owner, 2026-11-07). What the model holds is in Summary (owner, 2026-11-07: the left bar
-  is the shell's, `req/shell/left-bar/shells`); its edits are undone and redone in the Ground Truth Tasks box
+  is the shell's, `req/shell/left-bar/shells`); its edits are undone and redone in the Analysis Tasks box
   (`req/vascular/model/correct`). Draw a missed vessel is a ground-truth action, offered only by a
   right-click on the image in an area of the tasks (`req/vascular/truth/tasks`; owner, 2026-11-07). Changed by the owner on 2026-11-04: the box behaves as NoR's
   (`req/shell/processing/algorithms`). Each algorithm in the list carries its own icon and its name, and its
@@ -194,8 +194,8 @@ owner's decisions on the stacks and the vessel model, are
   each opens with nothing toggled, and the whole stack's toggles are back once an area is left. Cut out what is done has no key: its Show menu row switches it
   while tagging on the whole stack (`req/vascular/truth/marks`). A digit is read by its place, on the number row or the number pad, never while typing in a field or with a menu or dialog open,
   never with Ctrl, Alt or ⌘. Vessel widths, Detected and Missed have no key. While an area of the
-  Ground Truth Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
-  vessels always show, faded, with no option to hide them; hiding vessels to help ground truth belongs in the Ground Truth Tasks. Test: `studies/vascular/tests/test_model_page.py`.
+  Analysis Tasks is open, a Back to image button takes the Show menu's place (`req/vascular/truth/tasks`). Changed by the owner on 2026-11-07, the low-confidence
+  vessels always show, faded, with no option to hide them; hiding vessels to help ground truth belongs in the Analysis Tasks. Test: `studies/vascular/tests/test_model_page.py`.
   </details>
 
 - `req/vascular/stack-view` A z-stack opens in 3D in the owner's approved view; 2D shows it flattened.
@@ -288,20 +288,19 @@ owner's decisions on the stacks and the vessel model, are
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
-- `req/vascular/truth/tasks` Ground Truth Tasks, in the shell's box under Processing: a row per area of the stack, then Submit.
+- `req/vascular/truth/tasks` Analysis Tasks, in the shell's box under Processing: a row per area of the stack, then Submit.
   <details>
 
   Set by the owner on 2026-11-07, replacing the three steps per area (Lines, Missed vessels, Junctions) set earlier
   that day, which replaced the vessel-by-vessel tasks of 2026-11-04. The tasks are the stack's areas
-  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come Start GT
-  tagging, a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
-  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Submit Ground Truth last.
-  Execute leaves the stack in view as it was; the walk opens on its first area not done only once Start GT tagging is
-  pressed (`req/shell/ground-truth/tagging`), and Stop tagging gives the whole stack back, as the Show menu sets it.
+  (`req/vascular/truth/order`). Once a model is open the box's first row chooses how many areas, then come a bar split into a part per area, as wide as the area has junctions and filled as far as they are judged,
+  a row per area in the walk's order, "Area 1" to "Area 16", a check once it is done, and Save last.
+  Execute, while the user annotates (`req/shell/annotate/choice`), opens the walk on its first area not done
+  (`req/shell/ground-truth/tagging`); the whole stack, as the Show menu sets it, is what the page shows outside annotation mode.
 
-  While tagging, and only then, the areas float as a small map at the main view's top left, the shell's minimap's
+  While the user annotates, and only then, the areas float as a small map at the main view's top left, the shell's minimap's
   size (`req/shell/image/minimap`), on the whole stack and in an area alike: each area done, partly judged or not
-  started, the current one marked; clicking one opens it. Under the areas the map shows the stack, never in 3D but
+  started, the current one marked; clicking one opens it (the shell's map of the areas, `req/shell/ground-truth/area-map`). Under the areas the map shows the stack, never in 3D but
   every slice flattened, each pixel its brightest, in the colours the image box paints it, so the person sees where to
   go next; an area's mark is a tint the stack shows through (owner, 2026-11-10).
 

@@ -9,41 +9,41 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { pw, launch, siteOf, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const folder = (id) => `https://drive.google.com/drive/folders/${id}`;
-const FIXTURE_FOLDER = folder("fixturefolder0000001"), PASTED = folder("pastedfolder00000001");
 const NOR_FOLDER = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "study.json"), "utf8")).root;
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
-siteOf(browser).settings.env = { GOOGLE_API_KEY: "stand-in" };
-siteOf(browser).studies.edit("fixture", (m) => ({ ...m, root: FIXTURE_FOLDER }));
+w.site.withoutGoogleClient();
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
 // on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,
 // the folders listed since the test cleared them
-const drive = googleDrive(ctx);
-for (const link of [FIXTURE_FOLDER, PASTED]) drive.folder({ id: link.split("/").pop(), name: "A folder", access: "public" });
+const fixture = w.folder("A folder").public(), pasted = w.folder("A folder").public();
+const FIXTURE_FOLDER = folder(fixture.id), PASTED = folder(pasted.id);
+w.studies.rootedAt("fixture", fixture.id);
+const drive = w.drive;
 let listedFrom = 0;
 const listed = () => drive.calls.slice(listedFrom).filter((c) => c.kind === "list").map((c) => c.parent);
 // resolves at the next folder the dialog lists
 const nextListing = () => drive.next((c) => c.kind === "list");
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-
-// what the Drive dialog opens on, in the study at this address: the link in its field where it takes one, else the
-// link of the folder it lists
-const opensOn = async (address) => {
-  await page.goto(origin + address);
+// one device's page, taken to each study's address in turn
+const page = await w.device().opens("fixture", { until: "title" });
+const visit = async (study) => {
+  await page.goto(`${origin}/web/${study ?? ""}`);
   await page.waitForFunction(() => window.$ && $("#title").textContent);
+};
+
+// what the Drive dialog opens on, in this study (none: the Image Viewer): the link in its field where it takes one,
+// else the link of the folder it lists
+const opensOn = async (study) => {
+  await visit(study);
   listedFrom = drive.calls.length;
   const listing = nextListing();
   await pressDrive(page);
@@ -54,9 +54,8 @@ const opensOn = async (address) => {
   await page.click("#remote-dlg button[value=close]");
   return link;
 };
-const paste = async (address, link) => {
-  await page.goto(origin + address);
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
+const paste = async (study, link) => {
+  await visit(study);
   await pressDrive(page);
   await page.fill("#remote-link", link); await page.click("#remote-go");
   await page.waitForFunction(() => !$("#remote-msg").textContent.includes("Reading"));
@@ -65,16 +64,16 @@ const paste = async (address, link) => {
 
 try {
   check(/^https:\/\/drive\.google\.com\/drive\/folders\/[\w-]{10,}$/.test(NOR_FOLDER || ""), `the NoR study names its Drive root: ${NOR_FOLDER}`);
-  let at = await opensOn("/web/fixture");
+  let at = await opensOn("fixture");
   check(at === FIXTURE_FOLDER, `a study's dialog lists the root its study.json names, while the root names no data folder: ${at}`);
-  at = await opensOn("/web/nor");
+  at = await opensOn("nor");
   check(at === NOR_FOLDER, `each study its own: ${at}`);
 
   // a link pasted in the Image Viewer
-  await paste("/web/", PASTED);
-  at = await opensOn("/web/");
+  await paste(undefined, PASTED);
+  at = await opensOn();
   check(at === PASTED, `the Image Viewer's dialog opens on the link last pasted there: ${at}`);
-  at = await opensOn("/web/fixture");
+  at = await opensOn("fixture");
   check(at === FIXTURE_FOLDER, `a link pasted elsewhere leaves a study's folder: ${at}`);
   check(!(await page.evaluate(() => { $("#load-remote").click(); return $("#remote-link").checkVisibility(); })), "and a study's dialog has no link to paste");
 } catch (e) {

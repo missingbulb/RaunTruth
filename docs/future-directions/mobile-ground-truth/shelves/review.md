@@ -33,7 +33,7 @@ improve.
 | "The finder re-run on the gap, told N, keeping the N-1 strongest seams it had rejected" | `side_lines.scan` keeps only lines over `BOUNDARY`; nothing below is ranked or kept. And R8's own finding is "generation is the wall, not selection": of 41 misses 17 were never proposed, and dark plain spines "gave no edge line at all". Expect an equal-width split to do most of the work |
 | Per-shelf gaps cover every stretch | `find()` returns neither shelves nor rows, and drops a shelf of fewer than 3 spines; a shelf the finder lost has no gaps to ask about and falls to step 10, the whole-photo step |
 | Per-shelf walk follows the skill | Yes for area-by-area, check last, cut-outs, Submit last. Deviations to put to the owner: tagging starts by itself (skill: by hand), the progress bar is split per shelf (skill: per task), there is no image as main area |
-| QC by gold and agreement | The shell already has per-tagger submissions and a Study Manager's accept or reject (`req/shell/ground-truth/pending`, `curate`). The design builds a second regime beside it |
+| QC by gold and agreement | The shell already keeps one extraction per person and image and lets the study owner mark one GT or official (`req/shell/extractions/list`). The design builds a second regime beside it |
 
 ## 1. Doability with phone inputs
 

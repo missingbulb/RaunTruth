@@ -1,9 +1,9 @@
 // Data Management (req/shell/data/damaged, req/shell/data/area-of-interest, req/shell/data/mode, req/shell/data/drive-access, req/shell/data/folder,
-// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): the Study Manager role's
-// view, for a signed-in user the store lets write to the study's root: its listed folders (req/shell/data/folders) as a tree in a column left of the
-// left bar, the root's other folders under it to add, and the study index written from them (req/shell/data/index); its chevron folding
-// it; a folder chosen fills the main area with its images and the left bar with their sums, and its actions; an image
-// chosen opens from its preview. The tree's head asks for the folders' access, and it writes only
+// req/shell/data/update-previews, req/shell/data/preview-images, req/shell/ground-truth/setup): Study Setup's
+// folders and images (setup.js, req/setup/aspects), for a signed-in user the store lets write to the study's root: its listed folders
+// (req/shell/data/folders) as a tree, the root's other folders under it to add, and the study index written from them
+// (req/shell/data/index); a folder chosen fills the grid with its images and the side with their sums, and its actions; an image
+// chosen is read from its preview. The tree's head asks for the folders' access, and it writes only
 // files it creates.
 "use strict";
 import { PREVIEWS } from "./previews.js";
@@ -15,7 +15,7 @@ import { asLoaded } from "./as_loaded.js";
 import { work } from "./pending.js";
 import { accepts, isTiff } from "./accepts.js";
 import * as tf from "./truth_folders.js";
-import { setup as setUp, switchMode, previewsFolder, previewsName, setFolders, setStudy, writeIndex, readTags, writeTags, INDEX as INDEX_NAME } from "./study_root.js";
+import { SETTINGS as SETTINGS_NAME, setup as setUp, previewsFolder, previewsName, setFolders, setStudy, writeStudyData, readTags, writeTags } from "./study_root.js";
 import { parseTag, addTag, effective, isHidden, multiNames, FOLDER } from "./tags.js";
 
 const MAX_FOLDERS = 200;
@@ -41,13 +41,13 @@ export function previewTiff(e, pages) {
 
 // ctx: what the shell lends it, named below where it is used
 export function dataMode(ctx) {
-  const { $, esc, remote, account, place, sizeText } = ctx;
+  const { $, esc, remote, account, place, sizeText, calls } = ctx;
   const sd = remote.writer(account);
-  // the study's ground-truth folders (req/shell/ground-truth/folders), read with no sign-in and written by the user
+  // the study's extractions folder (req/shell/extractions/save), read with no sign-in and written by the user
   const reader = place.reader;
-  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, mark: sd.mark, share: sd.share, ours: sd.ours };
-  // gt: {submissions, curated, same}; gtNodes: those folders with their access, outside the tree
-  let gt = { submissions: null, curated: null, same: false }, gtNodes = [];
+  const writer = { folder: sd.folder, create: sd.create, replace: sd.replace, share: sd.share, ours: sd.ours };
+  // gt: {extractions}; gtNodes: that folder with its access, outside the tree; marks: the study file's, by image SHA-256
+  let gt = { extractions: null }, gtNodes = [], marks = {};
   const root = document.documentElement;
   // the study's folders, by id: {id, name, parent, files, folders (ids), access, el}; roots their ids
   // unlisted: the root's folders no listed folder is, [{id, name}]
@@ -55,15 +55,21 @@ export function dataMode(ctx) {
   // the tags file (req/shell/data/tags) and the study file's grouping and hiding (req/shell/data/hidden), as last read
   let tagsDoc = { images: {}, folders: {} }, look = { group: null, hide: [] };
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
+  // the folder whose images the grid shows, by id
+  let gridOf = null;
   const on = () => root.dataset.mode === "data";
-  // the study's ground-truth folders are not its data: the tree leaves them out
-  // the root's Previews folder, left out of the tree like the ground-truth folders
+  // whether the stage still lets the owner change the study's data (req/shell/study/stage): closed in Review and Public, where every
+  // control that writes is gone and nothing here writes the study
+  const editable = () => ctx.stageAllows("setup-data");
+  const showFrozen = () => root.toggleAttribute("data-frozen", !!manifest && !editable());
+  // the study's extractions folder is not its data: the tree leaves it out
+  // the root's Previews folder, left out of the tree like the extractions folder
   let previewsId = null;
-  const isTruth = (id) => id === gt.curated || id === gt.submissions || id === previewsId;
+  const isTruth = (id) => id === gt.extractions || id === previewsId;
   const offline = () => root.classList.contains("offline");
   const msg = (el, text, err) => { el.textContent = text; el.classList.toggle("err", !!err); };
   // what a study's folders change on the page, as it loaded: put back when another study comes in
-  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box"].map((s) => $(s)), holdOwns);
+  const asStarted = asLoaded(["#data-body", "#folder-box", "#folder-view", "#tags-box", "#areas", "#image-panel", "#truth-panel", "#sharing-box"].map((s) => $(s)), holdOwns);
 
   // ---------- the folders and their access ----------
   // every folder under the study's own, listed with every file in it; once per study
@@ -71,9 +77,9 @@ export function dataMode(ctx) {
     if (loaded) return loaded;
     if (offline()) { msg($("#data-msg"), "You are offline: the study's folders can be read once you are back online."); return Promise.resolve(); }
     msg($("#data-msg"), "");
-    const of = epoch;
-    return (loaded = work.during((async () => {
-      // the root's settings name the data folder and the ground-truth folders
+    const of = epoch, slot = calls.fill($("#data-tree"), "store", "the study's folders");
+    return (loaded = work.during((async () => { try {
+      // the root's study file names the data folder and the extractions folder
       const s = await place.settings({ fresh: true }).catch((e) => { msg($("#data-msg"), e.message || String(e), true); return null; });
       if (of !== epoch) return;
       const top = place.root();
@@ -81,8 +87,8 @@ export function dataMode(ctx) {
       look = { group: s?.group || null, hide: s?.hide || [] };
       if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { console.warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
       if (of !== epoch) return;
-      gt = tf.folders(s); previewsId = s?.previews || null;
-      gtNodes = [...new Set([gt.curated, gt.submissions].filter(Boolean))].map((id) => ({ id, name: "Ground truth", access: null }));
+      gt = { extractions: tf.folderOf(s) }; marks = s?.marks || {}; previewsId = s?.previews || null;
+      gtNodes = gt.extractions ? [{ id: gt.extractions, name: "Analysis Files", access: null }] : [];
       drawSetup(s); drawTruthBox(null); truthStatus();
       const queue = roots.map((id) => ({ id, parent: null, name: null }));
       while (queue.length && nodes.size < MAX_FOLDERS) {
@@ -107,8 +113,9 @@ export function dataMode(ctx) {
         if (of !== epoch) return;
       }
       await checkAccess();
+      slot.done();
       await index(of, nodes.size >= MAX_FOLDERS);
-    })(), "the study's folders listed"));
+    } finally { slot.done(); } })(), "the study's folders listed"));
   }
   async function checkAccess() {
     await Promise.all([...nodes.values(), ...gtNodes].map(async (n) => {
@@ -137,20 +144,30 @@ export function dataMode(ctx) {
     for (const id of roots) walk(id, [], []);
     return { folders: roots.map((id) => ({ id, name: nodes.get(id)?.name || "Folder" })), images, group: look.group, hide: look.hide };
   }
-  // the index written when it differs from the one there; never from a listing cut short or one a folder failed in
+  // why the index cannot be written now, or null; never from a listing cut short or one a folder failed in
+  const indexBlocked = (cut) => {
+    if (cut || [...nodes.values()].some((n) => n.error)) return "Study index: not written, as not every folder could be listed.";
+    if (tagsDoc.unread) return "Study index: not written, as the tags could not be read.";
+    if (["view", "unpermitted"].includes(nodes.get(place.root())?.access)) return "Study index: not written, as this site may not add files to the study's root for you.";
+    return null;
+  };
+  // what writing the index came to, as the Study index line says it
+  function indexSaid(done, ix) {
+    place.forgetIndex(); drawStudySet(ix); ctx.setup?.indexed();
+    const n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    msg($("#data-index"), done === "not ours" ? `Study index: ${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
+      : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+  }
+  // the index written when it differs from the one there
   async function index(of, cut) {
     const top = place.root(), say = (t, err) => msg($("#data-index"), t, err);
-    if (!top || of !== epoch) return;
-    if (cut || [...nodes.values()].some((n) => n.error)) return say("Study index: not written, as not every folder could be listed.", true);
-    if (tagsDoc.unread) return say("Study index: not written, as the tags file could not be read.", true);
-    if (["view", "unpermitted"].includes(nodes.get(top)?.access)) return say("Study index: not written, as this site may not add files to the study's root for you.", true);
-    const ix = indexOf(), n = ix.images.length === 1 ? "1 image" : `${ix.images.length} images`;
+    if (!top || of !== epoch || !editable()) return;
+    const why = indexBlocked(cut);
+    if (why) return say(why, true);
+    const ix = indexOf();
     try {
-      const done = await writeIndex({ reader, writer, root: top, index: ix, by: account.email() });
-      if (of !== epoch) return;
-      place.forgetIndex(); drawStudySet(ix);
-      say(done === "not ours" ? `Study index: ${INDEX_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`
-        : `Study index: ${n}, ${done === "same" ? "up to date" : "written now"}.`, done === "not ours");
+      const done = await writeStudyData({ reader, writer, root: top, index: ix, by: account.email() });
+      if (of === epoch) indexSaid(done, ix);
     } catch (e) { if (of === epoch) say("Study index: not written: " + (e.message || e), true); }
   }
   // ---------- tags, descriptions, grouping and hiding (req/shell/data/tags, req/shell/data/hidden) ----------
@@ -164,15 +181,22 @@ export function dataMode(ctx) {
     }
     return out;
   };
-  // the tags file and the index written after an edit; what the edit said, or why it was not saved
+  // the tags and the index written after an edit; what the edit said, or why it was not saved
   const saveTags = work.counting("tags saved", async (next, said) => {
     const top = place.root(), was = tagsDoc;
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     tagsDoc = next; drawTags();
-    try { await writeTags({ reader, writer, root: top, doc: next }); }
-    catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
+    // the tags and the index are one write of the study file
+    const of = epoch, why = indexBlocked(false), ix = why ? null : indexOf();
+    let done;
+    try {
+      if (why) await writeTags({ reader, writer, root: top, doc: next });
+      else done = await writeStudyData({ reader, writer, root: top, tags: next, index: ix, by: account.email() });
+      if (done === "not ours") throw new Error(`${SETTINGS_NAME} in the study's root was not made by this page, so the page leaves it alone. Delete it in ${remote.label} to let the page manage it.`);
+    } catch (e) { tagsDoc = was; drawTags(); return msg($("#tags-msg"), e.message || String(e), true); }
     msg($("#tags-msg"), said || "");
-    await index(epoch);
+    if (of !== epoch) return;
+    if (why) msg($("#data-index"), why, true); else indexSaid(done, ix);
   });
   // the Tags box: the chosen folder's or image's own tags, those its folders give it dimmed, and an image's description
   function drawTags() {
@@ -215,7 +239,7 @@ export function dataMode(ctx) {
   const areasOf = (id) => ({ damaged: tagsDoc.images[id]?.damaged || [], interest: tagsDoc.images[id]?.interest || [] });
   function markArea(k) {
     const c = chosen;
-    if (c?.kind !== "image" || !ctx.originalOpen(c.id)) return;
+    if (c?.kind !== "image" || !ctx.originalOpen(c.id) || !editable()) return;
     ctx.lasso((pts) => {
       if (chosen?.id !== c.id) return;
       const next = withImage(tagsDoc, c.id, { [k]: [...(tagsDoc.images[c.id]?.[k] || []), pts] });
@@ -225,7 +249,7 @@ export function dataMode(ctx) {
   }
   function clearAreas(k) {
     const c = chosen;
-    if (c?.kind !== "image") return;
+    if (c?.kind !== "image" || !editable()) return;
     const next = withImage(tagsDoc, c.id, { [k]: [] });
     ctx.areasOf(c.id, { damaged: next.images[c.id]?.damaged || [], interest: next.images[c.id]?.interest || [] });
     saveTags(next);
@@ -286,7 +310,7 @@ export function dataMode(ctx) {
   }
   const setLook = work.counting("the study set saved", async (change) => {
     const top = place.root();
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     try { const s = await setStudy({ reader, writer, root: top, changes: change }); look = { group: s.group, hide: s.hide }; }
     catch (e) { return msg($("#study-msg"), e.message || String(e), true); }
     msg($("#study-msg"), "");
@@ -305,16 +329,17 @@ export function dataMode(ctx) {
   // the listed folders changed in the study file, the tree read again, and anything to say after
   const setListed = work.counting("the study's folders changed", async (next, said = "") => {
     const top = place.root();
-    if (!top || offline()) return;
+    if (!top || offline() || !editable()) return;
     $("#data-tree").classList.add("busy");
     try { await setFolders({ reader, writer, root: top, folders: next }); }
     catch (e) { $("#data-tree").classList.remove("busy"); return msg($("#data-msg"), e.message || String(e), true); }
-    nodes = new Map(); loaded = null; chosen = null; roots = next; msg($("#data-index"), "");
+    nodes = new Map(); loaded = null; chosen = null; gridOf = null; roots = next; msg($("#data-index"), "");
     await load();
     $("#data-tree").classList.remove("busy");
     if (said) msg($("#data-msg"), said);
   });
   async function addLink() {
+    if (!editable()) return;
     const ref = remote.parse($("#data-add-link").value || "");
     if (ref?.kind !== "folder") return msg($("#data-msg"), "Paste the link of a folder.", true);
     if (roots.includes(ref.id)) return msg($("#data-msg"), "That folder is in the study already.");
@@ -327,75 +352,43 @@ export function dataMode(ctx) {
   $("#data-add-link").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } };
 
 
-  // ---------- Set up ground truth (req/shell/ground-truth/setup) ----------
-  // offered while the study's root names no ground-truth folders, and nudged while it has none at all
-  const gtStudy = () => !!manifest && (manifest.stage === "GT" || manifest.stage === "PostGT");
+  // ---------- Set up extractions (req/shell/ground-truth/setup) ----------
+  // offered while the study file names no extractions folder, and nudged while the root has none at all
+  const gtStudy = () => !!manifest && manifest.stage != null;
   function drawSetup(s) {
     const b = $("#gt-setup");
     b.hidden = !gtStudy() || !place.root() || !!s?.set;
-    b.classList.toggle("nudge", !gt.curated);
-    b.title = gt.curated ? "Name the study's ground-truth folders in its root's settings" : "Make the study's ground-truth folders in its root";
+    b.classList.toggle("nudge", !gt.extractions);
+    b.title = gt.extractions ? "Name the study's Analysis Files folder in its study file" : "Make the study's Analysis Files folder in its root";
   }
   $("#gt-setup").onclick = () => { msg($("#setup-msg"), ""); $("#setup-dlg").showModal(); };
   $("#setup-cancel").onclick = () => $("#setup-dlg").close();
-  for (const b of document.querySelectorAll("#setup-dlg [data-review]")) b.onclick = async () => {
-    const review = b.dataset.review === "yes", say = (text, err) => msg($("#setup-msg"), text, err);
-    const top = place.root();
+  $("#setup-go").onclick = async () => {
+    const say = (text, err) => msg($("#setup-msg"), text, err), top = place.root();
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = true;
     try {
       if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
-      say("Making the ground-truth folders…");
-      await setUp({ reader, writer, root: top, review, by: account.email() });
+      say("Making the Analysis Files folder…");
+      await setUp({ reader, writer, root: top, by: account.email() });
       $("#setup-dlg").close();
-      msg($("#data-msg"), review ? "Ground truth set up: GT submissions, reviewed into GT curated." : "Ground truth set up: one GT folder.");
+      msg($("#data-msg"), "Analysis Files set up: one folder, named Extractions, in the root, shared with anyone with the link to view.");
       nodes = new Map(); loaded = null; chosen = null; await load();
     } catch (e) { say(e.message || String(e), true); }
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = false;
   };
 
-  // ---------- the Ground Truth box: how the study takes it, and how many images have it ----------
+  // ---------- the Extractions box: where annotations are saved, and how many images have one ----------
   function drawTruthBox(gts) {
     const box = $("#gt-box");
-    box.hidden = !gt.curated || !gtStudy();
+    box.hidden = !gt.extractions || !gtStudy();
     if (box.hidden) return;
-    $("#gt-mode").textContent = gt.same ? "One folder: whatever a tagger submits counts at once."
-      : "Reviewed: taggers submit to GT submissions, and a study manager accepts each into GT curated.";
-    const sw = $("#gt-switch");
-    sw.textContent = gt.same ? "Switch to reviewed…" : "Switch to unreviewed…";
-    if (!gts) { $("#gt-counts").textContent = "Reading…"; sw.disabled = true; return; }
-    const all = [...gts.values()], n = (p) => all.filter(p).length, images = (k) => `${k} image${k === 1 ? "" : "s"}`;
-    const has = n((g) => g.curated), pending = n((g) => g.pending), rejected = n((g) => g.rejected);
-    // going unreviewed waits for every pending submission to be accepted or rejected
-    sw.disabled = !gt.same && pending > 0;
-    sw.title = sw.disabled ? `${pending} submission${pending === 1 ? " is" : "s are"} pending review: accept or reject ${pending === 1 ? "it" : "them"} first`
-      : gt.same ? "Have a study manager review each submission into GT curated" : "Let whatever a tagger submits count at once";
-    $("#gt-counts").textContent = [has ? `${images(has)} ${has === 1 ? "has" : "have"} ground truth.` : "No image has ground truth yet.",
-      pending ? `${images(pending)} pending review.` : "", rejected ? `${images(rejected)} rejected.` : ""].filter(Boolean).join(" ");
+    $("#gt-mode").textContent = "Everyone's uploaded Analysis Files of the study's images are kept in its Analysis Files folder, one file per person for each image.";
+    if (!gts) { $("#gt-counts").textContent = "Reading…"; return; }
+    const held = [...gts.values()].filter((g) => g.held).length, gtMarked = Object.values(marks).filter((m) => m?.gt?.file).length;
+    const images = (k) => `${k} image${k === 1 ? "" : "s"}`;
+    $("#gt-counts").textContent = [held ? `${images(held)} ${held === 1 ? "has" : "have"} an Analysis File.` : "No image has an Analysis File yet.",
+      gtMarked ? `${images(gtMarked)} ${gtMarked === 1 ? "has" : "have"} a GT mark.` : ""].filter(Boolean).join(" ");
   }
-
-  // ---------- switching between reviewed and unreviewed (req/shell/ground-truth/switch) ----------
-  $("#gt-switch").onclick = () => {
-    const review = gt.same;
-    $("#switch-title").textContent = review ? "Switch to reviewed ground truth" : "Switch to unreviewed ground truth";
-    $("#switch-text").textContent = review
-      ? `No file is moved, copied or deleted. The GT folder becomes GT curated: everything submitted so far counts as accepted. A new GT submissions folder is made for taggers to submit to. In ${remote.label}, give taggers edit access to GT submissions and take their edit access off GT curated.`
-      : `No file is moved, copied or deleted. GT curated becomes the one folder: everything accepted stays the study's ground truth, and whatever a tagger submits counts at once. GT submissions, its rejected files included, stays as it is and is no longer used. In ${remote.label}, give taggers edit access to GT curated.`;
-    $("#switch-go").dataset.review = review ? "yes" : "no";
-    msg($("#switch-msg"), ""); $("#switch-dlg").showModal();
-  };
-  $("#switch-cancel").onclick = () => $("#switch-dlg").close();
-  $("#switch-go").onclick = async () => {
-    const review = $("#switch-go").dataset.review === "yes", top = place.root(), btns = document.querySelectorAll("#switch-dlg button");
-    for (const x of btns) x.disabled = true;
-    try {
-      msg($("#switch-msg"), "Switching…");
-      await switchMode({ reader, writer, root: top, review, by: account.email() });
-      $("#switch-dlg").close();
-      msg($("#data-msg"), review ? "Switched to reviewed ground truth." : "Switched to unreviewed ground truth.");
-      nodes = new Map(); loaded = null; chosen = null; await load();
-    } catch (e) { msg($("#switch-msg"), e.message || String(e), true); }
-    for (const x of btns) x.disabled = false;
-  };
 
   // ---------- the tree ----------
   // a folder's images, the kinds the study opens
@@ -476,43 +469,50 @@ export function dataMode(ctx) {
     if (!src) { pic.classList.add("none"); return; }
     const i = new Image(); i.alt = ""; i.src = src; pic.replaceChildren(i);
   }
-  // each image's state in the folder: {f, entry, shown, stale, truth, pending, rejected, marker (its Needs GT marker's id)}, shown
-  // whether it has a preview, its entry's or the store's, its ground truth as gts (truth_folders.js status) has it
+  // each image's state in the folder: {f, entry, shown, stale, extracted, truth, marker (its Needs GT marker's id)}, shown
+  // whether it has a preview, its entry's or the store's, extracted whether the extractions folder holds a subfolder of it
+  // (truth_folders.js held), truth whether the study file marks an extraction of it GT
   function states(n, pv, gts) {
     return imagesOf(n).map((f) => {
       const entry = pv?.entry(f.name, f.sha) || null, g = (f.sha && gts.get(tf.subfolderName(f.name, f.sha))) || {};
       return { f, entry, shown: !!entry || (!isTiff(f.name) && !!f.preview), stale: !entry && isTiff(f.name) && !!pv?.index.images.some((e) => e.name === f.name),
-        truth: !!g.curated, pending: !!g.pending, rejected: !!g.rejected, marker: g.needed || null };
+        extracted: !!g.held, truth: !!tf.marksOf(marks, f.sha).gt?.file, official: !!tf.marksOf(marks, f.sha).official?.file, marker: g.needed || null };
     });
   }
   // a TIFF that Update previews makes a preview for
   const unpreviewed = (s) => isTiff(s.f.name) && !s.entry;
-  // the ground truth of every image either folder holds, an empty Map while the study names none
+  // what the extractions folder holds of every image, an empty Map while the study names none
   async function truthStatus() {
-    if (!gt.curated) return new Map();
-    try { const gts = await tf.status(reader, gt); drawTruthBox(gts); return gts; } catch (e) {
-      msg($("#folder-msg"), "The ground-truth folders could not be read: " + (e.message || e), true);
-      $("#gt-counts").textContent = "The ground-truth folders could not be read."; return new Map();
+    if (!gt.extractions) return new Map();
+    try { const gts = await tf.held(reader, gt.extractions); drawTruthBox(gts); return gts; } catch (e) {
+      msg($("#folder-msg"), "The Analysis Files folder could not be read: " + (e.message || e), true);
+      $("#gt-counts").textContent = "The Analysis Files folder could not be read."; return new Map();
     }
   }
 
   async function chooseFolder(n) {
+    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
+    ctx.setup?.chose(null);
     chosen = { kind: "folder", id: n.id }; root.dataset.sel = "folder"; ctx.relabel();
-    drawTree(); ctx.showFolder(true);
+    drawTree(); ctx.showFolder(true); drawImagePanel();
     $("#folder-name").textContent = n.name; $("#folder-title").textContent = n.name;
     msg($("#folder-msg"), "");
-    const of = epoch;
-    // read again: the folder may have changed in the store since
-    try { n.files = (await remote.all(n.id, { pictures: true })).filter((f) => !f.folder); } catch (e) { msg($("#folder-msg"), e.message || String(e), true); }
-    if (of !== epoch || chosen?.id !== n.id) return;
-    if (n.el) n.el.querySelector(".tree-images").replaceChildren();
-    drawTree();
-    const [pv, gts] = await Promise.all([previewsOf(n, true), truthStatus()]);
-    if (of !== epoch || chosen?.id !== n.id) return;
+    gridOf = n.id;
+    const of = epoch, slot = calls.fill($("#folder-items"), "store", `${n.name}'s images`, { also: [$("#folder-summary")] });
+    let pv, gts;
+    try {
+      // read again: the folder may have changed in the store since
+      try { n.files = (await remote.all(n.id, { pictures: true })).filter((f) => !f.folder); } catch (e) { msg($("#folder-msg"), e.message || String(e), true); }
+      if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+      if (n.el) n.el.querySelector(".tree-images").replaceChildren();
+      drawTree();
+      [pv, gts] = await Promise.all([previewsOf(n, true), truthStatus()]);
+    } catch (e) { slot.failed(e); throw e; }
+    if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+    slot.done();
     const all = states(n, pv, gts), count = (p) => all.filter(p).length;
     const rows = [["images", "Images", all.length], ["previews", "With a preview", count((s) => s.shown)], ["stale", "Preview out of date", count((s) => s.stale)],
-      ["truth", "With ground truth", count((s) => s.truth)], ["pending", "Ground truth pending", count((s) => s.pending)], ["missing", "Marked as needing it", count((s) => s.marker)]];
-    if (gt.same) msg($("#folder-msg"), "This study's submissions are its curated ground truth: whatever a tagger submits is used at once.");
+      ["extracted", "With an Analysis File", count((s) => s.extracted)], ["truth", "With ground truth", count((s) => s.truth)], ["missing", "Marked as needing it", count((s) => s.marker)]];
     $("#folder-summary").replaceChildren(...rows.flatMap(([k, label, v]) => {
       const dt = Object.assign(document.createElement("dt"), { textContent: label }), dd = Object.assign(document.createElement("dd"), { textContent: String(v) });
       dd.dataset.k = k; return [dt, dd];
@@ -521,6 +521,7 @@ export function dataMode(ctx) {
     $("#update-previews").disabled = !todo || n.access !== "write";
     $("#update-previews").title = !todo ? `Every TIFF has an up-to-date preview; ${remote.label} pictures the photos` : n.access !== "write" ? ACCESS[n.access || "unknown"][1] : `Make the ${todo} missing or out-of-date previews`;
     drawItems(n, all, pv);
+    ctx.setup?.chose("folder", { id: n.id, name: n.name, images: all.map((s) => ({ id: s.f.id, name: s.f.name, sha: s.f.sha, folder: n.id })) });
   }
 
   // the folder's images in the main area, a grid of previews or a list
@@ -532,22 +533,22 @@ export function dataMode(ctx) {
       if (k < 60) cell.style.viewTransitionName = "cell-" + k;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
       cell.innerHTML = `<span class="pic"></span><span class="name">${esc(s.f.name)}</span><span class="meta">${esc(s.f.size == null ? "" : sizeText(s.f.size))}</span>` +
-        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}` +
-        `${s.pending ? '<span class="tag pending">GT pending</span>' : ""}${s.rejected ? '<span class="tag warn">GT rejected</span>' : ""}</span>` +
-        (s.pending ? `<button type="button" class="review-gt" data-needs-network title="See the taggers' submissions, and accept or reject each">Review GT</button>` : "") +
-        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>`;
-      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .review-gt")) chooseImage(n, s.f); };
-      cell.querySelector(".review-gt")?.addEventListener("click", () => review(n, s.f));
-      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
+        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
+        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>` +
+        `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Choose ${esc(s.f.name)} for a batch run" title="Choose it for a batch run">`;
+      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f, true); };
+      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f, true); };
       const mark = cell.querySelector(".mark-gt");
-      const why = !gt.curated ? "Set up ground truth first: the mark is kept in its curated folder"
-        : ["view", "unpermitted"].includes(gtNodes.find((g) => g.id === gt.curated)?.access) ? "The mark is kept in the curated ground-truth folder: " + ACCESS[gtNodes.find((g) => g.id === gt.curated).access][1]
+      const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
+      const why = !gt.extractions ? "Set up Analysis Files first: the mark is kept in their folder"
+        : ["view", "unpermitted"].includes(access) ? "The mark is kept in the Analysis Files folder: " + ACCESS[access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
-      mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the curated ground-truth folder";
+      mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the Analysis Files folder";
       mark.onclick = () => markTruth(n, s, mark);
       picture(cell.querySelector(".pic"), pv, s.f);
       return cell;
     }));
+    drawImagePanel();
   }
   const setLayout = (l) => {
     layout = l;
@@ -564,61 +565,18 @@ export function dataMode(ctx) {
 
   // ---------- the folder's actions ----------
   async function markTruth(n, s, b) {
+    if (!editable()) return;
     b.disabled = true;
     try {
-      if (!s.marker) await tf.markNeeded({ writer, curated: gt.curated, image: { name: s.f.name, sha256: s.f.sha } });
+      if (!s.marker) await tf.markNeeded({ writer, folder: gt.extractions, image: { name: s.f.name, sha256: s.f.sha } });
       else if (await sd.ours(s.marker)) await sd.trash(s.marker);
       else throw new Error("Someone else marked it; whoever adds its ground truth drops the marker.");
       await relist(n);
     } catch (e) { msg($("#folder-msg"), e.message || String(e), true); b.disabled = false; }
   }
-  // An image's submissions (req/shell/ground-truth/curate): each tagger's newest, with when it was made and how many
-  // marks it holds, to accept into the curated folder or reject with a reason
-  async function review(n, f) {
-    const dlg = $("#curate-dlg"), list = $("#curate-list"), say = (text, err) => msg($("#curate-msg"), text, err);
-    const image = { name: f.name, sha256: f.sha };
-    $("#curate-title").textContent = f.name; list.replaceChildren(); say("Reading the submissions…");
-    dlg.showModal();
-    const curated = gtNodes.find((g) => g.id === gt.curated)?.access, curatedOk = curated === "write";
-    try {
-      const subs = await tf.files(reader, gt.submissions, image);
-      const rows = await Promise.all(subs.map(async (s) => {
-        let doc = null;
-        try { doc = JSON.parse(await reader.text(s.id)); } catch { /* shown as unreadable */ }
-        return { s, doc };
-      }));
-      list.replaceChildren(...rows.map(({ s, doc }) => {
-        const li = document.createElement("li");
-        const when = doc?.created ? new Date(doc.created).toLocaleString() : "no time";
-        li.innerHTML = `<span class="who"></span><span class="hint"></span><span class="grow"></span>` +
-          `<button type="button" class="accept primary" data-needs-network>Accept</button><button type="button" class="reject" data-needs-network>Reject</button>`;
-        li.querySelector(".who").textContent = doc?.tagger || s.name;
-        li.querySelector(".hint").textContent = s.rejected ? `rejected: ${s.reason || "no reason given"}` : `${when}, ${doc?.labels?.length ?? "?"} marks`;
-        const [ok, no] = li.querySelectorAll("button");
-        ok.disabled = !doc || !curatedOk; ok.title = curatedOk ? "Copy it into the curated folder, as this image's ground truth" : (ACCESS[curated] || ACCESS.view)[1];
-        no.disabled = s.rejected;
-        ok.onclick = async () => {
-          ok.disabled = no.disabled = true; say("Accepting…");
-          try { await tf.accept({ reader, writer, folders: gt, image, file: s, by: account.email() }); say(`Accepted ${doc.tagger || s.name}'s ground truth.`); await relist(n); }
-          catch (e) { say(e.message || String(e), true); ok.disabled = no.disabled = false; }
-        };
-        no.onclick = async () => {
-          const reason = prompt("Why is it rejected? The tagger sees this.", "");
-          if (reason === null) return;
-          ok.disabled = no.disabled = true; say("Rejecting…");
-          try { await tf.reject({ reader, writer, folders: gt, image, file: s, reason }); say("Rejected."); await relist(n); }
-          catch (e) { say(e.message || String(e), true); no.disabled = false; }
-        };
-        return li;
-      }));
-      say(rows.length ? (curatedOk ? "" : curated === "unpermitted" ? `To accept: ${ACCESS.unpermitted[1]}` : "The curated folder is view only for you: ask its owner for edit access to accept.") : "No submissions.");
-    } catch (e) { say(e.message || String(e), true); }
-  }
-  $("#curate-close").onclick = () => $("#curate-dlg").close();
-
   $("#update-previews").onclick = () => ctx.working($("#update-previews"), async () => {
     const n = nodes.get(chosen?.id);
-    if (!n) return;
+    if (!n || !editable()) return;
     const say = (t, err) => msg($("#folder-msg"), t, err);
     try {
       const f = await previewsFile(n, true);
@@ -647,9 +605,20 @@ export function dataMode(ctx) {
   });
 
   // ---------- an image: its preview first ----------
-  async function chooseImage(n, f) {
+  // the image chosen, beside the grid: its name, its cell outlined, and Open image… once it is read (req/setup/image)
+  function drawImagePanel(name) {
+    const image = chosen?.kind === "image";
+    $("#image-panel").hidden = !image;
+    if (name != null) $("#image-panel-name").textContent = name;
+    $("#image-open").disabled = !image || ctx.imageOpen()?.id !== chosen.id;
+    for (const c of $("#folder-items").querySelectorAll(".cell")) c.classList.toggle("chosen", image && c.dataset.id === chosen.id);
+  }
+  // fromGrid: chosen in the grid, which then stays; chosen in the tree, the grid steps aside
+  async function chooseImage(n, f, fromGrid = false) {
+    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
+    ctx.setup?.chose("image", { id: f.id, name: f.name, sha: f.sha, folder: n.id });
     chosen = { kind: "image", id: f.id, folder: n.id }; root.dataset.sel = "image"; ctx.relabel();
-    drawTree(); ctx.showFolder(false);
+    drawTree(); ctx.showFolder(fromGrid && gridOf === n.id); drawImagePanel(f.name);
     const pv = await previewsOf(n), e = pv?.entry(f.name, f.sha), source = remote.source(f.id, { name: f.name, folder: n.id });
     if (!e) { ctx.status(isTiff(f.name) ? `${f.name} has no preview yet: opening the image itself.` : `Opening ${f.name} itself.`); return ctx.loadOriginal(source); }
     let pages;
@@ -665,7 +634,7 @@ export function dataMode(ctx) {
   function enter(open) {
     if (open === on()) return;
     const go = () => {
-      if (open) root.dataset.mode = "data"; else { delete root.dataset.mode; delete root.dataset.sel; chosen = null; ctx.showFolder(false); }
+      if (open) root.dataset.mode = "data"; else { delete root.dataset.mode; delete root.dataset.sel; chosen = null; gridOf = null; ctx.showFolder(false); drawImagePanel(); }
       ctx.modeChanged(open);
     };
     poof(open);
@@ -683,12 +652,6 @@ export function dataMode(ctx) {
     // gone once the puff is over, whether it ran out, was cut short or (WebKit, at times) never started
     Promise.all(l.getAnimations().map((x) => x.finished.catch(() => {}))).then(() => { l.classList.remove("poof"); if (on()) l.classList.add("gone"); });
   }
-  // the chevron folds the tree to a strip, and opens it again
-  $("#data-open").onclick = () => {
-    const fold = root.dataset.tree !== "folded";
-    if (fold) root.dataset.tree = "folded"; else delete root.dataset.tree;
-    $("#data-open").setAttribute("aria-expanded", String(!fold));
-  };
   // the network back: the folders read afresh, if they could not be read before
   addEventListener(CONNECTION, (e) => {
     if (!e.detail.online || !on() || nodes.size) return;
@@ -697,22 +660,35 @@ export function dataMode(ctx) {
 
   return {
     // an image opened: whether the Tags box may mark its areas
-    opened() { if (on()) drawTags(); },
+    opened() { if (on()) { drawTags(); drawImagePanel(); } },
     // a study comes in (or the user signs in or out): who may do what in it
     mount(m) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
       if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(chosen?.kind === "folder"); return; }
-      epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null;
+      epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null; gridOf = null;
+      showFrozen();
+      ctx.setup?.leave();
       if (on()) enter(false);
-      asStarted(); delete root.dataset.tree;
-      roots = []; unlisted = []; tagsDoc = { images: {}, folders: {} }; look = { group: null, hide: [] }; gt = tf.folders(null); gtNodes = [];
+      asStarted();
+      roots = []; unlisted = []; tagsDoc = { images: {}, folders: {} }; look = { group: null, hide: [] }; gt = { extractions: null }; gtNodes = []; marks = {};
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
       $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true; $("#tags-box").hidden = true; $("#study-set").hidden = true;
     },
+    // the study file's marks written (req/setup/marks): read again, the folder on show drawn with them
+    async marked() {
+      const s = await place.settings().catch(() => null);
+      if (s) marks = s.marks || {};
+      ctx.setup?.indexed();
+      const n = chosen && nodes.get(chosen.kind === "folder" ? chosen.id : chosen.folder);
+      truthStatus();
+      if (chosen?.kind === "folder" && n) relist(n);
+    },
+    // the stage changed, by a promotion or a move back: what it opens and closes of the data shows at once
+    stageChanged() { showFrozen(); drawTree(); drawTags(); },
     // whoever is signed in may have changed: the study's roles again, if so
     signedIn() { if (manifest && account.email() !== who) this.mount(manifest); },
-    // the Study Manager role chosen, or left (req/shell/account/role)
-    role(open) { $("#data-col").hidden = !open; enter(open); },
+    // Study Setup's page opened for someone the store lets write the root, or not
+    open(on) { $("#data-col").hidden = !on; enter(on); },
     get on() { return on(); },
   };
 }

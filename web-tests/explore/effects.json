@@ -1,0 +1,62 @@
+{
+  "about": "What each family of actions may and must change, the explorer's action-effect oracle (explore.mjs). An action takes the first family whose match fits it: key, a pattern of the control's key (its #id, or a path from the nearest one); text, of its text; within, of an ancestor's id; kind, of the action's kind (click, fill, range, select, canvas, drag, key, event); event, of a world event's name. A step's change is a list of categories: url; html.<data attribute>; class.<class on html>; storage.<browser key>; dialog (a dialog or a native one opened or closed); open (a menu or folded box opened or closed); drive.<create|replace|share|unshare|folder|mark|trash> (a write Drive's fake took); settings (a write to the user's app folder); signin (Google's window asked); download; popup. must: categories the step changes; may: those it is allowed to (a * at the end matches any rest); writes: how many Drive writes it makes, a number, [least, most], or \"any\". A change in a category neither names is an unexpected change, flagged for review. reverts: the step puts back what the step before it changed. always: categories any step may change, the page's own bookkeeping. allow: messages the page may say in any world, each with why; where one is a fake's doing rather than the page's, the fake is what to fix.",
+  "always": ["storage.nor-actions"],
+  "bookkeeping": {
+    "signedIn": {"categories": ["settings", "signin", "storage.nor-google-sign-in"], "why": "a followed setting is saved to the user's own storage 400 ms after the last change, so on any later step, and a token not fresh is renewed in the next click, whatever it was for"},
+    "menuOpen": {"categories": ["open"], "why": "a click away from a menu that is open closes it, and opens nothing", "actions": ["click"]}
+  },
+  "shellStates": {"openedBy": [
+    {"select": "#file-info", "by": "#file-name", "why": "the image's name unfolds the details (req/shell/image/file-info), which the rules leave at hidden"},
+    {"select": "#lasso-hint", "by": "#mask-add", "why": "Define Area of Interest starts a lasso (req/shell/summary/mask), which no path of the rules takes"},
+    {"select": "#scoring-note", "by": "#scoring-help", "why": "the (?) shows how the study scores (req/shell/processing/scoring), which the rules leave at hidden"}
+  ], "unread": [
+    {"html": {"tree": "folded"}, "under": "Folders", "why": "the person folded the folders, which no var of the shell-states rules says"}
+  ]},
+  "allow": [
+    {"pattern": "could not be read: The source image could not be decoded", "why": "the worlds' Drive holds a file cut short in its upload, which the page tells the person it cannot read"},
+    {"pattern": "expected a 3-channel ImageJ TIFF", "why": "the walk opens an image the NoR study's Python cannot read, which it answers as the real one does, and the page says so in its status"}
+  ],
+  "families": [
+    {"family": "theme", "match": {"key": "^#theme$"}, "must": ["html.theme"], "may": ["storage.*", "settings", "open"], "writes": 0},
+    {"family": "a box's fold", "match": {"key": "-box > div:nth-of-type\\(1\\) > h2$"}, "may": ["storage.*", "settings", "open"], "writes": 0},
+    {"family": "sign in", "match": {"key": "^#(sign-in|welcome-sign-in|guide-go)$"}, "may": ["signin", "storage.*", "settings", "dialog", "html.*", "class.*", "url", "open"], "writes": 0},
+    {"family": "sign out", "match": {"key": "^#sign-out$"}, "may": ["storage.*", "html.*", "class.*", "dialog", "url", "open"], "writes": 0},
+    {"family": "continue anonymously", "match": {"key": "^#welcome-anonymous$"}, "may": ["storage.*", "dialog", "html.*"], "writes": 0},
+    {"family": "save draft", "match": {"key": "^#gt-save-draft$"}, "may": ["storage.*", "html.*", "dialog"], "writes": [0, 4]},
+    {"family": "upload an analysis", "match": {"key": "^#(gt-submit|gt-send)$"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
+    {"family": "download the analysis", "match": {"key": "^#analysis-dl$"}, "may": ["download", "html.*", "class.*"], "writes": 0},
+    {"family": "download from the analysis's menu", "match": {"key": "^#analysis-dl-menu "}, "must": ["download"], "may": ["html.*", "class.*"], "writes": 0},
+    {"family": "download the summary", "match": {"key": "^#summary-dl$"}, "must": ["download"], "writes": 0},
+    {"family": "download the results", "match": {"key": "^#results-csv$"}, "may": ["download"], "writes": 0},
+    {"family": "show results", "match": {"key": "^#results-show$"}, "may": ["html.*", "class.*", "open", "settings", "storage.*"], "writes": 0},
+    {"family": "undo", "match": {"key": "^#gt-undo$"}, "reverts": true, "after": "^#(eh-list|gt-undo)", "may": ["storage.*"], "writes": 0},
+    {"family": "redo", "match": {"key": "^#gt-redo$"}, "may": ["storage.*"], "writes": 0},
+    {"family": "previews", "match": {"key": "^#update-previews$"}, "may": ["storage.*", "html.*"], "writes": "any"},
+    {"family": "tags and areas", "match": {"key": "^#(tags-|study-hide-|study-group|areas-)"}, "may": ["storage.*", "html.*", "dialog"], "writes": "any"},
+    {"family": "folders", "match": {"key": "^#(data-add|gt-setup|setup-)"}, "may": ["storage.*", "html.*", "dialog", "url"], "writes": "any"},
+    {"family": "settings", "match": {"key": "^#(settings-save|open-settings|settings-)"}, "may": ["settings", "storage.*", "dialog", "html.*", "class.*", "open"], "writes": 0},
+    {"family": "zoom", "match": {"key": "^#zoom-(in|out)$"}, "may": ["storage.*"], "writes": 0},
+    {"family": "view tools", "match": {"key": "^#(ruler-btn|grid-btn|minimap-btn|minimap-hide|minimap-fold|switch)$"}, "may": ["storage.*", "settings"], "writes": 0},
+    {"family": "study switch", "match": {"within": "^study-(list|menu)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open"], "writes": 0},
+    {"family": "start or load an analysis", "match": {"key": "^#(annotate-|start-(run|cancel)$|load-(go|cancel)$)"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open", "url"], "writes": 0},
+    {"family": "study setup", "match": {"key": "^#open-setup$"}, "may": ["url", "popup", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": "any"},
+    {"family": "preferences", "match": {"within": "^(usage-dlg|settings-dlg|settings-list|motion)$"}, "may": ["html.*", "class.*", "storage.*", "settings", "dialog", "open"], "writes": 0},
+    {"family": "marks on an image", "match": {"text": "^(Needs GT|Has GT|Reviewed)"}, "may": ["html.*", "storage.*", "open"], "writes": "any"},
+    {"family": "study membership", "match": {"text": "^(Remove from|Add to) (the )?study"}, "may": ["html.*", "storage.*", "dialog", "open"], "writes": "any"},
+    {"family": "the stage", "match": {"key": "^#stage-(up|back|freeze)$"}, "may": ["html.*", "class.*", "storage.*", "dialog", "open"], "writes": "any"},
+    {"family": "folder tree", "match": {"within": "^(data-tree|folder-items|data-col)$"}, "may": ["html.sel", "html.gtLookup", "html.tree", "storage.*", "dialog", "open", "url"], "writes": 0},
+    {"family": "load", "match": {"key": "^#(load-main|load-remote|remote-|load-original|unload|gt-load-|recent > button)"}, "may": ["storage.*", "html.*", "dialog", "open", "url"], "writes": 0},
+    {"family": "report a problem", "match": {"key": "^#(report-problem|sb-report|problem-)"}, "may": ["dialog", "popup", "open", "storage.*"], "writes": 0},
+    {"family": "cancel or close", "match": {"text": "^(Cancel|Close|×|OK)$"}, "may": ["dialog", "storage.*", "open", "html.*"], "writes": 0},
+    {"family": "a link", "match": {"kind": "^click$", "key": "(^| )a(:|$)|a:nth|> a$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "popup", "download"], "writes": 0},
+    {"family": "a menu", "match": {"key": "summary"}, "may": ["open", "dialog", "storage.nor-tips-closed"], "writes": 0},
+    {"family": "on the image", "match": {"kind": "^(canvas|drag)$"}, "may": ["storage.*", "html.*"], "writes": 0},
+    {"family": "a key", "match": {"kind": "^key$"}, "may": ["dialog", "open", "storage.*", "html.*", "class.*", "popup"], "writes": 0},
+    {"family": "offline", "match": {"event": "^offline$"}, "must": ["class.offline"], "may": ["storage.*", "html.*", "dialog"], "writes": 0},
+    {"family": "online", "match": {"event": "^online$"}, "must": ["class.offline"], "may": ["storage.*", "html.*", "dialog", "settings"], "writes": "any"},
+    {"family": "navigation", "match": {"event": "^(reload|back|switchStudy|returnToApp)$"}, "may": ["url", "html.*", "class.*", "storage.*", "dialog", "open", "settings", "signin"], "writes": 0},
+    {"family": "Google elsewhere", "match": {"event": "^(expireToken|signedOutElsewhere|googleAnswers)$"}, "may": ["storage.*", "html.*", "class.*", "dialog", "signin"], "writes": 0},
+    {"family": "Drive elsewhere", "match": {"event": "^(driveAdded|driveRemoved|driveRenamed|accessRemoved)$"}, "may": ["storage.*", "html.*", "dialog"], "writes": 0},
+    {"family": "a control", "match": {}, "may": ["dialog", "open", "storage.*"], "writes": 0}
+  ]
+}

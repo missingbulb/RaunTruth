@@ -1,0 +1,92 @@
+{
+ "about": "A first visit: the welcome popup not yet answered, Google granting a sign-in when asked, as the annotator.",
+ "goals": {
+  "person": "a new lab member opening the site for the first time, with a Google account the lab uses",
+  "goals": [
+   "Get started so that your settings follow you to your other computer.",
+   "Open one of the lab's images and count what is in it."
+  ]
+ },
+ "study": "fixture",
+ "stage": "Develop",
+ "user": null,
+ "welcome": true,
+ "signIn": {
+  "answer": "grant",
+  "account": {
+   "email": "annotator@acme.example",
+   "name": "Acme Annotator"
+  }
+ },
+ "drive": {
+  "access": "public",
+  "writers": [
+   "owner@acme.example"
+  ],
+  "gt": true,
+  "extractionsWriters": [
+   "annotator@acme.example"
+  ],
+  "tree": [
+   {
+    "name": "Cohort A",
+    "children": [
+     {
+      "name": "Day 1",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse01_slice03.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse02 slice1 (copy).png",
+        "sample": "png"
+       }
+      ]
+     },
+     {
+      "name": "Day 7",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "bench notes.jpg",
+        "sample": "photo"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Empty folder",
+    "children": []
+   },
+   {
+    "name": "2026-03-14 two channels.tif",
+    "sample": "tif"
+   },
+   {
+    "name": "z-stack 40x.tif",
+    "sample": "stack"
+   },
+   {
+    "name": "upload cut short.png",
+    "sample": "broken"
+   },
+   {
+    "name": "Überblick ölfärbung.png",
+    "sample": "png"
+   },
+   {
+    "name": "wide scan.png",
+    "sample": "large"
+   }
+  ]
+ }
+}

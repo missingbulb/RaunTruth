@@ -1,9 +1,11 @@
 // The page's shell: it runs the study the address names (/<id>, the default at the bare address), and knows
 // none of them; the header's switcher offers the ones the build lists and swaps one in without a reload. What it gives a study, as shell in mount(shell): loading images (from the
 // computer or the remote store), Python (the study's own, run in worker.js), the viewer the study asks for,
-// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps' breadcrumbs (step(key, done, info) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
-// submission; and around them the theme, the left bar, foldable boxes, Data Management (data_mode.js), the resources dialog (storage, memory,
-// network and CPU) and the version history.
+// the page's state its controls are drawn from (page: get, set, watch(key, fn, {signal})), the status line and the busy screen, the steps whose button shines (step(key, done) for the study's own), the algorithm chosen among the study's own (algorithm: ready, key, title, on(fn)), the switch to its item view (views), the ground-truth tasks listed in the left bar (tasks), the keys of the actions its study.json declares (actions: handle, report) and the boxes' titles (boxDone(box, summary) once a box's task is done), a Markdown outline as HTML (outline(text)), every drag the study makes (drag, so Escape cancels it: req/shell/drag/escape), notices, the user's saved settings, downloads and ground-truth
+// submission; and around them the theme, the left bar, foldable boxes, the resources dialog (storage, memory,
+// network and CPU) and the version history. The page is the shell of two addresses: the study's own, and Study Setup
+// (setup.html, which loads setup.js, which attaches Data Management, data_mode.js, to the shell); the shell lends setup.js
+// what that needs in `lent`, and calls what it attached back.
 //
 // The study's hooks, all optional, returned from mount: ready(info) once its Python is loaded;
 // opening(name, source) when an image starts to load; opened(meta) once it is shown; result(action,
@@ -22,11 +24,11 @@ import { every, within, after } from "./pacing.js";
 import { work } from "./pending.js";
 import { viewer3d } from "./viewer3d.js";
 import { pageState } from "./page_state.js";
-import { shape, stackPicture, holds, drawVolume, TURN } from "./stack.js";
-import { PREVIEWS, readPreviews } from "./previews.js";
-import { isTiff } from "./accepts.js";
 import { account, SIGNED_IN, SIGNED_IN_LABEL } from "./account.js";
 import { remote } from "./drive.js";
+import { networkCalls } from "./network_calls.js";
+import { members, offers, released } from "./members.js";
+import { STAGES, LIGHT, WHAT, NEXT, stageAllows as allows, stageOf, gates, lines as stageLines } from "./stages.js";
 import { settingsDialog } from "./settings_dialog.js";
 import { offline, APP_ASKED, markOffline, CONNECTION, holdOwns } from "./offline.js";
 import { welcome, WELCOME } from "./welcome.js";
@@ -34,27 +36,40 @@ import { guide } from "./guide.js";
 import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
-import { dataMode } from "./data_mode.js";
-import { ROLE, ROLE_NAMES, held, shown, roleMenu } from "./roles.js";
 import { dialogMotion } from "./dialog_motion.js";
+import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
-import { truthTasks } from "./truth_tasks.js";
 import { truthHistory } from "./truth_history.js";
 import { GT_HISTORY } from "./edit_history.js";
 import { truthDrafts } from "./truth_drafts.js";
-import { groupsOf, isHidden } from "./tags.js";
-import { subfolderName } from "./truth_folders.js";
+import { isHidden } from "./tags.js";
+import { subfolderName, marksOf } from "./truth_folders.js";
 import { studyPlace } from "./study_root.js";
 import { openImage, inOrder } from "./image_open.js";
-import { storedPart } from "./vsi.js";
 import { CORE, PYODIDE, NOT_HERE, packagesOf } from "./python_files.js";
 import { asLoaded } from "./as_loaded.js";
-import { algorithmChoice } from "./algorithm_choice.js";
 import { actions } from "./actions.js";
-import { summaryDownload } from "./summary_download.js";
-import { summaryMask } from "./summary_mask.js";
+import { summaryBox } from "./summary_box.js";
+import { imageKeeping, IMAGES, IMAGE_NAME, IMAGE_STUDY, HOLDS, THUMBS_CACHE, FOLDER_PREVIEWS, IMAGE_AT } from "./image_keeping.js";
+import { imageDialog, REMOTE_LINK, REMOTE_LINKS, THUMBS, STUDY_INDEX, LISTINGS, THROTTLE } from "./image_dialog.js";
+import { loadBox, RECENT, LOCAL_RECENT } from "./load_box.js";
+import { analysisBox, OUTBOX } from "./analysis_box.js";
+import { statusResources } from "./status_resources.js";
 
 const $ = (s) => document.querySelector(s);
+// whether this is Study Setup's page (req/setup/page), which shows the study as the one whose root its owner may write, online only
+const SETUP = document.documentElement.dataset.page === "setup";
+// the status line with nothing under way: Study Setup has no Load to ask for
+const READY = SETUP ? "Ready." : "Ready. Load an image.";
+// what Study Setup's own script (setup.js) attached: the study's folders and what is set on them; the study's own page has none
+const attached = [];
+const data = {
+  signedIn: () => attached.forEach((d) => d.signedIn?.()), open: (on) => attached.forEach((d) => d.open?.(on)),
+  opened: () => attached.forEach((d) => d.opened?.()), mount: (m) => attached.forEach((d) => d.mount?.(m)),
+  stageChanged: () => attached.forEach((d) => d.stageChanged?.()),
+  get on() { return attached.some((d) => d.on); },
+};
+export const attach = (d) => { attached.push(d); };
 // what the user does here, kept on this device for a problem report (req/shell/report/action-log)
 const log = actionLog();
 log.watch();
@@ -64,49 +79,15 @@ const DEFAULT_STUDY = "viewer";
 // the browser keys the shell saves under; their names predate studies, and a user's saved state lives in them
 const THEME = "nor-theme"; // "dark" | "light"; absent = follow the system
 const BARS = "nor-bars-v1"; // {left}: the left bar's width in pixels (a right bar's, or whether it was collapsed, from before they went, is ignored)
-// the last remote link pasted, in any study
-const REMOTE_LINK = "nor-drive-link";
-// {study id: the last remote link pasted in that study}
-const REMOTE_LINKS = "nor-drive-links";
-// "on" | "off": whether the remote files dialog shows thumbnails
-const THUMBS = "nor-drive-thumbs";
 // "on" | "off": whether an image downloaded from the remote store is kept on this device
 const AUTO_SAVE = "nor-drive-autosave";
 // Auto-save images (req/shell/drive/kept-images): an image downloaded from the remote store is kept on this device
 const autoSave = () => readJSON(AUTO_SAVE, "on") !== "off";
-// where thumbnails were kept before they moved to cache storage, which moves each found here over (req/shell/storage/manage):
-// + remote id: a JPEG data URL of the image; [remote id], oldest first; {remote id: file name}
-const LEGACY_THUMB = "nor-drive-thumb:";
-const LEGACY_THUMBS = "nor-drive-thumbs-saved";
-const LEGACY_THUMB_NAMES = "nor-drive-thumb-names";
 // a tagger's ground-truth draft of an image, by study, image name and SHA-256 (req/shell/ground-truth/draft)
 const GT_DRAFT = "gt-draft|";
-// {remote id: what the file holds, "3D · 8 slices" or "" when it cannot tell}, oldest first
-const HOLDS = "nor-drive-holds";
+// the images this device saved an extraction of, {study: [SHA-256]}, for the Load dialog to say which are yours (req/shell/extractions/marks-shown)
+const GT_SAVED = "nor-gt-saved";
 const TIPS = "nor-tips-closed"; // [tip id]: the tips the user closed, never shown again
-// when the wait after the store throttled the site's downloads ends, in ms
-const THROTTLE = "nor-drive-throttled-until";
-// [{id, name, path, study, at}], newest first: images opened from the remote store, path their folders under the link, study the one it was opened in, at when it was last opened (ms; absent for one kept before that was)
-const RECENT = "nor-drive-recent";
-const LOCAL_RECENT = "nor-local-recent"; // [{id, name, study, at}], newest first: files opened from this computer, each the browser's reference to it kept in FILE_HANDLES under id; on this device only
-const FILE_HANDLES = "nor-file-handles-v1"; // the IndexedDB database of those references
-// {folder id: {at, items: [{id, name, folder, size, created, sha}]}}: each folder as the remote files dialog last listed it, created in ms
-const LISTINGS = "nor-drive-listings";
-// {study root id: {at, index}}: each study's index as Load last read it, for working offline (req/shell/load/study-images)
-const STUDY_INDEX = "nor-study-index";
-// Cache Storage, + remote id: an image downloaded from the remote store, its file name (URI-encoded) and when it was saved
-// in the headers
-const IMAGES = "nor-images-v1", IMAGE_NAME = "x-nor-name", IMAGE_AT = "x-nor-saved-at";
-// and, for one kept since offline came, its folders under the study's link (a JSON list, URI-encoded) and the study
-const IMAGE_PATH = "x-nor-path", IMAGE_STUDY = "x-nor-study";
-// Cache Storage, + remote folder id: the folder's rauntruth-previews.tiff, its SHA-256, the folder's name and the study it was read in in the headers
-const FOLDER_PREVIEWS = "nor-previews-v1", PREVIEWS_SHA = "x-nor-sha256";
-// the paths each of those caches keeps its entries under, + remote id
-const PREVIEWS_PATH = "drive-previews/";
-const THUMB_PATH = "drive-thumb/";
-// Cache Storage, + remote id: a JPEG of an image opened from the remote store, its file name (URI-encoded) and when it was saved in the headers
-const THUMBS_CACHE = "nor-thumbs-v1";
-const CACHED_IMAGE_PATH = "drive-image/";
 const MOTION = "nor-motion"; // false: the user turned the page's animations off
 const UNLOAD_PYTHON = "nor-unload-python"; // true: Python is shut down as each of a study's runs ends
 const RESOURCES = "nor-resources"; // the status bar's disk, memory, network and CPU: "auto" | "open"; anything else = "auto"
@@ -123,31 +104,45 @@ const UNREAD_MB = 190;
 const REPO = "missingbulb/RaunTruth";
 // the issue form a proposal for a new study is written on
 const STUDY_REQUEST = "new-study.yml";
+// the calls to other servers in flight, shown in the status bar (req/shell/status-bar/calls)
+const calls = networkCalls({ bar: $("#sb-calls"), servers: {
+  store: { name: remote.label, logo: `<svg viewBox="0 0 24 21"><use href="#${remote.logo.id}"/></svg>` },
+  python: { name: "jsDelivr", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.5 14 4.7v6.6L8 14.5 2 11.3V4.7Z"/><path d="M2 4.7 8 8l6-3.3M8 8v6.5"/></svg>' },
+  site: { name: "rauntruth.com", logo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2.3 2.2 2.3 10.2 0 12.4M8 1.8c-2.3 2.2-2.3 10.2 0 12.4"/></svg>' },
+} });
 // signing in (req/shell/account/sign-in): these settings follow the user to every device, in their own account's storage; the rest stay with this one
-const FOLLOWS = [THEME, ROLE, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
+const FOLLOWS = [THEME, TIPS, SEEN_VERSION, MEMORY_TIP, REMOTE_LINK, REMOTE_LINKS, THUMBS, RECENT, MOTION, RESOURCES];
 const signIn = account({
   keys: FOLLOWS,
+  watched: (sending) => calls.begin("store", "your settings", { sending }),
   guide: guide($("#guide-dlg")),
   menu: $("#user-menu"),
   applied: () => reapply(),
   // after the page's own start, which this may run during
   changed: () => queueMicrotask(async () => {
-    data.signedIn(); if (manifest) storeRoles = await readRoles();
-    showRole(); drawStudies(); remoteHint();
+    data.signedIn(); if (manifest) { storeRoles = await readRoles(); setStage(await readStage()); }
+    showAccess(); readMembers().then(drawStudies); remoteHint();
   }),
 });
 // signed in, the remote store is read as the user (req/shell/drive/credentials)
 remote.use(signIn);
+remote.watched((sending) => calls.begin("store", "", { sending }));
+// Python and its packages coming in, from when its thread starts until it says it is ready or fails
+let pythonComing = null;
+function pythonLoads(on, failed) {
+  $("#spin").classList.toggle("on", on);
+  if (on) pythonComing ||= calls.begin("python", "Python and its packages");
+  else if (pythonComing) { pythonComing(failed ? new Error("Python did not load") : undefined); pythonComing = null; }
+}
 const remoteHint = () => { $("#remote-hint").textContent = remote.words.hint(signIn.signedIn()); };
 // the remote store's name, words and logo, where the page shows them
 $("#logos").insertAdjacentHTML("afterbegin", remote.logo.symbol);
 $("#load-remote").title = $("#load-remote").ariaLabel = `Open from ${remote.label}`;
 $("#load-original").title = `Open the image itself, not its preview: from this device when it is kept here, else from ${remote.label}`;
-$("#remote-title").textContent = `Load from ${remote.label}`;
+$("#remote-title").textContent = "Open Image";
 $("#remote-link").placeholder = remote.words.placeholder;
 $("#remote-throttle-say").textContent = remote.words.throttled;
 
-// the tagger's side of the study's ground-truth folders: the line in its ground-truth box and Submit
 // the study on show's root in the remote store: its settings, the folders Load browses, the roles the store gives
 const place = studyPlace(remote, () => manifest);
 // what the store lets the signed-in user write in the study on show (req/shell/data/roles), read as the study comes in
@@ -155,6 +150,7 @@ let storeRoles = { manager: false, tagger: false };
 // While the sign-in's token has run out, or the store does not answer, they are the ones it last gave this user here,
 // marked as such: stale until the next renewal reads them again, failed when it was asked and did not say
 async function readRoles() {
+  if (setupOffline()) return { manager: false, tagger: false };
   const name = "roles:" + manifest.id, last = () => signIn.learned(name) || { manager: false, tagger: false };
   if (signIn.signedIn() && !signIn.token()) return { ...last(), stale: true };
   try {
@@ -167,7 +163,7 @@ async function readRoles() {
   }
 }
 const truth = truthTagger({ account: signIn, remote, place,
-  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth() });
+  image: () => (st.img ? { name: st.fileName, sha256: st.sha, source: st.source } : null), on: () => !!manifest && makesTruth(), may: () => maySave() });
 
 function readJSON(key, fallback = {}) {
   try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
@@ -197,7 +193,10 @@ function restoreLoaded() {
   asStarted();
   for (const el of out) { inView.unobserve(el); inView.observe(el); }
 }
+const { moveThumbs, saveThumb, keptIds, savedImage, picture, saveImage, idOf, thumbUrl, keptPreviews, folderPreviews, know, turning, imageUrl } = imageKeeping({ st, diskBar, readJSON, writeJSON, throttle: () => throttle(), get view() { return view; }, get throttled() { return throttled; }, get manifest() { return manifest; } });
 let study = {}, view = null, manifest = null, base = "";
+// the study's Python as one hash, as the worker said when the study came up; null where it could not tell
+let studyCode = null;
 
 // ---------- status ----------
 // said: the last thing the page said, {text, err}; loading: what the remote files dialog's thumbnails say while they
@@ -245,12 +244,13 @@ const mbOf = (n) => Math.round(n / 2 ** 20);
 function ramList() {
   const { js, total } = memoryNow(), gb = navigator.deviceMemory;
   const image = Object.values(st.img || {}).reduce((a, c) => a + (c?.byteLength || 0), 0);
+  const within = [...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
+    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true])];
   const rows = [
     ["Python", "Its memory as far as it has grown", st.heap],
     ["Python's files", "Python's library, its packages and the study's code", st.files],
-    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold, the indented rows among it", js],
-    ...(st.img ? [["The image", `${st.W} × ${st.H} px, each colour layer`, image, true]] : []),
-    ...(study.memory?.() || []).map((r) => [r.name, r.what, r.size, true]),
+    ["The page", js == null ? "Only Chrome and Edge say it" : "Its scripts and what they hold" + (within.length ? ", the indented rows among it" : ""), js],
+    ...within,
     ["Compiled code and the browser", "An estimate: a page cannot read it", UNREAD_MB * 2 ** 20],
   ];
   $("#ram-total").textContent = total == null ? "Python is still loading." : `This tab holds about ${mbOf(total)} MB` + (gb ? ` of this computer's ${gb} GB.` : ".");
@@ -277,70 +277,7 @@ async function diskBar() {
 const showDisk = (n) => showNumber($("#sb-disk"), sizeText(n));
 $("#sb-disk").onclick = () => usage("storage");
 
-// ---------- the resources dialog: storage, memory, network and CPU, a tab each ----------
-let usageTab = null;
-const tabOn = (t) => $("#usage-dlg").open && usageTab === t;
-function usage(tab) {
-  const d = $("#usage-dlg"), again = tabOn(tab);
-  usageTab = tab; d.dataset.tab = tab;
-  for (const b of d.querySelectorAll("[role=tab]")) b.setAttribute("aria-selected", b.dataset.tab === tab);
-  for (const p of d.querySelectorAll("[role=tabpanel]")) p.hidden = p.dataset.tab !== tab;
-  if (!d.open) d.showModal();
-  if (tab === "storage") storageTab(!again);
-  else if (tab === "memory") ramList();
-  else usageNow();
-}
-$("#usage-dlg .tab-row").onclick = (e) => { const t = e.target.closest("[role=tab]"); if (t) usage(t.dataset.tab); };
-
-// ---------- the resources block: the disk, memory, network and CPU folded into one icon ----------
-// (req/shell/status-bar/resources) Autohide checked, it unfolds while hovered, and while something needs watching: the
-// CPU over RAISE_CPU or the network over RAISE_RATE for RAISE_AFTER_MS, the tab over RAISE_RAM; it folds
-// RAISE_LINGER_MS after the last of them ends.
-const RAISE_CPU = 0.5, RAISE_RATE = 250 * 1024, RAISE_RAM = 2 ** 30, RAISE_AFTER_MS = 5000, RAISE_LINGER_MS = 8000;
-const raise = { cpuSince: null, netSince: null, until: 0 };
-function showResources() {
-  const kept = readJSON(RESOURCES, "auto"), open = kept === "open";
-  // a kept value other than "open" or "auto" reads as auto-hiding, and is forgotten
-  if (kept !== "auto" && !open) try { localStorage.removeItem(RESOURCES); } catch { /* no storage */ }
-  $("#sb-res").dataset.mode = open ? "open" : "auto";
-  $("#res-mode").checked = !open;
-}
-showResources();
-$("#res-mode").onchange = (e) => { writeJSON(RESOURCES, e.target.checked ? "auto" : "open"); showResources(); };
-$("#sb-res-icon").onclick = () => usage(usageTab || "storage");
-$("#sb-online").onclick = () => usage("storage"); // where the page installs as an app and each study is made available offline
-function raiseResources(cpuShare, rate) {
-  const t = Date.now(), long = (since) => since != null && t - since > RAISE_AFTER_MS;
-  raise.cpuSince = cpuShare > RAISE_CPU ? raise.cpuSince ?? t : null;
-  raise.netSince = rate > RAISE_RATE ? raise.netSince ?? t : null;
-  const watch = long(raise.cpuSince) || long(raise.netSince) || memoryNow().total > RAISE_RAM;
-  if (watch) raise.until = t + RAISE_LINGER_MS;
-  $("#sb-res").classList.toggle("raised", t < raise.until);
-}
-// ---------- the status bar's numbers: each changed character rolls up to its new one ----------
-// Characters are paired from the right, so "9%" to "12%" rolls the 9 to a 2 and brings the 1 in from nothing;
-// the old character is the rolling one's data-from, so the number reads as its new value throughout.
-const SHARP_CPU = 0.3, SHARP_RATE = 2 ** 20;
-// the flash is the stylesheet's spike animation; a new spike plays it again from its start
-function showNumber(item, text, spike) {
-  if (spike && !still()) {
-    // the item and its icon play it; asked of them alone, so no animation of a rolling digit is held after it is gone
-    if (item.classList.contains("spike")) for (const el of [item, item.querySelector("svg")]) for (const a of el?.getAnimations() || []) if (a.animationName === "spike") { a.cancel(); a.play(); }
-    item.classList.add("spike");
-    if (!item.onanimationend) item.onanimationend = item.onanimationcancel = (e) => { if (e.target === item && e.animationName === "spike") item.classList.remove("spike"); }; // ends with animations off: none starts then (still()), and one running is cancelled, which clears it
-  }
-  const v = item.querySelector(".v"), was = v.textContent;
-  if (text === was) return;
-  if (!was) { v.textContent = text; return; }
-  v.replaceChildren(...[...text].map((ch, i) => {
-    const from = was[was.length - text.length + i] ?? "";
-    if (from === ch || ch === " ") return ch;
-    const roll = document.createElement("span"), d = document.createElement("span");
-    roll.className = "roll"; d.dataset.from = from; d.textContent = ch; roll.append(d);
-    return roll;
-  }));
-}
-
+const { showNumber, tabOn, usage, cpu, net, showResources } = statusResources({ $, storageTab, ramList, readJSON, RESOURCES, writeJSON, memoryNow, still, sizeText, entry });
 // ---------- animations: on unless the user turned them off in the CPU tab, or asks the system for reduced motion ----------
 // Off, the stylesheet stops every animation and transition but the spinners'; motion the page starts itself asks still()
 const motion = $("#motion");
@@ -359,109 +296,37 @@ const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false)
 showUnloading();
 unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
+focusReturn();
 
 $("#sb-net").onclick = () => usage("network");
 $("#sb-cpu").onclick = () => usage("cpu");
 
-// ---------- what this tab downloads ----------
-// A browser gives a page no total, so it is summed from three places. The page's and Python's own timings,
-// which give 0 for what the service worker answered and for a site that keeps its sizes from other pages;
-// the service worker's, for what it fetched for this page and for its Python (sw.js); and the remote store's, which
-// counts its own. From the browser's caches nothing is downloaded and nothing counts.
-const net = { page: 0, worker: 0, sw: {} };
-try {
-  net.page = performance.getEntriesByType("navigation")[0]?.transferSize || 0;
-  new PerformanceObserver((l) => { for (const e of l.getEntries()) net.page += e.transferSize || 0; }).observe({ type: "resource", buffered: true });
-} catch { /* no timings: the service worker's and the remote store's counts alone */ }
-// the service worker's counts, by client: a count lower than the last is a new service worker counting from 0
-function swCounted({ page, workers }) {
-  for (const [id, n, role] of [[page.id, page.bytes, "page"], ...Object.entries(workers).map(([id, n]) => [id, n, "worker"])]) {
-    const c = net.sw[id] ||= { role, last: 0, before: 0 };
-    if (n < c.last) c.before += c.last;
-    c.last = n;
-  }
-}
-navigator.serviceWorker?.addEventListener("message", (e) => { if (e.data?.type === "net") swCounted(e.data); });
-const askSw = () => navigator.serviceWorker?.controller?.postMessage({ type: "net", workers: Object.keys(net.sw).filter((id) => net.sw[id].role === "worker") });
-function netNow() {
-  const sw = (role) => Object.values(net.sw).filter((c) => c.role === role).reduce((a, c) => a + c.before + c.last, 0);
-  const page = net.page + sw("page"), python = net.worker + sw("worker"), store = remote.received();
-  return { page, python, store, total: page + python + store };
-}
-// how fast: what was downloaded over the last CPU_MS, as the CPU's share is counted
-const netSamples = [];
-function netRate(total) {
-  const t = Date.now();
-  netSamples.push([t, total]);
-  while (netSamples.length > 1 && netSamples[1][0] <= t - CPU_MS) netSamples.shift();
-  const [t0, n0] = netSamples[0];
-  return t > t0 ? ((total - n0) * 1000) / (t - t0) : 0;
-}
-const speedText = (r) => `${sizeText(r)}/s`;
-function netList(n, rate) {
-  const off = document.documentElement.classList.contains("offline") ? "Offline: no internet. " : "";
-  $("#net-total").textContent = `${off}This tab is downloading ${speedText(rate)} and has downloaded ${sizeText(n.total)} since it opened.`;
-  $("#net-list").replaceChildren(
-    entry("The page", "Its own files; what this browser had kept counts nothing", sizeText(n.page)),
-    entry("Python", "Python, its packages and the study's Python", sizeText(n.python)),
-    entry(remote.label, "Images and folder lists; not its small pictures of images", sizeText(n.store)));
-}
-
-// ---------- how busy this tab's threads are ----------
-// The page's thread: its long tasks, which only Chrome and Edge report (null elsewhere: unknown). Python's: the
-// time it has spent working, as its last message said ({ms, since}, since set while it works), sampled each
-// second. Each is a share of one core over the last CPU_MS.
-const CPU_MS = 2000;
-const cpu = { long: PerformanceObserver.supportedEntryTypes?.includes("longtask") ? [] : null, py: { ms: 0, since: null }, samples: [] };
-if (cpu.long) new PerformanceObserver((l) => { for (const e of l.getEntries()) cpu.long.push([e.startTime, e.startTime + e.duration]); }).observe({ type: "longtask" });
-function cpuNow() {
-  const now = performance.now(), from = now - CPU_MS;
-  let page = null;
-  if (cpu.long) {
-    cpu.long = cpu.long.filter(([, end]) => end > from);
-    page = cpu.long.reduce((a, [start, end]) => a + end - Math.max(start, from), 0) / CPU_MS;
-  }
-  const t = Date.now(), worked = cpu.py.ms + (cpu.py.since ? t - cpu.py.since : 0);
-  cpu.samples.push([t, worked]);
-  while (cpu.samples.length > 1 && cpu.samples[1][0] <= t - CPU_MS) cpu.samples.shift();
-  const [t0, w0] = cpu.samples[0], python = t > t0 ? Math.min(1, (worked - w0) / (t - t0)) : 0;
-  return { page, python, total: (page || 0) + python };
-}
-const pct = (x) => (x == null ? "–" : Math.round(x * 100) + "%");
-function cpuList(c) {
-  $("#cpu-total").textContent = `This tab's threads are using about ${pct(c.total)} of one core.`;
-  $("#cpu-list").replaceChildren(
-    entry("The page", c.page == null ? "Unknown: only Chrome and Edge report it" : "Its long tasks: an estimate", pct(c.page)),
-    entry("Python", "The time it spent working", pct(c.python)));
-}
-
-// each second: the network and CPU in the status bar, and in their tabs when open; a sharp rise flashes
-const last = { rate: 0, cpu: 0 };
-const sharp = (now, was, step) => now >= 2 * was && now - was >= step;
-function usageNow() {
-  const n = netNow(), c = cpuNow(), rate = netRate(n.total);
-  showNumber($("#sb-net"), speedText(rate), sharp(rate, last.rate, SHARP_RATE));
-  showNumber($("#sb-cpu"), pct(c.total), sharp(c.total, last.cpu, SHARP_CPU));
-  last.rate = rate; last.cpu = c.total;
-  raiseResources(c.total, rate);
-  if (tabOn("network")) netList(n, rate);
-  if (tabOn("cpu")) cpuList(c);
-}
-every(1000, usageNow, { whenHidden: true });
-every(2000, askSw, { whenHidden: true });
-askSw(); usageNow();
-
 // ---------- the study's stage and steps ----------
-// in order, each with its traffic light, what it means, and what moves a study on from it
-const STAGES = {
-  PreGT: { light: "red", what: "Its tools work, but cannot make ground truth yet, so there is nothing to export.",
-    next: "To move on to GT, the study needs a way to make ground truth: an export of what you confirm, to submit." },
-  GT: { light: "yellow", what: "Its tools make ground truth, to export and submit.",
-    next: "To move on to PostGT, the study needs batch actions: its tools run over many images at once." },
-  PostGT: { light: "green", what: "It makes ground truth, and has batch actions too.",
-    next: "To move on to Published, its algorithm needs to be trusted, so the page only shows what it finds." },
-  Published: { light: "all", what: "Its algorithm is trusted: the page shows what it finds, with no ground truth to make.", next: "This is the last stage." },
-};
+// What the stage opens (req/shell/study/stage): the one table of stages.js read for the study on show, whose stage is its study file's
+// once that is read (readStage), its study.json's until then, and none for a study outside the model.
+const stageAllows = (action) => !!manifest && allows(manifest.stage, action);
+// the stage read from the study file, which the study.json's stage stands in for where the file names none or cannot be read: from the
+// minute's copy, or fresh; the one the account last read stands in while the store does not answer. A visitor who never signs in reads
+// it too, by the site's key, since the file is shared by link. A study with no stage keeps none.
+async function readStage({ fresh = false } = {}) {
+  if (!manifest || manifest.stage == null) return manifest?.stage ?? null;
+  const name = "stage:" + manifest.id;
+  let file = null;
+  if (remote.ready && (!signIn.signedIn() || signIn.token()) && place.root() && !setupOffline() && !document.documentElement.classList.contains("offline")) {
+    try {
+      file = await place.settings({ fresh });
+      if (file && STAGES.includes(file.stage) && signIn.signedIn()) signIn.learn(name, file.stage);
+    } catch (e) { if (!e?.noAccess) console.warn("the study's stage was not read:", e); }
+  }
+  const last = signIn.learned(name);
+  return stageOf(file || (STAGES.includes(last) ? { stage: last } : null), manifest);
+}
+// the study's stage changed, by Study Setup's promotion or a read: what follows from it is drawn again
+function setStage(stage) {
+  if (!manifest || manifest.stage == null || manifest.stage === stage || !STAGES.includes(stage)) return;
+  manifest.stage = stage;
+  showStage(); showBoxes(); drawAnnotate(); data.stageChanged();
+}
 function showStage() {
   if (manifest.stage) document.documentElement.dataset.stage = manifest.stage; else delete document.documentElement.dataset.stage;
   const tag = $(`#study-list a[data-id="${manifest.id}"] .stage-tag`);
@@ -469,17 +334,42 @@ function showStage() {
 }
 // a study's stage in the switcher: a small label bordered in the stage's colour; a study with none leaves it empty
 function stageTag(tag, stage) {
-  tag.textContent = stage || ""; tag.dataset.stage = stage || ""; tag.dataset.light = STAGES[stage]?.light || "";
+  tag.textContent = stage || ""; tag.dataset.stage = stage || ""; tag.dataset.light = LIGHT[stage] || "";
 }
-// the stages, the given one highlighted and those before it crossed out, with what moves a study on from it
-function fillStages(stage) {
-  const now = Object.keys(STAGES).indexOf(stage);
-  $("#stage-list").replaceChildren(...Object.entries(STAGES).map(([name, s], k) => {
+// the stages, the given one highlighted and those before it crossed out, with what moves a study on from it; for the study on show also
+// what the page measures of the gate and a line for each action open to this user (shell/study/stage-popup)
+function fillStages(stage, id) {
+  const now = STAGES.indexOf(stage);
+  $("#stage-list").replaceChildren(...STAGES.map((name, k) => {
     const li = document.createElement("li"); li.className = k < now ? "past" : k === now ? "now" : "";
-    li.innerHTML = `<span class="dot" data-light="${s.light}"></span><span class="name">${name}</span><span class="what">${esc(s.what)}</span>`;
+    li.innerHTML = `<span class="dot" data-light="${LIGHT[name]}"></span><span class="name">${name}</span><span class="what">${esc(WHAT[name])}</span>`;
     return li;
   }));
-  $("#stage-next").textContent = STAGES[stage]?.next || "";
+  $("#stage-next").textContent = NEXT[stage] || "";
+  $("#stage-gates").replaceChildren(); $("#stage-actions").replaceChildren();
+  if (manifest?.id === id) fillStageLines(stage, id);
+}
+// what the page measures of the study's gate: how many images its index lists for this user, and how many of them carry a GT and an
+// official mark; null where the study file or its index cannot be read
+async function stageFacts() {
+  try {
+    const s = await place.settings();
+    if (!s?.index) return null;
+    const images = s.index.images.filter((im) => storeRoles.manager || !isHidden(im.tags || [], s.hide));
+    const marked = (k) => images.filter((im) => !!marksOf(s.marks, im.sha)[k]?.file).length;
+    return { images: images.length, gt: marked("gt"), official: marked("official") };
+  } catch (e) { console.warn("the study's gate was not measured:", e); return null; }
+}
+async function fillStageLines(stage, id) {
+  const facts = await stageFacts();
+  if (manifest?.id !== id || manifest.stage !== stage) return;
+  const item = (text, action) => {
+    const li = Object.assign(document.createElement("li"), { textContent: text });
+    if (action) li.dataset.action = action;
+    return li;
+  };
+  $("#stage-gates").replaceChildren(...gates(stage, facts).map((t) => item(t)));
+  $("#stage-actions").replaceChildren(...stageLines(stage, { save: maySave(), manage: mayManage() }, facts).map(([action, text]) => item(text, action)));
 }
 // the stages pop up beside the switcher while a study's stage label is hovered, about that study
 const stagePop = $("#stage-pop"), stageClose = closesOnLeave(stagePop, () => stagePop.matches(":hover"));
@@ -487,7 +377,7 @@ function stageHover(tag) {
   tag.addEventListener("mouseenter", () => {
     if (!tag.dataset.stage) return;
     stageClose.stay();
-    fillStages(tag.dataset.stage);
+    fillStages(tag.dataset.stage, tag.closest("a").dataset.id);
     const menu = $("#study-menu .pop").getBoundingClientRect(), row = tag.closest("a").getBoundingClientRect();
     if (!stagePop.matches(":popover-open")) stagePop.showPopover();
     stagePop.style.left = Math.max(8, Math.min(menu.right + 8, innerWidth - stagePop.offsetWidth - 8)) + "px";
@@ -497,46 +387,69 @@ function stageHover(tag) {
 }
 stagePop.addEventListener("mouseenter", stageClose.stay);
 stagePop.addEventListener("mouseleave", stageClose.leave);
-const stageTruth = () => manifest.stage === "GT" || manifest.stage === "PostGT";
-// the study takes Ground Truth Taggers: every stage but Published, whose algorithm is trusted (req/shell/account/role)
-const takesTaggers = () => manifest.stage !== "Published";
-// the study makes ground truth for this user: a Ground Truth Tagger in a study that makes it (req/shell/account/role)
-const makesTruth = () => stageTruth() && role === "tagger";
 
-// ---------- the role the user works in (req/shell/account/role) ----------
-let role = "viewer";
-const rolesHeld = () => held({ signedIn: signIn.signedIn(), tagging: takesTaggers() && storeRoles.tagger, manager: storeRoles.manager && remote.ready });
-const keptRole = () => { try { return localStorage.getItem(ROLE); } catch { return null; } };
-// the role shown, as the study comes in: before its steps are drawn from it
-function takeRole() {
-  const roles = rolesHeld();
-  role = shown(roles, keptRole());
-  document.documentElement.dataset.role = role;
-  const hint = storeRoles.stale ? `Your sign-in ran out: these are the roles ${remote.short} last gave you here, checked again as you open this menu.`
-    : storeRoles.failed ? `${remote.label} did not say which roles you hold here; these are the ones it last gave you.`
-    : roles.length > 1 ? "" : !signIn.signedIn() && signIn.offered
-    ? (takesTaggers() ? `${signIn.words.signIn} to tag ground truth.` : `${signIn.words.signIn} for the roles your studies give you.`) : "";
-  roleChooser.draw(roles, role, hint);
-}
-// the role shown again, once what it rests on may have changed (a choice, a sign-in, the settings synced): a change
-// to or from Ground Truth Tagger opens the study afresh on the same image
-function showRole() {
+// ---------- annotating (req/shell/annotate/choice) ----------
+// After an image loads the user chooses how to get annotations on it. Annotation mode is on from the choice that enters it
+// until the image goes: the study is mounted afresh in it, on the same image, as it was for a role of its own once, and
+// route says how it began: "scratch" | "local" | "stored". resume holds a choice made until the study has the image again:
+// {then()} what to do once it has.
+let annotating = false, route = null, resume = null;
+// the annotation of the store shown read-only, {label, doc, counts}, or null, and what the store's list of them held when last asked
+let viewing = null, storeList = null;
+// the extraction the annotation being made was edited from, its file's id, which Save records (req/shell/extractions/list)
+let editBase = null;
+const makesTruth = () => !!manifest && stageAllows("annotate") && annotating;
+// whether the store lets this user save ground truth to the study, as far as last read
+const maySave = () => signIn.signedIn() && storeRoles.tagger;
+const mayManage = () => signIn.signedIn() && storeRoles.manager && remote.ready;
+// the user's access, or the study's roots, changed: what they may do shows again, the annotation mode kept
+function showAccess() {
   if (!manifest) return;
-  const tagger = role === "tagger";
-  takeRole();
-  if ((role === "tagger") !== tagger) return restudy();
-  data.role(role === "data");
+  const manage = mayManage() && !setupOffline();
+  const link = $("#open-setup");
+  link.hidden = !manage;
+  // Study Setup opens in a page of its own, and says so; leaving it stays in this one
+  link.querySelector(".word").textContent = SETUP ? "Leave Study Setup…" : "Study Setup…";
+  link.querySelector(".new-page").toggleAttribute("hidden", SETUP);
+  if (SETUP) { link.removeAttribute("target"); link.removeAttribute("rel"); } else { link.target = "_blank"; link.rel = "noopener"; }
+  link.setAttribute("href", SETUP ? studyAddress(manifest.id) : `setup?study=${encodeURIComponent(manifest.id)}`);
+  if (SETUP) { setupLive ||= manage; data.open(manage); setupNote(manage); }
+  $("#gt-submit").hidden = !maySave();
   truth.draw();
+  wantList();
+  drawAnnotate();
 }
-// opening the menu, in the user's click, renews a token that ran out: the store is then asked for the roles again
-$("#role-menu summary").addEventListener("click", () => { if (storeRoles.stale) signIn.renew(); });
-const roleChooser = roleMenu($("#role-menu"), (r) => {
-  if (role === "tagger" && !gtSession.leaving("change your role")) return;
-  try { localStorage.setItem(ROLE, r); } catch { /* private mode: this page only */ }
-  signIn.changed(ROLE);
-  log.add(`Chose the role ${ROLE_NAMES[r]}`);
-  showRole();
-});
+// Study Setup, entered from the avatar's menu by those the store lets write the study's root (req/setup/page): the click renews a token
+// run out, as the store's reads do. It opens in a page of its own: the link's own doing while the token lasts; with the token run out
+// the page is opened empty within the click and sent to Study Setup once the sign-in has answered, so that it reads with the new token.
+// Leaving it waits for the sign-in's answer
+$("#open-setup").onclick = (e) => {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (!SETUP) {
+    $("#user-menu").open = false;
+    if (signIn.token()) { signIn.forRead().catch(() => {}); return; }
+    e.preventDefault();
+    const tab = window.open("", "_blank"), to = new URL($("#open-setup").getAttribute("href"), location.href).href;
+    const send = () => { if (!tab) return location.assign(to); tab.opener = null; tab.location.replace(to); };
+    signIn.forRead().then(send, send);
+    return;
+  }
+  e.preventDefault(); $("#user-menu").open = false;
+  const go = () => location.assign($("#open-setup").href);
+  signIn.forRead().then(go, go);
+};
+// Study Setup works online only: opened offline it says so and asks the store nothing; once its folders were on show, the network
+// going leaves them as they are, their controls waiting for it as the page's do everywhere
+let setupLive = false;
+const setupOffline = () => SETUP && !setupLive && document.documentElement.classList.contains("offline");
+// what Study Setup says in place of its folders, to whom it is not for or while it cannot reach the store
+function setupNote(manage) {
+  const note = $("#setup-note");
+  const says = setupOffline() ? "Study Setup needs the internet: you are offline."
+    : manage ? "" : !signIn.signedIn() ? `Study Setup is for those who may write this study's folder in ${remote.short}: sign in with an account that may.`
+    : `Study Setup is for those who may write this study's folder in ${remote.short}, and this account may not.`;
+  note.textContent = says; note.hidden = !says;
+}
 
 // ---------- the image and the item view ----------
 // A study with an item view gets the switch between it and the image (req/shell/views/second), on once the study
@@ -555,74 +468,55 @@ const views = {
   count(total) { views.total = total ?? null; views.draw(); },
   draw() {
     const b = $("#switch");
-    b.disabled = views.total === null;
+    b.disabled = views.total === null; b.hidden = !itemsView() || b.disabled;
     b.querySelector(".name").textContent = views.now === "items" ? "Image" : "Items";
     b.querySelector(".count").textContent = views.now === "items" || views.total === null ? "" : String(views.total);
   },
   mount() {
     slow($("#switch"));
-    $("#switch").hidden = !itemsView();
     views.total = null; views.show("image");
   },
 };
 $("#switch").onclick = () => views.show(views.now === "image" ? "items" : "image");
-// The study's steps, in order, in one state that the breadcrumbs and the shining buttons are drawn from:
-// [{key, name, button, done, info, at}]. Load image and Submit GT are the shell's, the study's own come from its
+// The study's steps, in order, in one state that the shining button is drawn from (req/shell/steps):
+// [{key, name, button, done}]. Load image and Save are the shell's, the study's own come from its
 // study.json; the step to do now is the first not done.
 let steps = [], shone = [];
 const stepsWatch = new MutationObserver(() => drawSteps());
 function makeSteps() {
   steps = [{ key: "load", name: "Load image", button: loadButton() }, ...manifest.phases,
-    ...(makesTruth() ? [{ key: "submit", name: "Submit GT", button: "#gt-submit" }] : [])]
-    .map((p) => ({ ...p, done: false, info: "", at: null }));
+    ...(makesTruth() ? [{ key: "submit", name: "Upload", button: "#gt-submit" }] : [])]
+    .map((p) => ({ ...p, done: false }));
   // a step's button shines only while it can be pressed
   stepsWatch.disconnect();
   for (const p of steps) if (p.button && $(p.button)) {
     stepsWatch.observe($(p.button), { attributes: true, attributeFilter: ["disabled", "hidden"] });
-    $(p.button).addEventListener("click", () => { p.pressed = true; }, { signal: lifetime.signal });
   }
   drawSteps();
   tasks.stepped();
 }
-// a step done or not, and what was done in it (or how far it has got)
-function step(key, done, info) {
+// a step done or not
+function step(key, done) {
   const p = steps.find((x) => x.key === key);
   if (!p) return;
   if (done && !p.done) {
-    p.at = new Date(); log.add(`Step done: ${p.name}`);
-    // the boxes follow what the user did, not a dial set back to the last run's
-    if (key === "load" || !p.button || p.pressed) foldFor(key);
-    p.pressed = false;
+    log.add(`Step done: ${p.name}`);
+    if (key === "load") foldLoad();
   }
   p.done = !!done;
-  if (info !== undefined) p.info = info;
   drawSteps();
   tasks.stepped();
 }
 function drawSteps() {
-  const now = steps.findIndex((p) => !p.done), shown = now < 0 ? steps : steps.slice(0, now + 1);
-  const when = (d) => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  $("#sb-steps").replaceChildren(...shown.map((p, k) => {
-    const c = document.createElement("span");
-    c.id = "sb-" + p.key; c.className = "crumb" + (k === now ? " now shine" : ""); c.textContent = p.name; c.tabIndex = 0;
-    c.dataset.help = (p.done ? `${p.info || "Done"}\nDone at ${when(p.at)}.` : p.info || "To do now.");
-    return c;
-  }));
+  const now = steps.findIndex((p) => !p.done);
   // the button lit last time may belong to no step now: the study switched, or the step's button changed
   for (const b of shone.splice(0)) b.classList.remove("shine");
-  steps.forEach((p, k) => { const b = p.button && $(p.button); if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); } });
+  steps.forEach((p, k) => {
+    // a step of the study's whose button waits behind Start: Start is what to press now
+    const own = p.button && $(p.button), b = own && $("#processing-box").hidden && $("#processing-box").contains(own) && !$("#annotate-box").hidden ? $("#annotate-scratch") : own;
+    if (b && k === now && !b.disabled && !b.hidden) { b.classList.add("shine"); shone.push(b); }
+  });
 }
-// the shining crumb leads to its button: the box it is in unfolds, it scrolls into view, and it is pressed
-function goToStep(e) {
-  const c = e.target.closest(".crumb.now"), p = c && steps.find((x) => "sb-" + x.key === c.id), b = p?.button && $(p.button);
-  if (!b || b.hidden) return;
-  if (b.closest("#items-view") && views.now !== "items") views.show("items");
-  b.closest(".box.foldable")?.classList.remove("folded");
-  b.scrollIntoView({ block: "nearest" });
-  if (!b.disabled) b.click();
-}
-$("#sb-steps").onclick = goToStep;
-$("#sb-steps").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToStep(e); } };
 
 // ---------- buttons whose action takes a while: disabled, with a small spinner, until the action is done ----------
 // the worker's next message of a kind ("opened", or "result:<action>"), or its error
@@ -648,7 +542,8 @@ async function working(btn, action) {
     await painted(); await action();
     await study.settled?.();
   } catch (e) {
-    console.warn(e);
+    // the study leaving ends the wait on purpose: nothing went wrong
+    if (!e?.cancelled) console.warn(e);
   } finally {
     hold.disconnect(); btn.classList.remove("working"); btn.disabled = false; study.idle?.();
   }
@@ -676,7 +571,7 @@ async function start() {
     } catch (e) { console.warn("no cache for third-party files:", e); }
     offlineCopy.keepSite().then(diskBar, (e) => console.warn("no copy of the site for offline:", e));
   }
-  status("Ready. Load an image."); statusBar(); diskBar();
+  status(READY); statusBar(); diskBar();
   moveThumbs().catch((e) => console.warn("the thumbnails kept before could not be moved:", e));
   keepPython();
   if (navigator.deviceMemory <= LOW_GB) memoryTip();
@@ -695,7 +590,7 @@ async function keepPython() {
       if (manifest?.id !== id || st.worker) return;
       if (!(await caches.match(u))) await (await fetch(u, { priority: "low" })).arrayBuffer();
     }
-    if (st.notHere) { st.notHere = false; status("Ready. Load an image."); }
+    if (st.notHere) { st.notHere = false; status(READY); }
   } catch (e) {
     // with no network, the study says it cannot run here yet; the network back, its files are kept then
     if (manifest?.id === id && !st.worker) st.unkept = true;
@@ -713,30 +608,41 @@ function pythonWorker() {
   st.worker.onmessage = (e) => onWorker(e.data);
   st.worker.onerror = (e) => onWorker({ type: "error", text: e.message || "Python stopped." });
 }
-// The Study Manager's areas of the image opened from the study's store (req/shell/data/damaged,
-// req/shell/data/area-of-interest), from its study index, the one kept on this device offline; none for a preview,
-// whose pixels are not the image's, or an image the index does not hold
+// The study owner's areas of the image opened from the study's store (req/shell/data/damaged,
+// req/shell/data/area-of-interest) and its tags (req/shell/image/file-info), from its study index, the one kept on
+// this device offline; none for a preview, whose pixels are not the image's, or an image the index does not hold
 async function studyAreas(source) {
   if (!source?.id || source.kind === "preview" || !remote.owns(source) || !place.root()) return;
   let ix = readJSON(STUDY_INDEX)[place.root()]?.index || null;
   if (!offlineCopy.offline()) ix = await place.index().catch(() => ix);
   const im = ix?.images?.find((i) => i.id === source.id);
   if (st.source !== source || !im) return;
+  page.set({ tags: { of: source.id, tags: im.tags || [] } });
   summaryMasks.areas({ damaged: im.damaged || [], interest: im.interest || [] });
 }
 // one of the study's Python actions; its answer reaches the study's result hook. Python starts with the first, and is
 // handed the image's file as it is stored before any (req/shell/python/file-bytes)
 function call(action, args, echo) {
-  if (!st.worker) { $("#spin").classList.add("on"); pythonWorker(); }
+  if (!st.worker) { pythonLoads(true); pythonWorker(); }
   if (st.kept && st.held !== st.kept) {
     const bytes = st.kept.bytes.slice(0);
     st.worker.postMessage({ type: "open", name: st.kept.name, bytes }, [bytes]);
     st.held = st.kept;
   }
-  // the Study Manager's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
+  // the study owner's damaged areas of the image, for the study's Python to leave out (req/shell/data/damaged)
   pyCalls.push(work.begin(`Python ${action}`));
   st.worker.postMessage({ type: "call", action, args, echo, damaged: summaryMasks.api.damaged() });
 }
+
+// Python started, and its code version known: the ones waiting on it, {ok, bad}
+const started = [];
+function pythonReady() {
+  if (st.ready) return Promise.resolve();
+  if (!st.worker) { pythonLoads(true); pythonWorker(); }
+  return new Promise((ok, bad) => started.push({ ok, bad }));
+}
+// the run a batch waits on, ended by this when Python answers it with an error
+let runFailed = null;
 
 // ---------- the low-memory popup: on a computer with little memory, and whenever the page runs out of it ----------
 const OUT_OF_MEMORY = /MemoryError|out of memory|Memory\.grow|allocation failed|Maximum memory|OOM/i;
@@ -771,7 +677,7 @@ const ended = (m) => (m.type === "result" || m.type === "error") && unloadIfDone
 // memory freed, and the next call starts it again and hands it the image again
 function unloadIfDone() {
   if (!unloading.checked || !st.worker || pyCalls.length) return;
-  st.worker.terminate();
+  st.worker.terminate(); pythonLoads(false);
   Object.assign(st, { worker: null, held: null, ready: false, heap: null, files: 0 });
   statusBar();
 }
@@ -780,12 +686,15 @@ function handle(m) {
   else if (m.type === "error") {
     // the request that failed is over: its button can be pressed again
     study.error?.();
-    if (!st.ready) { st.failed = true; $("#spin").classList.remove("on"); }
+    if (!st.ready) { st.failed = true; pythonLoads(false, true); }
+    for (const w of started.splice(0)) w.bad(new Error(m.text));
+    runFailed?.(new Error(m.text));
     // what being offline stops is said plainly: the online icon already says why (req/shell/offline/default)
     if (m.offline) status(m.text); else status("Error: " + m.text, true);
     if (OUT_OF_MEMORY.test(m.text)) memoryTip(true);
   } else if (m.type === "ready") {
-    st.ready = true; st.readyInfo = m.info; $("#spin").classList.remove("on");
+    st.ready = true; st.readyInfo = m.info; studyCode = m.code ?? null; pythonLoads(false);
+    for (const w of started.splice(0)) w.ok();
     study.ready?.(m.info); statusBar(); diskBar();
   } else if (m.type === "result") {
     study.result?.(m.action, m.meta, m.bytes, m.echo);
@@ -804,80 +713,48 @@ function imageOpened(m) {
     info: m.meta.info, more: m.meta.more || [], planes: m.images, channels: m.meta.channels || null, Z: m.meta.Z || 1, spacing: m.meta.spacing ?? null } });
   busy(false); statusBar();
   showImage();
-  boxDone($("#image-box"), loadedSummary());
   const from = remote.owns(st.source) ? remote.label : st.source?.kind === "preview" ? `its preview in ${remote.label}` : "this computer";
-  step("load", true, `${st.fileName}, ${m.meta.W} × ${m.meta.H} px, from ${from}`);
+  step("load", true);
   log.add(`Opened an image from ${from}, ${m.meta.W} × ${m.meta.H} px, ${m.meta.Z || 1} slice(s)`);
-  status("Image loaded."); // the study's opened hook says what comes next, if anything
+  status(SETUP ? READY : "Image loaded."); // the study's opened hook says what comes next, if anything
   summaryMasks.opened(); studyAreas(st.source); data.opened();
   study.opened?.(m.meta);
-  // a draft of the image on this device opens Ground Truth Tasks with it, Load draft in view (req/shell/ground-truth/draft-offer)
-  gtSession.opened().then((offered) => { if (offered && makesTruth()) { $("#tasks-box").classList.remove("folded"); retitle(); } });
-  truth.paint(); offerTruth();
+  // annotation mode lasts as long as the image: this one is in it only when the choice that entered it brought it here
+  const resumed = resume; resume = null;
+  if (!resumed) { annotating = false; route = null; editBase = null; }
+  viewing = null; storeList = null; storeRows = new Map(); listing++;
+  if (resumed) tasks.tagging(true);
+  showBoxes();
+  if (!resumed) { listedFor = null; wantList(); }
+  // a draft of the image on this device is offered with the tasks, Load draft in view (req/shell/ground-truth/draft-offer)
+  gtSession.opened().then(async () => {
+    if (resumed) await resumed.then?.();
+    drawAnnotate();
+    // the choice just made took the focus with it: it goes to what is left of the box
+    if (resumed && document.activeElement === document.body) $("#analysis-box h2").focus({ preventScroll: true });
+  });
+  truth.paint(); drawAnnotate(); drawWaiting();
   if (st.source && st.source.kind === "local" && makesTruth()) notice(LOCAL_GT(remote));
   if (remote.owns(st.source) && st.pictured !== st.source.id) saveThumb(st.source.id, st.fileName);
 }
 
 // ---------- loading ----------
-// what the file says about the image ([label, text] rows); null clears it
-// the details (req/shell/image/file-info): the fields pinned, then every other field the file carries, folded
-function fileInfo(rows, more = []) {
-  const item = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
-  const list = (r) => r.flatMap(([k, v]) => [item("dt", k), item("dd", v)]);
-  $("#file-info").replaceChildren(...list(rows || []));
-  $("#file-more-list").replaceChildren(...list(rows ? more : []));
-  $("#file-more-n").textContent = rows ? String(more.length) : "";
-  $("#file-more").hidden = !rows || !more.length; $("#file-more").open = false;
-  $("#file-box").classList.toggle("empty", !rows);
-  if (!rows) $("#file-box").open = false;
-}
-// where the study opens images from (req/shell/load/from): Load at the box's foot for this computer alone; else the
-// image selector on its top line, with the computer's button where it opens local files and the remote store's button
-const fromRemote = () => remote.study(manifest).opens;
-const fromLocal = () => !!manifest?.files.from.includes("local");
-// the browser keeps a reference to a file a page chose only where the page chooses it itself (Chrome and Edge)
-const remembersFiles = () => typeof window.showOpenFilePicker === "function";
-const RECENT_KEEP = 30;
-// the images opened lately in the study on show (req/shell/load/selector): from the remote store, and where it opens local
-// files and the browser can keep a reference to them, from this computer; newest first
-const recentHere = (list) => list.filter((r) => r.study === manifest?.id);
-function recentAll() {
-  const local = fromLocal() && remembersFiles() ? recentHere(readJSON(LOCAL_RECENT, [])).map((r) => ({ ...r, local: true })) : [];
-  return [...recentHere(readJSON(RECENT, [])), ...local].sort((a, b) => (b.at ?? -Infinity) - (a.at ?? -Infinity)).slice(0, RECENT_KEEP);
-}
-// the control the Load image step points at, and the one held while an image opens
-const loadButton = () => (!fromRemote() ? "#load-main" : recentAll().length ? "#image-pick" : fromLocal() ? "#load-main" : "#load-remote");
-const loadHolder = () => $(fromRemote() ? "#image-pick" : "#load-main");
-function placeLoad() {
-  $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal());
-  if (fromRemote()) $("#file-box").before($("#load")); else $("#image-foot").prepend($("#load"));
-}
-// the Image box draws from the page's state: the image's name and what its file says, the control to load with
-// filled until an image is open and plain after, and Unload once one is
-function imageBox() {
-  const opening = page.get("opening"), im = page.get("image"), name = opening?.name || im?.name, remoteOn = fromRemote();
-  $("#file-name").textContent = remoteOn && name ? "Details" : name || ""; $("#file-box").hidden = !name;
-  fileInfo(opening ? null : im?.info || null, im?.more || []);
-  $("#load").classList.toggle("done", !!im); $("#unload").hidden = !im;
-  const listed = remoteOn && recentAll().length > 0;
-  $("#image-pick .pick-name").textContent = name || (listed ? "Choose an image" : "No image opened here yet");
-  $("#image-pick").classList.toggle("dim", !name);
-  $("#image-pick").classList.toggle("primary", !im && listed); $("#load-remote").classList.toggle("primary", !im && !listed && !fromLocal());
-  $("#load-main").classList.toggle("primary", !remoteOn || (!im && !listed));
-  $("#load-original").hidden = im?.source?.kind !== "preview";
-}
-page.watch("image", imageBox); page.watch("opening", imageBox);
-
+const { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad } = loadBox({ $, readJSON, page, st, peek, status, signIn, restudy, closeTip, writeJSON, truth, standing, notice, esc, drawSteps, keptIds,
+  get manifest() { return manifest; }, get openBytes() { return openBytes; }, get openRemote() { return openRemote; },
+  get gtSession() { return gtSession; }, get offlineCopy() { return offlineCopy; }, get putTruthTag() { return putTruthTag; },
+  get openRecent() { return openRecent; }, get steps() { return steps; } });
 // source: where the image came from, {kind: "local"} or the remote store's source of it
 const openBytes = (name, bytes, source) => work.during(openNow(name, bytes, source), `opening ${name}`);
 async function openNow(name, bytes, source) {
   // an image chosen while the study is still coming in opens into it, once it is in
   await work.during(studyIn.catch(() => {}), "waiting for the study");
   if (st.img && !gtSession.leaving("open another image")) return;
+  // another image asks again how to get annotations: the study comes in afresh, out of annotation mode
+  if (annotating && !resume) { annotating = false; route = null; viewing = null; editBase = null; await restudy(false); }
   const opened = taken(until("opened")); working(loadHolder(), () => opened);
   st.fileName = name; st.source = source;
-  for (const p of steps) Object.assign(p, { done: false, info: "", at: null, pressed: false });
-  drawSteps(); boxes().forEach((b) => summaries.delete(b)); retitle();
+  for (const p of steps) p.done = false;
+  drawSteps();
   // the file as it came, for Python at a Run (a copy is handed over then) and the problem report
   const kept = st.kept = { name, source, bytes };
   tasks.tagging(false);
@@ -907,55 +784,19 @@ function peek() {
   st.peeked = false;
   return study.painter ? view.preview(study.painter) : () => false;
 }
-$("#file").onchange = async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  const bytes = await f.arrayBuffer(); peek()(bytes, bytes.byteLength);
-  openBytes(f.name, bytes, { kind: "local" }); e.target.value = "";
-};
-// the study's own remote folders, which its dialog browses alone; a study naming none (the Image Viewer) takes a pasted
-// link instead (req/shell/drive/dialog)
-const studyFolders = () => (remote.study(manifest).root ? [remote.study(manifest).root] : []);
-// the link the remote files dialog opened on: listing it is not pasting it
-let remoteFrom = "", remoteOpened = () => {}, remoteLeft = () => {};
-function openRemote() {
-  $("#image-menu").open = false;
-  const pastes = !studyFolders().length;
-  $("#remote-dlg").classList.toggle("folders", !pastes);
-  remoteFrom = $("#remote-link").value = pastes ? readJSON(REMOTE_LINKS)[manifest.id] || readJSON(REMOTE_LINK, "") : "";
-  $("#remote-dlg").showModal(); if (pastes) $("#remote-link").select();
-  holdRemote();
-  remoteOpened();
-}
-// a file from this computer: through the browser's own picker where it keeps a reference to the file, so the file
-// opens again from the recents (req/shell/load/selector); else through the file chooser
-$("#load-main").onclick = async () => {
-  if (!remembersFiles() || !fromRemote()) return $("#file").click();
-  let handle;
-  try { [handle] = await showOpenFilePicker({ types: [{ description: "Images", accept: { "image/*": manifest.files.accept.split(",") } }] }); } catch (e) {
-    if (e.name !== "AbortError") status("Error: " + (e.message || e), true);
-    return;
-  }
-  openLocal(handle);
-};
-$("#load-remote").onclick = () => { signIn.renew(); openRemote(); };
-$("#image-pick").addEventListener("click", () => signIn.renew());
 // a setting from before each study loaded from one place (req/shell/load/from)
-try { localStorage.removeItem("nor-load-source"); } catch { /* nothing kept */ }
+try { localStorage.removeItem("nor-load-source"); localStorage.removeItem("nor-role"); } catch { /* nothing kept */ }
 // no image open, and Python, if it holds it, letting it go
 function dropImage() {
   if (st.held && st.worker) st.worker.postMessage({ type: "close" });
   Object.assign(st, { kept: null, held: null, fileName: "", source: null, sha: "", um: null, umY: null });
-  page.set({ image: null, opening: null }); boxDone($("#image-box"), null);
-  offered++; $("#truth-box").hidden = true;
+  page.set({ image: null, opening: null });
+  viewing = null; storeList = null; listing++;
 }
-// Unload: no image open, the study starting over as one that has just come in
-$("#unload").onclick = () => {
-  if (!st.img || loadHolder().classList.contains("working") || !gtSession.leaving("unload it")) return;
-  restudy(false);
-};
 // the study mounted again in place, Python kept; again: the image open, opened again in it
 function restudy(again = true) {
-  swapping = swapping.then(async () => {
+  if (!again) { annotating = false; route = null; resume = null; editBase = null; }
+  return swapping = swapping.then(async () => {
     // no study came in before this turn: there is none to mount again
     if (!manifest) return;
     const { ready, readyInfo } = st, id = manifest.id, image = again && st.img ? st.kept : null;
@@ -963,9 +804,19 @@ function restudy(again = true) {
     leaveStudy();
     try { await mountStudy(id); } catch (e) { return status("Error: " + (e.message || e), true); }
     if (ready) { st.ready = true; st.readyInfo = readyInfo; study.ready?.(readyInfo); }
-    statusBar(); status("Ready. Load an image.");
-    if (image) openBytes(image.name, image.bytes, image.source);
+    statusBar(); status(READY);
+    if (image) await openBytes(image.name, image.bytes, image.source);
   });
+}
+// The study mounted again on the image open, the page held on screen as it is until the image is open in it
+// (req/shell/annotate/held): the browser keeps showing what it showed while the change is made, where it can
+function restudyHeld() {
+  if (!document.startViewTransition) return restudy();
+  const root = document.documentElement;
+  root.dataset.held = "";
+  const t = document.startViewTransition(() => restudy());
+  t.ready.catch(() => {}); // the browser giving the hold up shows the page as it then is: only the hold is lost
+  t.finished.finally(() => { delete root.dataset.held; });
 }
 
 // a tip: a bubble below its anchor, pointing at it, until the user closes it, after which it never shows again
@@ -987,682 +838,45 @@ function closeTip(id) {
   if (!t) return;
   t.remove(); writeJSON(TIPS, [...new Set([...readJSON(TIPS, []), id])]);
 }
-// the selector is what the recent-files tip asks the user to open; opened, its selected image has the focus, so
-// Enter opens it, the arrows move between them and Escape closes it
-$("#image-menu").addEventListener("toggle", () => {
-  if (!$("#image-menu").open) return;
-  closeTip("recent-files");
-  greyRecents(); markRecentTruth();
-  const rows = [...$("#recent").querySelectorAll(".recent")];
-  (rows.find((b) => b.getAttribute("aria-selected") === "true") || rows[0])?.focus();
-});
-$("#image-menu").addEventListener("keydown", (e) => {
-  const rows = [...$("#recent").querySelectorAll(".recent:not(:disabled)")], at = rows.indexOf(document.activeElement);
-  if (e.key === "Escape") { e.preventDefault(); $("#image-menu").open = false; $("#image-pick").focus(); }
-  else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && rows.length) {
-    e.preventDefault(); rows[(at + (e.key === "ArrowDown" ? 1 : rows.length - 1)) % rows.length].focus();
-  }
-});
 
-// the images opened from the remote store lately in the study on show, in the image selector; a remote id names one file wherever
-// it is, so two of one name stay apart; one kept from before recents had a study belongs to none. openRecent is the remote files dialog's, which opens the copy kept on this device when there is one.
-let openRecent = () => {}, showKept = () => {};
-const UNREACHED = "The internet cannot be reached, and this image is not kept on this device.";
-function remember(id, name, path) {
-  const study = manifest.id, rest = readJSON(RECENT, []).filter((r) => r.study && !(r.id === id && r.study === study));
-  const mine = [{ id, name, path, study, at: Date.now() }, ...rest.filter((r) => r.study === study)].slice(0, RECENT_KEEP);
-  writeJSON(RECENT, [...mine, ...rest.filter((r) => r.study !== study)]);
-  showRecent();
+// what the study's extractions say of an image, {needed, marks: {gt, official}, saved}, or null where they say nothing: from the
+// extractions folder's listing, the study file's marks and this device's record of what it saved
+const savedHere = () => { const l = readJSON(GT_SAVED, {})[manifest?.id]; return new Set(Array.isArray(l) ? l : []); };
+const noteSaved = (sha) => {
+  const all = readJSON(GT_SAVED, {}), l = new Set(Array.isArray(all[manifest.id]) ? all[manifest.id] : []);
+  if (!l.has(sha)) writeJSON(GT_SAVED, { ...all, [manifest.id]: [...l, sha] });
+};
+function standing(map, marks, name, sha) {
+  const g = { needed: map.get(subfolderName(name, sha))?.needed || null, marks: marksOf(marks, sha), saved: savedHere().has(sha) };
+  return g.needed || g.saved || g.marks.gt || g.marks.official ? g : null;
 }
-// the SHA-256 of an image the recents list, which names its ground truth's subfolder
-function noteSha(id, sha) {
-  const all = readJSON(RECENT, []), r = all.find((x) => x.id === id && x.study === manifest.id);
-  if (r && r.sha !== sha) { r.sha = sha; writeJSON(RECENT, all); }
+// an image's tag, [text, title, state], from its standing: yours (saved, GT, official), what another's marked, else GT wanted
+function truthTag(g) {
+  if (!g) return [];
+  const me = signIn.email()?.toLowerCase(), ours = (m) => !!m?.file && !!me && m.by?.toLowerCase() === me, theirs = (m) => !!m?.file && !ours(m);
+  const mine = ours(g.marks.official) ? "official" : ours(g.marks.gt) ? "GT" : g.saved ? "saved" : null;
+  const others = [["gt", "GT"], ["official", "official"]].filter(([k]) => theirs(g.marks[k])).map(([, t]) => t);
+  const parts = [...(mine ? [`yours: ${mine}`] : []), ...others.map((t) => `${t} marked`)];
+  if (parts.length) return [parts.join(" · "), "What the study's Analysis Files of this image say, yours first", mine === "saved" && !others.length ? "saved" : "marked"];
+  return g.needed ? ["GT wanted", "A study owner marked it as needing ground truth", "wanted"] : [];
 }
-// the recents' ground-truth tags, as the remote files dialog's (req/shell/ground-truth/pending); an image whose SHA-256
-// this device never learned carries none
-async function markRecentTruth() {
-  if (offlineCopy.offline() || !fromRemote()) return;
-  const shas = Object.fromEntries(Object.values(readJSON(LISTINGS)).flatMap((l) => l.items || []).filter((f) => f.sha).map((f) => [f.id, f.sha]));
-  for (const r of recentHere(readJSON(RECENT, []))) if (r.sha) shas[r.id] = r.sha;
-  let map;
-  try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { console.warn("ground truth status not read:", e); return; }
-  for (const r of recentAll()) {
-    if (r.local || !shas[r.id]) continue;
-    putTruthTag($("#recent").querySelector(`.recent[data-id="${r.id}"]:not([data-local]) .gt-tag`), map.get(subfolderName(r.name, shas[r.id])));
-  }
-}
-// the browser's references to files from this computer, by id, in IndexedDB: what a page cannot keep anywhere else
-function handles(mode, act) {
-  return new Promise((ok, bad) => {
-    const q = indexedDB.open(FILE_HANDLES, 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("files");
-    q.onerror = () => bad(q.error);
-    q.onsuccess = () => {
-      const t = q.result.transaction("files", mode), r = act(t.objectStore("files"));
-      t.oncomplete = () => { q.result.close(); ok(r?.result); }; t.onerror = () => { q.result.close(); bad(t.error); };
-    };
-  });
-}
-// a file opened from this computer, by the browser's reference to it: one entry however often it is opened, the
-// references the recents no longer list let go
-async function openLocal(handle, known) {
-  let file;
-  try {
-    if ((await handle.queryPermission({ mode: "read" })) !== "granted" && (await handle.requestPermission({ mode: "read" })) !== "granted")
-      return notice(`${handle.name} was not opened: the browser was not allowed to read it again.`);
-    file = await handle.getFile();
-  } catch (e) {
-    return notice(`${handle.name} could not be opened: it may have been moved or deleted. (${e.message || e})`);
-  }
-  const bytes = await file.arrayBuffer();
-  let id = known;
-  try {
-    if (!id) for (const r of recentHere(readJSON(LOCAL_RECENT, []))) {
-      const h = await handles("readonly", (s) => s.get(r.id));
-      if (h && (await h.isSameEntry(handle))) { id = r.id; break; }
-    }
-    id ||= crypto.randomUUID();
-    const study = manifest.id, rest = readJSON(LOCAL_RECENT, []).filter((r) => !(r.id === id && r.study === study));
-    const list = [{ id, name: file.name, study, at: Date.now() }, ...rest].filter((r, k, all) => all.filter((x) => x.study === r.study).indexOf(r) < RECENT_KEEP);
-    writeJSON(LOCAL_RECENT, list);
-    const keep = new Set(list.map((r) => r.id));
-    await handles("readwrite", (s) => { s.put(handle, id); s.getAllKeys().onsuccess = (e) => e.target.result.forEach((k) => keep.has(k) || s.delete(k)); });
-  } catch (e) { console.warn("this file is not kept among the recent ones:", e); }
-  showRecent();
-  peek()(bytes, bytes.byteLength);
-  openBytes(file.name, bytes, { kind: "local" });
-}
-async function openLocalRecent(r) {
-  const h = await handles("readonly", (s) => s.get(r.id)).catch(() => null);
-  if (!h) return notice(`${r.name} is no longer known to this browser: open it again with the computer's button.`);
-  openLocal(h, r.id);
-}
-// how long since an image was last opened, "<1h", "3h", "6d", "2mo" or "1y"; "" when that is not known
-function ago(at) {
-  if (at == null) return "";
-  const h = (Date.now() - at) / 3600000, d = h / 24;
-  return h < 1 ? "<1h" : h < 24 ? `${Math.floor(h)}h` : d < 30 ? `${Math.floor(d)}d` : d < 365 ? `${Math.floor(d / 30)}mo` : `${Math.floor(d / 365)}y`;
-}
-// an image's ground-truth tag, [text, title, state], from its entry in truth.status's map; none without one
-const truthTag = (g) => (!g ? [] : g.pending ? ["GT pending", "A tagger submitted ground truth for it, not curated yet", "pending"]
-  : g.curated ? ["GT", "It has curated ground truth", "curated"] : g.rejected ? ["GT rejected", "Its submitted ground truth was rejected", "rejected"]
-  : g.needed ? ["GT wanted", "A study manager marked it as needing ground truth", "wanted"] : []);
 const putTruthTag = (tag, g) => {
   const [text, title, state] = truthTag(g);
   if (tag && text) Object.assign(tag, { textContent: text, title }).dataset.state = state;
 };
-const agoTag = (at) => (at == null ? "" : `<span class="age" title="Opened ${esc(new Date(at).toLocaleString())}">${ago(at)}</span>`);
-function showRecent() {
-  const list = recentAll(), box = $("#recent"), open = page.get("image")?.source;
-  const on = remote.owns(open) && list.some((r) => r.id === open.id) ? open.id : list[0]?.id;
-  box.replaceChildren(...list.map((r) => {
-    const b = document.createElement("button"), where = r.local ? "This computer" : ["Data", ...(r.path || [])].join(" / ");
-    b.type = "button"; b.className = "item recent"; b.title = `${where} / ${r.name}`; b.dataset.id = r.id; if (r.local) b.dataset.local = "";
-    b.setAttribute("role", "option"); b.setAttribute("aria-selected", String(r.id === on));
-    const logo = r.local ? "computer-logo" : remote.logo.id;
-    b.innerHTML = `<svg class="${logo}" aria-hidden="true"><use href="#${logo}"/></svg><span class="what"><span class="name">${esc(r.name)}</span><span class="where">${esc(where)}</span></span>${r.local ? "" : '<span class="gt-tag"></span>'}${agoTag(r.at)}`;
-    b.onclick = () => { $("#image-menu").open = false; r.local ? openLocalRecent(r) : openRecent(r); };
-    return b;
-  }));
-  const how = fromLocal() ? "the buttons at the right open one" : `${remote.short}'s button, at the right, opens one`;
-  if (!list.length) box.append(Object.assign(document.createElement("p"), { className: "hint", textContent: `No image opened here yet: ${how}.` }));
-  imageBox();
-  const s = steps.find((p) => p.key === "load");
-  if (s && s.button !== loadButton()) { s.button = loadButton(); drawSteps(); }
-}
-// offline, an image not kept on this device opens nothing, and is greyed
-async function greyRecents() {
-  const off = offlineCopy.offline(), kept = off ? await keptIds() : null;
-  for (const b of $("#recent").querySelectorAll(".recent")) b.disabled = off && !b.hasAttribute("data-local") && !kept.has(b.dataset.id);
-}
-page.watch("image", () => showRecent());
-addEventListener(CONNECTION, () => greyRecents());
 
-// once the store throttles the site's downloads the remote files dialog waits WAIT, with a notice and a countdown, and
-// calls the remote store for nothing; the end is kept in the browser, so a reload does not cut it short. waitEnded is the
-// dialog's, which lists its link again.
-const WAIT = 15 * 60000;
-let ticker = 0, waitEnded = () => {};
-const throttled = () => readJSON(THROTTLE, 0) > Date.now();
-function holdRemote() {
-  const on = throttled(), left = Math.max(0, readJSON(THROTTLE, 0) - Date.now()), two = (n) => String(n).padStart(2, "0");
-  $("#remote-throttle").hidden = !on; $("#remote-dlg").classList.toggle("throttled", on);
-  $("#remote-link").disabled = $("#remote-go").disabled = on;
-  if (on) $("#remote-open").disabled = true;
-  $("#remote-clock").textContent = `${two(Math.floor(left / 60000))}:${two(Math.floor(left / 1000) % 60)}`;
-  if (on && !ticker) ticker = every(1000, holdRemote, { whenHidden: true });
-  if (!on && ticker) {
-    ticker(); ticker = 0;
-    try { localStorage.removeItem(THROTTLE); } catch { /* nothing kept */ }
-    waitEnded();
-  }
-}
-function throttle() { writeJSON(THROTTLE, Date.now() + WAIT); holdRemote(); }
+const { throttle, throttled, openRemote, openRecent, remoteLeft, remoteDialog } = imageDialog({ $, readJSON, writeJSON, savedImage, sha256, peek, remember, picture, tip, openBytes, busy, autoSave, saveImage, page, showImage, idOf, sizeText, esc,
+  thumbUrl, keptIds, recentHere, RECENT, place, keptPreviews, folderPreviews, agoTag, data, truth, standing, putTruthTag, signIn, say, know, turning,
+  get manifest() { return manifest; }, get offlineCopy() { return offlineCopy; }, get view() { return view; }, get loading() { return loading; },
+  set loading(v) { loading = v; }, get base() { return base; } });
 
-// the remote files dialog: a pasted file link loads at once; a folder link lists its images and subfolders, where a
-// click selects and Open (or a double click) opens the selection
-function remoteDialog() {
-  const msg = (t, err) => { const m = $("#remote-msg"); m.textContent = m.title = t; m.classList.toggle("err", !!err); };
-  // keptOn: the dialog lists the images kept here, offline, in place of a remote folder
-  let trail = [], chosen = null, listing = 0, keptOn = false;
-  // what browsing changes in the dialog, as the page loaded; its choices (thumbnails, auto-save) are the user's and stay
-  const asStarted = asLoaded(["#remote-path", "#remote-list", "#remote-msg", "#remote-open"].map((s) => $(s)), holdOwns);
-  // the study leaving: what the dialog was browsing goes with it
-  remoteLeft = () => { groupsSeen?.disconnect(); thumbs.stop(); trail = []; chosen = null; keptOn = false; listing++; asStarted(); $("#remote-dlg").classList.remove("folders"); };
-  // path: the folders the image is in under the link it was opened from; sha: its SHA-256 as the listing gave
-  // it (null when the store gave none), undefined when not yet asked; recent: whether it was chosen from the recents.
-  // A recent image opens from its kept copy; one chosen from the remote store does only once its SHA-256 matches the store's.
-  const take = async (id, name, path, sha, recent) => {
-    thumbs.stop();
-    const kept = await savedImage(id);
-    if (kept && !recent && sha === undefined && !throttled()) sha = await remote.checksum(id).catch(() => null);
-    // offline, a copy kept here is the only one to be had
-    if (kept && (recent || offlineCopy.offline() || (sha && sha === (await sha256(storedPart(kept.bytes)))))) {
-      $("#remote-dlg").close(); msg("");
-      peek()(kept.bytes, kept.bytes.byteLength); remember(id, kept.name, path); picture(id, kept.name, kept.bytes);
-      if (!recent) tip("recent-files", $("#image-pick"), "To load recent files click here");
-      return openBytes(kept.name, kept.bytes, remote.source(id));
-    }
-    if (throttled()) { if (!$("#remote-dlg").open) $("#remote-dlg").showModal(); return holdRemote(); }
-    msg("Downloading " + (name || "the image") + "…");
-    const mb = (n) => (n / 1048576).toFixed(1);
-    let push, what;
-    try {
-      const f = await remote.file(id, name, (n) => {
-        what = n; $("#remote-dlg").close(); msg(""); push = peek(); busy(true, `Downloading ${n}…`, "peek");
-      }, (buf, got, total) => {
-        push(buf, got);
-        $("#busy-text").textContent = `Downloading ${what} · ${mb(got)}${total ? " of " + mb(total) : ""} MB`;
-      });
-      if (f.folder) { trail = [f]; return show(); }
-      if (autoSave()) saveImage(id, f.name, f.bytes, { path, study: manifest.id });
-      remember(id, f.name, path); picture(id, f.name, f.bytes);
-      openBytes(f.name, f.bytes, remote.source(id));
-    } catch (err) {
-      busy(false); if (!$("#remote-dlg").open) $("#remote-dlg").showModal();
-      // what the download had painted goes: the image open before, or none
-      if (push) page.get("image") ? showImage() : view.clear();
-      if (err.throttled) { msg(""); return throttle(); }
-      msg(err instanceof TypeError || offlineCopy.offline() ? UNREACHED : err.message || String(err), true);
-    }
-  };
-  const choose = (f, b) => {
-    chosen = f; $("#remote-open").disabled = !f;
-    $("#remote-list").querySelectorAll(".item").forEach((e) => e.setAttribute("aria-selected", e === b));
-  };
-  // where an image is: the folders under the one it was opened from, the study's own list of folders no folder
-  const enter = (f) => (f.folder ? (trail.push(f), show()) : f.kept ? take(f.id, f.name, f.path, undefined, true)
-    : take(f.id, f.name, f.path ? f.path.slice(1) : trail.filter((t) => !t.roots).slice(1).map((t) => t.name), f.sha));
-  // offline, in place of a remote folder: the images kept on this device, the study's own first (req/shell/offline/default)
-  showKept = async () => {
-    keptOn = true; thumbs.stop(); trail = []; choose(null);
-    $("#remote-path").textContent = "You are offline: the images kept on this device"; $("#remote-list").replaceChildren();
-    const kept = [];
-    try {
-      const c = await caches.open(IMAGES);
-      for (const q of await c.keys()) {
-        const r = await c.match(q), path = r.headers.get(IMAGE_PATH);
-        kept.push({ id: idOf(q.url), name: decodeURIComponent(r.headers.get(IMAGE_NAME) || ""),
-          path: path ? JSON.parse(decodeURIComponent(path)) : [], study: r.headers.get(IMAGE_STUDY), size: (await r.blob()).size, kept: true });
-      }
-    } catch (e) { console.warn("cannot read the images kept here:", e); }
-    kept.sort((a, b) => (b.study === manifest.id) - (a.study === manifest.id) || a.name.localeCompare(b.name));
-    msg(kept.length ? "" : "No image is kept here: Make Available Offline, in Manage storage, keeps a study's.");
-    for (const f of kept) {
-      const b = document.createElement("button"); b.type = "button"; b.className = "item"; b.setAttribute("aria-selected", "false");
-      const meta = [sizeText(f.size), [remote.label, ...f.path].join(" / ")].join(" · ");
-      b.innerHTML = `<span class="pic"></span><span class="name">${esc(f.name)}</span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
-      markOffline(b.querySelector(".kept"), "image", true);
-      const pic = await thumbUrl(f.id);
-      if (pic) b.querySelector(".pic").append(Object.assign(new Image(), { alt: "", src: pic, onload: () => URL.revokeObjectURL(pic), onerror: () => URL.revokeObjectURL(pic) }));
-      b.onclick = () => choose(f, b);
-      b.ondblclick = () => enter(f);
-      b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
-      $("#remote-list").append(b);
-    }
-  };
-  openRecent = (r) => take(r.id, r.name, r.path || [], undefined, true);
-  // the studies whose index is kept on this device, the latest read first
-  const KEEP_INDEXES = 5;
-  // the folders as last listed, kept on this device so the dialog opens offline too (req/shell/drive/offline-listing),
-  // the latest KEEP_LISTINGS of them; created in ms, size and sha null where the store gave none
-  const KEEP_LISTINGS = 50;
-  const keptListing = (id) => readJSON(LISTINGS)[id]?.items.map((f) => ({ ...f, created: f.created == null ? null : new Date(f.created) })) || null;
-  const keepListing = (id, all, name) => {
-    const items = all.map((f) => ({ id: f.id, name: f.name, folder: f.folder, size: f.size, created: f.created ? f.created.getTime() : null, sha: f.sha }));
-    const latest = Object.entries({ ...readJSON(LISTINGS), [id]: { at: Date.now(), name, items } }).sort((x, y) => y[1].at - x[1].at).slice(0, KEEP_LISTINGS);
-    writeJSON(LISTINGS, Object.fromEntries(latest));
-  };
-  // a folder's rows; offline, an image not kept here and a folder never listed are greyed and open nothing; seen: the
-  // ids the folder held when last listed here, an image not among them new, or null when it was never listed
-  const draw = async (at, all, off, asked, seen = null) => {
-    const kept = await keptIds();
-    if (asked !== listing) return;
-    const beside = all.find((f) => !f.folder && f.name === PREVIEWS), items = all.filter((f) => f !== beside);
-    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS);
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    // a study with a root keeps each folder's previews in the root's Previews folder; one with none, beside its images
-    thumbs.cover((async () => {
-      const file = place.root() ? await place.previewsOf(at.id) : beside;
-      return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
-    })());
-    msg(items.length ? "" : "No TIFF or PNG images here.");
-    for (const f of items) row(f, { kept, opened, listings, off, seen });
-    if (!off) markTruth(items, asked);
-  };
-  // one row of the list, appended: a folder or an image; seen as draw takes it
-  const row = (f, { kept, opened, listings, off, seen = null }) => {
-    const b = document.createElement("button"); b.type = "button"; b.className = "item" + (f.folder ? " folder" : "");
-    b.setAttribute("aria-selected", "false");
-    const meta = f.size == null ? "" : sizeText(f.size);
-    const added = f.created ? `Added to ${remote.label} on ${f.created.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : `When it was added to ${remote.label} is not known`;
-    const fresh = !f.folder && seen && !seen.has(f.id) ? `<span class="new" title="${esc(added)}">new</span>` : "";
-    // what only some rows show sits inward, what every image shows at the row's edge
-    // an index row's description under its name, its tags and whether it is hidden inward (req/shell/load/study-images)
-    const label = `<span class="label"><span class="name">${esc(f.name)}</span>${f.description ? `<span class="desc">${esc(f.description)}</span>` : ""}</span>`;
-    const tags = (f.hidden ? '<span class="tag-chip hidden-mark" title="Hidden from viewers and taggers by the study\'s hiding rules">hidden</span>' : "")
-      + (f.tags || []).map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("");
-    b.innerHTML = `<span class="pic"></span>${label}${fresh}${f.folder ? "" : agoTag(opened[f.id])}${tags ? `<span class="tags">${tags}</span>` : ""}<span class="gt-tag"></span><span class="kept"></span><span class="shape">${esc(readJSON(HOLDS)[f.id] || "")}</span><span class="meta">${esc(meta)}</span>`;
-    if (!f.folder) { b.dataset.id = f.id; markOffline(b.querySelector(".kept"), "image", kept.has(f.id)); }
-    if (off && (f.folder ? !listings[f.id] : !kept.has(f.id))) {
-      b.disabled = true; b.title = f.folder ? "Not listed on this device yet: it needs the internet." : "Not kept on this device: it needs the internet.";
-    }
-    b.onclick = () => choose(f, b);
-    b.ondblclick = () => enter(f);
-    b.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); enter(f); } };
-    const list = $("#remote-list");
-    list.append(b);
-    if (!f.folder) thumbs.watch(b.querySelector(".pic"), f, list.childElementCount - 1);
-  };
-  // Load study images (req/shell/load/study-images): the study index's images in groups, by folder or by the
-  // multi-value tag the study names, less those its rules hide but to a Study Manager; each folder's previews file read
-  // once one of its images scrolls into view
-  let groupsSeen = null;
-  const showIndex = async (ix, off) => {
-    keptOn = false; trail = [{ index: true, name: "The study's images" }];
-    const asked = ++listing, kept = await keptIds();
-    if (asked !== listing) return;
-    $("#remote-path").textContent = "The study's images";
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    groupsSeen?.disconnect();
-    const manager = role === "data", hide = ix.hide || [];
-    const images = ix.images.map((im) => ({ ...im, hidden: isHidden(im.tags || [], hide) })).filter((im) => manager || !im.hidden);
-    const groups = groupsOf(images, ix.group);
-    // a folder's previews read once one of its images is in view
-    const covers = new Map(), starts = new Map(), dirOf = new Map();
-    const coverOf = (dir) => {
-      if (!covers.has(dir)) covers.set(dir, new Promise((ok) => starts.set(dir, ok)).then(async () => {
-        const at = { id: dir }, file = off ? undefined : await place.previewsOf(dir);
-        return file === undefined ? keptPreviews(at) : file ? folderPreviews(at, file) : null;
-      }).catch(() => null));
-      return covers.get(dir);
-    };
-    groupsSeen = new IntersectionObserver((seen) => { for (const e of seen) if (e.isIntersecting) { starts.get(dirOf.get(e.target))?.(); groupsSeen.unobserve(e.target); } }, { root: $("#remote-list") });
-    thumbs.cover((f) => coverOf(f.dir));
-    const opened = Object.fromEntries(recentHere(readJSON(RECENT, [])).map((r) => [r.id, r.at])), listings = readJSON(LISTINGS), items = [];
-    msg(groups.length ? "" : "No images in the study's index.");
-    for (const g of groups) {
-      const head = Object.assign(document.createElement("div"), { className: "group" });
-      head.innerHTML = `<span class="group-name">${esc(g.label)}</span><span class="group-count">${g.items.length}</span>`;
-      $("#remote-list").append(head);
-      for (const im of g.items) {
-        const f = { id: im.id, name: im.name, folder: false, size: im.size, sha: im.sha, created: null, dir: im.folder, path: im.path,
-          tags: im.tags || [], description: im.description || "", hidden: im.hidden };
-        coverOf(f.dir);
-        row(f, { kept, opened, listings, off }); items.push(f);
-        const el = $("#remote-list").lastElementChild;
-        dirOf.set(el, f.dir); groupsSeen.observe(el);
-      }
-    }
-    if (!off) markTruth(items, asked);
-  };
-  // which images have ground truth, and to a tagger or study manager which have it pending (req/shell/ground-truth/pending)
-  const markTruth = async (items, asked) => {
-    let map;
-    try { map = await truth.status(role === "tagger" || role === "data"); } catch (e) { console.warn("ground truth status not read:", e); return; }
-    if (asked !== listing) return;
-    for (const f of items) {
-      const g = !f.folder && f.sha && map.get(subfolderName(f.name, f.sha)), tag = $("#remote-list").querySelector(`.item[data-id="${f.id}"] .gt-tag`);
-      if (!g || !tag) continue;
-      putTruthTag(tag, g);
-    }
-  };
-  // the study's own folders to choose from, by name (req/shell/drive/dialog)
-  const showRoots = async () => {
-    keptOn = false;
-    const off = offlineCopy.offline(), listings = readJSON(LISTINGS), asked = ++listing;
-    $("#remote-path").textContent = trail[0].name;
-    const roots = studyFolders().map((id) => ({ id, name: listings[id]?.name || "Folder", folder: true }));
-    await draw(trail[0], roots, off, asked);
-    if (off) return;
-    const named = await Promise.all(roots.map((f) => (listings[f.id]?.name ? f : remote.name(f.id).then((name) => ({ ...f, name }), () => f))));
-    if (named.some((f, k) => f.name !== roots[k].name)) await draw(trail[0], named, false, asked);
-  };
-  const show = async () => {
-    groupsSeen?.disconnect();
-    if (trail[trail.length - 1].roots) return showRoots();
-    keptOn = false;
-    const at = trail[trail.length - 1], off = offlineCopy.offline(), before = keptListing(at.id);
-    $("#remote-path").innerHTML = trail.map((t, k) => `<button type="button" class="link" data-k="${k}">${esc(t.name)}</button>`).join(" / ");
-    $("#remote-path").querySelectorAll("button").forEach((b) => (b.onclick = () => { trail = trail.slice(0, +b.dataset.k + 1); show(); }));
-    $("#remote-path").scrollLeft = $("#remote-path").scrollWidth;
-    // a listing the user has moved on from by the time it arrives is dropped
-    const asked = ++listing;
-    $("#remote-list").replaceChildren(); choose(null); thumbs.reset();
-    if (before) await draw(at, before, off, asked);
-    if (off) { if (!before && asked === listing) msg("This folder is not listed on this device yet: it needs the internet.", true); return; }
-    if (!before) msg("Reading the folder…");
-    try {
-      const all = await remote.list(at.id, manifest.files.accept);
-      if (asked !== listing) return;
-      keepListing(at.id, all, at.unnamed ? readJSON(LISTINGS)[at.id]?.name : at.name);
-      // what the store says now takes the kept listing's place, redrawn only where it differs
-      if (!before || JSON.stringify(keptListing(at.id)) !== JSON.stringify(before)) await draw(at, all, false, asked, before && new Set(before.map((f) => f.id)));
-    } catch (err) {
-      if (asked !== listing) return;
-      if (err.throttled) throttle(); else if (!before) msg(err.message || String(err), true);
-    }
-  };
-  // each image's thumbnail: the one saved when it was last opened here, else the study's ready-made one,
-  // fetched for the rows in view and the next AHEAD, in order, as the user scrolls; never read from the remote store,
-  // which refuses a burst of reads and then the image itself. One fetched stays for the page's life. A TIFF's
-  // row also says what the file holds, read once from the file's first HEAD bytes for the same rows. Progress
-  // shows beside the checkbox and in the status bar.
-  const thumbs = (() => {
-    const made = new Map(), AT_ONCE = 4, AHEAD = 10, HEAD = 65536;
-    // rows: the listing's image rows that await a ready-made thumbnail or what the file holds, in the list's
-    // order, each {at, row, f, thumb, holds, asked, done}, at its place in the list; epoch: which listing they
-    // belong to; dir: the study on show's ready-made thumbnails
-    // asked, done and bytes count the thumbnails, which the note beside the checkbox reports; a header read for
-    // what a file holds is not one
-    let ctl = new AbortController(), running = 0, rows = [], epoch = 0, ready, frame = 0, asked = 0, done = 0, bytes = 0, dir = null;
-    const put = (pic, url, own) => {
-      const i = new Image(); i.alt = "";
-      if (own) i.addEventListener("load", () => URL.revokeObjectURL(url), { once: true }), i.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
-      i.src = url; pic.replaceChildren(i);
-    };
-    const tell = () => {
-      const t = asked ? `${done} of ${asked} · ${sizeText(bytes)}` : "";
-      loading = running && t ? "Thumbnails " + t : ""; say();
-    };
-    // the rows from the first in view to AHEAD past the last, that no fetch has been started for
-    const wanted = () => {
-      const list = $("#remote-list"), items = list.children;
-      if (!$("#remote-dlg").open || readJSON(THUMBS, "on") === "off" || throttled() || !items.length) return [];
-      const box = list.getBoundingClientRect();
-      let first = 0, last = items.length - 1;
-      for (let hi = last; first < hi; ) { const m = (first + hi) >> 1; if (items[m].getBoundingClientRect().bottom > box.top) hi = m; else first = m + 1; }
-      for (last = first; last + 1 < items.length && items[last + 1].getBoundingClientRect().top < box.bottom; ) last++;
-      return rows.filter((r) => !r.asked && r.at >= first && r.at <= last + AHEAD);
-    };
-    const next = () => {
-      frame = 0;
-      for (const want = wanted(); running < AT_ONCE && want.length; ) {
-        const r = want.shift(), signal = ctl.signal;
-        r.asked = true; running++; if (r.thumb) asked++;
-        job(r, signal).catch((e) => { if (e.throttled) throttle(); })
-          .finally(() => { if (signal.aborted) return; r.done = true; running--; if (r.thumb) done++; tell(); next(); });
-      }
-      tell();
-    };
-    const job = async (r, signal) => {
-      if (r.thumb) {
-        const res = await fetch(`${dir}${r.f.id}.jpg`, { signal }), b = res.ok ? await res.blob() : null;
-        if (b && !signal.aborted) { bytes += b.size; made.set(r.f.id, URL.createObjectURL(b)); put(r.row.querySelector(".pic"), made.get(r.f.id)); }
-      }
-      if (r.holds) {
-        const buf = await remote.head(r.f.id, HEAD, signal);
-        if (signal.aborted) return;
-        r.row.querySelector(".shape").textContent = know(r.f.id, shape(buf));
-      }
-    };
-    const later = () => { frame = frame || requestAnimationFrame(next); };
-    // fetches in flight are dropped, and their rows fetched again when next wanted
-    const stop = () => {
-      ctl.abort(); ctl = new AbortController(); running = asked = done = bytes = 0;
-      for (const r of rows) if (!r.done) r.asked = false;
-      tell();
-    };
-    const reset = () => {
-      stop(); rows = []; epoch++; covered = Promise.resolve(null);
-      const own = remote.study(manifest).thumbs ? base + remote.study(manifest).thumbs : null;
-      if (own !== dir) { dir = own; ready = null; }
-      ready = ready || (dir ? fetch(dir + "index.json").then((r) => r.json()).then((ids) => new Set(ids)).catch(() => new Set()) : Promise.resolve(new Set()));
-    };
-    // the folder's previews file, once read, or for a list of several folders the image's folder's, by a function of
-    // the image; an image it covers is shown from it with no read of its own
-    let covered = Promise.resolve(null);
-    const cover = (p) => { covered = p || Promise.resolve(null); };
-    const fromPreviews = async (pic, e, pv) => {
-      const row = pic.closest(".item");
-      if (isTiff(e.name)) row.querySelector(".shape").textContent = holds({ images: 1, slices: e.slices, channels: e.channels });
-      put(pic, await pv.picture(e));
-      if (e.kind === "stack") turning(row, pic, pv.volume(e));
-    };
-    const watch = async (pic, f, at) => {
-      const of = epoch, pv = await (typeof covered === "function" ? covered(f) : covered), e = pv?.entry(f.name, f.sha);
-      if (of !== epoch) return;
-      if (e) return fromPreviews(pic, e, pv);
-      const saved = made.get(f.id) ? "" : await thumbUrl(f.id);
-      if (of !== epoch) { if (saved) URL.revokeObjectURL(saved); return; }
-      const url = made.get(f.id) || saved || f.preview;
-      if (url) put(pic, url, !!saved);
-      const holds = isTiff(f.name) && remote.ready && !offlineCopy.offline() && !(f.id in readJSON(HOLDS)), thumb = !url && (await ready).has(f.id);
-      if (of !== epoch || !(thumb || holds)) return;
-      rows.push({ at, row: pic.closest(".item"), f, thumb, holds, asked: false, done: false }); later();
-    };
-    $("#remote-list").addEventListener("scroll", later, { passive: true });
-    $("#remote-dlg").addEventListener("close", stop);
-    return { reset, watch, stop, later, cover };
-  })();
-  $("#remote-open").onclick = () => chosen && enter(chosen);
-  if (!remote.ready) {
-    const d = $("#load-remote");
-    d.disabled = true; d.title = remote.words.unready;
-  }
-  // offline, a folder link opens on the folder as last listed, and anything else on the images kept here
-  const open = async () => {
-    // a study's own folders: straight into the one, else a list of them
-    const roots = studyFolders().length ? await place.dataFolders() : [];
-    if (roots.length) {
-      // the index as read now, kept for working offline; offline, the one kept
-      const off = offlineCopy.offline(), top = place.root(), keptIx = readJSON(STUDY_INDEX)[top]?.index || null;
-      let ix = keptIx;
-      if (!off) {
-        try {
-          ix = await place.index();
-          const rest = Object.entries(readJSON(STUDY_INDEX)).filter(([k]) => k !== top).sort((a, b) => b[1].at - a[1].at).slice(0, KEEP_INDEXES - 1);
-          // the folders and images alone: who built it stays in the store
-          writeJSON(STUDY_INDEX, Object.fromEntries(ix ? [[top, { at: Date.now(), index: { folders: ix.folders, images: ix.images, group: ix.group ?? null, hide: ix.hide ?? [] } }], ...rest] : rest));
-        } catch (e) { console.warn("the study index was not read:", e); }
-      }
-      if (ix?.images.length) return showIndex(ix, off);
-    }
-    if (roots.length) {
-      if (offlineCopy.offline() && !roots.some((id) => keptListing(id))) return showKept();
-      keptOn = false; $("#remote-list").replaceChildren(); choose(null); msg("");
-      const name = readJSON(LISTINGS)[roots[0]]?.name || (offlineCopy.offline() ? null : await remote.name(roots[0]).catch(() => null));
-      trail = roots.length === 1 ? [{ id: roots[0], name: name || "Folder" }] : [{ roots: true, name: "The study's folders" }];
-      return show();
-    }
-    const link = $("#remote-link").value, ref = remote.parse(link);
-    if (offlineCopy.offline() && !(ref?.kind === "folder" && keptListing(ref.id))) return showKept();
-    keptOn = false;
-    $("#remote-list").replaceChildren(); $("#remote-path").replaceChildren(); choose(null);
-    if (!ref) return msg(remote.words.notLink, true);
-    if (link !== remoteFrom) { writeJSON(REMOTE_LINK, link); writeJSON(REMOTE_LINKS, { ...readJSON(REMOTE_LINKS), [manifest.id]: link }); remoteFrom = link; }
-    if (ref.kind === "file") return take(ref.id, undefined, []);
-    // a pasted folder's name is not asked of the remote store: "Folder" stands in, and is not kept as its name
-    trail = [{ id: ref.id, name: "Folder", unnamed: true }]; show();
-  };
-  $("#remote-go").onclick = open;
-  waitEnded = () => { if ($("#remote-dlg").open) open(); };
-  // the dialog opened: offline on what is kept here, online on its folder link read afresh
-  remoteOpened = () => {
-    if (offlineCopy.offline()) return open();
-    if (!throttled() && (studyFolders().length || remote.parse($("#remote-link").value)?.kind === "folder")) open();
-  };
-  // the open dialog follows the network: once it goes, the folder on show greyed where it cannot open (or the
-  // images kept here); once it is back, the folder read afresh
-  addEventListener(CONNECTION, (e) => {
-    if (!$("#remote-dlg").open) return;
-    if (!e.detail.online) { if (keptOn) return; return trail.length && keptListing(trail[trail.length - 1].id) ? show() : showKept(); }
-    if (trail.length && !keptOn) return show();
-    if (remote.parse($("#remote-link").value)) return open();
-    keptOn = false; $("#remote-path").replaceChildren(); $("#remote-list").replaceChildren(); msg("");
-  });
-  holdRemote();
-  $("#remote-link").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); open(); } });
-}
-
-// the open image's thumbnail, every colour on show, for the remote files dialog to show next time without a download;
-// shrunk and brightened as the studies' ready-made ones are, and only the latest few hundred are kept
-function saveThumb(id, name) {
-  const SIDE = 96, GAIN = 2;
-  const full = view.picture();
-  const k = SIDE / Math.max(st.W, st.H), c = document.createElement("canvas");
-  c.width = Math.round(st.W * k); c.height = Math.round(st.H * k);
-  const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(full, 0, 0, c.width, c.height);
-  const small = x.getImageData(0, 0, c.width, c.height), p = small.data, v = [];
-  for (let j = 0; j < p.length; j += 4) v.push(p[j], p[j + 1], p[j + 2]);
-  v.sort((a, b) => a - b);
-  const gain = Math.min(GAIN, 255 / Math.max(1, v[Math.floor(0.995 * (v.length - 1))]));
-  for (let j = 0; j < p.length; j += 4) { p[j] *= gain; p[j + 1] *= gain; p[j + 2] *= gain; }
-  x.putImageData(small, 0, 0);
-  return keepThumb(id, name, c.toDataURL("image/jpeg", 0.85));
-}
-const thumbUrlOf = (id) => new URL(THUMB_PATH + encodeURIComponent(id), location.href).href;
-// the thumbnail kept for a remote image, as an object URL to revoke once shown; "" when none is kept
-async function thumbUrl(id) {
-  try {
-    const kept = await (await caches.open(THUMBS_CACHE)).match(thumbUrlOf(id));
-    return kept ? URL.createObjectURL(await kept.blob()) : "";
-  } catch { return ""; }
-}
-// when each thumbnail was saved: strictly increasing, so the latest are told apart within one millisecond
-let thumbClock = 0;
-// a thumbnail for the remote files dialog to show from now on; only the latest KEEP are kept. Returns whether it was kept.
-async function keepThumb(id, name, url) {
-  const KEEP = 100;
-  let kept = false;
-  try {
-    const cache = await caches.open(THUMBS_CACHE), blob = await (await fetch(url)).blob();
-    thumbClock = Math.max(Date.now(), thumbClock + 1);
-    await cache.put(thumbUrlOf(id), new Response(blob, { headers: { "content-type": "image/jpeg", [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(thumbClock) } }));
-    kept = true;
-    const all = await Promise.all((await cache.keys()).map(async (q) => ({ q, at: Number((await cache.match(q))?.headers.get(IMAGE_AT)) || 0 })));
-    all.sort((x, y) => x.at - y.at);
-    for (const old of all.slice(0, Math.max(0, all.length - KEEP))) await cache.delete(old.q);
-  } catch (e) { console.warn("the thumbnail could not be kept:", e); }
-  diskBar();
-  return kept;
-}
-// thumbnails an earlier page kept in the settings' storage move to the cache: each key goes once its picture is kept
-// there or holds none, and the two lists once no picture is left behind
-async function moveThumbs() {
-  let keys = [];
-  try { keys = Object.keys(localStorage).filter((k) => k.startsWith(LEGACY_THUMB)); } catch { return; }
-  const names = readJSON(LEGACY_THUMB_NAMES), saved = readJSON(LEGACY_THUMBS, []), order = Array.isArray(saved) ? saved : [];
-  const rank = (k) => order.indexOf(k.slice(LEGACY_THUMB.length));
-  const done = [LEGACY_THUMBS, LEGACY_THUMB_NAMES];
-  let behind = 0;
-  for (const k of keys.sort((a, b) => rank(a) - rank(b))) {
-    const id = k.slice(LEGACY_THUMB.length), url = readJSON(k, "");
-    const picture = typeof url === "string" && url.startsWith("data:image/");
-    if (picture && !(await keepThumb(id, names[id] || "", url))) behind++;
-    else done.unshift(k);
-  }
-  for (const k of behind ? done.slice(0, -2) : done) try { localStorage.removeItem(k); } catch { /* nothing kept */ }
-}
-
-// what each remote file holds, remembered so it is read once; the latest KEEP. Returns its words for the row.
-function know(id, s) {
-  const KEEP = 1000, said = holds(s), all = readJSON(HOLDS);
-  delete all[id]; all[id] = said;
-  const ids = Object.keys(all);
-  for (const old of ids.slice(0, Math.max(0, ids.length - KEEP))) delete all[old];
-  writeJSON(HOLDS, all);
-  return said;
-}
-// a remote image about to open: what it holds is remembered, and a stack's 3D thumbnail is saved at once, drawn
-// from the bytes in hand; a flat image's waits until it shows
-function picture(id, name, bytes) {
-  const s = shape(bytes);
-  know(id, s); st.pictured = null;
-  const url = s && s.slices > 1 && stackPicture(bytes, s);
-  if (url) { keepThumb(id, name, url); st.pictured = id; }
-}
-
-const keptPreviewsUrl = (folder) => new URL(PREVIEWS_PATH + encodeURIComponent(folder.id), location.href).href;
-// a folder's previews file (req/shell/drive/previews), read: the copy kept on this device while the store gives the
-// file the same SHA-256, else downloaded and kept; null when there is none to read
-async function folderPreviews(folder, f) {
-  const url = keptPreviewsUrl(folder);
-  try {
-    const cache = await caches.open(FOLDER_PREVIEWS), kept = await cache.match(url);
-    if (kept && f.sha && kept.headers.get(PREVIEWS_SHA) === f.sha) return readPreviews(await kept.arrayBuffer());
-    if (throttled()) return null;
-    const got = await remote.file(f.id, f.name);
-    await cache.put(url, new Response(new Blob([got.bytes]), { headers: { [PREVIEWS_SHA]: f.sha || "", [IMAGE_NAME]: encodeURIComponent(folder.name), [IMAGE_STUDY]: manifest?.id || "" } }));
-    diskBar();
-    return readPreviews(got.bytes);
-  } catch (e) {
-    if (e.throttled) throttle();
-    else console.warn("no previews for this folder:", e);
-    return null;
-  }
-}
-// the copy of a folder's previews kept on this device, while the store cannot say which file is current (offline)
-async function keptPreviews(folder) {
-  try { const kept = await (await caches.open(FOLDER_PREVIEWS)).match(keptPreviewsUrl(folder)); return kept ? readPreviews(await kept.arrayBuffer()) : null; } catch { return null; }
-}
-// a stack's row turns its volume while the pointer is over it, and shows its still again after
-function turning(row, pic, volume) {
-  let frame = 0, still = null;
-  row.addEventListener("mouseenter", async () => {
-    const v = await volume, start = performance.now();
-    still = still || pic.firstChild;
-    const spin = (now) => {
-      const cv = drawVolume(v, TURN + ((now - start) / 1000) * (Math.PI / 2));
-      cv.className = "turning"; pic.replaceChildren(cv);
-      frame = requestAnimationFrame(spin);
-    };
-    cancelAnimationFrame(frame); frame = requestAnimationFrame(spin);
-  });
-  row.addEventListener("mouseleave", () => { cancelAnimationFrame(frame); if (still) pic.replaceChildren(still); });
-}
-
-// images downloaded from the remote store, kept on this device while Auto-save images is on
-const imageUrl = (id) => new URL(CACHED_IMAGE_PATH + encodeURIComponent(id), location.href).href;
-const idOf = (url) => decodeURIComponent(new URL(url).pathname.split("/").pop());
-// the remote ids of the images kept here
-async function keptIds() {
-  try { return new Set((await (await caches.open(IMAGES)).keys()).map((q) => idOf(q.url))); } catch { return new Set(); }
-}
-async function savedImage(id) {
-  try {
-    const r = await (await caches.open(IMAGES)).match(imageUrl(id));
-    return r ? { name: decodeURIComponent(r.headers.get(IMAGE_NAME)), bytes: await r.arrayBuffer() } : null;
-  } catch { return null; }
-}
-// copies the bytes at once, before the caller hands them to Python
-// where: {path, study}, the folders it is in under the study's link and the study it was kept in
-async function saveImage(id, name, bytes, where = {}) {
-  const body = new Blob([bytes]);
-  const headers = { [IMAGE_NAME]: encodeURIComponent(name), [IMAGE_AT]: String(Date.now()), [IMAGE_PATH]: encodeURIComponent(JSON.stringify(where.path || [])), [IMAGE_STUDY]: where.study || "" };
-  try {
-    await (await caches.open(IMAGES)).put(imageUrl(id), new Response(body, { headers }));
-  } catch (e) { console.warn("image not saved:", e); }
-  diskBar();
-}
 const bytesOf = (k) => 2 * (k.length + (localStorage.getItem(k) || "").length); // UTF-16
 
 // ---------- the user: whoever opened the page on this device, and what the site keeps here ----------
 // what each of the shell's own setting keys holds, in the user's words
 const OWN_SETTINGS = {
-  [THEME]: "Theme", [ROLE]: "The role you work in", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
-  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
+  [THEME]: "Theme", [BARS]: "Left bar width", [REMOTE_LINK]: `Last ${remote.label} link`, [REMOTE_LINKS]: `Last ${remote.label} link in each study`,
+  [THUMBS]: `Show thumbnails in the ${remote.short} dialog`, [AUTO_SAVE]: `Auto-save images from ${remote.label}`, [RECENT]: `Recent images from ${remote.label}`, [LOCAL_RECENT]: "Recent files from this computer", [LISTINGS]: `${remote.label} folders as last listed, for working offline`, [STUDY_INDEX]: "Each study's index of its images as last read, for working offline", [HOLDS]: `What each ${remote.short} image holds (2D or 3D)`, [THROTTLE]: `Wait after ${remote.short} downloads were throttled`, [TIPS]: "Tips you closed", [SEEN_VERSION]: "Version you saw last", [MEMORY_TIP]: "Low-memory popup turned off", [SIGNED_IN]: SIGNED_IN_LABEL, [GRID]: "Grid colour and spacing", [MINIMAP]: "Minimap: shown or not, and how see-through", [GT_HISTORY]: "Edit History window: shown or not", [OUTBOX]: `Annotations waiting to be saved to ${remote.label}`, [GT_SAVED]: `The images you saved an annotation of in each study`, [MOTION]: "Animations turned off", [UNLOAD_PYTHON]: "Unload Python after each run", [RESOURCES]: "The status bar's disk, memory, network and CPU: auto-hiding or always open", [APP_ASKED]: "Asked for the site as an app", [WELCOME]: "Sign in or go on anonymously, as answered on opening the page", [ACTIONS]: "Your last actions here, for a problem report",
 };
 // What the site keeps, by what it takes to work offline (req/shell/storage/manage): a section per study, then what they share; settings
 // apart, which Settings keeps (req/shell/account/settings), and with them what nobody names. An entry: {kind, name, what, size, del, held, ask}, del
@@ -1839,6 +1053,8 @@ async function storageTab(fresh) {
   $("#storage-total").textContent = `This site keeps ${sizeText(total)} on this device, ${sizeText(settings)} of it settings, which Settings clears` +
     (est?.quota ? `; the browser allows it up to ${sizeText(est.quota)}.` : ".");
 }
+// the menu's avatar lies over the header's: a click on it closes the menu, as one on the header's would
+$("#who-avatar").onclick = () => { $("#user-menu").open = false; };
 $("#manage-storage").onclick = () => { $("#user-menu").open = false; usage("storage"); };
 
 // the settings kept on this device only, the shell's and the study on show's, each {key, label, size}; who is signed
@@ -1856,7 +1072,6 @@ const settings = settingsDialog({
   dialog: $("#settings-dlg"),
   fields: () => [
     { key: THEME, label: "Theme", kind: "choice", raw: true, fallback: "", options: [["", "Follow the system"], ["dark", "Dark"], ["light", "Light"]] },
-    { key: ROLE, label: "The role you work in", kind: "choice", raw: true, fallback: "viewer", options: Object.entries(ROLE_NAMES) },
     { key: THUMBS, label: `Show thumbnails in the ${remote.label} dialog`, kind: "toggle", on: "on", off: "off", fallback: "on" },
     { key: MEMORY_TIP, label: "Show the low-memory popup", kind: "toggle", on: false, off: true, fallback: false },
     { key: REMOTE_LINK, label: `Last ${remote.label} link`, kind: "text" },
@@ -1883,7 +1098,7 @@ function reapply() {
   let t = null;
   try { t = localStorage.getItem(THEME); } catch { /* no storage */ }
   if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  showMotion(); showUnloading(); showResources(); showRecent(); showRole();
+  showMotion(); showUnloading(); showResources(); showRecent(); showAccess();
 }
 $("#open-settings").onclick = () => { $("#user-menu").open = false; settings.open(); };
 $("#storage-reload").onclick = () => location.reload();
@@ -1897,94 +1112,30 @@ function saveFile(name, text, type) {
 }
 // the shell's icons, by name, as SVG markup: done, part, todo
 const icon = (name) => `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">${$(`#icons .${name}`).innerHTML}</svg>`;
-// the study's ground-truth tasks in the left bar (req/shell/ground-truth/tasks)
-const tasks = truthTasks({ $, icon, started: () => { const first = manifest?.phases[0]?.key; return !first || !!steps.find((p) => p.key === first)?.done; },
-  heardBy: (on) => view?.tagged?.(on) });
-// Load GT tagging (req/shell/ground-truth/view): for anyone but a tagger, an image from the remote store with curated ground truth
-// shows it through the study's showTruth(doc), which draws only its final results and returns a line of its counts
-// truthShown: the open image shows its curated ground truth, which takes the place of Processing and the Items view
-let offered = 0, truthShown = false;
-function showingTruth(on) {
-  truthShown = on;
-  if (on) { $("#processing-box").hidden = true; views.show("image"); } else if (manifest) studyBoxes();
-  $("#switch").hidden = !itemsView();
-}
-async function offerTruth() {
-  const box = $("#truth-box"), b = $("#load-gt"), say = $("#gt-summary"), mine = ++offered;
-  if (truthShown) showingTruth(false);
-  box.hidden = true; b.hidden = false; say.hidden = true; $("#gt-offer").hidden = false;
-  if (role === "tagger" || !study.showTruth || !remote.owns(st.source) || !st.sha) return;
-  let got;
-  const img = { name: st.fileName, sha256: st.sha };
-  let has;
-  try { has = await truth.hasCurated(img); } catch (e) { console.warn("curated ground truth not listed:", e); return; }
-  if (mine !== offered || !has) return;
-  box.hidden = false;
-  b.onclick = async () => {
-    b.disabled = true;
-    let got;
-    try { got = await truth.curated(img); } catch (e) { say.hidden = false; say.textContent = `The ground truth could not be read: ${e.message || e}`; b.disabled = false; return; }
-    b.disabled = false;
-    if (mine !== offered) return;
-    if (!got) { say.hidden = false; say.textContent = "Its curated ground truth holds no file the page can read."; return; }
-    const d = got.doc, when = d.created ? new Date(d.created).toLocaleString() : "an unknown time";
-    const { history: _, ...plain } = d;
-    const counts = study.showTruth(plain);
-    showingTruth(true);
-    b.hidden = true; $("#gt-offer").hidden = true; say.hidden = false;
-    say.textContent = `Ground truth by ${d.tagger || "a tagger"}, made ${when}${d.accepted?.by ? `, accepted by ${d.accepted.by}` : ""}${counts ? ": " + counts : "."}`;
-    log.add("Loaded the image's curated ground truth");
-  };
-}
-
-// The ground-truth dialog (req/shell/ground-truth/submit): a checklist of what is still open, the file to export,
-// and Submit, which writes it to the study's submissions folder. gt: {doc, count, file, items: [{level, ok, text}],
-// empty}, count how many of its marks the document holds, nothing to send at 0.
-function submitTruth(gt) {
-  if (!makesTruth()) return;
-  const n = gt.count, send = $("#gt-send"), why = () => truth.blocked();
-  $("#gt-problems").replaceChildren(...gt.items.map((t) => {
-    const li = document.createElement("li"); li.className = t.ok ? "ok" : t.level;
-    li.innerHTML = icon(t.ok ? "done" : t.level === "error" ? "todo" : "part") + `<span>${esc(t.text)}</span>`;
-    return li;
-  }));
-  $("#gt-msg").textContent = n ? why() : gt.empty;
-  $("#gt-export").disabled = !n;
-  send.disabled = !n || !!why(); send.title = why();
-  // the blue button is the next step: Submit when it can, else the export; Close once either is done
-  const next = (b) => { for (const id of ["#gt-export", "#gt-send", "#gt-close"]) $(id).classList.toggle("primary", $(id) === b); };
-  next(send.disabled ? $("#gt-export") : send);
-  // a study with GT actions submits the model's document with its history
-  const docOf = () => (gtSession.on() ? gtSession.fileDoc() : gt.doc);
-  $("#gt-export").onclick = async () => {
-    saveFile(gt.file, JSON.stringify(await docOf(), null, 1), "application/json");
-    $("#gt-msg").textContent = `Downloaded ${gt.file}.`;
-    if (send.disabled) { step("submit", true, `Exported ${gt.file}; it was not submitted`); next($("#gt-close")); }
-  };
-  send.onclick = async () => {
-    send.disabled = true; $("#gt-msg").textContent = "Submitting…";
-    try {
-      await truth.submit(await docOf());
-      if (gtSession.on()) { gtSession.submitted(); await gtSession.save({ ask: false }); }
-      $("#gt-msg").textContent = `Submitted to the study's submissions folder, as your ground truth for ${st.fileName}.`;
-      step("submit", true, `Submitted the ground truth of ${st.fileName}`);
-      log.add("Submitted ground truth");
-      next($("#gt-close"));
-    } catch (e) {
-      $("#gt-msg").textContent = `It was not submitted: ${e.message || e}. Export the file to keep a copy.`;
-      send.disabled = false;
-    }
-  };
-  $("#gt-dlg").showModal();
-}
-$("#gt-close").onclick = () => $("#gt-dlg").close();
+const { drawAnnotate, wantList, tasks, drawWaiting, algorithms, runsFirst, drawDownloads, ownFile, submitTruth } = analysisBox({ $, icon, outline, status, REPO, views, signIn, st, truth, stageAllows, data, showBoxes, log, restudyHeld, page, makesTruth, drawSteps, notice, readJSON,
+  writeJSON, noteSaved, savedHere, esc, maySave, readStage, step, working, saveFile, get manifest() { return manifest; }, get steps() { return steps; },
+  get view() { return view; }, get truthShown() { return truthShown; }, set truthShown(v) { truthShown = v; }, get memberIds() { return memberIds; },
+  get listedReady() { return listedReady; }, get listing() { return listing; }, set listing(v) { listing = v; }, get listedFor() { return listedFor; },
+  set listedFor(v) { listedFor = v; }, get storeList() { return storeList; }, set storeList(v) { storeList = v; }, get storeRows() { return storeRows; },
+  set storeRows(v) { storeRows = v; }, get annotating() { return annotating; }, set annotating(v) { annotating = v; }, get study() { return study; },
+  get viewing() { return viewing; }, set viewing(v) { viewing = v; }, get route() { return route; }, set route(v) { route = v; },
+  get resume() { return resume; }, set resume(v) { resume = v; }, get lifetime() { return lifetime; }, get gtSession() { return gtSession; },
+  get editBase() { return editBase; }, set editBase(v) { editBase = v; }, get studyTables() { return studyTables; } });
+// whether the open image shows an Analysis File of the store read-only (req/shell/annotate/choice), which takes the place of the
+// Items view
+let truthShown = false;
+// listedFor: what the store has said of the image open, by its SHA-256: sub, its subfolder's id or null for none, once its
+// opening asked; mine, the user's own file there or null, once a listing read it; a save, or another opening, lets it go
+let storeRows = new Map(), listing = 0, listedFor = null;
+// the tables a study offers beside the analysis (req/shell/extractions/save): [{key, label, suffix, head(), rows()}], read as one is saved
+let studyTables = [];
 
 // ---------- problems: a report of what went wrong, from the status bar's icon or the avatar's menu, and whether the
 // page supports this browser (req/shell/report/bug, req/shell/browsers/supported). The verdict is null until browsers.json
 // is read: unknown, and the icon stays the plain one.
 const thisBrowser = identify(navigator.userAgent, navigator.maxTouchPoints);
 let browserVerdict = null, fullVersion = null;
-fetch(new URL("browsers.json", import.meta.url)).then((r) => r.json()).then(({ supported }) => {
+calls.during("site", "the supported browsers", () => fetch(new URL("browsers.json", import.meta.url))).then((r) => r.json()).then(({ supported }) => {
   browserVerdict = verdict(thisBrowser, supported);
   if (browserVerdict.ok) return;
   const b = $("#sb-report");
@@ -2025,47 +1176,32 @@ $("#sb-report").onclick = reportProblem;
 $("#report-problem").onclick = reportProblem;
 
 // ---------- notices: a short message, at the top of the view ----------
-function notice(text) {
+function notice(text, { signOut = false } = {}) {
   $("#notice-text").textContent = text; $("#notice").hidden = false;
+  $("#notice-sign-out").hidden = !signOut;
   $("#notice-ok").focus();
 }
 $("#notice-ok").onclick = () => { $("#notice").hidden = true; };
+$("#notice-sign-out").onclick = () => { $("#notice").hidden = true; $("#sign-out").click(); };
 
-// ---------- boxes that fold with the steps ----------
-// A box's data-opens names the step after which it opens ("user": only its title opens it), and data-folds
-// the one after which it folds; one with neither is open from the start. Between steps a box stays as the
-// user left it.
+// ---------- the left bar's boxes ----------
+// Load, Analysis and Summary (req/shell/left-bar/folding): a box waits, folded to its title and inert, until the stage before it
+// is done, opens as that ends, and between those stays as the user left it; Load folds once an image is in.
 const boxes = () => document.querySelectorAll(".box.foldable");
-function unfoldFirst() { boxes().forEach((b) => b.classList.toggle("folded", b.hasAttribute("data-opens"))); retitle(); }
-// a step just done: a new image folds every box waiting for a later step
-function foldFor(key) {
-  // a preview keeps the Image box open: Load Original is what comes next; so does a study with no step after Load
-  const keep = key === "load" && (st.source?.kind === "preview" || steps.length === 1);
-  boxes().forEach((b) => {
-    if (b.dataset.opens === key || (keep && b.id === "image-box")) b.classList.remove("folded");
-    else if ((b.dataset.folds === key && !(keep && b.id === "image-box")) || (key === "load" && b.hasAttribute("data-opens"))) b.classList.add("folded");
-  });
-  retitle();
-}
-// A box's title: its step's number, or a check once its task is done, and its name while the task waits; done,
-// the folded box sums up what was done and the open one shows its data-done-name, else its name.
-const summaries = new WeakMap(); // box -> its summary: text, or a node
-function retitle() {
-  const shown = [...boxes()].filter((b) => b.checkVisibility());
-  [...boxes()].forEach((b) => {
-    const k = shown.indexOf(b);
+const waits = (b) => (b.id === "analysis-box" ? !page.get("image") : b.id === "summary-box" ? !page.get("image") || !hasModel() : false);
+function drawBoxes() {
+  for (const b of boxes()) {
+    const w = waits(b), was = b.classList.contains("waits");
+    if (w) b.classList.add("folded"); else if (was) b.classList.remove("folded");
+    b.classList.toggle("waits", w);
     const h = b.querySelector(":scope > .sec-head h2");
-    if (!h.querySelector(".title")) {
-      h.dataset.name ||= h.textContent.trim();
-      h.replaceChildren(Object.assign(document.createElement("span"), { className: "step-mark" }), Object.assign(document.createElement("span"), { className: "title" }));
-    }
-    const sum = summaries.get(b), done = sum != null, t = h.querySelector(".title");
-    b.classList.toggle("done", done);
-    h.querySelector(".step-mark").textContent = done ? "✓" : String(k + 1);
-    const want = done && b.classList.contains("folded") ? sum : done ? h.dataset.doneName || h.dataset.name : h.dataset.name;
-    if (typeof want === "string") { if (t.textContent !== want || t.children.length) t.textContent = want; }
-    else if (t.firstChild !== want) t.replaceChildren(want);
-  });
+    h.setAttribute("aria-disabled", String(w)); h.tabIndex = w ? -1 : 0;
+  }
+}
+function unfoldFirst() { boxes().forEach((b) => b.classList.toggle("folded", waits(b))); drawBoxes(); }
+// an image just in: the Load box folds, but for a preview, Load Original being what comes next, and a study with no step after it
+function foldLoad() {
+  if (!SETUP && st.source?.kind !== "preview" && steps.length > 1) $("#image-box").classList.add("folded");
 }
 // a Markdown outline drawn as HTML: paragraphs split by blank lines, "- " or "1. " items nested by their indent
 function outline(text) {
@@ -2088,28 +1224,6 @@ function outline(text) {
   }
   return out;
 }
-// a box's task done, summed up (text, or a node), or waiting again (null): the box, or what the study put in it
-function boxDone(el, summary) {
-  const box = el.closest(".box");
-  if (summary == null) summaries.delete(box); else summaries.set(box, summary);
-  retitle();
-}
-// Load Image done: a small preview of the image, its name, and what the file says it holds
-function loadedSummary() {
-  const n = document.createElement("span"); n.className = "loaded";
-  const pic = document.createElement("img"); pic.className = "pic"; pic.alt = "";
-  const t = $("#base"), c = document.createElement("canvas"), side = 56, k = Math.max(side / t.width, side / t.height);
-  c.width = c.height = side;
-  c.getContext("2d").drawImage(t, (side - t.width * k) / 2, (side - t.height * k) / 2, t.width * k, t.height * k);
-  pic.src = c.toDataURL();
-  const text = document.createElement("span"); text.className = "what";
-  const name = document.createElement("span"); name.className = "name"; name.textContent = st.fileName;
-  const tags = document.createElement("span"); tags.className = "tags";
-  let said = ""; try { const k = st.kept.bytes; said = holds(shape(k.buffer || k)); } catch (e) { console.warn("cannot read what the image holds:", e); }
-  if (isTiff(st.fileName)) for (const w of (said || "2D").split(" · ")) tags.append(Object.assign(document.createElement("span"), { className: "tag", textContent: w }));
-  text.append(name, tags); n.append(pic, text);
-  return n;
-}
 // A drawer opening or folding slides, and those below it slide to their new places: the stylesheet's motion, each
 // drawer a shape of its own, clipped to the left bar, so a browser that cannot clip one changes them at once
 function slide(change) {
@@ -2124,7 +1238,7 @@ function slide(change) {
 function foldable() {
   document.querySelectorAll(".box.foldable > .sec-head h2").forEach((h) => {
     h.tabIndex = 0; h.setAttribute("role", "button");
-    const box = h.closest(".box"), flip = () => slide(() => { box.classList.toggle("folded"); retitle(); });
+    const box = h.closest(".box"), flip = () => { if (!box.classList.contains("waits")) slide(() => box.classList.toggle("folded")); };
     // folded, the whole drawer opens it; open, only its title folds it
     box.onclick = (e) => { if (box.classList.contains("folded") || h.contains(e.target)) flip(); };
     h.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } };
@@ -2198,7 +1312,7 @@ const releaseDay = (version) => { // the middle part is years since 2025, then m
   return m ? new Date(Date.UTC(2025 + Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
 };
 let historyLoad = null;
-const loadHistory = () => historyLoad ||= fetch("version_history.json", { cache: "no-cache" })
+const loadHistory = () => historyLoad ||= calls.during("site", "the version history", () => fetch("version_history.json", { cache: "no-cache" }))
   .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
 async function showHistory(since) {
   const list = $("#history-list");
@@ -2250,22 +1364,60 @@ document.addEventListener("animationstart", (e) => inView.observe(e.target));
 // address from before paths, ?study=<id>, names the same study.
 const HOME = new URL("./", import.meta.url).pathname;
 function studyOf(loc) {
+  if (SETUP) return new URLSearchParams(loc.search).get("study") || DEFAULT_STUDY;
   const rest = decodeURIComponent(loc.pathname.startsWith(HOME) ? loc.pathname.slice(HOME.length) : "").replace(/\.html$/, "");
   return (rest && rest !== "index" ? rest : new URLSearchParams(loc.search).get("study")) || DEFAULT_STUDY;
 }
-const addressOf = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComponent(id));
+const studyAddress = (id) => (id === DEFAULT_STUDY ? HOME : HOME + encodeURIComponent(id));
+// where a study is switched to: its own page, or on Study Setup's page its setup
+const addressOf = (id) => (SETUP ? `${HOME}setup?study=${encodeURIComponent(id)}` : studyAddress(id));
 
-// who may see a study (req/shell/study/visibility): everyone, unless it names the accounts it is shown to
-const maySee = (accounts) => !accounts || accounts.includes(signIn.email());
+// Who sees a study (shell/study/members): whoever the store lets read its root. The studies the build lists, each with its
+// root's id (null for none), and the ids of those the signed-in user can read, asked of the store in one batch request per load; while the
+// token has run out or the store does not answer, the ids it last gave this user, marked stale; null while none is known.
+let listed = [], memberIds = null, memberStale = false, asking = null;
+async function readMembers() {
+  if (setupOffline()) return;
+  if (!signIn.signedIn()) { asking = null; memberIds = null; memberStale = false; return; }
+  const last = signIn.learned("members");
+  if (!signIn.token()) { memberIds = last; memberStale = true; return; }
+  if (!listed.some((s) => s.root)) return;
+  const key = [signIn.email(), signIn.token(), ...listed.map((s) => s.root)].join();
+  if (asking?.key !== key) {
+    asking = { key, done: members(remote, listed).then((ids) => { signIn.learn("members", ids); memberIds = ids; memberStale = false; },
+      (e) => { console.warn("who may open which study was not read:", e); memberIds = last; memberStale = true; }) };
+  }
+  await asking.done;
+}
 // The header's switcher, after GitHub's repository switcher: every study the build lists that the user may see, each a
 // link to its address, found by typing; the arrow keys mark one, Enter opens it. A plain click swaps it in place.
-let listed = [];
-async function studyMenu() {
-  try { listed = await (await fetch(HOME + "studies.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("no list of studies:", e); }
-  drawStudies();
+let listFetched = Promise.resolve(), listedReady = Promise.resolve();
+function studyMenu() {
+  listFetched = (async () => {
+    try { listed = await (await calls.during("site", "the list of studies", () => fetch(HOME + "studies.json", { cache: "no-cache" }))).json(); } catch (e) { console.warn("no list of studies:", e); }
+  })();
+  listedReady = (async () => { await listFetched; await readMembers(); drawStudies(); })().catch((e) => console.warn("the study list was not drawn:", e));
+}
+// why a study may not be opened here, or null: signed in, its root is not one the account can read; signed out, its root is members-only
+async function refusal(m) {
+  await listFetched;
+  if (setupOffline()) return null;
+  const root = listed.find((x) => x.id === m.id)?.root;
+  if (!root || released(m.stage)) return null;
+  if (signIn.signedIn()) {
+    await listedReady;
+    if (!memberIds) return null;
+    return memberIds.includes(m.id) ? null : `${signIn.email()} cannot open this study: ${remote.short} does not let that account read it. Sign out to see what is open to everyone, or sign in with an account that can.`;
+  }
+  try { return (await remote.publicly(root)) === false ? "That study is not open right now." : null; } catch (e) { console.warn("whether the study is open was not asked:", e); return null; }
 }
 function drawStudies() {
-  $("#study-list").replaceChildren(...listed.filter((s) => maySee(s.accounts)).map((s) => {
+  // the study on show is listed by its stage as the page reads it, the build's list holding its study.json's
+  const shown = listed.find((s) => s.id === manifest?.id);
+  if (shown && manifest.stage) shown.stage = manifest.stage;
+  $("#study-stale").hidden = !(signIn.signedIn() && memberStale && memberIds);
+  $("#study-stale").textContent = `The list is as ${remote.short} last said: it renews when you click and the sign-in lets the page ask again.`;
+  $("#study-list").replaceChildren(...listed.filter((s) => offers(s, { signedIn: signIn.signedIn(), ids: memberIds })).map((s) => {
     const a = document.createElement("a");
     a.href = addressOf(s.id); a.dataset.id = s.id;
     a.innerHTML = `<span class="name"></span><span class="stage-tag"></span>`;
@@ -2339,27 +1491,38 @@ addEventListener("popstate", () => swap());
 // the network back: a study whose Python could not load loads again, on a Python of its own, since a worker
 // keeps a module it failed to download failed; and the storage it then kept shows
 addEventListener(CONNECTION, (e) => {
+  // the page's offline class follows this event, so what is asked of the store waits for it
+  if (SETUP && e.detail.online && manifest) queueMicrotask(() => { readRoles().then((r) => { storeRoles = r; showAccess(); }); readMembers().then(drawStudies); });
   // the network gone: a file of Python's that failed before the page was told so failed for that, and the study says it
   if (!e.detail.online) { if (st.unkept && !st.worker) notHere(); return; }
   offlineCopy.keepSite().then(diskBar, () => {});
   if (!st.worker) keepPython();
   if (!st.failed || st.ready || !st.worker || !manifest) return;
-  st.failed = false; status("Loading Python in the background…"); $("#spin").classList.add("on");
+  st.failed = false; status("Loading Python in the background…"); pythonLoads(true);
   pythonWorker();
 });
 function swap() {
   swapping = swapping.then(async () => {
-    const id = studyOf(location);
-    if (id === manifest?.id) return;
+    const id = studyOf(location), was = manifest?.id;
+    if (id === was) return;
+    // a study whose file cannot be read does not come in, and the one on show stays, at its own address
+    let read;
+    if (was) {
+      try { if (!/^[\w-]+$/.test(id) || !(read = await calls.during("site", "the study", () => fetch(`../studies/${id}/study.json`))).ok) throw new Error(`no study "${id}"`); } catch (e) {
+        history.replaceState(null, "", addressOf(was) + location.hash);
+        return status("Error: " + (e.message || e), true);
+      }
+    }
+    annotating = false; route = null; resume = null; editBase = null;
     dropImage();
     leaveStudy();
     try {
-      await mountStudy(id);
+      await mountStudy(id, read);
     } catch (e) { return status("Error: " + (e.message || e), true); }
-    status("Ready. Load an image.");
+    status(READY);
     // Python, not started, starts on this study at its first Run; its files are kept meanwhile
     if (!st.worker) return keepPython();
-    $("#spin").classList.add("on");
+    pythonLoads(true);
     st.worker.postMessage({ type: "study", id: manifest.id });
   });
 }
@@ -2369,29 +1532,34 @@ let lifetime = new AbortController(), mounted = [], css = null;
 // its panels go into the shell's slots, its stylesheet beside the shell's, then its module mounts
 // counted as the page's work until the study is in, its steps drawn
 let studyIn = Promise.resolve();
-const mountStudy = (id) => (studyIn = work.during(mountNow(id), `study ${id} coming in`));
-async function mountNow(id) {
+// read: its study.json's answer, where the caller has it already
+const mountStudy = (id, read) => (studyIn = work.during(mountNow(id, read), `study ${id} coming in`));
+async function mountNow(id, read) {
   if (!/^[\w-]+$/.test(id)) throw new Error(`no study "${id}"`);
   base = `../studies/${id}/`;
-  const r = await fetch(base + "study.json");
+  const r = read ?? await calls.during("site", "the study", () => fetch(base + "study.json"));
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
-  if (!maySee(manifest.visibility.accounts)) {
+  const no = await refusal(manifest);
+  if (no) {
     manifest = null;
     history.replaceState(null, "", addressOf(DEFAULT_STUDY));
     await mountNow(DEFAULT_STUDY);
-    return notice("That study is shown only to the accounts it names. Signed in with one of them, the switcher offers it.");
+    return notice(no, { signOut: signIn.signedIn() });
   }
   data.mount(manifest);
   storeRoles = await readRoles();
-  takeRole();
-  document.title = manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
+  manifest.stage = await readStage(); data.stageChanged();
+  if (listed.find((s) => s.id === manifest.id)?.stage !== manifest.stage) drawStudies();
+  document.title = SETUP ? `Study Setup · ${manifest.title}` : manifest.title; $("#title").textContent = manifest.title; $("#title-icon").replaceChildren(...studyIcon(id, manifest.icon)); markCurrent();
+  // the study's article (req/shell/study/article)
+  $("#article-link").hidden = !manifest.article; if (manifest.article) $("#article-link").href = manifest.article; else $("#article-link").removeAttribute("href");
   log.add(`Opened the study “${manifest.title}”`);
   $("#favicon").href = manifest.icon ? base + manifest.icon : new URL("icon.svg", import.meta.url).href;
   $("#file").accept = manifest.files.accept; $("#empty-text").textContent = manifest.files.empty; placeLoad();
   if (manifest.web.style) { css = document.createElement("link"); css.rel = "stylesheet"; css.href = base + manifest.web.style; document.head.append(css); }
   if (manifest.web.panels) {
-    const panels = new DOMParser().parseFromString(await (await fetch(base + manifest.web.panels)).text(), "text/html");
+    const panels = new DOMParser().parseFromString(await (await calls.during("site", "the study's panels", () => fetch(base + manifest.web.panels))).text(), "text/html");
     for (const t of panels.querySelectorAll("template[data-slot]")) {
       const nodes = [...document.importNode(t.content, true).childNodes];
       for (const n of nodes) if (n.nodeType === 1) n.dataset.studyPanel = "";
@@ -2407,6 +1575,8 @@ async function mountNow(id) {
   algorithms.mount(manifest, base, lifetime.signal);
   keys.mount(manifest.actions, lifetime.signal);
   gtSession.mount(manifest.groundTruth?.actions ? await import(base + manifest.groundTruth.actions) : null);
+  // the Summary box follows whether the image carries a model
+  gtSession.api.on(() => showBoxes(), lifetime.signal); showBoxes();
   tasks.mount(manifest.groundTruth?.areas);
   // the colour of Edit History's ring, where the study's image or marks carry the shell's
   if (manifest.groundTruth?.ring) $("#view").style.setProperty("--gt-ring", manifest.groundTruth.ring);
@@ -2418,30 +1588,29 @@ async function mountNow(id) {
   makeSteps();
   foldable();
   showRecent();
-  data.role(role === "data");
+  showAccess();
 }
-// The left bar's boxes the study fills (req/shell/left-bar/shells): one it leaves empty is not shown, and Ground
-// Truth Tasks shows in Summary's place while the study makes ground truth. Processing opens with the image and
-// folds after the study's first step, which opens the others (req/shell/left-bar/folding).
+// What the study fills of the left bar's boxes (req/shell/left-bar/shells): in the Analysis box its processing, from Start on, and
+// its Analysis Tasks, while the user annotates; the Summary box, which waits until the image carries a model. A box the study
+// puts nothing in is not shown.
 const STUDY_BOXES = { processing: "#processing-box", tasks: "#tasks-box", summary: "#summary-box" };
-function studyBoxes() {
-  const first = manifest.phases[0]?.key || "load", truthNow = makesTruth();
-  for (const [slot, sel] of Object.entries(STUDY_BOXES)) {
-    const b = $(sel), filled = !!b.querySelector("[data-study-panel]") || (slot === "processing" && !!manifest.algorithms);
-    b.hidden = !filled || (slot === "tasks" && !truthNow) || (slot === "summary" && truthNow);
-    b.dataset.opens = slot === "processing" ? "load" : first;
-    if (slot === "processing" && first !== "load") b.dataset.folds = first; else delete b.dataset.folds;
-    summaries.delete(b);
-  }
-  summaryMasks.redraw(); gtSession.paint();
+// whether the image open carries a model: the log's, one a store's Analysis File shows, or, for a study keeping no GT actions, always
+const hasModel = () => !!viewing || !gtSession.on() || !!gtSession.api.model();
+function showBoxes() {
+  if (!manifest) return;
+  const filled = (sel) => !!$(sel).querySelector("[data-study-panel]");
+  $("#processing-box").hidden = !filled("#processing-box") || !page.get("image") || route !== "scratch";
+  $("#tasks-box").hidden = !filled("#tasks-box") || !makesTruth();
+  $("#summary-box").hidden = !filled("#summary-box");
+  $("#analysis-box").hidden = !(filled("#processing-box") || filled("#tasks-box") || runsFirst() || stageAllows("annotate"));
+  drawDownloads();
+  drawBoxes(); drawSteps();
+  summaryFollows();
 }
+function studyBoxes() { showBoxes(); summaryRedrawn(); gtSession.paint(); }
 const viewers = {};
-const algorithms = algorithmChoice({ $, outline, status });
-// Download Summary at the Summary box's foot: the study's summary, saved as the shell's one CSV
-const summaryCsv = summaryDownload({ button: $("#summary-dl"), saveFile, image: () => st.fileName, study: () => manifest?.title });
-// the summary's mask (req/shell/summary/mask): lassoed on the image, kept per study and image, read by the study
-const summaryMasks = summaryMask({ $, viewer: () => view, image: () => page.get("image"), fileName: () => st.fileName, study: () => manifest,
-  shows: () => !$("#summary-box").hidden, drag, readJSON, writeJSON, views });
+const { summaryCsv, summaryMasks, summaryFollows, summaryRedrawn } = summaryBox({ $, st, page, waits, saveFile, drag, readJSON, writeJSON, views,
+  get manifest() { return manifest; }, get view() { return view; } });
 // the keyboard's actions, the study's and the viewers', and their legend at the image's bottom left (req/shell/image/keys)
 const keys = actions($("#image-view").appendChild(Object.assign(document.createElement("div"), { id: "keys-legend", className: "keys-legend" })));
 // the tagger's GT actions on the image open, their Undo, Redo, Save Draft and Load draft (req/shell/ground-truth/history)
@@ -2449,7 +1618,9 @@ const gtDrafts = truthDrafts();
 const gtSession = truthHistory({ $, drafts: gtDrafts, keys, dragging, status, notice, makesTruth, viewer: () => view, remoteLabel: () => remote.label, readJSON, writeJSON,
   image: () => (st.img ? { name: st.fileName, sha256: st.sha, width: st.W, height: st.H } : null), studyId: () => manifest?.id,
   // offline there is nothing to ask the store
-  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null) : truth.mine()), readSubmission: (id) => truth.readMine(id) });
+  submission: () => (document.documentElement.classList.contains("offline") ? Promise.resolve(null)
+    : ownFile()), readSubmission: (id) => truth.read(id),
+  version: () => ({ site: VERSION || null, code: studyCode }), drawn: () => drawAnnotate() });
 // The study on show leaves: its panels, stylesheet, drawing, listeners and state go, and its Python's late
 // answers are dropped.
 function leaveStudy() {
@@ -2458,13 +1629,14 @@ function leaveStudy() {
   lifetime.abort(); lifetime = new AbortController(); truthShown = false;
   truth.leave(); algorithms.leave(); summaryCsv.clear(); summaryMasks.left();
   for (const n of mounted.splice(0)) n.remove();
-  for (const sel of Object.values(STUDY_BOXES)) { $(sel).hidden = true; summaries.delete($(sel)); }
+  for (const sel of Object.values(STUDY_BOXES)) $(sel).hidden = true;
+  studyTables = []; drawDownloads(); $("#algorithm-ran").hidden = true; $("#algorithm-ran").textContent = "";
   css?.remove(); css = null;
   $("#view").style.removeProperty("--gt-ring"); if (!$("#view").getAttribute("style")) $("#view").removeAttribute("style");
   study = {}; manifest = null; view?.use({}); view?.leave();
   for (const k of Object.keys(st)) if (!SHELL_STATE.has(k)) delete st[k];
   for (const k of SHELL_STATE) if (!PYTHON_STATE.includes(k)) st[k] = ST_LOADED[k];
-  for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(new Error("the study left")));
+  for (const w of Object.values(waiting)) w.splice(0).forEach((x) => x.bad(Object.assign(new Error("the study left"), { cancelled: true })));
   busy(false); $("#notice").hidden = true; $("#tip").hidden = true;
   $("#image-view").hidden = false; delete $("#view").dataset.view; $("#switch").hidden = true; views.now = "image";
   tasks.leave(); gtSession.leave(); remoteLeft();
@@ -2473,13 +1645,17 @@ function leaveStudy() {
 
 const shell = {
   $, state: st, page, drag, still, status, busy: studyBusy, statusBar, step, notice, slow, until, call, readJSON, writeJSON, esc, saveFile, submitTruth, icon, remote,
-  showImage, boxDone, outline,
+  showImage, outline,
+  // a stack shows as its slices flattened, with no 3D view (req/setup/image)
+  flatOnly: SETUP,
   views: { show: (v) => views.show(v), on: (fn) => views.on(fn), count: (total) => views.count(total), get now() { return views.now; } },
   tasks, algorithm: algorithms.api,
   // the study's GT actions (req/shell/ground-truth/history): act(action), ran({algorithm, output}), model(), document(), count(), on(fn(model, why), signal)
   gt: gtSession.api,
   // the study's summary for Download Summary (req/shell/summary/download): set({over, rows}), or set(null)
   summary: summaryCsv.api,
+  // the study's own tables offered by Download Analysis (req/shell/extractions/save): set([{key, label, suffix, head(), rows()}]), or set(null)
+  tables: { set(list) { studyTables = Array.isArray(list) ? list : []; drawDownloads(); } },
   // the summary's mask (req/shell/summary/mask): polygons(), inside(x, y), on(fn, signal)
   mask: summaryMasks.api,
   // the study's declared actions (req/shell/image/keys): handle({id: fn(phase, {event, control})}), report({state: value});
@@ -2495,29 +1671,51 @@ const offlineCopy = offline({ $, esc, sizeText, remote, throttled, throttle, sto
     for (const q of c ? await c.keys() : []) { const s = (await c.match(q))?.headers.get(IMAGE_STUDY); if (s) out.add(s); }
     return out;
   } });
-// Data Management (req/shell/data/mode): what it borrows from the shell
-const data = dataMode({
+// What a batch run asks of the page (req/setup/batch): the study's first step run on one image as the main app runs it, and the
+// document that makes, as a person's extraction would be, with no person's name on it. The rest of a batch is Study Setup's.
+const batchRunner = {
+  // whether the study can be run over its images: it keeps GT actions and has a first step to press
+  get able() { return !!manifest && gtSession.on() && !!manifest.phases?.[0]?.button; },
+  // the study's algorithms, once listed
+  list: async () => { await algorithms.api.ready; return algorithms.api.list; },
+  // Python started, and the study's code version as a run records it, null where Python did not tell
+  async version() { await pythonReady(); return studyCode; },
+  // the document of the study's first step run on the image `source` names, with algorithm chosen; signal ends the wait
+  async run(source, algorithm, signal) {
+    const step = manifest.phases[0], button = $(step.button);
+    let name = source.name, bytes;
+    const kept = await savedImage(source.id);
+    if (kept) ({ name, bytes } = kept);
+    else {
+      if (throttled()) throw new Error(remote.words.throttled);
+      try { ({ name, bytes } = await remote.file(source.id, source.name)); } catch (e) { if (e.throttled) throttle(); throw e; }
+    }
+    algorithms.api.choose(algorithm);
+    await openBytes(name, bytes, source);
+    if (page.get("image")?.source !== source) throw new Error(`${name} was not opened, so ${step.name} did not run on it.`);
+    if (button.disabled) throw new Error(`${step.name} is not available on ${name}.`);
+    const stop = new AbortController();
+    const ended = new Promise((ok, bad) => {
+      gtSession.api.on((_, why) => { if (why === "run") ok(); }, stop.signal);
+      runFailed = bad;
+      signal?.addEventListener("abort", () => bad(new Error("The batch was stopped.")), { once: true });
+    });
+    button.click();
+    try { await ended; } finally { stop.abort(); runFailed = null; }
+    return { ...(await gtSession.fileDoc()), created: new Date().toISOString(), image: { name, sha256: st.sha, ...remote.cite(source) } };
+  },
+};
+// what Study Setup's script (setup.js) builds Data Management from (req/setup/data): the shell's sign-in, store, place, viewer
+// and left bar, lent as they are
+export const lent = {
+  batchRunner, stageAllows, setStage, readStage, saveFile, calls,
   $, esc, sizeText, still, status, remote, account: signIn, place, working, sha256, savedImage, folderPreviews, throttle,
-  // the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): whether the image itself, by
-  // its id, is open; a lasso over it, done(points) once drawn; its areas, shown at once on the image open
+  page, views, summaryMasks, st, drawBoxes, loadOriginal, minimapView: () => view?.minimapView(),
+  studyId: () => manifest?.id ?? null,
+  // the image itself, by its id, is open
   originalOpen: (id) => !!st.source && st.source.id === id && st.source.kind !== "preview" && !!page.get("image"),
-  lasso: (done, hint) => summaryMasks.lassoFor(done, hint),
-  areasOf: (id, areas) => { if (st.source?.id === id && st.source.kind !== "preview") summaryMasks.areas(areas); },
-  // the folder's images in the main area, or the image
-  showFolder(on) {
-    $("#folder-view").hidden = !on; $("#image-view").hidden = on || views.now !== "image";
-    if (!on) view?.minimapView();
-  },
-  modeChanged(on) {
-    retitle(); $("#tip").hidden = true;
-    if (!on && views.now !== "image") views.show("image");
-    view?.minimapView();
-  },
-  // the drawers on show changed: their numbers again
-  relabel: () => retitle(),
-  openPreview: (name, bytes, source) => openBytes(name, bytes, source),
-  loadOriginal,
-});
+  openBytes: (name, bytes, source) => openBytes(name, bytes, source),
+};
 // the image itself, for the preview on show: the copy kept on this device, else downloaded from the remote store
 async function loadOriginal(source) {
   if (!source?.id) return;
@@ -2548,12 +1746,12 @@ $("#sign-in").addEventListener("click", () => { welcomed.chose(); closeTip("sign
 $("#sign-out").addEventListener("click", () => welcomed.forgot());
 $("#user-menu").addEventListener("toggle", () => { if ($("#user-menu").open) closeTip("sign-in"); });
 // for the page's tests, which drive it from outside
-window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, mask: summaryMasks.api, get viewer() { return view; } };
+window.st = st; window.$ = $; window.shellForTests = { saveThumb, page, work, calls, mask: summaryMasks.api, get viewer() { return view; }, get steps() { return steps.map(({ key, name, done }) => ({ key, name, done })); } };
 
 // an old address, ?study=<id> or index.html, becomes the study's own
-if (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html")) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
+if (!SETUP && (new URLSearchParams(location.search).has("study") || location.pathname.endsWith("/index.html"))) history.replaceState(null, "", addressOf(studyOf(location)) + location.hash);
 studyMenu();
-remoteDialog(); slow($("#gt-export"));
+remoteDialog();
 // the study the address names comes in as the first of the swaps: one asked for meanwhile waits until it is in
 const first = mountStudy(studyOf(location));
 swapping = first.catch(() => {});

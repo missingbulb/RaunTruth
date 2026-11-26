@@ -1,6 +1,6 @@
 ---
 name: improve-on-ground-truth
-description: Improving the NoR finders when new ground truth is curated in the study's Drive folder (its dataset SHA moved), or when asked to improve them on the ground truth.
+description: Improving the NoR finders when new ground truth is marked GT in the study file (its dataset SHA moved), or when asked to improve them on the ground truth.
 paths:
   - "studies/nor/**"
 metadata:
@@ -17,9 +17,10 @@ skill. Each step below is its step of the same number, filled in with NoR's comm
 research-project's and `studies/nor/docs/requirements.md` R7, R9 and R10. Read
 `studies/nor/lab/STATE.md` and `studies/nor/lab/ledger.md` first.
 
-The curated files are the best reference there is: a person marked each label, where the lab's own
-labels (`studies/nor/lab/truth/`) are Claude's eye. `--truth drive` scores on the curated files
-alone; never re-weigh the two by hand.
+The files the study file's GT marks name (`lab/README.md`) are the best reference there is: a person marked each
+label, where the lab's own labels (`studies/nor/lab/truth/`) are Claude's eye. The lab reads the study file through
+`RAUNTRUTH_STUDY_NOR`, and `python3 lab/stage.py nor` says the stage: in Review or Public the ground truth and scores
+are frozen, so stop. `--truth drive` scores on the GT marks alone; never re-weigh the two by hand.
 
 ## 1. See what moved
 

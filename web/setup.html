@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en" data-page="setup">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Setup</title>
+<meta name="version" id="site-version" title="version 0.11126.161">
+<meta name="description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
+<link rel="icon" id="favicon" href="icon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="rauntruth.com">
+<meta property="og:title" content="rauntruth.com app">
+<meta property="og:description" content="Image studies that run in your browser: find, count and measure in microscopy images, then review every result. Online or offline.">
+<meta property="og:image" content="poster.jpg">
+<meta property="og:url" content="./">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="style.css">
+<!-- cookieless visit counts (Cloudflare Web Analytics), on the released site only -->
+<script defer src="../analytics.js"></script>
+<script>
+  // before the first paint, so a light-mode user never sees a dark flash
+  try { const t = localStorage.getItem("nor-theme"); if (t) document.documentElement.dataset.theme = t; } catch { /* no storage */ }
+</script>
+</head>
+<body>
+<header>
+  <img id="logo" src="logo.svg" alt="Sagol School of Neuroscience, Tel Aviv University">
+  <details class="menu" id="study-menu">
+    <summary aria-label="Switch study"><span id="title-icon"></span><h1 id="title"></h1><span class="caret" title="Switch study"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
+    <div class="pop" role="dialog" aria-labelledby="study-menu-title">
+      <h2 id="study-menu-title">Switch study</h2>
+      <label class="search"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg><input id="study-search" type="search" placeholder="Search studies" autocomplete="off" spellcheck="false" aria-label="Search studies" aria-controls="study-list"></label>
+      <nav id="study-list" aria-label="Studies"></nav>
+      <p id="study-stale" class="dim" hidden></p>
+      <p id="study-none" class="dim" hidden>No study matches.</p>
+      <a id="study-request" target="_blank" rel="noopener" data-needs-network><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>Submit New Study Request</a>
+    </div>
+  </details>
+  <a id="article-link" target="_blank" rel="noopener" title="The study's article, in a tab of its own" hidden><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z"/><path d="M9.5 1.5V5H13M6.5 8h4M6.5 10.5h4"/></svg>Article</a>
+  <span class="grow"></span>
+  <details class="menu" id="user-menu">
+    <summary title="You, on this device" aria-label="You, on this device"><svg class="avatar" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="16"/><circle cx="16" cy="12.5" r="5.5"/><path d="M5.5 27a11 9 0 0 1 21 0"/></svg></summary>
+    <div class="pop right">
+      <div class="who"><span class="who-text"><b id="who-name">You</b><span class="dim" id="who-where">On this device, not signed in</span></span><span id="who-avatar"></span></div>
+      <button class="item" id="sign-in" type="button" data-needs-network hidden></button>
+      <a class="item" id="open-setup" href="setup" data-needs-network hidden><span class="word">Study Setup…</span><svg class="new-page" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"/></svg></a>
+      <button class="item" id="open-settings" type="button">Settings…</button>
+      <button class="item" id="manage-storage" type="button">Manage storage…</button>
+      <button class="item" id="report-problem" type="button" data-needs-network>Report a problem…</button>
+      <button class="item" id="sign-out" type="button" hidden>Sign out</button>
+      <div class="legal"><a href="../privacy">Privacy policy</a> · <a href="../terms">Terms</a> · <a href="../license">License</a></div>
+    </div>
+  </details>
+  <button id="theme" class="icon" title="Switch between dark and light" aria-label="Switch between dark and light">
+    <svg class="sun" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" width="18" height="18"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+  </button>
+</header>
+<p id="setup-note" class="hint" role="status" hidden></p>
+<div id="setup" hidden>
+  <!-- the study's stage, promoted and moved back here (req/setup/promote) -->
+  <section id="stage-box" aria-labelledby="stage-box-title" hidden>
+    <h2 id="stage-box-title" class="sr-only">The study's stage</h2>
+    <ol id="stage-steps"></ol>
+    <p id="stage-what" class="hint"></p>
+    <p id="stage-msg" class="hint" role="status"></p>
+  </section>
+  <div id="setup-body">
+    <nav id="setup-rail" aria-label="The study's aspects">
+      <button type="button" data-aspect="images" aria-pressed="true">Images</button>
+      <button type="button" data-aspect="truth" aria-pressed="false">Ground Truth</button>
+      <button type="button" data-aspect="literature" aria-pressed="false">Literature</button>
+      <button type="button" data-aspect="people" aria-pressed="false">People</button>
+      <button type="button" data-aspect="batch" aria-pressed="false">Run on all images</button>
+      <button type="button" data-aspect="results" aria-pressed="false">Results</button>
+    </nav>
+    <div id="setup-aspect" data-aspect="images">
+      <aside id="data-col" aria-label="The study's folders" data-needs-network hidden>
+      <div id="data-body">
+      <div class="data-head"><h2>Folders</h2></div>
+      <div id="data-tree" role="tree" aria-label="The study's folders" data-log-as="a folder or image in the Data Management tree"></div>
+      <section id="data-unlisted" aria-labelledby="data-unlisted-title" hidden>
+      <h3 id="data-unlisted-title">Not in the study</h3>
+      <div id="data-unlisted-list" data-log-as="a folder of the root not in the study"></div>
+      </section>
+      <div id="data-add-row"><input id="data-add-link" type="url" placeholder="Paste a folder's link to add it" aria-label="A folder's link, to add it to the study" data-log-as="a folder link pasted to add" data-needs-network><button id="data-add" type="button" data-needs-network>Add folder</button></div>
+      <p id="data-msg" class="hint" role="status"></p>
+      <p id="data-index" class="hint" role="status"></p>
+      <section id="study-set" aria-labelledby="study-set-title" hidden>
+      <h3 id="study-set-title">Study images</h3>
+      <label class="study-row"><span>Group Load by</span><select id="study-group" data-needs-network data-log-as="the tag Load groups by"></select></label>
+      <div class="study-row"><span>Hide images tagged</span><div id="study-hide-list" data-log-as="a tag that hides images"></div></div>
+      <div class="tags-add-row"><input id="study-hide-add" type="text" spellcheck="false" autocomplete="off" placeholder="A tag or a value" aria-label="A tag whose images to hide" data-log-as="a tag typed to hide" data-needs-network><button id="study-hide-go" type="button" data-needs-network>Hide</button></div>
+      <p id="study-hide-count" class="hint"></p>
+      <p id="study-msg" class="hint" role="status"></p>
+      </section>
+      </div>
+      </aside>
+      <div id="folder-view" hidden>
+      <div class="folder-bar"><h2 id="folder-title"></h2><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+      <div id="folder-items" data-layout="grid" data-log-as="an image in the folder view"></div>
+      </div>
+      <aside id="setup-side">
+        <section class="box foldable" id="folder-box" data-needs-network>
+        <div class="sec-head"><h2>Selected Folder</h2></div>
+        <div id="folder-name"></div>
+        <dl id="folder-summary"></dl>
+        <div class="folder-actions"><button id="update-previews" type="button" data-needs-network disabled autocomplete="off">Update previews</button></div>
+        <p id="folder-msg" class="hint" role="status"></p>
+        </section>
+        <section class="box" id="image-panel" hidden>
+          <div class="sec-head"><h2>Selected Image</h2></div>
+          <div id="image-panel-name"></div>
+          <div class="folder-actions"><button id="image-open" type="button" class="primary" disabled autocomplete="off">Open image…</button></div>
+        </section>
+        <section class="box" id="tags-box" data-needs-network hidden>
+        <div class="sec-head"><h2>Tags</h2></div>
+        <p id="tags-for" class="hint"></p>
+        <div id="tags-list" data-log-as="a tag of the folder or image chosen"></div>
+        <div class="tags-add-row"><input id="tags-add" type="text" spellcheck="false" autocomplete="off" placeholder="Add a tag: damaged-slide, group:wild-type" aria-label="A tag to add" data-log-as="a tag typed to add" data-needs-network><button id="tags-add-go" type="button" data-needs-network>Add</button></div>
+        <label id="tags-desc-row" hidden><span class="hint">Description</span><textarea id="tags-desc" rows="3" data-log-as="an image's description" data-needs-network></textarea></label>
+        <p id="tags-msg" class="hint" role="status"></p>
+        </section>
+        <!-- the image's Analysis Files and their marks (req/setup/marks) -->
+        <section class="box" id="marks-box" data-needs-network hidden>
+        <div class="sec-head"><h2>Analysis Files</h2></div>
+        <p id="marks-for" class="hint"></p>
+        <div id="marks-list" role="list" data-log-as="an Analysis File of the image, to mark"></div>
+        <p id="marks-msg" class="hint" role="status"></p>
+        </section>
+        <!-- a batch run over the folder's images (req/setup/batch) -->
+        <section class="box" id="batch-box" data-needs-network hidden>
+        <div class="sec-head"><h2>Batch run</h2></div>
+        <p id="batch-for" class="hint"></p>
+        <label class="study-row"><span>Algorithm</span><select id="batch-algorithm" data-log-as="the algorithm a batch runs"></select></label>
+        <div class="folder-actions"><button id="batch-all" type="button" data-needs-network>Choose all</button><button id="batch-run" type="button" class="primary" data-needs-network disabled>Run</button></div>
+        <div class="folder-actions"><button id="batch-official" type="button" data-needs-network hidden>Mark this batch official</button></div>
+        <p id="batch-msg" class="hint" role="status"></p>
+        </section>
+        <p id="batch-hint" class="hint">Choose a folder: a batch runs over its images.</p>
+        <p id="side-hint" class="hint">Choose a folder or an image to see what is set on it.</p>
+      </aside>
+      <section id="truth-panel" aria-label="Ground Truth">
+        <button id="gt-setup" type="button" data-needs-network hidden>Set up Analysis Files…</button>
+        <section id="gt-box" aria-labelledby="gt-box-title" hidden>
+        <h2 id="gt-box-title">Analysis Files</h2>
+        <p id="gt-mode" class="hint"></p>
+        <p id="gt-counts" role="status"></p>
+        </section>
+        <section id="newer-box" aria-labelledby="newer-title">
+          <h2 id="newer-title">Analysis Files newer than their GT</h2>
+          <div class="folder-actions"><button id="stage-find" type="button" data-needs-network hidden>Find images with newer Analysis Files</button></div>
+          <div id="stage-newer-box" hidden>
+          <h3 id="stage-newer-title">Newer than their GT</h3>
+          <ul id="stage-newer" data-log-as="an image with an Analysis File newer than its GT"></ul>
+          <p id="stage-newer-none" class="hint" hidden>No image has an Analysis File newer than its GT.</p>
+          </div>
+        </section>
+      </section>
+      <section id="sharing-box" aria-labelledby="sharing-title" data-state="checking" data-checks="0">
+      <div class="sharing-head"><h2 id="sharing-title">Sharing</h2><button id="sharing-recheck" type="button" data-needs-network disabled autocomplete="off">Check again</button></div>
+      <p id="sharing-state" class="hint" role="status"></p>
+      <ul id="sharing-corrections" data-log-as="a correction of the study's sharing"></ul>
+      <h3 id="people-title">People</h3>
+      <ul id="people-list"></ul>
+      </section>
+      <!-- the study's papers in the store against the repo's summaries (req/setup/literature) -->
+      <section class="box" id="literature-box" data-needs-network>
+      <div class="sec-head"><h2>Literature</h2></div>
+      <p class="hint">The files of the study's Literature folder, and which the repo holds a summary of.</p>
+      <ul id="literature-papers" data-log-as="a paper in the Literature folder"></ul>
+      <div id="literature-orphans" hidden>
+      <h3>Summaries with no paper here</h3>
+      <ul id="literature-summaries"></ul>
+      </div>
+      <p id="literature-msg" class="hint" role="status"></p>
+      </section>
+      <!-- the study's results over the images' official Analysis Files (req/setup/results) -->
+      <section class="box" id="results-box" data-needs-network hidden>
+      <div class="sec-head"><h2>Results</h2></div>
+      <p class="hint">Reads each image's official Analysis File, only when you press Show results.</p>
+      <div class="folder-actions"><button id="results-show" type="button" class="primary" data-needs-network>Show results</button><button id="results-csv" type="button" hidden>Download CSV</button></div>
+      <div id="results-scroll" hidden>
+      <table><thead></thead><tbody data-log-as="an image's official result"></tbody><tfoot></tfoot></table>
+      </div>
+      <p id="results-msg" class="hint" role="status"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- an image chosen, opened over the page (req/setup/image) -->
+<dialog id="image-dlg" aria-labelledby="image-dlg-title">
+  <div class="dlg-row"><h2 id="image-dlg-title"></h2><span class="grow"></span><button id="image-original" class="primary" type="button" hidden>Load Original</button><button id="image-close" type="button">Close</button></div>
+<div id="layout">
+  <aside id="left">
+    <section class="box foldable" id="image-box" data-folds="load">
+      <div class="sec-head"><h2>Load</h2><button id="unload" class="link" type="button" hidden title="Close the image and clear the page">unload image</button></div>
+      <div id="load">
+        <details class="menu" id="image-menu"><summary id="image-pick" aria-label="Recently Opened" data-log-as="the image selector"><span class="pick-name">Recently Opened</span><span class="caret"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg></span></summary>
+          <div class="pop" role="dialog" aria-label="Images opened lately"><div id="recent" role="listbox" data-log-as="a recent image"></div></div>
+        </details>
+        <button id="load-main" class="primary" type="button" title="Open from this computer"><svg class="computer-logo" aria-hidden="true"><use href="#computer-logo"/></svg><span class="word">Load</span></button>
+        <button id="load-remote" type="button"><svg class="remote-logo" aria-hidden="true"><use href="#remote-logo"/></svg></button>
+      </div>
+      <div id="file-tags" aria-label="The image's tags" hidden></div>
+      <details id="file-box" class="empty" hidden><summary id="file-name" data-log-as="the image's name"></summary><dl id="file-info"></dl><details id="file-more" hidden><summary data-log-as="the details' More details">More details (<span id="file-more-n"></span>)</summary><dl id="file-more-list"></dl></details></details>
+      <div id="channels"></div>
+      <div id="image-foot">
+        <button id="load-original" class="primary" type="button" hidden>Load Original</button>
+        <input id="file" type="file" hidden>
+        <svg hidden id="logos"><symbol id="computer-logo" viewBox="0 0 24 21"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2" y="1" width="20" height="14" rx="2"/><path d="M8 20h8M12 15v5"/></g></symbol></svg>
+      </div>
+    </section>
+
+
+
+
+
+
+    <section class="box foldable study-box" id="analysis-box">
+      <div class="sec-head"><h2>Analysis</h2><button id="annotate-clear" class="link" type="button" hidden title="Clear the analysis from the page, back to just after the image loaded">reset analysis</button><button id="analysis-dl" class="head-icon" type="button" aria-haspopup="menu" hidden title="Download Analysis" aria-label="Download Analysis"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button><div id="analysis-dl-menu" class="pop" role="menu" aria-label="Download Analysis" hidden></div></div>
+      <div id="gt-strip"><div class="strip-head"><h3 id="tasks-title">Analysis Tasks</h3><label id="gt-areas-row" hidden>Areas <select id="gt-areas" title="How many areas the field is cut into: a bigger area is judged whole"></select></label></div><div id="gt-bar"></div><div id="gt-counters" data-log-as="a task's counter"></div></div>
+      <div id="annotate-box" hidden>
+        <div id="annotate-choices">
+          <button id="annotate-local" type="button" hidden>Continue local work</button>
+          <div class="pair"><button id="annotate-scratch" type="button" class="primary">Start</button><button id="annotate-load" type="button" disabled autocomplete="off">Load</button></div>
+        </div>
+        <p id="annotate-say" class="hint" role="status" hidden></p>
+        <button id="annotate-edit" type="button" hidden>Edit this analysis</button>
+      </div>
+      <div class="study-box" id="processing-box" hidden>
+        <p id="algorithm-ran" class="hint" hidden></p>
+        <slot-here data-slot-for="processing"></slot-here>
+      </div>
+      <div class="study-box" id="tasks-box" hidden>
+      <div class="gt-access" hidden></div>
+      <slot-here data-slot-for="tasks"></slot-here>
+      <div id="gt-offers" hidden><button id="gt-load-draft" type="button" hidden></button><button id="gt-load-legacy" type="button" hidden>Load earlier edits</button><button id="gt-load-submission" type="button" data-needs-network hidden></button></div>
+      <div id="gt-list" hidden>
+        <ol id="gt-tasks"><li data-task="submit"><div class="task-head"><button id="gt-save-draft" type="button" disabled autocomplete="off">Save Draft</button><button id="gt-submit" type="button" disabled autocomplete="off"><span class="gt-ico" aria-hidden="true"></span>Upload</button><span id="gt-unsaved" class="unsaved" hidden></span></div><p id="gt-waiting" class="hint" role="status" hidden></p></li></ol>
+      </div>
+      </div>
+    </section>
+    <section class="box foldable study-box" id="summary-box" hidden>
+      <div class="sec-head"><h2>Summary</h2><button id="summary-dl" class="head-icon" type="button" hidden title="Download Summary: its numbers as a CSV file, one row per measurement" aria-label="Download Summary"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg></button></div>
+      <div class="mask-btns" id="mask-row" hidden><button id="mask-add" type="button" class="primary" disabled autocomplete="off" title="Lasso the part of the image the summary counts (on a stack, from straight above, through every slice); lasso again to add or cut out an area">Define Area of Interest</button><button id="mask-clear" type="button" hidden>Clear mask</button></div>
+      <slot-here data-slot-for="summary"></slot-here>
+    </section>
+  </aside>
+  <div class="gutter" id="gutter-left" title="Drag to resize; double-click to restore"></div>
+
+  <main id="view">
+    <div class="toolbar">
+      <button id="switch" class="big" type="button" hidden disabled autocomplete="off"><span class="name"></span> <span class="count"></span></button>
+      <slot-here data-slot-for="toolbar"></slot-here>
+      <span class="grow"></span>
+      <button id="ruler-btn" class="for-image tool" type="button" aria-pressed="false" title="Ruler: drag across the image to measure a distance. Click again to clear it." aria-label="Ruler"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/></g></svg></button>
+      <button id="grid-btn" class="for-image tool" type="button" aria-pressed="false" title="Grid: draw a grid over the image. Hover to choose its colour and spacing." aria-label="Grid"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="#e53935" stroke-width="1.6" d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg></button>
+      <div id="grid-pop" popover aria-label="Grid">
+        <label>Colour <input id="grid-colour" type="color"></label>
+        <label>Lines every <input id="grid-spacing" type="number" min="0" step="any"> <span id="grid-unit"></span></label>
+      </div>
+      <button id="minimap-btn" class="for-image tool" type="button" aria-pressed="false" title="Minimap: a small picture of the whole image over it, showing the part in view. Hover to choose how see-through it is." aria-label="Minimap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><rect x="12" y="11" width="6" height="6" rx=".5"/></g></svg></button>
+      <div id="minimap-pop" popover aria-label="Minimap">
+        <label>Opacity <input id="minimap-opacity" type="range" min="10" max="100" step="5"> <span id="minimap-opacity-text"></span></label>
+        <p class="hint">Opaque while the pointer is over it.</p>
+      </div>
+      <button id="history-btn" class="for-image tool" type="button" aria-pressed="false" hidden title="Edit History: what you did to the analysis, listed over the image. Click a row there to go back to it." aria-label="Edit History"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 6h10M10 12h10M10 18h10"/></g><g fill="currentColor" font-size="7" font-weight="700" font-family="system-ui, sans-serif" text-anchor="middle"><text x="5" y="8.5">1</text><text x="5" y="14.5">2</text><text x="5" y="20.5">3</text></g></svg></button>
+      <button id="gt-undo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Undo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 5 4 9l4 4M4 9h10a6 6 0 0 1 0 12h-4"/></svg></button>
+      <button id="gt-redo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Redo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m16 5 4 4-4 4M20 9H10a6 6 0 0 0 0 12h4"/></svg></button>
+      <div class="for-image zoom" role="group" aria-label="Zoom">
+        <button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+      </div>
+      <slot-here data-slot-for="toolbar-end"></slot-here>
+    </div>
+    <div id="busy" hidden><div id="scan-light"></div><span class="spin big"></span><div id="busy-text"></div><div id="busy-time"></div></div>
+
+    <slot-here data-slot-for="view-top"></slot-here>
+    <div id="lasso-hint" hidden>Drag around the area to count · Esc cancels</div>
+    <div id="mask-warning" role="status" hidden>The summary counts an area not set by the study's manager.</div>
+    <div id="image-view">
+      <div id="scroller">
+        <div id="empty"><span id="empty-text"></span><br>
+          Python, which runs the analysis, loads in the background meanwhile: about 50 MB on the first visit, then from this browser's cache for 30 days.</div>
+        <div id="stage" hidden><canvas id="base"></canvas><canvas id="shrunk" hidden></canvas><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg><svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg><svg id="ruler" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div id="point-menu" class="pop" role="menu" hidden></div>
+      <div id="minimap" hidden>
+        <div class="mm-head"><button id="minimap-hide" class="mm-btn" type="button" aria-label="Hide the minimap" title="Hide the minimap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><span class="mm-title">Minimap</span><button id="minimap-fold" class="mm-btn" type="button"><svg class="up" data-glyph="up" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 10l4.5-4.5L12.5 10"/></svg><svg class="down" data-glyph="down" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></button></div>
+        <div class="mm-body"><canvas id="minimap-canvas"></canvas><div class="mm-areas" id="minimap-areas" role="group" aria-label="The areas: pick one" hidden></div><div id="minimap-view"></div></div>
+      </div>
+      <section id="edit-history" class="float" aria-label="Edit History" hidden>
+        <div class="mm-head"><span class="mm-title">Edit History <small id="eh-count"></small></span><button id="eh-close" class="mm-btn" type="button" aria-label="Hide Edit History" title="Hide (the toolbar's Edit History button brings it back)"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+        <ol id="eh-list"></ol>
+        <div class="eh-foot"><span>Click a row to go back to it</span><button id="eh-clear" type="button" class="link">Clear all history…</button></div>
+      </section>
+      <slot-here data-slot-for="over-image"></slot-here>
+    </div>
+
+    <slot-here data-slot-for="views"></slot-here>
+  </main>
+</div>
+  <div id="areas" hidden>
+  <div class="areas-row"><span class="areas-label">Damaged areas</span><span id="areas-damaged-count" class="hint"></span><button id="areas-damaged-mark" type="button" data-needs-network title="Lasso a damaged part of the image: no algorithm reads it and every viewer sees it marked">Mark</button><button id="areas-damaged-clear" type="button" class="link" data-needs-network hidden>Clear</button></div>
+  <div class="areas-row"><span class="areas-label">Area of interest</span><span id="areas-interest-count" class="hint"></span><button id="areas-interest-mark" type="button" data-needs-network title="Lasso the part of the image the summary counts">Mark</button><button id="areas-interest-clear" type="button" class="link" data-needs-network hidden>Clear</button></div>
+  <p id="areas-hint" class="hint">Load Original to mark the image's areas: they are drawn on the image itself.</p>
+  </div>
+</dialog>
+
+
+
+<footer id="statusbar">
+  <span id="sb-now"><span class="spin" id="spin"></span><span id="status">Starting…</span></span>
+  <span id="sb-calls"></span>
+  <span class="grow"></span>
+  <span id="sb-res" data-mode="auto">
+    <span id="sb-res-items">
+      <button id="sb-disk" class="sb-item" type="button" title="What this site keeps on this device. Click to manage it." aria-label="Storage"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4" width="13" height="8" rx="1.5"/><path d="M4 9.5h4"/><circle cx="11.5" cy="9.5" r=".4"/></svg><span class="v"></span></button>
+      <button id="sb-memory" class="sb-item" type="button" aria-label="Memory"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4" width="13" height="6.5" rx="1"/><path d="M4.5 6.5v1.5M7 6.5v1.5M9 6.5v1.5M11.5 6.5v1.5M3.5 10.5v2M6 10.5v2M8 10.5v2M10 10.5v2M12.5 10.5v2"/></svg><span class="v"></span></button>
+      <button id="sb-net" class="sb-item" type="button" title="How fast this tab is downloading now. Click for more." aria-label="Network"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.5M4.5 7 8 10.5 11.5 7M2.5 13.5h11"/></svg><span class="v"></span></button>
+      <button id="sb-cpu" class="sb-item" type="button" title="How busy this tab's threads are now, as a share of one core. Click for more." aria-label="CPU"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1"/><rect x="6.5" y="6.5" width="3" height="3"/><path d="M6 1.5V4M10 1.5V4M6 12v2.5M10 12v2.5M1.5 6H4M1.5 10H4M12 6h2.5M12 10h2.5"/></svg><span class="v"></span></button>
+    </span>
+    <button id="sb-res-icon" class="sb-item" type="button" title="Storage, memory, network and CPU. Hover to see them, click for more." aria-label="Resources"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11.5a6 6 0 0 1 12 0"/><path d="M8 11.5 10.6 7.3"/><circle cx="8" cy="11.5" r=".7"/><path d="M4.2 8 5 8.6M8 5.5v1M11.8 8l-.8.6"/></svg></button>
+  </span>
+  <button id="sb-online" class="sb-item" type="button" aria-label="Online or offline"><svg class="on" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6.3a9.3 9.3 0 0 1 13 0M3.7 8.8a6.1 6.1 0 0 1 8.6 0M5.9 11.2a2.9 2.9 0 0 1 4.2 0"/><circle cx="8" cy="13.4" r=".6"/></svg><svg class="off" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 4.4a4.1 4.1 0 0 1 6 2.9 2.6 2.6 0 0 1 .9 4.9M10.8 12.6H4.6a3 3 0 0 1-.6-5.9"/><path d="M2 2l12 12"/></svg></button>
+  <button id="sb-report" class="sb-item" type="button" aria-label="Report a problem" title="Report a problem: opens a new GitHub issue filled in with your browser, the study, where you are in it and your last actions" data-needs-network><svg class="bug" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="6" height="8.5" rx="3"/><path d="M6.3 5a1.7 1.7 0 0 1 3.4 0M8 8v5.5M2.5 7.5 5 8.3M13.5 7.5 11 8.3M2.5 11.5 5 11M13.5 11.5 11 11M3.5 3.5l2 1.7M12.5 3.5l-2 1.7"/></svg><svg class="warn" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8 14.8 13.6H1.2Z"/><path d="M8 6v3.6"/><circle cx="8" cy="11.6" r=".4"/></svg></button>
+  <button id="sb-version" class="sb-item" type="button"></button>
+  <div id="whats-new" role="status" hidden><button id="whats-new-open" type="button"></button><button id="whats-new-x" class="x" type="button" aria-label="Close">×</button></div>
+</footer>
+<div id="stage-pop" popover="manual" aria-labelledby="stage-title"><h2 id="stage-title">The study's stage</h2><ol id="stage-list"></ol><p id="stage-next"></p><ul id="stage-gates"></ul><ul id="stage-actions"></ul></div>
+
+<dialog id="remote-dlg">
+  <form method="dialog">
+    <h2 id="remote-title"></h2>
+    <p class="hint" id="remote-hint"></p>
+    <div class="dlg-row" id="remote-link-row"><input id="remote-link" type="text" autocomplete="off"><button id="remote-go" type="button" data-needs-network>Go</button></div>
+    <div id="remote-path"></div>
+    <div id="remote-list" data-log-as="an item in the remote list"></div>
+    <div id="remote-throttle" hidden><p id="remote-throttle-say"></p><div id="remote-clock">15:00</div></div>
+    <div class="dlg-row end"><span id="remote-msg" class="hint"></span><button id="remote-open" class="primary" type="button" disabled autocomplete="off">Open</button><button value="close">Close</button></div>
+  </form>
+</dialog>
+<dialog id="memory-dlg" aria-labelledby="memory-title">
+  <form method="dialog">
+    <h2 id="memory-title">Please free some memory</h2>
+    <p id="memory-why"></p>
+    <ul class="tips">
+      <li>Close the tabs and apps you are not using now.</li>
+      <li><b>Tab groups</b> keep tabs for later: put them in a group, then close the group. The browser saves it, ready to reopen.</li>
+      <li><kbd id="memory-mod">Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd> reopens the last tab you closed. Press it again to go further back, whole windows too.</li>
+      <li><b>Memory Saver</b> in Chrome (Settings, Performance) and sleeping tabs in Edge rest the tabs you are not looking at.</li>
+    </ul>
+    <div class="dlg-row end"><label id="memory-never"><input type="checkbox" id="memory-off"> Don't show this again</label><button value="ok" class="primary" autofocus>OK</button></div>
+  </form>
+</dialog>
+<dialog id="gt-dlg" aria-labelledby="gt-dlg-title">
+  <h2 id="gt-dlg-title">Upload Analysis</h2>
+  <ul id="gt-problems" class="checklist"></ul>
+  <p id="gt-msg" class="hint"></p>
+  <div class="dlg-row end">
+    <span class="grow"></span><button id="gt-close" type="button">Cancel</button><button id="gt-send" class="primary" type="button" data-needs-network>Upload</button>
+  </div>
+</dialog>
+<dialog id="start-dlg" aria-labelledby="start-title">
+  <h2 id="start-title">Start Analysis</h2>
+  <div id="algorithm-pick" hidden>
+    <div class="algorithm-row">
+      <select id="algorithm" size="4" disabled autocomplete="off" aria-label="Algorithm"></select>
+      <button id="scoring-help" type="button" class="scoring-q" title="How precision and recall are scored" aria-label="How precision and recall are scored" aria-expanded="false" aria-controls="scoring-note" hidden>?</button>
+    </div>
+    <div id="scoring-note" class="hint" hidden></div>
+    <p id="algorithm-stamp" class="hint" hidden></p>
+    <h3 id="algorithm-about">How the algorithm works</h3>
+    <div id="algorithm-note" class="hint"></div>
+  </div>
+  <div class="dlg-row end"><span class="grow"></span><button id="start-cancel" type="button">Cancel</button><button id="start-run" type="button" class="primary">Run</button></div>
+</dialog>
+<dialog id="load-dlg" aria-labelledby="load-dlg-title">
+  <h2 id="load-dlg-title">Load Analysis</h2>
+  <div id="annotate-list" role="listbox" aria-labelledby="load-dlg-title"></div>
+  <div class="dlg-row end"><span id="load-dlg-msg" class="hint" role="status"></span><span class="grow"></span><button id="load-cancel" type="button">Cancel</button><button id="load-go" type="button" class="primary" disabled autocomplete="off">Load</button></div>
+</dialog>
+<dialog id="setup-dlg" aria-labelledby="setup-title">
+  <h2 id="setup-title">Set up Analysis Files</h2>
+  <p class="hint">Makes the study's Analysis Files folder, named Extractions, in its root, shared with anyone with the link to view, and names it in the study file. Everyone's uploaded Analysis Files of its images go there; who may upload is whoever may write it.</p>
+  <p id="setup-msg" class="hint" role="status"></p>
+  <div class="dlg-row end"><span class="grow"></span><button id="setup-go" type="button" class="primary">Set up</button><button id="setup-cancel" type="button">Cancel</button></div>
+</dialog>
+<dialog id="stage-freeze-dlg" aria-labelledby="stage-freeze-title">
+  <h2 id="stage-freeze-title">Promote to Review</h2>
+  <p>Promoting to Review freezes the study: marking GT and official closes, and so does the study's data. What people save afterwards is kept but not counted. The study moves back a stage if the owner changes their mind.</p>
+  <div id="stage-freeze-newer-box" hidden>
+    <p class="hint">These images have an Analysis File newer than their GT mark that is not marked. The GT stays as marked:</p>
+    <ul id="stage-freeze-newer"></ul>
+  </div>
+  <div class="dlg-row end"><span class="grow"></span><button id="stage-freeze" type="button" class="primary" data-needs-network>Freeze</button><button id="stage-freeze-cancel" type="button">Cancel</button></div>
+</dialog>
+<dialog id="history-dlg" aria-labelledby="history-title">
+  <form method="dialog">
+    <h2 id="history-title">Version history</h2>
+    <div id="history-list"></div>
+    <div class="dlg-row end"><span class="grow"></span><button value="close" class="primary" autofocus>Close</button></div>
+  </form>
+</dialog>
+<dialog id="offline-dlg" aria-labelledby="offline-title">
+  <h2 id="offline-title">Prepare for Offline</h2>
+  <label class="file-row python"><input type="checkbox" checked disabled autocomplete="off"><span class="name">Python</span><span class="where">jsDelivr</span><span class="size" id="offline-python"></span></label>
+  <div id="offline-files"></div>
+  <p id="offline-warn" role="alert" hidden></p>
+  <progress id="offline-progress" hidden></progress>
+  <div class="dlg-row end"><span id="offline-msg" class="hint" role="status"></span><span class="grow"></span><button type="button" id="offline-stop" hidden>Stop</button><button type="button" id="offline-close">Close</button><button type="button" id="offline-go" class="primary" disabled autocomplete="off">Download Now</button></div>
+</dialog>
+<dialog id="settings-dlg" aria-labelledby="settings-title">
+  <form method="dialog">
+    <h2 id="settings-title">Settings</h2>
+    <p class="hint" id="settings-where"></p>
+    <div id="settings-list"></div>
+    <div class="dlg-row end"><span class="grow"></span><button type="button" id="settings-cancel">Cancel</button><button type="button" id="settings-save" class="primary">Save</button></div>
+  </form>
+</dialog>
+<dialog id="welcome-dlg" aria-labelledby="welcome-title">
+  <form method="dialog">
+    <h2 id="welcome-title">Welcome</h2>
+    <p class="hint">Sign in to keep your settings on every device, or go on without an account.</p>
+    <p id="welcome-who" hidden></p>
+    <div class="welcome-choices">
+      <button id="welcome-sign-in" type="button" class="primary" data-needs-network></button>
+      <button id="welcome-anonymous" type="button" autofocus>Continue anonymously</button>
+    </div>
+    <p id="welcome-failed" class="hint" role="alert" hidden></p>
+    <p id="welcome-offline" class="hint"></p>
+    <label class="hint"><input type="checkbox" id="welcome-remember"> Remember this choice</label>
+  </form>
+</dialog>
+<dialog id="guide-dlg" aria-labelledby="guide-title">
+  <h2 id="guide-title"></h2>
+  <ol id="guide-steps"></ol>
+  <p class="hint" id="guide-wait" role="status"></p>
+  <div class="dlg-row end"><span class="grow"></span><button type="button" id="guide-cancel">Cancel</button><button type="button" id="guide-go" class="primary" autofocus></button></div>
+</dialog>
+<dialog id="usage-dlg" aria-labelledby="usage-title">
+  <form method="dialog">
+    <h2 id="usage-title">Resource Usage</h2>
+    <div class="tab-head"><div class="tab-row" role="tablist"><button type="button" role="tab" data-tab="storage">Storage</button><button type="button" role="tab" data-tab="memory">Memory</button><button type="button" role="tab" data-tab="network">Network</button><button type="button" role="tab" data-tab="cpu">CPU</button></div></div>
+    <section role="tabpanel" data-tab="storage" hidden><div class="offline-settings"><h3>Offline Settings</h3><div class="install-row"><span class="hint" id="offline-app-text"></span><button type="button" class="link" id="offline-install">Install as an app</button></div></div><p class="hint total" id="storage-total"></p><div id="storage-list" class="rows" data-log-as="an entry in the Storage tab"></div></section>
+    <section role="tabpanel" data-tab="memory" hidden><p class="hint total" id="ram-total"></p><div id="ram-list" class="rows"></div></section>
+    <section role="tabpanel" data-tab="network" hidden><p class="hint total" id="net-total"></p><div id="net-list" class="rows"></div></section>
+    <section role="tabpanel" data-tab="cpu" hidden><p class="hint total" id="cpu-total"></p><div id="cpu-list" class="rows"></div><div class="motion"><label><input id="motion" type="checkbox"> Animations</label><p class="hint">Stop animations if the website is slow</p></div><div class="unload"><label><input id="unload-python" type="checkbox"> Unload Python after each run</label><p class="hint">Unloading python saves memory between algorithm runs, but the following run will take as long as the first run</p></div></section>
+    <div class="dlg-row end"><label class="res-mode"><input type="checkbox" id="res-mode"> Autohide in statusbar</label><span id="storage-msg" class="hint" data-for="storage"></span><span class="grow"></span><button id="storage-reload" type="button" data-for="storage" hidden>Reload the page</button><button value="close" class="primary">Close</button></div>
+  </form>
+</dialog>
+<div id="tip" hidden></div>
+<div id="icons" hidden><svg class="study" viewBox="0 0 16 16"><path d="M5 5.782V2.5h-.25a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 0 1.5H11v3.282l3.666 5.76C15.619 13.04 14.543 15 12.767 15H3.233c-1.776 0-2.852-1.96-1.899-3.458Zm-2.4 6.565a.75.75 0 0 0 .633 1.153h9.534a.75.75 0 0 0 .633-1.153L12.225 10.5h-8.45ZM9.5 2.5h-3V6c0 .143-.04.283-.117.403L4.73 9h6.54L9.617 6.403A.746.746 0 0 1 9.5 6Z"/></svg><svg class="done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg><svg class="part" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><svg class="todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></div>
+<slot-here data-slot-for="body"></slot-here>
+<div id="notice" role="alertdialog" aria-labelledby="notice-text" hidden><p id="notice-text"></p><button id="notice-sign-out" type="button" hidden>Sign out</button><button id="notice-ok" class="primary" type="button">OK</button></div>
+<script src="config.js"></script>
+<script type="module" src="setup.js"></script>
+</body>
+</html>

@@ -39,27 +39,18 @@ header > .grow { flex: 1; }
 h1 { font-size: 16px; font-weight: 600; margin: 0; }
 /* the study switcher, after GitHub's repository switcher: the title and a solid caret as one control, opening a
    panel under the caret with a search box and the studies, the one on show ticked */
-/* the role menu after the study's, the header reading "[study] as [role]" (req/shell/account/role), drawn like it */
-header > .as { color: var(--dim); font-size: 14px; }
-#role-menu .caret { anchor-name: --role-caret; }
-#role-menu .pop { left: anchor(--role-caret left); top: calc(100% + 8px); width: 240px; max-width: calc(100vw - 32px); }
-#role-menu .pop h2 { font-size: 13px; margin: 0 0 4px; color: var(--dim); font-weight: 600; }
-#role-list { display: flex; flex-direction: column; }
-#role-list .item[aria-checked=true] { font-weight: 600; } #role-list .item[aria-checked=true]::before { content: "✓ "; }
-#role-list .item[aria-checked=false]::before { content: "✓ "; visibility: hidden; }
-#role-hint { margin: 6px 0 0; font-size: 12px; white-space: normal; }
-#study-menu summary, #role-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
-#study-menu summary::after, #role-menu summary::after { content: none; }
-#study-menu h1, #role-name { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
+#study-menu summary { display: flex; align-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--r-chip); background: none; overflow: hidden; }
+#study-menu summary::after { content: none; }
+#study-menu h1 { font-size: 16px; font-weight: 600; height: 32px; line-height: 32px; padding: 0 8px; background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon { display: flex; align-items: center; height: 32px; padding-left: 8px; color: var(--text); background: color-mix(in srgb, var(--text) 7%, var(--bg)); }
 #title-icon svg { fill: currentColor; }
 #title-icon .study-icon[hidden] { display: none; }
 #title-icon:empty { display: none; }
-#study-menu .caret, #role-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
-#study-menu .caret svg, #role-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
-#study-menu summary:hover h1, #study-menu[open] h1, #role-menu summary:hover #role-name, #role-menu[open] #role-name, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
-#study-menu summary:hover .caret, #study-menu[open] .caret, #role-menu summary:hover .caret, #role-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
-#study-menu summary:focus-visible, #role-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#study-menu .caret { display: grid; place-items: center; width: 24px; height: 32px; color: var(--text); background: color-mix(in srgb, var(--text) 13%, var(--bg)); }
+#study-menu .caret svg, #study-menu .search svg, #study-list svg { fill: currentColor; flex: none; }
+#study-menu summary:hover h1, #study-menu[open] h1, #study-menu summary:hover #title-icon, #study-menu[open] #title-icon { background: color-mix(in srgb, var(--text) 12%, var(--bg)); }
+#study-menu summary:hover .caret, #study-menu[open] .caret { background: color-mix(in srgb, var(--text) 18%, var(--bg)); }
+#study-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #study-menu .caret { anchor-name: --study-caret; }
 #study-menu .pop { left: anchor(--study-caret left); top: calc(100% + 8px); width: 320px; max-width: calc(100vw - 32px); min-width: 0; padding: 0 0 8px; gap: 0; border-radius: var(--r-panel);
   background: var(--panel); box-shadow: 0 8px 24px #0006; }
@@ -83,10 +74,18 @@ header > .as { color: var(--dim); font-size: 14px; }
 .stage-tag[data-light=red] { --stage: var(--no); }
 .stage-tag[data-light=yellow] { --stage: #f5c400; }
 .stage-tag[data-light=green] { --stage: var(--yes); }
+.stage-tag[data-light=blue] { --stage: var(--accent); }
 .stage-tag[data-light=all] { --stage: var(--yes); background: color-mix(in srgb, var(--yes) 18%, transparent); }
 #study-list a.active { background: color-mix(in srgb, var(--text) 8%, var(--panel)); }
 #study-list a.active .name { border-bottom-color: transparent; }
-#study-none { margin: 8px 16px 0; font-size: 13px; }
+#study-none, #study-stale { margin: 8px 16px 0; font-size: 13px; }
+#study-stale[hidden] { display: none; }
+/* the study's article: a pill in the accent colour beside the study's name */
+#article-link { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1px solid var(--accent); border-radius: 14px;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 13px; font-weight: 600; text-decoration: none; }
+#article-link[hidden] { display: none; }
+#article-link svg { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; flex: none; }
+#article-link:hover, #article-link:focus-visible { background: color-mix(in srgb, var(--accent) 24%, transparent); outline: none; }
 #study-request { display: flex; align-items: center; gap: 8px; height: 32px; margin: 8px 8px 0; padding: 0 8px; border-radius: var(--r-chip); color: var(--accent); text-decoration: none; }
 #study-request svg { fill: currentColor; flex: none; }
 #study-request:hover, #study-request:focus-visible { background: color-mix(in srgb, var(--text) 8%, var(--panel)); outline: none; }
@@ -106,17 +105,15 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #image-foot:not(:has(> :not([hidden], input, svg))) { display: none; }
 #load { display: flex; gap: 8px; align-items: stretch; }
 #load:not([data-remote]) > #image-menu, #load:not([data-remote]) > #load-remote, #load[data-remote]:not([data-local]) > #load-main { display: none; }
-/* on the top line: the selector, Unload, the computer's button, the remote store's */
-#load[data-remote] > #unload { order: 1; } #load[data-remote] > #load-main { order: 2; } #load[data-remote] > #load-remote { order: 3; }
+/* on the top line: the selector, the computer's button, the remote store's */
+#load[data-remote] > #load-main { order: 2; } #load[data-remote] > #load-remote { order: 3; }
 #load-main .computer-logo { display: none; }
 #load[data-remote] > #load-main .word { display: none; }
 #load[data-remote] > #load-main .computer-logo { display: block; width: 18px; height: 16px; }
 #load-main { font-weight: 600; padding: 4px 14px; }
 #load.done .primary { background: var(--panel); border-color: var(--accent); color: var(--accent); }
 #load[data-remote] { margin: 0 0 10px; position: relative; }
-#load[data-remote] > #unload, #load[data-remote] > #load-main, #load-remote { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: none; }
-#load[data-remote] > #unload[hidden] { display: none; }
-#load[data-remote] > #unload .word, #load:not([data-remote]) > #unload .x-icon { display: none; }
+#load[data-remote] > #load-main, #load-remote { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: none; }
 #load[data-remote] > #load-main.primary { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); color: var(--text); }
 #load-remote .remote-logo { width: 18px; height: 16px; }
 #load-remote.primary { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
@@ -149,6 +146,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #recent .where { color: var(--dim); font-size: 11px; }
 .menu .pop .item { text-align: left; border: 0; background: none; padding: 4px 2px; white-space: nowrap; }
 .menu .pop .item:not(:disabled):hover { color: var(--accent); }
+.menu .pop a.item { display: block; color: var(--text); text-decoration: none; }
+.menu .pop a.item[hidden] { display: none; }
+#setup-note { margin: var(--pad); font-size: 14px; }
 .remote-logo, .computer-logo { width: 14px; height: 12px; flex: none; }
 /* how long since an image was opened: "3h", "6d" */
 .age { flex: none; font-size: 11px; color: var(--dim); padding: 0 5px; border-radius: var(--r-chip); background: color-mix(in srgb, var(--text) 8%, transparent);
@@ -171,9 +171,24 @@ body.resizing #layout { transition: none; }
 .box + .box { margin-top: var(--pad); }
 .box h2 { margin-bottom: 10px; }
 .box select { width: 100%; }
-/* the Image box's foot: Load and, once an image is open, Unload; Load Original in Data Management */
+/* the Image box's foot: Load; Load Original in Data Management */
 #image-foot { display: flex; gap: 8px; align-items: stretch; margin-top: 12px; }
-#unload[hidden] { display: none; }
+.sec-head .link { padding: 0; }
+/* a box header's icon button, at its far edge */
+.sec-head .head-icon { display: inline-flex; align-items: center; justify-content: center; padding: 3px 6px; border-color: transparent; background: none; color: var(--dim); }
+.sec-head .head-icon:not(:disabled):hover { color: var(--accent); border-color: var(--line); }
+.sec-head .head-icon[hidden], .sec-head .link[hidden] { display: none; }
+#left .sec-head { position: relative; }
+#analysis-dl-menu { position: absolute; top: calc(100% - 4px); right: 8px; z-index: 30; display: flex; flex-direction: column; padding: 4px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: 0 6px 18px #0006; }
+#analysis-dl-menu .item { text-align: left; border: 0; background: none; padding: 6px 4px; white-space: nowrap; }
+#analysis-dl-menu .item:hover, #analysis-dl-menu .item:focus-visible { color: var(--accent); }
+#analysis-dl-menu[hidden] { display: none; }
+.box.foldable > .sec-head h2 { margin-right: auto; }
+/* the image's tags in the study, over its details; a value the details name without spelling its bytes out */
+#file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
+#file-tags[hidden] { display: none; }
+#file-tags .tag-chip { font-size: 11px; padding: 0 6px; }
+#file-box dd.unsaid { color: var(--dim); font-style: italic; }
 #file-box { margin: 0 0 10px; }
 #file-name { display: flex; align-items: center; gap: 7px; word-break: break-all; font-size: 13px; cursor: pointer; list-style: none; }
 #file-name::-webkit-details-marker { display: none; }
@@ -332,9 +347,9 @@ button.tool[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 
 /* each view shows only its own tools */
 #view[data-view=image] .for-items, #view[data-view=items] .for-image { display: none; }
 /* a published study shows what it finds: the steps that serve making ground truth go */
-[data-stage=Published] .unpublished { display: none !important; }
-/* nothing that makes ground truth but for a Ground Truth Tagger (req/shell/account/role) */
-:root:not([data-role=tagger]) .unpublished { display: none !important; }
+[data-stage=Public] .unpublished { display: none !important; }
+/* nothing that makes ground truth but while the user annotates (req/shell/annotate/choice) */
+:root:not([data-annotating]) .unpublished { display: none !important; }
 #switch .count { opacity: .7; font-weight: 400; }
 #switch .count:empty { display: none; }
 /* a card whose task is still open */
@@ -397,6 +412,16 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 #minimap.collapsed .mm-body { display: none; }
 #minimap .mm-body { position: relative; line-height: 0; background: #000; cursor: crosshair; }
 #minimap-canvas { width: 100%; height: auto; }
+/* a ground-truth walk's areas as a map: a button each, tinted as far as it is done, the picture seen through the tint */
+.mm-areas { position: relative; display: grid; gap: 2px; }
+.mm-areas[hidden] { display: none; }
+.mm-areas button { min-width: 0; padding: 0; border: 1px solid #fff6; border-radius: 2px; background: transparent; cursor: pointer; }
+.mm-areas button:hover { border-color: #fff; }
+.mm-areas button.part { background: color-mix(in srgb, var(--yes) 25%, transparent); }
+.mm-areas button.done { background: color-mix(in srgb, var(--yes) 55%, transparent); border-color: var(--yes); }
+.mm-areas button.now { outline: 2px solid #fff; outline-offset: 0; z-index: 1; }
+#minimap .mm-areas { position: absolute; inset: 0; gap: 0; }
+#minimap .mm-areas button { border-radius: 0; border-color: #fff3; }
 #minimap-view { position: absolute; border: 1.5px solid #fff; border-radius: 2px; box-shadow: 0 0 0 1px #0008; pointer-events: none; }
 
 /* the Edit History window: the minimap's frame at the image's bottom right, 2.5 times its height and never taller than the
@@ -475,30 +500,36 @@ button.icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-line
 #statusbar .grow { flex: 1; }
 #statusbar b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 #statusbar .sb-item { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; border-radius: 0; background: none; font: inherit; color: inherit; font-variant-numeric: tabular-nums; }
-#statusbar button.sb-item { cursor: pointer; }
+#statusbar button.sb-item { cursor: pointer; position: relative; padding: 3px 5px 3px 0; margin-right: -5px; }
+/* what can be clicked reads as a button under the pointer (req/shell/status-bar); --sep is the item's own separator and the room after it */
+#statusbar button.sb-item::after { content: ""; position: absolute; inset: 0 0 0 calc(var(--sep, 0px) - 5px); border: 1px solid transparent; border-radius: var(--r-ctl);
+  pointer-events: none; transition: border-color .12s ease; }
+#statusbar button.sb-item:hover::after, #statusbar button.sb-item:focus-visible::after { border-color: var(--dim); }
 #statusbar button.sb-item:hover, #statusbar button.sb-item:focus-visible { color: var(--text); }
 #statusbar :focus-visible { outline: none; }
 #statusbar .sb-item svg { flex: none; color: var(--icon); }
 #statusbar .sb-item:has(> .v:empty) { display: none; }
-#sb-steps { padding-right: 10px; border-right: 1px solid var(--line); }
-#statusbar .grow ~ .sb-item, #statusbar #sb-res-icon, #sb-res-items > .sb-item:first-child { padding-left: 10px; border-left: 1px solid var(--line); }
+#statusbar .grow ~ .sb-item, #statusbar #sb-res-icon, #sb-res-items > .sb-item:first-child { --sep: 11px; padding-left: 10px; border-left: 1px solid var(--line); }
 /* the disk, memory, network and CPU, folded into one icon (req/shell/status-bar/resources): unfolded always open,
    or auto-hiding while hovered or raised by what needs watching; the icon goes only always open */
 #sb-res { display: grid; grid-template-columns: minmax(0, auto) max-content; align-items: center; }
+/* the icon's own room for its border is the block's */
+#statusbar #sb-res { margin-right: -5px; }
+#statusbar #sb-res-icon { margin-right: 0; }
 #sb-res-items { display: flex; align-items: center; overflow: hidden; max-width: 0; opacity: 0; transition: max-width .35s ease, opacity .35s ease; }
-#sb-res-items > .sb-item:not(:last-child) { margin-right: 14px; }
+#sb-res-items > .sb-item:not(:last-child) { margin-right: 9px; }
+#sb-res-items > .sb-item:last-child { margin-right: 0; }
 /* the gauge goes away as the four come, and comes back as they fold */
 #statusbar #sb-res-icon { overflow: hidden; max-width: 40px; transition: max-width .35s ease, opacity .35s ease, padding .35s ease, border-width .35s ease; }
 #sb-res[data-mode=open] #sb-res-items, #sb-res[data-mode=auto]:is(.raised, :hover) #sb-res-items { max-width: 480px; opacity: 1; }
+/* the four on show and their icon are one group, with no bar between them */
+#statusbar #sb-res:is([data-mode=open], [data-mode=auto]:is(.raised, :hover)) #sb-res-icon { --sep: 6px; padding-left: 11px; border-left-width: 0; }
 html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: none; }
 @media (prefers-reduced-motion: reduce) { #sb-res-items, #statusbar #sb-res-icon { transition: none; } }
-#usage-dlg .tab-head { display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 0 12px; }
-#usage-dlg .tab-head .tab-row { flex: 1; }
-#usage-dlg .res-mode { font-size: 12px; color: var(--dim); white-space: nowrap; }
+#usage-dlg .res-mode { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; }
 #sb-now { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; overflow: hidden; }
 #sb-now #status { overflow: hidden; text-overflow: ellipsis; }
-/* too little room: what the page is doing and the four give way; the steps and the right-hand items stay whole */
-#sb-steps, #sb-online, #sb-report, #sb-version, #statusbar #sb-res-icon { flex-shrink: 0; }
+/* too little room: what the page is doing and the four give way; the right-hand items stay whole */
 #sb-res { flex: 0 1 auto; }
 #sb-res-items { min-width: 0; flex: 0 1 auto; }
 #sb-memory.warn { color: var(--warn); }
@@ -514,6 +545,7 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list .dot[data-light=red] { background: var(--no); }
 #stage-list .dot[data-light=yellow] { background: #f5c400; }
 #stage-list .dot[data-light=green] { background: var(--yes); }
+#stage-list .dot[data-light=blue] { background: var(--accent); }
 #stage-list .dot[data-light=all] { background: var(--yes); box-shadow: 0 0 0 2px color-mix(in srgb, var(--yes) 40%, transparent); }
 /* the stages, beside the switcher at the hovered label's row */
 #stage-pop { position: fixed; inset: auto; margin: 0; width: min(360px, calc(100vw - 16px)); padding: 12px 14px;
@@ -528,13 +560,11 @@ html[data-motion=off] :is(#sb-res-items, #statusbar #sb-res-icon) { transition: 
 #stage-list li.now { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #stage-list li.now .dot { opacity: 1; }
 #stage-next { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+#stage-gates, #stage-actions { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; }
+#stage-gates li { color: var(--dim); padding: 1px 0; }
+#stage-actions li { padding: 1px 0; }
+#stage-actions:not(:empty) { border-top: 1px solid var(--line); padding-top: 6px; }
 /* the steps done, each followed by a chevron, and the one to do now shining: clicking it leads to its button */
-#sb-steps { display: flex; align-items: center; gap: 4px; min-width: 0; }
-#sb-steps:empty { display: none; }
-#sb-steps .crumb { padding: 1px 8px; border-radius: var(--r-chip); cursor: default; outline: none; }
-#sb-steps .crumb:not(:last-child)::after { content: "›"; margin-left: 12px; color: var(--dim); }
-#sb-steps .crumb:not(.now):hover, #sb-steps .crumb:not(.now):focus-visible { color: var(--text); }
-#sb-steps .crumb.now { color: #fff; background: var(--accent); font-weight: 600; cursor: pointer; }
 #status { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #status.err { color: var(--err); }
 #statusbar .spin { width: 12px; height: 12px; display: none; }
@@ -600,13 +630,15 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 @media (prefers-reduced-motion: reduce) { #busy.scan #scan-light { animation-duration: 8s; } }
 
 /* the remote files dialog */
-#remote-dlg, #setup-dlg, #switch-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#remote-dlg, #setup-dlg, #memory-dlg, #history-dlg, #usage-dlg, #settings-dlg, #offline-dlg, #welcome-dlg { width: min(640px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#remote-dlg::backdrop, #setup-dlg::backdrop, #switch-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
+#remote-dlg::backdrop, #setup-dlg::backdrop, #memory-dlg::backdrop, #history-dlg::backdrop, #usage-dlg::backdrop, #settings-dlg::backdrop, #offline-dlg::backdrop, #welcome-dlg::backdrop { background: #0007; }
 .dlg-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .dlg-row.end { justify-content: space-between; } .dlg-row .grow { flex: 1; }
 #remote-link { flex: 1; min-width: 0; }
 /* every part keeps its size whatever the folder holds, so the dialog stays still while browsing */
+#remote-path:empty { display: none; }
+#remote-path:empty + #remote-list { height: calc(300px + 1.5em + 10px); }
 #remote-path { margin-top: 10px; font-size: 13px; height: 1.5em; line-height: 1.5em; white-space: nowrap; overflow-x: auto; overflow-y: hidden; }
 #remote-list { display: flex; flex-direction: column; height: 300px; overflow-y: auto; margin-top: 6px;
   border: 1px solid var(--line); border-radius: var(--r-ctl); }
@@ -618,10 +650,17 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #remote-list .item .tags { display: flex; flex-wrap: wrap; gap: 3px; justify-content: flex-end; max-width: 40%; }
 #remote-list .item .tags .tag-chip { font-size: 11px; padding: 0 6px; }
 #remote-list .item .hidden-mark { color: var(--err); border-color: currentColor; }
-/* Load study images: each group's head, its folder's path and how many images it holds, held at the top while its rows scroll */
-#remote-list .group { display: flex; gap: 8px; align-items: baseline; flex: none; position: sticky; top: 0; z-index: 1; padding: 6px 10px 4px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
-#remote-list .group .group-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-#remote-list .group .group-count { color: var(--dim); font-weight: 400; }
+/* Load study images: each group's head, a folder, its name and how many images it holds, held at the top while its
+   rows scroll; a click folds its rows away or back */
+#remote-list .item[hidden] { display: none; }
+#remote-list .group .chev, #remote-list .group .folder-icon { flex: none; align-self: center; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+#remote-list .group .chev { transition: transform .12s; }
+#remote-list .group[aria-expanded="true"] .chev { transform: rotate(90deg); }
+#remote-list .group .folder-icon { color: var(--accent); }
+#remote-list .group:hover { background: var(--bg); }
+#remote-list .group { display: flex; gap: 6px; align-items: baseline; flex: none; width: 100%; text-align: left; color: inherit; border: 0; border-radius: 0; cursor: pointer; position: sticky; top: 0; z-index: 1; padding: 6px 10px 4px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+#remote-list .group .group-name { min-width: 0; overflow-wrap: anywhere; }
+#remote-list .group .group-count { color: var(--dim); font-weight: 400; font-size: 11px; }
 #remote-list .item .shape { color: var(--dim); font-size: 11px; white-space: nowrap; padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r-chip); }
 #remote-list .item .shape:empty { display: none; }
 /* an image the folder did not hold when last listed here (req/shell/drive/dialog) */
@@ -651,8 +690,8 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 
 /* a box that folds: its title opens and closes it */
 .box.foldable > .sec-head h2 { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; min-width: 0; }
-/* the left bar's boxes are drawers stacked in one panel: a compact title row each, behind its step's number
-   (a check once done), and an accent bar on the open ones */
+/* the left bar's boxes are drawers stacked in one panel: a title row each, and an accent bar on the open ones; one
+   waiting for the stage before it is its title alone, dimmed */
 #left > .box.foldable { margin: 0; padding: 0 12px; border-width: 0 1px 1px; border-radius: 0; }
 #left > .box.foldable:first-of-type { border-top-width: 1px; border-radius: var(--r-panel) var(--r-panel) 0 0; }
 #left > .box.foldable:last-of-type { border-radius: 0 0 var(--r-panel) var(--r-panel); }
@@ -662,19 +701,28 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #left > .box.foldable:not(.folded) > .sec-head { margin-bottom: 10px; border-bottom-color: var(--line); }
 #left > .box.foldable > .sec-head h2 { font-size: 14px; }
 #left > .box.foldable > .sec-head h2::before { display: none; }
-.step-mark { flex: none; display: grid; place-items: center; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%;
-  border: 1.5px solid var(--dim); color: var(--dim); font-size: 11px; font-weight: 600; line-height: 1; }
-.box.foldable:not(.folded) .step-mark { border-color: var(--accent); color: var(--accent); }
-.box.foldable.done .step-mark { border-color: var(--yes); background: var(--yes); color: #fff; }
-.sec-head h2 .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* Load Image done and folded: the image's preview, name and what it holds */
-.loaded { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.loaded .pic { flex: none; width: 28px; height: 28px; border-radius: 4px; background: #000; }
-.loaded .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.loaded .name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
-.loaded .tags { display: flex; gap: 4px; }
-.loaded .tag { font-size: 10.5px; font-weight: 500; padding: 0 5px; border-radius: 4px; color: var(--dim);
-  background: color-mix(in srgb, var(--text) 12%, transparent); }
+.box.foldable.waits { cursor: default; }
+.box.foldable.waits > .sec-head h2 { cursor: default; color: var(--dim); opacity: .6; }
+/* the study's parts of the Analysis box, one under the other */
+#analysis-box > div:not(.sec-head):not([hidden]) ~ div:not([hidden]) { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#tasks-title { margin: 0; font-size: 13px; font-weight: 600; }
+/* the tasks' progress, under the Analysis header: there while the tasks are listed and the user annotates */
+#gt-strip { margin: 0 0 4px; }
+#analysis-box:has(#tasks-box[hidden]) #gt-strip, #analysis-box:has(#gt-list[hidden]) #gt-strip { display: none; }
+#gt-strip .strip-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; margin-bottom: 6px; }
+#gt-counters { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+#gt-counters > button { border: 0; background: none; padding: 1px 0; font-size: 12px; color: var(--text); white-space: nowrap; }
+#gt-counters > button:hover { color: var(--accent); }
+#gt-counters > button[hidden] { display: none; }
+#gt-counters:not(:has(> button:not([hidden]))) { display: none; }
+#gt-bar > span { cursor: pointer; }
+#gt-counters .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+#gt-counters > .now { font-weight: 600; }
+#gt-counters > .done { color: var(--dim); }
+#gt-counters > .done .tick::after { content: " ✓"; color: var(--yes); font-weight: 700; }
+.toolbar .tool > kbd.key-on { display: none; }
+#algorithm-ran { margin: 0 0 8px; }
+#processing-box[hidden], #tasks-box[hidden], #algorithm-ran[hidden] { display: none; }
 /* folding wins over any box's own layout for its parts */
 .box.foldable.folded > :not(.sec-head) { display: none !important; }
 .box.foldable.folded > .sec-head > :not(h2) { display: none; }
@@ -686,9 +734,9 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 #notice p { margin: 0; }
 #notice button { align-self: flex-end; }
 :root { --gt-part: #e8890c; }
-#gt-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
+#gt-dlg, #start-dlg, #load-dlg, #stage-freeze-dlg { width: min(460px, calc(100vw - 32px)); padding: 18px; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 12px 40px #0006; }
-#gt-dlg::backdrop { background: #0007; }
+#gt-dlg::backdrop, #start-dlg::backdrop, #load-dlg::backdrop, #stage-freeze-dlg::backdrop { background: #0007; }
 /* the popup's checklist: every issue the ground truth can have, crossed out with a green check once resolved */
 .checklist { list-style: none; margin: 4px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .checklist li { display: flex; gap: 8px; align-items: flex-start; }
@@ -699,7 +747,7 @@ button.working::after { content: ""; display: inline-block; width: .75em; height
 .checklist li.warn svg { color: var(--gt-part); }
 .checklist li.error svg { color: var(--no); }
 #gt-msg:empty { display: none; }
-#gt-dlg .grow { flex: 1; }
+#gt-dlg .grow, #start-dlg .grow, #load-dlg .grow, #stage-freeze-dlg .grow { flex: 1; }
 
 
 /* the low-memory popup */
@@ -711,7 +759,7 @@ kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 
 /* the version history popup, and the bubble that points at the version after an update */
 #history-dlg { width: min(560px, calc(100vw - 32px)); }
-#setup-dlg, #switch-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2, #switch-dlg h2 { margin: 0 0 10px; }
+#setup-dlg { width: min(480px, calc(100vw - 32px)); } #setup-dlg h2 { margin: 0 0 10px; }
 #history-dlg h2 { margin: 0 0 10px; }
 #usage-dlg h2 { margin: 0 0 10px; }
 /* one size whatever the tab: a longer tab scrolls within it (req/shell/resources-dialog) */
@@ -758,7 +806,11 @@ kbd { font: 12px ui-monospace, monospace; padding: 1px 5px; border: 1px solid va
 .avatar circle:first-child { fill: var(--accent); }
 .avatar circle + circle, .avatar path { fill: #fff; }
 img.avatar { border-radius: 50%; object-fit: cover; }
-#user-menu .who { display: flex; flex-direction: column; padding-bottom: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+/* the menu opens over the avatar, its own avatar where the header's is (req/shell/header) */
+#user-menu .pop { --pad-x: 14px; --pad-y: 10px; top: calc(-1px - var(--pad-y)); right: calc(-1px - var(--pad-x)); padding: var(--pad-y) var(--pad-x); }
+#user-menu .who { display: flex; align-items: flex-start; justify-content: flex-end; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+#user-menu .who-text { display: flex; flex-direction: column; align-items: flex-end; }
+#user-menu #who-avatar { flex: none; line-height: 0; cursor: pointer; }
 #user-menu .who .dim { font-size: 12px; }
 #user-menu .legal { padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--dim); white-space: nowrap; }
 #user-menu .legal a { color: inherit; }
@@ -817,14 +869,20 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 .channel.v3-slices .v3-steps { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
 .channel.v3-slices .v3-steps button { flex: 1; padding: 0 3px; border: 0; border-radius: 0; background: none; font-size: 8px; line-height: 1; color: var(--dim); cursor: pointer; }
 .channel.v3-slices .v3-steps button:hover { color: var(--text); background: var(--line); }
-/* colour by depth, a channel's own: an icon tick, stacked slices, beside the colour picker, which is a palette picker
-   while it is ticked */
-.channel .v3-pickers { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-.channel input.v3-tick { appearance: none; width: 18px; height: 18px; margin: 0; border: 0; cursor: pointer;
-  background: var(--dim); -webkit-mask: var(--layers) center / 14px no-repeat; mask: var(--layers) center / 14px no-repeat;
+/* colour by depth, a channel's own: a toggle button, stacked slices on it, beside the colour picker, which is a palette picker
+   while it is on; the pair as wide and as tall as the spacing under it, so the column's edges line up */
+.channel > .v3-pickers { display: flex; align-items: stretch; justify-self: stretch; gap: 4px; height: 22px; }
+.channel.v3-slices .v3-spin { box-sizing: border-box; height: 22px; }
+.channel .v3-pickers > :is(input[type=color], .v3-palette) { flex: 1; width: auto; min-width: 22px; height: auto; }
+.channel input.v3-tick { appearance: none; flex: none; display: grid; place-items: center; width: 24px; height: auto; margin: 0; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--r-chip); background: var(--panel); }
+.channel input.v3-tick::before { content: ""; width: 14px; height: 14px; background: var(--dim); -webkit-mask: var(--layers) center / 14px no-repeat; mask: var(--layers) center / 14px no-repeat;
   --layers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M8 1.5 14.5 5 8 8.5 1.5 5z'/%3E%3Cpath d='M1.5 8 8 11.5 14.5 8'/%3E%3Cpath d='M1.5 11 8 14.5 14.5 11'/%3E%3C/svg%3E"); }
-.channel input.v3-tick:checked { background: var(--accent); }
-.channel input.v3-tick:hover, .channel input.v3-tick:focus-visible { background: var(--text); }
+.channel input.v3-tick:hover { border-color: var(--dim); }
+.channel input.v3-tick:hover::before { background: var(--text); }
+.channel input.v3-tick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.channel input.v3-tick:checked { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--bg); }
+.channel input.v3-tick:checked::before { background: var(--accent); }
 /* framed as the colour picker is, the palette in the swatch's place */
 .channel .v3-palette { flex: none; width: 22px; height: 15px; padding: 0; border: 3px solid; border-radius: 2px; cursor: pointer;
   border-color: color-mix(in srgb, var(--dim) 55%, #fff) color-mix(in srgb, var(--dim) 65%, #000) color-mix(in srgb, var(--dim) 65%, #000) color-mix(in srgb, var(--dim) 55%, #fff);
@@ -875,6 +933,9 @@ kbd.key-on { font-size: 10px; padding: 0 4px; margin-left: 4px; opacity: .6; col
 
 /* working offline (req/shell/offline/default) and making a study available offline (req/shell/offline/per-study) */
 html.offline [data-needs-network] { opacity: .45; cursor: not-allowed; }
+/* in the avatar's menu a held action is struck through in red beside the offline icon, not dimmed */
+html.offline #user-menu .item[data-needs-network] { opacity: 1; text-decoration: line-through var(--no); }
+#user-menu .item .offline-mark { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; color: var(--no); }
 #statusbar #sb-report.unsupported, #statusbar #sb-report.unsupported svg { color: var(--warn); }
 #sb-report .warn, #sb-report.unsupported .bug { display: none; }
 #sb-report.unsupported .warn { display: inline; }
@@ -923,31 +984,99 @@ html.offline #sb-online .off { display: block; }
 #guide-dlg.waiting #guide-go { display: none; }
 html:not(.offline) #welcome-offline { display: none; }
 
-/* ---------- Data Management (req/shell/data/mode): the tree's column, left of the left bar, for study managers only ---------- */
-#data-col { grid-column: 1; } #left { grid-column: 2; } #gutter-left { grid-column: 3; } #view { grid-column: 4; }
-:root[data-mode=data] #layout { --tw: 300px; }
-:root[data-mode=data][data-tree=folded] #layout { --tw: 36px; }
+/* ---------- Study Setup's own layout (req/setup/aspects): the stages across the top, a rail of aspects, the chosen one beside it ---------- */
+#left { grid-column: 2; } #gutter-left { grid-column: 3; } #view { grid-column: 4; }
+:root[data-page=setup] body { grid-template-rows: 64px minmax(0, 1fr) 1cm; }
+:root[data-page=setup] #statusbar { grid-row: 3; }
+#setup-note { grid-row: 2; margin: var(--pad) 16px; }
+#setup { grid-row: 2; display: flex; flex-direction: column; min-height: 0; padding: var(--pad) 16px 0; gap: var(--pad); }
+#setup[hidden], #setup-note[hidden] { display: none; }
+#setup-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: var(--pad); padding-bottom: var(--pad); }
+#setup-rail { display: flex; flex-direction: column; gap: 4px; }
+#setup-rail button { text-align: left; padding: 9px 12px; border: 1px solid transparent; background: transparent; border-radius: var(--r-ctl); color: var(--dim); font-weight: 600; }
+#setup-rail button:hover { color: var(--text); border-color: var(--line); }
+/* Ground Truth is marked while the study has no folder for its Analysis Files yet */
+#setup-body:has(#gt-setup.nudge:not([hidden])) #setup-rail button[data-aspect=truth]::after { content: "●"; color: var(--warn); margin-left: 8px; font-size: 10px; vertical-align: middle; }
+#setup-rail button[aria-pressed=true] { color: var(--text); background: var(--panel); border-color: var(--line); box-shadow: inset 3px 0 0 var(--accent); }
+/* the aspect on show: each child belongs to the aspects its rule names */
+#setup-aspect { min-height: 0; min-width: 0; display: grid; gap: var(--pad); grid-template-rows: minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: var(--pad); }
+#setup-aspect:is([data-aspect=images], [data-aspect=batch]) { grid-template-columns: 270px minmax(0, 1fr) 300px; }
+#setup-aspect > * { min-height: 0; min-width: 0; overflow-y: auto; }
+#setup-aspect:not([data-aspect=images], [data-aspect=batch]) > :is(#data-col, #folder-view, #setup-side),
+#setup-aspect:not([data-aspect=literature]) > #literature-box, #setup-aspect:not([data-aspect=truth]) > #truth-panel, #setup-aspect:not([data-aspect=people]) > #sharing-box, #setup-aspect:not([data-aspect=results]) > #results-box { display: none !important; }
+#setup-aspect[data-aspect=batch] #setup-side > :not(#batch-box, #batch-hint), #setup-aspect[data-aspect=images] :is(#batch-box, #batch-hint) { display: none !important; }
+#setup-aspect[data-aspect=batch] #batch-box:not([hidden]) ~ #batch-hint, :root[data-sel] #side-hint { display: none; }
+#setup-aspect:is([data-aspect=images], [data-aspect=batch]) > #folder-view[hidden] { display: block; visibility: hidden; }
 #data-col[hidden] { display: none; }
-#data-col { position: relative; padding: var(--pad) 0 var(--pad) 8px; overflow: hidden; scrollbar-gutter: auto; display: flex; flex-direction: column; min-width: 0; }
-#data-open { display: flex; align-items: center; gap: 6px; padding: 8px 4px; border-radius: var(--r-panel); white-space: nowrap; }
-#data-open .chev { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; transition: transform .35s; }
-#data-open[aria-expanded=true] .chev { transform: rotate(180deg); }
-/* its strip: a chevron over an upright name, the whole column's height */
-:root[data-tree=folded] #data-open { flex: 1; flex-direction: column; justify-content: flex-start; gap: 10px; padding: 12px 0; width: 100%; min-width: 0; box-sizing: border-box;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); color: var(--dim); }
-:root[data-tree=folded] #data-open:hover { color: var(--text); border-color: var(--accent); }
-:root[data-tree=folded] #data-open .strip-name { writing-mode: vertical-rl; font-size: 12px; letter-spacing: .03em; }
-:root:not([data-tree=folded]) #data-open { align-self: flex-start; border: 0; background: transparent; color: var(--dim); }
-#data-body { display: none; min-width: 240px; flex: 1; min-height: 0; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 10px 8px; margin-top: 6px; }
-:root[data-mode=data]:not([data-tree=folded]) #data-body { display: flex; animation: data-in .35s ease-out; }
-@keyframes data-in { from { opacity: 0; transform: translateX(-24px); } }
+#data-col { grid-column: 1; padding: 0; scrollbar-gutter: auto; display: flex; flex-direction: column; }
+#data-body { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+#folder-view { grid-column: 2; } #setup-side { grid-column: 3; padding: 0; display: flex; flex-direction: column; gap: var(--pad); }
+#setup-side .box { margin: 0; }
+#truth-panel, #sharing-box, #results-box { max-width: 880px; }
+#truth-panel h2, #newer-box h2 { font-size: 14px; margin: 0 0 6px; }
+#truth-panel > * { margin: 0 0 var(--pad); } #truth-panel #gt-setup { display: block; }
+#truth-panel #gt-setup[hidden] { display: none; }
+#newer-box { border: 1px solid var(--line); border-radius: var(--r-chip); padding: 8px; }
+#image-panel-name { font-weight: 600; overflow-wrap: anywhere; margin-bottom: 6px; }
+#folder-items .cell.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* the image's dialog (req/setup/image): the image view over the page; shut, it keeps its size off the page so the image is laid out as it will show */
+#image-dlg { position: fixed; inset: 0; margin: auto; width: calc(100vw - 32px); height: calc(100vh - 32px); max-width: none; max-height: none; box-sizing: border-box; padding: var(--pad); display: flex; flex-direction: column; gap: 8px;
+  color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: 0 14px 40px #0008; }
+#image-dlg::backdrop { background: #0007; }
+#image-dlg:not([open]) { visibility: hidden; inset: 0 auto auto -300vw; margin: 0; pointer-events: none; }
+/* the image flat and its tools alone (req/setup/image) */
+#image-dlg :is(#left, #gutter-left, #switch, #history-btn, #gt-undo, #gt-redo) { display: none !important; }
+#image-dlg h2 { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+#image-dlg #layout { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr); transition: none; } #image-dlg #view { grid-column: 1; margin: 0; }
+#image-dlg #areas { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; align-items: center; }
+#image-dlg #areas[hidden] { display: none; }
+#image-dlg .areas-row { margin: 0; } #image-dlg .areas-row .hint { flex: none; } #image-dlg .areas-label { min-width: 0; font-weight: 600; }
+/* the stages (req/setup/promote): five in a row, each in its colour, the current one selected, the next and the one before carrying their action */
+#stage-box { flex: none; }
+#stage-box[hidden] { display: none; }
+#stage-box.busy #stage-steps { opacity: .6; }
+#stage-steps { list-style: none; margin: 0; padding: 0; display: flex; height: 60px; }
+#stage-steps > li { --c: var(--dim); flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; justify-content: center; padding: 0 22px 0 34px; margin-right: -10px; color: #fff; background: var(--c);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%); opacity: .38; }
+#stage-steps > li:first-child { padding-left: 18px; border-radius: var(--r-ctl) 0 0 var(--r-ctl); clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%); }
+#stage-steps > li:last-child { margin-right: 0; }
+#stage-steps > li[data-light=red] { --c: #cf4037; } #stage-steps > li[data-light=yellow] { --c: #b98a06; } #stage-steps > li[data-light=green] { --c: #2a8f47; } #stage-steps > li[data-light=blue] { --c: #2f6fe0; }
+#stage-steps > li[data-light=all] { background: linear-gradient(90deg, #cf4037, #b98a06, #2a8f47, #2f6fe0); }
+#stage-steps > li[data-state=done] { opacity: .62; }
+#stage-steps > li[data-state=now] { opacity: 1; filter: drop-shadow(0 2px 4px #0006); }
+#stage-steps > li:has(.stage-act:not([hidden])) { opacity: .78; }
+#stage-steps > li:has(.stage-act:not([hidden])) .stage-say { visibility: hidden; }
+#stage-steps > li:has(.stage-act:not([hidden]):hover) { opacity: 1; }
+.stage-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-say { font-size: 11.5px; min-height: 1.3em; }
+/* the action is the whole stage: its words where the stage's say is */
+.stage-act { position: absolute; inset: 0; border: 0; border-radius: 0; background: transparent; color: #fff; font-size: 11.5px; text-decoration: underline; text-align: left; padding: 24px 22px 0 34px; cursor: pointer; }
+#stage-steps > li:first-child .stage-act { padding-left: 18px; }
+.stage-act:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.stage-act[hidden] { display: none; }
+#stage-what, #stage-msg { margin: 6px 2px 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* the calls in flight (req/shell/status-bar/calls): each server's logo turning beside what is read from it; and a place a call fills */
+#sb-calls { display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden; }
+.net-call { display: inline-flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; color: var(--dim); }
+.net-call .net-text { overflow: hidden; text-overflow: ellipsis; }
+.net-logo { flex: none; display: grid; place-items: center; width: 16px; height: 16px; }
+.net-logo svg { width: 15px; height: 15px; }
+.net-call.on .net-logo { animation: spin 1.1s linear infinite; }
+.net-call.failed { color: var(--err); }
+.net-wait { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 16px; color: var(--dim); font-size: 13px; text-align: center; }
+.net-bar { width: min(320px, 80%); height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; position: relative; }
+.net-bar::after { content: ""; position: absolute; inset: 0 60% 0 0; border-radius: 3px; background: var(--accent); animation: net-bar 1.2s ease-in-out infinite alternate; }
+@keyframes net-bar { to { inset: 0 0 0 60%; } }
+#open-setup { display: flex; align-items: center; gap: 8px; } #open-setup[hidden] { display: none; }
+#open-setup .new-page { margin-left: auto; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
 .data-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px 8px; } .data-head h2 { font-size: 14px; margin: 0; flex: 1; }
 /* the setup at the bar's top, nudged while the study has no ground-truth folders; the Ground Truth box under it */
 #gt-setup { margin: 0 2px 8px; }
 #gt-setup.nudge { border-color: var(--warn); color: var(--text); background: color-mix(in srgb, var(--warn) 18%, transparent); font-weight: 600; }
 #gt-box { border: 1px solid var(--line); border-radius: var(--r-chip); padding: 6px 8px; margin: 0 2px 10px; font-size: 12.5px; }
 #gt-box h2 { font-size: 14px; margin: 0 0 4px; } #gt-box p { margin: 2px 0; }
-#data-tree { overflow: auto; flex: 1; min-height: 0; font-size: 13px; }
+#data-tree { overflow: auto; flex: 1 0 160px; min-height: 160px; font-size: 13px; }
 .tree-folder .row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* the study's listed folders: Remove beside each, the root's other folders under them to add, a pasted link to add another */
 .tree-folder .row .unlist { flex: none; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; border-radius: var(--r-chip); }
@@ -976,7 +1105,7 @@ html:not(.offline) #welcome-offline { display: none; }
 .pic.none { background: repeating-linear-gradient(45deg, var(--line) 0 4px, transparent 4px 8px); }
 
 /* in the mode the left bar keeps the Image box; the study's own panels and the steps step aside */
-:root[data-mode=data] [data-study-panel], :root[data-mode=data] .study-box, :root[data-mode=data] #sb-steps, :root[data-mode=data] #switch { display: none !important; }
+:root[data-mode=data] [data-study-panel], :root[data-mode=data] .study-box, :root[data-mode=data] #switch { display: none !important; }
 :root:not([data-sel=folder]) #folder-box, :root[data-sel=folder] #image-box { display: none !important; }
 :root:not([data-mode=data]) #tags-box { display: none !important; }
 /* the Tags box and Study images: a tag as a chip, its × taking it off; a folder's tags on its images dimmed */
@@ -998,6 +1127,22 @@ html:not(.offline) #welcome-offline { display: none; }
 #study-set { padding: 8px 4px 0; border-top: 1px solid var(--line); margin-top: 8px; font-size: 13px; }
 #study-set h3 { font-size: 12px; margin: 0 0 6px; color: var(--dim); font-weight: 600; }
 .study-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+/* what the stage closes of the data (req/shell/study/stage): from Review on the controls that change it are gone */
+#stage-newer, #stage-freeze-newer { margin: 4px 0; padding-left: 18px; overflow-wrap: anywhere; }
+:root[data-frozen] :is(#gt-setup, #data-add-row, .unlist, #data-unlisted, #study-set, #tags-box .tags-add-row, #tags-box .untag, #tags-desc-row, #areas, .mark-gt, #update-previews) { display: none !important; }
+/* Study Setup's sharing check: each correction with its link and picture, then People */
+#sharing-box { font-size: 13px; }
+.sharing-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+#sharing-box h2 { font-size: 14px; margin: 0; } #sharing-box h3 { font-size: 12px; margin: 10px 0 4px; color: var(--dim); font-weight: 600; }
+#sharing-corrections, #people-list { list-style: none; margin: 4px 0; padding: 0; }
+.sharing-correction { border-top: 1px solid var(--line); padding: 6px 0; }
+.sharing-correction p { margin: 2px 0; }
+.sharing-item, .sharing-change { display: block; }
+.sharing-how summary { cursor: pointer; color: var(--accent); }
+.sharing-correction img { display: block; max-width: 100%; height: auto; margin: 4px 0; border-radius: var(--r-chip); }
+.sharing-fix, .sharing-confirm button { margin: 2px 6px 2px 0; }
+#people-list li { padding: 2px 0; overflow-wrap: anywhere; }
+.holds { font-size: 10.5px; padding: 1px 5px; border-radius: 9px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
 :root[data-mode=data] #load.gone { display: none; }
 #load.poof { animation: poof .45s ease-in forwards; pointer-events: none; }
 #load.unpoof { animation: poof .3s ease-out reverse; }
@@ -1027,35 +1172,51 @@ html:not(.offline) #welcome-offline { display: none; }
 #folder-items .tag.warn { color: var(--warn); } #folder-items .tag.yes { color: var(--yes); }
 #folder-items .mark-gt { font-size: 11px; padding: 2px 8px; justify-self: start; }
 #folder-items .mark-gt[aria-pressed=true] { background: var(--warn); border-color: var(--warn); color: #000; }
+/* Study Setup: a cell's checkbox choosing it for a batch run, an image's extractions with their marks, and the batch box (req/setup/marks, req/setup/batch) */
+#folder-items .cell .pick { position: absolute; top: 12px; left: 12px; margin: 0; }
+#marks-list { display: grid; gap: 4px; margin: 4px 0; }
+.mark-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.mark-row .mark-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mark-row button { flex: none; font-size: 11px; padding: 2px 8px; }
+.mark-row button[aria-pressed=true] { background: var(--yes); border-color: var(--yes); color: #000; }
+#batch-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#batch-official[hidden] { display: none; }
+#batch-msg, #marks-msg { overflow-wrap: anywhere; }
+/* Study Setup's Results (req/setup/results) */
+#results-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#results-csv[hidden], #results-scroll[hidden] { display: none; }
+#results-scroll { overflow-x: auto; margin: 4px 0; }
+#results-scroll table { border-collapse: collapse; font-size: 12px; width: 100%; }
+#results-scroll table th, #results-scroll table td { padding: 2px 6px; text-align: left; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+#results-scroll table td:nth-child(n+3), #results-scroll table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+#results-scroll table tfoot td { font-weight: 600; }
+#results-box.busy { opacity: .6; }
+#results-msg { overflow-wrap: anywhere; }
+/* the page held while the study comes in again on the image open: the new page takes the old one's place at once */
+:root[data-held]::view-transition-group(*), :root[data-held]::view-transition-old(*), :root[data-held]::view-transition-new(*) { animation: none; }
+:root[data-held]::view-transition-old(*) { display: none; }
 :root[data-cells]::view-transition-old(root), :root[data-cells]::view-transition-new(root) { animation: none; }
 :root[data-cells]::view-transition-group(*) { animation-duration: .35s; animation-timing-function: cubic-bezier(.25, .8, .25, 1); }
 
-/* the tagger's line in a study's ground-truth box: may they write to the submissions folder (req/shell/ground-truth/tagger-access) */
+/* the line in a study's ground-truth box saying whether the user may save to the study (req/shell/annotate/no-save) */
 .gt-access { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid var(--line); font-size: 12px; color: var(--dim); }
 .gt-access[hidden] { display: none; }
-.gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
+.gt-access[data-access="signedout"], .gt-access[data-access="nosave"], .gt-access[data-access="view"], .gt-access[data-access="unpermitted"], .gt-access[data-access="unset"], .gt-access[data-access="unknown"] { border-left-color: var(--warn); color: var(--text); }
 .gt-access .gt-say { flex: 1 1 100%; }
-/* a pending submission, and the Study Manager's review of an image's submissions (req/shell/ground-truth/curate) */
-#folder-items .tag.pending { color: var(--accent); }
-.curate-list { list-style: none; margin: 8px 0; padding: 0; min-width: 360px; }
-.curate-list li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.curate-list .who { font-weight: 600; }
-.curate-list .grow { flex: 1; }
-/* an image's ground truth in the remote files dialog's rows (req/shell/ground-truth/pending) */
+/* an image's extractions in the remote files dialog's rows (shell/extractions/marks-shown) */
 #remote-list .gt-tag:empty, #recent .gt-tag:empty { display: none; }
 #remote-list .gt-tag, #recent .gt-tag { font-size: 10.5px; padding: 0 5px; border-radius: 8px; border: 1px solid currentColor; color: var(--yes); }
-#remote-list .gt-tag[data-state="pending"], #recent .gt-tag[data-state="pending"] { color: var(--accent); }
-#remote-list .gt-tag[data-state="rejected"], #recent .gt-tag[data-state="rejected"] { color: var(--warn); }
+#remote-list .gt-tag[data-state="saved"], #recent .gt-tag[data-state="saved"] { color: var(--accent); }
 #remote-list .gt-tag[data-state="wanted"], #recent .gt-tag[data-state="wanted"] { color: var(--warn); border-style: dashed; }
 
 /* the study's ground-truth tasks (req/shell/ground-truth/tasks): a bar of a part per task, then a row per task, the
    open one bold, a done one checked, and Submit Ground Truth last */
 #gt-list[hidden] { display: none; }
-#gt-areas-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin: 0 0 8px; }
+#gt-areas-row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 0; }
 #gt-areas-row[hidden] { display: none; }
 #gt-areas { font-size: 12px; min-width: 0; flex: 0 1 auto; }
-#gt-start { display: block; width: 100%; margin: 0 0 10px; }
-#gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 10px; }
+#gt-bar { display: flex; gap: 3px; height: 8px; margin-bottom: 6px; }
+#gt-bar > span.now { outline: 1.5px solid var(--text); outline-offset: 1px; }
 #gt-bar > span { flex: 1 1 0; min-width: 6px; border-radius: 4px; --done: 0;
   background: linear-gradient(to right, var(--yes) calc(var(--done) * 100%), var(--line) calc(var(--done) * 100%)); }
 #gt-tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -1071,19 +1232,17 @@ html:not(.offline) #welcome-offline { display: none; }
 #gt-tasks li.done .t { color: var(--dim); }
 #gt-tasks .task-head > :not(.t):not(.tick) { order: 2; }
 #gt-tasks li[data-task="submit"] .task-head { padding: 6px 0 0; }
-#gt-history-row[hidden] { display: none; }
-#gt-history-row { padding: 8px 0; font-size: 13px; }
-#gt-history-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #gt-save-draft { flex: 0 0 auto; }
 /* the two share one line of the box */
-#gt-save-draft, #gt-submit { white-space: nowrap; padding-inline: 8px; }
+#gt-save-draft, #gt-submit, #gt-download { white-space: nowrap; padding-inline: 8px; }
 #gt-offers { margin: 0 0 10px; }
-#gt-offers[hidden], #gt-edits[hidden] { display: none; }
+#gt-offers[hidden] { display: none; }
+#gt-tasks > li:not(.now):not([data-task="submit"]) { display: none; }
+#gt-tasks li.now .task-head .n, #gt-tasks li.now .tick { display: none; }
+#gt-tasks > li.now { border-top: 0; }
 #gt-load-draft, #gt-load-legacy, #gt-load-submission { display: block; width: 100%; }
 #gt-load-draft[hidden], #gt-load-legacy[hidden], #gt-load-submission[hidden] { display: none; }
 #gt-offers button + button { margin-top: 4px; }
-#gt-tasks li[data-task="edits"] .gt-edit-row { display: flex; align-items: center; gap: 4px; padding: 6px 0; font-size: 13px; }
-#gt-tasks li[data-task="edits"] .gt-edit-row button { white-space: nowrap; padding-inline: 5px; }
 #gt-tasks .unsaved { font-size: 12px; color: var(--warn); font-variant-numeric: tabular-nums; white-space: nowrap; }
 #gt-tasks .unsaved[hidden] { display: none; }
 #gt-submit { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -1104,12 +1263,6 @@ html:not(.offline) #welcome-offline { display: none; }
 #drag-hint { position: fixed; left: 50%; bottom: calc(1cm + 12px); transform: translateX(-50%); z-index: 20; pointer-events: none;
   padding: 4px 12px; font-size: 12px; color: var(--text); background: var(--tipbg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
 #drag-hint[hidden] { display: none; }
-
-/* Download Summary, at the Summary box's foot (req/shell/summary/download) */
-.summary-dl-row { display: flex; margin-top: 10px; }
-.summary-dl-row:has(> [hidden]) { display: none; }
-#summary-dl { padding: 3px 10px; font-size: 12px; }
-#summary-dl[hidden] { display: none; }
 
 /* the summary's mask (req/shell/summary/mask): its borders as a pulsing dashed line, its inside tinted only when areas
    overlap or nest, and the lasso as it is drawn; over a stack in 3D, an overlay following the view */
@@ -1134,8 +1287,39 @@ html:not(.offline) #welcome-offline { display: none; }
 #mask-warning { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 5px 14px; border-radius: 999px;
   background: #b45309; color: #fff; font-size: 12px; pointer-events: none; white-space: nowrap; }
 #mask-warning[hidden] { display: none; }
-/* the Study Manager's areas: damaged ones darkened inside a dotted line, the area of interest a solid line over a dark one */
+/* the study owner's areas: damaged ones darkened inside a dotted line, the area of interest a solid line over a dark one */
 #overlay .study-areas, #mask-3d .study-areas { pointer-events: none; }
 .study-areas .damaged { fill: #000; fill-opacity: .55; stroke: #fff; stroke-width: 1.5; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .study-areas .interest { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .study-areas .interest.under { stroke: #000; stroke-width: 3; stroke-opacity: .5; }
+
+/* the Analysis box's choice, Start and Load side by side, and the Start and Load dialogs (req/shell/annotate/choice) */
+#annotate-box[hidden], #annotate-choices[hidden] { display: none; }
+#annotate-choices { display: flex; flex-direction: column; gap: 6px; }
+#annotate-choices > button, #annotate-edit { width: 100%; }
+#annotate-choices .pair { display: flex; gap: 6px; }
+#annotate-choices .pair > button { flex: 1 1 0; min-width: 0; }
+#annotate-choices .pair > button[hidden] { display: none; }
+#annotate-say { margin: 8px 0 0; }
+#annotate-edit { margin-top: 8px; }
+#start-dlg h3 { margin: 12px 0 0; font-size: 13px; }
+#start-dlg #algorithm { height: auto; padding: 4px; }
+#start-dlg #algorithm option { padding: 4px 6px; border-radius: 4px; }
+#start-dlg #algorithm-pick { margin: 0; }
+#start-dlg #algorithm-note { max-height: 40vh; overflow: auto; }
+#annotate-list { display: flex; flex-direction: column; gap: 4px; margin: 0; max-height: 50vh; overflow: auto; }
+#annotate-list .item { display: flex; justify-content: space-between; gap: 8px; text-align: left; }
+#annotate-list .item[aria-selected=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+#annotate-list .others .item { width: 100%; margin-top: 4px; }
+#annotate-list .others summary { cursor: pointer; font-size: 12px; color: var(--dim); margin: 2px 0; }
+#gt-waiting { margin: 6px 0 0; }
+#gt-submit[hidden] { display: none; }
+/* the study's papers (req/setup/literature): the name takes the room left, what is known of it at the row's end */
+#literature-box ul { list-style: none; margin: 8px 0; padding: 0; }
+#literature-box li { display: flex; gap: 12px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+#literature-box li .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#literature-box li .of { color: var(--dim); font-size: 12.5px; max-width: 45%; text-align: right; }
+#literature-box li .has { flex: none; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); }
+#literature-box li .has.yes { color: var(--ok, #2e9e4f); border-color: currentColor; }
+#literature-box li .has.no { color: var(--warn); border-color: currentColor; }
+#literature-box h3 { margin: 16px 0 0; font-size: 13px; }

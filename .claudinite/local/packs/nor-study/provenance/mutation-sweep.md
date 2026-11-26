@@ -37,3 +37,11 @@
 - **Actor:** @missingbulb (owner), through the coordinating session moving the studies onto the
   contract.
 - **Model:** claude-opus-5-5
+
+## 2026-11-22 · policy-changed · the run stops clean when the study file says Review or Public
+- **Reason:** WP7 of the study-stages plan: from Review on the study's algorithm and scores are frozen, so an
+  unattended sweep that would change them ends its run with nothing changed; a code worker asks the lab for the stage.
+- **Actor:** @missingbulb (owner), through the study-stages plan.
+- **Model:** claude-sonnet-5-5
+- **Mechanism:** the task's own code worker, `lab/stage.py`, and a first step of the worker doc doing the same where
+  the id is only in the agent session's environment.

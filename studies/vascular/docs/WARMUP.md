@@ -56,7 +56,7 @@ truth (`web/tasks.js`; `req/vascular/truth/tasks`, `req/vascular/truth/order`, `
 (`shell.gt`): `web/gt_actions.js` holds the pure functions the shell replays (the items it reads are `web/model_items.js`),
 `web/model_view.js` draws whatever model the shell hands it, and the edits kept before the log under `mv-model:` are
 `web/old_edits.js`, offered once through `shell.gt.legacy`. Tests:
-`tests/test_model_page.py` (PreGT: views and cards), `tests/test_vessel_tasks_page.py` (GT: Execute
+`tests/test_model_page.py` (Review: views and cards), `tests/test_vessel_tasks_page.py` (Develop: Execute
 and the tasks), `tests/test_vessel_gt_actions_page.py` (the GT actions in the page), all against the stand-in worker in `tests/stand_in.mjs`, and
 `tests/test_extract_bridge.py` (the real Python in Pyodide). The model's format and edits are
 `web/model.js` (`web/coverage.js` the review's tube and what the tasks cut out of the stack), pinned

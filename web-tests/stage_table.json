@@ -1,0 +1,48 @@
+{
+  "about": "The map's stage table (dev/requirements/study-stages-map.md, The stages), the rows a control of the page follows, transcribed: per action its row's label, its five cells word for word, and whether the page opens it in that stage (`open`). test_stage_table.py holds each cell to the map's table and each `open` to web/stages.js; test_stage_table_page.py loads the stand-in study in each stage and holds the page's controls to it. `control` says where the control is: main (the study's page) or setup (Study Setup), its selector and, where it shows only once an image is open (`after`), that; null for an action with no control of its own.",
+  "stages": ["Setup", "Develop", "Analyze", "Review", "Public"],
+  "actions": {
+    "setup-data": {
+      "row": "Study Setup (root write): folders, tags, descriptions, areas of interest, damaged areas, Needs GT, hide rules, GT setup, previews",
+      "cells": ["open", "open", "open: new images may still be added and marked", "data closed", "data closed"],
+      "open": [true, true, true, false, false],
+      "control": {"page": "setup", "selector": "#data-add"}
+    },
+    "view": {
+      "row": "Main app, view and run the algorithm on the study's images",
+      "cells": ["members", "members", "members", "anyone with the address (unlisted), frozen", "everyone, listed"],
+      "open": [true, true, true, true, true],
+      "control": null
+    },
+    "own-images": {
+      "row": "Run the algorithm on your own images, in the browser only, nothing leaving the device",
+      "cells": ["members", "members", "members", "members", "everyone"],
+      "open": [true, true, true, true, true],
+      "control": null
+    },
+    "annotate": {
+      "row": "Start Annotating, saving extractions (extractions folder write)",
+      "cells": ["open for trial, nothing counted", "open: annotations score the algorithm", "open: annotations replace the algorithm's answer in the study's numbers", "closed", "closed"],
+      "open": [true, true, true, false, false],
+      "control": {"page": "main", "selector": "#annotate-load", "after": "an image loads"}
+    },
+    "mark": {
+      "row": "Mark an extraction GT or official (Study Setup, study owner)",
+      "cells": ["closed", "open", "open", "closed", "closed"],
+      "open": [false, true, true, false, false],
+      "control": {"page": "setup", "selector": "#marks-list button.mark-gt", "after": "an image is chosen"}
+    },
+    "batch": {
+      "row": "Batch run (Study Setup) over chosen images",
+      "cells": ["open once there is an algorithm", "open", "open", "open, counts once marked", "open, counts once marked"],
+      "open": [true, true, true, true, true],
+      "control": {"page": "setup", "selector": "#batch-run"}
+    },
+    "numbers": {
+      "row": "Numbers shown",
+      "cells": ["none", "each version's precision and recall", "the study's results", "the frozen results", "the published results"],
+      "open": [false, true, true, true, true],
+      "control": null
+    }
+  }
+}

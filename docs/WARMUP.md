@@ -12,7 +12,7 @@ Working on a study? Read its own warm-up next: [NoR Finder](../studies/nor/docs/
 
 | Layer | Where | Swapped by |
 |---|---|---|
-| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google), the Python runtime, status and memory, notices, theme, side bars, version history, downloads, ground-truth submission, Data Management for a study's study managers (`web/data_mode.js`: the tree of the study's listed folders, the Tags box and Study images, the study index it writes and Load study images reads, kept in the study's root with the tags file by `web/study_root.js`, the tag rules in `web/tags.js`, previews made in the browser by `web/previews_writer.js`), the TIFF reader and writer (`web/tiff_file.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
+| Shell: loading (computer, or the remote store: everything Google Drive, its reads, writes, folder access and words, is in `web/drive.js`, and identity, signing in and the settings it keeps, is in `web/account.js`; nothing else knows Google; the Open Image dialog is `web/image_dialog.js`, and what is kept on the device of the images opened, thumbnails, folder previews and the images themselves, `web/image_keeping.js`), the left bar's three boxes (`web/load_box.js`, `web/analysis_box.js`, `web/summary_box.js`, which `web/shell.js` wires together), the Python runtime, status and memory (the status bar's resources in `web/status_resources.js`; the calls in flight to another server, shown in the status bar and in the place they fill, in `web/network_calls.js`), notices, theme, side bars, version history, downloads, ground-truth submission, Study Setup for a study's owners (the page `web/setup.html`, a layout of its own, the stages across the top and a rail of the study's aspects, which loads `web/setup.js`: the shell, `web/shell.js`, with Data Management, `web/data_mode.js`, attached to it and the image view in a dialog, the study's own page holding none of it: the tree of the study's listed folders, the Tags box and Study images, the study index it writes and Load study images reads, kept in the study's one study file in its root, with the tags, by `web/study_root.js`, the tag rules in `web/tags.js`, previews made in the browser by `web/previews_writer.js`), the TIFF reader and writer (`web/tiff_file.js`), working offline and making a study available offline from the Storage tab (`web/offline.js`, with the service worker `web/sw.js`) | `web/` | — |
 | Viewer: shows the opened image and what a study draws over it, zoom, pan, the minimap, each channel's row and its black and white points (`web/channels.js`) | `web/viewer2d.js`; `web/viewer3d.js` adds a 3D view of a z-stack | a study's `viewer` |
 | Study: its panels, its flow, its Python | `studies/<id>/` | `/app/<id>` (rauntruth.com/app/nor) |
 | The site's own pages around the app: the landing page, privacy, terms, license, icons, poster, the retired root service worker | `site/` | — |
@@ -26,9 +26,10 @@ second study needs it, not before.
 A study is a folder with a `study.json`, and a `requirements.md` for what its page does beyond the shell
 (`req/<id>`, `req/checks/spec-layout`):
 
-- `visibility` — who the page shows it to: `"listed"` (the header's study switcher and the landing page offer it),
-  `"unlisted"` (only by its address; the fixture) or `{"accounts": [email, …]}` (the switcher offers it only while one
-  of those Google accounts is signed in). It hides a study from the page, not its files from the network.
+- `visibility` — `"listed"` (the header's study switcher may offer it: to those who can read its Drive root, and to everyone
+  once its stage is released; `web/members.js`) or `"unlisted"` (only by its address; the fixture). The landing page lists
+  no study.
+- `article` — optional, a link to the study's article, which the header shows beside its name (`req/shell/study/article`).
 - `icon`, `poster` and `description` — its tab icon (an SVG), its shared link's preview (a 1200 × 630 JPEG), both
   under its `web/`, and one line of at most 160 characters for that preview. Required of every study but an
   unlisted one (`req/shell/site/icons`); a poster is a screenshot of the study's page at work under a banner with
@@ -52,11 +53,11 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   there is no right bar.
 - `files` — `from`, the places it opens images from (`local`, this computer, `drive`, Google Drive, or both:
   `req/shell/load/from`), what Load accepts, and the text the empty view shows.
-- `root` — optional, the link of the study's Google Drive root folder, the only folder the repo names. The settings file
+- `root` — optional, the link of the study's Google Drive root folder, the only folder the repo names. Who may read it is Drive's sharing, members only until the study is shared by link (`web/members.js`). The one study file
   in it, `rauntruth-study.json`, names its data and ground-truth folders by id, else they are found by name (`Data`,
   `GT curated`, `GT submissions`, `GT`; `web/study_root.js`). The Drive dialog browses the data folder alone, with no
-  link to paste. Who holds a role is Drive's sharing: writing to the root makes a Study Manager, to submissions a Ground
-  Truth Tagger. A study's panels step aside while Data Management is open.
+  link to paste. What a person may do is Drive's sharing: writing to the root lets them open Study Setup, to the extractions folder
+  save ground truth (`req/shell/annotate/no-save`). A study's panels step aside on Study Setup's page.
 - `channels` — what the study says of the image's channels, by place, as starting points the user changes: `name`, `colour` (`#rrggbb`),
   `shown` at first, and optionally `depth` (in 3D, coloured by depth from the start: `true`, or a palette's name), `about` (the (?)'s description, at most 100 words) and `black` and
   `white` (its first points, 0–255). A channel it leaves out takes what the file says, then its place
@@ -68,9 +69,9 @@ A study is a folder with a `study.json`, and a `requirements.md` for what its pa
   image's file (`open`) and runs each action (by its name).
 - `generated` — optional, files under `web/` the site's build writes from the study's own scripts (output path:
   script), for what the page needs before any Python (Vascular's algorithm list).
-- `groundTruth` — for a GT or PostGT study: its `button`, its `actions` (the module of pure functions that keeps its
+- `groundTruth` — for a study where annotating is open (Setup, Develop, Analyze): its `button`, its `actions` (the module of pure functions that keeps its
   ground truth as GT actions: `start`, `run`, `describe`, `where`, `document`, `load`) and optionally its `ring`
-  colour. Its folders are made by Data Management's Set up ground truth, under the root; the layout and the reader's
+  colour. Its folders are made by Study Setup's Set up extractions, under the root; the layout and the reader's
   rule are `web/truth_folders.js`'s. Every study records what its tagger does through `shell.gt` (`act`, `ran`, `model`,
   `on`, and `legacy` for a store from before the log; its own status line about a run goes before `ran`, which may say
   what the run could not carry over): the log, Undo and Redo, Save Draft and Load draft, the Edit

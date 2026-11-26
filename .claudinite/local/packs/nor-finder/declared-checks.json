@@ -261,5 +261,19 @@
         "fix": "pass the full SHA from git rev-parse HEAD"
       }
     ]
+  },
+  {
+    "id": "world-set-up",
+    "on_fail": "block",
+    "failureMessage": "set-up written by hand has to know how each fake and the page keep their state, and says each set-up differently from every other test",
+    "fix": "say it through web-tests/world.mjs, adding the intent there or on its fake where none says it yet",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests)\\/(?!world\\.mjs$|harness_driver\\.mjs$|fake_[a-z_]+_driver\\.mjs$|fakes\\/)[^]*\\.m?js$/",
+    "matchLines": [
+      {
+        "match": "/delete Navigator\\.prototype\\.serviceWorker|\\.env\\s*=[^=]|\\bgoogle\\.(settings|account)\\b\\s*(\\.(push|splice)|=[^=])|\\.files\\.(push|splice)\\(|\\.writers\\.set\\(|localStorage\\.setItem\\(\\s*[\"'](nor-google-sign-in|nor-welcome)[\"']|\\b(drive|googleDrive\\([^)]*\\)|googleOf\\([^)]*\\)\\.drive)\\.(folder|file)\\(\\s*\\{/",
+        "what": "sets up the world by hand: {match}",
+        "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
+      }
+    ]
   }
 ]

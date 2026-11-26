@@ -20,35 +20,51 @@ MATRIX = os.path.join(ROOT, 'dev', 'requirements', 'shell-states.GENERATED.md')
 EXPECT = os.path.join(ROOT, 'web-tests', 'shell-states.GENERATED.json')
 
 # what each action leaves changed; the browser test does the same action on the page
+# an image coming in ends annotation mode: Start and Load are offered for it again (req/shell/annotate/choice)
+ASK = {'annotating': False, 'route': 'none', 'edited': False}
+# a page opened afresh: no image, nothing chosen, no annotation mode
+FRESH = {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, 'selected': 'nothing', 'notice': False,
+         'imageFits': True, 'hasDraft': False, **ASK}
 ACTIONS = {
-    'load': ('Load', {'image': 'local', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False}),
-    'stack': ('Load a stack', {'image': 'local', 'stack': True, 'counted': False, 'view': 'image', 'imageLarge': False}),
+    'load': ('Load', {'image': 'local', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
+    'stack': ('Load a stack', {'image': 'local', 'stack': True, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     # an image larger than the view, which opens below 100% (req/shell/image/opens-fitted)
-    'large': ('Load a large image', {'image': 'local', 'imageLarge': True, 'stack': False, 'counted': False, 'view': 'image'}),
-    'count': ('Count', {'counted': True}),
+    'large': ('Load a large image', {'image': 'local', 'imageLarge': True, 'stack': False, 'counted': False, 'view': 'image', **ASK}),
+    # the study's first step run: by Start and Run where nothing was started yet, which shows the runner (req/shell/analysis/start)
+    'count': ('Count', lambda s: {'counted': True, 'route': 'scratch' if s['route'] == 'none' else s['route']}),
     'items': ('Items', {'view': 'items'}),
     'image': ('Image', {'view': 'image'}),
-    # a role chosen: to or from Ground Truth Tagger, the study opens afresh on the same image (req/shell/account/role)
-    'tagger': ('→ Tagger', {'role': 'tagger'}),
+    # how the image open gets its analysis (req/shell/annotate/choice): the study opens afresh on the same image in
+    # annotation mode, from Start and Run, which presses the first step of a study that has one such step
+    # (req/shell/analysis/start), from the work this device kept, or from an Analysis File of the store; the store's
+    # alone is first shown read-only
+    'scratch': ('Start, and Run', lambda s: {'annotating': True, 'route': 'scratch', 'counted': s['oneRun'], 'view': 'image', 'edited': False}),
+    'local': ('Continue local work', {'annotating': True, 'route': 'local', 'counted': False, 'view': 'image', 'edited': True}),
+    'viewdrive': ('Load an Analysis File', {'route': 'drive', 'annotating': False, 'counted': False, 'view': 'image', 'edited': False}),
+    'edit': ('Edit this analysis', {'annotating': True, 'route': 'drive', 'counted': False, 'view': 'image', 'edited': False}),
+    'draft': ('Save Draft', {'hasDraft': True, 'edited': True}),
     'folder': ('Folder', {'selected': 'folder'}),
-    'preview': ('Preview', {'selected': 'image', 'image': 'preview', 'stack': False, 'counted': False, 'imageLarge': False}),
-    'zpreview': ('Preview a z-stack', {'selected': 'image', 'image': 'preview', 'stack': True, 'counted': False, 'imageLarge': False}),
-    'original': ('Load Original', {'image': 'original'}),
+    'preview': ('Preview', {'selected': 'image', 'image': 'preview', 'stack': False, 'counted': False, 'imageLarge': False, **ASK}),
+    'zpreview': ('Preview a z-stack', {'selected': 'image', 'image': 'preview', 'stack': True, 'counted': False, 'imageLarge': False, **ASK}),
+    'original': ('Load Original', {'image': 'original', **ASK}),
     'offline': ('Offline', {'online': False}),
     'online': ('Online', {'online': True}),
-    'unload': ('Unload', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False}),
+    'unload': ('Unload', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     # the study's images in its Drive folder, the one a user of a study that opens none from the computer takes
-    'drive': ('Load from Drive', {'image': 'original', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False}),
-    'viewer': ('→ Viewer', {'role': 'viewer'}),
-    'data': ('→ Study Manager', {'role': 'data'}),
+    'drive': ('Load from Drive', {'image': 'original', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
+    # Study Setup, the study's other page, from the avatar's menu and back (req/setup/page): each opens its page afresh, with no image
+    'data': ('Open Study Setup', {'managing': True, **FRESH}),
+    'leave': ('Leave Study Setup', {'managing': False, **FRESH}),
     # to another study and Back to this one, which opens afresh, with no image
-    'restudy': ('Away and back', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False}),
+    'restudy': ('Away and back', {'image': 'none', 'stack': False, 'counted': False, 'view': 'image', 'imageLarge': False, **ASK}),
     'ok': ('OK', {'notice': False}),
     'zoom': ('Zoom in', {'imageFits': False}),
 }
-ROLES = ('tagger', 'viewer', 'data')
+# the actions after which the study has opened afresh on the same image
+AFRESH = ('scratch', 'local', 'edit')
 START = {'image': 'none', 'counted': False, 'view': 'image', 'selected': 'nothing', 'online': True, 'stack': False,
-         'notice': False, 'imageFits': True, 'imageLarge': False}
+         'notice': False, 'imageFits': True, 'imageLarge': False, 'managing': False, 'annotating': False, 'route': 'none',
+         'hasDraft': False, 'maySave': False, 'edited': False}
 STATES = ('shown', 'disabled', 'held', 'folded', 'hidden')
 # what the page shows of an element, as the browser reads it: on (shown, usable, a box open), off (shown, disabled),
 # held (shown, saying it needs the internet, req/shell/offline/default), folded (a box shown folded), gone (not
@@ -59,8 +75,10 @@ MARK = {'shown': '●', 'disabled': '◐', 'held': '⊖', 'folded': '▸', 'hidd
 
 
 def derived(s):
-    """What the rules may name besides the vars: the study makes ground truth for this user (req/shell/account/role)."""
-    return {**s, 'makesTruth': s['role'] == 'tagger' and s['stage'] in ('GT', 'PostGT')}
+    """What the rules may name besides the vars: the study makes ground truth for this user, and the image carries a model:
+    the algorithm's run, or an annotation loaded; always for a study that keeps no GT actions (req/shell/annotate/choice)."""
+    return {**s, 'makesTruth': s['annotating'] and s['stage'] in ANNOTATING,
+            'hasModel': not s['keepsLog'] or s['counted'] or s['route'] in ('local', 'drive')}
 
 
 def nodes(tree, parent=None, depth=0):
@@ -70,7 +88,7 @@ def nodes(tree, parent=None, depth=0):
 
 
 def check_rules(rules, tree, roots, paths):
-    names = set(rules['vars']) | {'makesTruth'}
+    names = set(rules['vars']) | {'makesTruth', 'hasModel'}
     seen = set()
     for n, _, _ in nodes(tree):
         assert n['name'] not in seen, f"two elements named {n['name']!r}"
@@ -94,13 +112,15 @@ def check_rules(rules, tree, roots, paths):
 def facts(study):
     """What the study itself says, from its study.json and its panels: whether it opens images from the computer,
     has steps of its own after Load, has an item view (req/shell/views/second),
-    shows a z-stack in 3D (req/shell/viewer-3d), offers the summary's mask (req/shell/summary/mask), and walks its ground
-    truth by areas (req/shell/ground-truth/areas)."""
+    shows a z-stack in 3D (req/shell/viewer-3d), offers the summary's mask (req/shell/summary/mask), walks its ground
+    truth by areas (req/shell/ground-truth/areas), names an article (req/shell/study/article), and has one step with a
+    button, which Start's Run presses (req/shell/analysis/start)."""
     d = study['study']
     view = re.search(r'<[^>]*\bid="items-view"[^>]*>', study.get('panels', ''))
     return {'fromComputer': 'local' in d['files']['from'], 'hasSteps': bool(d['phases']), 'itemView': bool(view),
             'shows3d': d.get('viewer') == 'image3d', 'masks': (d.get('summary') or {}).get('mask') is True,
-            'walksAreas': 'areas' in (d.get('groundTruth') or {})}
+            'walksAreas': 'areas' in (d.get('groundTruth') or {}), 'namesArticle': bool(d.get('article')), 'keepsLog': 'actions' in (d.get('groundTruth') or {}),
+            'oneRun': sum(1 for ph in d['phases'] if ph.get('button')) == 1}
 
 
 def walk(study, roots, paths):
@@ -111,17 +131,18 @@ def walk(study, roots, paths):
         states = [('Start', dict(s))]
         for a in p['actions']:
             label, change = ACTIONS[a]
-            afresh = a in ROLES and (s['role'] == 'tagger') != (change['role'] == 'tagger')
-            s = {**s, **change, **({'counted': False, 'view': 'image'} if afresh else {})}
-            # an image from the computer, open for whoever makes ground truth, is told it cannot be submitted
-            # (req/shell/ground-truth/submit); the study opening afresh for a new tagger tells it again
-            if a in ('load', 'large', 'stack', 'drive', 'unload', 'restudy') or afresh:
+            s = {**s, **(change(s) if callable(change) else change)}
+            # an image from the computer, open for whoever annotates, is told it cannot be submitted
+            # (req/shell/extractions/save); the study opening afresh in annotation mode tells it again
+            if a in ('load', 'large', 'stack', 'drive', 'unload', 'restudy') or a in AFRESH:
                 s['notice'] = derived(s)['makesTruth'] and s['image'] == 'local'
             states.append((label, dict(s)))
         out.append((p, states))
     return out
 
 
+# the stages whose users may annotate: those the stage table opens annotating in (web/stages.js)
+ANNOTATING = ('Setup', 'Develop', 'Analyze')
 DEFAULT = -1  # an element's own state when none of its cases matches: as its parent shows
 
 
@@ -196,7 +217,7 @@ def build(rules, studies):
             for n, _, _ in nodes(tree):
                 shows.setdefault(key(n), set()).update(SEEN[c[n['name']][0]] for _, c in rows if c[n['name']][1] != 'undecided')
             paths.append({'study': i, 'root': p['root'], 'stage': roots[p['root']]['stage'],
-                          'signedIn': roots[p['root']]['signedIn'], 'role': roots[p['root']]['role'],
+                          'signedIn': roots[p['root']]['signedIn'], 'maySave': roots[p['root']].get('maySave', False),
                           'actions': p['actions'],
                           'states': [{'label': label, 'expect': {k: (None if a == 'undecided' else SEEN[v]) for k, (v, a) in c.items()}}
                                      for label, c in rows]})
@@ -230,7 +251,7 @@ def markdown(tables):
              'Generated by `dev/tools/build/shell_states.py` from [shell-states.json](shell-states.json) and each '
              'study\'s `states.json` (`req/checks/shell-states`): do not edit; change the rules and run it again.',
              '',
-             'Each table is one path: the study it opens, a root (the study\'s stage, who is signed in, the role) and '
+             'Each table is one path: the study it opens, a root (the study\'s stage, who is signed in and whether the store lets them save) and '
              'the actions taken from it, one column per state. ● shown · ◐ disabled · ⊖ held offline · ▸ folded · ○ hidden · '
              '⊘ its parent hidden · '
              '⋯ inside a folded box. `*` marks a tentative case, Claude\'s call not yet approved; `?` an undecided '

@@ -5,18 +5,20 @@
 // row (the study's words, then the file's, then red, green and blue) with its black and white points, and
 // Unload clearing the page back to where it started. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/image_box_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { helpTip } from "./help_tip.mjs";
 
 import { motion, record, begun, moved } from "./page_motions.mjs";
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { TAGGER } from "./tagger.mjs";
 import { pw, launch } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
+import { stepsOf } from "./page_steps.mjs";
 
 const [answers, image, studies, three, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,21 +39,16 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await record(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-await page.goto(origin + "/web/fixture");
-await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("fixture");
+const device = w.device().signedInAs(tagger);
+await record(await device.context());
+const page = await device.opens("fixture");
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 
 const loadImage = async (file = image) => {
@@ -72,10 +69,11 @@ const redNear = (x, y, v) => orMissed(page.waitForFunction(([x, y, v]) => Math.a
 const title = async () => { await page.click("#image-box > .sec-head h2"); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 
 // ---- the box before an image: its title alone in its head, Load at its foot ----
-const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [h.children.length, h.querySelector("h2 .title").textContent]; });
-await check(JSON.stringify(await head()) === '[1,"Load Image"]', "the box is titled Load Image, with nothing else in its head", await head());
+const head = () => page.evaluate(() => { const h = document.querySelector("#image-box > .sec-head"); return [[...h.children].filter((e) => e.checkVisibility()).length, h.querySelector("h2").textContent.trim()]; });
+await check(JSON.stringify(await head()) === '[1,"Load"]', "the box is titled Load, with nothing else showing in its head", await head());
 const order = await page.evaluate(() => [...document.querySelector("#image-box").children].map((e) => e.id || e.className));
-await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")) && (await page.$("#image-foot #unload")), "Load and Unload sit at the box's foot", order);
+await check(order[order.length - 1] === "image-foot" && (await page.$("#image-foot #load")), "Load sits at the box's foot", order);
+const loadBefore = await box("#load");
 await check(!(await page.$("#left canvas")), "the left bar holds no picture of the image");
 await check(!(await visible("#unload")), "no Unload before an image");
 await check(!(await visible("#minimap")) && (await page.$eval("#minimap-btn", (b) => b.disabled)), "no minimap, and its button off, before an image");
@@ -87,7 +85,13 @@ await check(open.y === folded.y && open.h === folded.h && open.x === folded.x, "
 await loadImage();
 await title(); // the box folds when an image opens; open it to look inside
 await check(await visible("#unload"), "an image open: Unload shows");
-await check((await box("#unload")).x > (await box("#load")).x && Math.abs((await box("#unload")).y - (await box("#load")).y) < 4, "Unload stands beside Load");
+const unload = await page.evaluate(() => { const u = document.querySelector("#unload"); return { head: u.parentElement.matches("#image-box > .sec-head"), text: u.textContent.trim(), link: u.classList.contains("link") }; });
+await check(unload.head && unload.text === "unload image" && unload.link, "as a link reading unload image, on the box's header", unload);
+const loadAfter = await box("#load");
+await check(loadAfter.x === loadBefore.x && loadAfter.w === loadBefore.w && loadAfter.h === loadBefore.h, "the line of controls to load with is as it was before the image", { loadBefore, loadAfter });
+await title();
+await check(!(await visible("#unload")), "the box folded: no Unload");
+await title();
 await shot("image_box", "#image-box");
 
 await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "true", "the whole image in view: no minimap, nothing to navigate, its button still pressed");
@@ -154,10 +158,10 @@ await page.evaluate(() => shellForTests.page.set({ minimap: "hidden" }));
 await check(!(await visible("#minimap")) && (await page.getAttribute("#minimap-btn", "aria-pressed")) === "false", "the page's state hides the minimap and raises its button");
 await page.evaluate(() => shellForTests.page.set({ minimap: "open" }));
 
-// ---- Submit Ground Truth is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
+// ---- Save is the last of the shell's tasks, not over the image (req/shell/ground-truth/tasks); no right bar ----
 const bar = await page.evaluate(() => ({ last: document.querySelector("#gt-tasks").lastElementChild.contains(document.querySelector("#gt-submit")),
   inImage: document.querySelector("#view").contains(document.querySelector("#gt-submit")), right: !!document.querySelector("#right, #gutter-right") }));
-await check(bar.last && !bar.inImage && !bar.right, "Submit Ground Truth is the last task, not over the image, and there is no right bar", bar);
+await check(bar.last && !bar.inImage && !bar.right, "Save is the last task, not over the image, and there is no right bar", bar);
 
 // ---- the channel: the study's name and description, its black and white points, its checkbox ----
 const rows = () => page.$$eval("#channels .channel", (rs) => rs.map((r) => ({ name: r.querySelector("label").textContent, colour: r.dataset.colour,
@@ -256,21 +260,22 @@ await page.waitForFunction(() => document.querySelector("#file-box").hidden && d
 const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage").hidden, empty: !document.querySelector("#empty").hidden,
   minimap: !!document.querySelector("#minimap").offsetParent, unload: !!document.querySelector("#unload").offsetParent, img: !!st.img,
   shine: document.querySelector("#load-main").classList.contains("shine"), done: document.querySelector("#load").classList.contains("done"),
-  crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent).join(), fx: document.querySelector("#fx-result").textContent,
+  fx: document.querySelector("#fx-result").textContent,
   overlay: document.querySelector("#overlay").children.length, status: document.querySelector("#status").textContent }));
 await check(await page.evaluate(() => document.querySelector("#file-name").textContent === ""), "with no image, the Image box names none (req/shell/load/button)");
 await check(clear.stage && clear.empty && !clear.minimap && !clear.unload && !clear.img, "Unload clears the image, the minimap and itself", clear);
-await check(clear.shine && !clear.done && clear.crumbs === "Load image", "Load shines again, and the steps start over", clear);
+await check(await page.evaluate(() => document.activeElement?.id) === "load-main", "and the keyboard, which was on Unload, is on Load", await page.evaluate(() => document.activeElement?.id || document.activeElement?.localName));
+await check(clear.shine && !clear.done && await stepsOf(page) === "Load image*", "Load shines again, and the steps start over", clear);
 await check(clear.fx === "Nothing counted yet." && !clear.overlay && clear.status.startsWith("Ready"), "the study starts over too", clear);
 await check(await page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.classList.contains("folded")).join()) === "false,true,true", "and the boxes on show fold as before any image");
 await check((await rows()).length === 0, "and no channel rows are left, with no image (req/shell/channels/rows)");
 
-// ---- after Unload, the next image's tasks open again once tagging starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----
+// ---- after Unload, the next image's tasks open again once annotation starts (req/shell/ground-truth/tasks, req/shell/ground-truth/tagging) ----
 await loadImage();
+await fromScratch(page, "#fx-count");
 await page.click("#fx-count");
 await page.waitForFunction(() => !document.querySelector("#gt-submit").disabled);
-await page.click("#gt-start");
 const tasksAfter = await page.evaluate(() => ({ open: document.querySelector('#gt-tasks > li[data-task="check"]').classList.contains("now"),
   row: document.querySelector('#gt-tasks > li[data-task="check"] .t').textContent.trim() }));
-await check(tasksAfter.open && tasksAfter.row === "0/1 Count checked", "after Unload, the next image's task opens again once tagging starts, nothing done", tasksAfter);
+await check(tasksAfter.open && tasksAfter.row === "0/1 Count checked", "after Unload, the next image's task opens again once annotation starts, nothing done", tasksAfter);
 await done(0);

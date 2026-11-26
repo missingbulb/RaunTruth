@@ -11,39 +11,20 @@
 // again when opened online. Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it
 // cannot run.
 //   node web-tests/image_line_driver.mjs ANSWERS STUDIES [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { ENGINE, BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { until, orMissed } from "./page_until.mjs";
-import { pw, keptContext, check } from "./harness.mjs";
+import { pw, launch, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { studies as studiesOf } from "./fakes/studies.mjs";
-import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [answers, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ROOT = "linefolder0000000001", SUB = "linesubfolder0000001";
-const FOLDER = `https://drive.google.com/drive/folders/${ROOT}`;
-const PNG = noisePng();
-// the folder on Drive: kept.png, opened 30 minutes ago and kept on this device; far.png, opened 6 days ago and not
-// kept; never.png, never opened; and a subfolder the dialog never lists
-const FILES = [
-  { id: "linekept000000000001", name: "kept.png", bytes: PNG },
-  { id: "linefar0000000000001", name: "far.png", bytes: Buffer.concat([PNG, Buffer.from([1])]) },
-  { id: "linenever00000000001", name: "never.png", bytes: Buffer.concat([PNG, Buffer.from([2])]) },
-];
-const HOUR = 3600000, NOW = Date.now();
-const RECENT = [
-  { id: FILES[0].id, name: "kept.png", path: [], study: "fixture", at: NOW - HOUR / 2 },
-  { id: "linethree00000000001", name: "three.png", path: ["Old"], study: "fixture", at: NOW - 3 * HOUR - 60000 },
-  { id: FILES[1].id, name: "far.png", path: [], study: "fixture", at: NOW - 6 * 24 * HOUR - 60000 },
-  { id: "lineundated000000001", name: "undated.png", path: [], study: "fixture" },
-  { id: "lineelsewhere0000001", name: "elsewhere.png", path: [], study: "nor", at: NOW },
-];
+const PNG = image.png("picked.png").bytes;
 
 const STAND_IN = `
 const A = await (await fetch("answers.json")).json();
@@ -60,19 +41,30 @@ const { origin, server } = await serveSite({
 });
 
 let failed = false;
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-// the fixture's Drive root
-studiesOf(ctx).edit("fixture", (m) => ({ ...m, root: `https://drive.google.com/drive/folders/${ROOT}` }));
+const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
-siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-// the Drive fake's folder, and another folder elsewhere, empty; calls(): the page's lists and downloads since the
-// test cleared them
-const drive = googleDrive(ctx);
-drive.folder({ id: ROOT, name: "Slides", access: "public" });
-drive.folder({ id: SUB, name: "Sub", parent: ROOT });
-drive.folder({ id: "lineotherfolder00001", name: "Other", access: "public" });
-for (const f of FILES) drive.file({ ...f, parent: ROOT, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
+w.site.withoutGoogleClient();
+// the fixture's Drive root: kept.png, opened 30 minutes ago and kept on this device; far.png, opened 6 days ago and
+// not kept; never.png, never opened; and a subfolder the dialog never lists. Another folder elsewhere, empty;
+// calls(): the page's lists and downloads since the test cleared them
+const { drive } = w;
+const slides = w.folder("Slides").public(), ROOT = slides.id;
+w.studies.rootedAt("fixture", slides);
+slides.folder("Sub");
+w.folder("Other").public();
+const FILES = ["kept.png", "far.png", "never.png"].map((name, k) => slides.holds(image.png(name, { seed: k + 1 }), { createdTime: "2026-10-01T10:00:00Z" }));
+const KEPT = `#remote-list .item[data-id="${FILES[0].id}"]`;
+const HOUR = 3600000, NOW = Date.now();
+const RECENT = [
+  { id: FILES[0].id, name: "kept.png", path: [], study: "fixture", at: NOW - HOUR / 2 },
+  { id: "linethree00000000001", name: "three.png", path: ["Old"], study: "fixture", at: NOW - 3 * HOUR - 60000 },
+  { id: FILES[1].id, name: "far.png", path: [], study: "fixture", at: NOW - 6 * 24 * HOUR - 60000 },
+  { id: "lineundated000000001", name: "undated.png", path: [], study: "fixture" },
+  { id: "lineelsewhere0000001", name: "elsewhere.png", path: [], study: "nor", at: NOW },
+];
 let callsFrom = 0;
+// a device of its own remembering the folder's link and the images opened lately
+const device = w.device().kept().remembersDriveLink(slides).keeps({ "nor-drive-recent": JSON.stringify(RECENT) }), ctx = await device.context();
 const calls = () => drive.calls.slice(callsFrom).map((c) => c.kind).filter((k) => k === "list" || k === "download");
 // the browser's own file picker, where the browser has one, stands in as one handing over picked.png, a file of the
 // page's private storage, so the reference the page keeps to it is a real one; picks counts the times it was shown
@@ -86,15 +78,7 @@ await ctx.addInitScript((png) => {
     return [h];
   };
 }, PNG.toString("base64"));
-await ctx.addInitScript(([link, recent]) => {
-  delete Navigator.prototype.serviceWorker;
-  if (sessionStorage.getItem("primed")) return;
-  sessionStorage.setItem("primed", "1");
-  localStorage.setItem("nor-drive-link", JSON.stringify(link));
-  localStorage.setItem("nor-drive-recent", JSON.stringify(recent));
-}, [FOLDER, RECENT]);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const page = await device.opens();
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };
 const shown = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; }, sel);
 const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }, sel);
@@ -108,9 +92,7 @@ const listed = () => page.$$eval("#remote-list .item", (bs) => bs.map((b) => ({ 
 
 try {
   // ---- req/shell/load/from: the Image Viewer opens from this computer and from Drive ----
-  await page.goto(origin + "/web/index.html");
   await mounted("Image Viewer");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   check(await shown("#image-menu") && (await shown("#load-main")) && (await shown("#load-remote")) && !(await shown("#load-menu")),
     "the Image Viewer offers the image selector, the computer's button and Drive's button");
   check(await page.$("#load-main svg.computer-logo"), "the computer's button bears a computer");
@@ -169,11 +151,11 @@ try {
     return { first: first?.id, beforeDetails: !!(first.compareDocumentPosition($("#file-box")) & Node.DOCUMENT_POSITION_FOLLOWING) };
   });
   check(line.first === "load" && line.beforeDetails, "the selector's line is the Image box's top line, above the details", line);
-  check(/Choose an image/.test(await page.textContent("#image-pick")), "before an image, the selector says to choose one");
+  check(/Recently Opened/.test(await page.textContent("#image-pick")), "before an image, the selector is titled Recently Opened");
   check(!(await shown("#unload")), "with no Unload yet");
   check(await page.evaluate(() => $("#image-pick").classList.contains("primary")), "the selector shines until an image is open");
   check(await page.$("#load-remote svg.remote-logo"), "Drive's button bears Drive's logo");
-  const [pick, driveButton] = [await box("#image-menu"), await box("#load-remote")];
+  const [pick, driveButton, lineBefore] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
   check(driveButton.x > pick.x + pick.w - 1 && Math.abs(driveButton.y + driveButton.h / 2 - (pick.y + pick.h / 2)) < 4, "Drive's button stands at the selector's right, on its line", { pick, driveButton });
   await page.click("#image-pick");
   let r = await rows();
@@ -201,7 +183,7 @@ try {
   check(d.every((x) => !x.kept), "online, nothing kept yet carries the mark", d);
   // req/shell/drive/dialog: no date added to Drive on a row; a folder listed for the first time marks nothing new
   check(d.every((x) => x.fresh === null && !/2026/.test(x.meta)), "a row shows no date, and a folder listed here for the first time marks none of its images new", d);
-  await page.dblclick('#remote-list .item[data-id="linekept000000000001"]');
+  await page.dblclick(KEPT);
   await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 1);
   // the box folds once the image is open, a step coming after Load: a click opens it again
@@ -209,24 +191,25 @@ try {
   await page.waitForFunction(() => !$("#image-box").classList.contains("folded") && $("#unload").getClientRects().length);
   check(/kept\.png/.test(await page.textContent("#image-pick")), "once open, the selector names the image");
   check(await shown("#unload"), "and Unload shows");
-  const [p2, u2, d2] = [await box("#image-menu"), await box("#unload"), await box("#load-remote")];
-  check(u2.x > p2.x + p2.w - 1 && d2.x > u2.x + u2.w - 1 && Math.abs(u2.y + u2.h / 2 - (p2.y + p2.h / 2)) < 4, "Unload stands between the selector and Drive's button", { p2, u2, d2 });
+  const [p2, d2, l2] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
+  check(await page.evaluate(() => $("#unload").parentElement.matches("#image-box > .sec-head") && $("#unload").textContent.trim() === "unload image"), "as a link on the box's header");
+  check(p2.w === pick.w && d2.x === driveButton.x && d2.w === driveButton.w && l2.w === lineBefore.w && l2.h === lineBefore.h, "the selector's line keeps its controls where they were before the image", { pick, p2, driveButton, d2 });
   check(await page.evaluate(() => $("#file-name").textContent.trim() === "Details"), "the details below are titled Details");
   await shot("loaded", "#image-box");
   await page.click("#unload");
-  await page.waitForFunction(() => !window.st.img && /Choose an image/.test($("#image-pick").textContent));
+  await page.waitForFunction(() => !window.st.img && /Recently Opened/.test($("#image-pick").textContent));
   check(true, "Unload clears the image");
 
   // ---- req/shell/drive/offline-listing ----
   await page.click("#load-remote");
   await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 4);
-  await until(page, () => document.querySelector('#remote-list .item[data-id="linekept000000000001"] .offline-mark'));
+  await until(page, (s) => document.querySelector(s), KEPT + " .offline-mark");
   d = await listed();
   check(d.find((x) => x.name === "kept.png").kept && !d.find((x) => x.name === "far.png").kept, "online, the image kept here carries the mark, the others nothing", d);
   const colour = await page.evaluate(() => getComputedStyle(document.querySelector("#remote-list .offline-mark")).color.match(/\d+/g).map(Number));
   check(colour[1] > colour[0] + 40 && colour[1] > colour[2] + 40, "the mark is green", colour);
   // the nor-finder pack's row-indicators-edges: what every row shows at its edges, what only some do inward
-  const order = await page.$eval('#remote-list .item[data-id="linekept000000000001"]', (b) => {
+  const order = await page.$eval(KEPT, (b) => {
     const at = (sel) => [...b.querySelectorAll("*")].indexOf(b.querySelector(sel)), r = (sel) => b.querySelector(sel).getBoundingClientRect();
     return { meta: b.lastElementChild.classList.contains("meta"), inward: [".age", ".offline-mark"].every((sel) => r(sel).right <= r(".meta").left + 1 && r(sel).left >= r(".name").left),
       before: at(".age") < at(".offline-mark"), shape: at(".offline-mark") < at(".shape") && (!r(".shape").width || r(".offline-mark").right <= r(".shape").left + 1),
@@ -253,7 +236,7 @@ try {
   await shot("offline_dialog", "#remote-dlg");
   callsFrom = drive.calls.length;
   if (BLOBS_READ_OFFLINE) {
-    await page.dblclick('#remote-list .item[data-id="linekept000000000001"]');
+    await page.dblclick(KEPT);
     await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
     check(calls().length === 0, "and opens from this device", calls());
   } else {
@@ -264,7 +247,7 @@ try {
   // online again: the listing is read again, what changed taking its place
   await ctx.setOffline(false);
   await page.waitForFunction(() => !document.documentElement.classList.contains("offline"));
-  drive.file({ id: "linenew000000000001", name: "new.png", parent: ROOT, bytes: Buffer.concat([PNG, Buffer.from([3])]), mimeType: "image/png" });
+  const NEW = `#remote-list .item[data-id="${slides.holds(image.png("new.png", { seed: 4 })).id}"]`;
   callsFrom = drive.calls.length;
   if (BLOBS_READ_OFFLINE) await page.click("#image-box.folded");
   await page.click("#load-remote");
@@ -272,11 +255,11 @@ try {
   check(calls().includes("list"), "online, opening the dialog reads the folder again", calls());
   await until(page, (id) => JSON.parse(localStorage.getItem("nor-drive-listings") || "{}")[id]?.items?.some((f) => f.name === "new.png"), ROOT);
   check(true, "and keeps what Drive says now in place of the old listing");
-  await until(page, () => document.querySelector('#remote-list .item[data-id="linenew000000000001"] .new'));
+  await until(page, (s) => document.querySelector(s), NEW + " .new");
   d = await listed();
   const added = d.find((x) => x.name === "new.png");
   check(/2026/.test(added.fresh || "") && d.filter((x) => x.fresh !== null).length === 1, "the image the folder did not hold last time is marked new, its hover saying when it was added to Drive", d);
-  const where = await page.$eval('#remote-list .item[data-id="linenew000000000001"]', (b) => { const r = (s) => b.querySelector(s).getBoundingClientRect(); return r(".new").left >= r(".name").left && r(".new").right <= r(".meta").left + 1; });
+  const where = await page.$eval(NEW, (b) => { const r = (s) => b.querySelector(s).getBoundingClientRect(); return r(".new").left >= r(".name").left && r(".new").right <= r(".meta").left + 1; });
   check(where, "the new mark sits inward, the size at the row's edge (the nor-finder pack's row-indicators-edges)");
   await shot("new_in_dialog", "#remote-dlg");
   await page.click("#remote-dlg button[value=close]");
@@ -288,5 +271,5 @@ try {
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
-await ctx.close(); server.close();
+await device.close(); await browser.close(); server.close();
 process.exitCode = failed ? 1 : 0;

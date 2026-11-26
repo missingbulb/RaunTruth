@@ -37,7 +37,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   candidate. Cards the user voted up or down have their own border colours. Changed by the owner on
   2026-11-19: the item views are gone (missingbulb/RaunTruth#740), so double clicking a candidate on
   the image selects it, as a click does. Changed by the owner on 2026-11-03: while the study makes ground truth no card hovers over the image; the
-  selected candidate is the current task's, its card in the Ground Truth Tasks box
+  selected candidate is the current task's, its card in the Analysis Tasks box
   (`req/nor/truth/tasks`), and clicking or double clicking a candidate on the image makes it the
   current one there. Test: `studies/nor/tests/test_ground_truth_page.py`.
   </details>
@@ -71,7 +71,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Find Candidates draws each candidate from its box, with no outline, until the finder runs again. Edit History's
   window keeps its top below the selected candidate's card at the top right, which shows outside tagging only, and its
   ring is mint (`#00ff96`), the one colour apart from the channels' and the rest of what the page draws (yellow, pink and
-  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside the Ground Truth Tagger role nothing is kept across visits.
+  blue included); mint being still a green beside the image's own, the ring has a dark casing under it. Tentative: outside annotation mode nothing is kept across visits.
   A run after stored ground truth (a file read with no history, a draft that did not replay, earlier edits loaded;
   `req/shell/ground-truth/history-carry`) carries it onto the new candidates, each decision and edited line by the
   candidate's id and then by its rounded place: an approval, a rejection, the
@@ -110,15 +110,18 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   options are set.
   </details>
 
-- `req/nor/downloads` Download Candidates and the shell's Download Summary give CSVs; Submit Ground Truth gives the ground truth.
+- `req/nor/downloads` The shell's Download Summary gives the summary as a CSV and its Download Analysis the analysis and the candidates' table; Upload writes the Analysis File.
   <details>
 
-  Moved by the owner on 2026-10-07. At the bottom of the Summary box, Download Candidates gives the candidates as
-  CSV (every candidate, the user's decision and its measurements), and under it the shell's
-  Download Summary the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
-  NoRs, their density and the area counted, and each measurement's statistics. Submit Ground
-  Truth, the last of the Ground Truth Tasks (`req/nor/truth/tasks`, moved there by the owner on
-  2026-11-03, and shown only in a GT or PostGT study, `req/shell/study/stage`), gives the ground truth
+  Moved by the owner on 2026-10-07; changed by the owner on 2026-11-24, who put the shell's Download Analysis
+  (`req/shell/extractions/save`) in the place of Download Candidates, and on 2026-11-25, who kept the candidates' CSV
+  beside it: Download Analysis opens a menu of "Analysis (JSON)" and "Candidates (CSV)", the table the study hands the
+  shell once candidates are found, as Download Candidates gave it: one row per candidate inside the mask, the added
+  ones first, with its number, its place in pixels, the user's decision, its lengths and each measurement, saved as
+  `<image name>_candidates.csv`. The shell's
+  Download Summary gives the summary (owner, 2026-11-16: the shell's one CSV, `req/shell/summary/download`): the
+  NoRs, their density and the area counted, and each measurement's statistics. Upload, the last of the Analysis Tasks (`req/nor/truth/tasks`, moved there by the owner on
+  2026-11-03, and shown only while annotating is open, `req/shell/study/stage`), gives the ground truth
   (`norfinder-ground-truth/4`, the model of the tagger's work as the shell's GT actions leave it,
   `req/shell/ground-truth/history`): a JSON file naming the image (its SHA-256, and where it was loaded
   from: its Google Drive id and link, or "local") and the finder it was run with, with
@@ -141,7 +144,7 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 - `req/nor/find/damaged` The finders analyse no pixel of a damaged area, and the scorer counts no NoR in one.
   <details>
 
-  Set by the owner on 2026-11-19. The Study Manager's damaged areas (`req/shell/data/damaged`) join the pixels each
+  Set by the owner on 2026-11-19. The study owner's damaged areas (`req/shell/data/damaged`) join the pixels each
   finder leaves out of its colour thresholds and its green and red segments, as a finder that blanks the blue mask
   does, so no candidate is made of their pixels. A NoR that crosses the line keeps only its outside part, and is
   found only if that part is still a red between two greens. The blue mask stays a filter (`req/nor/find/blue-mask`):
@@ -181,8 +184,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   malleable. The page shows the NoRs the lab scores as the finder's default (`req/nor/find/nors-only`).
   </details>
 
-- `req/nor/layout` The left bar holds Load Image, Processing and Summary, or Ground Truth Tasks while the study makes ground truth.
+- `req/nor/layout` The left bar holds the shell's Load, Analysis and Summary, the study's runner and its tasks inside Analysis.
   <details>
+
+  Changed by the owner on 2026-11-24: the boxes are the shell's three (`req/shell/left-bar/shells`), and what is said
+  below of Processing and of Analysis Tasks as boxes is of those parts of the Analysis box.
 
   Changed by the owner on 2026-10-30, 2026-10-31 and 2026-11-02. Below the Image box
   (`req/shell/left-bar/folding`) the left bar holds Processing, the candidates finder (its "how the
@@ -193,13 +199,13 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   (`req/nor/find/nors-only`). Test:
   `studies/nor/tests/test_processing_box.py`. The main area has a toolbar over two views: the image and the
   items, a card for each candidate, with the shell's switch between them at its left (`req/shell/views/second`).
-  Changed by the owner on 2026-11-03: while the study makes ground truth, Ground Truth Tasks
+  Changed by the owner on 2026-11-03: while the study makes ground truth, Analysis Tasks
   (`req/nor/truth/tasks`) takes Summary's place, and the main area is the image alone, with no
   switch and no item view: the image's markings are the tasks' (`req/nor/truth/marks`), switched by
   the Show menu's task-named rows (`req/nor/show-menu`).
   Changed by the owner on 2026-10-31: there is no right bar (`req/shell/left-bar/width`).
   Changed by the owner on 2026-11-04: the item view is shelved (`req/shell/views/second`), so in
-  every role the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
+  every mode the main area is the image alone, with the Show menu above it (`req/nor/show-menu`);
   removed by the owner on 2026-11-19 (missingbulb/RaunTruth#740).
   </details>
 
@@ -220,20 +226,19 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   ground-truth tasks name them. Outside ground truth: Finalists and those the user rejected, each with
   its own line width and colour, the candidate numbers and the measuring lines. While the
   study makes ground truth, the tasks' own markings (`req/nor/truth/marks`): Finalists
-  (each waiting one's faint outline), Added NoRs, Cut out what is done, and Frame the area, all on
+  (each waiting one's outline and cross), Added NoRs, Cut out what is done, and Frame the area, all on
   at first. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/submit/progress` The submit button's icon says how finished the work is; its popup lists what is left.
   <details>
 
-  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Submit Ground
-  Truth button's text says how finished the work is: a green check when every task before it is
+  Changed by the owner on 2026-10-06, twice on 2026-10-07 and on 2026-11-03. A small icon beside the Save button's text says how finished the work is: a green check when every task before it is
   done (every finalist has the user's verdict, and every area is
   checked for missed NoRs), an orange warning when some candidates have a verdict but a task is not done, and a red
   error when no candidate has one yet or a candidate the user added still waits for a verdict; the
   warning and the error pulse gently. Any animation scrolled out of view is paused, since Chrome
-  would keep drawing it. The button itself stays plain. Its popup (`req/shell/ground-truth/submit`) carries a checklist of
+  would keep drawing it. The button itself stays plain. Its popup (`req/shell/extractions/save`) carries a checklist of
   short instructions (approve or reject the NoRs you added, vote on at least one candidate, vote on
   every finalist, check every area for missed NoRs, only
   images from Google Drive can be exported), each done one crossed out with a
@@ -266,8 +271,9 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   Set by the owner on 2026-10-06; the mask itself is the shell's since 2026-11-16 (`req/shell/summary/mask`). The
   summary counts only the candidates whose centre is inside the mask, and the Candidates and Summary CSVs hold only
   those; the ground truth ignores the mask (`studies/nor/tests/test_ground_truth_page.py`). Set by the owner on
-  2026-11-04: the mask shows only while the summary does, so while the study makes ground truth it is neither drawn
-  nor listed in the submit popup, and comes back with the summary (`studies/nor/tests/test_truth_tasks_page.py`).
+  2026-11-04: the mask shows only while the summary does, so before a model it is neither drawn nor listed in the submit
+  popup, and comes back with the summary; changed on 2026-11-21: the summary shows beside the tasks while the user
+  annotates (`req/shell/left-bar/shells`), so the mask is drawn then too (`studies/nor/tests/test_truth_tasks_page.py`).
   </details>
 
 - `req/nor/truth/keys` While tagging, a key gives the open item's verdict, so the hands stay on the keyboard.
@@ -282,9 +288,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   menu or dialog open; a key that does nothing there keeps its usual effect. Each button shows its key
   in a small chip beside its label. Changed by the owner on 2026-11-16: the keys are the shell's
   (`req/shell/image/keys`), declared in the study's `study.json` and listed in the keys legend at the image's
-  bottom left while they act, the study listening to no key itself; and the Show menu's ground-truth rows are
-  on number keys, 1 Finalists, 2 Added NoRs, and while tagging 3 Cut out what is done and 4 Frame
-  the area (changed by the owner on 2026-11-20, the Rejected row gone with the filters), each row filled blue while it is on. Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  bottom left while they act, the study listening to no key itself; and, changed by the owner on
+  2026-11-24, the legend holds one view alone, the one that changes the whole image: NoRs, on 1, which shows and hides
+  the NoRs drawn over the image, the finalists and the added ones together, its row filled blue while they show. The
+  Show menu's other ground-truth rows (Cut out what is done, Frame the area) are in the menu only, with no key and no
+  row in the legend. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
 - `req/nor/truth/marks` While the study makes ground truth, what is reviewed is cut out of the image.
@@ -292,8 +300,11 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
 
   Set by the owner on 2026-11-03. The markings that look at what was found (pink and blue, numbers,
   measuring lines) give way to the tasks' own. A candidate waiting for the
-  user's verdict is only a faint thin white outline, and the current
-  one has a yellow ring. Once the user decides a candidate, up or down, its area (the rectangle
+  user's verdict is only a thin white outline, and the current
+  one has a yellow ring. Changed by the owner on 2026-11-24, the outline at 30% having been "much too subtle": the
+  outline is 80% opaque at the same one-pixel width, and the cross of the candidate's length and width measurements is
+  drawn over it in white, with no number or other glyph and without the red line; an added NoR waiting shows its
+  cross too. Once the user decides a candidate, up or down, its area (the rectangle
   around its pixels, two pixels wider each way) is removed from the image. The area being worked on
   (`req/nor/truth/order`) is framed in yellow. Changed by the owner on 2026-11-04: once an area is
   done, every candidate in it decided and it checked for missed NoRs, the whole area is removed.
@@ -313,19 +324,21 @@ Set by the owner on 2026-09-28: the shell running the NoR study with no backend.
   owner on 2026-11-04: the tasks are one walk through the areas, so after a number of verdicts a
   whole region of the image is done rather than candidates scattered over it. In each area its
   finalists, then the NoRs the user added there, each top to bottom, and last
-  the area's check for missed NoRs; then the next area. The grid is not drawn; the area being worked
-  on is framed (`req/nor/truth/marks`). Test: `studies/nor/tests/test_truth_tasks_page.py`.
+  the area's check for missed NoRs; then the next area. The grid is not drawn on the image; the area being worked
+  on is framed (`req/nor/truth/marks`). Set by the owner on 2026-11-24: while the user annotates, the minimap shows the
+  areas (`req/shell/ground-truth/area-map`): an area is done once each of its steps is, its check included, and begun
+  once any is; clicking one goes to its first step not done, else to its check. Test: `studies/nor/tests/test_truth_tasks_page.py`.
   </details>
 
-- `req/nor/truth/tasks` Ground Truth Tasks lists the tasks, one row each; the open one shows one item at a time.
+- `req/nor/truth/tasks` Analysis Tasks lists the tasks, one row each; the open one shows one item at a time.
   <details>
 
-  Set by the owner on 2026-11-03. In Summary's place while the study makes ground truth, counting
-  once the candidates are found; the walk opens only once Start GT tagging is pressed, and Stop tagging
-  closes it, the image left as it is viewed (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
+  Set by the owner on 2026-11-03. In the left bar while the user annotates (`req/shell/annotate/choice`), counting
+  once the candidates are found; the walk opens with annotation mode, as soon as the candidates are found
+  (`req/shell/ground-truth/tagging`). A bar split into one part per task, each as wide as the task is
   long and filled as far as it is done, heads one row per task, each counting only once and never
   repeating that it is a review: "13/47 Finalists", "0/100 Areas" (the areas
-  checked for NoRs the finder missed), and Submit Ground Truth (`req/nor/downloads`); a done task
+  checked for NoRs the finder missed), and Save (`req/nor/downloads`); a done task
   is marked done with a check (no marks on the others). The rows count; the work is one walk
   (`req/nor/truth/order`), and the row of the current item's task is the open one. Clicking a task
   goes to its next item not done along the walk. The open task's row carries a

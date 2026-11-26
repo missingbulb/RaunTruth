@@ -4,19 +4,20 @@
 // req/shell/views/second); the tasks are one walk through the image's areas, with Back and Skip
 // (req/nor/truth/order); the image marks what is reviewed, under a task-named Show menu (req/nor/truth/marks,
 // req/nor/show-menu); while tagging a key gives each button's answer (req/nor/truth/keys); the summary's mask
-// waits for the summary (req/nor/summary/mask); in a PreGT study the summary is back. Prints what it saw; exits 1
+// waits for the summary (req/nor/summary/mask); in a Review study the summary is back. Prints what it saw; exits 1
 // on a failure, 2 when it cannot run.
 //   node tests/truth_tasks_page_driver.mjs ANSWERS IMAGE
+import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
-import { pw, launch, siteOf } from "../../../web-tests/harness.mjs";
+import { pw, launch } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
 
 const [answers, image] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -38,15 +39,15 @@ onmessage = async ({ data: m }) => {
   }
 };`;
 
-let stage = null; // the study's stage as served; null: as committed
 const { origin, server } = await serveSite({
   "/web/worker.js": () => EARLY + STAND_IN,
   "/web/answers/": { dir: answers },
 });
 
-const browser = await launch(pw);
-// the study as served, at its stage
-siteOf(browser).studies.edit("nor", (m) => ({ ...m, stage: stage || m.stage }));
+const browser = await launch(pw), w = world(browser, origin);
+// ground truth is made by someone the store lets save it (req/shell/annotate/no-save)
+w.site.withGoogle();
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const fail = async (what, seen) => { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); };
 const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ") + what); if (!ok) await fail(what, seen); };
@@ -55,23 +56,20 @@ const check = async (ok, what, seen) => { console.log((ok ? "ok    " : "FAIL  ")
 const MASKED = [[[0, 0], [60, 0], [60, 60], [0, 60]]];
 // the pictures off the site the page asked for
 const pictures = [];
-async function open() {
-  const ctx = await browser.newContext({ viewport: { width: 1200, height: 700 } });
-  await asTagger(ctx); // ground truth is made by a Ground Truth Tagger (req/shell/account/role)
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
+// stage: the study's as served, in place of the committed one; more: other keys of its study.json, the same way
+async function open(stage, more = {}) {
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).with({ viewport: { width: 1200, height: 700 } }).withStudy("nor", { ...(stage ? { stage } : {}), ...more })
+    .keeps({ ["nor-mask-v1:" + path.basename(image)]: JSON.stringify(MASKED) });
+  const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
-  await ctx.addInitScript(([k, m]) => localStorage.setItem(k, JSON.stringify(m)), ["nor-mask-v1:" + path.basename(image), MASKED]);
   await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(origin + "/web/index.html?study=nor");
+  const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  // req/shell/ground-truth/tasks: Submit is off until the study's first step is done
-  await check(await page.evaluate(() => $("#gt-submit").disabled), "an image open but nothing run yet: Submit Ground Truth is off");
-  await page.click("#find");
+  await annotateIfAsked(page, "#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   await page.evaluate(() => { $("#notice").hidden = true; });
   return page;
@@ -80,11 +78,15 @@ const shown = (page, sel) => page.evaluate((s) => { const e = document.querySele
 
 // ---- a GT study: the tasks in the left bar, the image alone in the main area ----
 let page = await open();
-await check(await shown(page, "#tasks-box") && !(await shown(page, "#summary-box")), "Ground Truth Tasks is in the left bar, in Summary's place");
+await check(await shown(page, "#tasks-box") && await shown(page, "#summary-box"), "Ground Truth Tasks is in the left bar, beside Summary, the image carrying a model");
 await check(!(await shown(page, "#switch")), "no view switch over the image");
+// req/shell/study/article: the study's article, a link in the header that opens apart from the page
+const article = await page.$eval("#article-link", (a) => ({ shown: a.getClientRects().length > 0, href: a.href, target: a.target, rel: a.rel, text: a.textContent.trim() }));
+await check(article.shown && article.href === "https://docs.google.com/document/d/1bv3iQPHhjCzYWPgaxIca8qeHcz1cdgII0L1uc7PhdbU/edit?tab=t.0" && article.target === "_blank" && /noopener/.test(article.rel) && article.text === "Article",
+  "the header links to the study's article, opening in a tab of its own", article);
 const tasks = await page.$$eval("#gt-tasks > li:not([data-task=edits])", (li) => li.map((l) => l.dataset.task));
 await check(JSON.stringify(tasks) === JSON.stringify(["pass", "missed", "submit"]), "the tasks in order: the finalists, the missed NoRs, Submit", tasks);
-await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Submit Ground Truth is the last task");
+await check(await page.$eval("#gt-submit", (b) => !!b.closest('#gt-tasks > li[data-task="submit"]')), "Save is the last task");
 
 // req/nor/truth/order: one walk through the areas, the rows of areas back and forth; in each its finalists, the NoRs
 // added there, each top to bottom, and last the area's check
@@ -119,37 +121,26 @@ const now = () => page.evaluate(() => ({ cur: st.cur, task: st.task, sel: st.sel
 // an area's rectangle in whole pixels, [x, y, w, h]: a pixel is in the area its column and row fall in
 const rectOf = (a, n = 10) => { const r = Math.floor(a / n), k = r % 2 ? n - 1 - (a % n) : a % n, e = (v, L) => Math.ceil(v * L / n); return [e(k, IW), e(r, IH), e(k + 1, IW) - e(k, IW), e(r + 1, IH) - e(r, IH)]; };
 const same = (p, q) => !!p && !!q && p.every((v, k) => Math.abs(v - q[k]) < 1e-6);
-// req/shell/ground-truth/tagging: found, the image stays as it is viewed until Start GT tagging is pressed
+// req/shell/ground-truth/tagging: found, annotating, the walk is open at its first item
 const ring = () => page.$eval("#overlay .ring", (r) => ({ shown: r.style.display !== "none" && getComputedStyle(r).display !== "none", stroke: getComputedStyle(r).stroke })).catch(() => ({ shown: false }));
 const frame = () => page.evaluate(() => { const f = document.querySelector("#overlay .area-frame"); return f && f.style.display !== "none" && getComputedStyle(f).display !== "none" ? ["x", "y", "width", "height"].map((k) => +f.getAttribute(k)) : null; });
 const cutShown = () => page.evaluate(() => { const g = document.querySelector("#overlay .done-mask"); return !!g && getComputedStyle(g).display !== "none"; });
 const tagRows = () => page.evaluate(() => ["show-gt-cut", "show-gt-frame"].map((id) => $("#" + id).disabled));
-const startSays = () => page.evaluate(() => { const b = $("#gt-start"); return b && b.offsetParent ? b.textContent.trim() : null; });
 let s = await now();
-await check(W[0].cy != null, "the walk's first step is a candidate's, so a card could open before tagging starts", W[0]);
-await check(await page.evaluate(() => !$("#task-now").offsetParent && !$("#task-card .card .verdict .up")), "found, no card and no thumbs show before Start GT tagging");
-await check(!s.open && !s.card && !(await ring()).shown && !(await frame()) && !(await cutShown()), "found, no task is open: nothing ringed, framed or cut out", s);
-await check(await startSays() === "Start GT tagging" && (await tagRows()).every(Boolean), "Start GT tagging heads the box, and the Show menu's Cut out and Frame rows are off", [await startSays(), await tagRows()]);
-await check(s.rows[0].startsWith(`0/${P} Finalists`), "the rows count the tasks before tagging starts", s.rows);
-await page.click("#gt-start");
-s = await now();
+await check(W[0].cy != null, "the walk's first step is a candidate's, so a card opens with it", W[0]);
+await check(await page.evaluate(() => !document.querySelector("#gt-start")), "there is no Start GT tagging: annotating is the walk");
 await check(s.cur === W[0].key && !s.back && s.open === W[0].t && (W[0].cy == null || (await ring()).shown) && same(await frame(), rectOf(W[0].a)),
-  "Start GT tagging opens the walk's first item in its framed area (ringed when it is a candidate), with nothing to go back to", s);
-await check(await startSays() === "Stop tagging" && !(await tagRows()).some(Boolean), "the button now reads Stop tagging, and the Show menu's rows are on", [await startSays(), await tagRows()]);
-await page.click("#gt-start");
-s = await now();
-await check(!s.open && !s.card && !(await ring()).shown && !(await frame()), "Stop tagging closes the task: nothing ringed or framed", s);
-await page.click("#gt-start");
-s = await now();
-await check(s.cur === W[0].key && s.open === W[0].t, "Start again opens the walk where it was", s);
+  "found, annotating opens the walk's first item in its framed area (ringed when it is a candidate), with nothing to go back to", s);
+await check(!(await tagRows()).some(Boolean), "and the Show menu's Cut out and Frame rows are on", await tagRows());
+await check(s.rows[0].startsWith(`0/${P} Finalists`), "the rows count the tasks", s.rows);
 // one row per task, each counting once, never saying "review"
-await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/100 Areas") && /Submit Ground Truth/.test(s.rows[2])
+await check(s.rows[0].startsWith(`0/${P} Finalists`) && s.rows[1].startsWith("0/100 Areas") && /Save/.test(s.rows[2])
   && !s.rows.some((r) => /review/i.test(r)) && await page.$$eval("#tasks-box", (b) => !/\d+ of \d+/.test(b[0].textContent)), "one row per task: 0/N Finalists, 0/100 Areas, Submit", s.rows);
 // the bar, a part per task as long as the task, filled as far as done
 await check(s.bar.length === 2 && s.bar[0].grow === P && s.bar[1].grow === 100 && s.bar.every((b) => b.fill === 0), "the bar has a part per task, as long as the task", s.bar);
 
 // clicking a task goes to its next item along the walk, after the one open
-await page.click('#gt-tasks > li[data-task="pass"] .task-head .t');
+await page.click('#gt-counters > [data-task="pass"]');
 const first = [...W.slice(1), W[0]].find((x) => x.t === "pass");
 s = await now();
 await check(s.cur === first.key && s.card === first.key.slice(2) && s.open === "pass", "clicking Finalists goes to the walk's next finalist, its row open", s);
@@ -179,11 +170,21 @@ const mark = (i) => page.evaluate((i) => {
   const g = document.querySelector(`#overlay g[data-i="${i}"]`), out = g.querySelector("path:not(.red)"), cs = getComputedStyle(out);
   const c = nor.candOf(i), holes = [...document.querySelectorAll("#done-mask-clip polygon")].map((p) => { const q = p.getAttribute("points").split(" ").map((v) => v.split(",").map(Number)), xs = q.map((v) => v[0]), ys = q.map((v) => v[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]; });
   const cut = holes.some(([x, y, w, h]) => x <= c.bb[0] - 2 + 1e-6 && y <= c.bb[1] - 2 + 1e-6 && x + w >= c.bb[2] + 2 - 1e-6 && y + h >= c.bb[3] + 2 - 1e-6);
-  return { cls: g.getAttribute("class"), stroke: cs.stroke, opacity: +cs.strokeOpacity, outline: cs.display, num: getComputedStyle(g.querySelector(".num")).display, cut };
+  const seen = (e) => { for (; e && e.id !== "overlay"; e = e.parentElement) if (getComputedStyle(e).display === "none") return false; return true; };
+  const shownLines = [...g.querySelectorAll(".lines line")].filter(seen);
+  return { cls: g.getAttribute("class"), stroke: cs.stroke, opacity: +cs.strokeOpacity, width: cs.strokeWidth, outline: cs.display, num: getComputedStyle(g.querySelector(".num")).display, cut,
+    cross: shownLines.length, red: shownLines.filter((l) => l.classList.contains("r")).length, glyphs: [...g.querySelectorAll("tspan")].filter(seen).length };
 }, i);
 const second = W.filter((x) => x.t === "pass")[1];
 let m = await mark(+second.key.slice(2));
-await check(/\btodo\b/.test(m.cls) && m.opacity <= 0.4 && !m.cut && m.num === "none" && m.stroke === "rgb(255, 255, 255)", "a candidate waiting is a faint white outline, no number", m);
+await check(/\btodo\b/.test(m.cls) && Math.abs(m.opacity - 0.8) < 0.01 && m.width === "1px" && !m.cut && m.num === "none" && m.stroke === "rgb(255, 255, 255)" && m.cross === 2 && !m.red && !m.glyphs,
+  "a candidate waiting is a thin white outline, 80% opaque, with the cross of its length and width and no glyph", m);
+// req/shell/ground-truth/area-map: while tagging the minimap shows the areas, the walk's own marked
+const areaMap = () => page.evaluate(() => { const mm = $("#minimap"), b = [...mm.querySelectorAll(".mm-areas button")];
+  return { shown: mm.checkVisibility(), title: mm.querySelector(".mm-title").textContent, cells: b.length, now: b.filter((x) => x.classList.contains("now")).map((x) => +x.dataset.area),
+    done: b.filter((x) => x.classList.contains("done")).map((x) => +x.dataset.area) }; });
+let am = await areaMap();
+await check(am.shown && am.title === "Areas" && am.cells === 100 && am.now.length === 1 && am.now[0] === first.a && !am.done.length, "while tagging the minimap shows the 100 areas, the walk's own marked, none done", am);
 const rung = await ring();
 await check(rung.shown && rung.stroke === "rgb(255, 212, 0)", "the current candidate has a yellow ring", rung);
 // the view come to rest where it was sent: the image's point x, y at its centre, or as near as the image's edge lets it
@@ -204,8 +205,8 @@ const viewAt = (x, y) => page.waitForFunction(([x, y]) => {
     && there(p.y - (v.top + sc.clientTop + sc.clientHeight / 2), sc.scrollTop, sc.scrollHeight - sc.clientHeight);
 }, [x, y]);
 await check(same(await frame(), rectOf(first.a)), "the area the walk is in is framed", [await frame(), rectOf(first.a)]);
-// req/nor/summary/mask: the mask shows only with the summary
-await check(await page.evaluate(() => st.mask.length === 1 && !document.querySelector("#overlay .mask-marks")), "the summary's mask is kept but not drawn while the study makes ground truth");
+// req/nor/summary/mask: the mask shows with the summary, which shows beside the tasks while the image carries a model
+await check(await page.evaluate(() => st.mask.length === 1 && !!document.querySelector("#overlay .mask-marks")), "the summary's mask is kept and drawn, the summary showing beside the tasks");
 
 // req/nor/show-menu: the Show menu above the image, its rows named for the tasks' markings
 await check(await shown(page, "#show-menu"), "the Show menu is above the image");
@@ -274,7 +275,7 @@ await check(await page.evaluate(() => !st.edits.has(st.sel) && !document.querySe
 
 // a candidate clicked on the image becomes the current one; the Edit History window floats over the image's corner, where the candidate may be, so the
 // tagger's own switch puts it away first
-await page.evaluate(() => { if ($("#gt-history-on").checked) $("#gt-history-on").click(); });
+await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
 const target = +W.filter((x) => x.t === "pass")[2].key.slice(2);
 await page.evaluate((i) => nor.focusOn(nor.candOf(i)), target);
 await viewAt(...await page.evaluate((i) => { const c = nor.candOf(i); return [c.cx, c.cy]; }, target));
@@ -320,6 +321,15 @@ await page.click("#area-ok");
 s = await now();
 await check((await holes()).some((h) => same(h, rectOf(A))) && s.rows[1].startsWith("1/100 Areas") && s.cur === await nextOpen("a:" + A),
   "No missed NoRs here cuts the whole area out and goes on to the walk's next item", s);
+am = await areaMap();
+await check(am.done.includes(A) && am.now[0] === await page.evaluate(() => st.area), "the area done is marked done on the minimap, the walk's next one current", am);
+// a click on an area of the minimap opens it; the walk then goes back to where it was
+{
+  const was = await page.evaluate(() => st.cur), far = await page.evaluate(() => nor.walk().findLast((x) => !x.done).a);
+  await page.click(`#minimap .mm-areas button[data-area="${far}"]`);
+  await check(await page.evaluate(() => st.area) === far && same(await frame(), rectOf(far)) && (await areaMap()).now[0] === far, "clicking an area on the minimap opens it, framed", await now());
+  await page.evaluate((k) => nor.goTo(k), was);
+}
 
 // req/shell/ground-truth/areas: the shell's Areas menu, NoR starting at 10 × 10; another count walks again from its first
 // area not done, and a check stays on the pixels it covers
@@ -357,23 +367,18 @@ const key = async (code, o = {}) => {
 };
 // the key a button shows at its end, while it is shown
 const chip = (sel) => page.$eval(sel, (b) => b.offsetParent ? b.querySelector(":scope > kbd.key-on")?.textContent ?? null : null).catch(() => null);
-// the legend's rows while tagging: the Show menu's views alone, the buttons' keys on the buttons
+// the legend's rows while tagging: the one view of the whole image, the NoRs over it shown or not, on 1; the Show menu's other rows
+// have no row and no key; the buttons' keys on the buttons
 const shownOn = (sel) => page.evaluate((s) => { const b = document.querySelector(s); return !!b && !b.disabled && b.checkVisibility(); }, sel);
-const VIEWS = ["Finalists 1", "Added NoRs 2"], TAGGING_VIEWS = [...VIEWS, "Cut out what is done 3", "Frame the area 4"];
-const expectRows = async () => TAGGING_VIEWS.join(", ");
+const expectRows = async () => "NoRs 1";
 const KEYS = ["KeyF", "KeyJ", "Space", "Backspace", "KeyS", "KeyR", "Digit1", "Digit2", "Digit3", "Digit4"].map((code) => ({ code }));
 const verdictNow = (i) => page.evaluate((i) => st.forced.get(i) || null, i);
-let took = await key("KeyF");
-await check(!took && await page.evaluate(() => st.forced.size === 0), "before Start GT tagging, F does nothing");
-// req/shell/image/keys: the legend lists the keys that act now, the views alone out of tagging, each filled blue while on
-const outRows = await legend(page);
-await check(await legendRows(page) === VIEWS.join(", ") && outRows.every((r) => r.lit), "out of tagging the keys legend lists the Show menu's views alone, each on", outRows);
-await page.click("#gt-start");
+let took;
 await page.evaluate(() => document.activeElement?.blur());
 await page.evaluate((k) => nor.goTo(k), first.key);
 const chips = { up: await chip("#task-card .verdict .up"), down: await chip("#task-card .verdict .down"), skip: await chip("#task-skip"), back: await chip("#task-back") };
 await check(chips.up === "F" && chips.down === "J" && chips.skip === "S" && (chips.back === "⌫" || !(await shownOn("#task-back"))), "each button shows its key: F on the thumbs up, J on the thumbs down, S on Skip, ⌫ on Back", chips);
-await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists the views alone, F, J and S on their buttons", await legendRows(page));
+await check(await legendRows(page) === await expectRows(), "tagging a candidate, the legend lists NoRs alone, on 1, with F, J and S on their buttons", await legendRows(page));
 const heard = await studyTakes(page, KEYS);
 await check(heard.took.length === 0, "the study takes no shortcut key itself: the shell is the only one wiring them", heard);
 s = await now();
@@ -426,30 +431,32 @@ const A2 = W.find((x) => x.key.startsWith("a:")).a;
 await page.evaluate((k) => nor.goTo(k), "a:" + A2);
 const okChip = await chip("#area-ok");
 await check(await legendRows(page) === await expectRows() && await chip("#area-ok") === "Space", "on an area's check No missed NoRs here shows Space, off the legend", await legendRows(page));
-await page.focus("#gt-start");
 took = await key("Space");
 s2 = await now();
-await check(okChip === "Space" && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2) && await startSays() === "Stop tagging",
-  "Space is No missed NoRs here, the area checked and the walk on, the focused Stop tagging not pressed", { okChip, s2 });
-await page.click("#gt-start");
-took = await key("KeyS");
-await check(!took && !(await now()).open, "tagging stopped, the keys do nothing");
-await check(await legendRows(page) === VIEWS.join(", "), "and the legend is back to the views alone", await legendRows(page));
-// a view's number key switches its Show menu row, its legend row filled blue while it is held and while the view is on
+await check(okChip === "Space" && took && await page.evaluate((a) => st.areas.has(a), A2) && s2.cur === await nextOpen("a:" + A2),
+  "Space is No missed NoRs here, the area checked and the walk on", { okChip, s2 });
+// 1 shows and hides the NoRs over the image, the finalists and the added ones together, its legend row filled blue while it is
+// held and while they show; 2, 3 and 4 switch nothing
+const norsShown = () => page.evaluate(() => ({ pass: $("#show-gt-pass").checked, added: $("#show-gt-added").checked, off: $("#overlay").classList.contains("no-gt-pass") && $("#overlay").classList.contains("no-gt-added"),
+  cut: $("#show-gt-cut").checked, frame: $("#show-gt-frame").checked }));
 await page.keyboard.down("Digit1");
-const heldRow = (await legend(page))[0], passOff = await page.evaluate(() => !$("#show-gt-pass").checked && $("#overlay").classList.contains("no-gt-pass"));
+const heldRow = (await legend(page))[0], hid = await norsShown();
 await page.keyboard.up("Digit1");
 const offRow = (await legend(page))[0];
-await check(passOff && heldRow.lit && !offRow.lit, "1 turns Finalists off: its row blue while 1 is held, grey once let go", { passOff, heldRow, offRow });
-await page.click("#key-show-pass");
-await check(await page.evaluate(() => $("#show-gt-pass").checked) && (await legend(page))[0].lit, "clicking its row turns Finalists back on, its row blue");
+await check(!hid.pass && !hid.added && hid.off && heldRow.lit && !offRow.lit, "1 hides the NoRs, finalists and added alike: its row blue while 1 is held, grey once let go", { hid, heldRow, offRow });
+for (const k of ["Digit2", "Digit3", "Digit4"]) await page.keyboard.press(k);
+const others = await norsShown();
+await check(others.cut && others.frame && !others.pass && !others.added, "2, 3 and 4 switch nothing: cutting out what is done and framing the area have no key", others);
+await page.click("#key-show-nors");
+const back = await norsShown();
+await check(back.pass && back.added && !back.off && (await legend(page))[0].lit, "clicking its row shows the NoRs again, its row blue", back);
 await page.close();
 
-// ---- a PreGT study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
-stage = "PreGT";
-page = await open();
+// ---- a Review study: the summary and its mask, the Show menu's viewing rows, no tasks and no item view ----
+page = await open("Review", { article: null });
+await check(!(await shown(page, "#article-link")), "a study naming no article shows no link to one");
 await check(await shown(page, "#summary-box") && !(await shown(page, "#tasks-box")) && !(await shown(page, "#switch")) && await shown(page, "#show-menu"),
-  "a PreGT study has its summary and its Show menu, no tasks and no switch to an item view");
+  "a Review study has its summary and its Show menu, no tasks and no switch to an item view");
 await check(await page.evaluate(() => !!document.querySelector("#overlay .mask-marks .edge")), "the summary's mask is drawn with the summary");
 await page.click("#show-menu summary");
 const vrows = await page.$$eval("#show-menu .pop label", (l) => l.filter((x) => x.offsetParent).map((x) => x.textContent.trim()));

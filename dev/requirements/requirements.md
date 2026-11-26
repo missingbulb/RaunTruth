@@ -1,6 +1,6 @@
 # The page's requirements
 
-What a person using the page sees and can do whichever study it runs: the shell (`web/`), then the repo's
+What a person using the page sees and can do whichever study it runs: the shell (`web/`), Study Setup, then the repo's
 checks. Each line is a requirement; its detail and its test fold under it. What one study's page does is that
 study's own spec, `studies/<id>/requirements.md` (`req/checks/spec-layout`).
 
@@ -32,39 +32,12 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_welcome_page.py`.
   </details>
 
-- `req/shell/account/role` Beside the study's name, a menu picks the role the user works in; the page shows that role's own view.
-  <details>
-
-  Set by the owner on 2026-11-03: one page adapting to every role at once is replaced by a view per role,
-  chosen on purpose. Set by the owner on 2026-11-07: the header reads "[study] as [role]", the role's menu right of the
-  study's and drawn like it. The menu names the role the user works in and lists the roles they
-  hold in the study on show: **Viewer**, everyone's, and the only one for a visitor not signed in
-  (`req/shell/account/sign-in`); **Ground Truth Tagger**, held by those Drive lets write to the study's submissions folder (set by the owner on 2026-11-07, `req/shell/data/roles`), listed in every stage but
-  Published (`req/shell/study/stage`; set by the owner on 2026-11-04: a PreGT study can have taggers too); and **Study Manager** (named so by the owner on 2026-11-07, once Data Manager), held by those Drive lets
-  write to the study's root (`req/shell/data/roles`). Where it
-  lists Viewer alone, a line says what signing in adds. Choosing a role changes the page to its view at
-  once. Viewer sees the study as a Published one shows it: its tools and what they find, nothing that
-  makes ground truth (no Submit GT step, the ground-truth button hidden, the item view its Items, the
-  study's postprocessing not shown). Ground Truth Tagger sees the page that makes ground truth, and in a PreGT
-  study the postprocessing with nothing to export yet. Tentative: Ground Truth Tagger is listed in a PreGT
-  study with no ground truth to make at all (the Image Viewer), where it shows what Viewer shows. Study
-  Manager sees Data Management (`req/shell/data/mode`). Moving between Viewer and Ground Truth Tagger
-  opens the study afresh on the same image. Undecided: what a Ground Truth Tagger with an image open finds
-  after going to Study Manager and back. The page opens as Viewer; the role chosen follows the user
-  (`req/shell/account/sign-in`) and Settings lists it (`req/shell/account/settings`). A role not held in
-  the study on show, or no longer held, shows as Viewer, and the choice stays for where it is held. Set by the owner
-  on 2026-11-07: Google's token lasts an hour and only a click may ask for another, so the page opening after it ran
-  out, or Drive not answering, lists the roles Drive last gave that user in that study, kept until they sign out, and a
-  line under them says so; opening the menu renews the token and asks Drive again. Nothing else renews it for the
-  roles. Test: `web-tests/test_roles_page.py`.
-  </details>
-
 - `req/shell/account/settings` The avatar's menu opens Settings: every setting that follows the user, to change and save.
   <details>
 
   Set by the owner on 2026-10-31. Settings… in the avatar's menu opens a dialog listing each setting
   that follows the user (`req/shell/account/sign-in`), whether or not they are signed in, each with a control to change it:
-  the theme (follow the system, dark or light); the role the user works in (`req/shell/account/role`); Show thumbnails in the Drive
+  the theme (follow the system, dark or light); Show thumbnails in the Drive
   dialog; whether the low-memory popup shows; the last Google Drive link, and the last one in each
   study; the tips closed, each with a tick to clear to see it again; the recent images from Google
   Drive, each with a tick to clear to drop it; Animations; and the version seen last. Set by the owner on 2026-11-07,
@@ -93,7 +66,7 @@ nobody has decided: what the page does there is not a requirement yet.
   next click on a Drive control, Google then asking for it.
   Signed in, the avatar is the user's picture, the menu names them and offers Sign out. These
   settings follow the user: dark or light, the tips closed, the version last seen, the low-memory
-  popup turned off, the role the user works in (`req/shell/account/role`), the last Drive link (in each study too), Show thumbnails,
+  popup turned off, the last Drive link (in each study too), Show thumbnails,
   the images opened from Drive lately, whether animations are on (`req/shell/resources-dialog/animations`) and how the status bar shows its resources (`req/shell/status-bar/resources`). These stay with the device: the left bar's width,
   Auto-save images, and everything kept for images. Google's token lasts about an hour and is kept on
   this device for that hour. A new one can be asked for only in the user's own click or key press, so
@@ -105,9 +78,11 @@ nobody has decided: what the page does there is not a requirement yet.
   file yet, this device's start it. While it has a token,
   each change to a setting that follows the user saves the whole file. Sign out forgets the user and
   the token on this device and leaves its settings as they are. A visitor who never signs in is asked
-  once on opening the page (`req/shell/account/welcome`) and loads nothing from Google for it. Set by the owner on
-  2026-11-22: two tabs signed in at once, each changing settings, are not a requirement, and no test covers them; a
-  change made in one may be lost to the other's sync. Test: `web-tests/test_account_page.py`,
+  once on opening the page (`req/shell/account/welcome`) and loads no script or account detail from Google for it; the one
+  thing the page reads from Google signed out is the study's link-shared study file, by the site's key, for the study's stage
+  (`req/shell/study/stage`; approved by the owner on 2026-11-22). Set by the owner on 2026-11-22: two tabs signed in at
+  once, each changing settings, are not a requirement, and no test covers them; a change made in one may be lost to the
+  other's sync. Test: `web-tests/test_account_page.py`,
   `web-tests/test_site_config.py`.
   </details>
 
@@ -134,6 +109,100 @@ nobody has decided: what the page does there is not a requirement yet.
   with Google is held, as everywhere offline, and a line says signing in can wait until the network
   is back, from the avatar's menu; Continue anonymously works. The sign-in tip, like every tip,
   follows what it points at when the window resizes. Test: `web-tests/test_welcome_page.py`.
+  </details>
+
+- `req/shell/analysis/start` Start opens a dialog listing the study's algorithms, how the chosen one works under the list, with Cancel and Run; Run starts the analysis with the one chosen.
+  <details>
+
+  Set by the owner on 2026-11-24. Start, in the Analysis box (`req/shell/annotate/choice`), opens the Start Analysis
+  dialog: the study's algorithms in a box of rows (`req/shell/processing/algorithms`), the first chosen, under it how
+  the chosen one works and how it scored, and two actions, Cancel and Run. Cancel closes it and nothing changes. Run
+  closes it and starts the analysis with the algorithm chosen: where the stage lets the user annotate, the page enters
+  annotation mode; the study's runner shows in the Analysis box under a line naming the algorithm that ran, and the
+  study's first step is pressed for the user as soon as its button can be, so the run needs no second press. The box
+  holds no list of algorithms, before a run or after it. While the study's first step waits behind Start, Start is the
+  button that shines (`req/shell/steps`). A study naming no algorithms, or with no first step to press, has no
+  dialog: Start enters annotation mode at once. Tentative: a study whose analysis is several steps, each with a button
+  of its own (Bookshelf Reader's Find books, then Read titles), has its runner opened by Run and no step pressed, so
+  its user sets what the runner offers and presses each step; in a stage that does not annotate (Review, Public) Start
+  runs the algorithm with no annotation mode, and stays on show to run another. Test:
+  `web-tests/test_annotate_mode_page.py`, `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
+- `req/shell/annotate/choice` Once an image is open the Analysis box offers Start and Load, per image; only Start shows the algorithm runner.
+  <details>
+
+  Set by the owner on 2026-11-21, in place of the role menu (the header has none: one page for everyone, to which
+  what Drive's sharing lets a person do only adds) and of Start GT tagging; changed by the owner on 2026-11-24, who
+  named the box Analysis, took out the line asking how to get annotations and the line saying the work started from
+  scratch, and named the buttons. In a study whose stage lets its users annotate (Setup, Develop and Analyze;
+  `req/shell/study/stage`), once an image is open the Analysis box offers, for that image: **Continue local work**,
+  only when this device holds a draft of the image (`req/shell/ground-truth/save-draft`), entering annotation mode
+  with it loaded; **Start**, which opens the algorithms' dialog and runs the one chosen (`req/shell/analysis/start`)
+  and is the only way that shows the algorithm runner; and beside it **Load**, on only where the image has an Analysis
+  File to load (`req/shell/extractions/list`), which opens the Load Analysis dialog: the image's Analysis Files, one to
+  choose, and Cancel and Load. The one loaded shows read-only, as the study's final results with no tool and no
+  algorithm run (`req/shell/ground-truth/view`), a line saying which is shown, with **Edit this analysis**, which
+  enters annotation mode with it as the base. Annotation mode is the page an annotator had, for the one image: the
+  study opens afresh on it, Analysis Tasks, Undo, Redo, Save Draft, Upload and every tool show, the study's
+  postprocessing shows, and the walk of the tasks is open from the first model on
+  (`req/shell/ground-truth/tagging`); the root carries `data-annotating`. Nothing of it shows outside the mode. Opening
+  another image leaves the mode and offers the choice again, so does Unload, and the mode is not kept across a reload.
+  A study whose stage does not annotate (Review, Public) is offered Start alone. Test:
+  `web-tests/test_annotate_mode_page.py`.
+  </details>
+
+- `req/shell/annotate/clear` reset analysis, a link on the Analysis box's header, puts the page back as just after the image opened, forgetting the device's draft.
+  <details>
+
+  Set by the owner on 2026-11-21 as the button Clear all annotations from image; changed by the owner on 2026-11-24:
+  it is not a top-level action but a link, "reset analysis", on the Analysis box's header, shown while the user
+  annotates and the box is open, as the Load box's "unload image" is. It asks first, naming how many unsaved actions
+  would be lost; accepted, annotation mode ends, the page is as it was just after the image opened, with Start and Load
+  offered again, this device's draft of the image is discarded, and nothing in the store is touched. Test:
+  `web-tests/test_annotate_mode_page.py`.
+  </details>
+
+- `req/shell/annotate/held` While the study comes in again on the image open, the page stays on screen as it was until the image is open in it.
+  <details>
+
+  Set by the owner on 2026-11-24, on seeing the page clear nearly everything after Start, and after the clearing of
+  annotations, before the algorithm loaded. Entering annotation mode, and reset analysis, mount the study afresh on the
+  same image; the browser keeps showing the page as it was until the image is open again in the study come in, and
+  then shows the new page at once, with no motion between. A browser without view transitions, or one that gives the
+  hold up after its own time limit, shows the page as it then is. While held the page takes no press. Test:
+  `web-tests/test_annotate_mode_page.py`, which checks that the hold begins and ends with the image open, never how it
+  looks on the way.
+  </details>
+
+- `req/shell/annotate/no-save` Someone the store lets save nothing gets the same choices and tools, with no Upload, Download Analysis on the box's header, and a line saying what to do.
+  <details>
+
+  Changed by the owner on 2026-11-24: there is no Download button beside Upload and no export in a dialog; the
+  download is Download Analysis, the icon on the Analysis box's header (`req/shell/extractions/save`), which is there
+  for everyone once the image carries a model, and for someone who cannot upload it is the last step.
+
+  Set by the owner on 2026-11-21, and moved from the removed tagger-access requirement (set by the owner on
+  2026-11-05, changed on 2026-11-07). Whether the user may save to the study is what Drive's sharing gives them: signed
+  in and able to add to the study's extractions folder. Someone who may not sees every choice and every tool of the
+  mode, but Upload does not show; and at the top of the Analysis Tasks a line says to
+  sign in (signed out), or to ask the study owner for access (signed in without it); for a sign-in without the
+  per-file permission, to sign out and in again ticking its box (`req/shell/data/drive-access`); for a study that has
+  set up no extractions folder, the same. Someone who may save is told nothing, the line taking no room. A sign-in that
+  ran out, or a store that did not answer, is not a reason to take Save away (`req/shell/annotate/survives`). Test:
+  `web-tests/test_annotate_mode_page.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/annotate/survives` Annotation mode and unsaved work survive the token running out and going offline; a save waits for the next click, and a count says how many images wait.
+  <details>
+
+  Set by the owner on 2026-11-21. Neither Google's token running out (it lasts an hour, `req/shell/account/sign-in`) nor
+  the network going leaves annotation mode or drops the actions made: the mode and Undo's count stay. Save's popup,
+  when the store cannot be reached or no live token is held, says so, keeps the ground truth on this device (a draft
+  saved, an upload waiting) and counts, beneath Save, how many images are waiting to upload. The waiting uploads go with
+  the next click of the user, online, which renews the token as `req/shell/drive/renewal` has it; a refusal by the
+  store itself is final and is said, as before (`req/shell/extractions/save`). Test:
+  `web-tests/test_annotate_mode_page.py`.
   </details>
 
 - `req/shell/browsers/supported` The page names the browsers it supports; in any other, the status bar's report icon is a warning sign.
@@ -182,13 +251,13 @@ nobody has decided: what the page does there is not a requirement yet.
   (`studies/shelves/tests/test_shelves_page.py`).
   </details>
 
-- `req/shell/data/area-of-interest` A Study Manager marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
+- `req/shell/data/area-of-interest` A study owner marks an image's area of interest; the summary counts inside it, and a viewer's own area comes with a warning.
   <details>
 
-  Set by the owner on 2026-11-17. In Data Management's Tags box (`req/shell/data/tags`) a Study Manager lassoes an
+  Set by the owner on 2026-11-17. In Data Management's Tags box (`req/shell/data/tags`) a study owner lassoes an
   image's area of interest, drawn and combined as the summary's mask is (`req/shell/summary/mask`), on the image itself
   once Load Original has opened it, never on its preview, whose pixels are not the image's; Clear takes it off. The
-  page keeps it in the tags file and the study index (`req/shell/data/index`). Opened by anyone, the image shows the
+  page keeps it in the study file and its study index (`req/shell/data/index`). Opened by anyone, the image shows the
   area outlined, whether or not the summary shows, and its summary's mask starts as the area. A viewer may draw their
   own mask in its place; while the summary counts a mask of the viewer's own, a warning line at the bottom of the view
   says so, and Clear mask, named "Use the study's area" then, puts the study's area back. Tentative: an image with no
@@ -196,12 +265,12 @@ nobody has decided: what the page does there is not a requirement yet.
   warned of. Test: `web-tests/test_study_index_page.py`.
   </details>
 
-- `req/shell/data/damaged` A Study Manager marks an image's damaged areas; the study's Python is handed them, the summary leaves them out and every viewer sees them marked.
+- `req/shell/data/damaged` A study owner marks an image's damaged areas; the study's Python is handed them, the summary leaves them out and every viewer sees them marked.
   <details>
 
-  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a Study Manager lassoes
+  Set by the owner on 2026-11-17. In place of Edit Image's imperfections (Edit Image is gone), a study owner lassoes
   the damaged areas of an image in Data Management's Tags box, on the image itself once Load Original has opened it;
-  Clear takes them off. The image is never changed: the outlines are kept in the tags file and the study index
+  Clear takes them off. The image is never changed: the outlines are kept in the study file and its study index
   (`req/shell/data/index`), in the image's pixels, running through every slice of a stack. The image, opened by
   anyone, shows them darkened inside a dotted line. The summary's mask leaves them out: a point in one is not inside
   (`req/shell/summary/mask`). Set by the owner on 2026-11-18: each study's Python is handed the damaged areas with
@@ -210,15 +279,15 @@ nobody has decided: what the page does there is not a requirement yet.
   the NoR Finder and the Bookshelf Reader analyse no pixel of a damaged area (`req/nor/find/damaged`,
   `req/shelves/books/damaged`), Vascular Measurements leaves them out of its model's measurements
   (`req/vascular/model/damaged`), and each study's scorer leaves what lies in one out of both the answer and the
-  ground truth. The lab reads the damaged areas from the study root's tags file, without signing in, and hands them
+  ground truth. The lab reads the damaged areas from the tags in the study root's study file, without signing in, and hands them
   to the versions and the scorers as the page hands them to its Python, an answer kept for the areas it was run with.
   Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_runs.py`, `lab/tests/test_lab.py`.
   </details>
 
-- `req/shell/data/drive-access` A study manager sees, in the folder tree, which of the study's folders the site may write for them.
+- `req/shell/data/drive-access` A study owner sees, in the folder tree, which of the study's folders the site may write for them.
   <details>
 
-  Set by the owner on 2026-11-02. In the Study Manager role (`req/shell/account/role`), the tree shows, for each
+  Set by the owner on 2026-11-02. In Data Management (`req/shell/data/mode`), the tree shows, for each
   folder: writable, as Drive's sharing lets the user add files there, or view only. The site writes with Google's
   per-file permission (`drive.file`), asked at sign-in (`req/shell/account/sign-in`); a sign-in without it, its box
   unticked, reads every folder as No permission, saying to sign out and in again ticking that box (owner,
@@ -246,12 +315,12 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_shell_states_page.py`.
   </details>
 
-- `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a Study Manager's explicit act, adding an image is not.
+- `req/shell/data/folders` The study file lists the study's image folders; adding a folder is a study owner's explicit act, adding an image is not.
   <details>
 
-  Set by the owner on 2026-11-17. The study's settings file in its Drive root (`req/shell/ground-truth/setup`), the study file, lists
+  Set by the owner on 2026-11-17. The study file in its Drive root (`req/shell/ground-truth/setup`, `req/shell/study/one-file`) lists
   the folders the study's images come from, by id, under `folders`; a study file naming none has the data folder its
-  root names, else the root itself, as its one listed folder. A Study Manager adds a folder there, or takes one out, as
+  root names, else the root itself, as its one listed folder. A study owner adds a folder there, or takes one out, as
   an act of its own: Data Management's tree shows each listed folder with Remove from study, and under it the folders
   of the root no listed folder holds, each with Add to study; a folder elsewhere in Drive is added by pasting its link,
   and the page says so when that folder is not shared as "Anyone with the link", which a viewer needs to read it. An
@@ -262,13 +331,13 @@ nobody has decided: what the page does there is not a requirement yet.
   the study file stays as it was. The Image Viewer, with no root, has the folder whose link was pasted.
   </details>
 
-- `req/shell/data/hidden` A Study Manager hides images by their tags; hidden images are left out of Load study images.
+- `req/shell/data/hidden` A study owner hides images by their tags; hidden images are left out of Load study images.
   <details>
 
   Set by the owner on 2026-11-17. The study file keeps tag rules (`req/shell/data/tags`), under `hide`, set in Data
   Management's Study images: an image carrying a tag or a tag value a rule names is hidden (a rule naming a
   multi-value tag alone, `group`, hides every image holding any value of it), and Load study images
-  (`req/shell/load/study-images`) does not list it for Viewers or Ground Truth Taggers. A Study Manager still sees
+  (`req/shell/load/study-images`) does not list it outside Data Management. A study owner in it still sees
   hidden images, marked so. Tentative: a hidden image a user opened before stays in their recent images. Test:
   `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`.
   </details>
@@ -276,38 +345,41 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/data/index` The study index, generated from the listed folders, holds every image with its tags, description, areas and preview; one read gets it all.
   <details>
 
-  Set by the owner on 2026-11-17. Beside the hand-set study file the page keeps a generated file in the study's root,
-  `rauntruth-index.json`, the study index: the listed folders (`req/shell/data/folders`), each by id and name, and
-  every image in them with its Drive id, name, the folder it is in, its path of folder names from the listed folder
-  down, size, SHA-256 and when Drive last changed it; its tags, description, damaged areas (`req/shell/data/damaged`)
-  and area of interest (`req/shell/data/area-of-interest`) join it as those are built; it carries the study file's
-  grouping tag and hiding rules too, so the index alone draws Load study images offline. Only a Study Manager's page
-  writes it: each time Data Management has listed the study's folders, and after a folder is added or taken out, a
-  tag or a description changed, or the grouping or hiding set, it
-  writes the index when what it holds differs from the one there, saying when it was built and by whom; an index the
-  same as the one there is not written again. An index the page did not make is left alone, and the page says to
-  delete it in Drive. A Viewer or Ground Truth Tagger reads the study file and the index, one read each, and lists from
-  them; an image added in Drive since the index was built is not listed until a Study Manager's page rebuilds it. The
-  tags, descriptions and areas are kept here, in files the page made, never on the images
-  (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits beside it.
-  Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
+  Set by the owner on 2026-11-17; moved into the one study file on 2026-11-21 (`req/shell/study/one-file`). The study
+  file keeps, under `index`, a generated copy of the study's images, the study index: the listed folders
+  (`req/shell/data/folders`), each by id and name, and every image in them with its Drive id, name, the folder it is in,
+  its path of folder names from the listed folder down, size, SHA-256 and when Drive last changed it; its tags,
+  description, damaged areas (`req/shell/data/damaged`) and area of interest (`req/shell/data/area-of-interest`) join it
+  as those are built; the study file's grouping tag and hiding rules, kept beside it, come with it, so the study file
+  alone draws Load study images offline. Only a study owner's page writes it: each time Data Management has listed the
+  study's folders, and after a folder is added or taken out, a tag or a description changed, or the grouping or hiding
+  set, it writes the index when what it holds differs from the one there, saying when it was built and by whom; an index
+  the same as the one there is not written again, and a tag edit and the index it changes are one write. A study file
+  the page did not make is left alone, and the page says to delete it in Drive. Anyone else reads the
+  study file, one read, and lists from it; an image added in Drive since the index was built is not listed until a Study
+  Manager's page rebuilds it. The tags, descriptions and areas are kept here, in the file the page made, never on the
+  images (`req/shell/data/drive-access`). Undecided: whether the index replaces each folder's previews file or sits
+  beside it. Test: `web-tests/test_study_index_page.py`, `web-tests/test_study_root.py`.
   </details>
 
-- `req/shell/data/mode` Data Management: the Study Manager role's view, a column of the study's folders left of the left bar, open until folded.
+- `req/shell/data/mode` Data Management: Study Setup's column of the study's folders, left of the left bar, open until folded.
   <details>
 
-  Set by the owner on 2026-11-02, changed on 2026-11-03: Data Management is the Study Manager role's view
-  (`req/shell/account/role`), entered by choosing that role and left by choosing another; nobody in any
-  other role sees any of it. In it the tree of the study's folders sits left of the left bar, open; its
+  Set by the owner on 2026-11-02, changed on 2026-11-03: Data Management is a view of its own that nobody
+  but those Drive lets write the study's root sees any of. Changed by the owner on 2026-11-21, with the role menu gone
+  (`req/shell/annotate/choice`): it was entered from an item of the avatar's menu. Changed by the owner on 2026-11-22:
+  it is Study Setup's (`req/setup/page`), the study's own page holding none of it, and it is on whenever that page is
+  open for someone Drive lets write the root. In it the tree of the study's folders sits left of the left bar, open; its
   chevron folds it to a narrow strip and opens it again. The tree shows every folder and subfolder, open,
   each with its access (`req/shell/data/drive-access`); a folder's images stay folded under it until
   its image count is clicked, each with a small preview. In the mode the left bar keeps the Image box
   and hides the study's own drawers, its item view
   and the steps; Load vanishes in a puff, Unload in its line with it: choosing another image or folder
-  replaces the one open (set by the owner on 2026-11-04). The steps hidden are the status bar's breadcrumbs, with the item
+  replaces the one open (set by the owner on 2026-11-04). The steps hidden are the shining buttons, with the item
   view's switch and its tasks' bar (set by the owner on 2026-11-04). Set by the owner on
-  2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, Study Manager is listed in the role
-  menu but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`). Going offline
+  2026-11-04, and on 2026-11-05 how it meets working offline (#768): offline, the avatar's Study Setup item is listed
+  but says it needs the internet, and choosing it does nothing (`req/shell/offline/default`); Study Setup opened
+  offline says so and asks Drive nothing (`req/setup/page`). Going offline
   inside Data Management keeps what is open: the column and the folder's box say they need the internet and do
   nothing until the network is back, and what reaches Drive (Approve, Update previews, Needs
   GT) is held with them; the Image box, the shell's own, stays usable. Test: `web-tests/test_data_mode_page.py`, `web-tests/test_shell_states_page.py`.
@@ -320,9 +392,9 @@ nobody has decided: what the page does there is not a requirement yet.
   in the study's viewer, a stack in 3D, quick and the same for everyone; the Image box's Load, or its
   top line (`req/shell/load/selector`), gives way to Load Original, which opens the image itself from the copy kept on this device when it has one,
   else from Drive. A preview that cannot be read (a damaged previews file) shows as no preview, and the image,
-  chosen, opens itself instead. A study manager can mark an image as needing ground truth (Needs GT), once the study's ground
-  truth is set up: the page creates an empty `<stem>__<sha8>.needs_gt`, named as the image's ground-truth subfolder
-  (`req/shell/ground-truth/layout`), in the curated folder, the one `GT` folder when submissions need no review,
+  chosen, opens itself instead. A study owner can mark an image as needing ground truth (Needs GT), once the study's ground
+  truth is set up (`req/shell/ground-truth/setup`): the page creates an empty `<stem>__<sha8>.needs_gt`, named as the image's ground-truth subfolder
+  (`req/shell/ground-truth/layout`), in the extractions folder,
   never in the data folder (set by the owner on 2026-11-10); unmarking trashes only a marker the page made. Two
   images of one name are marked apart. Once the image has ground truth the marker stays and is no longer shown. Test:
   `web-tests/test_data_mode_page.py`, `web-tests/test_previews_writer.py`.
@@ -332,16 +404,18 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-02; moved to the study's root on 2026-11-07. A study's `root` is a link to its
-  Google Drive root folder, shared as "Anyone with the link" to view: the only folder the repo names. The
-  folders under it are named by the root's settings file (`req/shell/ground-truth/setup`), and until it has
-  one, by name: `Data`, its images, and `GT curated`, `GT submissions` or a single `GT`. Signed in, opening a
-  GT or PostGT study asks Drive, with the user's token, whether they may write to the root (Study Manager) and
-  to the submissions folder (Ground Truth Tagger); a role is offered only where Drive says so. Nobody is
-  listed in the repo, and what anyone can change is still what Drive lets them. Tests:
+  Google Drive root folder, the only folder the repo names; who may read it is Drive's sharing of it, members only
+  until the owner shares it by link (`req/shell/study/members`). The
+  folders under it are named by the root's study file (`req/shell/ground-truth/setup`), and until it has
+  one, by name: `Data`, its images, and `Extractions`. Signed in, opening
+  a study asks Drive, with the user's token, whether they may write to the root (Study Setup is offered) and
+  to the extractions folder (they may save, `req/shell/annotate/no-save`); each is offered only where Drive says so. Nobody is
+  listed in the repo, and what anyone can change is still what Drive lets them. Changed by the owner on 2026-11-21: who
+  may read the root decides who sees the study at all (`req/shell/study/members`). Tests:
   `web-tests/test_study_contract.py`, `web-tests/test_study_root.py`, `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/data/tags` A Study Manager tags images and folders and describes each image; a folder's tags apply to every image in it.
+- `req/shell/data/tags` A study owner tags images and folders and describes each image; a folder's tags apply to every image in it.
   <details>
 
   Set by the owner on 2026-11-17. A tag is a single hyphenated word (`damaged-slide`) or a value of a multi-value tag, written
@@ -354,9 +428,9 @@ nobody has decided: what the page does there is not a requirement yet.
   show on its images, dimmed, naming the folder they come from. Tentative: a tag is written in lower case, words of
   letters and digits joined by hyphens, and a multi-value tag's name and value alike; `folder` is the page's own name
   and no tag may use it. Tentative: an image's own value of a multi-value tag wins over one a folder gives it, and a
-  folder's over one the folder holding it gives. The tags and descriptions are written by the page into a file of
-  their own in the study's root, `rauntruth-tags.json`, never on the images, and from there into the study index
-  (`req/shell/data/index`), each image with the tags it carries; a tags file the page did not make is left alone.
+  folder's over one the folder holding it gives. The tags and descriptions are written by the page into the study file in the study's root, under `tags`
+  (`req/shell/study/one-file`), never on the images, and from there into the study index (`req/shell/data/index`), each
+  image with the tags it carries, in one write; a study file the page did not make is left alone.
   Test: `web-tests/test_study_index_page.py`, `web-tests/test_tags.py`, `web-tests/test_study_root.py`.
   </details>
 
@@ -373,6 +447,17 @@ nobody has decided: what the page does there is not a requirement yet.
   page did not make is left alone, and the page says to delete it in Drive to let the page manage it;
   deleting the page's own makes it start over. Test: `web-tests/test_data_mode_page.py`,
   `web-tests/test_previews_writer.py`.
+  </details>
+
+- `req/shell/dialogs/focus-returns` When a dialog or menu closes, keyboard focus goes back to the control that opened it.
+  <details>
+
+  Set by the owner on 2026-11-23. Closing any modal dialog, the shell's or a study's, by its Close or
+  Cancel, its ×, Escape or a choice in it, and closing any menu (Escape, a choice), puts the keyboard on
+  the control that opened it, not on the page's body. Where that control is gone or hidden by then (a
+  menu item whose menu closed, a button its list redrew), it goes to the one that leads back to it: the
+  menu's own button, or the redrawn button in its place. One shared piece of the shell does this, so a
+  new dialog or menu does it too. Test: `web-tests/test_dialog_focus_page.py`.
   </details>
 
 - `req/shell/dialogs/open-from-button` A popup dialog a button opens grows out of that button.
@@ -397,12 +482,13 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drag_escape_page.py`, `web-tests/test_drag_wrapper.py`.
   </details>
 
-- `req/shell/drag/hint` While anything is dragged, a label at the bottom center of the page says "Hit 'esc' to cancel".
+- `req/shell/drag/hint` While something is dragged that is not a plain change of view, a label at the bottom center of the page says "Hit 'esc' to cancel".
   <details>
 
   Set by the owner on 2026-11-16. It shows once the pointer pressed has moved, on every drag that Escape cancels
   (`req/shell/drag/escape`), and goes when the drag ends: released, cancelled or Escaped. A click that does not move
-  shows nothing. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
+  shows nothing. Set by the owner on 2026-11-24: a drag that only changes the view, the image's pan, the 3D view's turn
+  and pan, the minimap, shows no label, Escape cancelling it all the same. It sits above the status bar and takes no pointer. Test: `web-tests/test_drag_escape_page.py`.
   </details>
 
 - `req/shell/drive/credentials` Signed in, the page reads Google Drive as the user, with their token alone; signed out, with the site's API key.
@@ -445,7 +531,8 @@ nobody has decided: what the page does there is not a requirement yet.
   in view still lack. Test: `web-tests/test_drive_thumbs_page.py`. An image opened from Drive saves its own in the browser (the latest 100), shown from then
   on without a download; set by the owner on 2026-11-17, it is kept as a JPEG in cache storage, not in the settings' storage (`req/shell/storage/manage`). All but Drive's own are in the colours the page gives the
   channels. Show thumbnails in Settings (on at first, `req/shell/account/settings`) turns the downloads off; set by the
-  owner on 2026-11-07, the dialog itself holds no such checkbox. The status bar's message says, while they load ("Thumbnails 3 of 10 ·
+  owner on 2026-11-07, the dialog itself holds no such checkbox. Set by the owner on 2026-11-24: the dialog is titled
+  Open Image, whichever store it reads from (`web-tests/test_study_index_page.py`). The status bar's message says, while they load ("Thumbnails 3 of 10 ·
   1.2 MB"), how many have arrived and their size; once they are in, the message says again what it said
   before (set by the owner on 2026-11-05: the message, not a text of its own beside it). It needs the site's Google API key, kept in the repository variable
   `GOOGLE_API_KEY` and written into `web/config.js` at deploy; without one the option is off
@@ -552,11 +639,122 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_throttle_page.py`, and, of telling throttling from another failure, `web-tests/test_drive_reads.py`.
   </details>
 
+- `req/shell/extractions/file` An extraction is one file about one image, by its SHA-256: the model, the runs that made it with the version of each, and the manual actions, who made it and when.
+  <details>
+
+  Set by the owner on 2026-11-21 (WP4 of `dev/requirements/study-stages-spec.md`). Every annotation of an image, a person's
+  or a batch run's, is the same kind of file in one store: the study's model as its `document` gives it, one more key,
+  `history` (`req/shell/ground-truth/history-file`), holding the actions in force, and `tagger`, `created` and `image`
+  (its name and SHA-256). A `run` action records `version`, `{site, code}`: the site's version string and a hash of the
+  study's Python as the release's offline list names its files (the worker reads it from the list it already fetches, so no
+  call is added; where the page has no list the hash is null). A file written before has no `version`: it loads
+  as before, its run's version is unknown, and none is guessed. Tests: `web-tests/test_truth_actions.py`,
+  `web-tests/test_python_files.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/extractions/list` An image opening asks the store once whether it has Analysis Files, so Load is on only where it has; Load's press lists them; its dialog labels each: mine, then marked (GT, official), then others folded; one loaded opens read-only with Edit this analysis.
+  <details>
+
+  Set by the owner on 2026-11-25, who allowed one request as an image opens: as an image from the store opens, signed
+  in and online, the page asks the store once, in one request, whether the extractions folder holds the image's
+  subfolder: a listing of that folder narrowed to the subfolder's name and to folders. Drive answers no query reaching
+  two levels down, so the files themselves cannot be had in that one request. Load is on where the subfolder is there.
+  Load's press lists the subfolder, one listing, with the study file read afresh for its marks, and its dialog shows
+  what that found; a subfolder found to hold nothing to list turns Load off, saying so. Starting to annotate looks for
+  the user's own file (`req/shell/ground-truth/draft-offer`) in that same subfolder: one listing, none where Load's
+  press already made it, and none at all where the image has no subfolder. Nothing of it is kept between openings.
+  Signed out, the store is not asked as an image opens: Load stays on and asks at its press, as it did. An image from
+  this computer, or one opened offline, has Load off, saying why.
+
+  Set by the owner on 2026-11-21. Load annotation from Drive (`req/shell/annotate/choice`) lists, from the
+  extractions folder's listing and the image's subfolder's, two in all and no file read, every extraction of the image:
+  the user's own first ("Yours"), then those the study file marks GT or official (`req/shell/study/one-file`, a mark
+  names its extraction by file id and follows that file's latest content), then the others, folded under "Others". A
+  member (whoever Drive lets read the study's root, `req/shell/study/members`) sees each labelled "by hand" or by the
+  algorithm and version that ran, from its file's name, never by a person, since the name holds only a hash; the mark is
+  added to the label ("by hand · GT"). The click
+  on a row reads that one file and shows it read-only; **Edit this annotation** enters annotation mode on it, and the
+  next Save writes the user's own extraction with `base`, the id of the file it was edited from, leaving that file
+  unchanged. Tests: `web-tests/test_annotate_mode_page.py`, `web-tests/test_extractions_page.py`,
+  `web-tests/test_truth_folders.py`.
+  </details>
+
+- `req/shell/extractions/marks-shown` Load study images shows, per image, whether your extraction is saved, GT or official, and whether another's was marked.
+  <details>
+
+  Set by the owner on 2026-11-21. Each image's row in the Drive dialog and the image selector's recents carries a tag
+  read from the study file's marks (`req/shell/study/one-file`) and this device's record of the images it saved:
+  "yours: saved", "yours: GT" or "yours: official" (a mark whose extraction is the user's own), and "GT marked" or
+  "official marked" for a mark on another's extraction, joined by " · "; an image none of them touch keeps "GT wanted"
+  where its Needs GT marker is (`req/shell/data/folder`). One line of the dialog counts them: "Yours: 2 saved, 1 GT. 1
+  with another's marked." Tentative: "saved" is known from this device's record, not from Drive, which would take a
+  listing of every image's subfolder; an extraction saved from another device shows as saved here once it is saved or
+  marked here. Tests: `web-tests/test_study_index_page.py`, `web-tests/test_gt_drive_page.py`.
+  </details>
+
+- `req/shell/extractions/outsiders` Someone who is not a member is listed only GT and official extractions, with no person's name.
+  <details>
+
+  Set by the owner on 2026-11-21. Signed out, or signed in with an account that cannot read the study's root, the
+  list of an image's extractions (`req/shell/extractions/list`) holds the marked extractions alone, each labelled by
+  the algorithm and version that ran or "by hand", with the mark ("by hand · GT"), and no email anywhere in it or in the
+  line that follows a click. Files are named by a hash of their author's email (owner, 2026-11-22), so listing the
+  link-shared folder names no one; the email stays inside each file, which anyone with the folder's link can open. Tests:
+  `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
+  </details>
+
+- `req/shell/extractions/save` Upload writes the person's one Analysis File for the image to the study's extractions folder, replacing their own and keeping Drive's old revision; Download Analysis saves it as a file; a count says how many images wait to upload.
+  <details>
+
+  Corrected after the walk of 2026-11-25: before the press the dialog says where the analysis goes and of which image, and that it
+  replaces the person's earlier one where the page knows of one (its listing found it, or this device uploaded it); once uploaded,
+  the status line says so after the dialog is closed.
+
+  Changed by the owner on 2026-11-24: the last task's button reads Upload and opens the Upload Analysis dialog, the
+  checklist with two actions, Cancel and Upload, and no Export file; once uploaded, or kept waiting on this device,
+  Cancel reads Close. The file itself is Download Analysis, a download icon with that tooltip on the Analysis box's
+  header, there whenever the image carries a model: it saves the model's document with its history as
+  `<image name>_analysis.json`, and where nothing can be uploaded, by this user or of this image, it is the last
+  step. Set by the owner on 2026-11-25: a study may hand the shell tables of its own to offer there
+  (`shell.tables.set([{key, label, suffix, head(), rows()}])`, or `set(null)`), each read as it is saved, as the CSV
+  `<image name><suffix>`; with more than one thing to download the icon opens a menu, "Analysis (JSON)" then the
+  study's tables by their labels, and a choice downloads it and shuts the menu; with one, a press downloads it. A
+  table is offered whenever the study hands one, the analysis whenever the image carries a model.
+
+  Set by the owner on 2026-11-21, in place of Submit. Save (the left bar's task row and its popup, which also holds
+  the checklist and Export file) writes the user's extraction of the image, `x_<key>.json`, into the image's
+  subfolder `<stem>__<first 8 hex of its SHA-256>` of the study's one `Extractions` folder (named by the study file,
+  made by Set up extractions in Data Management and shared by link to view), making the subfolder when it lacks one.
+  Saving again replaces the user's own file, keeping Drive's earlier revision (`keepRevisionForever`), and writes
+  nothing else. Only an image opened from Drive can be saved, and Save is not shown to someone Drive lets write nothing
+  there (`req/shell/annotate/no-save`). A save the store did not take waits on this device and goes with the next click
+  online, counted beneath Save ("2 images waiting to upload"), keyed on no HTTP status: the store refusing is final
+  (`req/shell/annotate/survives`). Saving also keeps the draft (`req/shell/ground-truth/save-draft`). Approved by the
+  owner (study-stages-spec.md, approvals): the write of the person's extraction is the one call Save makes beyond the
+  listings. Tests: `web-tests/test_gt_drive_page.py`, `web-tests/test_annotate_mode_page.py`,
+  `web-tests/test_extractions_page.py`, `web-tests/test_truth_folders.py`.
+  </details>
+
+- `req/shell/ground-truth/area-map` While the user annotates, the areas of the walk show as a map, each done, begun or not started; clicking one opens it.
+  <details>
+
+  Set by the owner on 2026-11-24 ("the minimap in NoR is not repurposed to show the GT area progress like in vascular.
+  It should"). The shell draws the map once, for every study that walks by areas (`req/shell/ground-truth/areas`): a
+  button per area laid out as the field is cut, tinted green lightly once begun and strongly once done, the picture
+  seen through the tint, the walk's own area outlined in white, each with a tooltip saying how far it is; the study
+  says how far each area is, which one the walk is in, and what a click on one does. On a flat image the map is the
+  minimap (`req/shell/image/minimap`): while the user annotates its title reads Areas, the areas lie over its picture,
+  it shows even when the whole image is in view, and a click on an area opens it in place of moving the view; outside
+  annotation mode it is the minimap as ever. A study in the 3D view draws the map into a floating box of its own, over
+  its own picture of the stack (`req/vascular/truth/tasks`). Test: `studies/nor/tests/test_truth_tasks_page.py`,
+  `studies/vascular/tests/test_vessel_tasks_page.py`.
+  </details>
+
 - `req/shell/ground-truth/areas` A study whose ground truth is walked area by area takes how many areas from the shell's Areas menu.
   <details>
 
   Set by the owner on 2026-11-19 (missingbulb/RaunTruth#747): the field is cut into n × n areas, and n is the
-  tagger's to choose in an Areas menu at the top of Ground Truth Tasks, the same for every study: the whole field,
+  tagger's to choose in an Areas menu at the top of Analysis Tasks, the same for every study: the whole field,
   2 × 2, 3 × 3, 4 × 4, 5 × 5, 6 × 6, 8 × 8 and 10 × 10, the list Vascular Measurements offered of its own since
   2026-11-07. A study that walks by areas names the count it starts at in its `study.json`
   (`groundTruth.areas`: NoR 10, Vascular 4); one that names none has no menu. The shell owns the walk's order: the
@@ -571,27 +769,14 @@ nobody has decided: what the page does there is not a requirement yet.
 - `req/shell/ground-truth/clear` Clear all history, in the Edit History window, forgets the open image's draft on this device and returns to the algorithm's output.
   <details>
 
-  Set by the owner on 2026-11-05, as Clear progress, beside Submit Ground Truth: a tagger's progress on an image is kept in
+  Set by the owner on 2026-11-05, as Clear progress, beside Save: a tagger's progress on an image is kept in
   the browser so they can come back to it, and clearing forgets only the open image's. Changed by the owner on 2026-11-17:
   every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`), so it is Clear all history…, at
   the foot of the Edit History window, and there is no Clear progress. It asks first, naming the image, then forgets this
   image's draft on this device and returns the model to the algorithm's output, or to the base the log stands on when a
   run is not its root (the earlier edits once loaded, the stored ground truth a draft was read as): the question and the
-  status line say which; other images keep theirs and anything submitted stays in Drive. Test:
+  status line say which; other images keep theirs and anything saved stays in Drive. Test:
   `web-tests/test_gt_history_page.py`.
-  </details>
-
-- `req/shell/ground-truth/curate` A Study Manager accepts or rejects each pending submission into the curated folder.
-  <details>
-
-  Set by the owner on 2026-11-05. In Data Management, an image with pending ground truth
-  (`req/shell/ground-truth/pending`) lists its submissions, one per tagger. Accept copies the submission
-  into the image's subfolder in the curated folder under the same name, the copy recording the
-  submission's SHA-256 and who accepted it and when; Reject leaves the file in Submissions marked
-  rejected, with an optional reason the tagger sees. Tentative: the rejected mark and its reason are the
-  file's public Drive properties, so a reader that is not signed in can see them. Tentative: a study whose
-  two folders are the same has no review, so it offers neither button. Test:
-  `web-tests/test_gt_drive_page.py`.
   </details>
 
 - `req/shell/ground-truth/draft` A tagger's draft of the image open is their GT actions kept on this device, saved by Save Draft and offered by Load draft.
@@ -601,8 +786,8 @@ nobody has decided: what the page does there is not a requirement yet.
   it. Changed by the owner on 2026-11-17: every study keeps its ground truth as GT actions (`req/shell/ground-truth/history`),
   so the shell keeps no progress of a study's own and there is no Continue GT tagging. The draft is the log and its model,
   saved by Save Draft (`req/shell/ground-truth/save-draft`) and offered by Load draft (`req/shell/ground-truth/draft-offer`);
-  the box offers Start GT tagging, or Stop tagging while the tagger tags, never two at once, and tagging then begins at the
-  first item not done. Manage storage lists a draft among its image's selections, and still lists a key an earlier version
+  Continue local annotation work, in the Annotations box (`req/shell/annotate/choice`), loads it and enters annotation
+  mode, the walk beginning at the first item not done. Manage storage lists a draft among its image's selections, and still lists a key an earlier version
   kept (`gt-draft|…`), which a study offers once as its old store (`req/shell/ground-truth/legacy`). Clear all history forgets
   the draft (`req/shell/ground-truth/clear`). Tests: `web-tests/test_gt_history_page.py`,
   `studies/shelves/tests/test_shelves_page.py`.
@@ -612,35 +797,39 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-17. When the image open has a draft on this device, by the study and the image's SHA-256
-  (`req/shell/ground-truth/save-draft`), the Ground Truth Tasks box opens with the image and shows Load draft above
-  Start GT tagging, before the study has listed its tasks too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
+  (`req/shell/ground-truth/save-draft`), the Annotations box offers Continue local annotation work (`req/shell/annotate/choice`) and, once the image is
+  opened in annotation mode, the Analysis Tasks box opens with it and shows Load draft above its tasks, before the study has listed them too, saying when it was saved and how many actions it holds ("Load draft · saved 14:08, 212 actions").
   Only that click loads it: the model and its history come back with no step of the study run again, the replay checked
   (`req/shell/ground-truth/history-replay`) and its outcome said on the status line. Loading over actions not yet saved
   asks first. A draft that could not be looked up is said on the status line. The page's root carries `data-gt-lookup`,
-  `pending` from the image's opening and `done` once the looks for its draft, and for a tagger's own submission, have ended, for tests to wait on. Tentative: the button stays while the
-  draft on the device is not the one loaded. Approved by the owner on 2026-11-16: for a Ground Truth Tagger, on an image
-  from the remote store, the offer also names their own submission there ("Load your submission · submitted 12 Nov,
-  14:08"), found from two listings as the image opens (the submissions folder, then the image's subfolder, when it has one), the
+  `pending` from the image's opening and `done` once the looks for its draft, and for the person's own extraction, have ended, for tests to wait on. Tentative: the button stays while the
+  draft on the device is not the one loaded. Approved by the owner on 2026-11-16: for an annotator, on an image
+  from the remote store, the offer also names their own extraction there ("Load your extraction · saved 12 Nov,
+  14:08"), found from two listings as the image opens (the extractions folder, then the image's subfolder, when it has one), the
   file read only on that click, checked as a draft is, and one from before the log loaded as a base with no history.
   Nothing is cached, and no other call is made. Set by the owner on 2026-11-17: those two listings, and the one download
   on the click, are the only calls this adds. Tentative: both offers show when the device holds a draft too, and
-  a submission made or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
+  an extraction saved or loaded in this visit withdraws its offer. Tests: `web-tests/test_gt_history_page.py`,
   `web-tests/test_gt_resume_page.py`, `web-tests/test_truth_folders.py`.
   </details>
 
-- `req/shell/ground-truth/folders` A study's ground truth lives in a submissions folder and a curated folder under its root; one folder for both is free submission.
+- `req/shell/ground-truth/folders` A study's annotations live in one Extractions folder under its root, read by anyone and written by those Drive lets.
   <details>
 
-  Set by the owner on 2026-11-05; under the study's root since 2026-11-07. Taggers write to submissions;
-  only Study Managers write to curated; viewers, the file dialog and the study's lab read curated. Ground
-  truth is never sent to GitHub. When one folder serves as both, every submission is curated as it lands and
-  nothing is pending. Who may write is what Drive's sharing of each folder allows. Tentative: Data Management
-  tells a study with one folder for both that whatever a tagger submits is used at once. Tests:
-  `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
+  Set by the owner on 2026-11-05 as a submissions folder and a curated folder; replaced on 2026-11-21 by one store
+  (`req/shell/extractions/file`): the folder the study file names by id (`extractions`), found by name `Extractions` while
+  it names none. Who may write it is what Drive's sharing of it allows; viewers, the file dialog and the study's lab read
+  it, so it is shared by link to view. There is no submitted and no curated copy and no accept or reject in the main app: an
+  extraction becomes ground truth or official when the owner marks it (`req/shell/study/one-file`), in Study Setup.
+  Ground truth is never sent to GitHub. Tests: `web-tests/test_study_root.py`, `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/ground-truth/history` A tagger's ground truth is an ordered log of GT actions, undone and redone one at a time down to the algorithm's run.
   <details>
+
+  Changed by the owner on 2026-11-24: Edit History's switch is not a checkbox in the left bar but a button among the
+  toolbar's tools, after the minimap's, a small numbered list, pressed while the window shows, as the minimap's button
+  is; it shows while the user annotates a study that keeps GT actions.
 
   Set by the owner on 2026-11-17. Each change to an image's ground truth is one GT action, `{at, type, …}`: when, and
   the least data that says what happened, with no label, no inverse and no number; `at` is only ever the time, so a
@@ -659,7 +848,7 @@ nobody has decided: what the page does there is not a requirement yet.
 
   The log is shown as Edit History, a tool window floating over the image at its bottom right, framed and headed as the
   minimap is, 2.5 times the minimap's height and never taller than the view less its margins, 1.4 times its width. Show
-  Edit History, in Ground Truth Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
+  Edit History, in Analysis Tasks, shows it (remembered on this device), and its ✕ hides it; it shows once the image
   has a run or a base. Newest on top, a dot at the current state; what was undone sits above the dot, dimmed and struck,
   until a new action clears it. A click on a row goes to it, the run's row back to the algorithm's output; the image's
   opening closes the list and is no row to go to. A row's words are the study's `describe`, its time at the right. Runs
@@ -693,10 +882,10 @@ nobody has decided: what the page does there is not a requirement yet.
   `studies/vascular/tests/test_vessel_tasks_page.py`.
   </details>
 
-- `req/shell/ground-truth/history-file` The submitted file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
+- `req/shell/ground-truth/history-file` The saved file is the study's model with one more key, `history`, the log that made it; a file without it still loads.
   <details>
 
-  Set by the owner on 2026-11-17. Submit and Export write the study's document of the model and add
+  Set by the owner on 2026-11-17. Save and Export write the study's document of the model and add
   `history: {format: "rauntruth-gt-history/1", replay, actions}`: the actions still in force, in order, each with its
   time, the runs with their outputs deflated; what was undone is not written. A reader that knows only the study's own
   fields is not disturbed, and the shell takes `history` off before it hands a file to a study. A file without
@@ -716,16 +905,16 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_truth_actions.py`.
   </details>
 
-- `req/shell/ground-truth/layout` Both folders hold one subfolder per image and one file per tagger in it, and a reader takes the newest that is not rejected.
+- `req/shell/ground-truth/layout` The folder holds one subfolder per image and one file per author in it.
   <details>
 
-  Set by the owner on 2026-11-05. An image's subfolder is named `<image name>__<first 8 hex of its
-  SHA-256>`; in it, each tagger's file is `gt_<email>.json`. The file carries the image's full SHA-256,
-  its Drive id, who made it and `created`, the time it was made. Submitting again replaces the tagger's
-  own file, keeping Drive's earlier version forever (`keepRevisionForever`). A reader (the file dialog,
-  a viewer, the lab) takes, in an image's subfolder, the file with the latest `created` that is not
-  marked rejected. Only an image opened from Google Drive can be submitted; for one opened from the
-  computer the Ground Truth Tasks box says so. Test: `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-05, changed on 2026-11-21. An image's subfolder is named `<image name>__<first 8 hex of its
+  SHA-256>`; in it, a person's file is `x_<key>.json`, the key the first 16 hex of the SHA-256 of their lower-cased email (set by the
+  owner on 2026-11-22, so a listing names no one), and a batch run's `run_<algorithm key>__<version>.json`. The file
+  carries the image's full SHA-256, who made it and `created`, the time it was made. Saving again replaces the person's
+  own file, keeping Drive's earlier revision forever. Only an image opened from Google Drive can be saved; for one
+  opened from the computer the Analysis Tasks box says so. Test: `web-tests/test_gt_drive_page.py`,
+  `web-tests/test_truth_folders.py`.
   </details>
 
 - `req/shell/ground-truth/legacy` What a study kept of a tagger's edits before it kept GT actions is offered once, as a base, and never loaded unasked.
@@ -734,10 +923,10 @@ nobody has decided: what the page does there is not a requirement yet.
   Set by the owner on 2026-11-17, for the edits Vascular kept in this browser. A study that kept them somewhere of its own
   hands them over with `shell.gt.legacy({model, count, from, forget})` once its run is in the log: `model` is the study's
   document, `count` how many edits it holds, `from` what to call it, `forget` removes the old store; `shell.gt.legacy(null)`
-  withdraws the offer, and each image and each run says it afresh. Ground Truth Tasks then shows Load earlier edits
+  withdraws the offer, and each image and each run says it afresh. Analysis Tasks then shows Load earlier edits
   beside Load draft. Only that click loads them: the document becomes the log's base, no history behind it, asking first
   when actions are not saved, and the edits are counted among the unsaved ones. The old store is forgotten only
-  once Save Draft or Submit has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
+  once Save Draft or Save has kept the base, never before, so closing the page first loses nothing and they are offered again at the next visit.
   A study whose old store means something only on the run's items (the NoR Finder's votes, kept by a candidate's place) hands
   over `actions` in place of `model` and `count`: the GT actions the store implies. The click then records each on the model as
   it stands, stamped then, as the tagger's own: nothing is replaced, so nothing is asked; each is a row of Edit History, undone
@@ -746,158 +935,114 @@ nobody has decided: what the page does there is not a requirement yet.
   shell's states, the studies that keep an old store being offered it by their own code. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/pending` Taggers and Study Managers see which images have ground truth, and which have it pending, in two listings.
-  <details>
-
-  Set by the owner on 2026-11-05; its calls set by the owner on 2026-11-07. The Drive dialog, the image
-  selector's recent images (set by the owner on 2026-11-10; one whose SHA-256 this device never learned carries
-  none) and Data Management mark an image as having ground truth when the curated folder holds its subfolder: one listing
-  of curated, no file in it read. To a Ground Truth Tagger and a Study Manager they also mark it pending, or
-  rejected, from one listing of submissions: each image subfolder there carries, as public properties, when
-  its newest submission landed and when it was last accepted or rejected, which Submit, Accept and Reject
-  stamp on it. Pending: submitted after the last acceptance and the last rejection. Nothing is cached. From the same listing
-  of curated, an image without ground truth whose `.needs_gt` marker is there (`req/shell/data/folder`) is tagged
-  GT wanted in the Drive dialog and the recent images (set by the owner on 2026-11-10). Data
-  Management's summary counts the folder's images with ground truth, pending, and marked as needing it. A viewer sees only curated ground
-  truth. Tests: `web-tests/test_truth_folders.py`, `web-tests/test_gt_drive_page.py`.
-  </details>
-
-- `req/shell/ground-truth/save-draft` Save Draft, beside Submit Ground Truth, keeps the tagger's work on this device; until it is pressed nothing is saved.
+- `req/shell/ground-truth/save-draft` Save Draft, beside Save, keeps the tagger's work on this device; until it is pressed nothing is saved.
   <details>
 
   Set by the owner on 2026-11-17. The log and its model live in the page while the tagger works, so they can try
   things without touching what is saved. Save Draft writes the log and the model to this device (IndexedDB database
-  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Submit saves the draft too. Actions
-  not yet saved are counted beside Undo ("· 6 unsaved"), and leaving the page with any asks first. A write that fails is
+  `gt-drafts`, one record per study and image SHA-256), replacing the image's draft; Save saves the draft too. Actions
+  not yet saved are counted beside Undo ("· 6 unsaved", shown signed in or out: nothing is kept on this device until Save Draft, set by the owner on 2026-11-23), and leaving the page with any asks first. A write that fails is
   said, never swallowed. Manage storage lists a draft under its image and deletes it (`req/shell/storage/manage`).
   Tentative: replacing a draft that was not loaded in this visit asks first, saying when it was saved and how many
   actions it holds. Once a draft is saved or loaded, an algorithm run after it counts as unsaved too. Opening another
   image, or unloading this one, with actions not yet saved asks first. Tentative: so does choosing another study from the
-  study menu, and the user's own change of role away from Ground Truth Tagger. What no question can stop gives up the
+  study menu, and reset analysis, which names them (`req/shell/annotate/clear`). What no question can stop gives up the
   unsaved actions without asking, and the spec says so plainly here: the browser's Back and
-  Forward buttons, which swap the study at once, and a sign-in that runs out, which changes the roles held and so the
-  role shown. The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
+  Forward buttons, which swap the study at once. A sign-in that runs out gives up nothing (`req/shell/annotate/survives`).
+  The count beside Undo and Save Draft are the guard against all of them. Test: `web-tests/test_gt_history_page.py`.
   </details>
 
-- `req/shell/ground-truth/setup` Set up ground truth, in Data Management, makes the study's ground-truth folders and the root's settings file.
+- `req/shell/ground-truth/setup` Set up extractions, in Data Management, makes the study's Extractions folder and names it in the root's study file.
   <details>
 
-  Set by the owner on 2026-11-07. For a Study Manager of a GT or PostGT study, Data Management offers Set up
-  ground truth. It asks whether submissions need review: yes makes `GT curated` and `GT submissions` in the
-  root, no makes one `GT` for both. It shares the curated folder with anyone with the link to view, then
-  writes `rauntruth-study.json` in the root naming the data folder and the ground-truth folders by id, who
-  set it up and when. Without the page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites the file; it never makes a second
-  folder of a name. Google's own words show when it refuses. Changed by the owner on 2026-11-07: it sits
-  at the top of Data Management's column, highlighted while the root has no ground-truth folders; choosing
-  an answer closes the dialog once the folders are made; once the settings file names the folders it is no
-  longer offered; switching between reviewed and unreviewed is the Ground Truth box's
-  (`req/shell/ground-truth/switch`). Tests: `web-tests/test_study_root.py`,
+  Set by the owner on 2026-11-07, changed on 2026-11-21 (one store, `req/shell/extractions/file`). For a study owner of a study in Setup, Develop
+  or Analyze, Data Management offers Set up extractions, which asks to confirm and then makes `Extractions` in the root,
+  shares it with anyone with the link to view, and writes `rauntruth-study.json` in the root, the one study file
+  (`req/shell/study/one-file`), naming the data folder and the extractions folder by id, who set it up and when. Without the
+  page's per-file permission it says the site may not write to the root. Run again, it makes only what is missing and rewrites
+  the file; it never makes a second folder of a name. Google's own words show when it refuses. It sits at the top of Data
+  Management's column, highlighted while the root has no such folder, and is no longer offered once the study file names
+  it. There is no review of submissions to choose: nothing is submitted. Tests: `web-tests/test_study_root.py`,
   `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/ground-truth/submit` Submit writes the tagger's ground truth into the study's submissions folder.
+- `req/shell/ground-truth/summary` An Extractions box in Data Management says where annotations are saved and how many images have one.
   <details>
 
-  Set by the owner on 2026-11-05. Submit Ground Truth (`req/shell/ground-truth/tasks`) opens a popup with the study's checklist of
-  what is left to do, an Export file button that downloads the file, and a Submit button that writes it to
-  the image's subfolder in the submissions folder (`req/shell/ground-truth/layout`), creating the
-  subfolder when it lacks one. The popup says when the file landed, or why it did not, the export still
-  there to keep a copy. Submit is off, saying why, for an image opened from the computer and for a tagger
-  Drive does not let write there (`req/shell/ground-truth/tagger-access`). Set by the owner on 2026-11-17: for a study
-  with GT actions the file is the model's document with its `history` (`req/shell/ground-truth/history-file`), and
-  Submit saves the draft.
-  Tests: `studies/nor/tests/test_ground_truth_page.py`, `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-07, changed on 2026-11-21. In a study in Setup, Develop or Analyze whose study file names an extractions
+  folder, an Extractions box sits above the folder tree in Data Management. It says everyone's saved annotations of the
+  study's images are kept there, one file per person for each image, and counts, from the folder's one listing, the images
+  with an extraction and, from the study file's marks, those with a GT mark. A chosen folder's summary counts the same.
+  It reads again whenever a folder is chosen. Test: `web-tests/test_gt_drive_page.py`.
   </details>
 
-- `req/shell/ground-truth/summary` A Ground Truth box in Data Management says how the study takes ground truth and how many images have it.
+- `req/shell/ground-truth/tagging` Annotating is the walk of the tasks: it opens with annotation mode, with no Start or Stop.
   <details>
 
-  Set by the owner on 2026-11-07. In a GT or PostGT study whose root has ground-truth folders, a Ground Truth box sits
-  above the folder tree in Data Management. It says whether submissions are reviewed into GT curated or
-  land in one GT folder, and counts, from the folders' listings alone (`req/shell/ground-truth/pending`),
-  the images with ground truth, those pending review and those rejected. It reads again whenever a folder
-  is chosen or a submission accepted or rejected. Test: `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-07, changed on 2026-11-21 (`req/shell/annotate/choice`). The Analysis Tasks box
+  counts each task all the while. Annotation mode, which the choice of how to get annotations enters, is the walk: it
+  begins at the walk's next item not done as soon as the study has a model for it (an algorithm run, a draft or an
+  annotation loaded), a task's name opens it at that task, and it ends with the mode, when another image opens, the
+  study leaves or all annotations are cleared; there is no Start GT tagging or Stop tagging. What tagging alone shows, the
+  current item's ring, the area's frame and what is cut out of the image, is shown only in the mode, and the Show
+  menu's rows for them are off out of it. Set by the owner on 2026-11-10, what is cut out can be the viewer's: a study
+  gives it the shapes its tagger has decided, and the viewer cuts them out of the image while the tagger tags, black
+  where it is cut out, and gives the image back whole out of the mode; changed by the owner on 2026-11-19, no picture
+  shows behind it. A study hears the mode through its tasks' `tagging` hook, which runs when the mode begins, which
+  may be before it has a model, and `tasks.tagging()`. Test: `web-tests/test_gt_drive_page.py`,
+  `studies/nor/tests/test_truth_tasks_page.py`, `studies/vascular/tests/test_vessel_tasks_page.py`,
+  `studies/shelves/tests/test_shelves_page.py`.
   </details>
 
-- `req/shell/ground-truth/switch` The Ground Truth box switches a set-up study between reviewed and unreviewed, moving no file.
+- `req/shell/ground-truth/tasks` The shell shows the study's tasks in the Analysis box, split by purpose: progress in a strip under the header, the open task under the runner, Upload last; how a task is worked through is the study's.
   <details>
 
-  Set by the owner on 2026-11-07. The Ground Truth box (`req/shell/ground-truth/summary`) offers Switch to
-  unreviewed… or Switch to reviewed…, and a confirmation says what follows before anything runs. Neither
-  moves, copies or deletes a file. Reviewed to unreviewed waits while any submission is pending review,
-  saying how many; then GT curated serves as the one folder, so everything accepted stays the study's
-  ground truth, and GT submissions, its rejected files included, is left as it is and no longer used; the
-  confirmation says taggers need edit access to GT curated, which only Drive's sharing gives. Unreviewed
-  to reviewed makes the one GT folder the curated one, so everything submitted so far counts as accepted,
-  and makes GT submissions (or finds it by name: never a second folder of a name); the confirmation says
-  to give taggers edit access to it and take theirs off GT curated. The settings file keeps who set it up
-  and records the mode before, who switched and when. Tests: `web-tests/test_study_root.py`,
-  `web-tests/test_gt_drive_page.py`.
-  </details>
+  Corrected after the walk of 2026-11-25: where the study says nothing of what is left, Upload's tooltip names the tasks still open.
 
-- `req/shell/ground-truth/tagger-access` The Ground Truth Tasks box shows whether the tagger may write to the submissions folder, and how to get there.
-  <details>
-
-  Set by the owner on 2026-11-05. At the top of the Ground Truth Tasks box, a line says whether this tagger
-  may write to the submissions folder when they may not: View only, telling them to ask the study's owner for
-  edit access; or, for a sign-in without the per-file permission, No permission, telling them to sign out and in
-  again ticking its box (`req/shell/data/drive-access`). It
-  is checked before any work, not first found at submit. Changed by the owner on 2026-11-07: a tagger who may
-  write is told nothing, the line taking no room. Test: `web-tests/test_gt_drive_page.py`.
-  </details>
-
-- `req/shell/ground-truth/tagging` Ground truth tagging starts when the tagger presses Start GT tagging, and ends with Stop tagging.
-  <details>
-
-  Set by the owner on 2026-11-07. Opening an image, or the study's algorithm drawing what it found, leaves the
-  page on the image as it is viewed: no task open, nothing framed, ringed or cut out, the view where the person
-  left it. The Ground Truth Tasks box counts each task all the while, and Start GT tagging, at its top, begins
-  the walk at its next item not done (clicking a task's name starts it at that task); the button then reads Stop
-  tagging, which closes the open task and gives the image back to viewing. What tagging alone shows, the current
-  item's ring, the area's frame and what is cut out of the image, is shown only while tagging, and the Show menu's
-  rows for them are off out of it. Tagging stops when another image opens or
-  the study leaves. Set by the owner on 2026-11-10, what is cut out can be the viewer's: a study gives it the shapes
-  its tagger has decided, and the viewer cuts them out of the image while the tagger tags, black where it is cut out,
-  and gives the image back whole out of tagging; changed by the owner on 2026-11-19, no picture shows behind it. Test: `web-tests/test_gt_drive_page.py`, `studies/nor/tests/test_truth_tasks_page.py`,
-  `studies/vascular/tests/test_vessel_tasks_page.py`, `studies/shelves/tests/test_shelves_page.py`.
-  </details>
-
-- `req/shell/ground-truth/tasks` The shell lists the study's ground-truth tasks in Ground Truth Tasks, Submit Ground Truth last; how a task is worked through is the study's.
-  <details>
+  Changed by the owner on 2026-11-25, who chose to split the tasks by purpose. Progress is a strip directly under the
+  Analysis box's header, there whenever the tasks are listed: the title Analysis Tasks with the Areas menu
+  (`req/shell/ground-truth/areas`) at its far end, the bar under it, and under the bar each task as a small counter,
+  "13/47 Finalists", with its check once done and the open one in bold; a click on a counter, or on a task's part of
+  the bar, goes to that task, as a click on its name did. A task that says no count (Vascular Measurements' areas) has
+  no counter: its part of the bar, outlined while it is the open one and named in its tooltip, stands for it. Under the runner the open task alone is drawn, its name with what the study puts beside it
+  and the study's item under it; a task that is not open shows only as its counter. Undo and Redo
+  (`req/shell/ground-truth/history`) are tool buttons in the image's toolbar, after Edit History's, there while
+  the analysis has a run or a base to go back to, each naming its key in its tooltip; the count of unsaved actions
+  stands beside Upload. Save Draft and Upload stay last in the box.
 
   Set by the owner on 2026-11-07. The study names its tasks in order (a name, and a tooltip saying what the
-  task is) and how far each has got, done of all; the shell draws them in its Ground Truth Tasks box
+  task is) and how far each has got, done of all; the shell draws them in its Analysis Tasks box
   (`req/shell/left-bar/shells`): a progress bar split into one part per task, each as wide as its task is long
   and filled as far as it is done, then one row per task, "13/47 Finalists", with a check once it is done, and
-  last the shell's Submit Ground Truth row, which opens the submit popup (`req/shell/ground-truth/submit`) with
+  last the shell's Save row, which opens the save popup (`req/shell/extractions/save`) with
   the study's ground truth, Save Draft (`req/shell/ground-truth/save-draft`) beside it, and above them Undo and Redo (`req/shell/ground-truth/history`). A task is open only while
-  the tagger tags (`req/shell/ground-truth/tagging`). The study says when Submit can be pressed and, where it knows, whether its
-  ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Submit
+  the tagger tags (`req/shell/ground-truth/tagging`). The study says when Save can be pressed and, where it knows, whether its
+  ground truth is done, partly done or not started, which the button shows as an icon; whatever it says, Save
   is off until the study's first step is done (owner, 2026-11-07). A task with no total (the Bookshelf Reader's
   missed books) shows its count alone, "1 Missed books", and its check once the study says it is done. A row may say
   no count at all, its bar part still filled as far as the study says (Vascular Measurements' areas, owner, 2026-11-07). One task at a time is
   the open one, its name in bold: the study puts what it needs under its row and beside its name (its item,
   Back and Skip, an area's check), and hears when the user clicks a task's name. The walk through the tasks
   stays each study's own (owner: a change of heart on how one study does its tasks must not move the others;
-  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Submit GT crumb (`req/shell/status-bar/breadcrumbs`) presses
-  the shell's Submit. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
+  what proves common is merged later, as the areas were on 2026-11-19, `req/shell/ground-truth/areas`). The Save crumb (`req/shell/steps`) presses
+  the shell's Save. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`,
   `studies/nor/tests/test_truth_tasks_page.py`, the vascular study's vessel tasks test.
   </details>
 
-- `req/shell/ground-truth/view` Anyone can load an image's curated ground truth and see only its final results.
+- `req/shell/ground-truth/view` Anyone can load an image's marked extraction and see only its final results.
   <details>
 
-  Set by the owner on 2026-11-05; its calls set by the owner on 2026-11-07. Once an image from Drive is open,
-  for anyone not tagging, the curated folder's listing says whether it has ground truth, and if so a
-  Ground truth box offers Load GT tagging. Only that click reads the image's subfolder and its newest
-  file, then shows its final results on the image, with no algorithm run: none of the tagging tasks' marks
-  (no blacked-out areas, no rejected candidates, no work areas). A summary follows: whose file, when it was
-  made, and its counts. Changed by the owner on 2026-11-16, an image shows its ground truth or the algorithm's results,
-  never both: once its ground truth is loaded, Processing is not shown, nor the Items view and its switch, until another
-  image opens. Test: `web-tests/test_gt_drive_page.py`.
+  Set by the owner on 2026-11-05; its calls set by the owner on 2026-11-07; moved into the Annotations box on
+  2026-11-21 (`req/shell/annotate/choice`), and onto the extraction list the same day (`req/shell/extractions/list`). Once
+  an image from Drive is open, Load annotation from Drive lists its extractions with no sign-in, and the click on one reads
+  that file alone and shows its final results on the image, with no algorithm run: none of the tagging tasks' marks (no
+  blacked-out areas, no rejected candidates, no work areas). A line follows: whose file or which version, when it was made
+  and its counts. Changed by the owner on 2026-11-16, an image shows its annotation or the algorithm's results, never
+  both: once an annotation is loaded, Processing is not shown, nor the Items view and its switch, until another image
+  opens. Test: `web-tests/test_gt_drive_page.py`, `web-tests/test_annotate_mode_page.py`.
   </details>
 
-- `req/shell/header` A header with the logo, the study switcher and a dark/light switch (remembered).
+- `req/shell/header` A header with the logo, the study switcher, the user's avatar and, last, a dark/light switch (remembered).
   <details>
 
   GitHub's repository switcher, for studies: the study's icon (as in its list, below), its title and a solid caret form one 32 px
@@ -909,7 +1054,10 @@ nobody has decided: what the page does there is not a requirement yet.
   header already names it, and only assistive tech is told which it is. Arrow
   keys move through the list, Enter opens the one marked, Escape closes it. Each entry is a link to
   the study's address (`req/shell/study/folder-and-address`), so a middle click opens it in a new tab. The header's spacing follows
-  GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Test: `web-tests/test_study_runs.py`.
+  GitHub's: 64 px tall, 16 px at the sides, a 32 px logo. Set by the owner on 2026-11-24: at the right the user's avatar
+  comes first and the dark/light switch last, at the edge. The avatar's menu opens over the avatar, and its top row
+  holds the avatar again, at the same place and the same size, beside the user's name and where they are signed in,
+  so the picture seems not to move as the menu opens. Test: `web-tests/test_study_runs.py`, `web-tests/test_account_page.py`.
   </details>
 
 - `req/shell/image/cellsens` An Olympus cellSens image, a `.vsi` and its `_<name>_` folder, is one image: one row in the Drive dialog, opened in 2D or 3D like any other.
@@ -931,7 +1079,7 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_cellsens.py`.
   </details>
 
-- `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say.
+- `req/shell/image/file-info` The image's name unfolds what the file says about the image, and nothing it does not say; its tags in the study show over that.
   <details>
 
   Folded at first: the field in µm and px, the pixel size, the bit depth, the ImageJ series, the
@@ -942,11 +1090,17 @@ nobody has decided: what the page does there is not a requirement yet.
   per format (`tiff`, `heic`, `jpeg`, `png`), the fields it pins instead, by the labels the details show.
   Every other field the file carries is listed below them in More details, folded at first: a TIFF's tags
   and ImageJ header, a photo's EXIF (GPS included), JFIF and XMP fields, a HEIC's container (its images,
-  thumbnails, auxiliary images and colour profile), a PNG's chunks. Binary blobs (a maker note, an embedded
-  profile's bytes, a thumbnail, a list of more than 16 values) are left out. The bit depth is the file's
+  thumbnails, auxiliary images and colour profile), a PNG's chunks. Set by the owner on 2026-11-24, in place of
+  leaving them out: a field whose value is bytes (a maker note, an embedded profile, an XMP or IPTC block, ImageJ's
+  binary metadata) is listed by its name, its value reading "base64…", dimmed, so that the field is seen to be there
+  and its bytes are not spelled out; a list of more than 16 values says how many it holds ("64 values…"). A tag that
+  only says where other data lies in the file (the pixels' offsets, a thumbnail's) stays unlisted. The bit depth is the file's
   own, even where the page shows the image in 8 bits. What the file does not carry goes unsaid: set by the owner on 2026-11-10, no
   line says the microscope or acquisition is missing, and with no image open the box names none and shows no
-  details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`).
+  details line, the empty viewer saying it already (`web-tests/test_image_box_page.py`). Set by the owner on
+  2026-11-24: an image the study's index holds (`req/shell/data/index`) shows the tags it carries there
+  (`req/shell/data/tags`) in the Image box, as chips above its details; an image with none, or one the index does
+  not hold, shows no such line (`web-tests/test_study_index_page.py`).
   </details>
 
 - `req/shell/image/frame` A study names a box of the image to bring into view; the shell zooms and glides there, the same way in every study.
@@ -994,7 +1148,7 @@ nobody has decided: what the page does there is not a requirement yet.
   its key is held, and a toggle's or a hold's while it is on, as Panning is; clicking a row does what its key does,
   a hold's click keeping it on or off. A row whose shortcut does not act just now is not shown, and with none the
   legend is empty. Set by the owner on 2026-11-17, the shell's own: Undo (Ctrl+Z, ⌘Z) and Redo (Ctrl+Shift+Z, ⌘⇧Z, Ctrl+Y)
-  press their buttons in Ground Truth Tasks and so act only while those show and are on; typed in a field they are the
+  press their buttons in Analysis Tasks and so act only while those show and are on; typed in a field they are the
   browser's own text undo, and during a drag they do nothing. Test: `web-tests/test_keys_page.py`, and the vascular
   study's `req/vascular/truth/keys`; the shell's Undo and Redo, `web-tests/test_gt_history_page.py`.
   </details>
@@ -1129,44 +1283,34 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_runs.py`, `web-tests/test_compressed_tiff.py`, `web-tests/test_viewer3d_page.py`.
   </details>
 
-- `req/shell/left-bar/folding` The left bar's boxes stay folded until their step makes them useful, and fold again once it is done.
+- `req/shell/left-bar/folding` The left bar's three boxes are always there; one waits, folded to its title and inert, until the stage before it is done, and opens as that ends.
   <details>
 
-  Set by the owner on 2026-10-30. Every box in the left bar folds under its title, and clicking the
-  title opens or closes it. The first is the shell's Image box (the image selector or Load, the image's
-  details, its channels, Unload): open until an image opens, then folded; in a study with no steps after Load
-  (the Image Viewer) it stays open, nothing else having opened (the owner, 2026-11-05). Processing opens once an image opens and folds
-  again after the study's first step (`req/shell/status-bar/breadcrumbs`); Summary and Ground Truth Tasks open after that
-  step (`req/shell/left-bar/shells`, set by the owner on 2026-11-07). When a step is done by the user (an image opening, or the
-  step's button pressed, never a dial set back to the last run's) its boxes open and the boxes it
-  closes fold; opening another image also folds every box waiting for a later step. Between those moments a box
-  stays as the user left it; switching study (`req/shell/study/switch-in-place`) starts over.
-  Changed by the owner on 2026-10-31. The boxes are drawers stacked in one panel, no gap between
-  them, each title on a compact row behind the step's number in a circle, which turns into a green
-  check once the drawer's task is done; the open drawers carry an accent bar at their left. A
-  drawer's title describes its task while the task waits, open or folded; once it is done, the
-  folded title sums up what was done and the open one names the drawer. The Image box, titled Load
-  Image while no image is open (and again after Unload), folds once done (in a study with a step after Load) to
-  a small preview of the image, its name and, for a TIFF, what it holds ("2D", "3 channels", from the file;
-  only "2D" when the file does not say; a PNG or JPEG shows no such tags, set by the owner on 2026-11-10), and opens as "Loaded Image". A study's drawer is done
-  when the study gives it a summary, and waits again when the study takes it back. A drawer opening or
-  folding slides open or shut, and the drawers below it slide to their new places (set by the owner on
-  2026-10-31). Changed by the owner on 2026-11-03: a folded drawer opens from a click anywhere on it,
-  not only on its title or number; an open one still folds only from its title.
-  Test: `web-tests/test_left_bar_page.py`, `web-tests/test_study_contract.py`.
+  Set by the owner on 2026-11-24, in place of drawers numbered by step, checked when done and summing up what was done
+  in their titles. The boxes are drawers stacked in one panel, each a title row, the open ones carrying an accent bar,
+  with no number, no check and no picture beside a title. Load is open until an image is in and folds then (it stays
+  open for a preview, Load Original being what comes next, and in a study with no step after it). Analysis waits until
+  an image is open, and opens as one is. Summary waits until the image carries a model, and opens as it does. A
+  waiting box is folded to its title alone, dimmed, and does nothing when pressed; folded, any box shows its title and
+  nothing else, its header's links and icons included. Between those a box stays as the user left it: a click on a
+  folded one, anywhere on it, opens it, a click on an open one's title folds it, and a drawer opening or folding
+  slides, the ones below sliding to their new places (none where animations are off). Another image, or Unload, starts
+  over. Test: `web-tests/test_left_bar_page.py`.
   </details>
 
-- `req/shell/left-bar/shells` The shell lays out the whole left bar, Load Image, Processing, Ground Truth Tasks and Summary; a study only fills its boxes.
+- `req/shell/left-bar/shells` The shell lays out the whole left bar, Load, Analysis and Summary; a study only fills its parts of them.
   <details>
 
-  Set by the owner on 2026-11-07: the left bar's layout is the shell's, and a study adds no box to it. Under
-  the Image box (and Data Management's) come three boxes of the shell's, each holding what the study puts in it:
-  Processing (what runs the algorithm: its choice, its settings, its button, and the tools that correct its
-  result), Ground Truth Tasks and Summary (what the result adds up to, and its downloads). While the study makes
-  ground truth for the user (`req/shell/account/role`) Ground Truth Tasks shows in Summary's place; otherwise
-  Summary shows. A box the study puts nothing in is not shown. How the study's results are drawn over the image
-  is chosen in the toolbar (`req/shell/image/toolbar`), never in the left bar. Test:
-  `web-tests/test_study_contract.py`, `web-tests/test_left_bar_page.py`.
+  Set by the owner on 2026-11-24, in place of the four boxes Load Image, Processing, Ground Truth Tasks and Summary.
+  The left bar has three boxes, the shell's own: Load (the image, its details and channels); Analysis, which holds the
+  choice of Start and Load (`req/shell/annotate/choice`), the study's processing (its runner, the settings and tools of
+  its own, from Start on), and Analysis Tasks, the study's tasks, while the user annotates
+  (`req/shell/ground-truth/tasks`); and Summary (what the result adds up to), which waits until the image carries a
+  model and then shows beside the tasks. A study adds no box anywhere: it fills `processing`, `tasks` and `summary`,
+  and a box it puts nothing in is not shown (the Image Viewer has Load alone). A box's header carries its title at the
+  near edge and its own actions at the far one, shown while the box is open: on Load, unload image; on Analysis, reset
+  analysis and Download Analysis; on Summary, Download Summary. Test: `web-tests/test_study_contract.py`,
+  `web-tests/test_left_bar_page.py`, `web-tests/test_annotate_mode_page.py`.
   </details>
 
 - `req/shell/left-bar/static` The left bar stays open: nothing collapses it, and it has no chevron and no Steps label.
@@ -1186,7 +1330,7 @@ nobody has decided: what the page does there is not a requirement yet.
   the toolbar's right end (its `toolbar-end` slot).
   </details>
 
-- `req/shell/load/button` In a study opening from this computer alone, Load opens an image from it and shines until one is open; Unload beside it closes it.
+- `req/shell/load/button` In a study opening from this computer alone, Load opens an image from it and shines until one is open; "unload image" on the box's header closes it.
   <details>
 
   No study the site publishes opens from this computer alone (`req/shell/load/from`); the shell keeps the case for
@@ -1194,7 +1338,9 @@ nobody has decided: what the page does there is not a requirement yet.
   (`req/shell/image/file-info`), its channels (`req/shell/channels/rows`), and at its foot Load, which opens the
   computer's own file chooser, filled and glowing until an image is open and a plain button with a blue border
   after. Load sits at the foot, not in the box's title, so the title keeps its place whether the box is folded or
-  open. Once an image is open, Unload stands beside Load and clears the page back to before any image:
+  open. Set by the owner on 2026-11-24, in place of an Unload button beside Load: once an image is open the box's
+  header carries a link, "unload image", at its right, shown while the box is open and not while it is folded, so
+  that the line of controls to load with looks as it did before the image. It clears the page back to before any image:
   no image, no minimap, the steps starting over at Load image, the boxes folded as at first, and the
   study starting over too, its panels as they were before any image; Python, if it has started, lets the image go. Test:
   `web-tests/test_image_box_page.py`.
@@ -1222,13 +1368,13 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_drive_cache_page.py`.
   </details>
 
-- `req/shell/load/selector` In a study opening from Google Drive, the Image box's top line picks the image: a selector of the images opened lately, newest first, each saying how long ago; Unload once one is open; the computer's button where the study opens local files; and Drive's button.
+- `req/shell/load/selector` In a study opening from Google Drive, the Image box's top line picks the image: a selector of the images opened lately, newest first, each saying how long ago; the computer's button where the study opens local files; and Drive's button.
   <details>
 
   Set by the owner on 2026-11-04, in place of Load and its dropdown (`req/shell/load/from`). The Image box's first
   line, above the image's details (`req/shell/image/file-info`, titled Details) and its channels, holds a selector
-  looking like the header's study switcher: its face names the image open, or, before one, says "Choose an
-  image"; it opens on the last 30 images opened in the study on show, newest first, the first (the one opened
+  looking like the header's study switcher: its face names the image open, or, before one, says "Recently
+  Opened" (set by the owner on 2026-11-24, in place of "Choose an image"); it opens on the last 30 images opened in the study on show, newest first, the first (the one opened
   last) selected, so Enter opens it (set by the owner on 2026-10-31: an image opened in another study is
   irrelevant here). Each shows its name and where it is, beside that place's small logo: in Drive, the folders under
   where it was opened from, so two files of one name stay apart; for a file on this computer, "This computer". Each
@@ -1244,14 +1390,15 @@ nobody has decided: what the page does there is not a requirement yet.
   where the study opens local files, a button bearing a computer opens the computer's own file chooser; last, a
   button bearing Drive's logo opens the Google Drive dialog (`req/shell/drive/dialog`), offline too
   (`req/shell/drive/offline-listing`). Until an image is open, the selector, or when it lists nothing the
-  computer's button, else Drive's, is filled and glowing, as Load is (`req/shell/load/button`). Once an image is
-  open a small Unload button stands after the selector, and clears the page as Unload does. The selector's list
+  computer's button, else Drive's, is filled and glowing, as Load is (`req/shell/load/button`). Set by the owner
+  on 2026-11-24: the line holds no Unload button, so its controls stand where they stood before the image; the box's
+  header carries "unload image" (`req/shell/load/button`). The selector's list
   stays inside the left bar, a long name cut short. The references to files on this computer stay with this
   device, listed in Settings among what is kept on this device only (`req/shell/account/settings`), and the
   privacy policy says they are kept. Test: `web-tests/test_image_line_page.py`, `web-tests/test_storage_page.py`.
   </details>
 
-- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the Study Manager chooses, not by folder.
+- `req/shell/load/study-images` Load study images lists the study's images grouped by a multi-value tag the study owner chooses, not by folder, each group folded under its head.
   <details>
 
   Set by the owner on 2026-11-17. In a study with a study index (`req/shell/data/index`), Load's Google Drive dialog
@@ -1262,13 +1409,17 @@ nobody has decided: what the page does there is not a requirement yet.
   previews file (`req/shell/drive/previews`), read once that folder's group scrolls into view. Tentative: a row marks
   no image "new", there being no listing on this device to compare with. Set by the owner on 2026-11-17: the Image
   Viewer, with no root and no index, lists the pasted folder one folder at a time as before, and so does a study before
-  a Study Manager's page has written its index. Set by the owner on 2026-11-18: the index Load last read is kept on this
+  a study owner's page has written its index. Set by the owner on 2026-11-18: the index Load last read is kept on this
   device, the latest five studies', and offline the dialog lists from it just as online, an image not kept on this
   device greyed as the offline dialog greys one (`req/shell/offline/default`); a study whose index this device never
   read lists offline as before. The grouping tag is set in Data Management's Study images, which offers `folder` and
   every multi-value tag the study's images carry. Grouped by a tag, a group per value, its head `<tag>: <value>`, in
   the values' order; an image with no value of it sits in a last group, "No <tag>" (Tentative). Each row also shows the
-  image's tags, and its description under its name; to a Study Manager a hidden image shows, marked hidden. Test:
+  image's tags, and its description under its name; to a study owner a hidden image shows, marked hidden. Set by the
+  owner on 2026-11-24: no line over the list says "The study's images"; each group's head is a folder, whatever tag
+  sorts the groups, then its name and, small and in brackets, how many images it holds, and its images are folded
+  away until a click on the head unfolds them, another click folding them again. Tentative: a group stays as it was
+  left while the page lives, and where the list is a single group it is open. Test:
   `web-tests/test_study_index_page.py`.
   </details>
 
@@ -1311,6 +1462,9 @@ nobody has decided: what the page does there is not a requirement yet.
   back. A visit the browser cannot reach a copy for, never opened online, shows the browser's own
   offline page: no site opens there. Nothing here installs the site as an app or asks the browser
   for anything. Test: `web-tests/test_offline_page.py`, `web-tests/test_background_tab_page.py` (a hidden tab).
+  Set by the owner on 2026-11-24: in the avatar's menu an action offline holds shows the status bar's offline
+  icon beside it and its words struck through with a red line, the words keeping their own colour, in the place of the dimmed
+  look held controls have elsewhere; it does nothing all the same. Test: `web-tests/test_offline_page.py`.
   </details>
 
 - `req/shell/offline/mark` What is available offline says so, quietly: a study, and an image from Google Drive.
@@ -1361,12 +1515,16 @@ nobody has decided: what the page does there is not a requirement yet.
   opacity, live in one page state in the shell (`web/page_state.js`). Loading and unloading an image
   change that state, and every control showing a part of it (Load and Unload, the image's name and
   details, the channels, the view, the minimap and its toolbar button) redraws from it; no control
-  reaches into another to change it. The steps (`req/shell/status-bar/breadcrumbs`) are a state of the same kind. Test:
+  reaches into another to change it. The steps (`req/shell/steps`) are a state of the same kind. Test:
   `web-tests/test_image_box_page.py`.
   </details>
 
-- `req/shell/processing/algorithms` A study offering several algorithms lists them atop its Processing box, the first the default, each with its icon, title and precision and recall.
+- `req/shell/processing/algorithms` A study offering several algorithms lists them in the Start dialog, in a box of rows, the first the default, each with its icon, title and precision and recall.
   <details>
+
+  Changed by the owner on 2026-11-24: the list is not atop a Processing box but in the Start dialog
+  (`req/shell/analysis/start`), a box of rows with how the chosen algorithm works plain under it, nothing to unfold;
+  the left bar holds no list, and says which algorithm ran.
 
   Set by the owner on 2026-11-13: what NoR Finder and Vascular Measurements each drew for themselves is the shell's,
   so every study with more than one algorithm shows it the same way. Changed by the owner on 2026-11-14: the algorithms
@@ -1389,7 +1547,17 @@ nobody has decided: what the page does there is not a requirement yet.
   which the lab writes there from the scorer itself, so the explanation is always the one the numbers were counted
   by. The shell draws a (?) at the right of the list, titled How precision and recall are scored, and a click on it
   opens and closes that outline under the list. A study whose metrics carry no `scoring`, or that names no metrics,
-  shows no (?). Test: `web-tests/test_algorithm_choice_page.py`.
+  shows no (?). Set by the owner on 2026-11-23: the outline, "The scoring", is shown when the (?) is clicked, and hidden otherwise. Test: `web-tests/test_algorithm_choice_page.py`.
+  </details>
+
+- `req/shell/processing/stamp` From Review on, each score shows its stamp: algorithm version, dataset SHA, freeze date and a link to the GT commit.
+  <details>
+
+  Set by the owner on 2026-11-22 (WP8 of `dev/requirements/study-stages-spec.md`). The lab's freeze (`req/lab/freeze`) writes, for each version
+  in the study's metrics file, a stamp `{version, dataset_sha256, frozen, commit}`. Under the algorithm list the chosen algorithm's stamp
+  is shown as one line, outside the fold: the freeze date, the algorithm version, the first eight hex of the dataset SHA and, once the lab
+  has named the commit that holds the frozen ground truth, a link to it on GitHub. Metrics with no stamp (every Develop study) show no line,
+  and an algorithm whose score carries none shows none. Test: `web-tests/test_algorithm_choice_page.py`.
   </details>
 
 - `req/shell/python/file-bytes` A study's algorithms run on the image file as it is stored, never on what the viewer shows.
@@ -1550,15 +1718,20 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_runs.py`.
   </details>
 
-- `req/shell/site/landing` The site's root is a short page saying what the site is, opening the app and each listed study.
+- `req/shell/site/landing` The site's root is a short page saying what the site is and opening the app, which lists the studies.
   <details>
 
   Set by the owner on 2026-11-02, so a visitor who gets a link learns what this is before landing in
   the tool. `rauntruth.com/` says what the site does and for whom, that images are analysed in the
-  browser and never uploaded, and that it is free and open source; it opens the app (`req/shell/site/app-address`), lists
-  every study the switcher offers (`req/shell/header`), each a link to its address, filled in by the build from
-  the studies' `study.json`, lists the supported browsers (`req/shell/browsers/supported`), and links the privacy policy, the terms and the license. Test:
-  `web-tests/test_published_site.py`.
+  browser and never uploaded, and that it is free and open source; it opens the app (`req/shell/site/app-address`),
+  lists the supported browsers (`req/shell/browsers/supported`), and links the privacy policy, the terms and the
+  license. Changed by the owner on 2026-11-21: it lists no study, since who may see a study is read at run time from
+  Drive's sharing (`req/shell/study/members`); the app's switcher (`req/shell/header`) lists them, and the page says so.
+  Added by the owner on 2026-11-23: it shows the site's intro video, hosted on YouTube. Until a visitor presses play
+  the page shows a still picture it serves itself and reaches YouTube for nothing; pressing play loads YouTube's
+  player in place, from youtube-nocookie.com, and without scripting the picture is a link to the video on YouTube.
+  The privacy policy (`req/shell/site/policies`) names YouTube among the services reached.
+  Test: `web-tests/test_published_site.py`.
   </details>
 
 - `req/shell/site/license` The code is MIT-licensed: the repo's `LICENSE`, and rauntruth.com/license.
@@ -1598,7 +1771,8 @@ nobody has decided: what the page does there is not a requirement yet.
   modules directly in the folders its Python is imported from (`python.paths`), which is all the
   page's importer can reach; the build runs none of a study's code (owner, 2026-11-14: a study contributes data).
   A study's docs, data, tests and lab notes stay in the repo, and nothing
-  in a study says how, where or whether it is published. The build (`dev/tools/build/build.py`)
+  in a study says how, where or whether it is published; of its docs the site carries one thing the build writes, the list of each study's
+  article summaries by file, heading and paper named (`literature.json`, `req/setup/literature`; owner, 2026-11-25), never their text. The build (`dev/tools/build/build.py`)
   assembles the set under `dev/build/site/`, the tree the release uploads. Test:
   `web-tests/test_published_site.py`.
   </details>
@@ -1611,46 +1785,41 @@ nobody has decided: what the page does there is not a requirement yet.
   preview or a fork counts nothing. Test: `web-tests/test_published_site.py`.
   </details>
 
-- `req/shell/status-bar` The status bar: the study's steps at the left, the disk, memory, network, CPU and version at the right.
+- `req/shell/status-bar` The status bar: what the page is doing at the left, the disk, memory, network, CPU and version at the right.
   <details>
 
-  From the left edge: the breadcrumbs of its steps (`req/shell/status-bar/breadcrumbs`), then
+  From the left edge:
   the spinner and what the page is doing now (each stage of Python's loading, the study's progress,
   an error in red) and the thumbnails' progress (`req/shell/drive/dialog`). From the right edge inward: the site's
   version (stamped by each release; `req/shell/version-history`, `req/shell/site/out-of-date`), the CPU (`req/shell/status-bar/cpu`), the network (`req/shell/status-bar/network`), the
   memory (`req/shell/status-bar/memory`) and the disk (`req/shell/status-bar/disk`); between the version and those four, the report icon (`req/shell/report/bug`), a bug, or a warning sign in a browser the page does not support,
   and then the online icon (`req/shell/status-bar/online`). The four are folded into one icon unless set
   always open (`req/shell/status-bar/resources`), and unfolding them moves neither their icon, the online icon, the report icon nor the version. With too
-  little room, what the page is doing now and the four give way, cut short, while the steps at the left and the
+  little room, what the page is doing now and the four give way, cut short, while the
   icons and version at the right stay whole (owner, 2026-11-07). Each of the four before the version is a small grey icon
   and its number, with no word naming it; all five are plain, with no box, alike. A mild vertical
-  bar separates each item from the next, the resources icon included, folded or not, but the four, which sit
-  together with none between them. Nothing in the status bar turns the pointer into a
-  question mark. The image's name and the study's counts are in the
-  breadcrumbs' popups: Load image names the image, the study's own step gives its counts. Test:
+  bar separates each item from the next, but the four, which sit
+  together with none between them, and none stands between the four on show and the resources icon (set by the owner on 2026-11-24).
+  Hovering or focusing an item that can be clicked fades a button's border in around it, quickly, so it reads as
+  something to press; what cannot be clicked gets none (set by the owner on 2026-11-24). Nothing in the status bar turns the pointer into a
+  question mark. Set by the owner on 2026-11-24: the status bar holds no breadcrumbs of the study's steps, neither
+  the steps done nor the one to do next. Test:
   `web-tests/test_status_bar_page.py`.
   </details>
 
-- `req/shell/status-bar/breadcrumbs` Breadcrumbs show the steps done so far, and the step to do now shines.
+- `req/shell/status-bar/calls` A call to another server shows in the status bar while it is in flight: that server's logo, turning, and what is being read from it.
   <details>
 
-  A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
-  Run algorithm and Review all items), then Submit GT while the study makes ground truth for the user: a
-  Ground Truth Tagger in a GT or PostGT study (`req/shell/account/role`). The status bar shows
-  the steps done, then the first one not done, which shines blue, and with it the button that does
-  that step (the `button` the step names; Load for Load image, the ground-truth button for Submit
-  GT); later steps do not show yet, and once every step is done none shines. Load image is done
-  once an image is open, Submit GT once its issue is opened (for a local image, once its file is
-  exported); the study says when its own steps are done (NoR: Run algorithm while the image was
-  searched with the finder and settings now chosen, Review all items while the Submit Ground Truth
-  button (`req/nor/downloads`) says the ground truth is complete: some vote cast, every added NoR and every
-  finalist decided; corrected by the owner on 2026-10-31, so the filters rejecting every finalist
-  never moves the step on while the button still says what is missing). Opening another image, or switching study (`req/shell/study/switch-in-place`), starts over. Hovering a crumb says what was done in that step
-  and when. Clicking the crumb that shines brings its button into view, unfolding the box it is in
-  (`req/shell/left-bar/folding`) and scrolling to it, and presses it: a way there, a lesson in where it is, and a
-  shortcut. The steps live in one state in the shell, and the crumbs and the shining buttons are
-  drawn from it alone. Test: `web-tests/test_status_bar_page.py`,
-  `studies/nor/tests/test_ground_truth_page.py`.
+  Set by the owner on 2026-11-24. Every call the page makes to Google Drive, the loading of Python and its packages, and the reading
+  of a study from this site goes through one helper (`web/network_calls.js`), which shows it beside the status line for as long as it
+  is in flight: the server's small logo, turning, and "Loading from Google Drive: <what>" ("Saving to …" for a write; the bare
+  server where the call names nothing). Calls to several servers show side by side; a server's calls share its one logo, which
+  names the oldest of them, and goes when the last ends. A call that fails says so there, "Google Drive did not answer: <what>", until
+  the next call to that server or six seconds on. The helper also gives a call a place on the page (`req/setup/loading`). It adds no
+  call and changes none's time: it only watches. The account's settings kept in Drive, the list of studies, the version history and
+  the supported browsers go through it too. Not yet through it, and so not shown: the offline download, thumbnails, a study's list of
+  algorithms and what the Python worker fetches itself. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_layout_driver.mjs`.
   </details>
 
 - `req/shell/status-bar/cpu` The CPU, a processor icon and "12%", is how busy this tab's threads are now.
@@ -1678,7 +1847,7 @@ nobody has decided: what the page does there is not a requirement yet.
   for the compiled code and the browser, which a page cannot read; amber past a quarter of the
   computer's total where the browser says it. Clicking it opens the Memory tab (`req/shell/resources-dialog`) listing each
   of those, and within the page's share the image and the study's results, and the computer's
-  total. It carries no button to have Python collect its garbage (a Run GC button removed by the owner on
+  total. The memory is hidden until Python has reported a figure: an unknown value is hidden, never shown as 0 MB (set by the owner on 2026-11-23). It carries no button to have Python collect its garbage (a Run GC button removed by the owner on
   2026-11-07), and no essay on how Python's memory grows. Test:
   `web-tests/test_status_bar_page.py`.
   </details>
@@ -1710,7 +1879,7 @@ nobody has decided: what the page does there is not a requirement yet.
   <details>
 
   Set by the owner on 2026-11-03. The four sit in one block with a gauge icon at its right, next to the
-  online icon (`req/shell/status-bar/online`). An Autohide checkbox in the resources dialog, above its tabs on every tab, chooses how the block shows:
+  online icon (`req/shell/status-bar/online`). A checkbox in the resources dialog, "Autohide in statusbar", in its bottom row at the left, in line with its buttons, on every tab (set by the owner on 2026-11-24), chooses how the block shows:
   checked, the default, it auto-hides; unchecked, it is always open, as the status bar was before (set by the owner on
   2026-11-07, in the place of a choice that also offered Hidden always; a kept Hidden always reads as auto-hiding). Auto-hiding,
   the page opens with the four folded away and the icon alone showing; hovering the block unfolds the
@@ -1734,6 +1903,24 @@ nobody has decided: what the page does there is not a requirement yet.
   1 MB/s), its icon and number turn the warning colour for three seconds, then fade back. With
   reduced motion asked for, the digits change without rolling. Test:
   `web-tests/test_status_bar_page.py`.
+  </details>
+
+- `req/shell/steps` A study's steps live in one state in the shell, and the button of the step to do now shines: Start, while the study's step waits behind it.
+  <details>
+
+  A study's steps are Load image, the study's own in order (its `study.json` `phases`; for NoR
+  Run algorithm and Review all items), then Save while the study makes ground truth for the user: a
+  user annotating in a Setup, Develop or Analyze study (`req/shell/annotate/choice`). The button that does
+  the first step not done shines blue (the `button` the step names; Load for Load image, the ground-truth button for Save), and once every step is done none shines. Load image is done
+  once an image is open, Save once the extraction is saved or waits to be (for a local image, once its file is
+  exported); the study says when its own steps are done (NoR: Run algorithm while the image was
+  searched with the finder and settings now chosen, Review all items while the Save
+  button (`req/nor/downloads`) says the ground truth is complete: some vote cast, every added NoR and every
+  finalist decided; corrected by the owner on 2026-10-31, so the filters rejecting every finalist
+  never moves the step on while the button still says what is missing). Opening another image, or switching study (`req/shell/study/switch-in-place`), starts over.
+  Set by the owner on 2026-11-24: the steps show nowhere as a list; the status bar's breadcrumbs went, and the
+  shining button stays. Test: `web-tests/test_status_bar_page.py`,
+  `studies/nor/tests/test_ground_truth_page.py`.
   </details>
 
 - `req/shell/storage/keys-keep-names` What a user saved stays theirs: a stored key never changes its name.
@@ -1766,6 +1953,18 @@ nobody has decided: what the page does there is not a requirement yet.
   shell still names no study (`req/shell/study/knows-none`). Test: `web-tests/test_storage_page.py`.
   </details>
 
+- `req/shell/study/article` A study naming an article shows a link to it in the header.
+  <details>
+
+  Set by the owner on 2026-11-24, for NoR as a graphic placeholder (its pitch document); the stages' map had it since
+  2026-11-21 ("a study naming an article shows a link to it in the header, with some fanfare, in any stage"). A study's
+  `study.json` may name its `article`, a link; the header then shows Article beside the study's name, a pill in the
+  accent colour, which opens the link in a tab of its own. The page itself asks that address for nothing. A study
+  naming none shows no link. Not built yet: the owner naming the article in Study Setup, and showing it only from Public
+  unless the owner ticks "show the article" (`dev/requirements/study-stages-spec.md`). Test:
+  `studies/nor/tests/test_truth_tasks_page.py`.
+  </details>
+
 - `req/shell/study/folder-and-address` A study is a folder, and the app runs the one its address names: rauntruth.com/app/<id>.
   <details>
 
@@ -1787,6 +1986,33 @@ nobody has decided: what the page does there is not a requirement yet.
   and the shell's page tests run on the fixture study, which shares none of them.
   </details>
 
+- `req/shell/study/members` Signed in, the switcher lists the studies whose root the user can read; signed out, the released ones.
+  <details>
+
+  Set by the owner on 2026-11-21. A study's root is members-only on Drive (a Drive file or folder can carry sharing its
+  parent does not, so the folders visitors and the lab need are each shared by link on top); whoever can read the root is
+  a member, and membership, not the stage, decides who sees a study. Signed in, the page asks Drive which of the listed
+  studies' roots the account can read, all of them in one batch request per load, and the switcher lists those and the
+  released ones (stage `Public`, in `study.json`); a study with no root is listed to all.
+  Signed out, it lists the released ones and asks Drive nothing. While the token has run out or Drive does not answer, the
+  list Drive last gave this user stays, with the line "as Drive last said" under it, until they sign out. The root's
+  readers are Drive's: the repo lists no one. Test: `web-tests/test_study_members_page.py`.
+  </details>
+
+- `req/shell/study/one-file` A study keeps one study file in its Drive root, holding its folders, images index, tags, hide and grouping rules, marks and stage.
+  <details>
+
+  Set by the owner on 2026-11-21. `rauntruth-study.json` (format `rauntruth-study/2`) holds what the settings, index and
+  tags files held (`req/shell/ground-truth/setup`, `req/shell/data/folders`, `req/shell/data/index`,
+  `req/shell/data/tags`, `req/shell/data/hidden`), and the marks and the stage as they arrive; the separate index and
+  tags files go. A root still holding the three files of before is read as it was and written back as one file the next
+  time a study owner's page saves, the two old files trashed only where `writer.ours` says the page made them. A study
+  file is read once per root a minute; each write reads it afresh and merges into what it finds, as two managers may edit
+  at once. A study file the page did not make is left alone. The file is also readable by link on top of the root's
+  sharing, its id kept only in the cloud environment (`RAUNTRUTH_STUDY_<STUDY>`). Test: `web-tests/test_study_root.py`,
+  `web-tests/test_study_index_page.py`.
+  </details>
+
 - `req/shell/study/request-form` The switcher ends with Submit New Study Request, a GitHub issue form for proposing a study.
   <details>
 
@@ -1798,22 +2024,47 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/test_study_request.py` (the form asks for each of these).
   </details>
 
-- `req/shell/study/stage` A study declares its stage: PreGT, GT, PostGT or Published.
+- `req/shell/study/review-link` A study in Review opens at its address for anyone, signed out, but is not listed.
   <details>
 
-  Every `study.json` names its `stage`, `null` for a tool that makes no ground truth and has no stage, and the header's
-  switcher (`req/shell/header`) shows each study's at the end of its row as a small label, in 10 px type, the stage's name bordered in its colour: red for PreGT, yellow for GT, green for PostGT,
-  green and filled for Published. Set by the owner on 2026-11-04.
-  Hovering a label opens a popup beside the switcher listing the four stages in order with what each means, that study's own highlighted and the
-  ones before it crossed out, and what the study needs to move on to the next.
-  PreGT: the study's tools work but cannot make ground truth yet, so it offers no export: its
-  Submit Ground Truth (`req/shell/ground-truth/tasks`) is not shown and it has no Submit GT step. GT: the same,
-  with the ground truth exported and submitted (`req/shell/ground-truth/submit`). PostGT: GT with batch actions on top (none
-  yet). Set by the owner on 2026-11-02, Published: the study's algorithm is trusted and the page only
-  shows what it finds, so it makes no ground truth (no Submit GT, as in PreGT) and
-  drops the steps that serve making it: the study's
-  postprocessing is not shown. A GT or PostGT study names its ground truth's label. The Image Viewer has no stage (`null`): as in PreGT, it makes no ground truth;
-  NoR Finder is GT. Test: `web-tests/test_study_contract.py`, `web-tests/test_status_bar_page.py`.
+  Set by the owner on 2026-11-21. The owner shares the root by link when the study enters Review, so reviewers need no
+  Google account: the study opens at its address, whose root the site's key can then read, and the switcher does not
+  list it to anyone signed out: its stage in the study file is Review (`req/shell/study/stage`). Test:
+  `web-tests/test_study_members_page.py`.
+  </details>
+
+- `req/shell/study/stage` A study's stage, Setup, Develop, Analyze, Review or Public, is kept in its study file and set by the owner in Study Setup; it opens and closes actions as the table in the map says.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-map.md`, `dev/requirements/study-stages-spec.md`, WP6), in place of PreGT, GT,
+  PostGT and Published. The stage is a key of the study file (`req/shell/study/one-file`), read, signed in or not (a visitor who never signs in reads the link-shared study file by the site's key, once on load, the one read the page makes of Google signed out; the switcher lists the study on show by the stage so read, Public listed and Review not, and `study.json`'s stage stands in until the read answers or if it fails), when the study comes in, when the user signs in
+  or out and when the user saves; `study.json`'s `stage` is the one the study has until its file names one of the five (every study but the Image
+  Viewer starts in Develop), and `null` for a study outside the model, the Image Viewer, which has no stage and so no annotating, marking, batch run
+  or data to close. The one table of what each stage opens is `web/stages.js`, read through `stageAllows(action)` by the shell, Study Setup and
+  Data Management: Study Setup's data (open in Setup, Develop and Analyze, closed in Review and Public), viewing and running the algorithm
+  (every stage; who may is Drive's sharing), running on one's own images (every stage), Start Annotating (open in Setup, for trial, Develop and
+  Analyze, closed in Review and Public), marking an extraction GT or official (Develop and Analyze), a batch run (every stage; in Review and Public
+  it counts once marked) and the numbers shown (none in Setup). `web-tests/stage_table.json` transcribes those rows of the map's table, and a
+  test holds it to the map and to `stages.js`. The header's switcher (`req/shell/header`) shows each study's stage at the end of its row as a small
+  label, in 10 px type, the stage's name bordered in its colour: red for Setup, yellow for Develop, green for Analyze, blue for Review, green and
+  filled for Public. A study listed to everyone while signed out is one whose study file says Public for the study on show, which the page reads by the site's key (set by the owner on 2026-11-22), and for every other study one whose `study.json` says Public; the page reads no other study's file for that. The test
+  for the signed-out read: `web-tests/test_study_members_page.py` (a file at Review shows as Review, annotating closed and not listed; at Public, listed), `web-tests/test_account_page.py` (the one read). Where Study Setup promotes or moves the study back the page takes the new stage at once. Public drops the steps that serve making ground truth
+  (the study's postprocessing is not shown). The popup is `shell/study/stage-popup`. Test: `web-tests/test_study_contract.py`,
+  `web-tests/test_status_bar_page.py`, `web-tests/test_stage_table.py`, `web-tests/test_stage_table_page.py`.
+  </details>
+
+- `req/shell/study/stage-popup` Hovering a study's stage label lists the five stages, what each means and what moves a study on; for the study on show it also gives the gate's conditions as the page measures them and one line for each action open to this user.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). The popup opens beside the switcher while a label is hovered,
+  listing the five stages in order with what each means, the hovered study's highlighted and the ones before it crossed out, and what the study needs
+  to move on. For the study on show, below them: the gate's conditions the page can measure, from the study file's index and marks (in Develop, "n of
+  m images have a GT mark"; in Analyze, how many have an official mark; in Setup, how many images the index lists), and one line for each action
+  open to this user in this stage: viewing and running the algorithm, running on their own images, for someone the store lets save "Annotate: 12
+  images still need it" (the images in the study's index, hidden ones left out for those who may not manage it, that carry no GT mark), and for
+  someone who may write the root the Study Setup actions the stage opens. Someone who may not save has no Annotate line, nor has anyone in a stage that
+  closes annotating. Decided by the owner, 2026-11-23: the gate's wording for each stage, which the page can measure only in part (the owner's judgement is the real gate).
+  Test: `web-tests/test_stage_popup_page.py`.
   </details>
 
 - `req/shell/study/switch-in-place` Switching study happens in place: no reload, and the new study starts as a fresh load of its address shows it.
@@ -1829,10 +2080,10 @@ nobody has decided: what the page does there is not a requirement yet.
   study's address afresh shows, element by element (each one's attributes, text, form values, scroll and open
   popups) and in the shell's own state, nothing of the study before left anywhere: not the zoom, the 3D view's
   parts, a folder Data Management had open, an edit, the remote files dialog's listing, or a ground-truth line.
-  What the browser keeps carries over as a reload would keep it (who is signed in, the role, the theme, the
+  What the browser keeps carries over as a reload would keep it (who is signed in, the theme, the
   user's choices, the images kept here), and so do the tab's own measures in the status bar. Test:
   `web-tests/test_study_runs.py`; and `web-tests/test_shell_states_page.py`, where the first path of each study and
-  role of the shell's states ends by going to another study and back, each compared with a fresh load of its address
+  root of the shell's states ends by going to another study and back, each compared with a fresh load of its address
   (set by the owner on 2026-11-20, in place of every path: the other paths' last states add little the first does not).
   </details>
 
@@ -1845,28 +2096,27 @@ nobody has decided: what the page does there is not a requirement yet.
   a stack in 3D in the 2D view's place, with no change to the studies that keep the 2D viewer.
   </details>
 
-- `req/shell/study/visibility` A study declares who sees it: everyone, no one but by its address, or the Google accounts it names.
+- `req/shell/study/visibility` A study's address opened by someone who may not see it says so, naming the account signed in.
   <details>
 
-  Set by the owner on 2026-11-04. Every `study.json` names its `visibility`: `"listed"` (the
-  header's switcher offers it to everyone, and the landing page lists it), `"unlisted"` (offered
-  nowhere, opened only by its address; the fixture) or `{"accounts": [email, …]}` (the switcher
-  offers it only while one of those accounts is signed in, and the landing page never lists it).
-  Opened at its address by anyone else, signed out or signed in with another account, the page
-  says the study is shown only to the accounts it names and opens the Image Viewer instead; signing
-  in with one of them offers it in the switcher at once. This hides a study from the page, not
-  from the network: its files are published like any other study's, so it holds nothing secret.
-  The Bookshelf Reader is shown to its owner's account alone. Test:
-  `web-tests/test_study_contract.py`, `web-tests/test_published_site.py`,
-  `web-tests/test_study_visibility_page.py`.
+  Set by the owner on 2026-11-04; rewritten on 2026-11-21. Every `study.json` names its `visibility`: `"listed"` (the
+  header's switcher may offer it, to those `req/shell/study/members` says) or `"unlisted"` (offered nowhere, opened only
+  by its address; the fixture). A study's address opened by someone who may not see it, signed in with an account
+  Drive does not let read its root, says that account cannot open it, naming the account, and offers Sign out; signed
+  out, it says the study is "not open right now". Either way the study's own code is not fetched, and the Image Viewer
+  opens instead. Where Drive cannot be asked (offline, the token run out with nothing learned), the study opens.
+  Test: `web-tests/test_study_members_page.py`, `web-tests/test_study_contract.py`.
   </details>
 
-- `req/shell/summary/download` Download Summary, at the Summary box's foot, saves the study's summary as one standard CSV.
+- `req/shell/summary/download` Download Summary, a download icon on the Summary box's header, saves the study's summary as one standard CSV.
   <details>
+
+  Changed by the owner on 2026-11-24: the button is not at the box's foot with its name written out but on the box's
+  header, a download icon alone, Download Summary its tooltip, as Download Analysis is on the Analysis box's.
 
   Set by the owner on 2026-11-16: the study works out the numbers worth reporting, the shell exports them, the same
   way for every study. A study hands the shell its summary as data, `shell.summary.set({over, rows})`, and takes it
-  back with `set(null)`; while it has one the box ends with Download Summary. The file, `<image name>_summary.csv`, is
+  back with `set(null)`; while it has one the box's header carries Download Summary. The file, `<image name>_summary.csv`, is
   one table with a row per measurement: `image`, `study`, `counted_over` (what the study says it counted over, such as
   a mask), `measurement`, `unit`, `value` for a single number, and `n`, `mean`, `sd`, `median`, `min`, `max` for a
   distribution, a column left empty where the row has none. A summary goes with the study that set it, and with the
@@ -1874,12 +2124,14 @@ nobody has decided: what the page does there is not a requirement yet.
   `web-tests/study_page_driver.mjs` (the fixture study), `studies/vascular/tests/model_page_driver.mjs`.
   </details>
 
-- `req/shell/summary/mask` Add mask, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
+- `req/shell/summary/mask` Define Area of Interest, at the Summary box's top, lassoes the area the study's summary counts; the shell draws and keeps it, the study decides what lies inside.
   <details>
+
+  Changed by the owner on 2026-11-24: the button reads Define Area of Interest, not Add mask.
 
   Set by the owner on 2026-11-16, in place of NoR's and Vascular's own masks: one mask for every study, offered only
   by a study whose `study.json` says it can count inside one (`"summary": {"mask": true}`; every study filling the
-  Summary box says true or false). Add mask switches to the image, shows all of it (a stack seen from straight above,
+  Summary box says true or false). Define Area of Interest switches to the image, shows all of it (a stack seen from straight above,
   held still, the area running through every slice) and lets the user lasso an area by dragging; Esc cancels, and a
   lasso a few pixels across is no area. Lassoing again adds an area by exclusive or, so one inside another cuts a hole.
   The borders show as a pulsing dashed line over the image, or over the stack following the view as it turns, and the
@@ -1964,7 +2216,9 @@ nobody has decided: what the page does there is not a requirement yet.
   slices shown sits beside its name, and each row's picker sits at the box's right edge, its slider filling the room
   before it; a palette picker is framed as the colour picker is (owner, 2026-11-07). Colour by depth is each
   channel's own (owner, 2026-11-07): a small icon tick on each channel's own row beside its colour picker, no words
-  and no palette bar beside it (owner, 2026-11-07), and while it is ticked the
+  and no palette bar beside it (owner, 2026-11-07). Set by the owner on 2026-11-24: the tick looks like a button, framed,
+  and lit while it is on, and with its picker it is as wide and as tall as the spacing box under it, so the three line
+  up. While it is ticked the
   row's colour picker becomes a palette picker, since the channel is then drawn in a range of colours by the depth
   of each point, not in one colour by its brightness alone. Two channels coloured by depth each take a different
   palette, so they read apart; a study's `channels` may tick it from the start (`depth`: true, or a palette's name).
@@ -1987,8 +2241,9 @@ nobody has decided: what the page does there is not a requirement yet.
   "Items" with how many there are, and "Image" in the item view. The study counts them (`views.count(total)`,
   null until it has any; Vascular: its junctions and vessels) and hears which view is shown (`views.on(fn)`).
   Set by the owner on 2026-11-07: the shell turns the switch on once the study has counted its items and off
-  while it has not; a study never turns it on or off itself. While the study makes ground truth for the user
-  (a Ground Truth Tagger in a GT or PostGT study, `req/shell/account/role`) there is no item view and no switch:
+  while it has not; a study never turns it on or off itself. Set by the owner on 2026-11-24: while the study has
+  counted none (before its algorithm has run on the image) the switch is not shown at all, rather than shown off. While the study makes ground truth for the user
+  (annotating in a Setup, Develop or Analyze study, `req/shell/annotate/choice`) there is no item view and no switch:
   the tasks are listed in the left bar (`req/shell/ground-truth/tasks`), the image in the main area. Changed by the
   owner on 2026-11-19: NoR's item view, shelved since 2026-11-04, is removed (missingbulb/RaunTruth#740), and with it
   the shell's `data-shelved` mark.
@@ -2018,6 +2273,210 @@ nobody has decided: what the page does there is not a requirement yet.
   what it is doing and the elapsed time below. Set by the owner on 2026-11-10, the light is the shell's: a
   study says only that it works and what it is doing, and over an image the shell sweeps it, in every study
   alike. Test: `web-tests/test_status_bar_page.py`, `studies/shelves/tests/test_shelves_page.py`.
+  </details>
+
+## `req/setup` Study Setup, the study owner's page
+
+- `req/setup/aspects` Study Setup is a layout of its own: the five stages across the top, a rail of the study's aspects at the left, the chosen aspect filling the rest, and no image viewer or left bar.
+  <details>
+
+  Set by the owner on 2026-11-24 and 2026-11-25, replacing the Data Management column beside the shell's left bar and viewer. Under the
+  header the page shows the stages (`req/setup/promote`), then a narrow rail listing the aspects, Images, Ground Truth, Literature, People, Run on
+  all images and Results, one chosen at a time, its panel filling the rest of the page; the status bar stays. Images holds the folders
+  tree with the study's folders to add and the Study images rules (the grouping tag, the tags that hide), the chosen folder's images as a
+  grid or a list, and beside them what is chosen: a folder's sums and Update previews, the Tags box, an image's Analysis Files and
+  their marks, and Open image… (`req/setup/image`). Ground Truth holds the set-up of Analysis Files, how many images have one and
+  have a GT mark, and the images whose Analysis Files are newer than their GT. People holds the sharing check and the people. Run
+  on all images holds the folders and the grid again, with the batch run in place of what is chosen. Results holds the results. Literature
+  holds the study's papers against the repo's summaries (`req/setup/literature`). The status line, where the study's own page asks for an image
+  or tells of one loaded, says Ready.: the page has no Load. The
+  page opens on the same layout every time: Images, nothing chosen, the tree's folders unfolded, whatever it showed the visit before;
+  it keeps no aspect, fold or choice. Decided for the owner to confirm: Needs GT stays a button on each image's cell, and the folders
+  and the grid are shared by Images and Run on all images, which keep the folder chosen when one changes to the other. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
+  </details>
+
+- `req/setup/batch` The owner runs a chosen algorithm over chosen images on Study Setup; each gets an extraction at that version, images already done are skipped, and a token running out holds the batch until the next click.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5), batch runs being a write to the store the owner approved. With a
+  folder chosen, Study Setup's Batch run box lists the study's algorithms; each image of the folder has a checkbox, and Choose
+  all ticks or unticks them. Run presses the study's first step on each chosen image in turn, as the main app's user does, so
+  the study's own run is the one that runs, and writes the document that makes (the model and the log that made it, with
+  the version of the site and of the study's code, and no person's name) to the image's subfolder of the extractions folder
+  as `run_<algorithm>__<code version>.json`. An image whose subfolder already holds that file is skipped, so a stopped
+  batch goes on from where it was; a batch that has run, or skipped, an image has reached it. The study's code version is
+  the first eight characters of its hash, or `unknown` where Python did not tell it. A token that has run out stops the
+  batch before the next image runs, says so, and the next click on Run renews it and goes on; any other failure stops it
+  naming the image. While a batch runs the tree, the cells and the choices wait. Mark this batch official marks
+  each image the batch reached official, in one write. In Review and Public a batch is exploratory and counts only once marked
+  (`req/setup/marks`). Decided by the owner, 2026-11-23: the parameters of a run are the study's own at the time (a threshold in its panel);
+  they are kept in the file but do not tell one batch from another, which the algorithm and the code version do. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_batch_driver.mjs`.
+  </details>
+
+- `req/setup/data` Study Setup holds everything Data Management did: folders, Drive access, the set-up of Analysis Files, previews, tags and descriptions, hide rules, the grouping tag, areas of interest, damaged areas, Needs GT.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5), and placed on 2026-11-24 in Study Setup's own
+  layout (`req/setup/aspects`): the data requirements of `req/shell` (those tagged `data/...`) are those of Study Setup's Images and
+  Ground Truth aspects, and each reads as it does there, a folder's images filling the grid beside the tree and an image's areas
+  marked in its dialog (`req/setup/image`). Set up Analysis Files makes the one folder they are kept in
+  (`req/shell/ground-truth/setup`). The study's own drawers, item view and steps do not show on Study Setup. Test:
+  `web-tests/test_data_mode_page.py`, `web-tests/test_study_index_page.py`.
+  </details>
+
+- `req/setup/image` An image chosen on Study Setup is opened in a dialog that draws it flat, where its areas are lassoed.
+  <details>
+
+  Set by the owner on 2026-11-24 and 2026-11-25: what is done on one image is in a dialog, the page having no image viewer of its own, and marking
+  areas needs no 3D view. Choosing an image chooses it: in the grid, its cell is outlined and the grid stays; in the tree, the grid steps
+  aside, as no folder is chosen. Its name, tags, description and Analysis Files show beside the grid, with Open image…. The image is read
+  as before, its preview first, and by the code that reads it on the study's own page, so choosing asks the network for no more than it did.
+  Open image… shows it in a dialog over the page, the page behind it held until the dialog shuts, as large as the window allows: the image's
+  name, the image drawn flat with what is already marked on it, a stack as its slices flattened whatever viewer the study names, the ruler,
+  grid, minimap and zoom, Load Original (the dialog's own button) while a preview shows, and Damaged areas and Area of interest with their Mark and Clear. It shows no
+  left bar, no channel rows, no 3D view and none of the study's own tools. Close and Esc shut it, and choosing a folder shuts it too; Esc
+  while an area is being lassoed gives up the lasso and leaves the dialog open. A notice raised while it is open shows over it. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`, `web-tests/test_data_mode_page.py`.
+  </details>
+
+- `req/setup/literature` Study Setup lists the papers in the study's Literature folder against the repo's summaries of them.
+  <details>
+
+  Set by the owner on 2026-11-25: the folder named Literature in the study's root holds the papers the repo's summaries came from, and a
+  simple list of its files, with which have a summary and which summaries have no paper, is enough. The rail's Literature aspect, when it is
+  chosen and never before, lists that folder once (one listing of the store, each time it is chosen; the folder itself is found in the
+  listing of the root the page has already read) and shows its files by name, each a link that opens the file in the store in a new page.
+  The site publishes, in `literature.json` beside the page, each study's article summaries (`studies/<id>/docs/literature/*.md`): the
+  file, its first heading, and the paper it says it was read from. A file there is an article summary when its name carries a year, as the
+  intake's slugs do (`song-2022-concussion.md`), or when it names a PDF; the folder's notes and indexes are not. A summary names its paper
+  as the first file name ending `.pdf` it writes in backticks, a leading `Literature/` left off. Pairing, in this order: a paper is the one a
+  summary names when their names are equal, letter case and surrounding space aside; else a paper and a summary pair when their file names
+  are equal once the extension is dropped and everything but letters and digits is, lower-cased. A paper paired says "summary", with the
+  summary's heading; one unpaired says "no summary in the repo". The summaries no paper pairs with are listed after, under "Summaries with no
+  paper here". A root with no Literature folder says so and lists nothing of the store; a study with no summaries published says so. The
+  listing goes through the page's calls (`req/setup/loading`): the place is emptied and marked loading, and the store's logo turns. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_literature_driver.mjs`, `web-tests/test_published_site.py`.
+  </details>
+
+- `req/setup/loading` What Study Setup reads from the store is shown where it will land: the place is emptied of the choice before, shows that it is loading, and a late answer for an earlier choice paints nothing.
+  <details>
+
+  Set by the owner on 2026-11-24. Choosing a folder empties the grid and the folder's sums at once and shows a progress bar there,
+  "Loading <folder>'s images from Google Drive…", until its images are drawn; the same holds for the folders tree while the study's
+  folders are read and for an image's Analysis Files. Each goes through the page's network calls (`req/shell/status-bar/calls`),
+  which gives the place to the latest call for it: an answer that arrives for a choice since replaced is dropped, and the page
+  records that it was. The sharing check, the images newer than their GT and the results keep their own lines saying they are
+  being read, and are named in the status bar while they are. It adds no call and moves none. Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_layout_driver.mjs`.
+  </details>
+
+- `req/setup/marks` The owner marks an extraction GT or official on Study Setup; a mark names the extraction's file, and so follows that file's latest content; an image has one GT mark and one official mark.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5). Choosing an image on Study Setup lists its extractions,
+  each labelled by the algorithm version that made it or "by hand", with the time it was last saved, and each with GT and Official
+  buttons, pressed where it holds that mark; pressing one marks, pressing a pressed one takes the mark off. The study file
+  keeps `marks: {<image's SHA-256>: {gt: {file, by}, official: {file, by}}}`: the file's Drive id, and its author's email
+  (null for a batch's). A later save by the author replaces the file's content, so the mark follows it: the main app shows
+  the new model as GT at once and the dataset SHA changes. Marking another extraction GT replaces the first; GT and official
+  are separate marks and may name one file or two. Each write reads the study file afresh and merges. A folder's cells say
+  Ground truth and Official for the images that have them. Decided by the owner, 2026-11-23: the list names no one, only a marked
+  extraction's author, since an extraction's author is read from its file on marking. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_marks_driver.mjs`.
+  </details>
+
+- `req/setup/page` Study Setup is the site page `app/setup`, opened from the avatar's menu by those Drive lets write the study's root, online only.
+  <details>
+
+  Corrected after the walk of 2026-11-25: where the token has run out by the page's own record, the item opens the new page empty within
+  the click and sends it to Study Setup once the sign-in has answered, so that Study Setup reads with the renewed token; while the
+  token lasts the link opens the page itself.
+
+  Set by the owner on 2026-11-22. The avatar's menu of the study's own page holds Study Setup…, for someone Drive
+  lets write the study's root; it opens `/app/setup?study=<id>` in a new page (a new tab), the item carrying the small
+  "opens in a new page" icon at its right edge (set by the owner on 2026-11-24), renewing a token run out in its click as Drive's
+  reads do. The study's own page holds none of Data Management's elements (no `#data-*`, folder view, Tags or
+  Selected Folder box). On Study Setup the same menu item reads Leave Study Setup… and goes back to the study. The
+  page has a layout of its own (`req/setup/aspects`), loaded with `setup.js`, which attaches Data Management to the shell; its study is the one `?study=`
+  names, its switcher lists the studies' setups. Someone Drive does not let write the root is told so in place of the
+  folders; opened offline, it says it needs the internet and makes no Drive call, and shows the folders once the
+  network is back. The page and what only it loads are left out of the list kept for working offline; no study may
+  be named `setup`. Test: `web-tests/test_setup_page.py`, `web-tests/test_published_site.py`.
+  </details>
+
+- `req/setup/people` Study Setup lists each member and which of the three shares they hold, with a link to each item's Drive sharing dialog.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5; reading a study's sharing is
+  approved). The three shares: reading the root (sees), writing the extractions folder (annotates), writing the root
+  (manages); a person who holds none is not listed. Anyone with the link is said once, beside the people. The
+  links are the Drive sharing forms, `https://drive.google.com/drive/folders/<id>?usp=sharing`, for the root and the
+  extractions folder. Test: `web-tests/test_setup_sharing_page.py`, `web-tests/test_setup_sharing_rules.py`.
+  </details>
+
+- `req/setup/promote` Study Setup promotes the study to the next stage and moves it back; before Review it lists the images whose extractions are newer than their GT, and promoting to Review freezes marking and data.
+  <details>
+
+  Corrected after the walk of 2026-11-25: the line under the stages says what the stage is and, after it, what moves the study on to the
+  next one, as the stage popup does.
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP6). Set by the owner on 2026-11-24: the stage is a
+  progression of the five stages across the top of Study Setup, each in its own colour (Setup red, Develop yellow, Analyze green, Review
+  blue, Public all four), the current one selected, those before it marked done, and what the current one means under it. Promoting is
+  the next stage's own action, "Promote to <stage>" on it ("Promote to Review…" where it asks first), and moving back the one
+  before's, "Move back to <stage>"; the other stages do nothing. Only the owner (whoever may write the root) reaches it, and
+  nothing is measured to suggest either. Each writes the stage into the study file, keeping its other keys, and the page takes it at once: what the
+  stage closes shows (`req/shell/study/stage`) and the sharing is checked again for it (`req/setup/sharing-check`). Before Review a button in the Ground Truth aspect, Find images with newer Analysis Files, lists each
+  image whose GT mark names an extraction that another, unmarked, extraction of the image is newer than, for the owner to look at and mark first;
+  the listing (one extractions listing per GT-marked image) runs on that press and never on opening Study Setup, on a mark or on a stage change
+  (set by the owner on 2026-11-22).
+  Promoting to Review runs it once more first and asks, in a dialog that says marking and data close, what people save afterwards is kept but not counted, and lists
+  those images; Freeze writes Review and Cancel writes nothing. From Review on the GT and official buttons are gone from an image's
+  extractions and every control that changes the study's data is gone (folders, set-up of extractions, previews, tags, descriptions, areas, hide rules, the
+  grouping tag, Needs GT, and the study index is no longer written), while the stage, the sharing and the batch run stay. Moving back reopens them. The main app's Save of a
+  session begun before the freeze still writes the person's extraction, and says it was saved "after the freeze, not counted". Test:
+  `web-tests/test_setup_page.py` with `web-tests/setup_stage_driver.mjs`.
+  </details>
+
+- `req/setup/results` Study Setup's Results box lists one row per image with an official mark, with totals and a CSV, reading nothing until Show results is pressed.
+  <details>
+
+  Corrected after the walk of 2026-11-25: the Algorithm column reads the key of the run as the studies record it. A table read before a mark
+  was made or taken off on the page is taken down when the mark is written, with no read of its own, and Show results reads again.
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP8; reading each image's official extraction on that press alone is
+  approved). Nothing is read on opening Study Setup, on a mark or on a stage change. Pressing Show results reads the study file's marks and
+  then each official mark's extraction, and lists one row per image with an official mark, by image name: the image, the algorithm and the
+  first eight of its code version where a batch run made the extraction, "by hand" where a person's did, and the study's measures, the
+  columns its `study.json` names under `results.measures` (`{title, path}` for a number in the extraction's document, `{title, count}` for
+  the lengths of the lists at those paths added), the totals last (the images and each measure summed). An image with no official mark has no
+  row. Download CSV saves the same rows and totals from the page as a file, asking the network for nothing. Decided by the owner, 2026-11-23: the measures
+  declared for NoR (candidates kept and NoRs added), vascular (branch segments) and shelves (books) count what each extraction's document
+  holds and are not the studies' final numbers; the box shows in every stage. Test: `web-tests/test_setup_page.py` with
+  `web-tests/setup_results_driver.mjs`.
+  </details>
+
+- `req/setup/sharing-check` Study Setup checks the study's Drive sharing against what its stage needs and lists each correction, with what to change, where and pictures; Fix changes one item's sharing only when the owner presses it and confirms.
+  <details>
+
+  Set by the owner on 2026-11-22 (`dev/requirements/study-stages-spec.md`, WP5; changing one item's sharing, only on that
+  correction's Fix press, is approved, 2026-11-21). It checks again on opening, on each promotion or move back, and on a Check
+  again button. What a stage needs: before Review (Setup, Develop, Analyze) the root is shared with named people only,
+  never by link; from Review on it is shared by link; in every stage `Data`, `Previews`, the extractions folder and the
+  study file are readable by link; while people annotate (Setup, Develop, Analyze) at least one person may write the
+  extractions folder. A study whose file names none of the five stages is in the one its `study.json` names (`req/shell/study/stage`).
+  Each correction names the item, what to change, a link to that item's sharing dialog and a picture of Drive's own
+  dialog; one the site can make has a **Fix** button, which asks to confirm what will change, makes that one change
+  and checks again; Cancel writes nothing. Nothing else changes sharing: not opening the page, not a promotion, not
+  Check again. Where Drive refuses the change (403), that correction drops its Fix, keeps its link and picture, and
+  says to change it there. A correction for an item whose sharing this account may not read has no Fix,
+  only the link; the owner of the extractions folder counts as someone who may write it; an `anyone`-with-the-link edit
+  permission on an item is wrong sharing, not a writer: it has its own correction, whose Fix (after its confirmation, like any other)
+  takes off that one permission, and a link that only reads is then offered by its own correction (owner, 2026-11-23). Test: `web-tests/test_setup_sharing_page.py` (the fake
+  Drive's permissions seeded per case, each rule, Fix, Cancel, Drive refusing), `web-tests/test_setup_sharing_rules.py`
+  (the rules per stage).
   </details>
 
 ## `req/checks` The repo's checks
@@ -2091,16 +2550,15 @@ nobody has decided: what the page does there is not a requirement yet.
   its page reaches off the site. The shell's paths
   open the study the file names, the fixture; a study's own paths open it, on the shell's tree with its own elements
   alone grafted in. Each element gives only what differs from its parent: cases over the state (the
-  study's stage, who is signed in, the role, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
+  study's stage, who is signed in, whether the store lets them save, whether they are annotating and by which route, whether this device holds a draft, whether Study Setup is open, the image open and whether it is a z-stack, the study's step done, the view, what Data Management
   has selected, whether the page is online, whether the image fits the view, whether it is larger than the view,
   whether a notice shows, and what the study says of itself in its
   `study.json` and panels: whether it opens images from the computer, has steps after Load, and has an item view,
   `req/shell/views/second`), each citing the requirement that decides it and marked tentative or undecided where the owner has
-  not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage and a
-  role) and take actions one after another, each state one more action on the one before: loading an image, one
-  larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, a role chosen
-  (to or from Ground Truth Tagger the study opens afresh), another study and Back, the notice's OK, zooming in until
-  the image no longer fits, Data Management's folder, preview and Load Original, and
+  not decided (an undecided case is shown and not checked). Its paths start from a few roots (a study's stage, who is signed in and whether they may save) and take actions one after another, each state one more action on the one before: loading an image, one
+  larger than the view, a z-stack or a file from the study's Drive folder, Unload, the study's first step, the view switched, how to annotate chosen
+  (from scratch, from the work kept here, from an annotation of Drive, the study opening afresh in annotation mode), a draft saved, Study Setup opened and left (the page opening afresh), another study and Back, the notice's OK, zooming in until
+  the image no longer fits, Study Setup's folder, preview and Load Original, and
   the network lost and back.
   `dev/tools/build/shell_states.py` writes from it the matrix, `dev/requirements/shell-states.GENERATED.md`, one table
   per path, and the browser test's expectations. It fails on what the walk would leave unchecked: a case no state
@@ -2117,7 +2575,7 @@ nobody has decided: what the page does there is not a requirement yet.
   opening the image, or the z-stack a path loads, and the study's own Python answering its calls once it takes its
   first step, signed in as an account the study is shown to, and at every state, the study's calls answered, reads each element as shown,
   disabled, held offline, folded or gone. After its last state, back online first, the first path of each study and
-  role goes to another study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
+  root goes to another study and back (`req/shell/study/switch-in-place`), and the page in each must be what a fresh load of that address
   shows in the same browser: the whole page read element by element and the shell's own state, leaving out what
   changes between two readings of the same page (the status bar's measures of the tab, the browser's mark on what is
   scrolled out of view, an attribute left empty, the order of a class list); every difference is listed before it fails. Test: `web-tests/test_shell_states.py`,

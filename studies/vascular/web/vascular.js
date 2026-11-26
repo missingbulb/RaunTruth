@@ -31,20 +31,19 @@ export function mount(shell) {
     shell.call("run", { algorithm: a.key, source: shell.state.fileName, z_step: zStep });
   };
 
-  // ---------- the status bar's steps, and the Processing box's title ----------
+  // ---------- the study's steps ----------
   function steps() {
-    const m = MV.current(), a = algorithms.find((x) => x.key === ran);
-    shell.step("find", !!m && (!ran || ran === shell.algorithm.key), m ? (a ? `${a.title}: ${m.segments.length} segments` : `${m.segments.length} segments`) : "");
-    shell.boxDone($("#model-set"), m ? (a ? `${a.title} executed` : "Model loaded") : null);
-    const open = truth && tasks.open(), left = (open || []).filter((t) => !t.ok).map((t) => t.text + ".");
-    shell.step("review", !!m && (!truth || (!!open && !left.length)), left.join(" ") || "Every task is done.");
+    const m = MV.current();
+    shell.step("find", !!m && (!ran || ran === shell.algorithm.key));
+    const open = truth && tasks.open();
+    shell.step("review", !!m && (!truth || (!!open && open.every((t) => t.ok))));
   }
   MV.onChange((m) => { if (truth) shell.tasks.ready(!!m); else summary.changed(); if (!m) ran = null; steps(); });
 
   function submit() {
     const gt = MV.truth();
     if (!gt) return;
-    shell.submitTruth({ count: gt.edits, file: gt.file, items: truth ? tasks.open() : gt.items,
+    shell.submitTruth({ count: gt.edits, items: truth ? tasks.open() : gt.items,
       empty: "Correct the model first: approve or decline a vessel, judge a junction, do an area or draw a missed vessel." });
   }
   // a stack already open when the study comes in (a switch from another study)
@@ -57,7 +56,7 @@ export function mount(shell) {
   return {
     order,
     opening() { ran = null; MV.stackOpened(); canRun(); },
-    opened() { canRun(); shell.status("Stack loaded. Press Execute to draw its vessel model."); },
+    opened() { canRun(); shell.status(truth ? "Stack loaded. Press Execute to draw its vessel model." : "Stack loaded. Press Start to draw its vessel model."); },
     result(action, meta) {
       if (action !== "run") return;
       shell.busy(false);

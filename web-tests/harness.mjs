@@ -38,6 +38,11 @@ export const pw = (() => {
 })();
 
 const unexpected = [];
+// Each message as it is said, {line, expected}, to whoever listens besides the run's own record: a driver keeping its
+// own account of what came when (explore/).
+//   const stop = listen(({ line, expected }) => ...);
+const hearers = new Set();
+export const listen = (hear) => { hearers.add(hear); return () => hearers.delete(hear); };
 // the patterns declared by the cases running now, each with how many messages it matched
 const declared = new Set();
 // Expected in every run, the one message no test or page can avoid: with no GPU, headless Chromium composites in
@@ -70,8 +75,10 @@ function note(line) {
 function said(kind, text, where, among = declared, excused = "") {
   const line = `${kind}: ${text}${where ? ` (${where})` : ""}`;
   note(excused ? `${line} [${excused}]` : line);
-  for (const d of among) if (d.pattern.test(line)) { d.seen++; return; }
-  if (excused) return;
+  const d = [...among].find((d) => d.pattern.test(line));
+  if (d) d.seen++;
+  for (const hear of hearers) hear({ line, expected: !!(d || excused) });
+  if (d || excused) return;
   unexpected.push(line);
   // as it comes, among the test's own lines, so the case it came in is plain
   console.log("not expected: " + line);
@@ -119,10 +126,23 @@ function heard(m) {
 // the requests a page sent while its context was offline, until each is answered or fails: the browser may report
 // such a failure only once the network is back, and the case that took it away still answers for it
 const sentOffline = new WeakSet(), awayAnswered = new Map();
-const sentAway = (q) => { sentOffline.add(q); let ok; awayAnswered.set(q, { done: new Promise((r) => { ok = r; }), ok }); };
+const sentAway = (q, ctx) => { sentOffline.add(q); let ok; awayAnswered.set(q, { done: new Promise((r) => { ok = r; }), ok, ctx }); };
 const awayEnded = (q) => { awayAnswered.get(q)?.ok(); awayAnswered.delete(q); };
-const awayHeard = () => Promise.all([...awayAnswered.values()].map((a) => Promise.race([a.done,
-  new Promise((ok) => setTimeout(ok, STEP).unref())]))); // bounds a hang: a request the browser never ends
+// a context gone takes its unanswered requests with it: the browser reports nothing more of them, and one left here
+// would hold every later close for its whole wait
+const awayGone = (ctx) => { for (const [q, a] of awayAnswered) if (a.ctx === ctx) awayEnded(q); };
+// each request sent offline answered or failed, and its page given a turn after it: what the page says of a failure
+// (and a retry it sends) comes a task later than the failure itself. One the browser never ends is waited for once.
+const awayHeard = async () => {
+  for (let round = 0; awayAnswered.size && round < 5; round++) {
+    const waiting = [...awayAnswered];
+    await Promise.all(waiting.map(([, a]) => Promise.race([a.done,
+      new Promise((ok) => setTimeout(ok, STEP).unref())]))); // bounds a hang: a request the browser never ends
+    for (const [q] of waiting) awayAnswered.delete(q);
+    const pages = [...new Set(waiting.map(([, a]) => a.ctx))].flatMap((c) => c.pages());
+    for (let turn = 0; turn < 2; turn++) await Promise.all(pages.map((p) => p.evaluate(() => 0).catch(() => {})));
+  }
+};
 // every message heard so far, said: a case's declaration waits for these before it ends
 const allHeard = () => awayHeard().then(() => Promise.all([...reading].map((e) => e.done)));
 // a browser or context closes only once what its pages said has been read from them
@@ -246,7 +266,8 @@ async function install(ctx, world, outside) {
     said("uncaught", error?.stack && !message.includes(error.stack) ? `${message}\n${error.stack}` : message, e.page()?.url(), declared,
       CUT?.test(message) && e.page() && leaving.has(e.page()) ? "as its page was left" : "");
   });
-  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); if (offlineNow.has(ctx)) sentAway(q); });
+  ctx.on("request", (q) => { if (byWorker(q)) workerAsked.add(q.url()); if (offlineNow.has(ctx)) sentAway(q, ctx); });
+  ctx.on("close", () => awayGone(ctx));
   ctx.on("requestfinished", awayEnded);
   ctx.on("requestfailed", (q) => {
     awayEnded(q);
@@ -296,14 +317,17 @@ export async function launch(pw, options = {}) {
 // a browser's Google, before any of its contexts opens: {drive, signIn}, the fakes' own (fakes/google_drive.mjs,
 // fakes/google_sign_in.mjs)
 const worlds = new WeakMap();
+// the outside systems' state a browser's contexts share (world.mjs says it in a test's terms)
+export const worldOf = (browser) => worlds.get(browser);
 export const googleOf = (browser) => ({ drive: driveIn(worlds.get(browser)), signIn: signInIn(worlds.get(browser)) });
 export const siteOf = (browser) => ({ settings: settingsIn(worlds.get(browser)), studies: studiesIn(worlds.get(browser)) });
 
 // Playwright's WebKit empties the cache storage of a throwaway context on every reload, where Safari keeps it, so a
-// test of what the page keeps on this device needs a profile of its own
-export const keptContext = async (pw, options) => {
+// test of what the page keeps on this device needs a profile of its own; world: the outside systems it shares, a world
+// of its own unless given one (world.mjs gives its own)
+export const keptContext = async (pw, options, world = {}) => {
   const outside = await opening();
-  return install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...launching(options), ...outside.contextOptions }), {}, outside);
+  return install(await pw[ENGINE].launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "kept-")), { ...launching(options), ...outside.contextOptions }), world, outside);
 };
 
 // What the browser and the page say of a request the network does not carry, offline: the browser's line for the

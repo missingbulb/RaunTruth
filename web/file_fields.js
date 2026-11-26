@@ -1,11 +1,13 @@
 // What an image file says about itself, read from its own bytes with no decoding of its pixels
 // (req/shell/image/file-info): a TIFF's tags and ImageJ header, a photo's EXIF, JFIF and XMP, a HEIC's container, a
-// PNG's chunks. Each field is [label, text]; binary blobs (a maker note, a profile's bytes, a thumbnail, a list of more
-// than MOST values) are left out.
+// PNG's chunks. Each field is [label, text]; a binary blob (a maker note, a profile's bytes) is named, with BLOB for
+// its text, and a list of more than MOST values with how many it holds.
 "use strict";
 import { ifdAt } from "./tiff_file.js";
 
 const MOST = 16, LONGEST = 500;
+// what stands for a value that is bytes
+export const BLOB = "base64…";
 
 // {format: "tiff" | "heic" | "jpeg" | "png" | "image", fields, facts: {camera?, taken?, bits?}}
 export function fileFields(b) {
@@ -45,6 +47,7 @@ const TAGS = {
   0xa430: "CameraOwnerName", 0xa431: "BodySerialNumber", 0xa432: "LensSpecification", 0xa433: "LensMake",
   0xa434: "LensModel", 0xa435: "LensSerialNumber", 0xa460: "CompositeImage", 0xa461: "CompositeImageCount",
   0xa462: "CompositeImageExposureTimes", 0x8769: "ExifIFD", 0x8825: "GPSIFD", 0xa005: "InteropIFD",
+  0x927c: "MakerNote", 0x8773: "ICCProfile", 0x02bc: "XMLPacket", 0x83bb: "IPTC", 50839: "ImageJMetaData",
 };
 const GPS_TAGS = ["GPSVersionID", "GPSLatitudeRef", "GPSLatitude", "GPSLongitudeRef", "GPSLongitude", "GPSAltitudeRef",
   "GPSAltitude", "GPSTimeStamp", "GPSSatellites", "GPSStatus", "GPSMeasureMode", "GPSDOP", "GPSSpeedRef", "GPSSpeed",
@@ -52,23 +55,25 @@ const GPS_TAGS = ["GPSVersionID", "GPSLatitudeRef", "GPSLatitude", "GPSLongitude
   "GPSDestLongitudeRef", "GPSDestLongitude", "GPSDestBearingRef", "GPSDestBearing", "GPSDestDistanceRef", "GPSDestDistance",
   "GPSProcessingMethod", "GPSAreaInformation", "GPSDateStamp", "GPSDifferential", "GPSHPositioningError"];
 const INTEROP_TAGS = { 1: "InteroperabilityIndex", 2: "InteroperabilityVersion" };
-// tags that hold where other data lies, or a blob: the pixels' offsets, the maker's own block, a profile, XMP, IPTC,
-// ImageJ's binary metadata, a thumbnail's bytes
-const SKIP = new Set([0x0111, 0x0117, 0x0144, 0x0145, 0x0201, 0x0202, 0x927c, 0x8773, 0x02bc, 0x83bb, 50838, 50839, 0x014a, 0x8769, 0x8825, 0xa005]);
+// tags that hold only where other data lies: the pixels' offsets and sizes, a thumbnail's, the IFDs under this one
+const SKIP = new Set([0x0111, 0x0117, 0x0144, 0x0145, 0x0201, 0x0202, 50838, 0x014a, 0x8769, 0x8825, 0xa005]);
+// tags whose value is bytes, whatever type the file gives them
+const BYTES = new Set([0x927c, 0x8773, 0x02bc, 0x83bb, 50839]);
 
 // a rational as its fraction where that is how it is read (1/8 s), else as a short decimal
 const ratio = ([n, d], fraction) => (!d ? String(n) : d === 1 ? String(n) : fraction && n > 0 && n < d && d % n === 0 ? `1/${d / n}` : String(+(n / d).toPrecision(6)));
 const printable = (u) => u.every((c) => c === 0 || (c >= 32 && c < 127));
 
-// a tag's text; null for a blob
+// a tag's text
 function text(tag, val) {
+  if (BYTES.has(tag)) return BLOB;
   if (typeof val === "string") { const t = val.trim(); return t.length > LONGEST ? t.slice(0, LONGEST) + "…" : t; }
   if (val instanceof Uint8Array) {
     if (tag === 0x9286 && val.length > 8 && String.fromCharCode(...val.subarray(0, 5)) === "ASCII") val = val.subarray(8);
     if (val.length <= 64 && printable([...val]) && val.some((c) => c >= 32)) return String.fromCharCode(...val).replace(/\0+$/, "").trim();
-    return val.length <= 8 ? [...val].join(", ") : null;
+    return val.length <= 8 ? [...val].join(", ") : BLOB;
   }
-  if (val.length > MOST) return null;
+  if (val.length > MOST) return `${val.length} values…`;
   const seconds = tag === 0x829a;
   return val.map((x) => (Array.isArray(x) ? ratio(x, seconds) : seconds && x > 0 && x < 1 && Number.isInteger(+(1 / x).toFixed(6)) ? `1/${Math.round(1 / x)}`
     : String(Number.isInteger(x) ? x : +x.toPrecision(6)))).join(", ");
@@ -82,7 +87,7 @@ function exifFields(v, at, little, skip = new Set()) {
       const tag = +k;
       if (SKIP.has(tag) || skip.has(tag)) continue;
       const t = text(tag, val), name = names[tag];
-      if (t !== null && t !== "") { fields.push([name || `Tag 0x${tag.toString(16).padStart(4, "0")}`, t]); all[name] = t; }
+      if (t !== "") { fields.push([name || `Tag 0x${tag.toString(16).padStart(4, "0")}`, t]); all[name] = t; }
     }
   };
   const ifd0 = ifdAt(v, at, little);

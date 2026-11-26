@@ -1,9 +1,10 @@
 // Drives the Edit History window (req/shell/ground-truth/history, req/shell/ground-truth/clear) in headless Chromium on the
-// fixture study, against the stand-in Google of stand_in_drive.mjs, as a Ground Truth Tagger: where it floats and how big it
+// fixture study, against the stand-in Google of stand_in_drive.mjs, annotating: where it floats and how big it
 // is, its rows (newest on top, the current one dotted, undone ones above it), a click on a row, folded runs, a day rule, a
 // long list drawn by what is in view, a hover's ring and a click's pan, its switch, Clear all history and a draft whose
 // history did not replay. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/gt_history_window_driver.mjs ANSWERS STUDIES ROOT
+import { fromScratch } from "./annotating.mjs";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { until } from "./page_until.mjs";
@@ -16,7 +17,7 @@ const drive = await standIn({ answers, studies, rootDir });
 const { FILES, GT, open, check, done } = drive;
 const png = FILES.find((f) => /\.png$/.test(f.name));
 const sha = createHash("sha256").update(png.bytes).digest("hex");
-const { tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
+const { openImage, tagger, openKept, model, marks, counted, label, dragMark, moved, records, ask } = kit({ drive, png });
 
 const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#eh-list > li")].map((li) => ({ cls: li.className, text: li.querySelector(".what")?.textContent ?? li.textContent, when: li.querySelector(".when")?.textContent ?? "", go: li.dataset.go ?? null })));
 const real = (rows) => rows.filter((r) => !/\b(day|spacer)\b/.test(r.cls));
@@ -31,17 +32,18 @@ const draft = (actions, doc) => ({ study: "fixture", sha256: sha, name: png.name
 const yesterday = (h, m, s = 0) => { const d = new Date(); d.setDate(d.getDate() - 1); d.setHours(h, m, s, 0); return d.toISOString(); };
 const head = (at) => [{ type: "open", at, image: { name: png.name, sha256: sha, width: 80, height: 60 }, study: "fixture" },
   { type: "run", at, algorithm: { key: "fixture", params: { threshold: 128 } }, output: { threshold: 128, count: 400, spots: [[27, 27], [60, 37]] } }];
-const loaded = async (page) => { await until(page, () => !$("#gt-offers").hidden); await page.click("#gt-load-draft"); await until(page, () => !!window.fixture.model()); };
+const loaded = async (page) => { await until(page, () => !$("#gt-offers").hidden); await page.click("#gt-load-draft"); await until(page, () => $("#gt-offers").hidden && !!window.fixture.model()); };
 
 // where it floats and how big it is
 let page = await open(true);
-await tagger(page);
-await check(await page.isHidden("#edit-history"), "before Count there is no run, and the window is not shown");
+await openImage(page);
+await check(await page.isHidden("#edit-history") && await page.isHidden("#history-btn"), "before an analysis starts there is no run: the window is not shown, nor its button");
+await fromScratch(page, "#fx-count");
 await counted(page);
 await settle(page);
 await check(await page.isVisible("#edit-history"), "once the image has a run it is shown");
 const [saveBtn, submitBtn] = [await box(page, "#gt-save-draft"), await box(page, "#gt-submit")];
-await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Submit Ground Truth, each on one line", { saveBtn, submitBtn });
+await check(saveBtn.r <= submitBtn.l && Math.abs(submitBtn.h - saveBtn.h) < 1 && Math.abs(submitBtn.t - saveBtn.t) < 1, "Save Draft sits beside Save, each on one line", { saveBtn, submitBtn });
 const geo = async () => {
   const [w, v, vars] = [await box(page, "#edit-history"), await box(page, "#image-view"), await page.evaluate(() => { const c = getComputedStyle(document.documentElement); return parseFloat(c.getPropertyValue("--mm-width")); })];
   return { right: v.r - w.r, bottom: v.b - w.b, w: w.w, h: w.h, expectW: vars * 1.4, expectH: Math.min((vars + 24) * 2.5, v.b - v.t - 24) };
@@ -184,21 +186,27 @@ await until(page, () => { const s = document.querySelector("#scroller"), b = doc
 await check(true, "a click on its row pans to it");
 await page.context().close();
 
-// the switch: unticked it hides the window and is remembered; ✕ hides it and unticks the box
+// the switch, a button in the toolbar beside the minimap's: pressed while the window shows; pressing it hides the window and is
+// remembered; ✕ hides it and lets the button up
 page = await open(true);
 await tagger(page);
 await counted(page);
-await page.click("#gt-history-on");
+const pressed = () => page.getAttribute("#history-btn", "aria-pressed");
+const place = await page.evaluate(() => ({ toolbar: !!$("#history-btn").closest("#view > .toolbar"), tool: $("#history-btn").classList.contains("tool"), icon: !!$("#history-btn svg") && !$("#history-btn").textContent.replace(/[123\s]/g, ""),
+  afterMinimap: !!($("#minimap-btn").compareDocumentPosition($("#history-btn")) & Node.DOCUMENT_POSITION_FOLLOWING), box: !!document.querySelector("#left input[type=checkbox]#gt-history-on") }));
+await check(place.toolbar && place.tool && place.icon && place.afterMinimap && !place.box && await pressed() === "true",
+  "Edit History's switch is an icon button among the toolbar's tools, after the minimap's, pressed while the window shows; the left bar has no checkbox for it", place);
+await page.click("#history-btn");
 const off = await page.evaluate(() => localStorage.getItem("nor-gt-history"));
-await check(await page.isHidden("#edit-history") && off === '"off"', "Show Edit History unticked hides the window, and is kept in the browser", off);
+await check(await page.isHidden("#edit-history") && off === '"off"' && await pressed() === "false", "pressed again it hides the window, lets the button up, and is kept in the browser", off);
 await page.context().close();
 page = await openKept({ seed: { "nor-gt-history": off } });
 await page.evaluate(() => $("#fx-count").click()); await until(page, () => !!window.fixture.model());
-await check(await page.isHidden("#edit-history") && !(await page.isChecked("#gt-history-on")), "a page opened with it kept off opens with the window hidden and the box unticked");
-await page.click("#gt-history-on");
-await check(await page.isVisible("#edit-history"), "ticked again, the window shows");
+await check(await page.isHidden("#edit-history") && await pressed() === "false", "a page opened with it kept off opens with the window hidden and the button up");
+await page.click("#history-btn");
+await check(await page.isVisible("#edit-history") && await pressed() === "true", "pressed, the window shows");
 await page.click("#eh-close");
-await check(await page.isHidden("#edit-history") && !(await page.isChecked("#gt-history-on")) && (await page.evaluate(() => localStorage.getItem("nor-gt-history"))) === '"off"', "its ✕ hides it, unticks the box and is remembered");
+await check(await page.isHidden("#edit-history") && await pressed() === "false" && (await page.evaluate(() => localStorage.getItem("nor-gt-history"))) === '"off"', "its ✕ hides it, lets the button up and is remembered");
 await page.context().close();
 
 // Clear all history: asks, naming the image, forgets the draft and goes back to the run

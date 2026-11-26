@@ -12,11 +12,10 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { localStudy } from "./local_study.mjs";
 import { pw, launch } from "./harness.mjs";
+import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 
 const [answers, image, studies, shots] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,7 +38,8 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
+w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#view").screenshot({ path: path.join(shots, name + ".png") }); };
@@ -71,17 +71,7 @@ const placed = (page, seen) => page.evaluate((seen) => {
 const openPop = async (page) => { await page.hover("#grid-btn"); await page.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")); };
 const closePop = async (page) => { await page.mouse.move(700, 600); await page.keyboard.press("Escape"); await page.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")); };
 
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-
-await localStudy(ctx, "fixture");
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
-const start = async () => {
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-};
-await start();
+const page = await w.device().opens("fixture");
 
 // a pixel 0.2 µm wide and 0.5 µm tall: 10 µm is 50 pixels across and 20 down
 await load(page, [0.2, 0.5]);
@@ -128,7 +118,9 @@ await page.click("#grid-btn"); await closePop(page);
 await check(await grid(page) === null && await page.getAttribute("#grid-btn", "aria-pressed") === "false", "the button again takes the grid away");
 
 // the choices outlive a reload
-await start(); await load(page, [0.2, 0.5]);
+await page.goto(origin + "/web/fixture");
+await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+await load(page, [0.2, 0.5]);
 await page.click("#grid-btn");
 g = await grid(page); p = await pop(page);
 await check(g.w === 25 && g.colour === "#00ff00" && p.spacing === "5" && p.colour === "#00ff00", "the colour and spacing are kept for the next visit", { g, p });
@@ -140,12 +132,9 @@ await check(listed.some((t) => t.includes("Grid colour and spacing")), "Settings
 
 // a browser without interest invokers: the page's own hover opens and closes the popup, in the same place
 {
-  const old = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-  await localStudy(old, "fixture");
-  await old.addInitScript(() => { delete Navigator.prototype.serviceWorker; delete HTMLButtonElement.prototype.interestForElement; });
-  const p2 = await old.newPage();
-  await p2.goto(origin + "/web/fixture");
-  await p2.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  const old = w.device();
+  await (await old.context()).addInitScript(() => { delete HTMLButtonElement.prototype.interestForElement; });
+  const p2 = await old.opens("fixture");
   await load(p2, [0.2, 0.5]);
   await check(!(await p2.evaluate(() => $("#grid-btn").hasAttribute("interestfor"))), "without interest invokers the button carries none");
   await p2.hover("#grid-btn");

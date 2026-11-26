@@ -7,7 +7,7 @@ import * as N from "./gt_actions.js";
 import { oldMarks, OLD_KEYS } from "./old_marks.js";
 
 export function mount(shell) {
-  const { $, status, busy, slow, until, readJSON, writeJSON, saveFile } = shell, st = shell.state;
+  const { $, status, busy, slow, until, readJSON, writeJSON } = shell, st = shell.state;
   // a listener outside the study's own panels lasts only while the study is on show
   const here = { signal: shell.signal };
   const SVGNS = "http://www.w3.org/2000/svg";
@@ -322,7 +322,6 @@ export function mount(shell) {
     const f = st.um || 1, m = measuresPx(c);
     return MEASURES.map(([k, label, scaled]) => [label + (scaled ? ` (${unitName()})` : ""), m[k] == null ? null : scaled ? m[k] * f : m[k]]);
   }
-  const measured = (c) => { if (c.added) return "adjusted"; const e = st.edits.get(c.i) || {}; return e.length || e.red || e.width ? "adjusted" : e.approved ? "approved" : null; };
 
   // ---------- Find Candidates ----------
   const runKey = () => shell.algorithm.key;
@@ -331,16 +330,12 @@ export function mount(shell) {
     $("#find").disabled = !st.img || !!st.running;
     steps();
   }
-  // the study's steps in the status bar: Run algorithm is done while the image was searched with the finder now
-  // chosen (Find Candidates shines until then), Review all items while the Submit Ground Truth button
-  // says the ground truth is complete, so the crumb never moves on while the button says it cannot
+  // the study's steps: Run algorithm is done while the image was searched with the finder now chosen (Find Candidates
+  // shines until then), Review all items while the Upload button says the analysis is complete
   function steps() {
-    const ran = !!st.meta && runKey() === st.lastRun, finalists = (st.passes || []).filter((c) => !c.added);
-    const name = shell.algorithm.title;
-    shell.step("find", ran, ran ? `${name}: ${st.order.length} candidates, ${finalists.length} finalists` : st.lastRun ? "The finder changed since the last run." : "");
-    shell.boxDone($("#finder-box"), ran ? `${name} executed` : null);
-    const gt = gtState(), left = gt.items.filter((t) => t.grade && !t.ok).map((t) => t.text + ".");
-    shell.step("review", ran && gt.state === "done", left.length ? left.join(" ") : "Every finalist has your verdict.");
+    const ran = !!st.meta && runKey() === st.lastRun;
+    shell.step("find", ran);
+    shell.step("review", ran && gtState().state === "done");
   }
 
   // ---------- drawing ----------
@@ -613,24 +608,20 @@ export function mount(shell) {
   }
 
   // ---------- downloads ----------
+  // whether the user set a candidate's lengths, or approved the finder's
+  const measured = (c) => { if (c.added) return "adjusted"; const e = st.edits.get(c.i) || {}; return e.length || e.red || e.width ? "adjusted" : e.approved ? "approved" : null; };
+  // the candidates inside the mask as a table, the added ones first, which the shell's Download Analysis offers as a CSV
+  function candidatesTable() {
+    return { key: "candidates", label: "Candidates (CSV)", suffix: "_candidates.csv",
+      head: () => ["n", "x_px", "y_px", "decision", "lengths", ...MEASURES.map(([k, , s]) => (s ? `${k}_${st.um ? "um" : "px"}` : k))],
+      rows: () => [...addedCands(), ...st.order].filter(inMask).map((c) => [numOf(c), fmt(c.cx, 1), fmt(c.cy, 1),
+        { in: "approved", out: "rejected by you" }[verdictOf(c)] || (c.added ? "added by you" : ""), measured(c) || "", ...measures(c).map(([, v]) => fmt(v, 3))]) };
+  }
   function downloads(on) {
-    $("#dl-cands").disabled = !on || !st.meta;
     if (!on) shell.summary.set(null);
+    shell.tables.set(on ? [candidatesTable()] : null);
     gtButton();
   }
-  const base = () => st.fileName.replace(/\.[^.]+$/, "") || "nors";
-  const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v);
-  const csv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\n");
-  $("#dl-cands").onclick = () => {
-    const u = st.um ? "um" : "px";
-    const head = ["n", "x_px", "y_px", "decision", "lengths", ...MEASURES.map(([k, , s]) => (s ? `${k}_${u}` : k))];
-    const rows = [...addedCands(), ...st.order].filter(inMask).map((c) => {
-      const f = verdictOf(c);
-      return [numOf(c), fmt(c.cx, 1), fmt(c.cy, 1), { in: "approved", out: "rejected by you" }[f] || (c.added ? "added by you" : ""), measured(c) || "",
-        ...measures(c).map(([, v]) => fmt(v, 3))];
-    });
-    saveFile(base() + "_candidates.csv", csv([head, ...rows]), "text/csv");
-  };
   // How finished the user's ground truth is, as a checklist of every issue it can have, each resolved or not
   // (the graded ones set the button's state):
   // "done" when every finalist has a verdict, "part" when some candidates have one but a finalist does not,
@@ -644,9 +635,9 @@ export function mount(shell) {
     const items = [
       st.added.length && { level: "error", grade: true, ok: !waiting, text: waiting ? `Approve or reject the ${waiting} NoR${s(waiting)} you added` : "Approve or reject the NoRs you added" },
       { level: "error", grade: true, ok: voted > 0, text: "Vote on at least one candidate" },
-      { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be exported` : "Vote on every finalist" },
+      { level: "warn", grade: true, ok: voted > 0 && !open, text: open ? `Vote on every finalist: ${open} of ${finalists.length} have no vote and won't be uploaded` : "Vote on every finalist" },
       TRUTH && { level: "warn", grade: true, ok: st.areas.size === areaCount(), text: st.areas.size === areaCount() ? "Check every area for missed NoRs" : `Check every area for missed NoRs: ${areaCount() - st.areas.size} of ${areaCount()} left` },
-      { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be submitted` },
+      { level: "warn", ok: !local, text: `Only images from ${shell.remote.label} can be uploaded` },
     ].filter(Boolean);
     return { state: !voted || waiting ? "todo" : open || (TRUTH && st.areas.size < areaCount()) ? "part" : "done", items };
   }
@@ -663,7 +654,7 @@ export function mount(shell) {
   // is only listed.
   const submit = () => {
     const m = shell.gt.model(), count = m ? m.cands.filter((c) => c.approved).length + m.deleted.length + m.added.filter((a) => a.approved).length : 0;
-    shell.submitTruth({ count, file: base() + "_ground_truth.json", items: gtState().items,
+    shell.submitTruth({ count, items: gtState().items,
       empty: "Vote on candidates with the thumbs, or right-click the image to add a NoR the finder missed." });
   };
 
@@ -780,17 +771,17 @@ export function mount(shell) {
     shell.viewer.doneMask(holes.map(([x, y, width, height]) => [[x, y], [x + width, y], [x + width, y + height], [x, y + height]]));
   }
   // the keys (req/nor/truth/keys, req/shell/image/keys), wired by the shell from study.json's actions: it presses the
-  // open item's buttons itself; the Show menu's views are switched here, and the states the keys wait on told as
-  // they change
-  const VIEW_KEYS = { "show-pass": "show-gt-pass", "show-added": "show-gt-added", "show-cut": "show-gt-cut", "show-frame": "show-gt-frame" };
-  shell.actions.handle(Object.fromEntries(Object.entries(VIEW_KEYS).map(([a, id]) => [a, (phase) => {
+  // open item's buttons itself; the one view the image's bottom left offers, the NoRs over it shown or
+  // not, is switched here, and the states the keys wait on told as they change
+  shell.actions.handle({ "show-nors": (phase) => {
     if (phase === "up") return;
-    const b = $("#" + id); b.checked = !b.checked; b.oninput();
-  }])));
+    const on = !(st.show.gtPass || st.show.gtAdded);
+    for (const id of ["#show-gt-pass", "#show-gt-added"]) { const b = $(id); if (b.checked !== on) { b.checked = on; b.oninput(); } }
+  } });
   function tellKeys() {
     const v = st.show || {};
     shell.actions.report({ tagging: tagging(), step: !!st.cur, views: TRUTH && !!st.meta,
-      gtPass: v.gtPass, gtAdded: v.gtAdded, gtCut: v.gtCut, gtFrame: v.gtFrame });
+      gtNors: v.gtPass || v.gtAdded });
   }
   function renderTasks() {
     if (!TRUTH) return;
@@ -830,7 +821,20 @@ export function mount(shell) {
     if (was && fresh && was.dataset.i !== fresh.dataset.i) slideIn(was, fresh, st.taskDir || 1);
     st.taskDir = 0;
     drawReveal();
+    drawAreaMap(ready);
     tellKeys();
+  }
+  // the areas on the minimap (req/nor/truth/order): each done, begun or not started, the walk's own marked; a click
+  // opens one at its first step not done, else at its check
+  function drawAreaMap(ready) {
+    if (!ready) return shell.viewer.areaMap(null);
+    const w = walk(), by = new Map();
+    for (const x of w) by.set(x.a, [...(by.get(x.a) || []), x]);
+    shell.viewer.areaMap({ n: AREAS.count(), now: st.area, state(a) {
+      const steps = by.get(a), did = steps.filter((x) => x.done).length;
+      return { mark: did === steps.length ? "done" : did ? "part" : "",
+        title: `Area ${a + 1}: ${did === steps.length ? "done" : did ? `${did} of ${steps.length} steps done` : "not started"}` };
+    }, pick(a) { const steps = by.get(a); goStep(steps.find((x) => !x.done) || steps.at(-1)); } });
   }
   // the next item's card slides in over the last one's, which slides out the other way
   function slideIn(was, fresh, dir) {
@@ -960,7 +964,7 @@ export function mount(shell) {
   window.nor = { taskItems, walk, goTo, focusOn, model: () => shell.gt.model(), document: () => shell.gt.document(), imageInfo, candOf, addedCands, linesOf, showView, decide, numOf, result, summaryRows, inMask, fmt, card };
 
   // the buttons whose action can take a while on a slow computer
-  for (const id of ["#find", "#dl-cands"]) slow($(id));
+  slow($("#find"));
 
   // the file's channels in the study's order, Nav, Caspr, DAPI (data/README.md): Caspr the one the file displays
   // green, DAPI the other with the larger blobs, Nav the rest; none for a file not shaped so
@@ -1012,7 +1016,7 @@ export function mount(shell) {
     },
     opened() {
       updateFind(); drawAdded();
-      status("Image loaded. Press Find Candidates.");
+      status(TRUTH ? "Image loaded. Press Find Candidates." : "Image loaded. Press Start.");
     },
     result(action, meta, bytes) {
       if (action === "run") {

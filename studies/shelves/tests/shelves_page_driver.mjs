@@ -11,19 +11,21 @@
 // req/shell/waiting/visible (the light sweeping the photo while the study works). The real
 // engines' readings are test_reading.py's. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/shelves/tests/shelves_page_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "../../../web-tests/tagger.mjs";
+import { TAGGER } from "../../../web-tests/tagger.mjs";
+import { world } from "../../../web-tests/world.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
 import { until, orMissed } from "../../../web-tests/page_until.mjs";
-import { pw, launch, expecting, check, siteOf } from "../../../web-tests/harness.mjs";
+import { pw, launch, expecting, check } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
-import { storedDrafts, seedDrafts } from "../../../web-tests/device_storage.mjs";
+import { storedDrafts } from "../../../web-tests/device_storage.mjs";
 
 const repo = path.resolve(import.meta.dirname, "..", "..", ".."), [studies] = process.argv.slice(2);
 const W = 400, H = 300;
@@ -80,28 +82,27 @@ const { origin, server } = await serveSite({
   "/web/vendor/wheels.json": "[]",
   "/web/studies.json": { file: studies },
 });
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
 // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-siteOf(browser).studies.edit("shelves", (m) => ({ ...m, visibility: { accounts: ["tagger@acme.example"] } }));
+w.studies.shownTo("shelves", TAGGER);
+w.site.withGoogle();
+const tagger = w.user(TAGGER).named("Acme Tagger").annotates("shelves");
 let failed = false;
 
 const PNG = noisePng(W, H);
 async function load(page, name = "shelf.png", png = PNG) {
   await page.setInputFiles("#file", { name, mimeType: "image/png", buffer: png });
-  await page.waitForFunction(() => !$("#bs-find").disabled);
+  await page.waitForFunction(() => $("#bs-find")?.disabled === false);
   await page.evaluate(() => { $("#notice").hidden = true; });
 }
-// drafts: the ground-truth drafts the device keeps before the page opens
+// the tagger's device, annotating, or only viewing what the finder finds: the study as a published one shows it, which
+// has no annotating to start; seed: browser keys and drafts: the ground-truth drafts it keeps before the page opens
 async function open(role, seed = {}, finder = {}, drafts = []) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  tagger.savedSettings(null);
+  const device = w.device().signedInAs(tagger).withStudy("shelves", role === "viewer" ? { stage: "Public" } : {}).keeps(seed).keepsDrafts(drafts).with({ acceptDownloads: true });
+  const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
-  await asTagger(ctx);
   await prepare(ctx, finder);
-  await seedDrafts(ctx, drafts);
-  await ctx.addInitScript(([role, seed]) => {
-    delete Navigator.prototype.serviceWorker; localStorage.setItem("nor-role", role);
-    for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v);
-  }, [role, seed]);
   // the actions the page asks of its Python, for the checks that tagging asks it nothing (req/shell/python/file-bytes)
   await ctx.addInitScript(() => {
     const W = window.Worker; window.pyCalls = []; window.pyStarted = 0; window.pyEnded = 0;
@@ -112,12 +113,11 @@ async function open(role, seed = {}, finder = {}, drafts = []) {
     };
   });
   const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
   // the questions the shell asks before it replaces a draft or leaves actions unsaved are answered yes
   page.on("dialog", (d) => d.accept());
-  await page.goto(origin + "/web/shelves");
-  await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent));
+  await device.opens("shelves");
   await load(page);
+  await fromScratch(page, "#bs-find", { run: false });
   const found = await page.evaluate(() => $("#bs-found").textContent);
   check(found === "", "before Find books, the box says nothing of books not found yet", found);
   return page;
@@ -141,7 +141,7 @@ try {
   check(lines.effect === "non-scaling-stroke" && lines.width >= 2, "a book's outline keeps its screen width at any zoom, thick enough to see", lines);
   const drawn = await books(page);
   check(drawn.length === 3 && drawn.filter((c) => c.includes("cover")).length === 1, "Find books draws each book on the photo, the cover marked as one", drawn);
-  const found = () => page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
+  const found = () => page.evaluate(() => $("#status").textContent);
   check(await page.evaluate(() => window.textRuns) === 1 && !/without the text finder/.test(await found()),
     "Find books runs the text finder over Python's view of the photo and hands the finder its map", [await page.evaluate(() => window.textRuns), await found()]);
   check(await page.evaluate(() => tess.reads) === 6, "and reads every book's title in the same run, at both turns its shape allows", await page.evaluate(() => tess.reads));
@@ -204,12 +204,12 @@ try {
     "three finders are offered, the text-guided one first, each with its precision and recall", listed);
   const scoring = await page.evaluate(() => !$("#scoring-help").hidden && $("#scoring-note").textContent);
   check(/A book/.test(scoring) && /title/.test(scoring), "beside them a (?) says how a book's box and its title are scored", scoring);
-  if (await page.evaluate(() => $("#processing-box").classList.contains("folded"))) await page.click("#processing-box .sec-head h2");
-  await page.selectOption("#algorithm", "r5");
+  // the list is in the Start dialog, shut by now: the choice made as the list would make it
+  await page.evaluate(() => { const s = $("#algorithm"); s.value = "r5"; s.dispatchEvent(new Event("change")); });
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && $("#bs-list").children.length === 2);
-  check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && /^edge-only: 2 books found\n/.test(await found()),
-    "the edge-only finder runs without the text finder, and its step names it", [await page.evaluate(() => window.textRuns), await found()]);
+  check((await books(page)).length === 2 && await page.evaluate(() => window.textRuns) === 1 && / edge-only: 2 books found;/.test(await found()),
+    "the edge-only finder runs without the text finder, and the status names it", [await page.evaluate(() => window.textRuns), await found()]);
   await page.context().close();
 
   // the text finder out of reach: the books are found without it, and Find says so
@@ -218,7 +218,7 @@ try {
     await page.click("#bs-find");
     await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   });
-  const without = await page.evaluate(() => [...document.querySelectorAll("[data-help]")].map((e) => e.dataset.help).find((h) => /books found/.test(h)) || "");
+  const without = await page.evaluate(() => $("#status").textContent);
   check((await books(page)).length === 3 && /without the text finder/.test(without), "with the text finder out of reach, Find books finds without it and says so", without);
   await page.context().close();
 
@@ -241,16 +241,13 @@ try {
   await page.context().close();
   page = await open("tagger", { ...KEPT, "nor-unload-python": "true" });
   await findBooks(page, 1);
-  await page.click("#gt-start");
   const turned = await page.evaluate(() => tess.reads);
   await page.click('.bs-item [data-do="flip"]');
   await page.waitForFunction((n) => tess.reads > n && $("#status").textContent === "Book read again.", turned);
   check(await python(page) === "1,1", "with Python shut down, a book flipped while tagging is read again, starting no Python", await python(page));
   await page.context().close();
 
-  // the box's one tagging button: Start GT tagging, Stop tagging while tagging; Continue GT tagging is gone, a draft
-  // being brought back by Load draft (req/shell/ground-truth/draft-offer)
-  const offered = (page) => page.evaluate(() => ["#gt-start"].filter((s) => !$(s).hidden).map((s) => $(s).textContent.trim()).join());
+  // a draft is brought back by Load draft (req/shell/ground-truth/draft-offer)
   const rowsOf = (page) => page.$$eval("#gt-tasks > li:not([data-task=edits]) .t", (h) => h.map((x) => x.textContent.trim()));
   // the GT actions made, newest first, as Edit History words them, and how many of them are not yet saved
   const history = (page) => page.$$eval("#eh-list .what", (h) => h.map((x) => x.textContent.trim()));
@@ -259,12 +256,8 @@ try {
 
   // a tagger taking books off the photo: Not a book and Delete this book leave nothing behind on it
   page = await open("tagger", KEPT);
-  check(await offered(page) === "Start GT tagging", "with no draft kept, the box offers Start GT tagging alone", await offered(page));
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
-  check(await offered(page) === "Start GT tagging", "the books found, Start GT tagging is still the one offered", await offered(page));
-  await page.click("#gt-start");
-  check(await offered(page) === "Stop tagging", "while tagging, Stop tagging alone: no Continue beside it", await offered(page));
   check(await unsaved(page) === 0 && (await history(page)).join() === "Algorithm ran: 3 books,Image opened", "Find books and its first reading are one run in the log, no action yet", await history(page));
   await page.click('.bs-verdicts [data-do="wrong"]');
   check((await books(page)).length === 2 && (await rowsOf(page))[0] === "0/2 Books" && await valueOf(page) === "Title 240x35",
@@ -283,8 +276,6 @@ try {
   check((await books(page)).length === 2 && (await rowsOf(page))[0] === "0/2 Books", "Ctrl+Z brings back the book deleted last", [await books(page), await rowsOf(page)]);
   await page.click("#gt-undo");
   check((await books(page)).length === 3 && (await rowsOf(page))[0] === "0/3 Books" && await unsaved(page) === 0, "and Undo the one marked not a book", [await books(page), await rowsOf(page)]);
-  await page.click("#gt-start");
-  check(await offered(page) === "Start GT tagging", "tagging stopped, Start GT tagging alone is offered: there is no Continue", await offered(page));
   await page.context().close();
 
   // req/shelves/truth/keys: the verdicts from the keyboard, the title's text box keeping its letters
@@ -298,10 +289,7 @@ try {
     return e.defaultPrevented;
   }, spec);
   const ENTER = { key: "Enter", code: "Enter" };
-  check(!(await press(ENTER)), "out of tagging, Enter is left to the page");
   // req/shell/image/keys: the legend lists the view's states alone, of which the study has none
-  check(await legendRows(page) === "", "out of tagging the keys legend is empty", await legendRows(page));
-  await page.click("#gt-start");
   await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
   check(await legendRows(page) === "", "a book open, the legend stays empty, each key on its button", await legendRows(page));
   const KEYS = [{ code: "Enter" }, { code: "ArrowLeft", altKey: true }, { code: "ArrowRight", altKey: true }, { code: "ArrowUp", ctrlKey: true }, { code: "Backspace", ctrlKey: true }];
@@ -375,7 +363,6 @@ try {
   page = await open("tagger", KEPT);
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
-  await page.click("#gt-start");
   await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
   const fieldsShown = () => page.$$eval(".bs-item input[data-field]", (l) => l.map((x) => `${x.dataset.field}=${x.value}`));
   const adds = () => page.$$eval(".bs-item .bs-add a", (l) => l.map((x) => x.textContent));
@@ -425,11 +412,10 @@ try {
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   const rows = () => rowsOf(page);
-  check((await rows()).join() === "0/3 Books" && await page.evaluate(() => $("#summary-box").hidden && !$("#tasks-box").hidden),
-    "Ground Truth Tasks has one task, Books, found and missed alike, and Summary is not shown", await rows());
+  check((await rows()).join() === "0/3 Books" && await page.evaluate(() => !$("#summary-box").hidden && !$("#tasks-box").hidden),
+    "Ground Truth Tasks has one task, Books, found and missed alike, and Summary shows beside it", await rows());
   check(await page.evaluate(() => !/finder found/.test($("#tasks-box").textContent)), "the tasks box carries no instructions of its own");
-  check(await page.evaluate(() => !document.querySelector(".bs-item") && !document.querySelector("#gt-tasks > li.now")), "no book is open until Start GT tagging (req/shell/ground-truth/tagging)");
-  await page.click("#gt-start");
+  check(await page.evaluate(() => !!document.querySelector(".bs-item") && !!document.querySelector("#gt-tasks > li.now")), "annotating, a book is open once the books are found (req/shell/ground-truth/tagging)");
   const value = () => page.evaluate(() => $(".bs-item input")?.value);
   const isSelected = () => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length && t.value.length > 0; };
   const selected = () => page.evaluate(isSelected);
@@ -548,7 +534,7 @@ try {
     "every book decided, the task asks for the missed ones before Submit", await rows());
   // right-click on the photo: a book added where no box is, sized as the books found, and one deleted from inside it
   // Edit History floats over the photo's right side, where the next clicks are: it is switched off
-  await page.uncheck("#gt-history-on");
+  await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here", "right-click off every book offers only Add a book");
   await page.click('#point-menu .item:text-is("Add a book here")');
@@ -572,13 +558,9 @@ try {
   await page.click('.bs-verdicts [data-do="right"]');
   await page.click('[data-do="none"]');
   check((await rows()).join() === "4/4 Books" && !(await page.evaluate(() => $("#gt-submit").disabled)), "None missed ends the task, and Submit opens", await rows());
-  await page.click("#gt-start");
-  check(!(await cutShown()), "out of tagging the photo is whole again");
-  await page.click("#gt-start");
-  await page.click("#gt-submit");
-  const gt = await saved(page, "#gt-export");
+  const gt = await saved(page, "#analysis-dl");
   const [b1, b2, b3, b4] = gt.doc.books;
-  check(gt.name === "shelf_books_gt.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
+  check(gt.name === "shelf_analysis.json" && gt.doc.books.length === 4 && !("view" in b1) && b1.text === "הארי פוטר" && b1.turn === 3 && b1.proposed.text === "Title 260x40"
     && !("view" in b1.proposed) && b2.verdict === "right" && b3.corners[0][0] === dragged[0][0] && b3.proposed.corners[0][0] === 120 && b4.source === "missed" && Math.abs(b4.corners[0][0] - 330) < 1 && Math.abs(b4.corners[0][1] - 60) < 1 && !b4.proposed,
   "Submit's file carries each book in the order they stand: its verdict, corners (past the photo's edge where dragged there), turn and text, and what the finder and the reader proposed", gt.doc);
   check(gt.doc.books.map((b) => b.id).join() === "b2,b1,b3,u2" && gt.doc.none_missed === true && gt.doc.books.every((b) => b.verdict === "right"),
@@ -591,7 +573,6 @@ try {
   check(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("gt-draft|")).length) === 0, "the study keeps no draft of its own in the browser's storage: the log is the shell's");
   // Save Draft stores the photo's draft on the device; a page opened with it there, the photo opened: Load draft brings
   // every book back, without finding again
-  await page.click("#gt-close");
   await page.click("#gt-save-draft");
   await until(page, () => $("#gt-unsaved").hidden);
   const drafts = await storedDrafts(page), { history: filed, ...doc } = gt.doc;
@@ -601,19 +582,14 @@ try {
   await page.context().close();
   page = await open("tagger", KEPT, {}, drafts);
   await until(page, () => !$("#gt-load-draft").hidden);
-  check(await offered(page) === "Start GT tagging" && await page.evaluate(() => !$("#gt-load-draft").hidden),
-    "with a draft kept for the photo, Load draft is offered and Start GT tagging is the one tagging button", await offered(page));
   check((await books(page)).length === 0, "and no book is shown before it is loaded: Find books has not run");
   await page.click("#gt-load-draft");
   await page.waitForFunction(() => $("#gt-tasks > li:not([data-task=edits]) .t")?.textContent.includes("4/4"));
   check((await rows()).join() === "4/4 Books" && (await books(page)).length === 4 && await page.evaluate(() => !$("#gt-submit").disabled),
     "Load draft brings back every book, verdict and title, with no Find books", await rows());
-  await page.click("#gt-start");
-  await page.click("#gt-submit");
-  const back = await saved(page, "#gt-export");
+  const back = await saved(page, "#analysis-dl");
   check(JSON.stringify(back.doc.books) === JSON.stringify(gt.doc.books) && back.doc.history.replay === "verified" && back.doc.history.actions.length === gt.doc.history.actions.length,
     "the file made from the loaded draft is the file made before, books and log", back.doc.books);
-  await page.click("#gt-close");
   await page.click("#user-menu summary"); await page.click("#manage-storage");
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
   const kept = await page.$$eval('#storage-list .entry[data-kind="selections"]', (es) => es.map((e) => [e.querySelector(".name").textContent, e.querySelector(".what").textContent]));
@@ -628,8 +604,6 @@ try {
 
   // a book added before Find books has run: the log starts from the photo alone, and Find books carries the book over
   page = await open("tagger", KEPT);
-  await page.click("#tasks-box .sec-head h2");
-  await page.click("#gt-start");
   await page.evaluate(() => document.activeViewTransition?.finished);
   await page.mouse.click(...(await toScreenOf(page, 350, 150)), { button: "right" });
   await page.click('#point-menu .item:text-is("Add a book here")');
@@ -637,7 +611,7 @@ try {
   check((await books(page)).length === 1 && (await rowsOf(page))[0] === "0/1 Books", "a book is added on a photo where no book was found yet", [await books(page), await rowsOf(page)]);
   check((await history(page)).join() === "Read a title again,Added a missed book,Ground truth from the photo alone, before Find books, no history,Image opened" && await unsaved(page) === 2,
     "the log starts from the photo alone, the book added and its reading the first GT actions", [await history(page), await unsaved(page)]);
-  check(!(await page.evaluate(() => [...document.querySelectorAll("[data-help]")].some((e) => /drafted/.test(e.dataset.help)))), "and no step says books were drafted");
+  check(!/drafted/.test(await page.evaluate(() => $("#status").textContent)), "and nothing says books were drafted");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read"));
   check((await books(page)).length === 4 && (await rowsOf(page))[0] === "0/4 Books" && (await history(page))[0] === "Algorithm ran: 3 books" && !(await history(page)).some((h) => /carry over/.test(h)),
@@ -652,7 +626,7 @@ try {
     proposed: { corners: BOOKS[0].corners, text: "Title 240x35" } }], noneMissed: false, open: 0 };
   await page.context().close();
   page = await open("tagger", { ...KEPT, [key]: JSON.stringify(old) });
-  check(await page.evaluate(() => $("#gt-load-legacy").hidden) && await offered(page) === "Start GT tagging", "a draft kept before Edit History is not offered before Find books has run, nor as Continue GT tagging");
+  check(await page.evaluate(() => $("#gt-load-legacy").hidden), "a draft kept before Edit History is not offered before Find books has run");
   await page.click("#bs-find");
   await page.waitForFunction(() => $("#status").textContent.startsWith("Titles read") && !$("#gt-load-legacy").hidden);
   const earlier = await page.evaluate(() => ({ text: $("#gt-load-legacy").textContent.trim(), title: $("#gt-load-legacy").title }));

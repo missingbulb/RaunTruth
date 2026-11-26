@@ -25,9 +25,9 @@ import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { until, orMissed } from "./page_until.mjs";
 import { greyPng } from "./png_fixture.mjs";
 import { held } from "./held.mjs";
-import { pw, launch, keptContext, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
+import { world } from "./world.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 
 const [site, tiffPath, shots] = process.argv.slice(2);
@@ -42,8 +42,6 @@ const BEYOND = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort-was
 const vascularServed = JSON.stringify({ ...vascular, web: { ...vascular.web, offline: [BEYOND] } });
 // the site's list of its own files names it by what is served
 const servedList = (list) => ({ ...list, files: list.files.map((f) => f.path === "../studies/vascular/study.json" ? { ...f, sha256: crypto.createHash("sha256").update(vascularServed).digest("hex") } : f) });
-const ROOT = vascular.root.match(/folders\/([\w-]+)/)[1];
-const SUB = "acmefolder0000000002";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".whl": "application/zip" };
 // what the browser and the page say of a request the network does not carry: each case that takes the network away
@@ -72,7 +70,7 @@ const server = http.createServer((q, r) => {
   if (u === "/app/offline.json") {
     const list = servedList(JSON.parse(fs.readFileSync(path.join(site, "app", "offline.json"))));
     if (!release) { r.writeHead(200, { "content-type": "application/json", ...HEADERS[u] }); return r.end(JSON.stringify(list)); }
-    list.files.push({ path: "slow.js", sha256: "0".repeat(64) });
+    list.files = [...list.files, { path: "slow.js", sha256: "0".repeat(64) }];
     r.writeHead(200, { "content-type": "application/json" });
     return r.end(JSON.stringify(list));
   }
@@ -92,18 +90,20 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 let failed = false;
 
-// a profile of its own: a browser's private window can install nothing
-const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
+const browser = await launch(pw), w = world(browser, origin);
+// a profile of its own, as a browser's private window can install nothing, with the site's own worker and the
+// opening popup not yet answered
+const device = w.device().kept().withWorker().welcomed(null), ctx = await device.context();
 // the page's clock, which runs as the real one does, so the test can move it past a wait on the page's own timers
 await ctx.clock.install();
 // the page asks whether the site answers every 30 s while the browser says it is online, every 5 s while offline
 // (web/offline.js)
 const pastHeartbeat = () => ctx.clock.fastForward(30000), pastOfflineRetry = () => ctx.clock.fastForward(5000);
 // the study's folder on the Drive fake: a stack, and a subfolder holding another
-const drive = googleDrive(ctx);
-drive.file({ id: "acmestack00000000001", name: "stack one.tif", parent: ROOT, bytes: TIFF, mimeType: "image/tiff" });
-drive.folder({ id: SUB, name: "sub", parent: ROOT });
-drive.file({ id: "acmestack00000000002", name: "stack two.tif", parent: SUB, bytes: TIFF, mimeType: "image/tiff" });
+const { drive } = w;
+const studyFolder = w.studyFolder("vascular");
+studyFolder.holds({ name: "stack one.tif", mimeType: "image/tiff", bytes: TIFF });
+studyFolder.folder("sub").holds({ name: "stack two.tif", mimeType: "image/tiff", bytes: TIFF });
 const driveDownloads = () => drive.calls.filter((c) => c.kind === "download").length;
 // a file beyond its Python the study names, on jsDelivr
 cdnFile(ctx, BEYOND, "export {};", "text/javascript");
@@ -259,6 +259,16 @@ try {
     check(/offline/i.test(await page.textContent("#net-total")), "whose total says the page is offline: " + (await page.textContent("#net-total")));
     await page.keyboard.press("Escape");
     check(await page.$eval("#study-request", (a) => a.getAttribute("aria-disabled") === "true" && /offline/i.test(a.title)), "Submit New Study Request is held, its tooltip saying why");
+    // the avatar's menu: a held action struck through in red beside the offline icon, not dimmed
+    await page.click("#user-menu summary");
+    const held = await page.$eval("#report-problem", (b) => { const c = getComputedStyle(b), m = b.querySelector(".offline-mark");
+      return { line: c.textDecorationLine, red: c.textDecorationColor !== c.color && c.textDecorationColor === getComputedStyle(document.querySelector("#sb-online .off")).color,
+        opacity: c.opacity, mark: !!m && m.getBoundingClientRect().width > 0 && m.innerHTML === document.querySelector("#sb-online .off").innerHTML, off: b.getAttribute("aria-disabled") }; });
+    check(held.line === "line-through" && held.red && held.opacity === "1" && held.mark && held.off === "true", "in the avatar's menu a held action is struck through in red, the offline icon beside it", held);
+    check(await page.$eval("#open-settings", (b) => getComputedStyle(b).textDecorationLine === "none" && !b.querySelector(".offline-mark")), "and one that needs no network is plain");
+    await shot(page, "menu-offline");
+    await page.click("#who-avatar");
+    check(!(await page.$eval("#user-menu", (m) => m.open)), "a click on the menu's avatar closes it");
     // a click on it opens nothing
     const popup = orMissed(page.waitForEvent("popup", { timeout: 1500 }));
     await page.evaluate(() => document.querySelector("#study-request").click());
@@ -316,6 +326,7 @@ try {
   check(!(await page.isVisible("#sb-online .off")), "back online, the online icon shows online again");
   check(!/offline/i.test(await page.getAttribute("#sb-net", "title")), "and the network's tooltip is its own again");
   check(await page.$eval("#study-request", (a) => !a.hasAttribute("aria-disabled")), "back online, Submit New Study Request is offered again");
+  check(await page.$eval("#report-problem", (b) => getComputedStyle(b).textDecorationLine === "none" && !b.querySelector(".offline-mark")), "and the menu's held action is plain again");
 
   // the network goes mid-session while the browser still says it is online (a dead Wi-Fi), the Drive dialog open on
   // the study's folder: the page notices by itself, and the dialog follows
@@ -384,6 +395,6 @@ try {
   failed = true; console.error("FAILED: " + (e.stack || e));
   console.error("status: " + (await statusText().catch(() => "(no page)")));
 } finally {
-  await ctx.close(); server.close();
+  await device.close(); await browser.close(); server.close();
 }
 process.exit(failed ? 1 : 0);

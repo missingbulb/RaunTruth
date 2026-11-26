@@ -5,7 +5,8 @@
 // account can see; signed out, the site's API key (NOR_CONFIG.google.apiKey, written into config.js at deploy),
 // reaching what is shared as "Anyone with the link". Writes (req/shell/data/drive-access) go only to a study's own
 // folders, with Google's per-file permission: the page only creates files, each marked as its own, and changes or
-// trashes only the files so marked. Reading keeps nothing: a file goes to the study
+// trashes only the files so marked; the one other write is an item's link sharing, on the owner's press of Fix in Study
+// Setup's sharing check (req/setup/sharing-check). Reading keeps nothing: a file goes to the study
 // like one loaded from the computer.
 "use strict";
 import { accepts, isTiff } from "./accepts.js";
@@ -21,6 +22,8 @@ const FOLDER = "application/vnd.google-apps.folder";
 const MINE = { rauntruth: "made" };
 const THROTTLING = "Google is throttling this site's downloads";
 const RUN_OUT = "Your Google sign-in has run out: click again to renew it";
+// Drive's batch endpoint, and the calls it takes in one request
+const BATCH = "https://www.googleapis.com/batch/drive/v3", BATCH_CALLS = 100;
 
 // The bodies of Drive's uploads, written out as bytes, not a FormData or a Blob: Playwright's WebKit hands a page test
 // a FormData or Blob body with its parts empty, where bytes arrive whole.
@@ -46,6 +49,12 @@ export const remote = (() => {
   let received = 0;
   // the sign-in (account.js), once the page hands it over: {signedIn(), forRead(), refused()}
   let signIn = null;
+  // told as each request to Drive begins, with whether it writes; what it returns is called as the request ends, with its error
+  let watch = () => () => {};
+  const sent = async (url, init = {}) => {
+    const end = watch(!!init.method && init.method !== "GET");
+    try { const r = await fetch(url, init); end(); return r; } catch (e) { end(e); throw e; }
+  };
   const signedIn = () => !!signIn?.signedIn();
   const get = async (url, init = {}) => {
     const u = new URL(url), mine = signedIn();
@@ -56,7 +65,7 @@ export const remote = (() => {
     } else u.searchParams.set("key", key);
     u.searchParams.set("supportsAllDrives", "true");
     if (u.searchParams.has("q")) u.searchParams.set("includeItemsFromAllDrives", "true");
-    const r = await fetch(u, init);
+    const r = await sent(u, init);
     if (mine && r.status === 401) signIn.refused();
     return r.body ? new Response(r.body.pipeThrough(new TransformStream({ transform(c, out) { received += c.byteLength; out.enqueue(c); } })), r) : r;
   };
@@ -71,10 +80,12 @@ export const remote = (() => {
   }
 
   const need = () => { if (!key && !signedIn()) throw new Error("this site has no Google API key yet (issue #234)"); };
-  const refused = (r, what) => new Error(signedIn()
+  const refused = (r, what) => Object.assign(new Error(signedIn()
     ? r.status === 404 ? `Your Google account cannot see this ${what}` : `Drive refused the ${what} (${r.status}) to your Google account`
     : r.status === 400 ? `Google refused this site's API key (${r.status})`
-      : `Drive refused the ${what} (${r.status}): is it shared as "Anyone with the link"? Signed in, you can open any your account can see`);
+      : `Drive refused the ${what} (${r.status}): is it shared as "Anyone with the link"? Signed in, you can open any your account can see`),
+    // the store's own answer, and whether it is the one given to an account that may not read it, which is no failure of the page's
+    { status: r.status, noAccess: r.status === 403 || r.status === 404 });
 
   // Google answers a burst of downloads by refusing the site's for a while, without the header that lets a page
   // read the refusal: a download that fails while the file's details still answer is that, an Error with
@@ -185,6 +196,15 @@ export const remote = (() => {
     return { name, bytes: (await pairBytes(name, new Uint8Array(await vsi.arrayBuffer()), new Uint8Array(await ets.arrayBuffer()))).buffer };
   }
 
+  // the id of the folder's subfolder of that name, null where it has none: one request, the search narrowed to the name and to folders
+  async function folderNamed(folder, name) {
+    need();
+    const q = encodeURIComponent(`'${folder}' in parents and name = '${name.replace(/[\\']/g, "\\$&")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+    const r = await get(`${API}?q=${q}&fields=files(id,name)&pageSize=10`);
+    if (!r.ok) throw refused(r, "folder");
+    return (await r.json()).files.find((f) => f.name === name)?.id ?? null;
+  }
+
   // [{id, name, folder, size, sha, modified, properties, preview}] every file and folder in a folder, whatever its kind,
   // every page of them; modified Drive's time of its last change, properties its public ones; preview, with pictures,
   // as list gives it, else null
@@ -215,9 +235,42 @@ export const remote = (() => {
   // or null when the site has no key to ask with (req/shell/data/folders)
   async function publicly(id) {
     if (!key) return null;
-    const r = await fetch(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
+    const r = await sent(`${API}/${encodeURIComponent(id)}?fields=id&supportsAllDrives=true&key=${encodeURIComponent(key)}`);
     if (r.status === 404 || r.status === 403) return false;
     return r.ok ? true : null;
+  }
+
+  // Several reads in one request, to Drive's batch endpoint: calls are paths under /drive/v3/, such as "files/<id>?fields=id",
+  // each answered as it would be alone; the HTTP status of each, in order (null for one the answer lacks). A batch holds
+  // 100 calls at most, so a longer list goes in more than one request.
+  async function batch(calls) {
+    need();
+    const out = [];
+    for (let at = 0; at < calls.length; at += BATCH_CALLS) {
+      const cut = "rauntruth-" + Math.random().toString(36).slice(2), part = calls.slice(at, at + BATCH_CALLS);
+      const body = part.map((c, k) => `--${cut}\r\nContent-Type: application/http\r\nContent-ID: <item${k}>\r\n\r\nGET /drive/v3/${c}${c.includes("?") ? "&" : "?"}supportsAllDrives=true HTTP/1.1\r\n\r\n`).join("") + `--${cut}--`;
+      const r = await get(BATCH, { method: "POST", headers: { "content-type": `multipart/mixed; boundary=${cut}` }, body: encode(body) });
+      if (!r.ok) throw refused(r, "batch request");
+      const answered = (await r.text()).split(/^--[^\r\n]*/m).filter((p) => /HTTP\/1\.1 \d+/.test(p));
+      const status = new Map(answered.map((p, k) => [p.match(/Content-ID:\s*<?response-item(\d+)>?/i)?.[1] ?? String(k), +p.match(/HTTP\/1\.1 (\d+)/)[1]]));
+      for (let k = 0; k < part.length; k++) out.push(status.get(String(k)) ?? null);
+    }
+    return out;
+  }
+
+  // who an item is shared with, as Drive lists it (req/setup/people): [{id, type, role, emailAddress, name}], an Error with
+  // status set where Drive does not let the signed-in account read it
+  async function permissions(id) {
+    need();
+    const out = [];
+    for (let page = ""; ;) {
+      const r = await get(`${API}/${encodeURIComponent(id)}/permissions?fields=${encodeURIComponent("nextPageToken,permissions(id,type,role,emailAddress,displayName)")}&pageSize=100${page}`);
+      if (!r.ok) throw Object.assign(refused(r, "sharing"), { status: r.status });
+      const got = await r.json();
+      out.push(...(got.permissions || []).map((p) => ({ id: p.id, type: p.type, role: p.role, emailAddress: p.emailAddress, name: p.displayName })));
+      if (!got.nextPageToken) return out;
+      page = "&pageToken=" + encodeURIComponent(got.nextPageToken);
+    }
   }
 
   // a file's or a folder's name
@@ -239,7 +292,7 @@ export const remote = (() => {
     };
     // Google's answer, or an Error with Google's own words for a refusal
     async function google(url, init = {}) {
-      const r = await fetch(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + await token() } });
+      const r = await sent(url, { ...init, headers: { ...init.headers, authorization: "Bearer " + await token() } });
       if (r.ok) return r;
       let why = "";
       try { why = (await r.json()).error?.message || ""; } catch { /* no words */ }
@@ -289,11 +342,15 @@ export const remote = (() => {
         await google(`${API}/${encodeURIComponent(id)}/permissions?supportsAllDrives=true`, { method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ type: "anyone", role: "reader" }) });
       },
+      // an item's link permission taken off, only when the owner pressed Fix and confirmed (req/setup/sharing-check)
+      async unshare(id, permissionId) {
+        await google(`${API}/${encodeURIComponent(id)}/permissions/${encodeURIComponent(permissionId)}?supportsAllDrives=true`, { method: "DELETE" });
+      },
       // a file the page made, to Drive's bin
       async trash(id) {
         await google(`${API}/${encodeURIComponent(id)}?supportsAllDrives=true`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ trashed: true }) });
       },
-    }, ["access", "create", "folder", "ours", "replace", "mark", "share", "trash"], "store write");
+    }, ["access", "create", "folder", "ours", "replace", "mark", "share", "unshare", "trash"], "store write");
   }
 
   // the parts of a study's study.json that name Drive: whether its images open from the store, its root folder's id
@@ -319,7 +376,18 @@ export const remote = (() => {
       throttling: THROTTLING,
       throttled: THROTTLING + ". Try again in 15 minutes.",
     },
-    use: (s) => { signIn = s; }, signedIn, parse, file, head, checksum, list, all, name, publicly, canWrite, writer, study,
+    // where a person changes an item's sharing in the store themselves, and the words and pictures of doing it there
+    sharing: {
+      link: (kind, id) => (kind === "file" ? `https://drive.google.com/file/d/${encodeURIComponent(id)}/view?usp=sharing`
+        : `https://drive.google.com/drive/folders/${encodeURIComponent(id)}?usp=sharing`),
+      check: "Check its sharing in Drive",
+      open: "Open its sharing in Drive",
+      refused: "Drive did not let this sign-in change it: change it there, with the link above and the picture.",
+      pictures: { link: ["sharing-link.svg", "Drive's Share dialog: General access set to Anyone with the link, as Viewer"],
+        named: ["sharing-named.svg", "Drive's Share dialog: General access set to Restricted, the named people kept"],
+        editor: ["sharing-editor.svg", "Drive's Share dialog: a person's email added as an Editor"] },
+    },
+    use: (s) => { signIn = s; }, watched: (w) => { watch = w; }, signedIn, parse, file, head, checksum, list, all, folderNamed, batch, name, permissions, publicly, canWrite, writer, study,
     ready: !!key, received: () => received,
     // an image from the store, as a source records it; whether a source is one
     source: (id, more = {}) => ({ kind: KIND, id, ...more }),
@@ -327,5 +395,5 @@ export const remote = (() => {
     // what a document records of where an image from the store is: the id field it carries, and its full location
     cite: (src) => ({ drive_id: src.id }),
     locate: (src) => ({ source: KIND, drive_id: src.id, url: `https://drive.google.com/file/d/${src.id}/view` }),
-  }, ["file", "head", "checksum", "list", "all", "name", "publicly", "canWrite"], "store read");
+  }, ["file", "head", "checksum", "list", "all", "batch", "name", "permissions", "publicly", "canWrite"], "store read");
 })();

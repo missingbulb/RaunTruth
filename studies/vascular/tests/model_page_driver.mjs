@@ -1,36 +1,33 @@
-// Drives the vascular study's page (web/) in a PreGT stage in headless Chromium against a stand-in worker
+// Drives the vascular study's page (web/) in a Review stage in headless Chromium against a stand-in worker
 // (stand_in.mjs) whose Execute answers with a model fixture. Checks req/vascular/model/view: Image, Model, Overlay and
 // Side by side, colour by depth painting the model too, and vessel widths; req/vascular/model/correct: Detected keeps
 // only the signal near the model; req/vascular/model/cards: Items shows the model's cards
 // outside a ground-truth stage and approves a low-confidence vessel from one; and the model's canvas leaves the 3D
 // view with the study. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/model_page_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, atStage, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
-// the item views only show what was found, so they are driven in a PreGT study (req/shell/views/second)
+// the item views only show what was found, so they are driven in a Review study (req/shell/views/second)
 const site = await serve(studies, model), origin = site.origin;
 
-const browser = await launch(pw);
-atStage(browser, "PreGT");
+const browser = await launch(pw), w = world(browser, site.origin);
+atStage(browser, "Review");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true });
+await standInDrive(await device.context());
+let page;
 
 // the 3D view's brightness now, its mean over every pixel of red, green and blue
 const brightness = async () => { await viewDrawn(page); return brightnessNow(); };
@@ -64,8 +61,7 @@ const drawnNow = () => page.evaluate(() => {
 });
 
 try {
-  await page.goto(origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  page = await device.opens("vascular");
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);
   await page.evaluate(() => { $("#notice").hidden = true; });
@@ -73,7 +69,7 @@ try {
   // req/vascular/model/run: the Processing box runs the algorithm on the image open, as NoR's; no model file is loaded
   check(await page.evaluate(() => !$("#model-load") && !$("#model-file") && !/model file/i.test($("#model-set").textContent + $("#model-facts").textContent)),
     "the Processing box offers no model file to load, only Execute");
-  await page.click("#vm-run");
+  await fromScratch(page, "#vm-run");
   await page.waitForFunction(() => !$("#vm-review").hidden);
   check(/vessel edges/.test(await facts()), `Execute opens the model it draws: ${(await facts()).slice(0, 80)}`);
   // req/vascular/summary/metrics and req/vascular/summary/mask: the eight numbers, over the whole field and then inside a lassoed mask

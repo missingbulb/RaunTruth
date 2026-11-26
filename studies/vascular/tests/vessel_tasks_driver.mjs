@@ -2,38 +2,34 @@
 // (stand_in.mjs) whose Execute answers with a model fixture. Checks req/vascular/model/run: Processing lists the
 // algorithms with their icons, precision and recall, the default first, says how the chosen one works and how well, and Execute runs it with the spacing shown, opening
 // its model; req/vascular/truth/tasks and req/vascular/truth/order: how many areas chosen first, a row per area, the
-// areas' map floating over the view while tagging, the stack flattened under it, req/shell/ground-truth/tagging: nothing opens until Start GT tagging,
-// Stop tagging gives the stack back; an area opening from above, turning in 3D, its handles kept in depth from above, a
+// areas' map floating over the view while tagging, the stack flattened under it, req/shell/ground-truth/tagging: annotating opens the walk once the model is drawn; an area opening from above, turning in 3D, its handles kept in depth from above, a
 // tip dropped on a vessel attached there, a right-click on the image drawing a missed vessel, its junctions judged one at
 // a time and picked on the view, Area is right, Ctrl or the Model label showing the model alone, Back to image and Back to task, a file of
 // the earlier three steps read; req/vascular/truth/marks: an area done blacked out of the stack while tagging, under the Show menu's Cut out what is done; req/vascular/model/ground-truth: Submit
 // last, its export carrying every verdict. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_tasks_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, atStage, ALGORITHMS, drawnStack } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, ALGORITHMS, drawnStack } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
+import { world } from "../../../web-tests/world.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
 const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_frontal_x20_r_1_slices1-12.vessels.json"), "utf8"));
 const site = await serve(studies, model);
 
-const browser = await launch(pw);
-atStage(browser, "GT");
+const browser = await launch(pw), w = world(browser, site.origin);
+atStage(browser, "Develop");
 let failed = false;
-const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-await asTagger(ctx);
-await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
-const page = await ctx.newPage();
-page.setDefaultTimeout(STEP);
+const device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true });
+await standInDrive(await device.context());
+let page;
 
 // the 3D view's brightness, the whole stack in view from above: its mean over every pixel of red, green and blue
 const brightness = async () => {
@@ -54,14 +50,13 @@ const rows = () => page.evaluate(() => [...document.querySelectorAll("#gt-tasks 
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
 
 try {
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  page = await device.opens("vascular");
   // the numbers the page shows are the shipped metrics file's, which the lab writes
   const quality = JSON.parse(fs.readFileSync(path.join(repo, "studies", "vascular", "web", "algorithm_metrics.json"), "utf8"));
   const two = (x) => x.toFixed(2).replace(/^0/, "");
   await page.waitForFunction(() => /\bR\u00a0/.test($("#algorithm").options[0]?.textContent || ""));
   const algos = await page.evaluate(() => ({ titles: [...$("#algorithm").options].map((o) => o.textContent), value: $("#algorithm").value,
-    about: $("#algorithm-about summary").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
+    about: $("#algorithm-about").textContent, note: $("#algorithm-note").textContent, run: $("#vm-run").disabled, last: $("#model-set .row").lastElementChild.id,
     nested: !!$("#algorithm-note").querySelector("ul > li > ul > li"), bold: $("#algorithm-note").lastElementChild?.querySelector("strong")?.textContent || "" }));
   const listed = ALGORITHMS.map((a) => { const q = quality.versions[a.key]; return `${a.icon} ${a.title} (P\u00a0${two(q.precision)}\u00a0·\u00a0R\u00a0${two(q.recall)})`; });
   check(algos.titles.join() === listed.join() && algos.value === ALGORITHMS[0].key, `Processing lists each algorithm with its icon, name, precision and recall, the default first: ${algos.titles}`);
@@ -81,46 +76,34 @@ try {
   check(!before.model && !before.tasks && before.modes.join() === "", `a stack opens with no model until Execute: ${JSON.stringify(before)}`);
   check(!before.switch && !before.items, "while the study makes ground truth there is no item view and no switch to one");
 
-  await page.selectOption("#algorithm", "v4");
-  await page.click("#vm-run");
+  await fromScratch(page, "#vm-run", { algorithm: "v4" });
   await page.waitForFunction(() => !$("#vm-review").hidden);
   const ran = await doc();
   check(ran.algorithm === "v4-line-evidence" && ran.asked?.algorithm === "v4" && ran.asked.z_step === 1 && ran.asked.source === model.source,
     `Execute runs the chosen algorithm on the stack, with the spacing shown: ${JSON.stringify(ran.asked)}`);
   check(await page.evaluate(() => window.vascular.model().view === "overlay"), "the model opens over the stack");
   check(await page.evaluate(() => !!($("#model-set").compareDocumentPosition($("#tasks-box")) & Node.DOCUMENT_POSITION_FOLLOWING) && !$("#tasks-box").hidden && !$("#vm-tasks").hidden),
-    "Ground Truth Tasks sits under Processing once a model is open");
+    "Analysis Tasks sits under the runner once a model is open");
 
   const view = () => page.evaluate(() => { const v = window.shellForTests.viewer.three; return { rot: v.S.rot.map((r) => [...r]), clip: v.S.clip && [...v.S.clip], held: !!v.S.held,
     mode: window.vascular.model().view, show: !$("#vm-show").hidden, focus: $("#vm-focus").hidden ? null : $("#vm-focus").textContent.trim(), big: $("#vm-focus").classList.contains("big"),
-    cut: { on: $("#m-cut").checked, off: $("#m-cut").disabled }, start: $("#gt-start").offsetParent ? $("#gt-start").textContent.trim() : null, open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null }; });
-  // req/shell/ground-truth/tagging: Execute leaves the stack in view; nothing opens until Start GT tagging
+    cut: { on: $("#m-cut").checked, off: $("#m-cut").disabled }, open: document.querySelector("#gt-tasks > li.now")?.dataset.task || null }; });
+  // req/shell/ground-truth/tagging: Execute while annotating opens the walk on the first area, alone in view
   let t = await tasks(), v = await view();
-  check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.mode === "overlay", `drawn, the whole stack stays in view as the Show menu sets it, no task open: ${JSON.stringify({ focused: t.focused, clip: v.clip, show: v.show, focus: v.focus, open: v.open })}`);
-  check(v.start === "Start GT tagging" && v.cut.off, `Start GT tagging heads the tasks, and Cut out what is done is off out of tagging: ${JSON.stringify(v)}`);
-  // out of tagging the model's points carry no handles on the main view, zoomed in or not; tagging, they do
-  const zoomedHandles = async () => {
-    const d = await page.evaluate(() => { const v = window.shellForTests.viewer.three, d = v.S.dist; v.S.dist = v.FIT_DIST / 4; return d; });
-    await viewDrawn(page);
-    return page.evaluate((d) => { const v = window.shellForTests.viewer.three, h = window.vascular.model().handles; v.S.dist = d; v.redraw(); return h; }, d);
-  };
-  check(await zoomedHandles() === false, "out of GT tagging, the model's points have no handles on the main view, even zoomed in");
-  await page.click("#gt-start");
-  check(await page.evaluate(() => window.vascular.model().handles) === true, "... and once tagging starts, they do");
+  check(t.focused && t.area === 0 && !!v.clip && v.show === false && v.open === "a0" && v.mode === "overlay" && !v.cut.off, `drawn, annotating opens the walk on the first area, alone in view: ${JSON.stringify({ focused: t.focused, clip: v.clip, show: v.show, open: v.open })}`);
+  check(await page.evaluate(() => window.vascular.model().handles) === true, "the model's points have handles on the main view");
 
   // the tasks are the stack's areas, a row each, 4 × 4 at first, the choice of how many first in the box
   t = await tasks();
   const r0 = await rows(), all = t.grid * t.grid;
-  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Submit Ground Truth/.test(r0[all]),
-    `a row per area, 4 × 4 at first, then Submit: ${r0.join(" | ")}`);
+  check(t.grid === 4 && r0.length === all + 1 && r0.slice(0, all).every((x, k) => x === `Area ${k + 1}`) && /Upload/.test(r0[all]),
+    `a row per area, 4 × 4 at first, then Upload: ${r0.join(" | ")}`);
   check(await page.evaluate(() => $("#gt-bar").children.length === 16), "the bar has a part per area");
-  check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-start")) & Node.DOCUMENT_POSITION_FOLLOWING)
-    && !!($("#gt-start").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
+  check(await page.evaluate(() => !!($("#gt-areas").compareDocumentPosition($("#gt-bar")) & Node.DOCUMENT_POSITION_FOLLOWING)), "how many areas is the box's first row, the bar after it");
   check(await page.evaluate(() => !$("#m-draw") && !$("#m-lasso") && ![...document.querySelectorAll("button")].some((b) => /Draw a missed vessel|No missed vessels|Area done|Lines are right|Mark a damaged area/.test(b.textContent)) && !/Hold Ctrl/.test(document.body.textContent)),
     "no Draw a missed vessel, No missed vessels here, Area done, Mark a damaged area or Ctrl note on the page");
-  check(t.area === 0 && t.focused, `Start GT tagging opens the walk on the first area, alone in view: ${JSON.stringify({ area: t.area, focused: t.focused })}`);
   v = await view();
-  check(v.start === "Stop tagging" && v.open === "a0", `the button now reads Stop tagging, the first area's row open: ${v.start} ${v.open}`);
+  check(v.open === "a0", `the first area's row is open: ${v.open}`);
   check(v.focus === "Back to image" && v.big && !v.show, `in an area, a big Back to image button takes the Show menu's place: "${v.focus}", Show ${v.show ? "shown" : "hidden"}`);
   check(v.rot[2][2] > 0.99 && !v.held && v.mode === "overlay" && !!v.clip, `the area shows alone, from straight above, the lines over the stack, free to turn: ${JSON.stringify({ z: v.rot[2][2], held: v.held, mode: v.mode, clip: v.clip })}`);
   const mini = () => page.evaluate(() => { const el = $("#gt-mini"), r = el?.getBoundingClientRect(), mm = getComputedStyle(document.documentElement).getPropertyValue("--mm-width");
@@ -446,33 +429,20 @@ try {
   v = await view(); t = await tasks();
   check(t.focused && !!v.clip && v.focus === "Back to image" && t.area === 1, "Back to task returns to the area");
 
-  // Stop tagging: the whole stack, no task open, nothing cut out, the Show menu's row off, no map
-  await page.click("#gt-start");
-  v = await view(); t = await tasks();
-  check(!t.focused && !v.clip && v.show && !v.focus && !v.open && v.cut.off && v.start === "Start GT tagging", `Stop tagging gives the whole stack back, no task open, Cut out what is done off: ${JSON.stringify(v)}`);
-  check(!(await mini()).shown, "out of tagging the map of the areas is gone");
-  if (gl) {
-    await page.keyboard.press("Control+z");
-    const lit = await brightness();
-    await page.keyboard.press("Control+y");
-    check(Math.abs((await brightness()) - lit) < 1e-6, "out of tagging nothing is cut out of the stack");
-  }
-  await page.click("#gt-start");
   t = await tasks();
-  check(t.focused && t.area === 1, "Start GT tagging again returns to the walk's next area not done");
 
   await page.click("#gt-submit");
-  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export").disabled), "Submit Ground Truth, the last task, exports once there are verdicts");
+  check(await page.evaluate(() => $("#gt-dlg").open && !$("#gt-export")), "Upload, the last task, opens its dialog, which has no export of its own");
   const open = await page.evaluate(() => $("#gt-dlg").textContent);
   check(/Areas: 3 of 4 left/.test(open), `its checklist says how many areas are left: ${open.replace(/\s+/g, " ").slice(0, 200)}`);
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);
+  await page.click("#gt-close");
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
   check(out.status === "corrected" && out.edges.some((e) => e.state === "accepted" && e.proposed === "vessel") && out.edges.some((e) => e.state === "rejected")
     && !!out.checked_junctions?.includes(j1) && out.reviewed_regions.map((g) => g.step).join() === "area", "the export carries every verdict: states, junctions found right, the area done");
   // nothing in the tasks sets or confirms a width, so every width the export carries is named an unchecked estimate
   const widths = [...new Set([...out.nodes, ...out.edges.flatMap((e) => [e, ...e.via])].flatMap((p) => ["r", "r_a", "r_b", "taper_known"].filter((k) => k in p)))];
   check(widths.length > 0 && widths.every((k) => out.unchecked?.includes(k)), `the export names its widths (${widths}) the algorithm's unchecked estimates: unchecked ${JSON.stringify(out.unchecked)}`);
-  await page.click("#gt-close");
 
   await page.keyboard.press("Control+z");
   check(!(await doc()).reviewed_regions.length && !(await doneRows()).length, "Undo takes the area back");

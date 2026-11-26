@@ -7,6 +7,7 @@ Run: python3 -m pytest web-tests/test_published_site.py
 import glob
 import json
 import os
+import pytest
 import re
 import sys
 
@@ -138,7 +139,7 @@ def listed_studies(tmp_path, *studies):
 
 def test_each_listed_study_is_published_under_its_own_path(tmp_path):
     """req/shell/study/folder-and-address: rauntruth.com/app/<id> is the page, published again as app/<id>.html, which Cloudflare serves at /app/<id>."""
-    root = listed_studies(tmp_path, ('alpha', 'listed'), ('hidden', 'unlisted'), ('mine', {'accounts': ['me@example.com']}))
+    root = listed_studies(tmp_path, ('alpha', 'listed'), ('hidden', 'unlisted'), ('mine', 'listed'))
     assert build.study_pages(root, {'index.html', 'shell.js'}) == ['alpha.html', 'mine.html']
 
 
@@ -151,6 +152,23 @@ def test_a_study_whose_path_the_site_already_serves_is_refused(tmp_path):
             assert 'vendor' in str(e)
         else:
             raise AssertionError(f'a study named vendor was published over {taken}')
+
+
+def test_a_study_named_setup_is_refused(tmp_path):
+    """req/setup/page: app/setup is Study Setup's address, which no study may take, whatever the app serves at its top."""
+    root = listed_studies(tmp_path, ('setup', 'listed'))
+    with pytest.raises(ValueError, match='setup'):
+        build.study_pages(root, {'index.html', 'shell.js'})
+
+
+def test_the_setup_page_ships_under_app_and_is_left_out_of_the_offline_list(tmp_path):
+    """req/setup/page: Study Setup is online only, so the page and what only it loads are not kept for working offline."""
+    assert 'web/setup.html' in published() and 'web/setup.js' in published()
+    build.assemble(ROOT, str(tmp_path), {})
+    assert (tmp_path / 'app' / 'setup.html').is_file()
+    listed = {f['path'] for f in json.load(open(tmp_path / 'app' / 'offline.json'))['files']}
+    assert not listed & {'setup.html', 'setup.js', 'data_mode.js'}, listed
+    assert {'index.html', 'shell.js'} <= listed
 
 
 def test_the_repos_studies_take_no_path_the_app_serves():
@@ -184,19 +202,38 @@ def test_the_license_page_carries_the_repos_mit_license_word_for_word(tmp_path):
     assert ' '.join(license.split()) in words((tmp_path / 'license.html').read_text())
 
 
-def test_the_landing_page_opens_the_app_and_lists_every_listed_study(tmp_path):
+def test_the_landing_page_opens_the_app_and_lists_no_study(tmp_path):
+    """req/shell/site/landing: studies are offered by the app's switcher, to those Drive's sharing lets see them."""
     build.assemble(ROOT, str(tmp_path), {})
     landing = (tmp_path / 'index.html').read_text()
     assert re.search(r'<a [^>]*href="app/"', landing), 'the landing page does not open the app'
     assert len(build.studies(ROOT)) >= 3
-    for s in (s for s in build.studies(ROOT) if 'accounts' not in s):
-        assert re.search(rf'<a [^>]*href="app/{s["id"]}"[^>]*>[^<]*{re.escape(s["title"])}', landing), s
-    assert not re.search(r'href="app/fixture"', landing), 'an unlisted study is offered on the landing page'
-    for s in build.studies(ROOT):
-        if 'accounts' in s:
-            assert not re.search(rf'href="app/{s["id"]}"', landing), f'{s["id"]}, shown to named accounts alone, is offered on the landing page'
+    assert not re.search(r'id="studies"', landing), 'the landing page has a list of studies'
+    for s in build.studies(ROOT) + [dict(id='fixture', title='Fixture')]:
+        assert not re.search(rf'href="app/{re.escape(s["id"])}"', landing), f'{s["id"]} is linked from the landing page'
+        assert s['title'] not in landing, f'{s["title"]} is named on the landing page'
     assert 'src="analytics.js"' in landing
 
+
+def test_every_folder_the_build_publishes_from_is_one_a_release_watches():
+    """req/shell/site/published-files: wrangler.json's watch_dir is what tells a release that a change reaches the site."""
+    watched = json.load(open(os.path.join(ROOT, 'wrangler.json')))['build']['watch_dir']
+    sources = {p.split('/')[0] for p in build.published(ROOT)}
+    assert len(sources) >= 3 and not sources - set(watched), f'published from, but not watched: {sorted(sources - set(watched))}'
+
+
+def test_the_landing_page_shows_the_intro_video_and_reaches_youtube_only_on_play(tmp_path):
+    """req/shell/site/landing: a still the site serves, linking the video; nothing of YouTube's is loaded by the page as served."""
+    build.assemble(ROOT, str(tmp_path), {})
+    landing = (tmp_path / 'index.html').read_text()
+    video = re.search(r'<a [^>]*class="video"[^>]*href="https://www\.youtube\.com/watch\?v=[\w-]{11}"[^>]*>(.*?)</a>', landing, re.S)
+    assert video, 'the landing page does not link its intro video'
+    still = re.search(r'<img [^>]*src="([^"]+)"', video.group(1))
+    assert still and (tmp_path / still.group(1)).is_file(), 'the video has no still picture the site serves'
+    assert '<iframe' not in landing, 'the landing page loads a player before anyone presses play'
+    loaded = re.findall(r'<(?:script|img|link|source|video)\b[^>]*\b(?:src|href)="([^"]+)"', landing)
+    assert len(loaded) >= 5 and not [u for u in loaded if re.match(r'(https?:)?//', u)], f'the landing page loads from another site: {loaded}'
+    assert 'YouTube' in (tmp_path / 'privacy.html').read_text(), 'the privacy policy does not name YouTube'
 
 
 def test_the_landing_page_lists_the_supported_browsers_the_page_checks_for(tmp_path):
@@ -291,7 +328,23 @@ def test_the_build_lists_every_file_the_app_needs_offline_with_its_hash(tmp_path
     files = json.load(open(app / 'offline.json'))['files']
     on_disk = {os.path.relpath(os.path.join(d, f), app).replace(os.sep, '/') for top in ('app', 'studies')
                for d, _, fs in os.walk(tmp_path / top) for f in fs}
-    assert {f['path'] for f in files} == on_disk - {'offline.json'}
+    assert {f['path'] for f in files} == on_disk - {'offline.json'} - set(build.OFFLINE_NOT)
     for f in files:
         assert f['sha256'] == hashlib.sha256(open(app / f['path'], 'rb').read()).hexdigest(), f['path']
     assert {'index.html', 'shell.js', 'sw.js', '../studies/nor/study.json'} <= {f['path'] for f in files}
+
+
+def test_the_build_lists_each_studys_article_summaries_with_the_paper_each_names(tmp_path):
+    """req/setup/literature: a summary is a file with a year in its name or one naming a PDF; its paper is the first PDF it names in backticks."""
+    lit = tmp_path / 'studies' / 'acme' / 'docs' / 'literature'
+    lit.mkdir(parents=True)
+    (lit / 'README.md').write_text('# Index\n\nThe notes.\n')
+    (lit / 'doe-2021-widgets.md').write_text('# Doe 2021 — Widgets\n\n*PDF: kept in the Drive `Literature` folder as\n`Widgets, counted.pdf`, then `Other.pdf`.*\n')
+    (lit / 'roe-1999-gears.md').write_text('# Roe 1999 — Gears\n\nNo file is named.\n')
+    (lit / 'biology.md').write_text('Read from `Literature/A review.PDF`.\n')
+    (tmp_path / 'studies' / 'bare' / 'docs' / 'literature').mkdir(parents=True)
+    assert build.literature(str(tmp_path)) == {'acme': [
+        {'file': 'biology.md', 'title': 'biology.md', 'paper': 'A review.PDF'},
+        {'file': 'doe-2021-widgets.md', 'title': 'Doe 2021 — Widgets', 'paper': 'Widgets, counted.pdf'},
+        {'file': 'roe-1999-gears.md', 'title': 'Roe 1999 — Gears', 'paper': None},
+    ]}

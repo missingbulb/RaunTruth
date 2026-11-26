@@ -51,6 +51,11 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   only its own part, with knobs a test sets; fake the repo's own code rarely, and put each new fake to the owner as
   its own approval question first. (fakes-for-outside-systems)
 
+- **Setting up what a test needs** (users and what Google lets them do, their Drive, the deploy, the
+  studies, a device and what it keeps) - say it through `web-tests/world.mjs`, adding a missing intent
+  there or on its fake, never by reaching into a fake's state or writing the page's records by hand.
+  (world-set-up)
+
 - **A test case that makes the page warn or err** - declare it around that case with the harness's `expecting()`,
   by a loose pattern of a word or two, never the whole message; any other one fails the run, and is a bug to fix now.
   (expected-warnings-per-case)
@@ -70,6 +75,10 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 - **Guarding a study algorithm's quality** - record it once per version, in the effort that makes the
   version (its precision, recall and dataset SHA), never in a test that re-scores it on every pull
   request; here this replaces research-project's guard-wins-regression. (quality-per-version)
+
+- **Finishing feature work on the page, before handing it to the owner** - play with it through the explorer,
+  `web-tests/explore/`, as the `exploring-the-ui` skill says: the change's worlds and focus, several seeds, each bug
+  fixed test-first, each owner's call asked with its screenshots. (exploring-the-ui)
 
 ## What the page reaches
 
@@ -94,8 +103,8 @@ not belong here — propose it to the Claudinite canon instead, where every repo
 
 ## Ground truth
 
-- **Building or changing a study's ground-truth controls** (what its page shows in a GT or PostGT
-  stage) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
+- **Building or changing a study's ground-truth controls** (what its page shows in Setup, Develop or Analyze,
+  where annotating is open) — load the `designing-ground-truth-tasks` skill first: the tasks in the left bar, one
   item at a time, area by area, what is done cut out of the image. (designing-ground-truth-tasks)
 
 ## The shell's states

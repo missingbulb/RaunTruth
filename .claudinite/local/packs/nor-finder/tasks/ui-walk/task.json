@@ -1,0 +1,14 @@
+{
+  "id": "ui-walk",
+  "description": "Walks the built page at random in every world of the explorer, on the tests' fakes, and files one issue for each new problem it finds: a bug, a gap a person would expect filled, or a call for the owner, each with the shrunk steps that find it.",
+  "trigger": "schedule",
+  "preconditions": [
+    "schedule:at-most-weekly",
+    "last-run-not-parked",
+    "substantive-change"
+  ],
+  "expected_outcome": "no_code_changes",
+  "agent_model": "opus",
+  "agent_instructions": "task.md",
+  "agent_execution_timeout": 10800
+}

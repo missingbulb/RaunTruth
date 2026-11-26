@@ -7,49 +7,33 @@
 // again. A failure where the details fail too starts no wait.
 // Optional SHOTS: a directory for a screenshot. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/drive_throttle_driver.mjs [SHOTS]
-import { noisePng } from "./png_fixture.mjs";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { until } from "./page_until.mjs";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
-import { pw, keptContext, expecting, check } from "./harness.mjs";
+import { pw, launch, expecting, check } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
-import { siteSettings } from "./fakes/site_settings.mjs";
-import { googleDrive } from "./fakes/google_drive.mjs";
-import { STEP } from "./deadlines.mjs";
+import { world } from "./world.mjs";
+import { image } from "./images.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-const ROOT = "throttlefolder000001";
-const PNG = noisePng();
-const FILES = [{ id: "throttleimage0000001", name: "a.png" }, { id: "throttleimage0000002", name: "b.png" }, { id: "throttleimage0000003", name: "c.tif" }];
+// the same PNG under each name, c.tif's too
+const PNG = image.png("a.png"), FILES = ["a.png", "b.png", "c.tif"];
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 let failed = false;
-// a context with the deploy's Google key and a folder of three images on Drive, opened at the page on a clock the
-// test moves; time: the clock's start; seed: browser keys kept before the page opens
-async function start({ time, seed = {} } = {}) {
-  const ctx = await keptContext(pw, { viewport: { width: 1400, height: 900 } });
-  siteSettings(ctx).env = { GOOGLE_API_KEY: "stand-in" };
-  const drive = googleDrive(ctx);
-  drive.folder({ id: ROOT, name: "Throttled", access: "public" });
-  for (const f of FILES) drive.file({ ...f, parent: ROOT, bytes: PNG, mimeType: "image/png", createdTime: "2026-10-01T10:00:00Z" });
-  await ctx.addInitScript((link) => {
-    delete Navigator.prototype.serviceWorker;
-    if (sessionStorage.getItem("primed")) return;
-    sessionStorage.setItem("primed", "1");
-    localStorage.setItem("nor-drive-link", JSON.stringify(link));
-  }, `https://drive.google.com/drive/folders/${ROOT}`);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.clock.install(time === undefined ? {} : { time });
-  await page.goto(origin + "/web/");
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-  return { ctx, page, drive };
+const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
+// the deploy's Google key and a folder of three images on Drive
+w.site.withoutGoogleClient();
+const throttled = w.folder("Throttled").public();
+for (const name of FILES) throttled.holds({ ...PNG, name }, { createdTime: "2026-10-01T10:00:00Z" });
+// a device of its own remembering the folder's link, opened at the page on a clock the test moves; time: the clock's
+// start; keys: kept before the page opens
+async function start({ time, keys = {} } = {}) {
+  const device = w.device().kept().remembersDriveLink(throttled).keeps(keys);
+  await (await device.context()).clock.install(time === undefined ? {} : { time });
+  return { device, page: await device.opens(undefined, { until: "title" }) };
 }
-const { ctx, page, drive } = await start();
+const { device, page } = await start();
 // calls: every request the page made of Drive since the test cleared them
 const calls = drive.calls, kinds = () => calls.map((c) => c.kind);
 
@@ -75,13 +59,13 @@ try {
     await page.dblclick("#remote-list .item:nth-child(1)");
     await page.waitForFunction(() => !$("#remote-throttle").hidden);
   });
-  let w = await wait();
-  check(w.notice && /^1[45]:\d\d$/.test(w.clock) && w.held, `a refused download shows the notice and a countdown from 15:00, and holds the dialog: ${JSON.stringify(w)}`);
-  check(/rgb\((1\d\d|2\d\d), \d{1,2}, \d{1,2}\)/.test(w.red), `the countdown is red: ${w.red}`);
+  let shown = await wait();
+  check(shown.notice && /^1[45]:\d\d$/.test(shown.clock) && shown.held, `a refused download shows the notice and a countdown from 15:00, and holds the dialog: ${JSON.stringify(shown)}`);
+  check(/rgb\((1\d\d|2\d\d), \d{1,2}, \d{1,2}\)/.test(shown.red), `the countdown is red: ${shown.red}`);
   if (shots) await page.locator("#remote-dlg").screenshot({ path: path.join(shots, "drive_throttle.png") });
   await page.clock.fastForward(61000);
-  w = await wait();
-  check(/^1[34]:\d\d$/.test(w.clock), `it counts down: ${w.clock} a minute later`);
+  shown = await wait();
+  check(/^1[34]:\d\d$/.test(shown.clock), `it counts down: ${shown.clock} a minute later`);
 
   // nothing reaches Drive from the dialog while it waits, nor from a page opened with the wait kept
   calls.length = 0;
@@ -92,13 +76,13 @@ try {
   const [end, now] = await page.evaluate(() => [localStorage.getItem("nor-drive-throttled-until"), Date.now()]);
   check(Number(end) - now > 13 * 60000 && Number(end) - now <= 14 * 60000, `the wait's end is kept, 15 minutes from the refusal: ${end} at ${now}`);
   {
-    const seeded = await start({ time: now, seed: { "nor-drive-throttled-until": end } });
+    const from = calls.length, seeded = await start({ time: now, keys: { "nor-drive-throttled-until": end } });
     await pressDrive(seeded.page);
     // the notice is the page holding Drive: it shows in place of the listing it would otherwise ask for
     await seeded.page.waitForFunction(() => $("#remote-dlg").open && !$("#remote-throttle").hidden);
-    w = await wait(seeded.page);
-    check(w.notice && w.held && seeded.drive.calls.length === 0, `a page opened with the wait kept shows it, with no call to Drive: ${seeded.drive.calls.map((c) => c.kind)}`);
-    await seeded.ctx.close();
+    shown = await wait(seeded.page);
+    check(shown.notice && shown.held && calls.length === from, `a page opened with the wait kept shows it, with no call to Drive: ${kinds().slice(from)}`);
+    await seeded.device.close();
   }
 
   // a kept image still opens, from this device
@@ -117,8 +101,8 @@ try {
   await pressDrive(page);
   await page.clock.fastForward(15 * 60000);
   await listed();
-  w = await wait();
-  check(!w.notice && !w.held && kinds().includes("list"), `after 15 minutes the notice goes and the link is listed again: ${JSON.stringify(w)}`);
+  shown = await wait();
+  check(!shown.notice && !shown.held && kinds().includes("list"), `after 15 minutes the notice goes and the link is listed again: ${JSON.stringify(shown)}`);
 
   // a failure where the details fail too is an error, not a wait
   drive.outage = "down";
@@ -126,8 +110,8 @@ try {
     await page.dblclick("#remote-list .item:nth-child(1)");
     await page.waitForFunction(() => $("#remote-dlg").open && $("#remote-msg").classList.contains("err"));
   });
-  w = await wait();
-  check(!w.notice && !w.held, `with Drive unreachable, the dialog shows an error and does not wait: "${await page.textContent("#remote-msg")}"`);
+  shown = await wait();
+  check(!shown.notice && !shown.held, `with Drive unreachable, the dialog shows an error and does not wait: "${await page.textContent("#remote-msg")}"`);
 
   // a refused read for a row's badge starts the wait too
   drive.outage = "throttled";
@@ -140,5 +124,5 @@ try {
 } catch (e) {
   failed = true; console.error("FAILED: " + e.message);
 }
-await ctx.close(); server.close();
+await device.close(); await browser.close(); server.close();
 process.exitCode = failed ? 1 : 0;

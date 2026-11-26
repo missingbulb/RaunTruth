@@ -8,14 +8,15 @@ pip install -r requirements.txt
 python3 lab/fetch.py nor
 ```
 
-They land in `data/raw/images/` (git-ignored, gone with the container), each named by its Drive id.
+They land in `data/raw/images/` (git-ignored, gone with the container), each named by its SHA-256.
 Every file is checked against the SHA-256 in `sources.json`; a mismatch stops the run. The shared
 lab's [`lab/README.md`](../../../lab/README.md) says what else it fetches. Requirement:
 [`studies/nor/docs/requirements.md`](../docs/requirements.md) R6.
 
 **Adding data:** put it in the study root's `Data` folder on Drive, shared as **"Anyone with the link"**,
-then `python3 lab/fetch.py nor --pin`, which lists the folder again and records what is new with its
-checksum (paths matching `skip` are left out), and commit `sources.json`.
+then in Study Setup rebuild the study index, then `python3 lab/fetch.py nor --pin`, which records the study file's
+images that are new with their checksum, names and hashes only (paths matching `skip` are left out), and commit
+`sources.json`. The lab finds the study file by the environment variable `RAUNTRUTH_STUDY_NOR`.
 
 ## Sources
 
@@ -49,11 +50,8 @@ Gotchas:
 
 - A link shared only with named people redirects to `accounts.google.com` (gdown: `status code
   401`) — fix the sharing, not the code.
-- **gdown's folder listing is not reliable on its own.** On 2026-09-25 it listed 12 of a folder's
-  13 files once and all 13 on the next call. So `--pin` re-lists every time and only *adds*
-  entries (a recorded checksum is never overwritten), and a fresh pin is checked against Drive's
-  own view: `https://drive.google.com/embeddedfolderview?id=<folder id>` lists the same files as
-  `flip-entry-title` entries.
+- **gdown's folder listing was not reliable** (2026-09-25: 12 of a folder's 13 files once, all 13 the next call),
+  which is why the lab no longer lists a folder: it downloads the files the study file names by id.
 
 ## The microscope
 

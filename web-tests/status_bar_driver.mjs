@@ -1,28 +1,28 @@
 // Drives the page (web/) in headless Chromium on the fixture study, with a stand-in worker answering from
 // ANSWERS (tests/test_study_runs.py), and checks the status bar: no stage in it, the study's stage a bordered label
-// on its row in the switcher, whose popup lists the stages; breadcrumbs of the steps done and the one to do now, which shines with its button and
-// nothing else does; a popup on each crumb saying what was done; the shining crumb bringing its button into view
-// and pressing it; a new image starting over; a PreGT study with no Submit GT step;
+// on its row in the switcher, whose popup lists the stages; no breadcrumbs of the steps, the button of the step to do now shining and
+// nothing else; a new image starting over; a Review study with no Save step;
 // the second view's switch reading Tasks with what is left while the study makes ground truth, Items otherwise;
-// a Published study with no Submit GT step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
+// a Public study with no Save step; switching study in place bringing its own stage and steps; the disk, memory, network and CPU as grey icons and
 // numbers, each opening its own tab of one dialog, each rolling its changed characters to a new value, the CPU and
 // the network flashing on a sharp rise and rolling nothing when reduced motion is asked for; a separator between every two items; no question-mark pointer; the four folded into one icon at first, unfolded by hovering it but not by going offline,
 // a network over 250 KB/s for 5 s or a tab over 1 GB, at once with animations off, folding back 5 to 10 s after, or set always open or hidden.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/status_bar_driver.mjs ANSWERS IMAGE.png STUDIES [SHOTS]
+import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
-import { helpTip, anyHelp } from "./help_tip.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { asTagger } from "./tagger.mjs";
-import { localStudy } from "./local_study.mjs";
+import { tagger } from "./tagger.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { pw, launch, expecting, siteOf, NETWORK_GONE } from "./harness.mjs";
+import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
+import { world } from "./world.mjs";
 import { STEP } from "./deadlines.mjs";
+import { atRest } from "./page_motions.mjs";
 
 
 const [answers, image, studies, shots] = process.argv.slice(2);
@@ -57,11 +57,12 @@ const { origin, server } = await serveSite({
   "/web/answers.json": { file: answers },
 });
 
-const browser = await launch(pw);
+const browser = await launch(pw), w = world(browser, origin);
+w.site.withGoogle();
+w.studies.fromThisComputer("fixture");
 // the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
-const site = siteOf(browser).studies;
-site.edit("fixture", (m) => (stage ? { ...m, stage } : m));
-site.editList(() => {
+w.studies.edit("fixture", (m) => (stage ? { ...m, stage } : m));
+w.studies.editList(() => {
   const fixture = JSON.parse(fs.readFileSync(path.join(repo, "studies/fixture/study.json")));
   return [...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }];
 });
@@ -78,25 +79,20 @@ const bars = (page) => page.evaluate(() => {
   const shown = [...document.querySelectorAll("#statusbar > *")].flatMap((e) => (e.id === "sb-res" ? [...e.querySelectorAll("#sb-res-items > *, #sb-res-icon")] : [e]))
     .filter((e) => e.getBoundingClientRect().width >= 1 && !e.matches(".grow, #whats-new") && (clip > 0 || !four(e)));
   return shown.slice(1).map((b, k) => { const a = shown[k];
-    return [a.id, b.id, getComputedStyle(a).borderRightWidth === "1px" || getComputedStyle(b).borderLeftWidth === "1px", !(four(a) && four(b))]; });
+    return [a.id, b.id, getComputedStyle(a).borderRightWidth === "1px" || getComputedStyle(b).borderLeftWidth === "1px", !(four(a) && (four(b) || b.id === "sb-res-icon"))]; });
 });
 
 // clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
 // seed: browser keys kept before the page opens
 async function open(study, mode, clock, seed = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w))
+    .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
+  const ctx = await device.context();
   if (clock) await ctx.clock.install();
-  await localStudy(ctx, "fixture");
-  await asTagger(ctx);
   await standInDrive(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  if (mode) await ctx.addInitScript((m) => { if (localStorage.getItem("nor-resources") === null) localStorage.setItem("nor-resources", JSON.stringify(m)); }, mode);
-  await ctx.addInitScript((seed) => { for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v); }, seed);
-  const page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
   // as computed), and flashed
-  await page.addInitScript(() => {
+  await ctx.addInitScript(() => {
     window.seen = {};
     addEventListener("DOMContentLoaded", () => {
       for (const id of ["sb-disk", "sb-memory", "sb-net", "sb-cpu"]) {
@@ -109,31 +105,15 @@ async function open(study, mode, clock, seed = {}) {
       }
     });
   });
-  await page.goto(origin + "/web/" + (study || ""));
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-  return { ctx, page };
+  return { ctx, page: await device.opens(study || undefined) };
 }
-// the crumbs on show, the one to do now marked *, and every element that shines
-const bar = (page) => page.evaluate(() => ({
-  crumbs: [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")),
-  shining: [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort(),
-}));
-const steps = async (page, want, shining) => {
-  await orMissed(page.waitForFunction((w) => [...document.querySelectorAll("#sb-steps .crumb")].map((c) => c.textContent + (c.classList.contains("now") ? "*" : "")).join() === w, want.join()));
-  const b = await bar(page);
-  await check(b.crumbs.join() === want.join() && b.shining.join() === shining.join(), `crumbs ${want.join(" › ")}, shining ${shining.join() || "nothing"}`, b);
-};
-// what hovering a crumb says, shown above the crumb and gone once the pointer leaves; focusing it says the same
-const tip = async (page, name) => {
-  const sel = `#sb-${await page.evaluate((n) => [...document.querySelectorAll("#sb-steps .crumb")].find((c) => c.textContent === n).id.slice(3), name)}`;
-  const t = await helpTip(page, sel);
-  await check(t.side === "above", `${name}'s help shows above it`, t);
-  await page.mouse.move(700, 300);
-  await check(!(await anyHelp(page)), `and goes when the pointer leaves`);
-  const f = await helpTip(page, sel, { focus: true });
-  await check(f.text === t.text && f.side === "above", `focusing ${name} shows the same help`, f);
-  await page.evaluate(() => document.activeElement.blur());
-  return t.text || "";
+// the one button that shines, that of the step to do now, or none once every step is done (req/shell/steps)
+const shining = (page) => page.evaluate(() => [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort());
+const shines = async (page, want) => {
+  await orMissed(page.waitForFunction((w) => [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort().join() === w, want.join()));
+  const now = await shining(page);
+  await check(now.join() === want.join(), `shining: ${want.join() || "nothing"}`, now);
+  await check(!(await page.$("#sb-steps, #statusbar .crumb")), "and the status bar holds no breadcrumbs");
 };
 // the stage: not in the status bar, but a bordered label on the open study's row in the switcher
 const stageIs = async (page, stage) => {
@@ -149,7 +129,7 @@ const hoverStage = async (page, id) => {
   if (!(await page.evaluate(() => document.querySelector("#study-menu").open))) await page.click("#study-menu summary");
   await page.hover(`#study-list a[data-id="${id}"] .stage-tag`);
   await page.waitForFunction(() => document.querySelector("#stage-pop").matches(":popover-open"));
-  return page.evaluate(() => [...document.querySelectorAll("#stage-pop li")].map((li) => ({
+  return page.evaluate(() => [...document.querySelectorAll("#stage-list li")].map((li) => ({
     name: li.querySelector(".name").textContent, now: li.classList.contains("now"), crossed: getComputedStyle(li.querySelector(".name")).textDecorationLine,
   })));
 };
@@ -166,27 +146,28 @@ const switchIs = async (page, want, on, what) => {
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
   await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
-const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !document.querySelector("#fx-count").disabled); };
-const count = async (page) => { await page.click("#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
+const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !!window.shellForTests?.page.get("image") && document.querySelector("#busy").hidden && document.querySelector("#fx-count")?.disabled === false); };
+// Start, and Run in its dialog: the study's Count runs
+const count = async (page) => { await fromScratch(page, "#fx-count"); await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent)); };
 
-// ---- a GT study: Load image, its Count, Submit GT; the resources block always open, as it was before it could fold ----
+// ---- a Develop study: Load image, its Count, Save; the resources block always open, as it was before it could fold ----
 {
   const { ctx, page } = await open("fixture", "open");
-  await stageIs(page, "GT");
+  await stageIs(page, "Develop");
   // hovering the stage lists the stages, its own highlighted and the ones before it crossed out
   const stages = await hoverStage(page, "fixture");
-  await check(stages.map((x) => x.name).join() === "PreGT,GT,PostGT,Published" && stages[1].now && stages.filter((x) => x.now).length === 1,
-    "the stage's popup lists PreGT, GT, PostGT and Published, GT highlighted", stages);
+  await check(stages.map((x) => x.name).join() === "Setup,Develop,Analyze,Review,Public" && stages[1].now && stages.filter((x) => x.now).length === 1,
+    "the stage's popup lists Setup, Develop, Analyze, Review and Public, Develop highlighted", stages);
   await check(stages[0].crossed === "line-through" && stages.slice(1).every((x) => x.crossed === "none"), "the stage before it is crossed out", stages);
   await check(/next|move on/i.test(await page.textContent("#stage-pop")), "and says what moves the study on", await page.textContent("#stage-pop"));
   const beside = await page.evaluate(() => document.querySelector("#stage-pop").getBoundingClientRect().left - document.querySelector("#study-menu .pop").getBoundingClientRect().right);
   await check(beside >= 0, "and opens beside the switcher, not over it", beside);
   if (shots) await page.screenshot({ path: path.join(shots, "0-stages.png") });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"));
   await page.keyboard.press("Escape");
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
-  await steps(page, ["Load image*"], ["#load-main", "#sb-load"]);
+  await shines(page, ["#load-main"]);
   await shot(page, "1-start");
   // req/shell/waiting/visible: the waiting overlay's big spinner shows while Python loads or works, and gives way
   // to the sweeping light over an image (scan) or to the image painting in (peek)
@@ -224,33 +205,28 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(/^\d+ MB$/.test(right[1].text), 'the memory reads "253 MB", with no word', right[1].text);
   await check(/^\d+(\.\d)? (KB|MB|GB)\/s$/.test(right[2].text), 'the network reads "1.2 MB/s"', right[2].text);
   await check(/^\d+%$/.test(right[3].text), 'the CPU reads "12%"', right[3].text);
-  const left = await page.evaluate(() => ["#sb-steps", "#status"].map((id) => document.querySelector(id).getBoundingClientRect().left));
-  await check(left[0] < 40 && left[0] < left[1], "the crumbs, then what the page is doing, from the left", left);
+  const left = await page.evaluate(() => document.querySelector("#sb-now").getBoundingClientRect().left);
+  await check(left < 40, "what the page is doing, from the left", left);
   // a mild bar between every two items on show, but the four resources
   const seps = await bars(page);
   await check(seps.length >= 5 && seps.every((x) => x[2] === x[3]), "a vertical bar between every two items on show, none between the four resources", seps);
+  // an item that can be clicked reads as a button under the pointer
+  const edge = (sel) => page.evaluate((s) => getComputedStyle(document.querySelector(s), "::after").borderTopColor, sel);
+  const plain = await edge("#sb-version");
+  await page.hover("#sb-version");
+  await page.waitForFunction((was) => { const c = getComputedStyle(document.querySelector("#sb-version"), "::after"); return c.borderTopColor !== was && !document.querySelector("#sb-version").getAnimations({ subtree: true }).length; }, plain);
+  await shot(page, "1-hovered");
+  const hovered = await edge("#sb-version"), fade = await page.evaluate(() => getComputedStyle(document.querySelector("#sb-version"), "::after").transitionDuration);
+  await check(/, 0\)$/.test(plain) && !/, 0\)$/.test(hovered) && parseFloat(fade) > 0 && parseFloat(fade) <= 0.2, "hovering a clickable item fades a button's border in around it, quickly", { plain, hovered, fade });
+  await check(await page.evaluate(() => getComputedStyle(document.querySelector("#sb-now"), "::after").content === "none"), "what cannot be clicked gets no border");
+  await page.mouse.move(700, 300);
   const pointers = await page.evaluate(() => [...document.querySelectorAll("#statusbar, #statusbar *")].map((e) => getComputedStyle(e).cursor).filter((c) => c === "help"));
   await check(!pointers.length, "nothing in the status bar shows a question-mark pointer", pointers);
 
-  // the shining crumb is a way to its button: Load image opens the file chooser, as Load does
-  const chooser = orMissed(page.waitForEvent("filechooser", { timeout: STEP }));
-  await page.click("#sb-load");
-  await check(!!(await chooser), "clicking the shining Load image presses Load");
-
-  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the study makes ground truth there is no item view and no switch to one");
   await loadImage(page);
-  await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
-  await check((await tip(page, "Load image")).includes("squares.png"), "Load image's popup names the image");
-  // Count's box folded and scrolled away: its crumb unfolds it, scrolls to Count and presses it
-  await page.evaluate(() => { document.querySelector("#processing-box").classList.add("folded"); document.querySelector("#left").scrollTop = 1e6; });
-  await page.click("#sb-count");
-  const shown = await page.evaluate(() => {
-    const b = document.querySelector("#fx-count"), r = b.getBoundingClientRect(), l = document.querySelector("#left").getBoundingClientRect();
-    return { unfolded: !document.querySelector("#processing-box").classList.contains("folded"), inView: r.height > 0 && r.top >= l.top && r.bottom <= l.bottom };
-  });
-  await check(shown.unfolded && shown.inView, "the shining crumb unfolds Count's box and brings Count into view", shown);
-  await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-result").textContent));
-  await check(true, "and presses Count");
+  await shines(page, ["#annotate-scratch"]);
+  await count(page);
+  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
   // Python worked about WORK ms of the last two seconds
   await orMissed(page.waitForFunction(() => parseInt(document.querySelector("#sb-cpu").textContent) >= 30, null, { timeout: STEP }));
   await check(parseInt(await page.textContent("#sb-cpu")) >= 30, "the CPU shows Python at work", await page.textContent("#sb-cpu"));
@@ -261,8 +237,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
   await orMissed(page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }));
   await check(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
-  await steps(page, ["Load image", "Count", "Submit GT*"], ["#gt-submit", "#sb-submit"]);
-  await check((await tip(page, "Count")).includes("400"), "the study's step says what it did");
+  await shines(page, ["#gt-submit"]);
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
     const rows = [...document.querySelectorAll("#gt-tasks > li:not([data-task=edits])")], part = document.querySelector('#gt-bar > span[data-task="check"]'), s = document.querySelector("#gt-submit");
@@ -272,10 +247,9 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
       filled: +part.style.getPropertyValue("--done"), submit: !s.disabled, state: s.dataset.state || "" };
   });
   const l0 = await list();
-  await check(l0.rows.join() === "0/1 Count checked,Submit Ground Truth" && l0.last && l0.submit && l0.state === "todo",
-    "the study's task is a row, 0 of 1 done, and Submit Ground Truth, on, is the last", l0);
-  await check(!l0.open, "no task is open until Start GT tagging (req/shell/ground-truth/tagging)", l0);
-  await page.click("#gt-start");
+  await check(l0.rows.join() === "0/1 Count checked,Upload" && l0.last && l0.submit && l0.state === "todo",
+    "the study's task is a row, 0 of 1 done, and Upload, on, is the last", l0);
+  await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
   await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
   await page.check("#fx-done");
@@ -283,22 +257,18 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
   await shot(page, "2-submit");
-  // the shining Submit GT crumb presses the shell's Submit, its box unfolded
-  await page.evaluate(() => document.querySelector("#tasks-box").classList.add("folded"));
-  await page.click("#sb-submit");
+  await page.click("#gt-submit");
   await page.waitForFunction(() => document.querySelector("#gt-dlg").open);
-  await check(await page.evaluate(() => !document.querySelector("#tasks-box").classList.contains("folded")), "the Submit GT crumb unfolds the tasks and presses Submit");
-  const download = page.waitForEvent("download");
-  await page.click("#gt-export");
-  await download;
   await page.click("#gt-close");
-  await steps(page, ["Load image", "Count", "Submit GT"], []);
-  await check(/squares_gt\.json/.test(await tip(page, "Submit GT")), "Submit GT says what was exported");
+  const download = page.waitForEvent("download");
+  await page.click("#analysis-dl");
+  await download;
+  await shines(page, []);
   await shot(page, "3-done");
   // another image starts over, after the question about the actions not yet saved (req/shell/ground-truth/save-draft)
   page.once("dialog", (d) => d.accept());
   await loadImage(page);
-  await steps(page, ["Load image", "Count*"], ["#fx-count", "#sb-count"]);
+  await shines(page, ["#annotate-scratch"]);
 
   // the memory opens its tab of the one dialog, with no Run GC and no essay on Python's memory
   await page.click("#sb-memory");
@@ -318,6 +288,7 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   const memLook = await look("memory");
   // switching tabs leaves the dialog as it is: each tab, as it shows, the same box
   const boxes = [];
+  await atRest(page, "#usage-dlg");
   for (const t of ["storage", "network", "cpu", "memory"]) {
     await page.click(`#usage-dlg [role=tab][data-tab=${t}]`);
     for (let k = 0; k < 3; k++) { boxes.push(await page.evaluate(() => { const r = document.querySelector("#usage-dlg").getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(); })); await page.waitForTimeout(150); } // waits on purpose (no event): samples the box over the tab's first redraws
@@ -388,10 +359,11 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await check(still.shine === "none" && still.gt === "0s", "nothing shines or fades", still);
   await check(still.sweep === "none" && still.halo === "none", "a button that would shine looks plain: no light frozen on it, no halo", still);
   {
-    const seeded = await open("fixture", undefined, false, { "nor-motion": "false" });
-    const kept = await seeded.page.evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
+    // a device no one is signed in on: the setting is its own, with no Drive of the tagger's to sync it from
+    const seeded = w.device().keeps({ "nor-motion": "false" });
+    const kept = await (await seeded.opens("fixture", { until: "title" })).evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
     await check(!kept.box && kept.motion === "off", "a page opened with the animations turned off opens with them off", kept);
-    await seeded.ctx.close();
+    await seeded.close();
   }
   await check(still.spin === "spin" && still.working === "spin", "but a spinner still turns", still);
   await page.waitForFunction(() => !document.querySelector("#sb-net").classList.contains("spike"), null, { timeout: 6000 });
@@ -434,11 +406,12 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await isOpen(true, "hovering the icon unfolds the four as they look always open");
   await check((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left),
     "the icon staying, the four opening beside it", await block());
+  await shot(page, "9-resources-unfolded");
   const unfolded = await bars(page);
-  await check(unfolded.length && unfolded.every((x) => x[2] === x[3]), "unfolded, no bar between the four, one between the CPU and the online icon and between all else", unfolded);
+  await check(unfolded.length && unfolded.every((x) => x[2] === x[3]), "unfolded, no bar between the four nor between them and their icon, one between all else", unfolded);
   const after = await fixed();
   await check(after.every((x, k) => x === before[k]), "unfolding moves neither the icon, the online icon, the report icon nor the version", { before, after });
-  // too little room: what the page is doing and the four give way; the steps and the icons and version stay whole, none
+  // too little room: what the page is doing and the four give way; the icons and version stay whole, none
   // overlapping the next, the resources icon inside its block
   await page.evaluate(() => { document.querySelector("#status").textContent = "Loading the study's Python packages, a long message that cannot fit"; });
   for (const width of [620, 520, 480]) {
@@ -447,19 +420,14 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
     const squeezed = await page.evaluate(() => {
       const bar = document.querySelector("#statusbar").getBoundingClientRect(), box = (s) => document.querySelector(s).getBoundingClientRect();
       const whole = (e) => { const r = e.getBoundingClientRect(); return r.width >= e.scrollWidth - 1 && r.left >= bar.left && r.right <= bar.right; };
-      // a crumb's own words inside it: its scrollWidth also counts the shine sweeping past its clipped edge
-      const wordsWhole = (e) => {
-        const r = e.getBoundingClientRect(), w = document.createRange(); w.selectNodeContents(e); const t = w.getBoundingClientRect();
-        return t.left >= r.left - 0.5 && t.right <= r.right + 0.5 && r.left >= bar.left && r.right <= bar.right;
-      };
       const right = ["#sb-res-icon", "#sb-online", "#sb-report", "#sb-version"];
-      return { steps: [...document.querySelectorAll("#sb-steps .crumb")].every(wordsWhole), right: right.filter((id) => !whole(document.querySelector(id))),
+      return { right: right.filter((id) => !whole(document.querySelector(id))),
         overlap: right.slice(1).filter((id, k) => box(right[k]).right > box(id).left),
         outside: box("#sb-res-icon").right > box("#sb-res").right + 0.5,
         status: box("#sb-now").width < document.querySelector("#status").scrollWidth };
     });
-    await check(squeezed.steps && !squeezed.right.length && !squeezed.overlap.length && !squeezed.outside && squeezed.status,
-      `at ${width}px the status gives way, the steps and the right-hand items stay whole and apart`, squeezed);
+    await check(!squeezed.right.length && !squeezed.overlap.length && !squeezed.outside && squeezed.status,
+      `at ${width}px the status gives way, the right-hand items stay whole and apart`, squeezed);
     await shot(page, `11-squeezed-${width}`);
   }
   await page.setViewportSize({ width: 1400, height: 900 });
@@ -470,8 +438,10 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await page.click("#sb-res-icon");
   await page.waitForFunction(() => document.querySelector("#usage-dlg").open);
   if (shots) await page.screenshot({ path: path.join(shots, "12-resources-setting.png") });
-  const mode = await page.evaluate(() => { const b = document.querySelector("#res-mode"); return { type: b?.type, checked: b?.checked, label: b?.closest("label")?.textContent.trim(), selects: document.querySelectorAll("#usage-dlg .res-mode select").length }; });
-  await check(mode.type === "checkbox" && mode.checked && mode.label === "Autohide" && !mode.selects, "clicking the icon opens the resources dialog, whose one setting for the block is an Autohide checkbox, checked", mode);
+  const mode = await page.evaluate(() => { const b = document.querySelector("#res-mode"); return { type: b?.type, checked: b?.checked, label: b?.closest("label")?.textContent.trim(), row: !!b?.closest(".dlg-row.end"),
+    left: b && b.closest("label").getBoundingClientRect().left - b.closest(".dlg-row").getBoundingClientRect().left, level: b && Math.abs(b.closest("label").getBoundingClientRect().bottom - [...b.closest(".dlg-row").querySelectorAll("button")].at(-1).getBoundingClientRect().bottom), selects: document.querySelectorAll("#usage-dlg .res-mode select").length }; });
+  await check(mode.type === "checkbox" && mode.checked && mode.label === "Autohide in statusbar" && !mode.selects, "clicking the icon opens the resources dialog, whose one setting for the block is an Autohide in statusbar checkbox, checked", mode);
+  await check(mode.row && mode.left < 2 && mode.level < 12, "it sits at the left of the dialog's bottom row, in line with its buttons", mode);
   await page.keyboard.press("Escape"); await page.mouse.move(700, 300);
   await isOpen(false, "closed, the block is folded again");
 
@@ -591,42 +561,42 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
   await ctx.close();
 }
 
-// ---- the same study as PreGT: no ground truth to export ----
+// ---- the same study as Review: no ground truth to export ----
 {
-  stage = "PreGT";
+  stage = "Review";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "PreGT");
+  await stageIs(page, "Review");
   // another study's label speaks of that study
   const other = await hoverStage(page, "nor");
-  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a PreGT study, hovering NoR Finder's label highlights GT, its own", other);
+  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a Review study, hovering NoR Finder's label highlights Develop, its own", other);
   // with animations off, leaving it closes it all the same
   const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
-  await page.mouse.move(700, 600);
+  await page.mouse.move(1300, 100);
   const closed = await orMissed(page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: STEP }));
   await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
   await loadImage(page);
-  await switchIs(page, "Items", false, "the shell keeps the switch off until the study has counted its items");
+  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "the shell shows no switch until the study has counted its items");
   await count(page);
-  await steps(page, ["Load image", "Count"], []);
-  await switchIs(page, "Items 1", true, "a PreGT study's item view shows what was found, how many");
+  await shines(page, []);
+  await switchIs(page, "Items 1", true, "a Review study's item view shows what was found, how many");
   await page.click("#switch");
   await page.waitForFunction(() => !document.querySelector("#switch").classList.contains("working"));
   await check(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
     "pressing it shows the item view, its card what was found");
-  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Submit Ground Truth");
+  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Save");
   await ctx.close();
   stage = null;
 }
 
-// ---- the same study as Published: it only shows what it finds ----
+// ---- the same study as Public: it only shows what it finds ----
 {
-  stage = "Published";
+  stage = "Public";
   const { ctx, page } = await open("fixture");
-  await stageIs(page, "Published");
+  await stageIs(page, "Public");
   await loadImage(page); await count(page);
-  await steps(page, ["Load image", "Count"], []);
+  await shines(page, []);
   await switchIs(page, "Items 1", true, "its item view shows what was found, how many");
   await ctx.close();
   stage = null;
@@ -636,15 +606,15 @@ const count = async (page) => { await page.click("#fx-count"); await page.waitFo
 {
   const { ctx, page } = await open(null);
   await stageIs(page, null);
-  await steps(page, ["Load image*"], ["#load-main", "#sb-load"]);
+  await shines(page, ["#load-main"]);
   await page.setInputFiles("#file", image);
-  await steps(page, ["Load image"], []);
+  await shines(page, []);
   // switching study in place: its stage and steps come with it, and it starts with no image open
   await page.click("#study-menu summary");
   await page.click("#study-list a >> text=NoR Finder");
-  await page.waitForFunction(() => document.documentElement.dataset.stage === "GT");
+  await page.waitForFunction(() => document.documentElement.dataset.stage === "Develop");
   // NoR Finder loads from Drive (req/shell/load/from): with no image opened there yet, Drive's button is the step's
-  await steps(page, ["Load image*"], ["#load-remote", "#sb-load"]);
+  await shines(page, ["#load-remote"]);
   await ctx.close();
 }
 await done(0);

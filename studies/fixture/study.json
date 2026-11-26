@@ -2,7 +2,7 @@
   "id": "fixture",
   "title": "Fixture",
   "visibility": "unlisted",
-  "stage": "GT",
+  "stage": "Develop",
   "summary": {
     "mask": false
   },
@@ -38,7 +38,7 @@
       "drive"
     ],
     "accept": ".png",
-    "empty": "Load a greyscale PNG, then press Count."
+    "empty": "Load a greyscale PNG, then press Start."
   },
   "channels": [
     {
@@ -51,6 +51,14 @@
   "progress": {
     "open": "Reading the image…",
     "run": "Counting…"
+  },
+  "results": {
+    "measures": [
+      {
+        "title": "Pixels counted",
+        "path": "labels.0.count"
+      }
+    ]
   },
   "groundTruth": {
     "actions": "web/gt_actions.js"

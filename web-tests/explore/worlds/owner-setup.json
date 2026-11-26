@@ -1,0 +1,87 @@
+{
+ "about": "The study's owner, signed in, on Study Setup's page, where Drive lets them write the study's folder.",
+ "goals": {
+  "person": "the researcher who runs this study, on its management page",
+  "goals": [
+   "Find out which stage your study is in and what would take it to the next one.",
+   "Add a note to the images of day 1 that their slides were damaged, so that everyone sees it.",
+   "Check who can see your study and who can hand in work, and fix anything the page says is wrong.",
+   "Run the count over every image of one folder and look at the results."
+  ]
+ },
+ "page": "setup",
+ "study": "fixture",
+ "stage": "Develop",
+ "user": {
+  "email": "owner@acme.example",
+  "name": "Acme Owner"
+ },
+ "drive": {
+  "access": "public",
+  "writers": [
+   "owner@acme.example"
+  ],
+  "gt": true,
+  "tree": [
+   {
+    "name": "Cohort A",
+    "children": [
+     {
+      "name": "Day 1",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse01_slice03.png",
+        "sample": "png"
+       },
+       {
+        "name": "mouse02 slice1 (copy).png",
+        "sample": "png"
+       }
+      ]
+     },
+     {
+      "name": "Day 7",
+      "children": [
+       {
+        "name": "mouse01_slice02.png",
+        "sample": "png"
+       },
+       {
+        "name": "bench notes.jpg",
+        "sample": "photo"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Empty folder",
+    "children": []
+   },
+   {
+    "name": "2026-03-14 two channels.tif",
+    "sample": "tif"
+   },
+   {
+    "name": "z-stack 40x.tif",
+    "sample": "stack"
+   },
+   {
+    "name": "upload cut short.png",
+    "sample": "broken"
+   },
+   {
+    "name": "Überblick ölfärbung.png",
+    "sample": "png"
+   },
+   {
+    "name": "wide scan.png",
+    "sample": "large"
+   }
+  ]
+ }
+}

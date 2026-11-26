@@ -1,22 +1,22 @@
 // Drives the vascular study's GT actions in a GT stage (req/vascular/model/correct, req/vascular/model/ground-truth) in headless
-// Chromium against a stand-in worker (stand_in.mjs), as a Ground Truth Tagger: a point dragged is one action at its drop and none
+// Chromium against a stand-in worker (stand_in.mjs), annotating: a point dragged is one action at its drop and none
 // while it moves or when Escape cancels it; Undo and Redo are the shell's; the file keeps the ids and has no clock; Save Draft, and
 // Load draft in a page opened afresh, bring the model back without Execute; and the edits kept in this browser before Edit History are offered
 // once as a base. Exits 1 on a failed check, 2 when it cannot run.
 //   node studies/vascular/tests/vessel_gt_actions_driver.mjs STUDIES
+import { fromScratch } from "../../../web-tests/annotating.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { asTagger } from "../../../web-tests/tagger.mjs";
-import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
+import { serve, atStage, taggersDevice, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { oldKey } from "../web/old_edits.js";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
-import { STEP } from "../../../web-tests/deadlines.mjs";
-import { storedDrafts, seedDrafts, seedKeys } from "../../../web-tests/device_storage.mjs";
+import { world } from "../../../web-tests/world.mjs";
+import { storedDrafts } from "../../../web-tests/device_storage.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url)), repo = path.resolve(here, "..", "..", "..");
 const [studies] = process.argv.slice(2);
@@ -25,22 +25,15 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK_PX];
 const site = await serve(studies, model);
 
-const browser = await launch(pw);
-atStage(browser, "GT");
+const browser = await launch(pw), w = world(browser, site.origin);
+atStage(browser, "Develop");
 let failed = false;
-let ctx, page;
-// a page of a context of its own, ready; drafts, keys: what the device keeps before it opens
+let device, page;
+// a page of a device of its own, ready; drafts, keys: what the device keeps before it opens
 async function open({ drafts = [], keys = {} } = {}) {
-  ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, ...SOFTWARE_3D, acceptDownloads: true });
-  await asTagger(ctx);
-  await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-  await standInDrive(ctx);
-  await seedDrafts(ctx, drafts);
-  await seedKeys(ctx, keys);
-  page = await ctx.newPage();
-  page.setDefaultTimeout(STEP);
-  await page.goto(site.origin + "/web/vascular");
-  await page.waitForFunction(() => window.$ && $("#status").textContent.startsWith("Ready"));
+  device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
+  await standInDrive(await device.context());
+  page = await device.opens("vascular");
 }
 
 const doc = () => page.evaluate(() => window.vascular.model().model);
@@ -49,14 +42,15 @@ const count = async () => +(/\d+/.exec(await page.textContent("#gt-unsaved"))?.[
 const nodeOf = async (id) => (await doc()).nodes.find((n) => n.id === id) ?? (await doc()).edges.flatMap((e) => e.via).find((n) => n.id === id);
 const stack = { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) };
 const [W, H] = [model.size_px[0] * model.um_per_px, model.size_px[1] * model.um_per_px];
-const execute = async () => { await page.click("#vm-run"); await page.waitForFunction(() => !$("#vm-review").hidden); };
-const opened = async () => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); await page.evaluate(() => { $("#notice").hidden = true; }); };
+// Execute has run: Start's Run pressed it
+const execute = () => page.waitForFunction(() => !$("#vm-review").hidden);
+// the stack opened and, unless told not to, an analysis started on it, its algorithm run
+const opened = async (start = true) => { await openFromDrive(page, stack); await page.waitForFunction(() => !$("#vm-run").disabled); if (start) await fromScratch(page, "#vm-run"); await page.evaluate(() => { $("#notice").hidden = true; }); };
 
 try {
   await open();
   await opened();
   await execute();
-  await page.click("#gt-start");
   await page.selectOption("#gt-areas", "2");
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);
@@ -115,17 +109,14 @@ try {
     await page.mouse.move(cv[0] + (tipOf.p[0] + tipOf.q[0]) / 2, cv[1] + (tipOf.p[1] + tipOf.q[1]) / 2, { steps: 4 });
     await page.mouse.move(cv[0] + tipOf.q[0], cv[1] + tipOf.q[1], { steps: 4 }); await page.mouse.up();
     const title = await page.getAttribute("#gt-undo", "title");
-    check((await count()) === had + 1 && title === "Undo: Moved a point", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
+    check((await count()) === had + 1 && title === "Undo: Moved a point (Ctrl+Z)", `a tip dropped on its vessel's next point is one move, not an attachment: ${title}`);
     await page.click("#gt-undo");
     check((await count()) === had, "and Undo takes it back");
   }
 
   // the file: every id kept, no clock, the log with it
-  await page.click("#gt-submit");
-  await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-export").disabled);
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#gt-export")]);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#analysis-dl")]);
   const out = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
-  await page.click("#gt-close");
   const move = out.history.actions.find((a) => a.type === "move-node");
   check(out.edges.every((e) => e.segment_ids?.length === e.via.length + 1 && e.via.every((p) => Number.isInteger(p.id))) && out.status === "corrected" && !("corrected_at" in out) && !("corrections" in out),
     "the file carries each segment's and curve point's id, and no clock and no count of corrections");
@@ -138,12 +129,12 @@ try {
   const drafts = await storedDrafts(page), { history: filed, ...file } = out;
   check(drafts.length === 1 && drafts[0].study === "vascular" && drafts[0].name === stack.name && JSON.stringify(drafts[0].model) === JSON.stringify(file)
     && JSON.stringify(drafts[0].log) === JSON.stringify(filed.actions), `Save Draft stores the stack's draft on the device: the model and the log of the file: ${JSON.stringify(drafts.map((d) => [d.study, d.name, d.log.length]))}`);
-  await ctx.close();
+  await device.close();
   await open({ drafts });
-  await opened();
-  await page.waitForFunction(() => !$("#gt-offers").hidden);
-  check(await page.evaluate(() => !!window.vascular.model().model === false && !$("#gt-load-draft").hidden), "a page opened with the draft there offers it and shows no model: Execute has not run");
-  await page.click("#gt-load-draft");
+  await opened(false);
+  await page.waitForFunction(() => $("#annotate-local").checkVisibility());
+  check(await page.evaluate(() => !!window.vascular.model().model === false), "a page opened with the draft there offers it, as Continue local work, and shows no model: Execute has not run");
+  await page.click("#annotate-local");
   await page.waitForFunction(() => !!window.vascular.model().model);
   check(JSON.stringify(await doc()) === saved && (await page.textContent("#status")).includes("verified") && await page.evaluate(() => !$("#vm-review").hidden), "Load draft brings the model back with its replay verified, and no Execute");
 
@@ -153,7 +144,7 @@ try {
   const key = oldKey(meta);
   const candidate = run.edges.findIndex((e) => e.state === "candidate");
   const earlier = { ...run, edges: run.edges.map((e, k) => (k === candidate ? { ...e, state: "accepted" } : e)) };
-  await ctx.close();
+  await device.close();
   await open({ drafts, keys: { [key]: JSON.stringify({ edits: 2, model: earlier }) } });
   await opened();
   await execute();

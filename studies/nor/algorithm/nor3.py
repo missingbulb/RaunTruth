@@ -46,8 +46,10 @@ def hmax_above(img, h, T):
     """skimage h_maxima(img, h) & (img > T), bit for bit, but reconstructing only the pieces of
     img that rise above T - h. Pixels below that level cannot carry a reconstruction value up to
     a pixel above T (flat reconstruction commutes with max(., L)), so each piece is independent."""
-    from skimage.morphology import h_maxima
+    from skimage.morphology import h_maxima, local_maxima
     from skimage.morphology.grayreconstruct import reconstruction
+    if h <= 0:      # a flat or dark image's zero threshold: no depth asked, every regional maximum, which h_maxima refuses
+        return local_maxima(img, connectivity=1).astype(bool) & (img > T)
     if h > np.ptp(img):
         return np.zeros(img.shape, bool)
     L = T - h - 1e-6 * max(1.0, float(img.max()), -float(img.min()))

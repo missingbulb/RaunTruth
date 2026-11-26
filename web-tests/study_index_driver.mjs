@@ -1,21 +1,29 @@
 // Drives a study's listed folders, its study index, its tags and hiding (req/shell/data/folders, req/shell/data/index,
 // req/shell/data/tags, req/shell/data/hidden, req/shell/load/study-images, req/shell/data/damaged,
-// req/shell/data/area-of-interest) in headless Chromium on the fixture study, against the stand-in Google of
+// req/shell/data/area-of-interest, req/shell/extractions/marks-shown) in headless Chromium on the fixture study, against the stand-in Google of
 // stand_in_drive.mjs serving ROOT: a Data folder the study file names, a subfolder in it, and an Other folder.
 // Optional SHOTS: a directory for screenshots. Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/study_index_driver.mjs ANSWERS STUDIES ROOT [SHOTS]
+import { fromScratch } from "./annotating.mjs";
 import { standIn } from "./stand_in_drive.mjs";
+import { unfoldTo } from "./drive_open.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { frames } from "./page_frames.mjs";
 import { idle, orMissed } from "./page_until.mjs";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { openImage } from "./setup_page.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const indexes = [], tagFiles = [];
-const { ROOT, FILES, hidden, writes, open, role, check, done } = await standIn({ answers, studies, rootDir,
+const { ROOT, FILES, hidden, writes, open, dataManagement, check, done } = await standIn({ answers, studies, rootDir,
+  // the study file's index section (with the grouping and hiding it carries) and its tags section, each kept when it changes
   uploaded: (f) => {
-    if (f.name === "rauntruth-index.json") indexes.push(JSON.parse(f.bytes.toString()));
-    if (f.name === "rauntruth-tags.json") tagFiles.push(JSON.parse(f.bytes.toString()));
+    if (f.name !== "rauntruth-study.json") return;
+    const doc = JSON.parse(f.bytes.toString());
+    const ix = doc.index && { ...doc.index, group: doc.group ?? null, hide: doc.hide ?? [] };
+    if (ix && JSON.stringify(ix) !== JSON.stringify(indexes.at(-1))) indexes.push(ix);
+    if (doc.tags && JSON.stringify(doc.tags) !== JSON.stringify(tagFiles.at(-1))) tagFiles.push(doc.tags);
   } });
 const idOf = (name) => FILES.find((f) => f.name === name).id;
 // the study file names the Data folder, and is the page's own, as one its Set up wrote
@@ -38,7 +46,7 @@ const names = (ix) => ix.images.map((i) => [i.name, i.path.join(" / ")]);
 const settled = (page) => orMissed(page.waitForFunction(() => !document.querySelector("#data-tree.busy") && /^Study index/.test(document.querySelector("#data-index").textContent), null, { timeout: 10000 }));
 
 let page = await open(true);
-await role(page, "Study Manager");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length === 2);
 await settled(page);
 await check(indexes.length === 1 && JSON.stringify(names(indexes[0])) === JSON.stringify([["acme.png", "Data"], ["beta.png", "Data / sub"]])
@@ -52,7 +60,7 @@ await check(JSON.stringify(await tree()) === JSON.stringify({ listed: ["Data"], 
 await page.click('#data-unlisted .unlisted-folder:has-text("Other") .add');
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
-await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && studyFile().review === true && !!studyFile().curated,
+await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && !!studyFile().extractions,
   "Add to study writes the folder into the study file, every other key kept", studyFile());
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
@@ -76,8 +84,8 @@ await check(!names(last).some(([n]) => n === "gamma.png") && names(last).some(([
 
 // nothing changed: going back into Data Management writes no index
 const before = indexes.length;
-await role(page, "Viewer");
-await role(page, "Study Manager");
+await dataManagement(page, false);
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await frames(page);
@@ -90,7 +98,15 @@ await page.click("#load-remote");
 await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }));
 const listed = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : e.querySelector(".name").textContent)));
 await check(JSON.stringify(listed) === JSON.stringify(["# Data", "acme.png", "# Data / sub", "beta.png", "# Elsewhere", "delta.png"]), "Load study images lists the index's images, a group per folder", listed);
+const dialog = await page.evaluate(() => ({ title: document.querySelector("#remote-title").textContent, path: document.querySelector("#remote-path").checkVisibility() ? document.querySelector("#remote-path").textContent : "" }));
+await check(dialog.title === "Open Image" && dialog.path === "", "the dialog is titled Open Image, with no line naming the study's images over the list", dialog);
+const heads = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .group")].map((g) => ({ open: g.getAttribute("aria-expanded"), folder: !!g.querySelector("svg.folder-icon"), count: g.querySelector(".group-count").textContent })));
+const showing = () => page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].filter((e) => e.checkVisibility()).map((e) => e.querySelector(".name").textContent));
+await check((await heads()).every((h) => h.open === "false" && h.folder && h.count === "(1)") && !(await showing()).length,
+  "each group is folded at first, under a folder with its number of images in brackets", { heads: await heads(), showing: await showing() });
 await shoot("#remote-dlg", "load-study-images.png");
+await page.click('#remote-list .group:has(.group-name:text-is("Data / sub"))');
+await check(JSON.stringify(await showing()) === '["beta.png"]' && (await heads())[1].open === "true", "a click on a group unfolds its images, and no other's", { heads: await heads(), showing: await showing() });
 const reads = writes.length;
 await page.dblclick('#remote-list .item:has(.name:text-is("beta.png"))');
 await orMissed(page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }));
@@ -112,7 +128,7 @@ await expecting(NETWORK_GONE, async () => {
 // tags (req/shell/data/tags): a folder's, an image's own value winning over it, a description, a tag refused; grouping
 // and hiding set in Study images (req/shell/data/hidden)
 page = await open(true);
-await role(page, "Study Manager");
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 const imageOf = (ix, name) => ix.images.find((i) => i.name === name);
@@ -120,7 +136,10 @@ const indexed = (n) => orMissed(page.waitForFunction((n) => /^Study index/.test(
 const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
+const studyWrites = () => writes.filter(([, name]) => name === "rauntruth-study.json").length;
+const writesBefore = studyWrites();
 await tagIt("Group:Wild Type");
+await check(studyWrites() - writesBefore === 1, "one tag edit is one write of the study file, the tags and the index in it together", studyWrites() - writesBefore);
 await check(JSON.stringify(tagFiles.at(-1)?.folders?.[idOf("Data")]) === JSON.stringify({ tags: ["group:wild-type"] }), "a folder's tag, written as the page keeps it, goes into the tags file", tagFiles.at(-1));
 await check(JSON.stringify(imageOf(indexes.at(-1), "beta.png")?.tags) === JSON.stringify(["group:wild-type"]), "and onto every image under the folder in the index", imageOf(indexes.at(-1), "beta.png"));
 const chooseImage = async (folder, name) => {
@@ -177,7 +196,35 @@ await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-lis
 const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
+// req/shell/image/file-info: the image's tags in the Image box, over its details
+await page.click('#remote-list .group:has(.group-name:text-is("group: wild-type"))');
+await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
+await orMissed(page.waitForFunction(() => document.querySelector("#file-tags .tag-chip"), null, { timeout: 10000 }));
+const boxTags = await page.evaluate(() => { const t = document.querySelector("#file-tags");
+  return { tags: [...t.querySelectorAll(".tag-chip")].map((c) => c.textContent), above: t.nextElementSibling === document.querySelector("#file-box"), shown: !t.hidden }; });
+await check(JSON.stringify(boxTags.tags) === '["group:wild-type"]' && boxTags.above && boxTags.shown, "an image opened shows its tags in the Image box, above its details", boxTags);
+await shoot("#image-box", "image-box-tags.png");
 await page.context().close();
+
+// req/shell/extractions/marks-shown: the study file's marks, seeded as Study Setup would write them, shown on each image's row in Load,
+// yours first and what another's marked after, and one line of the popup counting them
+{
+  const shaOf = (name) => createHash("sha256").update(FILES.find((f) => f.name === name).bytes).digest("hex");
+  const sha = { acme: shaOf("acme.png"), beta: shaOf("beta.png") };
+  settings.bytes = Buffer.from(JSON.stringify({ ...studyFile(), marks: {
+    [sha.acme]: { gt: { file: "F1", by: "tester@example.com" } },
+    [sha.beta]: { gt: { file: "F2", by: "yael@lab.org" }, official: { file: "F3", by: "yael@lab.org" } } } }));
+  page = await open(true);
+  await page.evaluate(() => document.querySelector("#load-remote").click());
+  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 2, null, { timeout: 10000 }));
+  await orMissed(page.waitForFunction(() => /^Yours/.test(document.querySelector("#remote-msg").textContent), null, { timeout: 10000 }));
+  const tags = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item")].map((e) => [e.querySelector(".name").textContent, e.querySelector(".gt-tag").textContent]));
+  await check(JSON.stringify(tags) === JSON.stringify([["beta.png", "GT marked · official marked"], ["acme.png", "yours: GT"]]),
+    "each row says what the study's marks say of its image: yours first, then another's, ", tags);
+  const line = await page.textContent("#remote-msg");
+  await check(line === "Yours: 1 GT. 1 with another's marked.", "one line of the popup counts them", line);
+  await page.context().close();
+}
 
 // the Study Manager's areas (req/shell/data/damaged, req/shell/data/area-of-interest): marked on the image itself, kept
 // in the tags file and the index; a viewer sees both, the summary starts as the area of interest, Python is handed the
@@ -193,23 +240,29 @@ const lasso = async (x0, y0, x1, y1) => {
   for (const p of [...pts.slice(1), pts[0]]) await page.mouse.move(...p, { steps: 6 });
   await page.mouse.up();
 };
-page = await open(true, { study: masked });
-await role(page, "Study Manager");
+page = await open(true, { study: masked, scale: shots ? 2 : 1 });
+await dataManagement(page);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
 await settled(page);
 await chooseImage("Data", "acme.png");
 await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && !$("#areas-damaged-mark").disabled, null, { timeout: 10000 }));
-await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open, its areas can be marked");
+await openImage(page);
+await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open in its dialog, its areas can be marked");
+await page.click("#areas-damaged-mark");
+await page.waitForFunction(() => !!document.querySelector("#image-dlg .lassoing"));
+await page.keyboard.press("Escape");
+await check(await page.evaluate(() => $("#image-dlg").open && !document.querySelector("#image-dlg .lassoing")), "Esc while an area is being lassoed gives the lasso up and leaves the dialog open");
 await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
 await idle(page);
 await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
 await idle(page);
+await shoot("#image-dlg", "areas-lassoed.png");
 const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
 await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
   "a damaged area and the area of interest go into the tags file, the image's description kept", acmeAreas);
 await check(imageOf(indexes.at(-1), "acme.png")?.damaged?.length === 1 && imageOf(indexes.at(-1), "acme.png")?.interest?.length === 1, "and into the index", imageOf(indexes.at(-1), "acme.png"));
-await check(/1 damaged area/.test(await page.textContent("#areas-damaged-count")), "the Tags box counts the damaged areas", await page.textContent("#areas-damaged-count"));
-await shoot("#tags-box", "areas-box.png");
+await check(/1 damaged area/.test(await page.textContent("#areas-damaged-count")), "the dialog counts the damaged areas", await page.textContent("#areas-damaged-count"));
+await shoot("#areas", "areas-box.png");
 await page.context().close();
 
 page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => {
@@ -218,11 +271,12 @@ page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => 
   Worker.prototype.postMessage = function (m, t) { window.posted.push(m); return send.call(this, m, t); };
 }) });
 await page.click("#load-remote");
-await page.waitForSelector('#remote-list .item:has(.name:text-is("acme.png"))');
+await unfoldTo(page, '#remote-list .item:has(.name:text-is("acme.png"))');
 await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
 await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }));
 const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));
 await check(marks.damaged === 1 && marks.interest === 1, "a viewer sees the damaged area marked and the area of interest outlined", marks);
+await fromScratch(page, "#fx-count");
 await page.click("#fx-count");
 await orMissed(page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }));
 const sent = await page.evaluate(() => window.posted.filter((m) => m.type === "call").at(-1)?.damaged);

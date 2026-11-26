@@ -13,7 +13,7 @@ read for a title matcher; matching the titles is not part of it.
 - `req/shelves/books/damaged` Find books analyses no pixel of a damaged area; a box may still reach into one.
   <details>
 
-  Set by the owner on 2026-11-19. Before a version finds or reads anything, the pixels of the Study Manager's damaged
+  Set by the owner on 2026-11-19. Before a version finds or reads anything, the pixels of the study owner's damaged
   areas (`req/shell/data/damaged`) are filled from the pixels around them, so neither the finders, the text finder
   nor the readers see what was there. A box may still be drawn over a damaged area, as one may run off the photo's
   edge. The scorer leaves out the ground truth's books and the answer's books whose box centre lies in a damaged
@@ -50,7 +50,7 @@ read for a title matcher; matching the titles is not part of it.
   one is certainly wrong, and two stacked one over the other that overlap each other alone, by a large share, are one
   book's two halves, boxed as one. A line across the shelf that the edges between books run on across is lettering
   or a light's edge over the books, not a shelf's board, and cuts no book. Set by the owner on 2026-11-10, while
-  the study is in its GT stage Find books favours finding every book over boxing nothing wrong: a wrong box costs the
+  the study is in Develop Find books favours finding every book over boxing nothing wrong: a wrong box costs the
   tagger one click to drop, a missed book a box drawn by hand. Versions are compared by F2, recall weighted twice
   precision (Claude's default for the weighting and the stage; not yet confirmed by the owner). Set by the owner on
   2026-11-18 (#1011), the algorithm is both the boxing and the reading of the titles: Find books is one run of the
@@ -214,13 +214,13 @@ read for a title matcher; matching the titles is not part of it.
   <details>
 
   Set by the owner on 2026-11-04: boxing and reading are made into ground truth together, as
-  NoR's finding and measuring are. A Ground Truth Tagger finds and reads the books, then works down
-  the Ground Truth Tasks box: Books ("12/40 Books"), one book at a time, its straightened picture across
+  NoR's finding and measuring are. Someone annotating finds and reads the books, then works down
+  the Analysis Tasks box: Books ("12/40 Books"), one book at a time, its straightened picture across
   the box, Flip and Turn 90° beside Hebrew, English and Both, its title in a text box filled with what the
   reader read, and Right or Not a book under it, with Back and Skip on its row; its corners drag on the photo,
   and the picture and the reading follow them. Then Missed books: a book is added from the photo's right-click
   menu, or drawn with Draw a book, four clicks on the photo, its corners, and is read and reviewed as the others;
-  None missed ends the task. Submit ground truth is last, and saves `<image>_books_gt.json`, each book with where
+  None missed ends the task. Save is last, and writes `<image>_books_gt.json`, each book with where
   it came from (found or missed), its verdict, its corners, its turn and text, and for a found one what the
   finder and the reader proposed. Summary is not shown while ground truth is made.
 
@@ -290,8 +290,8 @@ read for a title matcher; matching the titles is not part of it.
   and Back no longer brings it back.
 
   Changed on 2026-11-17 with the GT action log (`docs/future-directions/edit-log/README.md`), replacing what is above
-  where the two differ: Undo brings a book taken off back. Continue GT tagging is gone: Load draft, then Start GT
-  tagging, begins the walk at the first book not yet decided. The file lists every book, not only those marked right.
+  where the two differ: Undo brings a book taken off back. Continue GT tagging is gone: Load draft, or Continue local annotation work
+  (`req/shell/annotate/choice`), begins the walk at the first book not yet decided. The file lists every book, not only those marked right.
 
   Test: `studies/shelves/tests/test_shelves_page.py`.
   </details>

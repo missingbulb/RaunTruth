@@ -65,6 +65,10 @@ export function offline({ $, esc, sizeText, remote, kept, keptIn, keep, throttle
     for (const el of document.querySelectorAll(NEEDS)) {
       if (off && el.dataset.onlineTitle === undefined) { el.dataset.onlineTitle = el.title; el.title = WHY; el.setAttribute("aria-disabled", "true"); }
       if (!off && el.dataset.onlineTitle !== undefined) { el.title = el.dataset.onlineTitle; delete el.dataset.onlineTitle; el.removeAttribute("aria-disabled"); }
+      // in the avatar's menu a held action carries the status bar's offline icon
+      const badge = el.querySelector(":scope > .offline-mark");
+      if (off && !badge && el.closest("#user-menu")) { const b = online.querySelector(".off").cloneNode(true); b.setAttribute("class", "offline-mark"); el.prepend(b); }
+      if (!off && badge) badge.remove();
     }
   };
   // what is drawn while offline says so too
@@ -183,8 +187,10 @@ export function offline({ $, esc, sizeText, remote, kept, keptIn, keep, throttle
     if (!remote.ready) return `Its ${remote.label} folder ${remote.words.noKey}.`;
     if (isOffline()) return `Its ${remote.label} folder can be read once you are online.`;
     if (throttled()) return `${remote.words.throttling}; try again in a while.`;
-    // its images are in the data folder its root's settings name, else in the root itself
-    const refs = [{ id: (await studyPlace(remote, () => s.manifest).dataFolders())[0] }];
+    // its images are in the data folder its root's settings name, else in the root itself; a study file naming none has none to read
+    const data = (await studyPlace(remote, () => s.manifest).dataFolders())[0];
+    if (!data) return `Its ${remote.label} folder holds no images.`;
+    const refs = [{ id: data }];
     const found = [];
     for (const queue = refs.map((r) => ({ id: r.id, path: [] })), seen = new Set(); queue.length && seen.size < MAX_FOLDERS && found.length < MAX_FILES; ) {
       const at = queue.shift();

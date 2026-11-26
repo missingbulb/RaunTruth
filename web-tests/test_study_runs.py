@@ -38,13 +38,17 @@ def test_the_bridge_runs_a_study_it_knows_nothing_of(png):
 
 @pytest.fixture(scope='module')
 def answers(png, tmp_path_factory):
+    """What the stand-in worker answers (write_answers)."""
+    return write_answers(png, tmp_path_factory.mktemp('answers'))
+
+
+def write_answers(png, d):
     """What the stand-in worker answers, which is what the fixture's own Python answers about the image and each
-    study's ready() on loading, with the image as the page's own reader opens it, and the build's list of studies:
-    (answers.json, studies.json)."""
+    study's ready() on loading, with the image as the page's own reader opens it, and the build's list of studies,
+    written in the folder d: (answers.json, studies.json)."""
     import base64, json, sys
     sys.path.insert(0, os.path.join(HERE, '..', 'studies', 'fixture', 'algorithm'))
     import fixture
-    d = tmp_path_factory.mktemp('answers')
     from image_open import open_image
     meta, planes, _ = open_image(d, png, view={'stretch': False})
     opened = json.dumps(dict(W=meta['W'], H=meta['H'], um=None, um_y=None, info=meta['info']))
