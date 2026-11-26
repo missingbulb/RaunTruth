@@ -53,7 +53,7 @@ const layout = await page.evaluate(() => ({
   rail: [...document.querySelectorAll("#setup-rail button")].map((b) => [b.textContent.trim(), b.getAttribute("aria-pressed")]),
   stages: [...document.querySelectorAll("#stage-steps > li")].map((li) => [li.dataset.stage, li.dataset.state, li.getAttribute("aria-current")]),
 }));
-await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,Literature,People,Run on all images,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false,false",
+await check(layout.rail.map((r) => r[0]).join() === "Images,Ground Truth,Literature,People,Results" && layout.rail.map((r) => r[1]).join() === "true,false,false,false,false",
   "the rail lists the study's aspects, Images chosen", layout.rail);
 await check(layout.stages.map((s) => s[0]).join() === "Setup,Develop,Analyze,Review,Public" && layout.stages.filter((s) => s[2] === "step").length === 1,
   "the five stages run across the top, one of them the current", layout.stages);
@@ -63,7 +63,7 @@ const acts = await page.evaluate(() => [...document.querySelectorAll("#stage-ste
 await check(acts.filter(Boolean).length === (at > 0 ? 1 : 0) + (at < 4 ? 1 : 0) && (at === 4 || /^Promote to /.test(acts[at + 1])) && (at === 0 || /^Move back to /.test(acts[at - 1])),
   "promoting is the next stage's action and moving back the one before's", acts);
 for (const sel of ["#view", "#left", "#image-box", ".toolbar"]) await check(!(await seen(page, sel)), `nothing of the viewer or the left bar is on show: ${sel}`);
-await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-box")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
+await check((await seen(page, "#data-tree")) && !(await seen(page, "#sharing-box")) && !(await seen(page, "#batch-bar")) && !(await seen(page, "#results-box")), "Images shows the folders and none of the other aspects");
 await shot(page, "1-opens");
 if (shots && at < 4) {
   await page.hover("#stage-up"); await shot(page, "1-promote-hovered"); await page.mouse.move(0, 0);
@@ -172,15 +172,9 @@ const aspect = async (word, shows, hides) => {
     && document.querySelectorAll('#setup-rail button[aria-pressed="true"]').length === 1, word)), `${word} shows its own panel alone`, got);
   await shot(page, "5-" + word);
 };
-await aspect("truth", ["#truth-panel"], ["#data-tree", "#folder-view", "#sharing-box", "#batch-box", "#results-box"]);
-await aspect("people", ["#sharing-box"], ["#data-tree", "#folder-view", "#truth-panel", "#batch-box", "#results-box"]);
-// a batch runs over a folder's images: the folder chosen again
-await page.click('#setup-rail button[data-aspect="images"]');
-await page.click(name(top));
-await page.waitForFunction((n) => document.querySelectorAll("#folder-items .cell").length === n && !$("#batch-box").hidden, first.length);
-await idle(page);
-await aspect("batch", ["#data-tree", "#folder-view", "#batch-box"], ["#tags-box", "#marks-box", "#sharing-box", "#results-box", "#truth-panel"]);
-await aspect("results", ["#results-box"], ["#data-tree", "#folder-view", "#sharing-box", "#batch-box", "#truth-panel"]);
+await aspect("truth", ["#truth-panel"], ["#data-tree", "#folder-view", "#sharing-box", "#results-box"]);
+await aspect("people", ["#sharing-box"], ["#data-tree", "#folder-view", "#truth-panel", "#results-box"]);
+await aspect("results", ["#results-box"], ["#data-tree", "#folder-view", "#sharing-box", "#truth-panel"]);
 
 // the page opened again starts from the default layout, whatever it showed
 await page.reload(); // visits again on purpose (a reload is the subject): the layout a second visit opens on is the requirement

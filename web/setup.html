@@ -71,7 +71,6 @@
       <button type="button" data-aspect="truth" aria-pressed="false">Ground Truth</button>
       <button type="button" data-aspect="literature" aria-pressed="false">Literature</button>
       <button type="button" data-aspect="people" aria-pressed="false">People</button>
-      <button type="button" data-aspect="batch" aria-pressed="false">Run on all images</button>
       <button type="button" data-aspect="results" aria-pressed="false">Results</button>
     </nav>
     <div id="setup-aspect" data-aspect="images">
@@ -97,7 +96,11 @@
       </div>
       </aside>
       <div id="folder-view" hidden>
-      <div class="folder-bar"><h2 id="folder-title"></h2><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+      <div class="folder-bar"><h2 id="folder-title"></h2><label id="batch-select"><input type="checkbox" id="batch-all" data-needs-network autocomplete="off" aria-label="Select all the folder's images" data-log-as="Select all"><span id="batch-for"></span></label><span class="grow"></span><div class="tabs" id="folder-layout" role="group" aria-label="Show the images as"><button type="button" data-layout="grid" aria-pressed="true">Grid</button><button type="button" data-layout="list" aria-pressed="false">List</button></div></div>
+      <!-- what can be done to the images selected (req/setup/batch) -->
+      <div id="batch-bar" role="group" aria-label="The selected images" data-needs-network hidden><button id="batch-run" type="button" class="primary" data-needs-network>Run analysis</button><button id="batch-hide" type="button" data-needs-network title="Take the selected images out of what the study shows: each is tagged hidden">Hide</button><button id="batch-gt" type="button" data-needs-network title="Mark each selected image as needing ground truth">Request GT</button><button id="batch-official" type="button" data-needs-network hidden>Mark official</button></div>
+      <p id="batch-msg" class="hint" role="status"></p>
+      <ol id="batch-results" data-log-as="an image's result of the run" hidden></ol>
       <div id="folder-items" data-layout="grid" data-log-as="an image in the folder view"></div>
       </div>
       <aside id="setup-side">
@@ -128,16 +131,6 @@
         <div id="marks-list" role="list" data-log-as="an Analysis File of the image, to mark"></div>
         <p id="marks-msg" class="hint" role="status"></p>
         </section>
-        <!-- a batch run over the folder's images (req/setup/batch) -->
-        <section class="box" id="batch-box" data-needs-network hidden>
-        <div class="sec-head"><h2>Batch run</h2></div>
-        <p id="batch-for" class="hint"></p>
-        <label class="study-row"><span>Algorithm</span><select id="batch-algorithm" data-log-as="the algorithm a batch runs"></select></label>
-        <div class="folder-actions"><button id="batch-all" type="button" data-needs-network>Choose all</button><button id="batch-run" type="button" class="primary" data-needs-network disabled>Run</button></div>
-        <div class="folder-actions"><button id="batch-official" type="button" data-needs-network hidden>Mark this batch official</button></div>
-        <p id="batch-msg" class="hint" role="status"></p>
-        </section>
-        <p id="batch-hint" class="hint">Choose a folder: a batch runs over its images.</p>
         <p id="side-hint" class="hint">Choose a folder or an image to see what is set on it.</p>
       </aside>
       <section id="truth-panel" aria-label="Ground Truth">
@@ -184,6 +177,7 @@
       <table><thead></thead><tbody data-log-as="an image's official result"></tbody><tfoot></tfoot></table>
       </div>
       <p id="results-msg" class="hint" role="status"></p>
+      <p id="results-pending" class="hint" hidden><span></span> <button id="results-to-images" type="button" class="link">Back to the images</button></p>
       </section>
     </div>
   </div>

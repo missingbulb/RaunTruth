@@ -3,7 +3,7 @@
 // folders and images (setup.js, req/setup/aspects), for a signed-in user the store lets write to the study's root: its listed folders
 // (req/shell/data/folders) as a tree, the root's other folders under it to add, and the study index written from them
 // (req/shell/data/index); a folder chosen fills the grid with its images and the side with their sums, and its actions; an image
-// chosen is read from its preview. The tree's head asks for the folders' access, and it writes only
+// chosen is read from its preview, its folder staying chosen. The tree's head asks for the folders' access, and it writes only
 // files it creates.
 "use strict";
 import { PREVIEWS } from "./previews.js";
@@ -19,6 +19,8 @@ import { SETTINGS as SETTINGS_NAME, setup as setUp, previewsFolder, previewsName
 import { parseTag, addTag, effective, isHidden, multiNames, FOLDER } from "./tags.js";
 
 const MAX_FOLDERS = 200;
+// the tag Hide gives the images selected, and the hide rule that goes with it
+const HIDDEN = "hidden";
 // what each access means beside a folder
 const ACCESS = {
   write: ["Writable", "This site may add files here for you."],
@@ -55,9 +57,11 @@ export function dataMode(ctx) {
   // the tags file (req/shell/data/tags) and the study file's grouping and hiding (req/shell/data/hidden), as last read
   let tagsDoc = { images: {}, folders: {} }, look = { group: null, hide: [] };
   let nodes = new Map(), roots = [], manifest = null, who = null, epoch = 0, loaded = null, chosen = null, layout = "grid";
-  // the folder whose images the grid shows, by id
-  let gridOf = null;
+  // the folder whose images the grid shows, by id, and their states as last drawn
+  let gridOf = null, shown = [];
   const on = () => root.dataset.mode === "data";
+  // the folder chosen, or the one the image chosen is in
+  const folderChosen = () => (chosen?.kind === "folder" ? chosen.id : chosen?.folder) ?? null;
   // whether the stage still lets the owner change the study's data (req/shell/study/stage): closed in Review and Public, where every
   // control that writes is gone and nothing here writes the study
   const editable = () => ctx.stageAllows("setup-data");
@@ -212,7 +216,7 @@ export function dataMode(ctx) {
     const chip = (t, from) => {
       const b = Object.assign(document.createElement("span"), { className: "tag-chip" + (from ? " inherited" : "") });
       b.textContent = t; b.dataset.tag = t;
-      if (from) b.title = `From the folder ${from}`;
+      if (from) b.append(Object.assign(document.createElement("small"), { className: "from", textContent: ` from folder ${from}` }));
       else {
         const x = Object.assign(document.createElement("button"), { type: "button", className: "untag", title: `Take ${t} off`, textContent: "×" });
         x.dataset.needsNetwork = ""; x.onclick = () => untag(t); b.append(x);
@@ -420,7 +424,7 @@ export function dataMode(ctx) {
       acc.dataset.access = n.access || "unknown"; acc.textContent = a[0]; acc.title = n.error ? "The store did not list it: " + n.error : a[1];
       const count = el.querySelector(".count");
       count.textContent = ims.length === 1 ? "1 image" : `${ims.length} images`; count.disabled = !ims.length;
-      el.classList.toggle("chosen", chosen?.kind === "folder" && chosen.id === id);
+      el.classList.toggle("chosen", folderChosen() === id);
       el.querySelector(".tree-children").replaceChildren(...n.folders.map(make));
       return el;
     };
@@ -496,27 +500,31 @@ export function dataMode(ctx) {
     }
   }
 
-  async function chooseFolder(n) {
-    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
-    ctx.setup?.chose(null);
-    chosen = { kind: "folder", id: n.id }; root.dataset.sel = "folder"; ctx.relabel();
+  // keep: the image chosen in the folder, which stays chosen while the folder is read again
+  async function chooseFolder(n, keep = null) {
+    if (ctx.setup?.busy()) return ctx.status("A run is under way: choose a folder or image once it is over.");
+    ctx.setup?.folderGone();
+    if (!keep) ctx.setup?.chose(null);
+    chosen = keep || { kind: "folder", id: n.id }; root.dataset.sel = keep ? "image" : "folder"; ctx.relabel();
     drawTree(); ctx.showFolder(true); drawImagePanel();
     $("#folder-name").textContent = n.name; $("#folder-title").textContent = n.name;
     msg($("#folder-msg"), "");
     gridOf = n.id;
     const of = epoch, slot = calls.fill($("#folder-items"), "store", `${n.name}'s images`, { also: [$("#folder-summary")] });
+    const still = () => of === epoch && folderChosen() === n.id && slot.current;
     let pv, gts;
     try {
       // read again: the folder may have changed in the store since
       try { n.files = (await remote.all(n.id, { pictures: true })).filter((f) => !f.folder); } catch (e) { msg($("#folder-msg"), e.message || String(e), true); }
-      if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+      if (!still()) return void slot.superseded();
       if (n.el) n.el.querySelector(".tree-images").replaceChildren();
       drawTree();
       [pv, gts] = await Promise.all([previewsOf(n, true), truthStatus()]);
     } catch (e) { slot.failed(e); throw e; }
-    if (of !== epoch || chosen?.id !== n.id || !slot.current) return void slot.superseded();
+    if (!still()) return void slot.superseded();
     slot.done();
     const all = states(n, pv, gts), count = (p) => all.filter(p).length;
+    shown = all;
     const rows = [["images", "Images", all.length], ["previews", "With a preview", count((s) => s.shown)], ["stale", "Preview out of date", count((s) => s.stale)],
       ["extracted", "With an Analysis File", count((s) => s.extracted)], ["truth", "With ground truth", count((s) => s.truth)], ["missing", "Marked as needing it", count((s) => s.marker)]];
     $("#folder-summary").replaceChildren(...rows.flatMap(([k, label, v]) => {
@@ -527,7 +535,7 @@ export function dataMode(ctx) {
     $("#update-previews").disabled = !todo || n.access !== "write";
     $("#update-previews").title = !todo ? `Every TIFF has an up-to-date preview; ${remote.label} pictures the photos` : n.access !== "write" ? ACCESS[n.access || "unknown"][1] : `Make the ${todo} missing or out-of-date previews`;
     drawItems(n, all, pv);
-    ctx.setup?.chose("folder", { id: n.id, name: n.name, images: all.map((s) => ({ id: s.f.id, name: s.f.name, sha: s.f.sha, folder: n.id })) });
+    ctx.setup?.folderShown({ id: n.id, name: n.name, images: all.map((s) => ({ id: s.f.id, name: s.f.name, sha: s.f.sha, folder: n.id })) });
   }
 
   // the folder's images in the main area, a grid of previews or a list
@@ -538,18 +546,20 @@ export function dataMode(ctx) {
       cell.className = "cell"; cell.dataset.id = s.f.id; cell.tabIndex = 0;
       if (k < 60) cell.style.viewTransitionName = "cell-" + k;
       const tag = s.shown ? "" : s.stale ? "Preview out of date" : "No preview";
+      const own = tagsDoc.images[s.f.id]?.tags || [], given = [...new Set(inheritedOf(n.id, false).flatMap((l) => l.tags))].filter((t) => !own.includes(t));
+      const chips = own.map((t) => `<span class="tag-chip">${esc(t)}</span>`).join("") + given.map((t) => `<span class="tag-chip inherited">${esc(t)}</span>`).join("");
       cell.innerHTML = `<span class="pic"></span><span class="name">${esc(s.f.name)}</span><span class="meta">${esc(s.f.size == null ? "" : sizeText(s.f.size))}</span>` +
-        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}</span>` +
-        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">Needs GT</button>` +
-        `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Choose ${esc(s.f.name)} for a batch run" title="Choose it for a batch run">`;
-      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f, true); };
-      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f, true); };
+        `<span class="tags">${tag ? `<span class="tag warn">${tag}</span>` : ""}${s.extracted ? '<span class="tag">Analysis File</span>' : ""}${s.truth ? '<span class="tag yes">Ground truth</span>' : ""}${s.official ? '<span class="tag yes">Official</span>' : ""}${chips}</span>` +
+        `<button type="button" class="mark-gt" data-needs-network aria-pressed="${!!s.marker}">${s.marker ? "GT requested" : "Request GT"}</button>` +
+        `<input type="checkbox" class="pick" data-needs-network data-id="${esc(s.f.id)}" aria-label="Select ${esc(s.f.name)}" title="Select it, to act on the images selected together">`;
+      cell.onclick = (e) => { if (!e.target.closest(".mark-gt, .pick")) chooseImage(n, s.f); };
+      cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
       const why = !gt.extractions ? "Set up Analysis Files first: the mark is kept in their folder"
         : ["view", "unpermitted"].includes(access) ? "The mark is kept in the Analysis Files folder: " + ACCESS[access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
-      mark.disabled = !!why; mark.title = why || "Mark it as needing ground truth: a file in the Analysis Files folder";
+      mark.disabled = !!why; mark.title = why || (s.marker ? "Ground truth is requested for it: press to take the request off" : "Request ground truth for it: a file in the Analysis folder");
       mark.onclick = () => markTruth(n, s, mark);
       picture(cell.querySelector(".pic"), pv, s.f);
       return cell;
@@ -567,7 +577,7 @@ export function dataMode(ctx) {
   for (const b of document.querySelectorAll("#folder-layout button")) b.onclick = () => setLayout(b.dataset.layout);
 
   // the folder again, after the page wrote into it
-  const relist = (n) => chooseFolder(n);
+  const relist = (n) => chooseFolder(n, chosen?.kind === "image" && chosen.folder === n.id ? chosen : null);
 
   // ---------- the folder's actions ----------
   async function markTruth(n, s, b) {
@@ -579,6 +589,33 @@ export function dataMode(ctx) {
       else throw new Error("Someone else marked it; whoever adds its ground truth drops the marker.");
       await relist(n);
     } catch (e) { msg($("#folder-msg"), e.message || String(e), true); b.disabled = false; }
+  }
+  // ground truth requested for each of the images given that has none and no request, a file each
+  async function requestTruth(images) {
+    const n = nodes.get(gridOf);
+    if (!n || !editable()) return;
+    if (!gt.extractions) throw new Error("Set up Analysis Files first: a request is kept in their folder.");
+    const todo = shown.filter((s) => images.some((i) => i.id === s.f.id) && !s.marker && !s.truth && s.f.sha);
+    const count = `${todo.length} image${todo.length === 1 ? "" : "s"}`;
+    if (!todo.length) return ctx.status("Each selected image has ground truth or a request already.");
+    await calls.saving("store", `Requested ground truth for ${count}.`, async () => {
+      for (const s of todo) await tf.markNeeded({ writer, folder: gt.extractions, image: { name: s.f.name, sha256: s.f.sha } });
+    });
+    await relist(n);
+  }
+  // the images given taken out of what the study shows: each tagged with the tag that hides, made one of the hide rules first
+  async function hideImages(images) {
+    const top = place.root();
+    if (!top || offline() || !editable() || !images.length) return;
+    if (!look.hide.includes(HIDDEN)) {
+      const s = await setStudy({ reader, writer, root: top, changes: { hide: [...look.hide, HIDDEN] } });
+      look = { group: s.group, hide: s.hide };
+    }
+    let next = tagsDoc;
+    for (const i of images) next = withImage(next, i.id, { tags: addTag(next.images[i.id]?.tags || [], HIDDEN) });
+    await saveTags(next, `Hid ${images.length} image${images.length === 1 ? "" : "s"} from the study.`);
+    const n = nodes.get(gridOf);
+    if (n) await relist(n);
   }
   $("#update-previews").onclick = () => ctx.working($("#update-previews"), async () => {
     const n = nodes.get(chosen?.id);
@@ -618,12 +655,16 @@ export function dataMode(ctx) {
     $("#image-open").disabled = !image || ctx.imageOpen()?.id !== chosen.id;
     for (const c of $("#folder-items").querySelectorAll(".cell")) c.classList.toggle("chosen", image && c.dataset.id === chosen.id);
   }
-  // fromGrid: chosen in the grid, which then stays; chosen in the tree, the grid steps aside
-  async function chooseImage(n, f, fromGrid = false) {
-    if (ctx.setup?.busy()) return ctx.status("A batch run is under way: choose a folder or image once it is over.");
+  // an image chosen, in the grid or in the tree: its folder stays the one chosen and on show, read first where another's was
+  async function chooseImage(n, f) {
+    if (ctx.setup?.busy()) return ctx.status("A run is under way: choose a folder or image once it is over.");
+    if (gridOf !== n.id) {
+      await chooseFolder(n);
+      if (chosen?.kind !== "folder" || chosen.id !== n.id) return;
+    }
     ctx.setup?.chose("image", { id: f.id, name: f.name, sha: f.sha, folder: n.id });
     chosen = { kind: "image", id: f.id, folder: n.id }; root.dataset.sel = "image"; ctx.relabel();
-    drawTree(); ctx.showFolder(fromGrid && gridOf === n.id); drawImagePanel(f.name);
+    drawTree(); ctx.showFolder(true); drawImagePanel(f.name);
     const pv = await previewsOf(n), e = pv?.entry(f.name, f.sha), source = remote.source(f.id, { name: f.name, folder: n.id });
     if (!e) { ctx.status(isTiff(f.name) ? `${f.name} has no preview yet: opening the image itself.` : `Opening ${f.name} itself.`); return ctx.loadOriginal(source); }
     let pages;
@@ -669,7 +710,7 @@ export function dataMode(ctx) {
     // a study comes in (or the user signs in or out): who may do what in it
     mount(m) {
       // the same study again, for the same person (Unload): the mode and the tree stay as they were
-      if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(chosen?.kind === "folder"); return; }
+      if (manifest && m.id === manifest.id && account.email() === who) { manifest = m; ctx.showFolder(!!chosen); return; }
       epoch++; manifest = m; who = account.email(); nodes = new Map(); loaded = null; chosen = null; gridOf = null;
       showFrozen();
       ctx.setup?.leave();
@@ -679,14 +720,16 @@ export function dataMode(ctx) {
       $("#gt-setup").hidden = true; $("#gt-box").hidden = true;
       $("#data-tree").replaceChildren(); msg($("#data-msg"), ""); msg($("#data-index"), ""); $("#data-unlisted").hidden = true; $("#tags-box").hidden = true; $("#study-set").hidden = true;
     },
+    // the selection's own writes (req/setup/batch)
+    hideImages, requestTruth,
     // the study file's marks written (req/setup/marks): read again, the folder on show drawn with them
     async marked() {
       const s = await place.settings().catch(() => null);
       if (s) marks = s.marks || {};
       ctx.setup?.indexed();
-      const n = chosen && nodes.get(chosen.kind === "folder" ? chosen.id : chosen.folder);
+      const n = nodes.get(folderChosen());
       truthStatus();
-      if (chosen?.kind === "folder" && n) relist(n);
+      if (n) relist(n);
     },
     // the stage changed, by a promotion or a move back: what it opens and closes of the data shows at once
     stageChanged() { showFrozen(); drawTree(); drawTags(); },

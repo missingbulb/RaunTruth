@@ -31,7 +31,8 @@ export function howOf(doc) {
 }
 
 // $: the page's selector; reader, place: the store's reads and the study's place in it; saveFile(name, text, type): the page's own download
-export function setupResults({ $, reader, place, saveFile, calls }) {
+// unmarked(): how many images the page ran and did not mark official
+export function setupResults({ $, reader, place, saveFile, calls, unmarked }) {
   const box = $("#results-box"), msg = $("#results-msg"), csv = $("#results-csv"), scroll = $("#results-scroll"), table = $("#results-scroll table");
   // the box as the page loaded, put back when the study leaves
   const asStarted = asLoaded([box], holdOwns);
@@ -98,11 +99,22 @@ export function setupResults({ $, reader, place, saveFile, calls }) {
     saveFile("results.csv", lines(shown).map((r) => r.map(cell).join(",")).join("\n") + "\n", "text/csv");
   };
 
+  // what was run on the page and not marked official, which the table then leaves out
+  function pending() {
+    const n = unmarked?.() || 0, p = $("#results-pending");
+    p.hidden = !n;
+    p.firstElementChild.textContent = n ? `${plural(n, "image")} ${n === 1 ? "was" : "were"} run but not marked official, so ${n === 1 ? "it is" : "they are"} not listed here.` : "";
+  }
+
   return {
+    // the study's measures of an Analysis File's document, [{title, value}]
+    measured: (doc) => measures.map((m) => ({ title: m.title, value: measureOf(doc, m) })),
+    // the aspect chosen: what the page knows was run and not marked
+    shown: () => pending(),
     // a study comes in: the measures its study.json names
     mount(m) { epoch++; measures = (m?.results?.measures || []).filter((x) => x?.title && (x.path || Array.isArray(x.count))); shown = null; busy = false; say(""); box.hidden = false; draw(); },
     // a mark was made or taken off on the page: a table read before it is no longer the study's, and a read under way is let go
-    marksChanged() { if (!shown && !busy) return; epoch++; shown = null; busy = false; say(""); draw(); },
+    marksChanged() { pending(); if (!shown && !busy) return; epoch++; shown = null; busy = false; say(""); draw(); },
     open() {},
     signedIn() {},
     opened() {},

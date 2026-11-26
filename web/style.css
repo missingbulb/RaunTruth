@@ -995,13 +995,12 @@ html:not(.offline) #welcome-offline { display: none; }
 #setup-rail button[aria-pressed=true] { color: var(--text); background: var(--panel); border-color: var(--line); box-shadow: inset 3px 0 0 var(--accent); }
 /* the aspect on show: each child belongs to the aspects its rule names */
 #setup-aspect { min-height: 0; min-width: 0; display: grid; gap: var(--pad); grid-template-rows: minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: var(--pad); }
-#setup-aspect:is([data-aspect=images], [data-aspect=batch]) { grid-template-columns: 270px minmax(0, 1fr) 300px; }
+#setup-aspect[data-aspect=images] { grid-template-columns: 270px minmax(0, 1fr) 300px; }
 #setup-aspect > * { min-height: 0; min-width: 0; overflow-y: auto; }
-#setup-aspect:not([data-aspect=images], [data-aspect=batch]) > :is(#data-col, #folder-view, #setup-side),
+#setup-aspect:not([data-aspect=images]) > :is(#data-col, #folder-view, #setup-side),
 #setup-aspect:not([data-aspect=literature]) > #literature-box, #setup-aspect:not([data-aspect=truth]) > #truth-panel, #setup-aspect:not([data-aspect=people]) > #sharing-box, #setup-aspect:not([data-aspect=results]) > #results-box { display: none !important; }
-#setup-aspect[data-aspect=batch] #setup-side > :not(#batch-box, #batch-hint), #setup-aspect[data-aspect=images] :is(#batch-box, #batch-hint) { display: none !important; }
-#setup-aspect[data-aspect=batch] #batch-box:not([hidden]) ~ #batch-hint, :root[data-sel] #side-hint { display: none; }
-#setup-aspect:is([data-aspect=images], [data-aspect=batch]) > #folder-view[hidden] { display: block; visibility: hidden; }
+:root[data-sel] #side-hint { display: none; }
+#setup-aspect[data-aspect=images] > #folder-view[hidden] { display: block; visibility: hidden; }
 #data-col[hidden] { display: none; }
 #data-col { grid-column: 1; padding: 0; scrollbar-gutter: auto; display: flex; flex-direction: column; }
 #data-body { display: flex; flex: 1; min-height: 0; flex-direction: column; }
@@ -1101,7 +1100,7 @@ html:not(.offline) #welcome-offline { display: none; }
 
 /* in the mode the left bar keeps the Image box; the study's own panels and the steps step aside */
 :root[data-mode=data] [data-study-panel], :root[data-mode=data] .study-box, :root[data-mode=data] #switch { display: none !important; }
-:root:not([data-sel=folder]) #folder-box, :root[data-sel=folder] #image-box { display: none !important; }
+:root:not([data-sel]) #folder-box, :root[data-sel=folder] #image-box { display: none !important; }
 :root:not([data-mode=data]) #tags-box { display: none !important; }
 /* the Tags box and Study images: a tag as a chip, its × taking it off; a folder's tags on its images dimmed */
 #tags-list, #study-hide-list { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; min-height: 4px; }
@@ -1174,7 +1173,13 @@ html:not(.offline) #welcome-offline { display: none; }
 .mark-row .mark-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .mark-row button { flex: none; font-size: 11px; padding: 2px 8px; }
 .mark-row button[aria-pressed=true] { background: var(--yes); border-color: var(--yes); color: #000; }
-#batch-box .folder-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+#batch-select { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: 13px; color: var(--dim); }
+#batch-select[hidden], #batch-bar[hidden], #batch-results[hidden] { display: none; }
+#batch-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; }
+#batch-results { margin: 0 0 8px; padding-left: 20px; font-size: 13px; }
+#folder-items .cell .tags .tag-chip { font-size: 11px; padding: 0 6px; }
+.tag-chip.inherited .from { color: var(--dim); font-size: 11px; }
+#results-pending[hidden] { display: none; }
 #batch-official[hidden] { display: none; }
 #batch-msg, #marks-msg { overflow-wrap: anywhere; }
 /* Study Setup's Results (req/setup/results) */
