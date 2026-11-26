@@ -70,6 +70,8 @@ export function dataMode(ctx) {
   // the root's Previews folder, left out of the tree like the extractions folder
   let previewsId = null;
   const isTruth = (id) => id === gt.extractions || id === previewsId;
+  // the study's Analysis folder in words, with its name in the store while that is another
+  const folderWords = () => (gt.named && gt.named.trim().toLowerCase() !== "analysis" ? `its Analysis folder (named ${gt.named} in ${remote.label})` : "its Analysis folder");
   const offline = () => root.classList.contains("offline");
   const msg = (el, text, err) => { el.textContent = text; el.classList.toggle("err", !!err); };
   // what a study's folders change on the page, as it loaded: put back when another study comes in
@@ -91,8 +93,8 @@ export function dataMode(ctx) {
       look = { group: s?.group || null, hide: s?.hide || [] };
       if (top) try { tagsDoc = await readTags(reader, top); } catch (e) { console.warn("the tags file was not read:", e); tagsDoc = { images: {}, folders: {}, unread: true }; }
       if (of !== epoch) return;
-      gt = { extractions: tf.folderOf(s) }; marks = s?.marks || {}; previewsId = s?.previews || null;
-      gtNodes = gt.extractions ? [{ id: gt.extractions, name: "Analysis Files", access: null }] : [];
+      gt = { extractions: tf.folderOf(s), named: s?.extractionsName ?? null }; marks = s?.marks || {}; previewsId = s?.previews || null;
+      gtNodes = gt.extractions ? [{ id: gt.extractions, name: "Analysis", access: null }] : [];
       drawSetup(s); drawTruthBox(null); truthStatus();
       const queue = roots.map((id) => ({ id, parent: null, name: null }));
       while (queue.length && nodes.size < MAX_FOLDERS) {
@@ -369,7 +371,7 @@ export function dataMode(ctx) {
     const b = $("#gt-setup");
     b.hidden = !gtStudy() || !place.root() || !!s?.set;
     b.classList.toggle("nudge", !gt.extractions);
-    b.title = gt.extractions ? "Name the study's Analysis Files folder in its study file" : "Make the study's Analysis Files folder in its root";
+    b.title = gt.extractions ? "Name the study's Analysis folder in its study file" : "Make the study's Analysis folder in its root";
   }
   $("#gt-setup").onclick = () => { msg($("#setup-msg"), ""); $("#setup-dlg").showModal(); };
   $("#setup-cancel").onclick = () => $("#setup-dlg").close();
@@ -378,10 +380,10 @@ export function dataMode(ctx) {
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = true;
     try {
       if ((await sd.access(top)) !== "write") throw new Error("This site may not write to the study's root for you.");
-      say("Making the Analysis Files folder…");
-      await calls.saving("store", "Set up the study's Analysis Files folder.", () => setUp({ reader, writer, root: top, by: account.email() }));
+      say("Making the Analysis folder…");
+      await calls.saving("store", "Set up the study's Analysis folder.", () => setUp({ reader, writer, root: top, by: account.email() }));
       $("#setup-dlg").close();
-      msg($("#data-msg"), "Analysis Files set up: one folder, named Extractions, in the root, shared with anyone with the link to view.");
+      msg($("#data-msg"), "Analysis Files set up: one folder, named Analysis, in the root, shared with anyone with the link to view.");
       nodes = new Map(); loaded = null; chosen = null; await load();
     } catch (e) { say(e.message || String(e), true); }
     for (const x of document.querySelectorAll("#setup-dlg button")) x.disabled = false;
@@ -392,7 +394,7 @@ export function dataMode(ctx) {
     const box = $("#gt-box");
     box.hidden = !gt.extractions || !gtStudy();
     if (box.hidden) return;
-    $("#gt-mode").textContent = "Everyone's uploaded Analysis Files of the study's images are kept in its Analysis Files folder, one file per person for each image.";
+    $("#gt-mode").textContent = `Everyone's uploaded Analysis Files of the study's images are kept in ${folderWords()}, one file per person for each image.`;
     if (!gts) { $("#gt-counts").textContent = "Reading…"; return; }
     const held = [...gts.values()].filter((g) => g.held).length, gtMarked = Object.values(marks).filter((m) => m?.gt?.file).length;
     const images = (k) => `${k} image${k === 1 ? "" : "s"}`;
@@ -495,8 +497,8 @@ export function dataMode(ctx) {
   async function truthStatus() {
     if (!gt.extractions) return new Map();
     try { const gts = await tf.held(reader, gt.extractions); drawTruthBox(gts); return gts; } catch (e) {
-      msg($("#folder-msg"), "The Analysis Files folder could not be read: " + (e.message || e), true);
-      $("#gt-counts").textContent = "The Analysis Files folder could not be read."; return new Map();
+      msg($("#folder-msg"), "The Analysis folder could not be read: " + (e.message || e), true);
+      $("#gt-counts").textContent = "The Analysis folder could not be read."; return new Map();
     }
   }
 
@@ -556,8 +558,8 @@ export function dataMode(ctx) {
       cell.onkeydown = (e) => { if (e.key === "Enter" && e.target === cell) chooseImage(n, s.f); };
       const mark = cell.querySelector(".mark-gt");
       const access = gtNodes.find((g) => g.id === gt.extractions)?.access;
-      const why = !gt.extractions ? "Set up Analysis Files first: the mark is kept in their folder"
-        : ["view", "unpermitted"].includes(access) ? "The mark is kept in the Analysis Files folder: " + ACCESS[access][1]
+      const why = !gt.extractions ? "Set up Analysis Files first: a request is kept in their folder"
+        : ["view", "unpermitted"].includes(access) ? "The request is kept in the Analysis folder: " + ACCESS[access][1]
         : !s.f.sha ? "The store does not say this image's SHA-256, which names its mark" : s.truth ? "It has ground truth" : "";
       mark.disabled = !!why; mark.title = why || (s.marker ? "Ground truth is requested for it: press to take the request off" : "Request ground truth for it: a file in the Analysis folder");
       mark.onclick = () => markTruth(n, s, mark);

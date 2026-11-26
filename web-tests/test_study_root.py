@@ -29,19 +29,24 @@ def test_a_root_with_only_its_data_is_not_set_up(out):
 
 def test_set_up_makes_the_one_extractions_folder_shares_it_by_link_and_writes_the_file(out):
     r = out['setup']
-    assert r['writes'] == [['folder', 'Extractions'], ['share', 'Extractions'], ['create', 'rauntruth-study.json']]
+    assert r['writes'] == [['folder', 'Analysis'], ['share', 'Analysis'], ['create', 'rauntruth-study.json']]
     assert r['doc'] == {'format': 'rauntruth-study/2', 'data': True, 'extractions': True,
                         'set_by': 'dm@acme.example', 'set_at': '2026-11-07T10:00:00.000Z'}
     assert r['readBack'] is True
 
 
 def test_set_up_again_makes_nothing_twice(out):
-    assert out['rerun'] == {'folders': 0, 'writes': [['share', 'Extractions'], ['replace', 'rauntruth-study.json']]}
+    assert out['rerun'] == {'folders': 0, 'writes': [['share', 'Analysis'], ['replace', 'rauntruth-study.json']]}
 
 
 def test_a_folder_made_by_hand_is_found_by_name_and_the_old_ground_truth_folders_are_not_read(out):
     # any case: the names a person would type
-    assert out['byName'] == {'extractions': True, 'set': False, 'old': False}
+    assert out['byName'] == {'extractions': True, 'set': False, 'old': False, 'named': 'EXTRACTIONS'}
+
+
+def test_the_folder_is_found_as_analysis_before_its_name_of_before(out):
+    """req/shell/ground-truth/setup: a root holding both is read by today's name, and the name the store has is told."""
+    assert out['byNewName'] == {'extractions': True, 'named': 'Analysis'}
 
 
 def test_the_study_file_names_the_folder_by_id(out):
