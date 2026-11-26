@@ -11,12 +11,11 @@ under `req/lab` and cited by it, as in the shell's spec (`web-tests/test_require
   <details>
 
   Set by the owner on 2026-11-22 (WP7 of `dev/requirements/study-stages-spec.md`). The model-only form of an extraction
-  file (`lab/fetch.py` `model_only` and `model_form`, the one definition the Review freeze reuses) drops its `history`, `tagger`,
+  file (`lab/fetch.py` `model_only`, the one definition the Review freeze reuses) drops its `history`, `tagger`,
   `created` and `base`, any `tagger` or `email` key and the image's Drive id, and keeps the rest; the lab scores that
   form too, so what it scores is what the freeze commits. Two GT files differing only in what the form drops give the
-  same dataset SHA; a changed label gives another. Decided by the owner on 2026-11-23: the form keeps each image's rejected candidates, which a study's module lists from the file's history
-  (`rejected_of`, NoR's `studies/nor/algorithm/truth.py`) as `rejected`, so NoR's scorer still counts them as known non-NoRs, and the dataset
-  SHA covers them. (Scoring the model against the results alone is a later change.) Test: `lab/tests/test_lab.py`.
+  same dataset SHA; a changed label gives another. Decided by the owner on 2026-11-26 (issue 1100): a scorer compares the model with the results alone, so the form
+  carries nothing read from the history (the rejected candidates it kept from 2026-11-23 are gone). Test: `lab/tests/test_lab.py`.
   </details>
 
 - `req/lab/freeze` One lab command commits the study's GT, model-only, to `studies/<id>/gt/<freeze date>/` and writes the official scores with their stamp.
@@ -31,7 +30,7 @@ under `req/lab` and cited by it, as in the shell's spec (`web-tests/test_require
   on, `req/shell/processing/stamp`); the metrics record, for each image, the algorithm and code version the GT file's history began with, since
   the model-only form drops that history. The commit cannot exist before the files are committed, so the stamp holds `commit: null` until
   `lab/freeze.py <study> --stamp` writes the commit that holds the files (it refuses while they are uncommitted or changed); a session commits
-  the files, stamps, and commits the metrics. The frozen files keep the rejected candidates too (`req/lab/dataset-sha`, decided 2026-11-23), so the frozen score counts them. Test: `lab/tests/test_lab.py`.
+  the files, stamps, and commits the metrics. Test: `lab/tests/test_lab.py`.
   </details>
 
 - `req/lab/gt-marks` The lab scores against GT marks only, reading each marked file's latest content.
@@ -42,6 +41,15 @@ under `req/lab` and cited by it, as in the shell's spec (`web-tests/test_require
   SHA. Official marks are never scored, a file naming another image than its mark's is left out with the reason, and the
   files of a study's own `lab/truth/` (made by a model, not annotations) are scored beside them as before. Test:
   `lab/tests/test_lab.py`.
+  </details>
+
+- `req/lab/gt-tasks-done` The lab scores only ground truth with every tagging task done, and says why it leaves one out.
+  <details>
+
+  Set by the owner on 2026-11-26 (issue 1100): scoring is model to model, the expected set against the answer's, so a
+  file whose tagging is not finished is not ground truth yet. A study's module words the task a file left undone
+  (its `undone(doc)`, NoR's in `studies/nor/algorithm/truth.py`); the lab leaves such a file out, from the GT marks
+  and from the study's own `lab/truth/` alike, and prints the task. Test: `lab/tests/test_lab.py`.
   </details>
 
 - `req/lab/stage` The lab prints the study's stage from the study file, and unattended tasks stop on Review or Public.

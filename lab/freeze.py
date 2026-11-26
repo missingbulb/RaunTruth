@@ -5,7 +5,7 @@
 
 The second of the three steps of entering Review (study Setup's Freeze first, this next, then the sharing check). Only a
 study in Review is frozen here. Each GT mark's file, as the study file names it, is written in its model-only form
-(fetch.model_form) as studies/STUDY/gt/<freeze date>/<image SHA-256>.json, and the scores are measured on those files and
+(fetch.model_only) as studies/STUDY/gt/<freeze date>/<image SHA-256>.json, and the scores are measured on those files and
 nothing else, so the committed set is what the numbers name; the metrics file then carries, for each version, a stamp
 {version, dataset_sha256, frozen, commit}, which the page shows from Review on (req/shell/processing/stamp). The commit does
 not exist yet when the files are written: the stamp holds null until --stamp names the commit that added them, the one the

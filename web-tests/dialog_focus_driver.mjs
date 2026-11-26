@@ -7,6 +7,7 @@ import { pw, launch } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { frames } from "./page_frames.mjs";
 import { world } from "./world.mjs";
+import { orMissed } from "./page_until.mjs";
 
 const { origin, server } = await serveSite({
   "/web/worker.js": "",
@@ -57,6 +58,56 @@ await page.keyboard.press("Escape");
 await page.waitForFunction(() => !$("#user-menu").open);
 await settle();
 { const f = await focus(); await check(f === "user-menu summary", "the avatar menu closed by Esc: its button has the keyboard", f); }
+
+// ---- req/shell/dialogs/focus-kept: the control with the keyboard redrawn, hidden or disabled ----
+// a redraw stands in as the test's own: the control replaced by a copy of itself, as a list that draws itself again does
+const kept = async (want) => !!(await orMissed(page.waitForFunction((w) => { const a = document.activeElement; return a !== document.body && (!w || a.id === w); }, want, { timeout: 3000 })));
+await page.focus("#sb-version");
+await page.evaluate(() => { const b = $("#sb-version"); b.replaceWith(b.cloneNode(true)); });
+await settle();
+await check(await kept("sb-version"), "a control redrawn with the keyboard on it: its redrawn copy has the keyboard", await focus());
+
+await page.focus("#sb-version");
+await page.evaluate(() => { $("#sb-version").style.display = "none"; });
+await settle();
+{ const ok = await kept(), f = await focus(), inBar = await page.evaluate(() => !!document.activeElement.closest("#statusbar"));
+  await check(ok && inBar, "a control hidden with the keyboard on it: the next control of its bar has the keyboard", f); }
+await page.evaluate(() => { $("#sb-version").style.display = ""; });
+
+await page.focus("#sb-version");
+await page.evaluate(() => { $("#sb-version").disabled = true; });
+await settle();
+await check(await kept(), "a control disabled with the keyboard on it: the keyboard stays on the page", await focus());
+await page.evaluate(() => { $("#sb-version").disabled = false; });
+
+// disabled only while the page is busy, as a stage's buttons are while it is written: the keyboard waits for it
+await page.focus("#sb-version");
+await page.evaluate(() => { $("#sb-version").disabled = true; });
+await settle();
+await page.evaluate(() => { $("#sb-version").disabled = false; });
+await settle();
+{ const f = await focus(); await check(f === "sb-version", "a control disabled for a moment: the keyboard is back on it once it is enabled again", f); }
+
+// in an open dialog, the control with the keyboard disabled: the next control of the dialog, never one the dialog holds off
+await page.click("#user-menu summary");
+await page.click("#open-settings");
+await page.waitForFunction(() => $("#settings-dlg").open);
+await page.focus("#settings-cancel");
+await page.evaluate(() => { $("#settings-cancel").disabled = true; });
+await settle();
+{ const ok = await kept(), inside = await page.evaluate(() => $("#settings-dlg").contains(document.activeElement));
+  await check(ok && inside, "a control of an open dialog disabled with the keyboard on it: another of the dialog's has it", await focus()); }
+await page.evaluate(() => { $("#settings-cancel").disabled = false; });
+await page.keyboard.press("Escape");
+await page.waitForFunction(() => !$("#settings-dlg").open);
+await settle();
+
+// the contrast: a click on nothing that takes the keyboard leaves it on the body, and a later redraw does not take it back
+await page.focus("#sb-version");
+await page.mouse.click(700, 450);
+await page.evaluate(() => { const b = $("#sb-version"); b.replaceWith(b.cloneNode(true)); });
+await settle();
+{ const f = await focus(); await check(f === "body", "a click on nothing, then a redraw: the keyboard stays where the click left it", f); }
 
 // every dialog of both pages wears the page's own frame, a hairline and round corners, none the browser's
 for (const [at, atLeast] of [["/web/index.html", 11], ["/web/setup.html", 14]]) {

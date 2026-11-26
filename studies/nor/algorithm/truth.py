@@ -1,18 +1,15 @@
 """A ground-truth file read as its elements, and one answer's NoRs paired one-to-one with the truth's, each pair
 credited by how well it is placed and, where the truth carries lengths, how well it is measured.
 
-A file is the page's (norfinder-ground-truth/4: the candidates that remain, the NoRs added, the boxes checked for
-missed NoRs and the GT history; /3: the same with the areas checked of its `grid`; /2: its `labels`) or the lab's own
+A file is the page's (norfinder-ground-truth/4: the candidates that remain, the NoRs added and the boxes checked for
+missed NoRs; /3: the same with the areas checked of its `grid`; /2: its `labels`) or the lab's own
 (its `labels`, as /2 has them).
 
 A ground-truth element is read for its own state only: a NoR, not a NoR, or undecided; where it came from (a finder's
 candidate, a mark somebody added) changes nothing. An answer's NoR is a candidate its filters pass; a failed
 candidate is not part of the answer.
 """
-import base64
-import json
 import math
-import zlib
 
 import numpy as np
 
@@ -46,10 +43,9 @@ length (a truth with no lines: the answer's median red length)
 lengths agree (smaller over larger, less what unrelated NoRs reach by chance)
 - tp: the sum of the pairs' qualities
 - fn: the rest of each paired truth NoR, and 1 for each unpaired one
-- fp: the rest of each paired answer NoR and 1 for each unpaired one, as far as the ground truth **knows** its \
-place: wholly in an area checked for missed NoRs, else by its closeness to an element marked a NoR or not a NoR
-- An answer NoR on an undecided element counts for nothing by its closeness to it; an undecided element is never a \
-miss
+- fp: the rest of each paired answer NoR, and 1 for each unpaired one
+- Only ground truth with every tagging task done is scored; what the tasks marked (areas checked, verdicts) is not \
+read
 - A failed candidate is not in the answer"""
 
 
@@ -61,12 +57,6 @@ def _len(seg):
 def _mid(seg):
     (a, b), (c, d) = seg
     return (a + c) / 2, (b + d) / 2
-
-
-def _unpacked(output):
-    if isinstance(output, dict) and isinstance(output.get('deflate'), str):
-        return json.loads(zlib.decompress(base64.b64decode(output['deflate'])))
-    return output
 
 
 def _element(state, eid=None, x=None, y=None, lines=None, sizes=None):
@@ -84,66 +74,54 @@ def _element(state, eid=None, x=None, y=None, lines=None, sizes=None):
     return dict(id=eid, state=state, x=float(x), y=float(y), own=own, rx=rx, ry=ry, **{k: sizes.get(k) for k in LINES})
 
 
-def rejected_of(doc):
-    """The elements the file's history says were deleted and the file no longer lists, as the history last showed
-    them, [{id, x, y, lines}]: whichever kind of element they were. The lab keeps this list in the frozen form of a
-    file, whose history it drops."""
-    actions = [a for a in (doc.get('history') or {}).get('actions') or [] if isinstance(a, dict)]
-    have = {c.get('id') for c in (doc.get('candidates') or []) + (doc.get('added') or [])}
-    gone = {a.get('cand') for a in actions if a.get('type') == 'delete'} - have
-    seen = {}
-    runs = [a for a in actions if a.get('type') == 'run']
-    for c in (_unpacked(runs[-1].get('output')).get('cands') or []) if runs else []:
-        seen[c.get('id')] = dict(x=c['x'], y=c['y'], lines=c.get('lines'))
-    for a in actions:
-        if a.get('type') == 'add' and a.get('lines'):
-            seen[a.get('cand')] = dict(lines=a['lines'])
-        elif a.get('type') == 'set-lines' and a.get('lines') and a.get('cand') in seen:
-            seen[a['cand']] = dict(seen[a['cand']], lines=dict(seen[a['cand']].get('lines') or {}, **a['lines']))
-    return [dict(id=i, x=seen[i].get('x'), y=seen[i].get('y'), lines=seen[i].get('lines')) for i in sorted(gone & set(seen), key=str)]
-
-
-def _removed(doc):
-    """The rejected elements as not-NoRs: from the file's `rejected` list when it carries one (the lab's frozen form),
-    else from its history."""
-    rejected = doc['rejected'] if 'rejected' in doc else rejected_of(doc)
-    return [_element('not', r.get('id'), r.get('x'), r.get('y'), r.get('lines')) for r in rejected]
-
-
 def truth_of(doc):
-    """(elements, known): every element of a ground-truth file as {id, state, x, y, length, red, width}, state one
-    of 'nor', 'not' and 'undecided'; and known(x, y), whether the file says that place was checked for missed NoRs.
-
-    /3 and /4: an element marked approved is a NoR, one the file still lists unapproved is undecided, one its history
-    deleted is not a NoR. /2 and the lab's files: a label 1 is a NoR, 0 not one, null undecided."""
+    """Every element of a ground-truth file as {id, state, x, y, length, red, width}, state one of 'nor', 'not' and
+    'undecided'. /3 and /4: an element marked approved is a NoR, one the file lists unapproved is undecided; the file's
+    history is never read. /2 and the lab's files: a label 1 is a NoR, 0 not one, null undecided."""
     if doc.get('format') not in FORMATS[1:]:
         out = []
         for L in doc.get('labels') or []:
             sizes = dict(length=L.get('length_px'), red=L.get('red_length_px'), width=L.get('width_px'))
             state = {1: 'nor', 0: 'not'}.get(L.get('label'), 'undecided')
             out.append(_element(state, L.get('id'), L['x'], L['y'], L.get('lines'), sizes))
-        return out, lambda x, y: False
+        return out
     out = []
     for e in (doc.get('candidates') or []) + (doc.get('added') or []):
         lines = dict(e.get('lines') or {}, **(e.get('edited') or {})) or None
         out.append(_element('nor' if e.get('approved') else 'undecided', e.get('id'), e.get('x'), e.get('y'), lines))
-    out += _removed(doc)
+    return out
+
+
+def _covered(boxes, W, H):
+    """Whether the boxes [x0, y0, x1, y1] (x1, y1 not included) cover every pixel of a W x H image."""
+    xs = sorted({0, W, *(min(max(v, 0), W) for b in boxes for v in (b[0], b[2]))})
+    ys = sorted({0, H, *(min(max(v, 0), H) for b in boxes for v in (b[1], b[3]))})
+    for xa, xb in zip(xs, xs[1:]):
+        for ya, yb in zip(ys, ys[1:]):
+            if not any(b[0] <= xa and xb <= b[2] and b[1] <= ya and yb <= b[3] for b in boxes):
+                return False
+    return True
+
+
+def undone(doc):
+    """The tagging task a ground-truth file left undone, in words, or None when every one is done: each finalist and
+    each added NoR has a verdict, and the whole image is checked for missed NoRs. Only a file with none undone is
+    scored (the owner's call, 2026-11-26). A /2 file and the lab's labels never had the check."""
+    if doc.get('format') not in FORMATS[1:]:
+        return 'its labels were never checked for missed NoRs'
+    if any(not c.get('approved') and c.get('fail') is None for c in doc.get('candidates') or []):
+        return 'a finalist has no verdict'
+    if any(not a.get('approved') for a in doc.get('added') or []):
+        return 'an added NoR has no verdict'
     image = doc.get('image') or {}
     W, H = image.get('width'), image.get('height')
+    if not (W and H):
+        return 'the image has no size to check it against'
     if doc.get('format') == FORMATS[2]:
         boxes = [b for b in doc.get('checked') or [] if len(b) == 4]
-
-        def known(x, y):
-            return any(x0 <= x < x1 and y0 <= y < y1 for x0, y0, x1, y1 in boxes)
-        return out, known
-    grid, areas = doc.get('grid') or GRID, set(doc.get('areas') or [])
-
-    def known(x, y):
-        if not (areas and W and H) or not (0 <= x < W and 0 <= y < H):
-            return False
-        r, k = int(y * grid / H), int(x * grid / W)
-        return (r * grid + (grid - 1 - k if r % 2 else k)) in areas
-    return out, known
+        return None if _covered(boxes, W, H) else 'part of the image is not checked for missed NoRs'
+    grid = doc.get('grid') or GRID
+    return None if set(range(grid * grid)) <= set(doc.get('areas') or []) else 'an area is not checked for missed NoRs'
 
 
 def answer_of(cands):
@@ -213,7 +191,7 @@ def score(cands, doc, damaged=()):
     a failed candidate lies on; `measured`, the pairs whose truth carries lengths, and `length_err` and `red_err`,
     the sums of how far the answer's are from them (pixels); `items`, every element marked a NoR or not one as
     {id, x, y, label, hit, tp}; `answers`, every NoR of the answer as {id, x, y, pair, tp, fp}."""
-    elements, known = truth_of(doc)
+    elements = truth_of(doc)
     mine = answer_of(cands)
     if damaged:
         damaged = [[list(q) for q in p] for p in damaged]
@@ -236,8 +214,6 @@ def score(cands, doc, damaged=()):
             pair[i], back[j] = j, i
 
     N = closeness(passes, by['not'], typical)[0]
-    decided = np.concatenate([C, N], axis=1).max(axis=1, initial=0.0)
-    unsure = closeness(passes, by['undecided'], typical)[0].max(axis=1, initial=0.0)
     onfail = closeness(failed, by['nor'], typical)[0].max(axis=0, initial=0.0)
 
     tp = fp = fn = found = proposed = length_err = red_err = 0.0
@@ -253,8 +229,7 @@ def score(cands, doc, damaged=()):
                 measured += 1
                 length_err += abs((a['length'] or 0) - t['length']) if t['length'] else 0.0
                 red_err += abs((a['red'] or 0) - t['red']) if t['red'] else 0.0
-        knows = 1.0 if known(a['x'], a['y']) else float(decided[i])
-        wrong = (1 - q) * knows * (1 - float(unsure[i]))
+        wrong = 1 - q
         tp += q
         fp += wrong
         answers.append(dict(id=a['id'], x=a['x'], y=a['y'], pair=None if j is None else by['nor'][j]['id'], tp=q, fp=wrong))

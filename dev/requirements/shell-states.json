@@ -315,9 +315,9 @@
                                 {"when": {"hasModel": [false]}, "is": "disabled", "unwalked": "annotating, an image carries no model only in a study of several steps before its first, where the tasks list is not yet shown"}
                               ]
                             },
-                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is, which is all any path reaches",
+                            {"name": "Actions not yet saved", "select": "#gt-unsaved", "req": "req/shell/ground-truth/save-draft", "steady": "shown, signed in or out, whenever a GT action is unsaved (decided by the owner on 2026-11-23); hidden while none is",
                               "rule": [
-                                {"is": "hidden", "about": "no path makes a GT action"}
+                                {"is": "hidden", "approval": "undecided", "about": "on while a GT action is unsaved, gone while none is, which no state says"}
                               ]
                             }
                           ]
@@ -944,7 +944,11 @@
             {"name": "Resources, unfolded", "select": "#sb-res-items", "req": "req/shell/status-bar/resources", "steady": "always shown",
               "children": [
                 {"name": "Storage", "select": "#sb-disk", "control": true, "req": "req/shell/status-bar/disk", "steady": "always shown"},
-                {"name": "Memory", "select": "#sb-memory", "control": true, "req": "req/shell/status-bar/memory", "steady": "hidden until Python has reported a figure, decided by the owner on 2026-11-23 (unknown is hidden, never 0 MB); every path waits for Python, so it is always shown"},
+                {"name": "Memory", "select": "#sb-memory", "control": true, "req": "req/shell/status-bar/memory", "steady": "hidden until Python has reported a figure, decided by the owner on 2026-11-23 (unknown is hidden, never 0 MB)",
+                  "rule": [
+                    {"is": "shown", "approval": "undecided", "about": "on once Python has reported a figure, gone before it has (a page offline or signed out may not have started it), which no state says"}
+                  ]
+                },
                 {"name": "Network", "select": "#sb-net", "control": true, "req": "req/shell/status-bar/network", "steady": "always shown"},
                 {"name": "CPU", "select": "#sb-cpu", "control": true, "req": "req/shell/status-bar/cpu", "steady": "always shown"}
               ]

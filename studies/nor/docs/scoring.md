@@ -19,6 +19,10 @@ In the owner's words:
   is GT. You should assume it's right. You should not read into the origins of an element in GT. 'A person marked X'
   is not a worthwhile point of scoring. You can say 'An element marked as undecided' to be scored somehow, but it's
   not the origin of the marking that matters."
+- On issue 1100 (2026-11-26): "the model extracts a set of nodes. The reviewer does work and changes that set of nodes
+  to a new set of correct nodes. The scoring of an algorithm is the difference between those two. The notion of
+  'rejected' is just a UI term used by the tagger to say 'this is not a node'." And: "the GT tasks have nothing to do
+  with scoring. Scoring is ONLY model to model (expected v actual)." Ground truth with a task undone is not scored.
 - From the Vascular round: "The GT cannot have 'maybe approved' notion"; the model "either says there's a [unit] or
   not"; a finder's implementation details are not judged, only its model against the truth.
 
@@ -34,10 +38,10 @@ real file is the lab's own `lab/truth/claude_v1.json` (/2 shape: 200 points, 72 
 | what the file holds | its state | scored as |
 |---|---|---|
 | /3 candidate or added NoR with `approved` | a NoR | a truth NoR, with its lines (edited ones over the first) |
-| /3 candidate or added NoR without `approved` | undecided | neither a miss nor an invention |
-| /3 element its history deleted and the file no longer lists (either kind) | not a NoR | an answer NoR on it is an invention |
-| /4 `checked` box, or /3 `areas` | those pixels, that area, were checked for missed NoRs | every answer NoR in it is judged |
-| /2 label 1 / 0 / null | a NoR / not / undecided | as above; points, with no lengths unless the label carries them |
+| /3 candidate or added NoR without `approved` | undecided | not in the expected set; a finalist or an added NoR without a verdict is a task undone, so the file is not scored |
+| /3 element its history deleted and the file no longer lists (either kind) | not in the truth | the scorer reads the model alone, never the history (issue 1100) |
+| /4 `checked` box, or /3 `areas` | a tagging task | never read by the score; the file is scored only once they cover the whole image |
+| /2 label 1 / 0 / null | a NoR / not / undecided | a /2 file never had the check for missed NoRs, so it is not scored |
 
 **Where today's scorer reads origin** (all removed): 12 px for an added NoR against 5 px for the rest; negatives only
 from deleted finder candidates; `missing_proposed` over added marks only; length error over "adjusted or approved"
@@ -50,8 +54,7 @@ F is 2tp / (2tp + fp + fn). Each row's movement is asserted in `tests/test_truth
 | error | at rising severity | what the score does |
 |---|---|---|
 | a NoR missed | 1, 5, 12, all | fn +1 each; F falls each time; all missed is 0 |
-| a NoR invented, where the truth knows the place (a checked area, or on a not-a-NoR element) | 1 to 4 | fp +1 each |
-| a NoR invented where the truth says nothing | any | nothing: the truth is incomplete there, not the answer wrong |
+| a NoR invented, anywhere | 1 to 4 | fp +1 each: the expected set is the whole truth for its image |
 | placed off | within 0.25 red length; 0.25 to 1; beyond | full; credit falls evenly to 0; unpaired. No step at either end |
 | found, lengths wrong | red 10%, 20%, 30% off; all three 3x | half the credit is the place; the other half falls with the lengths |
 | one NoR split into two | halves on the node; halves off it | one half paired for what it is worth, the other a duplicate. **About the cost of a miss**, see §6 |
@@ -60,8 +63,7 @@ F is 2tp / (2tp + fp + fn). Each row's movement is asserted in `tests/test_truth
 | whole answer shifted | 3, 5, 7, 9 px; a node length | falls evenly; 0 at one red length |
 | whole answer scaled | 2% to 20% either way | falls: places drift and lengths disagree |
 | empty answer, or every candidate failed | | 0 |
-| answer on an undecided element | on it, beside it | nothing on it; counts by how far beside |
-| truth incomplete | no checked areas, sparse labels | only answers near a decided element are judged; said in `SCORING` |
+| truth with a tagging task undone | a finalist or an added NoR with no verdict, part of the image not checked, a /2 file or the lab's labels | not scored: the lab leaves the file out and says which task (`undone`) |
 | a candidate proposed and then failed, on a truth NoR | | not in the score (the model says NoR or not); reported beside it as `proposed` |
 
 | matching type, strongest first | when | worth |
@@ -86,8 +88,7 @@ quality(pair) = closeness                                   when the truth NoR h
     agreement = mean over length, red, width of max(0, (min/max - chance) / (1 - chance))
 tp = sum of quality
 fn = sum over truth NoRs of 1 - quality          (1 when unpaired)
-fp = sum over answer NoRs of (1 - quality) * knows * (1 - closeness to the nearest undecided element)
-    knows = 1 in an area checked for missed NoRs, else closeness to the nearest element marked NoR or not
+fp = sum over answer NoRs of 1 - quality          (1 when unpaired)
 ```
 
 Constants, each a measured or stated scale, none in pixels:
@@ -189,17 +190,20 @@ files only. Re-run this section when the first curated file arrives.
 Decided on 2026-11-18:
 
 - **Lengths are half the credit** of a pair, where the truth carries them (the owner: "Half the credit").
-- **Undecided counts for nothing, everywhere**, also inside an area checked for missed NoRs: a default taken from the
-  owner's earlier rulings, not asked anew.
-- **An answer on ground nobody judged counts for nothing**: the same kind of default.
 - **A split scores about as a miss**: left as designed (§6).
+
+Decided on 2026-11-26 (issue 1100), replacing two defaults of 2026-11-18 (undecided counting for nothing, and an
+answer on ground nobody judged counting for nothing):
+
+- **The score is the expected set against the answer's**: a NoR of the answer that matches none of the truth's is an
+  invention wherever it lies. Neither the history nor the tagging tasks are read.
+- **Only ground truth with every task done is scored.** Until people submit some, no NoR number is measured: the
+  lab's `claude_v1.json` labels were never checked for missed NoRs.
 
 Open:
 
 - **A split that adds coverage should cost less.** The owner ruled so for Shelves (a spare piece that adds coverage).
   Not applied here: a NoR is paired as a whole, so crediting a second half needs pairing by parts of the node, which
   is neither cheap nor tested yet.
-- **The /3 file should list rejected elements itself.** "Not a NoR" is today read from the file's history (a
-  `delete` and the run or `add` that showed the element), the one place the scorer opens it. A follow-up.
 - **The lab's item tools** (`lab/items.py`) read one yes or no per graded element: `hit` is quality of at least 0.5
   for a NoR, and an answer NoR at least 0.5 close for an element marked not one. A soft version is theirs to grow.

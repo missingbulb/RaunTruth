@@ -18,6 +18,20 @@ def doc():
         return json.load(f)
 
 
+def measured():
+    """The versions measured on some ground truth; none until people submit ground truth with every task done."""
+    return {f: v for f, v in doc()['versions'].items() if v['precision'] is not None}
+
+
+def test_a_version_is_measured_exactly_when_the_file_names_ground_truth():
+    d = doc()
+    assert len(measured()) == (len(d['versions']) if d['images'] else 0)
+    for v in d['versions'].values():
+        for r in [v, *v['settings'].values()]:
+            # nothing measured is unknown, never a zero
+            assert (r['precision'] is None) == (r['recall'] is None) == (not d['images'])
+
+
 def test_every_finder_and_setting_is_on_record():
     d = doc()
     assert d['format'] == 'rauntruth-metrics/1'
@@ -29,7 +43,7 @@ def test_every_finder_and_setting_is_on_record():
 
 
 def test_counts_cover_the_labels():
-    for v in doc()['versions'].values():
+    for v in measured().values():
         for r in [v, *v['settings'].values()]:
             # soft counts: a NoR is split between tp and fn, so the two still sum to the NoRs marked
             assert abs(r['tp'] + r['fn'] - (v['tp'] + v['fn'])) < 1e-4
@@ -58,7 +72,7 @@ def test_precise_is_stricter_and_recalling_looser_in_every_filter():
 
 
 def test_recall_falls_from_no_filter_to_precise():
-    for f, v in doc()['versions'].items():
+    for f, v in measured().items():
         s = v['settings']
         # rf picks between alternative greens using the checks, so a filter on can find a better one than none does
         assert f not in controls.EXACT_REFILTER or s['unfiltered']['recall'] >= v['recall'], f
@@ -67,7 +81,7 @@ def test_recall_falls_from_no_filter_to_precise():
 
 def test_filters_only_remove():
     """A filter can only reject what the finder proposed, so no preset finds a real spot the finder did not."""
-    for f, v in doc()['versions'].items():
+    for f, v in measured().items():
         if f not in controls.EXACT_REFILTER:
             continue  # rf picks between alternative greens using the checks, so its filters do more than remove
         top = v['settings']['unfiltered']['tp']

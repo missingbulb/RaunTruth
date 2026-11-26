@@ -92,21 +92,20 @@ def test_each_unit_missed_costs_more(doc):
     assert falls([F(right()[:n], doc) for n in (20, 19, 15, 8, 1, 0)])
 
 
-def test_each_unit_invented_costs_more_where_the_truth_knows():
+@pytest.mark.parametrize('doc', BOTH + [three(areas=())])
+def test_each_unit_invented_costs_more(doc):
+    """issue 1100: the score is the expected set against the answer's, so a NoR that matches none in the truth is an
+    invention wherever it lies; which areas were checked for missed NoRs is a task of the tagging, not of the score."""
     extra = [cand(100.0 + 80 * i, 100.0) for i in range(4)]
-    # in areas checked for missed NoRs, and on spots marked not a NoR
-    assert falls([F(right() + extra[:n], three()) for n in range(5)])
-    assert falls([F(right() + extra[:n], two(nots=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
-    assert falls([F(right() + extra[:n], three(areas=(), deleted=[(e['cx'], e['cy']) for e in extra])) for n in range(5)])
+    assert falls([F(right() + extra[:n], doc) for n in range(5)])
 
 
-def test_an_answer_where_the_truth_says_nothing_counts_for_nothing():
-    extra = [cand(100.0, 100.0)]
-    assert F(right() + extra, two()) == pytest.approx(1.0)
-    assert F(right() + extra, three(areas=())) == pytest.approx(1.0)
-    # one checked area knows its own ground only (area 0 is the top-left tenth)
-    assert F(right() + [cand(20.0, 20.0)], three(areas=[0])) < 1.0
-    assert F(right() + [cand(20.0, 100.0)], three(areas=[0])) == pytest.approx(1.0)
+def test_the_tagging_s_tasks_change_no_score():
+    cands = right()[:15] + [cand(100.0, 100.0), cand(20.0, 20.0)]
+    assert all(S.score(cands, three(areas=a))[k] == pytest.approx(S.score(cands, three())[k]) for a in ((), [0]) for k in ('tp', 'fp', 'fn'))
+    four = dict(three(), format='norfinder-ground-truth/4', checked=[])
+    del four['grid'], four['areas']
+    assert all(S.score(cands, four)[k] == pytest.approx(S.score(cands, three())[k]) for k in ('tp', 'fp', 'fn'))
 
 
 @pytest.mark.parametrize('doc', BOTH)
@@ -176,14 +175,10 @@ def test_one_unit_split_in_two_and_two_merged_into_one(doc):
     assert F(both, d) == pytest.approx(1.0)
 
 
-@pytest.mark.parametrize('undecided', [three(undecided=[(100.0, 100.0)]), two(unsure=[(100.0, 100.0)])])
-def test_an_undecided_element_is_neither_a_miss_nor_an_invention(undecided):
-    assert F(right(), undecided) == pytest.approx(1.0)
-    assert F(right() + [cand(100.0, 100.0)], undecided) == pytest.approx(1.0)
-    # beside it, where a checked area knows better, it starts to count
-    if undecided['format'].endswith('3'):
-        got = [F(right() + [cand(100.0 + d, 100.0)], undecided) for d in (0, 4, 7, 12)]
-        assert falls(got[1:]) and got[0] == pytest.approx(1.0)
+@pytest.mark.parametrize('unmarked', [three(undecided=[(100.0, 100.0)]), two(unsure=[(100.0, 100.0)]), two(nots=[(100.0, 100.0)])])
+def test_an_element_not_marked_a_nor_is_not_in_the_expected_set(unmarked):
+    assert F(right(), unmarked) == pytest.approx(1.0)
+    assert F(right() + [cand(100.0, 100.0)], unmarked) == pytest.approx(F(right() + [cand(100.0, 100.0)], three()))
 
 
 def test_where_an_element_came_from_changes_nothing():
@@ -191,11 +186,10 @@ def test_where_an_element_came_from_changes_nothing():
     as_candidates = S.score(cands, three())
     as_added = S.score(cands, three(PLACES[:10], added=PLACES[10:]))
     assert all(as_added[k] == pytest.approx(as_candidates[k]) for k in ('tp', 'fp', 'fn', 'measured', 'red_err'))
-    # an added NoR the history deleted is not a NoR, as a deleted candidate is
+    # an added NoR the history deleted is gone from the truth, as a deleted candidate is
     doc = three(areas=())
     doc['history']['actions'] += [{'type': 'add', 'cand': 'u1', 'lines': lines_at(300.0, 20.0)}, {'type': 'delete', 'cand': 'u1'}]
-    assert F(cands, doc) < F(cands, three(areas=()))
-    assert S.score(cands, doc)['fp'] == pytest.approx(S.score(cands, three(areas=(), deleted=[(300.0, 20.0)]))['fp'])
+    assert S.score(cands, doc)['fp'] == pytest.approx(S.score(cands, three(areas=()))['fp'])
 
 
 def test_a_failed_candidate_is_not_in_the_answer_and_is_told_apart():
@@ -252,52 +246,61 @@ def test_the_page_outline_carries_the_scorers_own_numbers():
 
 # ---------- a file read as its elements ----------
 def states(doc):
-    return sorted((e['state'], round(e['x']), round(e['y'])) for e in S.truth_of(doc)[0])
+    return sorted((e['state'], round(e['x']), round(e['y'])) for e in S.truth_of(doc))
 
 
 def test_a_three_file_gives_each_element_its_state():
     doc = three(PLACES[:2], undecided=[(100.0, 100.0)], deleted=[(200.0, 100.0)], added=[(300.0, 100.0)])
     doc['added'].append(dict(id='u9', lines=lines_at(350.0, 100.0)))
-    assert states(doc) == [('nor', 60, 60), ('nor', 140, 60), ('nor', 300, 100), ('not', 200, 100), ('undecided', 100, 100), ('undecided', 350, 100)]
-    known = S.truth_of(doc)[1]
-    assert known(20, 20) and not S.truth_of(three(areas=[0]))[1](20, 100) and not known(-1, 20)
-    # the areas walk each second row backwards, as the page numbers them
-    assert S.truth_of(three(areas=[19]))[1](20, 60) and not S.truth_of(three(areas=[19]))[1](380, 60)
+    assert states(doc) == [('nor', 60, 60), ('nor', 140, 60), ('nor', 300, 100), ('undecided', 100, 100), ('undecided', 350, 100)]
 
 
-def test_a_four_file_knows_the_pixels_its_checks_cover():
-    """req/nor/downloads: /4 keeps each check as its box in whole pixels, x0 to x1 not included, whatever count of
-    areas it was made under; the elements are read as in /3."""
-    doc = dict(three(PLACES[:2]), format='norfinder-ground-truth/4', checked=[[0, 0, 200, 200], [190, 0, 400, 40]])
+def test_a_file_with_a_tagging_task_undone_says_which():
+    """Only ground truth with every task done is scored (the owner, 2026-11-26): every finalist and added NoR has a
+    verdict, and the whole image is checked for missed NoRs; a /2 file or the lab's labels never had that check."""
+    assert S.undone(three()) is None
+    assert S.undone(three(areas=range(99))) and S.undone(three(areas=()))
+    assert S.undone(three(undecided=[(100.0, 100.0)]))
+    failed = three()
+    failed['candidates'].append(dict(failed['candidates'][0], id='c99', x=100.0, y=100.0, approved=None, fail='dim'))
+    assert S.undone(failed) is None, 'a failed candidate is no finalist, and wants no verdict'
+    unvoted = three()
+    unvoted['added'].append(dict(id='u9', lines=lines_at(350.0, 100.0)))
+    assert S.undone(unvoted)
+    assert S.undone(two()) and S.undone({'labels': two()['labels']})
+
+
+def test_a_four_file_is_done_once_its_checks_cover_the_image():
+    """req/nor/downloads: /4 keeps each check as its box in whole pixels, x0 to x1 not included."""
+    doc = dict(three(PLACES[:2]), format='norfinder-ground-truth/4', checked=[[0, 0, 200, 400], [190, 0, 400, 400]])
     del doc['grid'], doc['areas']
     assert states(doc) == states(three(PLACES[:2]))
-    known = S.truth_of(doc)[1]
-    assert known(0, 0) and known(199, 199) and known(399, 39) and known(250, 10)
-    assert not known(200, 100) and not known(399, 40) and not known(300, 300) and not known(-1, 20) and not known(400, 10)
-    assert not S.truth_of(dict(doc, checked=[]))[1](20, 20)
+    assert S.undone(doc) is None
+    for gap in ([[0, 0, 200, 400], [201, 0, 400, 400]], [[0, 0, 400, 399]], [[0, 0, 400, 200], [0, 200, 399, 400]], []):
+        assert S.undone(dict(doc, checked=gap)), gap
+    assert S.undone(dict(doc, checked=[[-5, -5, 405, 405]])) is None
 
 
 def test_an_element_is_measured_on_the_lines_it_stands_on():
     doc = three(PLACES[:1])
     doc['candidates'][0]['edited'] = {'red': [[50.0, 60.0], [64.0, 60.0]]}
-    e = S.truth_of(doc)[0][0]
+    e = S.truth_of(doc)[0]
     assert (e['red'], e['length'], e['width']) == (14.0, LENGTH, WIDTH) and (e['rx'], e['ry']) == (57.0, 60.0)
 
 
-def test_a_deleted_element_is_not_a_nor_only_where_the_history_says_so():
+def test_the_truth_is_the_model_alone():
+    """issue 1100: the scorer compares the answer with the model the file lists, never its history; a candidate the
+    history deleted is simply not there, packed history or not, and a file without its history scores the same."""
     doc = three(PLACES[:1], deleted=[(200.0, 100.0)])
     packed = copy.deepcopy(doc)
     run = packed['history']['actions'][0]
     run['output'] = {'deflate': base64.b64encode(zlib.compress(json.dumps(run['output']).encode())).decode()}
-    assert states(packed) == states(doc) == [('nor', 60, 60), ('not', 200, 100)]
-    # a delete taken back leaves the element in the file, undecided; one of an element no run or add shows marks nothing
-    back = copy.deepcopy(doc)
-    back['candidates'].append(dict(doc['history']['actions'][0]['output']['cands'][1]))
-    back['history']['actions'].append({'type': 'delete', 'cand': 'c99'})
-    assert states(back) == [('nor', 60, 60), ('undecided', 200, 100)]
-    # with no history a file gives what it lists
-    del doc['history']
-    assert states(doc) == [('nor', 60, 60)]
+    bare = copy.deepcopy(doc)
+    del bare['history']
+    assert states(packed) == states(doc) == states(bare) == [('nor', 60, 60)]
+    cands = right(PLACES[:1]) + [cand(200.0, 100.0)]
+    assert S.score(cands, doc) == S.score(cands, bare) == S.score(cands, packed)
+    assert S.score(cands, bare)['fp'] == pytest.approx(1.0)
 
 
 def test_a_two_file_and_a_lab_file_read_alike():
@@ -305,9 +308,9 @@ def test_a_two_file_and_a_lab_file_read_alike():
               dict(id=2, x=50, y=50, label=0, source='finder'), dict(id=3, x=80, y=80, label=None)]
     page = {'format': 'norfinder-ground-truth/2', 'labels': labels}
     lab = {'labels': [{k: L[k] for k in L if k not in ('source', 'kind', 'radius_px')} for L in labels]}
-    assert S.truth_of(page)[0] == S.truth_of(lab)[0]
+    assert S.truth_of(page) == S.truth_of(lab)
     assert states(page) == [('nor', 10, 10), ('not', 50, 50), ('undecided', 80, 80)]
-    assert S.truth_of(page)[0][0]['red'] == 3.0
+    assert S.truth_of(page)[0]['red'] == 3.0
 
 
 def test_the_graded_items_say_what_the_answer_keeps():

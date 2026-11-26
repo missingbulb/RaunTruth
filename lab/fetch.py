@@ -77,14 +77,11 @@ def model_only(doc):
     return out
 
 
-def model_form(doc, module=None):
-    """model_only, plus the list of rejected candidates a study's module reads from the file's history
-    (`rejected_of`) under `rejected`, which that history's removal would otherwise take from its scorer."""
-    out = model_only(doc)
-    rejected = getattr(module, 'rejected_of', None)
-    if rejected and 'rejected' not in out:
-        out['rejected'] = _without_emails(rejected(doc))
-    return out
+def undone(module, doc):
+    """The tagging task a ground-truth file left undone, as the study's module words it (its `undone`), or None. Only
+    ground truth with every task done is scored."""
+    said = getattr(module, 'undone', None)
+    return said(doc) if said else None
 
 
 def model_sha256(doc):
@@ -227,7 +224,11 @@ def truth(sid, transport=None, sf=None):
         if not isinstance(doc, dict) or (doc.get('image') or {}).get('sha256') != sha:
             refused[label] = 'the file names another image than the mark'
             continue
-        form = model_form(doc, module)
+        why = undone(module, doc)
+        if why:
+            refused[label] = f'a tagging task undone: {why}'
+            continue
+        form = model_only(doc)
         kept.append(dict(subfolder=label, path=out, doc=form, sha256=model_sha256(form)))
     return kept, refused
 

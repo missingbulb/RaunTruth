@@ -19,7 +19,10 @@ import { orMissed } from "../../../web-tests/page_until.mjs";
 const [ready] = process.argv.slice(2);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const READY = JSON.parse(fs.readFileSync(ready, "utf8"));
+// the study's metrics file, with a measured quality stood in for each finder: what the lab last measured is not this test's
 const QUALITY = JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithm_metrics.json"), "utf8"));
+QUALITY.measured = "on 1 image with ground truth";
+Object.values(QUALITY.versions).forEach((v, n) => Object.assign(v, { precision: 0.9 - n / 100, recall: 0.6 + n / 100 }));
 // the study's list of finders, as data: each one's name and icon
 const LISTED = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(repo, "studies", "nor", "web", "algorithms.json"), "utf8")).map((a) => [a.key, a]));
 
@@ -30,7 +33,9 @@ const browser = await launch(pw);
 const problems = [];
 // a device whose welcome popup is not answered yet
 const device = world(browser, origin).device().welcomed(null);
-const page = await (await device.context()).newPage();
+const context = await device.context();
+await context.route("**/studies/nor/web/algorithm_metrics.json", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(QUALITY) }));
+const page = await context.newPage();
 page.on("pageerror", (e) => problems.push("page error: " + e.message));
 try {
   await device.opens("nor", { until: "none" });

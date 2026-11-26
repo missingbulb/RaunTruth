@@ -447,15 +447,28 @@ def test_the_stamp_step_names_the_commit_that_holds_the_files_and_waits_for_ther
     assert open(s.metrics_path(), 'rb').read() != before
 
 
-def test_a_frozen_nor_file_still_counts_its_rejected_candidate_as_a_known_non_nor():
+def test_ground_truth_with_a_tagging_task_undone_is_left_out_saying_which(acme, monkeypatch, capsys):
+    """Only ground truth with every task done is scored (the owner, 2026-11-26): a study's undone(doc) names the task a
+    file left undone, from the GT marks and from the study's own lab/truth/ alike."""
+    s, drive = acme
+    monkeypatch.setattr(s.module, 'undone', lambda doc: 'acme-task undone' if doc['labels'][0]['count'] == 10 else None, raising=False)
+    kept, refused = fetch.truth('acme', drive)
+    assert [t['doc']['labels'][0]['count'] for t in kept] == [18]
+    assert list(refused.values()) == ['a tagging task undone: acme-task undone']
+    os.makedirs(os.path.join(s.dir, 'lab', 'truth'))
+    for n, count in enumerate((10, 30)):
+        with open(os.path.join(s.dir, 'lab', 'truth', f'acme-{n}.json'), 'wb') as f:
+            f.write(extraction(TWENTY, count))
+    pairs = run.corpus(s, drive, which='lab')
+    assert [t['doc']['labels'][0]['count'] for _, t in pairs] == [30]
+    assert 'acme-task undone' in capsys.readouterr().err
+
+
+def test_a_frozen_nor_file_is_its_model_alone():
+    """issue 1100: the frozen form carries no rejected candidates read from the history, so the dataset SHA is the model's."""
     sys.path.insert(0, os.path.join(lab_study.STUDIES, 'nor', 'tests'))
     import test_truth as nor_truth
-    nor = lab_study.Study('nor')
-    doc = nor_truth.three(deleted=[(300, 300)])
-    with_reject = fetch.model_form(doc, nor.module)
-    assert 'history' not in with_reject
-    elements, _ = nor_truth.S.truth_of(with_reject)
-    assert sorted(e['state'] for e in elements).count('not') == 1
-    without = fetch.model_form(nor_truth.three(), nor.module)
-    assert fetch.model_sha256(with_reject) != fetch.model_sha256(without), 'the dataset SHA covers the rejects'
-    assert fetch.model_form(with_reject, nor.module) == with_reject, 'the committed form, read again, is itself'
+    frozen = fetch.model_only(nor_truth.three(deleted=[(300, 300)]))
+    assert 'history' not in frozen and 'rejected' not in frozen
+    assert fetch.model_sha256(frozen) == fetch.model_sha256(nor_truth.three()), 'a reject in the history changes no SHA'
+    assert fetch.model_only(frozen) == frozen, 'the committed form, read again, is itself'
