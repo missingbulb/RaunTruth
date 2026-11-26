@@ -86,11 +86,11 @@ async function open() {
   await page.waitForFunction((n) => shellForTests.page.get("image")?.name === n, name);
   await settled();
 }
-// finding, with each finder by turns
+// finding, twice over
 async function find() {
-  for (const f of ["tl", "rf"]) {
+  for (let k = 0; k < 2; k++) {
     const done = next("run");
-    await page.evaluate((f) => { $("#algorithm").value = f; $("#algorithm").dispatchEvent(new Event("change")); $("#find").click(); }, f);
+    await page.evaluate(() => $("#find").click());
     await done; await settled();
   }
 }

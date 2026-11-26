@@ -19,7 +19,7 @@ algorithm/               the study's algorithm, the only Python the page loads; 
                          asking the environment for det, tesseract and words; each line kept as a block
   fields.py              a spine's blocks read into title, author, publisher, volume and library mark (F1), per photo
   score.py               how one answer did against one ground truth: half the box, half the text, field by field (Score, SCORING.md)
-web/algorithms.json      the page's list of versions, the first its default: each one's title, icon and steps
+web/algorithms.json      the page's list of versions, one marked `default`, the one the page runs: each one's title, icon and steps
 web/algorithm_metrics.json  each version's precision and recall, written by `python3 lab/run.py shelves --write`
 web/shelves.js           the page: Find books (one run), Read titles, the titles in Summary, the ground-truth task and its pictures
 web/gt_actions.js        the GT actions the shell's log replays (start, run, document, load, describe, where), as pure functions: each book has an id (b1, b2, … the finder's, u1, u2, … the tagger's), never shown

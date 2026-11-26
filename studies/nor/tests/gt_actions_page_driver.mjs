@@ -5,7 +5,7 @@
 // candidate drawn from its box, no outline), what the five older keys held is offered once after Find Candidates, recorded as GT
 // actions at the click and forgotten when a draft holds it, and Edit History's ring is drawn round the row's candidate in the study's colour.
 //   node tests/gt_actions_page_driver.mjs ANSWERS IMAGE
-import { fromScratch } from "../../../web-tests/annotating.mjs";
+import { fromScratch, defaultIs } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -50,17 +50,17 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 const check = async (ok, what, more) => { if (!ok) { console.error("FAILED: " + what, more === undefined ? "" : JSON.stringify(more)); await done(1); } console.log("ok: " + what); };
 const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json"), "utf8"));
 
-// start: Start and Run pressed, with that algorithm where one is named; false leaves the image just opened
+// start: Start pressed; false leaves the image just opened
 async function open(dev, start = true) {
   const page = await dev.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await loadImage(page, start);
   return page;
 }
 async function loadImage(page, start = true) {
   await page.setInputFiles("#file", image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
-  if (start) await fromScratch(page, "#find", typeof start === "string" ? { algorithm: start } : {});
+  if (start) await fromScratch(page, "#find");
 }
 // drafts, keys: what the device keeps before the page opens; the tagger's Drive holding no settings of the site's yet
 function newDevice({ drafts = [], keys = {} } = {}) {
@@ -102,8 +102,10 @@ async function saveDraft(page) {
 }
 // a page opened afresh on a device keeping that draft, the image opened, and the draft offered: as Continue local work before an
 // analysis starts, and, started with an algorithm, as Load draft beside the tasks
-async function openWithDraft(drafts, start = false) {
+// finder: the finder the study's list marks default on that device, where it is not the study's own
+async function openWithDraft(drafts, start = false, finder = null) {
   const dev = newDevice({ drafts });
+  if (finder) await defaultIs(await dev.context(), "nor", finder);
   const page = await open(dev, start);
   await page.waitForFunction((s) => (s ? !$("#gt-load-draft").hidden : $("#annotate-local").checkVisibility()), start);
   return { dev, page };
@@ -253,7 +255,7 @@ try {
     `Save Draft again replaces the device's draft with the work on ${saved.finder}'s candidates`, draft.stored.map((r) => r.model.finder));
   await dev.close();
   const other = ["tl", "rf"].find((k) => k !== saved.finder);
-  ({ dev, page } = await openWithDraft(draft.stored, other));
+  ({ dev, page } = await openWithDraft(draft.stored, true, other));
   const others = await page.evaluate(() => st.order.map((c) => `${Math.round(c.cx)},${Math.round(c.cy)}`).sort());
   await check(other !== saved.finder && JSON.stringify(others) !== JSON.stringify(saved.places), `another finder, ${other}, finds other candidates than ${saved.finder} did`, { others: others.length, saved: saved.places.length });
   await unfold(page, "#analysis-box");

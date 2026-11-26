@@ -36,7 +36,7 @@
       "row": "Batch run (Study Setup) over chosen images",
       "cells": ["open once there is an algorithm", "open", "open", "open, counts once marked", "open, counts once marked"],
       "open": [true, true, true, true, true],
-      "control": {"page": "setup", "selector": "#batch-run"}
+      "control": {"page": "setup", "selector": "#batch-select"}
     },
     "numbers": {
       "row": "Numbers shown",

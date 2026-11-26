@@ -277,7 +277,7 @@
                     {"when": {"route": ["none", "local", "drive"]}, "is": "hidden", "req": "req/shell/annotate/choice"}
                   ],
                   "children": [
-                    {"name": "Algorithm that ran", "select": "#algorithm-ran", "req": "req/shell/analysis/start"}
+                    {"name": "How the analysis works", "select": "#algorithm-pick", "req": "req/shell/processing/algorithms"}
                   ]
                 },
                 {"name": "Analysis Tasks", "select": "#tasks-box", "req": "req/shell/left-bar/shells",
@@ -654,11 +654,39 @@
                 },
                 {"name": "Folder view", "select": "#folder-view", "req": "req/shell/data/folder",
                   "rule": [
-                    {"when": {"selected": ["nothing", "image"]}, "is": "hidden"}
+                    {"when": {"selected": ["nothing"]}, "is": "hidden"},
+                    {"when": {"selected": ["image"]}, "is": "shown", "approval": "tentative", "req": "req/setup/aspects", "about": "an image chosen keeps its folder's images on show"}
                   ],
                   "children": [
                     {"name": "Folder's title", "select": "#folder-title", "req": "req/shell/data/folder"},
+                    {"name": "Select all", "select": "#batch-select", "req": "req/setup/batch",
+                      "children": [
+                        {"name": "Select all's checkbox", "select": "#batch-all", "control": true, "req": "req/setup/batch",
+                          "rule": [
+                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
+                          ]
+                        },
+                        {"name": "How many are selected", "select": "#batch-for", "req": "req/setup/batch"}
+                      ]
+                    },
                     {"name": "Grid or list", "select": "#folder-layout", "req": "req/shell/data/folder"},
+                    {"name": "The selection's actions", "select": "#batch-bar", "unwalked": "shows only with an image selected, which no path does", "req": "req/setup/batch",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative", "about": "shows once an image is selected, which no path does"}
+                      ],
+                      "children": [
+                        {"name": "Run analysis", "select": "#batch-run", "control": true, "req": "req/setup/batch"},
+                        {"name": "Hide the selected", "select": "#batch-hide", "control": true, "req": "req/setup/batch"},
+                        {"name": "Request GT for the selected", "select": "#batch-gt", "control": true, "req": "req/setup/batch"},
+                        {"name": "Mark official", "select": "#batch-official", "control": true, "req": "req/setup/batch"}
+                      ]
+                    },
+                    {"name": "The run's message", "select": "#batch-msg", "req": "req/setup/batch"},
+                    {"name": "The run's results", "select": "#batch-results", "req": "req/setup/batch", "steady": "shows only once a run has reached an image, which no path does",
+                      "rule": [
+                        {"is": "hidden"}
+                      ]
+                    },
                     {"name": "Folder's images", "select": "#folder-items", "req": "req/shell/data/folder"}
                   ]
                 },
@@ -666,7 +694,8 @@
                   "children": [
                     {"name": "Selected Folder", "select": "#folder-box", "box": true, "req": "req/shell/data/folder",
                       "rule": [
-                        {"when": {"selected": ["nothing", "image"]}, "is": "hidden"},
+                        {"when": {"selected": ["nothing"]}, "is": "hidden"},
+                        {"when": {"selected": ["image"], "online": [true]}, "is": "shown", "approval": "tentative", "req": "req/setup/aspects", "about": "an image chosen keeps its folder's sums on show"},
                         {"when": {"online": [false]}, "is": "held", "req": "req/shell/data/mode"}
                       ],
                       "children": [
@@ -736,33 +765,6 @@
                         {"name": "Extractions' message", "select": "#marks-msg", "req": "req/setup/marks"}
                       ]
                     },
-                    {"name": "Batch run", "select": "#batch-box", "unwalked": "its aspect of Study Setup is one no path chooses", "box": true, "req": "req/setup/batch",
-                      "rule": [
-                        {"is": "hidden", "approval": "tentative", "about": "shows in its own aspect of Study Setup, which no path chooses"}
-                      ],
-                      "children": [
-                        {"name": "What the batch runs on", "select": "#batch-for", "req": "req/setup/batch"},
-                        {"name": "Batch's algorithm", "select": "#batch-algorithm", "control": true, "req": "req/setup/batch"},
-                        {"name": "Choose all", "select": "#batch-all", "control": true, "req": "req/setup/batch",
-                          "rule": [
-                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"}
-                          ]
-                        },
-                        {"name": "Run the batch", "select": "#batch-run", "control": true, "req": "req/setup/batch",
-                          "rule": [
-                            {"when": {"online": [false]}, "is": "held", "req": "req/shell/offline/default", "approval": "tentative"},
-                            {"is": "disabled", "approval": "tentative", "about": "Run waits until an image is chosen, which no path does"}
-                          ]
-                        },
-                        {"name": "Mark the batch official", "select": "#batch-official", "control": true, "req": "req/setup/batch", "steady": "shows only once a batch has run, which no path does",
-                          "rule": [
-                            {"is": "hidden"}
-                          ]
-                        },
-                        {"name": "Batch's message", "select": "#batch-msg", "req": "req/setup/batch"}
-                      ]
-                    },
-                    {"name": "Batch's hint", "select": "#batch-hint", "unwalked": "its aspect of Study Setup is one no path chooses", "req": "req/setup/aspects", "rule": [{"is": "hidden", "approval": "tentative", "about": "shows in its own aspect of Study Setup, which no path chooses"}]},
                     {"name": "Nothing chosen", "select": "#side-hint", "req": "req/setup/aspects", "rule": [{"when": {"selected": ["folder", "image"]}, "is": "hidden", "approval": "tentative", "about": "it asks for a choice"}]}
                   ]
                 },
@@ -846,7 +848,15 @@
                         {"is": "hidden", "approval": "tentative"}
                       ]
                     },
-                    {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"}
+                    {"name": "Results' message", "select": "#results-msg", "req": "req/setup/results"},
+                    {"name": "Run and not marked official", "select": "#results-pending", "req": "req/setup/batch", "steady": "shows only once a run has reached an image, which no path does",
+                      "rule": [
+                        {"is": "hidden", "approval": "tentative"}
+                      ],
+                      "children": [
+                        {"name": "Back to the images", "select": "#results-to-images", "control": true, "req": "req/setup/batch"}
+                      ]
+                    }
                   ]
                 },
                 {"name": "Literature", "select": "#literature-box", "unwalked": "its aspect of Study Setup is one no path chooses", "box": true, "req": "req/setup/literature",

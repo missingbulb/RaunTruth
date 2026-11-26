@@ -49,7 +49,7 @@ async function found(width, stage) {
   const ctx = await device.context();
   await standInDrive(ctx);
   const page = await device.opens("nor", { until: "none" });
-  await page.waitForFunction(() => document.querySelector("#algorithm")?.disabled === false);
+  await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await openFromDrive(page, image);
   await page.waitForFunction(() => !document.querySelector("#find").disabled);
   await annotateIfAsked(page, "#find");
