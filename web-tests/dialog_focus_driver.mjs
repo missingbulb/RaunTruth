@@ -82,8 +82,9 @@ await page.evaluate(() => { $("#sb-version").disabled = false; });
 
 // disabled only while the page is busy, as a stage's buttons are while it is written: the keyboard waits for it
 await page.focus("#sb-version");
-await page.evaluate(() => { $("#sb-version").disabled = true; setTimeout(() => { $("#sb-version").disabled = false; }, 300); });
-await page.waitForFunction(() => !$("#sb-version").disabled);
+await page.evaluate(() => { $("#sb-version").disabled = true; });
+await settle();
+await page.evaluate(() => { $("#sb-version").disabled = false; });
 await settle();
 { const f = await focus(); await check(f === "sb-version", "a control disabled for a moment: the keyboard is back on it once it is enabled again", f); }
 
