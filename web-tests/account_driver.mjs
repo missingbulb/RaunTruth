@@ -240,6 +240,8 @@ try {
     // off the page first, to a file of the site's that runs none of its code: a sync still running on it would write
     // the sign-in back, an hour long, and a request still on its way would meet the revoked token
     const at = b.page.url();
+    // and its own saves ended first: one cut short by leaving stays this device's to save, over what another wrote since
+    await idle(b.page);
     await b.page.goto(origin + "/web/logo.svg");
     await b.dev.tokenRunsOut(b.page);
     // the page writes it again as it loads: a setting that changes with no click

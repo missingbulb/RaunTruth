@@ -10,6 +10,7 @@
 import { CONNECTION } from "./offline.js";
 import { multipart } from "./drive.js";
 import { settle as afterQuiet } from "./pacing.js";
+import { work } from "./pending.js";
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client";
 export const DRIVE_READ = "https://www.googleapis.com/auth/drive.readonly";
@@ -124,7 +125,7 @@ export function account({ keys, menu, clientId = ((window.NOR_CONFIG && window.N
     if (changed.length) return save();
     keep();
   }
-  const syncing = () => sync().catch((e) => console.warn("settings not synced with Google Drive:", e.message));
+  const syncing = () => work.during(sync().catch((e) => console.warn("settings not synced with Google Drive:", e.message)), "settings synced");
 
   const show = () => {
     const user = me && me.user;
