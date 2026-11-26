@@ -10,6 +10,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
+import { idle } from "./page_until.mjs";
 
 const [answers, studies, rootDir] = process.argv.slice(2);
 // armed: the first run file Drive takes is the last the token lasts for: before Drive's next listing is answered the clock is put on
@@ -59,6 +60,8 @@ await check(runFiles().length === 1 && FILES.find((g) => g.id === runFiles()[0].
 const listed = await page.evaluate(() => [...document.querySelectorAll("#batch-results li")].map((l) => l.textContent));
 await check(listed.length === 1 && /^img2\.png/.test(listed[0]) && /Pixels counted: \d+/.test(listed[0]), "the run's result is listed for the image, the study's measure read from the run", listed);
 await check(/Mark it official to see it in Results/.test(await said(page)), "and the bar says to mark it official to see it in Results", await said(page));
+// the page done with what the run set off, so that what Results asks is told apart from it
+await idle(page);
 const asked = drive.calls.length;
 
 // Results, before any mark: what was run and not marked, and the way back to it
@@ -154,6 +157,8 @@ await page.waitForFunction(() => /^Hid 1 image from the study\./.test(document.q
 const kept = study(), img2 = FILES.find((f) => f.name === "img2.png").id;
 await check((kept.hide || []).includes("hidden") && (kept.tags?.images?.[img2]?.tags || []).includes("hidden") && Object.keys(kept.tags?.images || {}).length === 1,
   "Hide tags the selected image hidden, and hidden becomes a tag that hides", { hide: kept.hide, tags: kept.tags });
-const tagged = await page.waitForFunction(() => /hidden/.test(document.querySelector('#folder-items .cell:nth-of-type(2) .tags')?.textContent || ""), null, { timeout: 5000 }).then(() => true, () => false);
-await check(tagged, "its cell shows the tag, once the folder is drawn again", await page.evaluate(() => document.querySelector("#folder-items").textContent));
+// the folder is drawn again after the write
+await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pick").length === 3 && document.querySelector("#batch-for").textContent.startsWith("0 of 3 selected"));
+const cellTags = await page.evaluate(() => document.querySelector("#folder-items .cell:nth-of-type(2) .tags").textContent);
+await check(/hidden/.test(cellTags), "its cell shows the tag, once the folder is drawn again", cellTags);
 await done(0);
