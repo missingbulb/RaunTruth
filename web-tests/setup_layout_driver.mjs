@@ -135,8 +135,11 @@ await check((await cells(page)).join() === first.join() && late.title !== "sub" 
 await shot(page, "3-folder");
 
 // an image chosen: beside the grid, and in a dialog on Open image…
+const openSays = () => page.evaluate(() => $("#image-open").title);
+await check(/choose one image/i.test(await openSays()), "with no image chosen, Open image… says to choose one", await openSays());
 await page.click("#folder-items .cell");
 await page.waitForFunction(() => !$("#image-panel").hidden && !$("#image-open").disabled);
+await check((await openSays()) === "", "... and says nothing more once it can be pressed", await openSays());
 await check((await seen(page, "#folder-items .cell.chosen")) && (await cells(page)).join() === first.join() && !(await seen(page, "#view")), "an image chosen is outlined in its grid, which stays, and no viewer shows", await cells(page));
 const said = await page.evaluate(() => $("#status").textContent);
 await check(said === "Ready.", "the status line asks for no image and tells of none loaded: the page has no Load", said);
