@@ -81,7 +81,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -246,7 +246,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -340,7 +340,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -505,7 +505,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -599,7 +599,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* | ◐* | ⋯ | ⊘ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* | ○* | ⋯ | ⊘ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● | ● | ⋯ | ⊘ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ | ○ | ⋯ | ⊘ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? | ? | ⋯ | ⊘ | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● | ● | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● | ● | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ | ○ | ⋯ | ⋯ | ○ |
@@ -764,7 +764,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● | ● | ● | ● |
@@ -858,7 +858,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ⊘ | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ⊘ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ⊘ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ⊘ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ⊘ | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -1023,7 +1023,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -1117,7 +1117,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -1282,7 +1282,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -1376,7 +1376,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -1541,7 +1541,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -1800,7 +1800,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -2059,7 +2059,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -2318,7 +2318,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -2577,7 +2577,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -2836,7 +2836,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● | ● |
@@ -3095,7 +3095,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● |
@@ -3354,7 +3354,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● |
@@ -3613,7 +3613,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -3872,7 +3872,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -4131,7 +4131,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -4225,7 +4225,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* | ◐* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* | ○* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● | ● | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ | ○ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? | ? | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● | ● | ▸ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ | ○ | ⋯ |
@@ -4390,7 +4390,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● | ● |
@@ -4484,7 +4484,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● | ⋯ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ | ⋯ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● | ▸ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● | ⋯ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ | ⋯ |
@@ -4649,7 +4649,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● |
@@ -4743,7 +4743,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Study: count summed up | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mask buttons | ⋯ | ⋯ | ○ | ○ |
@@ -4908,7 +4908,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -5167,7 +5167,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● |
@@ -5426,7 +5426,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -5685,7 +5685,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● |
@@ -5780,7 +5780,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The NoR summary | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Summary's text | ⋯ | ⋯ | ● | ● |
@@ -5952,7 +5952,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -6047,7 +6047,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The NoR summary | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Summary's text | ⋯ | ⋯ | ● | ● |
@@ -6219,7 +6219,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -6486,7 +6486,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -6622,7 +6622,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's areas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Book menu | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ |
@@ -6744,7 +6744,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● |
@@ -6834,7 +6834,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ◐ | ◐ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ▸ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Titles | ⋯ | ⋯ | ⋯ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Books counted | ⋯ | ⋯ | ⋯ | ● |
@@ -6880,7 +6880,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's picture | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's areas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Minimap's view | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drawing hint | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Book menu | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History | ○* | ○* | ○* | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Edit History's count | ⊘ | ⊘ | ⊘ | ● |
@@ -7002,7 +7002,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -7280,7 +7280,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● | ● | ● |
@@ -7378,7 +7378,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Save Draft | ⋯ | ⊘ | ◐* | ◐* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Saves waiting to upload | ⋯ | ⊘ | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upload | ⋯ | ⊘ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actions not yet saved | ⋯ | ⊘ | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;Summary | ▸ | ▸ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The model's numbers | ⋯ | ⋯ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;What the model holds | ⋯ | ⋯ | ● | ● |
@@ -7558,7 +7558,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -7804,7 +7804,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● |
@@ -8050,7 +8050,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Resources | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources, unfolded | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Storage | ● | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ● | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory | ? | ? | ? | ? |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CPU | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Resources icon | ● | ● | ● | ● |
@@ -8069,43 +8069,205 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 
 ## Undecided
 
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Count: Actions not yet saved
 - Fixture · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Download Summary
 - Fixture · Develop, signed out: Load · Start, and Run · Count, Count: Download Summary
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Start: Memory
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Load: Memory
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Memory
+- Fixture · Develop, signed out: Load · Start, and Run · Count, Count: Memory
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Count: Actions not yet saved
 - Fixture · Develop, may not save: Load · Start, and Run · Count, Start, and Run: Download Summary
 - Fixture · Develop, may not save: Load · Start, and Run · Count, Count: Download Summary
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Start: Memory
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Load: Memory
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Start, and Run: Memory
+- Fixture · Develop, may not save: Load · Start, and Run · Count, Count: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Start, and Run: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Count: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Save Draft: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Continue local work: Actions not yet saved
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Start, and Run: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Count: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Save Draft: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Continue local work: Download Summary
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Start: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Load: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Start, and Run: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Count: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Save Draft: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Unload: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Load: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Save Draft · Unload · Load · Continue local work, Continue local work: Memory
 - Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Load from Drive: Load an Analysis File
 - Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Load an Analysis File: Load an Analysis File
+- Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Edit this analysis: Actions not yet saved
 - Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Load an Analysis File: Download Summary
 - Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Edit this analysis: Download Summary
+- Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Start: Memory
+- Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Load from Drive: Memory
+- Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Load an Analysis File: Memory
+- Fixture · Develop, Annotator: Load from Drive · Load an Analysis File · Edit this analysis, Edit this analysis: Memory
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Count: Actions not yet saved
 - Fixture · Setup, Annotator: Load · Start, and Run · Count, Start, and Run: Download Summary
 - Fixture · Setup, Annotator: Load · Start, and Run · Count, Count: Download Summary
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Start: Memory
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Load: Memory
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Start, and Run: Memory
+- Fixture · Setup, Annotator: Load · Start, and Run · Count, Count: Memory
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Count: Actions not yet saved
 - Fixture · Analyze, Annotator: Load · Start, and Run · Count, Start, and Run: Download Summary
 - Fixture · Analyze, Annotator: Load · Start, and Run · Count, Count: Download Summary
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Start: Memory
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Load: Memory
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Start, and Run: Memory
+- Fixture · Analyze, Annotator: Load · Start, and Run · Count, Count: Memory
 - Fixture · Review, signed out: Load · Count, Count: Download Summary
+- Fixture · Review, signed out: Load · Count, Start: Memory
+- Fixture · Review, signed out: Load · Count, Load: Memory
+- Fixture · Review, signed out: Load · Count, Count: Memory
 - Fixture · Review, Annotator: Load · Count · Items, Count: Download Summary
 - Fixture · Review, Annotator: Load · Count · Items, Items: Download Summary
+- Fixture · Review, Annotator: Load · Count · Items, Start: Memory
+- Fixture · Review, Annotator: Load · Count · Items, Load: Memory
+- Fixture · Review, Annotator: Load · Count · Items, Count: Memory
+- Fixture · Review, Annotator: Load · Count · Items, Items: Memory
 - Fixture · Public, signed in: Load · Count · Items, Count: Download Summary
 - Fixture · Public, signed in: Load · Count · Items, Items: Download Summary
+- Fixture · Public, signed in: Load · Count · Items, Start: Memory
+- Fixture · Public, signed in: Load · Count · Items, Load: Memory
+- Fixture · Public, signed in: Load · Count · Items, Count: Memory
+- Fixture · Public, signed in: Load · Count · Items, Items: Memory
+- Fixture · Develop, Annotator: Load · Offline · Online, Start: Memory
+- Fixture · Develop, Annotator: Load · Offline · Online, Load: Memory
+- Fixture · Develop, Annotator: Load · Offline · Online, Offline: Memory
+- Fixture · Develop, Annotator: Load · Offline · Online, Online: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Start: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Open Study Setup: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Folder: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Preview: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Load Original: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview · Load Original · Offline, Offline: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Offline · Online, Start: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Offline · Online, Open Study Setup: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Offline · Online, Folder: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Offline · Online, Offline: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Offline · Online, Online: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original, Start: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original, Open Study Setup: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original, Folder: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original, Preview a z-stack: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Folder · Preview a z-stack · Load Original, Load Original: Memory
+- Fixture · Review, Study owner: Open Study Setup · Folder, Start: Memory
+- Fixture · Review, Study owner: Open Study Setup · Folder, Open Study Setup: Memory
+- Fixture · Review, Study owner: Open Study Setup · Folder, Folder: Memory
+- Fixture · Setup, Study owner: Open Study Setup · Folder, Start: Memory
+- Fixture · Setup, Study owner: Open Study Setup · Folder, Open Study Setup: Memory
+- Fixture · Setup, Study owner: Open Study Setup · Folder, Folder: Memory
+- Fixture · Public, Study owner: Open Study Setup · Folder, Start: Memory
+- Fixture · Public, Study owner: Open Study Setup · Folder, Open Study Setup: Memory
+- Fixture · Public, Study owner: Open Study Setup · Folder, Folder: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Start, and Run: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, OK: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Count: Actions not yet saved
 - Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Start, and Run: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, OK: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Count: Download Summary
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Start: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Load: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Start, and Run: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, OK: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Count: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · OK · Count · Unload, Unload: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Start, and Run: Actions not yet saved
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Count: Actions not yet saved
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Start, and Run: Download Summary
 - Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Count: Download Summary
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Start: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Load: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Start, and Run: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Count: Memory
+- Fixture · Develop, Annotator: Load · Start, and Run · Count · Away and back, Away and back: Memory
 - Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Load from Drive: Load an Analysis File
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Count: Actions not yet saved
 - Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Start, and Run: Download Summary
 - Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Count: Download Summary
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Start: Memory
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Load from Drive: Memory
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Start, and Run: Memory
+- Fixture · Develop, Annotator: Load from Drive · Start, and Run · Count, Count: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup, Start: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup, Open Study Setup: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup, Leave Study Setup: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup, Load: Memory
+- Fixture · Develop, Study owner: Open Study Setup · Leave Study Setup · Load · Open Study Setup, Open Study Setup: Memory
+- Fixture · Develop, Annotator: Load · Zoom in, Start: Memory
+- Fixture · Develop, Annotator: Load · Zoom in, Load: Memory
+- Fixture · Develop, Annotator: Load · Zoom in, Zoom in: Memory
+- Fixture · Develop, Annotator: Load a large image, Start: Memory
+- Fixture · Develop, Annotator: Load a large image, Load a large image: Memory
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Count: Actions not yet saved
 - NoR Finder · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Download Summary
 - NoR Finder · Develop, signed out: Load · Start, and Run · Count, Count: Download Summary
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Start: Memory
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Load: Memory
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Start, and Run: Memory
+- NoR Finder · Develop, signed out: Load · Start, and Run · Count, Count: Memory
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Count: Actions not yet saved
 - NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Download Summary
 - NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Count: Download Summary
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Start: Memory
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Load: Memory
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Memory
+- NoR Finder · Develop, Annotator: Load · Start, and Run · Count, Count: Memory
+- NoR Finder · Develop, Annotator: Load · Zoom in, Start: Memory
+- NoR Finder · Develop, Annotator: Load · Zoom in, Load: Memory
+- NoR Finder · Develop, Annotator: Load · Zoom in, Zoom in: Memory
 - Bookshelf Reader · Public, signed in: Load · Count, Count: Download Summary
+- Bookshelf Reader · Public, signed in: Load · Count, Start: Drawing hint
+- Bookshelf Reader · Public, signed in: Load · Count, Load: Drawing hint
+- Bookshelf Reader · Public, signed in: Load · Count, Count: Drawing hint
+- Bookshelf Reader · Public, signed in: Load · Count, Start: Memory
+- Bookshelf Reader · Public, signed in: Load · Count, Load: Memory
+- Bookshelf Reader · Public, signed in: Load · Count, Count: Memory
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Count: Actions not yet saved
 - Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Count: Download Summary
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Start: Drawing hint
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Load: Drawing hint
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Drawing hint
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Count: Drawing hint
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Start: Memory
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Load: Memory
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Start, and Run: Memory
+- Bookshelf Reader · Develop, Annotator: Load · Start, and Run · Count, Count: Memory
 - Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Count: Download Summary
 - Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Items: Download Summary
 - Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Image: Download Summary
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Start: Memory
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Load: Memory
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Load a stack: Memory
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Count: Memory
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Items: Memory
+- Vascular Measurements · Public, signed out: Load · Load a stack · Count · Items · Image, Image: Memory
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Start, and Run: Actions not yet saved
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Count: Actions not yet saved
 - Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Start, and Run: Download Summary
 - Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Count: Download Summary
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Start: Memory
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Load a stack: Memory
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Start, and Run: Memory
+- Vascular Measurements · Develop, Annotator: Load a stack · Start, and Run · Count, Count: Memory
+- Image Viewer · signed out: Load, Start: Memory
+- Image Viewer · signed out: Load, Load: Memory
+- Image Viewer · signed in: Load · Load a stack · Load, Start: Memory
+- Image Viewer · signed in: Load · Load a stack · Load, Load: Memory
+- Image Viewer · signed in: Load · Load a stack · Load, Load a stack: Memory
+- Image Viewer · signed in: Load · Load a stack · Load, Load: Memory

@@ -40,7 +40,7 @@
     {"under": "Image view", "after": "Minimap", "tree": [
       {"name": "Drawing hint", "select": "#bs-draw-hint", "req": "req/shelves/truth/task", "steady": "shows only while a book is drawn",
         "rule": [
-          {"is": "hidden"}
+          {"is": "hidden", "approval": "undecided", "about": "on while a book is being drawn, gone otherwise, which no state says"}
         ]
       },
       {"name": "Book menu", "select": "#point-menu", "req": "req/shelves/truth/task", "steady": "shows only on a right-click while tagging",
