@@ -11,36 +11,22 @@
 // Optional SHOTS: a directory for screenshots.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/account_driver.mjs [SHOTS]
-import { repoFile } from "./repo_file.mjs";
 import { isDeepStrictEqual as same } from "node:util";
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { cutShort } from "./page_errors.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { CLIENT_ID as CLIENT } from "./fakes/site_settings.mjs";
 import { world } from "./world.mjs";
+import { serveSite } from "./site_server.mjs";
 import { orMissed, untilHeard, idle } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 import { frames } from "./page_frames.mjs";
 
 const [shots] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const GSI = "https://accounts.google.com/gsi/client";
-let origin;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const f = repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin);
 w.site.withGoogle();
@@ -51,7 +37,6 @@ const ada = w.user("ada@acme.example").named("Ada Lovelace").pictured(origin + "
 const settings = () => google.settings[0] || null;
 const file = () => (settings() ? JSON.parse(settings().body) : null);
 const seen = () => [...google.calls, ...drive.calls.map((c) => `${c.method} ${c.url}`)];
-let failed = false;
 // what Google holds changes only as a request reaches it: a wait on it looks again at each one
 const until = async (fn, ms = STEP) => !!(await untilHeard(fn, () => Promise.race([google.next(), drive.next()]), { timeout: ms }));
 // a page showing something, within ms
@@ -73,7 +58,7 @@ async function device(dev) {
     window.fetch = function (u, ...rest) { if (/googleapis\.com\//.test(String(u?.url ?? u))) window.googleCalls++; return fetchNow.call(this, u, ...rest); };
   });
   // the device opens the fixture on this tab, heard from the start
-  (await ctx.newPage()).on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
+  (await ctx.newPage()).on("pageerror", (e) => { if (!cutShort(e)) check(false, "page error: " + e.message); });
   return { ctx, dev, page: await dev.opens("fixture", { until: "title" }) };
 }
 // no one signed in here, a sign-in first opens the guide to Google's screens (req/shell/account/consent-guide): on through it
@@ -86,8 +71,7 @@ const signInVia = async (page) => {
   await page.waitForFunction(() => !document.querySelector("#sign-out").hidden).catch(async (e) => {
     const state = await page.evaluate(() => ({ asked: window.tokenClient?.asked?.length ?? "no token client", calls: window.googleCalls, status: document.querySelector("#status")?.textContent }))
       .then((x) => JSON.stringify(x), (x) => "the page does not answer: " + x.message);
-    console.error(`FAILED: signing in never finished: ${state}; Google saw ${JSON.stringify(seen().slice(-6))}`);
-    throw e;
+    throw new Error(`signing in never finished: ${state}; Google saw ${JSON.stringify(seen().slice(-6))}`, { cause: e });
   });
 };
 const local = (page, k) => page.evaluate((k) => localStorage.getItem(k), k);
@@ -239,14 +223,14 @@ try {
   const expire = async () => {
     // off the page first, to a file of the site's that runs none of its code: a sync still running on it would write
     // the sign-in back, an hour long, and a request still on its way would meet the revoked token
-    const at = b.page.url();
+    const at = b.page.url().slice(origin.length);
     // and its own saves ended first: one cut short by leaving stays this device's to save, over what another wrote since
     await idle(b.page);
-    await b.page.goto(origin + "/web/logo.svg");
+    await b.dev.visits("/web/logo.svg", { in: b.page, until: "none" });
     await b.dev.tokenRunsOut(b.page);
     // the page writes it again as it loads: a setting that changes with no click
     await b.page.evaluate(() => localStorage.removeItem("nor-seen-version"));
-    await b.page.goto(at);
+    await b.dev.visits(at, { in: b.page, until: "none" });
     await b.page.waitForFunction(() => !document.querySelector("#sign-out").hidden && window.tokenClient);
   };
   const askedNow = () => b.page.evaluate(() => window.tokenClient.asked.length);
@@ -329,9 +313,6 @@ try {
   check(services.size >= 4 && [...services].every(known), `the page reached only Google's sign-in script, account details, the Drive API and Python's files (${[...services].join(", ")})`);
   check(seen().filter((s) => /drive\/v3\/files(\?|$)/.test(s) && s.startsWith("GET")).every((s) => /spaces=appDataFolder/.test(s) || new RegExp(`'${ROOT}'[+ ]in[+ ]parents`).test(decodeURIComponent(s))),
     "every Drive listing it made looked only in the app's own folder, or the study's root for the roles");
-} catch (e) {
-  failed = true; console.error("FAILED: " + (e.stack || e));
 } finally {
   await browser.close(); server.close();
 }
-process.exit(failed ? 1 : 0);

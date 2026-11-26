@@ -35,7 +35,6 @@ const browser = await launch(pw), w = world(browser, origin);
 w.site.withoutGoogleClient();
 // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
 w.studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
-let failed = false;
 // the fixture study's own folder, which its dialog lists, and a device remembering its link
 const fixture = w.studyFolder("fixture");
 const device = w.device().remembersDriveLink(fixture), ctx = await device.context();
@@ -204,8 +203,6 @@ try {
   await framesOf(page);
   const rows = await page.evaluate(() => [...document.querySelectorAll("#remote-list .item .name")].map((e) => e.textContent));
   check(rows.length === N + 1 && !rows.includes("stale.tif"), `a listing that arrives after the user moved on is dropped: ${rows.length} rows${rows.includes("stale.tif") ? ", stale.tif among them" : ""}`);
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await browser.close(); server.close();
 }
-await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

@@ -7,7 +7,7 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 
@@ -27,7 +27,6 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
 const page = await w.device().with({ deviceScaleFactor: 1 }).opens("fixture");
 async function open(file) {
@@ -44,12 +43,12 @@ const whole = (o) => o.zoom < 1 && o.W * o.zoom <= o.fitsW + 0.5 && o.H * o.zoom
   (Math.abs(o.W * o.zoom - o.fitsW) < 1 || Math.abs(o.H * o.zoom - o.fitsH) < 1);
 
 const big = await open(large);
-await check(whole(big), "an image larger than the view opens shrunk to fit it", big);
+await mustHold(whole(big), "an image larger than the view opens shrunk to fit it", big);
 const little = await open(small);
-await check(little.zoom === 1 && Math.abs(little.left - little.right) <= 1 && Math.abs(little.top - little.bottom) <= 1,
+await mustHold(little.zoom === 1 && Math.abs(little.left - little.right) <= 1 && Math.abs(little.top - little.bottom) <= 1,
   "an image smaller than the view opens at 100%, centred", little);
 for (let k = 0; k < 3; k++) await page.click("#zoom-in");
 const again = await open(large);
-await check(whole(again), "the next image opens fitted, whatever the last was zoomed to", again);
+await mustHold(whole(again), "the next image opens fitted, whatever the last was zoomed to", again);
 
 await done(0);

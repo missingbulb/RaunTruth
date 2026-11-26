@@ -8,9 +8,9 @@ import { EARLY } from "./early_messages.mjs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
-import { repoFile } from "./repo_file.mjs";
+import { serveSite } from "./site_server.mjs";
+import { mustHold } from "./checks.mjs";
 
 import { cutShort } from "./page_errors.mjs";
 import { pw, launch } from "./harness.mjs";
@@ -46,7 +46,6 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     } catch (e) { postMessage({ type: "error", text: String(e.message || e) }); }
     else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
   };`;
-  const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   // the studies' own Python, for the live studies' calls: one request a line, answered in turn
   // python.hold = () => promise: an answer of the study's Python kept back until the promise settles (held.mjs)
   const python = { hold: () => null };
@@ -60,22 +59,18 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     }
     waiting.push(ok); py.stdin.write(body.replace(/\n/g, " ") + "\n");
   });
-  const server = http.createServer((q, r) => {
-    const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-    const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
-    if (u === "/py" && q.method === "POST") {
-      const chunks = [];
-      q.on("data", (c) => chunks.push(c)).on("end", async () => { const said = await ask(Buffer.concat(chunks).toString()); await python.hold(); send("application/json", said); });
-      return;
-    }
-    if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
-    if (u === "/web/vendor/wheels.json") return send("application/json", "[]");
-    const f = u === "/web/answers.json" ? answers : repoFile(repo, u);
-    if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-    r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+  const body = (q) => new Promise((ok) => { const chunks = []; q.on("data", (c) => chunks.push(c)).on("end", () => ok(Buffer.concat(chunks).toString())); });
+  const { origin, server } = await serveSite({
+    "/py": async (q) => {
+      if (q.method !== "POST") return null;
+      const said = await ask(await body(q));
+      await python.hold();
+      return { type: "application/json", body: said };
+    },
+    "/web/worker.js": EARLY + STAND_IN,
+    "/web/vendor/wheels.json": "[]",
+    "/web/answers.json": { file: answers },
   });
-  await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-  const origin = `http://127.0.0.1:${server.address().port}`;
 
   const browser = await launch(pw), w = world(browser, origin), { drive, google } = w;
   const tester = w.user(EMAIL).named("Tester");
@@ -130,7 +125,6 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
 
   const close = async () => { await browser.close(); server.close(); py?.kill(); };
   const done = async (code) => { await close(); process.exit(code); };
-  const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
   // a page or a check gone wrong ends the run
 
   // scopes: what the signed-in user's token may do, in place of all the site asks; email: who is signed in, in place
@@ -142,6 +136,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   // page last learned from Google for them, kept with the sign-in; welcome: the welcome
   // popup not yet answered, as on a first visit; setup: the study's Study Setup page, not the study; at: an address
   // opened in place of the study's own, its caller waiting for what it shows
+  // each page open() opened, by the device it was opened on
+  const devices = new WeakMap();
   async function open(signedIn, { scopes, email, seed = {}, id = "fixture", study, prepare, scale = 1, keepSettings = false,
     viewport, name = "Tester", until, learned, welcome = false, setup = false, at } = {}) {
     // each visit a user whose Drive holds no settings of the site's yet, unless keepSettings: what an earlier visit saved
@@ -157,6 +153,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (prepare) await prepare(ctx);
     const page = await ctx.newPage();
     page.on("pageerror", async (e) => { if (cutShort(e)) return; if (pageError) return pageError(e); console.error("page error: " + e.message); await done(1); });
+    devices.set(page, device);
     if (at) return device.visits(at.slice(origin.length), { until: "none" });
     return setup ? device.opensSetup(id) : device.opens(id);
   }
@@ -169,11 +166,11 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     const now = await page.evaluate(() => document.documentElement.dataset.page === "setup");
     if (now === on) return void (await page.click("#user-menu summary"));
     // the item opens Study Setup in a new page, which a driver that goes on in this one reaches by its address; leaving stays in the page
-    if (on) { const to = await page.evaluate(() => document.querySelector("#open-setup").href); await page.goto(to); }
+    if (on) { const to = await page.evaluate(() => document.querySelector("#open-setup").href); await devices.get(page).visits(to.slice(origin.length), { in: page, until: "none" }); }
     else await Promise.all([page.waitForNavigation(), page.click("#open-setup")]);
     await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
     if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
-  return { w, root, drive, google, python, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
+  return { w, root, drive, google, python, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check: mustHold, done, close, origin, EMAIL };
 }

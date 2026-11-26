@@ -38,7 +38,6 @@ const { origin, server } = await serveSite({ "/web/worker.js": "" });
 const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
 w.site.withoutGoogleClient();
-let failed = false;
 // the browser's Drive, every context's, with the folder of TIFFs; reads(): every read of a file's bytes since the
 // test cleared them, its row and the Range asked for ("" for the whole file)
 const { drive } = w, shapes = w.folder("Shapes").public();
@@ -173,8 +172,6 @@ try {
   const shownFirst = (await thumbOf(0)) === "" || (await page.evaluate(() => !!st.img));
   const thumbed = await thumbSaved(0, 10000);
   check(shownFirst && thumbed, "a flat image's thumbnail is saved once it shows, never before");
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await browser.close(); server.close();
 }
-await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

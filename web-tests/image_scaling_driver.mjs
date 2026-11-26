@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { frames } from "./page_frames.mjs";
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 
@@ -28,7 +28,6 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
 const page = await w.device().with({ deviceScaleFactor: 1 }).opens("fixture");
 await page.setInputFiles("#file", checker);
@@ -52,10 +51,10 @@ const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
 
 while ((await page.evaluate(() => st.zoom)) > 0.3) await page.click("#zoom-out");
 const out = await onScreen(), far = Math.max(...out.map((v) => Math.abs(v - 128)));
-await check(far <= 24, "zoomed out, every screen pixel is the average grey of the black and white pixels under it", { mean: mean(out), far });
+await mustHold(far <= 24, "zoomed out, every screen pixel is the average grey of the black and white pixels under it", { mean: mean(out), far });
 
 while ((await page.evaluate(() => st.zoom)) < 2) await page.click("#zoom-in");
 const near = await onScreen(), sharp = near.filter((v) => v < 8 || v > 247).length / near.length;
-await check(sharp > 0.95, "from 100% up, each image pixel is a sharp black or white square", { sharp, zoom: await page.evaluate(() => st.zoom) });
+await mustHold(sharp > 0.95, "from 100% up, each image pixel is a sharp black or white square", { sharp, zoom: await page.evaluate(() => st.zoom) });
 
 await done(0);

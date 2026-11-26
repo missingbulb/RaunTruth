@@ -23,7 +23,6 @@ const PREVIEWS = "rauntruth-previews.tiff";
 const FILES = fs.readdirSync(images).sort().map((name) => ({ name, bytes: fs.readFileSync(path.join(images, name)) }));
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key, IMAGES on Drive, and the Image Viewer opening photos too
 w.site.withoutGoogleClient();
@@ -145,8 +144,6 @@ try {
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
   const thumbs = await page.evaluate(() => [...document.querySelectorAll("#storage-list .entry[data-kind=thumb] .what")].map((e) => e.textContent));
   check(thumbs.some((t) => /1 folder's previews/.test(t)), `Manage storage counts it with its study's thumbnails: ${thumbs}`);
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await device.close(); await browser.close(); server.close();
 }
-await device.close(); await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

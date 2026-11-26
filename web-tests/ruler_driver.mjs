@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 
@@ -38,7 +38,6 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.fromThisComputer("fixture");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#view").screenshot({ path: path.join(shots, name + ".png") }); };
 
 // the page on the fixture with an image open; um: [width, height] of a pixel in µm, or nothing for a file without a scale
@@ -83,22 +82,22 @@ async function measure(page, [x1, y1], [x2, y2], during) {
   // in far enough that the image is larger than the view, so a drag that is not a measure would pan it
   await zoomIn(page, 11);
   await page.click("#ruler-btn");
-  await check((await ruler(page)).pressed === "true", "the Ruler button arms the ruler");
+  await mustHold((await ruler(page)).pressed === "true", "the Ruler button arms the ruler");
   const scroll = await page.evaluate(() => [document.querySelector("#scroller").scrollLeft, document.querySelector("#scroller").scrollTop]);
   // up and to the left from the corner in view: the way a drag that slipped through to the pan would scroll
   await measure(page, [40, 30], [10, 10], async () => {
     const r = await ruler(page); await shot(page, "ruler-dragging");
-    await check(r.circles > 0 && r.text === "11.7 µm", "dragging shows the reach as a circle and the distance so far", r);
+    await mustHold(r.circles > 0 && r.text === "11.7 µm", "dragging shows the reach as a circle and the distance so far", r);
   });
   let r = await ruler(page); await shot(page, "ruler-dropped");
-  await check(r.circles === 0 && r.paths > 0 && r.text === "11.7 µm", "the drop leaves the ruler, not the circle, with its distance from each axis's own pixel size", r);
-  await check(r.ends.join() === "40,30,10,10", "the ruler lies between the two points", r.ends);
+  await mustHold(r.circles === 0 && r.paths > 0 && r.text === "11.7 µm", "the drop leaves the ruler, not the circle, with its distance from each axis's own pixel size", r);
+  await mustHold(r.ends.join() === "40,30,10,10", "the ruler lies between the two points", r.ends);
   const after = await page.evaluate(() => [document.querySelector("#scroller").scrollLeft, document.querySelector("#scroller").scrollTop]);
-  await check(after.join() === scroll.join(), "measuring does not pan the image", [scroll, after]);
+  await mustHold(after.join() === scroll.join(), "measuring does not pan the image", [scroll, after]);
 
   await zoomIn(page, 1);
   r = await ruler(page);
-  await check(r.ends.join() === "40,30,10,10" && r.text === "11.7 µm", "zoom keeps the ruler on its points", r);
+  await mustHold(r.ends.join() === "40,30,10,10" && r.text === "11.7 µm", "zoom keeps the ruler on its points", r);
 
   // once down, a drag pans again and leaves the ruler as it is
   const sc = await page.evaluate(() => document.querySelector("#scroller").getBoundingClientRect().toJSON());
@@ -107,25 +106,25 @@ async function measure(page, [x1, y1], [x2, y2], during) {
   await page.mouse.move(sc.x + sc.width / 2 - 60, sc.y + sc.height / 2, { steps: 5 }); await page.mouse.up();
   const panned = await page.evaluate(() => document.querySelector("#scroller").scrollLeft);
   r = await ruler(page);
-  await check(panned !== before && r.text === "11.7 µm" && r.circles === 0, "with the ruler down, dragging pans the image and keeps the ruler", { before, panned, r });
+  await mustHold(panned !== before && r.text === "11.7 µm" && r.circles === 0, "with the ruler down, dragging pans the image and keeps the ruler", { before, panned, r });
 
   await page.click("#ruler-btn");
   r = await ruler(page);
-  await check(r.pressed === "false" && r.paths === 0 && r.text === null, "the Ruler button again takes the ruler away", r);
+  await mustHold(r.pressed === "false" && r.paths === 0 && r.text === null, "the Ruler button again takes the ruler away", r);
 
   // a click is no measure: the ruler stays armed with nothing on the image
   await page.click("#ruler-btn");
   await page.evaluate(() => document.querySelector("#scroller").scrollTo(0, 0));
   const p = await screen(page, 20, 20); await page.mouse.click(...p);
   r = await ruler(page);
-  await check(r.pressed === "true" && r.paths === 0, "a click with no drag measures nothing and keeps the ruler armed", r);
+  await mustHold(r.pressed === "true" && r.paths === 0, "a click with no drag measures nothing and keeps the ruler armed", r);
 
   await measure(page, [10, 10], [40, 30]);
   await page.evaluate(() => { document.querySelector("#status").textContent = ""; });
   await page.setInputFiles("#file", scale[0] ? scaledImage(answers, scale) : image);
   await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
   r = await ruler(page);
-  await check(r.pressed === "false" && r.paths === 0, "another image takes the ruler away", r);
+  await mustHold(r.pressed === "false" && r.paths === 0, "another image takes the ruler away", r);
 }
 
 // a file without a scale: the same ruler is 36.1 px
@@ -134,6 +133,6 @@ async function measure(page, [x1, y1], [x2, y2], during) {
   await page.click("#ruler-btn");
   await measure(page, [10, 10], [40, 30]);
   const r = await ruler(page);
-  await check(r.text === "36.1 px", "without a scale the distance is in pixels", r);
+  await mustHold(r.text === "36.1 px", "without a scale the distance is in pixels", r);
 }
 await done(0);

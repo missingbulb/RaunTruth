@@ -32,8 +32,6 @@ const { origin, server } = await serveSite({
   "/web/vendor/wheels.json": "[]",
 });
 
-let failed = false;
-
 // what a browser that has used the page keeps: the shell's keys and the NoR study's, as their code writes them
 const PIC = "data:image/jpeg;base64," + "A".repeat(4000);
 const SEED = {
@@ -329,7 +327,7 @@ try {
   check(downloads[DRIVE[1].id] === 2, "a recent image not kept is downloaded again");
   // each study lists only the images opened in it
   const inStudy = async (id) => {
-    await page.goto(origin + "/web/index.html?study=" + id);
+    await device.visits("/web/index.html?study=" + id, { in: page, until: "none" });
     // the steps are made once the study has mounted, as the recents are drawn
     await page.waitForFunction(() => shellForTests.steps.length);
     return page.evaluate(() => document.querySelectorAll("#image-menu .recent").length);
@@ -373,8 +371,6 @@ try {
   await taken.device.close();
   check(!legacyLeft.length && moved.name === "legacy 1.tif" && /jpeg/.test(moved.type), `thumbnails kept in the settings' storage move to the cache, their keys gone: ${JSON.stringify(moved)}, left ${legacyLeft}`);
   check(!moved.junk, "what was kept there and is no picture is dropped, never moved");
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await device.close(); await browser.close(); server.close();
 }
-await device.close(); await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

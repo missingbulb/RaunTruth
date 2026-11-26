@@ -3,7 +3,7 @@
 // on the control that opened it, or, where that control went, on the one that leads back to it.
 // Exits 1 on a failed check, 2 when it cannot run.
 //   node web-tests/dialog_focus_driver.mjs
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { frames } from "./page_frames.mjs";
 import { world } from "./world.mjs";
@@ -15,7 +15,6 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen ? " " + JSON.stringify(seen) : "")); await done(1); } console.log("ok: " + what); };
 
 const page = await w.device().with({ reducedMotion: "reduce" }).visits("/web/index.html", { until: "none" });
 await page.waitForFunction(() => $("#sb-version").textContent);
@@ -37,7 +36,7 @@ for (const [item, dlg, close, what] of [
   await page.waitForFunction((d) => !document.querySelector(d).open, dlg);
   await settle();
   const f = await focus();
-  await check(f === "user-menu summary", `${what}: the avatar menu's button has the keyboard`, f);
+  await mustHold(f === "user-menu summary", `${what}: the avatar menu's button has the keyboard`, f);
 }
 
 // ---- a dialog opened from a button that stays ----
@@ -46,7 +45,7 @@ await page.keyboard.press("Enter");
 await page.waitForFunction(() => $("#history-dlg").open);
 await page.keyboard.press("Escape");
 await settle();
-{ const f = await focus(); await check(f === "sb-version", "Version history closed by Esc: the button that opened it has the keyboard", f); }
+{ const f = await focus(); await mustHold(f === "sb-version", "Version history closed by Esc: the button that opened it has the keyboard", f); }
 
 // ---- a menu closed by Esc ----
 await page.focus("#user-menu summary");
@@ -56,7 +55,7 @@ await page.focus("#open-settings");
 await page.keyboard.press("Escape");
 await page.waitForFunction(() => !$("#user-menu").open);
 await settle();
-{ const f = await focus(); await check(f === "user-menu summary", "the avatar menu closed by Esc: its button has the keyboard", f); }
+{ const f = await focus(); await mustHold(f === "user-menu summary", "the avatar menu closed by Esc: its button has the keyboard", f); }
 
 // every dialog of both pages wears the page's own frame, a hairline and round corners, none the browser's
 for (const [at, atLeast] of [["/web/index.html", 11], ["/web/setup.html", 14]]) {
@@ -64,6 +63,6 @@ for (const [at, atLeast] of [["/web/index.html", 11], ["/web/setup.html", 14]]) 
   await p.waitForFunction(() => document.querySelectorAll("dialog").length > 0 && [...document.styleSheets].some((s) => /style\.css/.test(s.href || "")));
   const looks = await p.evaluate(() => [...document.querySelectorAll("dialog")].map((d) => { const c = getComputedStyle(d); return [d.id, c.borderTopWidth, parseFloat(c.borderTopLeftRadius)]; }));
   const odd = looks.filter(([, width, radius]) => width !== "1px" || !(radius > 0));
-  await check(looks.length >= atLeast && !odd.length, `the ${looks.length} dialogs of ${at} have the page's frame`, odd);
+  await mustHold(looks.length >= atLeast && !odd.length, `the ${looks.length} dialogs of ${at} have the page's frame`, odd);
 }
 await done(0);

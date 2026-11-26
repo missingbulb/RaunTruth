@@ -8,7 +8,7 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 
@@ -31,7 +31,6 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
 w.studies.fromThisComputer("fixture");
 const device = w.device();
@@ -58,10 +57,10 @@ async function escaped(from, to, during, { view = false } = {}) {
   await page.mouse.move(...to, { steps: 5 });
   const mid = during ? await during() : null;
   const shown = await hint();
-  if (view) await check(shown === null, "mid-drag, a change of view shows no label", shown);
-  else await check(shown && shown.centered && shown.above && shown.through, "mid-drag, 'Hit 'esc' to cancel' shows at the bottom center, above the status bar", shown);
+  if (view) await mustHold(shown === null, "mid-drag, a change of view shows no label", shown);
+  else await mustHold(shown && shown.centered && shown.above && shown.through, "mid-drag, 'Hit 'esc' to cancel' shows at the bottom center, above the status bar", shown);
   await page.keyboard.press("Escape");
-  await check(await hint() === null, "Escape takes the label away");
+  await mustHold(await hint() === null, "Escape takes the label away");
   await page.mouse.move(to[0] + 15, to[1] + 10, { steps: 3 });
   await page.mouse.up();
   return mid;
@@ -80,8 +79,8 @@ await home();
   const before = await scroll(), at = await middleOf("#scroller");
   const mid = await escaped(at, [at[0] - 60, at[1] - 40], scroll, { view: true });
   const after = await scroll();
-  await check(mid.join() !== before.join(), "dragging the image pans it", { before, mid });
-  await check(after.join() === before.join(), "Escape mid-pan puts the view back where the press found it", { before, after });
+  await mustHold(mid.join() !== before.join(), "dragging the image pans it", { before, mid });
+  await mustHold(after.join() === before.join(), "Escape mid-pan puts the view back where the press found it", { before, after });
 }
 
 // the ruler
@@ -90,9 +89,9 @@ await home();
   const before = await scroll(), at = await middleOf("#scroller");
   const mid = await escaped(at, [at[0] + 90, at[1] + 60], () => page.evaluate(() => document.querySelectorAll("#ruler path").length));
   const r = await page.evaluate(() => ({ pressed: $("#ruler-btn").getAttribute("aria-pressed"), paths: document.querySelectorAll("#ruler path").length }));
-  await check(mid > 0, "dragging the ruler draws it");
-  await check(r.paths === 0 && r.pressed === "true", "Escape mid-measure leaves no ruler, the ruler still armed", r);
-  await check((await scroll()).join() === before.join(), "and the release after it pans nothing");
+  await mustHold(mid > 0, "dragging the ruler draws it");
+  await mustHold(r.paths === 0 && r.pressed === "true", "Escape mid-measure leaves no ruler, the ruler still armed", r);
+  await mustHold((await scroll()).join() === before.join(), "and the release after it pans nothing");
   await page.click("#ruler-btn");
 }
 
@@ -103,8 +102,8 @@ await home();
   const before = await width(), kept = await stored(), at = await middleOf("#gutter-left");
   const mid = await escaped(at, [at[0] + 120, at[1]], width);
   await page.waitForFunction(() => !document.getAnimations().some((a) => a.transitionProperty === "grid-template-columns"));
-  await check(Math.abs(mid - before) > 60, "dragging the gutter widens the left bar", { before, mid });
-  await check(await width() === before && await stored() === kept, "Escape mid-resize puts the bar back at its width, nothing saved", { before, after: await width() });
+  await mustHold(Math.abs(mid - before) > 60, "dragging the gutter widens the left bar", { before, mid });
+  await mustHold(await width() === before && await stored() === kept, "Escape mid-resize puts the bar back at its width, nothing saved", { before, after: await width() });
 }
 
 // a drag let go, not Escaped, takes the label with it; a click that does not move never shows it
@@ -113,17 +112,17 @@ await home();
   await page.click("#ruler-btn");
   const at = await middleOf("#scroller");
   await page.mouse.move(...at); await page.mouse.down();
-  await check(await hint() === null, "a press that has not moved shows no label");
+  await mustHold(await hint() === null, "a press that has not moved shows no label");
   await page.mouse.move(at[0] - 30, at[1] - 20, { steps: 3 });
-  await check(await hint() !== null, "the label shows once the press moves");
+  await mustHold(await hint() !== null, "the label shows once the press moves");
   await page.mouse.up();
-  await check(await hint() === null, "letting go takes the label away");
+  await mustHold(await hint() === null, "letting go takes the label away");
   await page.click("#ruler-btn");
   await home();
 }
 
-await check(await heard() === 0, "no Escape that cancelled a drag reached the page", await heard());
+await mustHold(await heard() === 0, "no Escape that cancelled a drag reached the page", await heard());
 // with nothing dragged, Escape is the page's again
 await page.keyboard.press("Escape");
-await check(await heard() === 1, "an Escape with no drag reaches the page as before", await heard());
+await mustHold(await heard() === 1, "an Escape with no drag reaches the page as before", await heard());
 await done(0);

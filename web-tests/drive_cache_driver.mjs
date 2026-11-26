@@ -20,7 +20,6 @@ const [shots] = process.argv.slice(2);
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key, and a.png on Drive, whose bytes the test changes
 w.site.withoutGoogleClient();
@@ -165,8 +164,6 @@ try {
   await page.click("#user-menu summary"); await page.click("#open-settings");
   await page.waitForFunction(() => $("#settings-dlg").open);
   check(!!(await page.$('#settings-dlg input[name="nor-tips-closed"][value="recent-files"]')), "Settings lists the closed tip, to clear");
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await device.close(); await browser.close(); server.close();
 }
-await device.close(); await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

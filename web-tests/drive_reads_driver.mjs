@@ -14,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { driveUnderNode } from "./fakes/google_drive_under_node.mjs";
 import { SCOPES } from "./fakes/google_sign_in.mjs";
 import { foldersOn } from "./world.mjs";
+import { check } from "./checks.mjs";
 
 const KEY = "stand-in-key", TOKEN = "stand-in-token";
 const BYTES = Buffer.from("not a picture, which no read here opens");
@@ -25,11 +26,6 @@ const folders = foldersOn(drive), png = { name: "private.png", mimeType: "image/
 const shared = folders.folder("Public folder").public(), own = folders.folder("Private folder").sharedWithUserAlone();
 const sharedImage = shared.holds(png), ownImage = own.holds(png);
 
-let failed = 0;
-const check = (ok, what, seen) => {
-  if (ok) console.log("ok: " + what);
-  else { failed++; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); }
-};
 // the Drive code as a session has it: signed in with a token good for `left` ms more (negative: run out that long
 // ago), or signed out (null); reads(): each Drive read it made since, {key, bearer}
 function session(left) {
@@ -78,4 +74,4 @@ const names = (got) => got.value?.map((f) => f.name);
   drive.outage = null;
 }
 
-process.exit(failed ? 1 : 0);
+process.exit(0);

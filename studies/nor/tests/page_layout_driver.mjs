@@ -9,7 +9,7 @@ import { EARLY } from "../../../web-tests/early_messages.mjs";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
-import { pw, launch } from "../../../web-tests/harness.mjs";
+import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -74,8 +74,7 @@ for (const width of [1000, 1600]) {
   const { device, page } = await found(width, "Review");
     // ---- the selected card over the image's top right corner, only while one is selected; Submit Ground
   // Truth not in the image view; no right bar (req/nor/layout, req/nor/candidates/decide, req/nor/downloads) ----
-  const fail = async (what, seen) => { console.error("FAILED: " + what + ": " + JSON.stringify(seen)); await done(1); };
-  if (await page.isVisible("#selected-box")) await fail("the selected card shows with nothing selected", true);
+  if (await page.isVisible("#selected-box")) mustHold(false, "the selected card shows with nothing selected", true);
   const sc = await page.locator("#scroller").boundingBox();
   await page.mouse.move(sc.x + sc.width / 2, sc.y + sc.height / 2);
   await page.mouse.wheel(200, 0); // a sideways swipe steps to the first candidate
@@ -89,12 +88,12 @@ for (const width of [1000, 1600]) {
       gt: document.querySelector("#gt-submit").textContent.trim(), gtShown: !!document.querySelector("#gt-submit").offsetParent };
   });
   console.log(JSON.stringify(layout));
-  if (layout.title) await fail("the selected card has a title", layout.title);
-  if (Math.abs(layout.sel.r - layout.view.r) > 40 || Math.abs(layout.sel.t - layout.view.t) > 40) await fail("the selected card is not at the image's top right corner", layout);
-  if (layout.mm && layout.mm.r > layout.sel.l) await fail("the minimap and the selected card overlap", layout);
-  if (!layout.stepIn || layout.prev.b > layout.crop.b + 1 || layout.prev.t < layout.crop.t || layout.next.l < layout.prev.r - 1) await fail("previous and next do not hover side by side over the bottom of the selected crop", layout);
-  if (layout.gt !== "Upload" || layout.gtShown) await fail("Upload shows in the image view", layout);
-  if (layout.right) await fail("the right bar is still there", layout);
+  if (layout.title) mustHold(false, "the selected card has a title", layout.title);
+  if (Math.abs(layout.sel.r - layout.view.r) > 40 || Math.abs(layout.sel.t - layout.view.t) > 40) mustHold(false, "the selected card is not at the image's top right corner", layout);
+  if (layout.mm && layout.mm.r > layout.sel.l) mustHold(false, "the minimap and the selected card overlap", layout);
+  if (!layout.stepIn || layout.prev.b > layout.crop.b + 1 || layout.prev.t < layout.crop.t || layout.next.l < layout.prev.r - 1) mustHold(false, "previous and next do not hover side by side over the bottom of the selected crop", layout);
+  if (layout.gt !== "Upload" || layout.gtShown) mustHold(false, "Upload shows in the image view", layout);
+  if (layout.right) mustHold(false, "the right bar is still there", layout);
   if (process.env.SHOTS) { await page.evaluate(() => { $("#notice").hidden = true; }); await page.mouse.move(5, 5); await page.screenshot({ path: `${process.env.SHOTS}/${width}_image.png` }); }
   {
     await page.waitForFunction(() => !document.querySelector("button.working"));

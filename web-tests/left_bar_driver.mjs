@@ -12,7 +12,7 @@ import path from "node:path";
 
 import { tagger } from "./tagger.mjs";
 import { record, begun, moved } from "./page_motions.mjs";
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 
@@ -36,7 +36,6 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 
 w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
@@ -53,7 +52,7 @@ const bar = () => page.evaluate(() => [...document.querySelectorAll("#left > .bo
 // what a drawer's header row shows beside its title
 const beside = (k) => page.evaluate((i) => [...[...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility())[i].querySelectorAll(":scope > .sec-head > :not(h2)")]
   .filter((e) => e.checkVisibility()).map((e) => e.id), k);
-const boxes = async (want, what) => { const b = await bar(); await check(b.join("|") === want.join("|"), what, b); };
+const boxes = async (want, what) => { const b = await bar(); await mustHold(b.join("|") === want.join("|"), what, b); };
 // a drawer slides open or shut: read once it has
 const title = async (k) => { await page.locator("#left > .box.foldable:visible > .sec-head h2").nth(k).click(); await page.waitForFunction(() => !document.documentElement.hasAttribute("data-drawers")); };
 // the status line is cleared first, so the wait is for this image's load, not the last one's
@@ -67,13 +66,13 @@ const name = path.basename(image);
 // drawers, not boxes: each touches the one above it
 const gaps = await page.evaluate(() => { const r = [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => b.getBoundingClientRect());
   return r.slice(1).map((x, k) => Math.round(x.top - r[k].bottom)); });
-await check(gaps.every((g) => g <= 0), "the drawers stack with no gap between them", gaps);
+await mustHold(gaps.every((g) => g <= 0), "the drawers stack with no gap between them", gaps);
 const bars = () => page.evaluate(() => [...document.querySelectorAll("#left > .box.foldable")].filter((b) => b.checkVisibility()).map((b) => getComputedStyle(b).boxShadow !== "none"));
 
 const marks = await page.evaluate(() => document.querySelectorAll("#left .step-mark, #left .sec-head h2 img, #left .sec-head h2 canvas").length);
 await boxes(["Image open", "Analysis folded waits", "Summary folded waits"], "before an image the three drawers are there: Image open, Analysis and Summary folded to their titles, waiting");
-await check(marks === 0, "no drawer carries a number, a check or a picture beside its title", marks);
-await check((await bars()).join() === "true,false,false", "the open drawer, and only it, carries the accent bar", await bars());
+await mustHold(marks === 0, "no drawer carries a number, a check or a picture beside its title", marks);
+await mustHold((await bars()).join() === "true,false,false", "the open drawer, and only it, carries the accent bar", await bars());
 // a waiting drawer is inert: a click on it, or Enter on its title, opens nothing
 await page.locator("#left > .box.foldable:visible > .sec-head").nth(1).click();
 await page.locator("#left > .box.foldable:visible > .sec-head").nth(2).click();
@@ -81,16 +80,16 @@ await page.evaluate(() => document.querySelector("#summary-box h2").dispatchEven
 await boxes(["Image open", "Analysis folded waits", "Summary folded waits"], "a waiting drawer does not open when pressed");
 await loadImage();
 await boxes(["Image folded", "Analysis open", "Summary folded waits"], "an image open: Image folds to its title alone, Analysis opens, Summary still waits");
-await check((await beside(0)).length === 0, "the folded Load drawer shows nothing beside its title", await beside(0));
+await mustHold((await beside(0)).length === 0, "the folded Load drawer shows nothing beside its title", await beside(0));
 // a drawer slides open or shut, and the drawers below slide to their new places: the slide starts and ends
 const before = await begun(page);
 await title(0);
 // where the browser has the view transitions it takes; elsewhere the drawers change at once
 const slides = await page.evaluate(() => !!document.startViewTransition && CSS.supports("view-transition-group", "contain"));
 const slid = slides ? await moved(page, before, /^drawer-/) : null;
-await check(!slides || (!slid.missing && slid.groups.filter((g) => g.startsWith("drawer-")).length >= 2), slides ? "a drawer slides open, and the drawers below it slide down" : "a browser without the view transitions the slide takes: the drawers change at once", slid);
+await mustHold(!slides || (!slid.missing && slid.groups.filter((g) => g.startsWith("drawer-")).length >= 2), slides ? "a drawer slides open, and the drawers below it slide down" : "a browser without the view transitions the slide takes: the drawers change at once", slid);
 await boxes(["Image open", "Analysis open", "Summary folded waits"], "its title opens a folded drawer");
-await check((await beside(0)).join() === "unload", "open, the Load drawer's header carries unload image", await beside(0));
+await mustHold((await beside(0)).join() === "unload", "open, the Load drawer's header carries unload image", await beside(0));
 await title(0);
 await boxes(["Image folded", "Analysis open", "Summary folded waits"], "and folds it again");
 // a folded drawer opens from anywhere on it, not only its title: a click at the far end of its row; an open one folds
@@ -110,7 +109,7 @@ await page.waitForFunction(() => /pixels/.test(document.querySelector("#fx-resul
 await boxes(["Image folded", "Analysis open", "Summary open"], "the algorithm run: Analysis stays open and Summary, the image carrying a model, opens");
 const parts = await page.evaluate(() => ({ runner: document.querySelector("#fx-count").closest(".box").id, tasks: document.querySelector("#gt-tasks").closest(".box").id,
   title: document.querySelector("#tasks-title").checkVisibility() && document.querySelector("#tasks-title").textContent.trim(), drawers: document.querySelectorAll("#left > .box.foldable").length }));
-await check(parts.runner === "analysis-box" && parts.tasks === "analysis-box" && parts.title === "Analysis Tasks" && parts.drawers === 3,
+await mustHold(parts.runner === "analysis-box" && parts.tasks === "analysis-box" && parts.title === "Analysis Tasks" && parts.drawers === 3,
   "the study's runner and its tasks, titled Analysis Tasks, are in the Analysis drawer: the bar has three drawers and no more", parts);
 // the tasks split by purpose (req/shell/ground-truth/tasks): progress a strip under the header, the open task alone under the
 // runner, Undo and Redo in the image's toolbar, the unsaved count beside Upload
@@ -124,17 +123,17 @@ const split = await page.evaluate(() => {
     tools: [q("#history-btn").nextElementSibling?.id, q("#history-btn").nextElementSibling?.nextElementSibling?.id], toolsShown: !!q("#gt-undo").checkVisibility() && !!q("#gt-redo").checkVisibility(),
     keys: [q("#gt-undo").title, q("#gt-redo").title], unsavedBy: q("#gt-unsaved").closest("li")?.dataset.task };
 });
-await check(split.strip && !split.holds.length && split.aboveRunner, "the tasks' progress is a strip directly under the Analysis header, above the runner: the title, the Areas menu, the bar and the counters", split);
-await check(split.counters.join() === "0/1 Count checked", "each task is a counter in the strip", split.counters);
-await check(split.rows.join() === "check,submit", "under the runner the open task alone is drawn, and Upload's row last", split.rows);
-await check(split.tools.join() === "gt-undo,gt-redo" && split.toolsShown && /Ctrl\+Z/.test(split.keys[0]) && /Ctrl\+Y/.test(split.keys[1]) && split.unsavedBy === "submit",
+await mustHold(split.strip && !split.holds.length && split.aboveRunner, "the tasks' progress is a strip directly under the Analysis header, above the runner: the title, the Areas menu, the bar and the counters", split);
+await mustHold(split.counters.join() === "0/1 Count checked", "each task is a counter in the strip", split.counters);
+await mustHold(split.rows.join() === "check,submit", "under the runner the open task alone is drawn, and Upload's row last", split.rows);
+await mustHold(split.tools.join() === "gt-undo,gt-redo" && split.toolsShown && /Ctrl\+Z/.test(split.keys[0]) && /Ctrl\+Y/.test(split.keys[1]) && split.unsavedBy === "submit",
   "Undo and Redo are tool buttons after Edit History's, each naming its key, and the unsaved count stands in Upload's row", split);
-await check((await beside(1)).join() === "annotate-clear,analysis-dl" && (await beside(2)).join() === "summary-dl", "the Analysis header carries reset analysis and Download Analysis, the Summary header Download Summary",
+await mustHold((await beside(1)).join() === "annotate-clear,analysis-dl" && (await beside(2)).join() === "summary-dl", "the Analysis header carries reset analysis and Download Analysis, the Summary header Download Summary",
   { analysis: await beside(1), summary: await beside(2) });
 // the header's controls sit at its far edge, the title at its near one (row-indicators-edges)
 const edges = await page.evaluate(() => { const h = document.querySelector("#analysis-box > .sec-head").getBoundingClientRect(), t = document.querySelector("#analysis-box h2").getBoundingClientRect(),
   d = document.querySelector("#analysis-dl").getBoundingClientRect(); return { title: Math.round(t.left - h.left), icon: Math.round(h.right - d.right) }; });
-await check(edges.title <= 14 && edges.icon <= 14, "the title at the header's near edge, the download icon at its far one", edges);
+await mustHold(edges.title <= 14 && edges.icon <= 14, "the title at the header's near edge, the download icon at its far one", edges);
 await loadImage();
 await boxes(["Image folded", "Analysis open", "Summary folded waits"], "another image starts over: Summary waits again");
 await title(0); await page.click("#unload");
@@ -146,16 +145,16 @@ const left = () => page.evaluate(() => Math.round(document.querySelector("#left"
 const settled = () => page.waitForFunction(() => !document.getAnimations().some((a) => a.transitionProperty === "grid-template-columns"));
 const gone = await page.evaluate(() => ({ parts: ["#left-collapse", "#left-strip", "#left-head", "#left-expand", "#left-marks"].filter((s) => document.querySelector(s)),
   steps: [...document.querySelectorAll("#left *")].filter((e) => e.children.length === 0 && e.textContent.trim() === "Steps").length }));
-await check(!gone.parts.length && !gone.steps, "the left bar has no chevron, no Steps label and no strip", gone);
+await mustHold(!gone.parts.length && !gone.steps, "the left bar has no chevron, no Steps label and no strip", gone);
 const gutter = await page.evaluate(() => ({ w: Math.round(document.querySelector("#gutter-left").getBoundingClientRect().width), holds: document.querySelector("#gutter-left").children.length }));
-await check(gutter.holds === 0 && gutter.w <= 12, "the gutter holds no tab, only the resize handle", gutter);
+await mustHold(gutter.holds === 0 && gutter.w <= 12, "the gutter holds no tab, only the resize handle", gutter);
 const drag = async (to) => { const g = await page.locator("#gutter-left").boundingBox(); await page.mouse.move(g.x + g.width / 2, g.y + 100); await page.mouse.down();
   for (const x of to) await page.mouse.move(x, g.y + 100, { steps: 4 }); await page.mouse.up(); await settled(); };
 const barLeft = await page.evaluate(() => Math.round(document.querySelector("#left").getBoundingClientRect().left));
 await drag([barLeft + 150, barLeft + 20]);
-await check((await left()) >= 190, "dragging the gutter to the edge stops at the bar's narrowest, never collapsing it", await left());
+await mustHold((await left()) >= 190, "dragging the gutter to the edge stops at the bar's narrowest, never collapsing it", await left());
 await drag([barLeft + 280]);
-await check(Math.abs((await left()) - 280) <= 14, "and it drags wider again", await left());
+await mustHold(Math.abs((await left()) - 280) <= 14, "and it drags wider again", await left());
 // a drag moves the columns with the pointer, the image view beside them too: no motion lags behind it
 {
   const g = await page.locator("#gutter-left").boundingBox(), y = g.y + 100;
@@ -164,6 +163,6 @@ await check(Math.abs((await left()) - 280) <= 14, "and it drags wider again", aw
   const mid = await page.evaluate(() => ({ w: Math.round(document.querySelector("#left").getBoundingClientRect().width),
     moving: document.getAnimations().filter((a) => a.transitionProperty === "grid-template-columns").length }));
   await page.mouse.up();
-  await check(!mid.moving && Math.abs(mid.w - 340) <= 14, "mid-drag the bar is already where the pointer is, with nothing animating", mid);
+  await mustHold(!mid.moving && Math.abs(mid.w - 340) <= 14, "mid-drag the bar is already where the pointer is, with nothing animating", mid);
 }
 await done(0);

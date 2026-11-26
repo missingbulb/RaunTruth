@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { frames } from "./page_frames.mjs";
-import { pw, launch } from "./harness.mjs";
+import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 
@@ -19,7 +19,6 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen ? " " + JSON.stringify(seen) : "")); await done(1); } console.log("ok: " + what); };
 
 // clock: the page's clock made one the test can move past the page's own time windows; it runs as the real one does
 async function open({ motion = true, reducedMotion = "no-preference", clock = false } = {}) {
@@ -62,10 +61,10 @@ const near = (a, b, by = 2) => Math.abs(a - b) <= by;
   for (const [btn, dlg, what] of [["#sb-version", "#history-dlg", "Version history"], ["#sb-res-icon", "#usage-dlg", "Resource Usage"]]) {
     await page.click(btn);
     const f = await opened(page, dlg);
-    await check(f.open && f.made >= 1, `${btn} opens ${what}, animated`, f);
+    await mustHold(f.open && f.made >= 1, `${btn} opens ${what}, animated`, f);
     await page.waitForFunction((id) => { const m = window.dialogMotions[id]; return m && m.ended === m.made; }, dlg.slice(1));
     const last = await page.evaluate((dlg) => { const d = document.querySelector(dlg), r = d.getBoundingClientRect(); return { w: r.width, h: r.height, ow: d.offsetWidth, oh: d.offsetHeight, n: d.getAnimations({ subtree: true }).length }; }, dlg);
-    await check(near(last.w, last.ow) && near(last.h, last.oh) && last.n === 0, `then ends at its own size`, last);
+    await mustHold(near(last.w, last.ow) && near(last.h, last.oh) && last.n === 0, `then ends at its own size`, last);
     await page.keyboard.press("Escape");
   }
   // a button that opens nothing, pressed over a second ago, does not lend the dialog its place
@@ -75,7 +74,7 @@ const near = (a, b, by = 2) => Math.abs(a - b) <= by;
   const was = await page.evaluate(() => window.dialogMotions["history-dlg"]?.made || 0);
   await page.evaluate(() => $("#history-dlg").showModal());
   const f = await opened(page, "#history-dlg");
-  await check(f.open && f.made === was, "a dialog opened with nothing pressed lately appears at once", f);
+  await mustHold(f.open && f.made === was, "a dialog opened with nothing pressed lately appears at once", f);
   await ctx.close();
 }
 
@@ -84,7 +83,7 @@ for (const [opts, what] of [[{ motion: false }, "with animations off"], [{ reduc
   const { ctx, page } = await open(opts);
   await page.click("#sb-version");
   const f = await opened(page, "#history-dlg");
-  await check(f.open && f.made === 0, `${what}, Version history appears at once`, f);
+  await mustHold(f.open && f.made === 0, `${what}, Version history appears at once`, f);
   await ctx.close();
 }
 await done(0);

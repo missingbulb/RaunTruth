@@ -3,9 +3,7 @@
 // lookup that turns a channel's black and white points into its colour. Exits 1 on a failed check.
 //   node web-tests/channels_driver.mjs
 import { resolve, ramp } from "../web/channels.js";
-
-let failed = false;
-const check = (ok, what, seen) => { console.log((ok ? "ok: " : "FAILED: ") + what + (ok ? "" : ": " + JSON.stringify(seen))); failed ||= !ok; };
+import { check } from "./checks.mjs";
 
 const study = [{ name: "DAPI", colour: "#8000ff", about: "Nuclei.", shown: true, black: 10, white: 200 }];
 const file = [{ name: "C1", colour: "#0000ff" }, { name: "Caspr", colour: "#00ff00" }, {}, { name: "C4" }];
@@ -27,4 +25,4 @@ check(resolve([], [{ name: "Ch1", colour: "#00ff00" }], 1)[0].fileName === null,
 const [R, G, B] = ramp({ colour: "#ff8000", black: 50, white: 150 });
 check(R[0] === 0 && R[50] === 0 && R[150] === 255 && R[255] === 255 && R[100] === 128, "below the black point dark, above the white point full", [R[50], R[100], R[150]]);
 check(G[150] === 128 && B[150] === 0, "full in the channel's own colour", [G[150], B[150]]);
-process.exit(failed ? 1 : 0);
+process.exit(0);

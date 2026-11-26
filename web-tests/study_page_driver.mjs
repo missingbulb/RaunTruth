@@ -14,17 +14,16 @@
 //   node web-tests/study_page_driver.mjs ANSWERS IMAGE.png STUDIES
 import { fromScratch } from "./annotating.mjs";
 import { EARLY } from "./early_messages.mjs";
-import { repoFile } from "./repo_file.mjs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { ENGINE } from "./engine.mjs";
 import { cutShort } from "./page_errors.mjs";
 import { held as holding } from "./held.mjs";
 import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
 import { world } from "./world.mjs";
+import { serveSite, AS_SERVED } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { STEP } from "./deadlines.mjs";
 
@@ -53,20 +52,17 @@ onmessage = ({ data: m }) => {
   else if (m.type === "open") { const images = bytes(A.images); postMessage({ type: "opened", meta: A.opened, images }, [images.buffer]); }
   else if (m.type === "call") { const b = bytes(A.mask); postMessage({ type: "result", action: m.action, meta: A.count, bytes: b, echo: m.echo }, [b.buffer]); }
 };`;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm", ".zip": "application/zip", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js" && stub) { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
+const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
+const slowly = async (q, u) => { if (slow[u]) await slow[u].hold(); return AS_SERVED; };
+const { origin, server } = await serveSite({
+  "/web/worker.js": () => (stub ? EARLY + STAND_IN : AS_SERVED),
   // the build's list of vendored wheels, which the fixture needs none of
-  if (u === "/web/vendor/wheels.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end("[]"); }
-  const f = u === "/web/answers.json" ? answers : u === "/web/studies.json" ? studies : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  const send = () => { r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r); };
-  if (slow[u]) return void slow[u].hold().then(send);
-  send();
+  "/web/vendor/wheels.json": "[]",
+  "/web/answers.json": { file: answers },
+  "/web/studies.json": { file: studies },
+  [MODULE]: slowly,
+  [CHOSEN]: slowly,
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.fromThisComputer("fixture");
@@ -250,16 +246,15 @@ try {
   if (!(await shown()).stayed) problems.push("Forward reloaded the page");
 
   // a study's own path opens it fresh
-  await page.goto(origin + "/web/fixture");
+  await device.visits("/web/fixture", { in: page, until: "none" });
   await page.waitForSelector("#fx-count", { state: "attached" });
   if (await page.title() !== "Fixture") problems.push("the fixture's path does not open the fixture");
-  await page.goto(origin + "/web/index.html");
+  await device.visits("/web/index.html", { in: page, until: "none" });
   await page.waitForFunction(() => document.title === "Image Viewer");
   if (new URL(page.url()).pathname !== "/web/") problems.push("index.html was not rewritten to the bare address: " + page.url());
 
   // a study chosen in the switcher while the one the address names is still coming in, its module slow to arrive,
   // waits its turn: the first comes in whole, then leaves for the one chosen, and the page never says Error
-  const MODULE = "/studies/fixture/web/fixture.js", CHOSEN = "/studies/viewer/study.json";
   slow[MODULE] = holding(); slow[CHOSEN] = holding();
   const elsewhere = w.device().signedInAs(tester);
   (await elsewhere.context()).on("weberror", (e) => { if (!cutShort(e.error())) problems.push("page error, a study chosen while another came in: " + e.error().message); });
@@ -285,8 +280,7 @@ try {
   await elsewhere.close();
 
   // the network gone, a study chosen in the switcher cannot come in: the page stays the study it was, at its address, and says so
-  await page.goto(origin + "/web/fixture");
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  await device.visits("/web/fixture", { in: page });
   await expecting(new RegExp(NETWORK_GONE.source + "|Failed to fetch"), async () => {
     await ctx.setOffline(true);
     await page.click("#study-menu summary");
