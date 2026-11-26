@@ -1295,7 +1295,9 @@ html:not(.offline) #welcome-offline { display: none; }
 #annotate-choices { display: flex; flex-direction: column; gap: 6px; }
 #annotate-choices > button, #annotate-edit { width: 100%; }
 #annotate-choices .pair { display: flex; gap: 6px; }
-#annotate-choices .pair > button { flex: 1 1 0; min-width: 0; }
+#annotate-choices .pair > button { flex: 1 1 auto; min-width: 0; padding-inline: 8px; white-space: nowrap; }
+/* the kept work's button says when and how much on one line, cut short where the bar is narrow */
+#annotate-local { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline: 8px; }
 #annotate-choices .pair > button[hidden] { display: none; }
 #annotate-say { margin: 8px 0 0; }
 #annotate-edit { margin-top: 8px; }
