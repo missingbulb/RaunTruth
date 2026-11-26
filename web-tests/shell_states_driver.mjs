@@ -176,10 +176,11 @@ const ACTIONS = {
     await page.click("#notice-ok");
     await page.waitForFunction(() => document.querySelector("#notice").hidden);
   },
-  // in until the image no longer fits, its minimap shown
+  // in until the image no longer fits the view
   async zoom(page) {
-    for (let k = 0; k < 12 && !(await page.isVisible("#minimap")); k++) await page.click("#zoom-in");
-    await page.waitForFunction(() => document.querySelector("#minimap").checkVisibility());
+    const fits = () => page.evaluate(() => { const sc = document.querySelector("#scroller"); return st.W * st.zoom <= sc.clientWidth && st.H * st.zoom <= sc.clientHeight; });
+    for (let k = 0; k < 12 && await fits(); k++) await page.click("#zoom-in");
+    if (await fits()) throw new Error("the image still fits the view after zooming in");
   },
   // on Study Setup, in the image's dialog, shut again once the image itself is open
   async original(page) {

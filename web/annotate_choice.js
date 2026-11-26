@@ -38,7 +38,7 @@ export function annotateChoice({ $, remote, start, local, load, pick, edit, clea
       $("#annotate-choices").hidden = v.annotating;
       // the work kept on this device leads where there is some: Continue is the primary, and Start starts over
       $("#annotate-local").hidden = !v.draft;
-      if (v.draft) $("#annotate-local").textContent = `Continue · saved ${savedAt(v.draft.saved)} · ${v.draft.count} edit${v.draft.count === 1 ? "" : "s"}`;
+      $("#annotate-local").textContent = v.draft ? `Continue · saved ${savedAt(v.draft.saved)} · ${v.draft.count} edit${v.draft.count === 1 ? "" : "s"}` : "Continue";
       $("#annotate-scratch").classList.toggle("primary", !v.draft);
       $("#annotate-scratch").textContent = v.draft ? "Start over" : "Start";
       const l = v.list, rows = l?.rows || [], load = $("#annotate-load");

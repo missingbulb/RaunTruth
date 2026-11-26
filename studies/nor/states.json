@@ -77,15 +77,20 @@
   "differ": {
     "Minimap": {
       "rule": [
-        {"when": {"image": ["none"]}, "is": "hidden"},
-        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map", "about": "it carries the areas, so it shows though the whole image is in view"},
-        {"when": {"imageFits": [true]}, "is": "hidden"}
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map", "about": "it carries the walk's areas"},
+        {"is": "hidden"}
+      ]
+    },
+    "Minimap button": {
+      "rule": [
+        {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/image/minimap"},
+        {"is": "hidden"}
       ]
     },
     "Minimap's areas": {
       "rule": [
         {"when": {"makesTruth": [true], "counted": [true]}, "is": "shown", "approval": "tentative", "req": "req/shell/ground-truth/area-map"},
-        {"is": "hidden"}
+        {"is": "hidden", "unwalked": "the minimap is hidden with them"}
       ]
     }
   },

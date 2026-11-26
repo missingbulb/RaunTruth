@@ -209,10 +209,10 @@ await check(place.toolbar && place.tool && place.icon && place.afterMinimap && !
   "Edit History's switch is an icon button among the toolbar's tools, after the minimap's, pressed while the window shows; the left bar has no checkbox for it", place);
 const kept = await page.evaluate(() => [sessionStorage.getItem("nor-gt-history"), localStorage.getItem("nor-gt-history")]);
 await check(kept[0] === "on" && kept[1] === null, "the choice is kept for the visit, in the tab's storage, and not on the device", kept);
-await page.reload();
+await page.reload(); // visits again on purpose (a reload is the subject): the choice is the visit's, kept by the tab across a reload
 await tagger(page);
 await counted(page);
-await check(await page.isVisible("#edit-history") && await pressed() === "true", "the page loaded again in the same tab shows it still"); // second-visit-in-test: the visit's choice across a reload is the case
+await check(await page.isVisible("#edit-history") && await pressed() === "true", "the page loaded again in the same tab shows it still");
 await page.click("#history-btn");
 await check(await page.isHidden("#edit-history") && await pressed() === "false", "pressed again it hides the window and lets the button up");
 await page.click("#history-btn");
