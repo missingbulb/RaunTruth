@@ -23,7 +23,7 @@ import { driveIn } from "./fakes/google_drive.mjs";
 import { SCOPES, signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studies as studiesOf, studiesIn } from "./fakes/studies.mjs";
-import { pw, keptContext, worldOf } from "./harness.mjs";
+import { pw, keptContext, worldOf, atRest } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
 
 export const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
@@ -220,6 +220,7 @@ export function world(browser, origin) {
         // the hour up for the device, on a page of the site's it has open: Google refuses every token so far, and the
         // page's record of the sign-in says it ran out
         async tokenRunsOut(page) {
+          await atRest();
           google.revokeAll();
           await page.evaluate(() => {
             const s = JSON.parse(localStorage.getItem("nor-google-sign-in"));

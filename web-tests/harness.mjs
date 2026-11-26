@@ -247,7 +247,10 @@ async function install(ctx, world, outside) {
   const setOffline = ctx.setOffline.bind(ctx);
   // (a request the browser sent before its network went is answered: it was online when it asked)
   // (and the context is offline until the browser has its network back: what it sends meanwhile fails as offline)
-  ctx.setOffline = async (on) => {
+  // (and it goes only once the pages have ended their work, which would otherwise meet it at a moment no test chose;
+  // cutting: for a case that means the network to go under work it holds back)
+  ctx.setOffline = async (on, { cutting = false } = {}) => {
+    if (on && !cutting) await atRest();
     if (on) offlineNow.add(ctx); else outside.offline = false;
     await setOffline(on);
     if (!on) offlineNow.delete(ctx);
@@ -256,6 +259,8 @@ async function install(ctx, world, outside) {
   const newPage = ctx.newPage.bind(ctx);
   ctx.newPage = async () => { const page = await newPage(); onSitePages(page); ownRoutes(page); crashesHeard(page); return page; };
   for (const fake of FAKES) await fake(ctx, world, outside);
+  underWork(driveIn(world), "outage", "Drive's outage");
+  underWork(signInIn(world), "savedSettings", "the settings another device saved");
   ctx.on("close", () => outside.close());
   await ctx.addInitScript(COPY);
   ownRoutes(ctx);
@@ -341,7 +346,7 @@ const live = new Set();
 // Every page of the site's still open has ended the work it was doing: what a case set off says its warnings and
 // errors while the case's declaration still stands, not into the case after it. A page a case leaves working for good
 // (an answer its stand-in holds) fails the case, naming the work.
-async function atRest() {
+export async function atRest() {
   for (const ctx of live) {
     for (const page of ctx.pages()) {
       if (page.isClosed() || leaving.has(page) || closing.has(ctx)) continue;
@@ -354,6 +359,34 @@ async function atRest() {
       });
     }
   }
+}
+
+// A fake's knob a test turns as a plain step, which cannot wait: turned under work a page has under way, the work
+// meets the change at a moment no test chose, so it is said, and fails the run unless the case declares it. A knob
+// that is a function is wrapped, any other watched as it is set.
+const watchedKnobs = new WeakMap();
+function underWork(fake, knob, what) {
+  if (watchedKnobs.get(fake)?.has(knob)) return;
+  watchedKnobs.set(fake, (watchedKnobs.get(fake) || new Set()).add(knob));
+  const turned = () => {
+    for (const ctx of live) {
+      for (const page of ctx.pages()) {
+        if (page.isClosed() || leaving.has(page) || closing.has(ctx)) continue;
+        const e = { late() {} };
+        e.done = page.evaluate(() => window.shellForTests?.work.doing).then((doing) => {
+          if (doing?.length) said("world", `${what} changed while the page was working (${doing.join(", ")}): wait for idle(page) first, or hold the answer that work waits on`);
+        }, () => {}).finally(() => reading.delete(e));
+        reading.add(e);
+      }
+    }
+  };
+  if (typeof fake[knob] === "function") {
+    const turn = fake[knob].bind(fake);
+    fake[knob] = (...a) => { turned(); return turn(...a); };
+    return;
+  }
+  let now = fake[knob];
+  Object.defineProperty(fake, knob, { get: () => now, set: (v) => { if (v !== now) turned(); now = v; }, enumerable: true, configurable: true });
 }
 
 // Runs during(), the case that makes the page warn or err: the messages matching pattern meanwhile are expected, and
