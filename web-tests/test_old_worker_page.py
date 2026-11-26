@@ -13,12 +13,10 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
-NODE = shutil.which('node')
 # the commit before the app moved under /app/, whose web/sw.js browsers registered at the site's top
 BEFORE_THE_MOVE = '1fe278b'
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_worker_the_app_once_registered_at_the_top_retires_itself(tmp_path):
     old = tmp_path / 'sw.js'
     # a shallow checkout (CI's) lacks the commit: fetch the history first

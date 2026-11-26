@@ -2,7 +2,7 @@
 Chromium with the stand-in worker of the memory test (gt_actions_page_driver.mjs): a thumbs down and Ctrl+Z, a length end dropped or cancelled,
 an added NoR's id, the checked areas, Save Draft and Load draft with no Find Candidates, what the older browser keys held, and Edit History's ring."""
 from synthetic_nor import nor_image
-from test_memory import SIDE, needs_node, page_answers, run  # noqa: F401  (fixtures)
+from test_memory import SIDE, page_answers, run  # noqa: F401  (fixtures)
 import pytest
 
 pytestmark = pytest.mark.full
@@ -14,6 +14,5 @@ def crop(tmp_path_factory):
     return nor_image(str(tmp_path_factory.mktemp('crop') / 'corner.tif'), side=SIDE, n=20, seed=21)
 
 
-@needs_node
 def test_nor_tagging_is_gt_actions(crop, page_answers):
     run('gt_actions_page_driver.mjs', page_answers, crop)

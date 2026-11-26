@@ -3,7 +3,6 @@ file dev/tools/previews/make_previews.py makes: the same index, pages of the sam
 pixels; and, given an older file, keeps the previews still valid and makes only the rest."""
 import json
 import os
-import shutil
 import subprocess
 import sys
 
@@ -18,7 +17,6 @@ pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.join(HERE, '..')
 from drivers import run_driver
-NODE = shutil.which('node')
 TOOL = os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py')
 
 
@@ -33,7 +31,6 @@ def read(path):
         return json.loads(t.pages[0].description), [p.asarray() for p in t.pages]
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_writes_what_the_tool_writes(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))
@@ -55,7 +52,6 @@ def test_the_page_writes_what_the_tool_writes(tmp_path):
         assert diff.mean() < 1.5 and np.percentile(diff, 99) <= 6, (k, diff.mean(), diff.max())
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_it_keeps_the_previews_still_valid(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))
@@ -75,7 +71,6 @@ def test_it_keeps_the_previews_still_valid(tmp_path):
             assert np.array_equal(new_pages[e['page'] + i], old_pages[o['page'] + i])
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_stacks_preview_opens_in_3d(tmp_path):
     """req/shell/data/preview-images: the TIFF Data Management writes for a stack's preview opens in the page's own reader
     as a stack: its mini-volume's slices and channels, the slice spacing scaled to them."""

@@ -49,7 +49,6 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
 w.studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
-let failed = false;
 const device = w.device().with(SOFTWARE_3D);
 await standInDrive(await device.context());
 let page;
@@ -345,7 +344,7 @@ try {
   } else console.log(`not checked in this ${ENGINE}: the 3D view, which needs the WebGL2 it lacks`);
 
   // the Image Viewer, at the bare address: the viewer follows the image, and its one step leaves the Image box open
-  await page.goto(origin + "/web/");
+  await device.visits("/web/", { in: page, until: "none" });
   await page.waitForFunction(() => window.$ && $("#title").textContent === "Image Viewer" && $("#status").textContent.startsWith("Ready"));
   const loaded = async (name) => {
     await page.setInputFiles("#file", { name, mimeType: "image/tiff", buffer: (name.endsWith(".png") ? FLAT : STACK).bytes });
@@ -363,7 +362,7 @@ try {
   check(!(await page.$("#channels .v3-slices")), "a flat image has no slices' row");
   check(png.open, "the Image Viewer keeps its Image box open once a flat image has loaded");
 
-  await page.goto(origin + "/web/fixture");
+  await device.visits("/web/fixture", { in: page, until: "none" });
   await page.waitForFunction(() => window.$ && $("#title").textContent === "Fixture");
   check(!(await page.$("#v3-switch")), "a 2D study has no 2D/3D switch");
 
@@ -374,14 +373,12 @@ try {
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) { return kind === "webgl2" ? null : get.call(this, kind, ...rest); };
   });
   await standInDrive(noGl);
-  noGl.on("weberror", (e) => { failed = true; console.error("page error, no WebGL2: " + e.error().message); });
+  noGl.on("weberror", (e) => check(false, "page error, no WebGL2: " + e.error().message));
   const p2 = await bare.opens("vascular");
   await openFromDrive(p2, STACK);
   await p2.waitForFunction(() => window.shellForTests.page.get("image"));
   const seen = await p2.evaluate(() => ({ shape: window.shellForTests.viewer.three?.meta?.shape || null, flat: !$("#stage").hidden, switch: !!$("#v3-switch") }));
   check(seen.shape?.length === 3 && seen.flat && !seen.switch, `with no WebGL2 the stack opens flattened, with no 2D/3D switch, its volume there: ${JSON.stringify(seen)}`);
-} catch (e) {
-  failed = true; console.error(e);
+} finally {
+  await browser.close(); server.close();
 }
-await browser.close(); server.close();
-process.exit(failed ? 1 : 0);

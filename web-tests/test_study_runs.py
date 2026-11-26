@@ -3,7 +3,6 @@ the bridge in Pyodide under Node (study_bridge_driver.mjs), and the whole page, 
 in headless Chromium with a stand-in worker (study_page_driver.mjs). req/shell/header, req/shell/image-viewer: the header's switcher and
 the default study, in the same page."""
 import os
-import shutil
 
 import numpy as np
 import pytest
@@ -13,7 +12,6 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
 def run(driver, *args, timeout=120):
@@ -31,7 +29,6 @@ def png(tmp_path_factory):
     return path
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_bridge_runs_a_study_it_knows_nothing_of(png):
     run('study_bridge_driver.mjs', png)
 
@@ -67,6 +64,5 @@ def write_answers(png, d):
     return str(out), str(studies)
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_runs_the_study_it_is_asked_for(png, answers):
     run('study_page_driver.mjs', answers[0], png, answers[1])

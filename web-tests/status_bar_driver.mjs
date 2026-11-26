@@ -17,7 +17,7 @@ import path from "node:path";
 
 import { tagger } from "./tagger.mjs";
 import { standInDrive } from "./drive_open.mjs";
-import { pw, launch, expecting, NETWORK_GONE } from "./harness.mjs";
+import { pw, launch, expecting, NETWORK_GONE, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
 import { world } from "./world.mjs";
@@ -67,7 +67,6 @@ w.studies.editList(() => {
   return [...JSON.parse(fs.readFileSync(studies)), { id: fixture.id, title: fixture.title, stage: stage || fixture.stage }];
 });
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what, seen) => { if (!ok) { console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name) => { if (shots) await page.locator("#statusbar").screenshot({ path: path.join(shots, name + ".png") }); };
 
 // mode: the resources block's setting the visit starts with, unless the page has kept another; none: the page's own
@@ -112,8 +111,8 @@ const shining = (page) => page.evaluate(() => [...document.querySelectorAll(".sh
 const shines = async (page, want) => {
   await orMissed(page.waitForFunction((w) => [...document.querySelectorAll(".shine")].map((e) => "#" + e.id).sort().join() === w, want.join()));
   const now = await shining(page);
-  await check(now.join() === want.join(), `shining: ${want.join() || "nothing"}`, now);
-  await check(!(await page.$("#sb-steps, #statusbar .crumb")), "and the status bar holds no breadcrumbs");
+  await mustHold(now.join() === want.join(), `shining: ${want.join() || "nothing"}`, now);
+  await mustHold(!(await page.$("#sb-steps, #statusbar .crumb")), "and the status bar holds no breadcrumbs");
 };
 // the stage: not in the status bar, but a bordered label on the open study's row in the switcher
 const stageIs = async (page, stage) => {
@@ -122,7 +121,7 @@ const stageIs = async (page, stage) => {
     const t = document.querySelector(`#study-list a[data-id="${id}"] .stage-tag`);
     return { bar: !!document.querySelector("#statusbar #sb-stage, #statusbar svg .housing"), label: t?.textContent || null, page: document.documentElement.dataset.stage ?? null };
   });
-  await check(!s.bar && s.label === stage && s.page === stage, stage ? `the stage, ${stage}, is the open study's label in the switcher, and not in the status bar` : "a study with no stage shows none, in the switcher or the status bar", s);
+  await mustHold(!s.bar && s.label === stage && s.page === stage, stage ? `the stage, ${stage}, is the open study's label in the switcher, and not in the status bar` : "a study with no stage shows none, in the switcher or the status bar", s);
 };
 // hovering a study's stage label in the switcher lists the stages, that study's own highlighted
 const hoverStage = async (page, id) => {
@@ -138,13 +137,13 @@ const tabIs = async (page, tab) => {
   await page.waitForFunction((t) => document.querySelector("#usage-dlg").open && document.querySelector(`#usage-dlg [role=tab][data-tab=${t}]`).getAttribute("aria-selected") === "true"
     && !document.querySelector(`#usage-dlg [role=tabpanel][data-tab=${t}]`).hidden, tab);
   const title = await page.evaluate(() => { const d = document.querySelector("#usage-dlg"), h = document.getElementById(d.getAttribute("aria-labelledby")); return h && d.contains(h) && h.textContent; });
-  await check(title === "Resource Usage", `the dialog is open on ${tab}, titled Resource Usage`, title);
+  await mustHold(title === "Resource Usage", `the dialog is open on ${tab}, titled Resource Usage`, title);
 };
 // the shell's switch to the item view: first in the toolbar, what it reads, whether it can be pressed
 const switchIs = async (page, want, on, what) => {
   await orMissed(page.waitForFunction((w) => document.querySelector("#switch")?.textContent.replace(/\s+/g, " ").trim() === w, want));
   const s = await page.evaluate(() => { const b = document.querySelector("#switch"); return b && { text: b.textContent.replace(/\s+/g, " ").trim(), on: !b.disabled, shown: !!b.offsetParent, first: b === document.querySelector(".toolbar").firstElementChild }; });
-  await check(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
+  await mustHold(s && s.text === want && s.on === on && s.shown && s.first, `the switch, first in the toolbar, reads "${want}"${on ? "" : ", off"}${what ? ": " + what : ""}`, s);
 };
 const loadImage = async (page) => { await page.setInputFiles("#file", image); await page.waitForFunction(() => !!window.shellForTests?.page.get("image") && document.querySelector("#busy").hidden && document.querySelector("#fx-count")?.disabled === false); };
 // Start, and Run in its dialog: the study's Count runs
@@ -156,12 +155,12 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await stageIs(page, "Develop");
   // hovering the stage lists the stages, its own highlighted and the ones before it crossed out
   const stages = await hoverStage(page, "fixture");
-  await check(stages.map((x) => x.name).join() === "Setup,Develop,Analyze,Review,Public" && stages[1].now && stages.filter((x) => x.now).length === 1,
+  await mustHold(stages.map((x) => x.name).join() === "Setup,Develop,Analyze,Review,Public" && stages[1].now && stages.filter((x) => x.now).length === 1,
     "the stage's popup lists Setup, Develop, Analyze, Review and Public, Develop highlighted", stages);
-  await check(stages[0].crossed === "line-through" && stages.slice(1).every((x) => x.crossed === "none"), "the stage before it is crossed out", stages);
-  await check(/next|move on/i.test(await page.textContent("#stage-pop")), "and says what moves the study on", await page.textContent("#stage-pop"));
+  await mustHold(stages[0].crossed === "line-through" && stages.slice(1).every((x) => x.crossed === "none"), "the stage before it is crossed out", stages);
+  await mustHold(/next|move on/i.test(await page.textContent("#stage-pop")), "and says what moves the study on", await page.textContent("#stage-pop"));
   const beside = await page.evaluate(() => document.querySelector("#stage-pop").getBoundingClientRect().left - document.querySelector("#study-menu .pop").getBoundingClientRect().right);
-  await check(beside >= 0, "and opens beside the switcher, not over it", beside);
+  await mustHold(beside >= 0, "and opens beside the switcher, not over it", beside);
   if (shots) await page.screenshot({ path: path.join(shots, "0-stages.png") });
   await page.mouse.move(1300, 100);
   await page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"));
@@ -181,15 +180,15 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     b.classList.remove("scan", "peek"); b.hidden = was;
     return seen;
   });
-  await check(looks.plain.spinner && !looks.plain.light, "waiting shows the big spinner", looks.plain);
-  await check(!looks.scan.spinner && looks.scan.light, "work over an image shows the sweeping light, not the spinner", looks.scan);
-  await check(!looks.peek.spinner && !looks.peek.light, "an image painting in shows neither", looks.peek);
+  await mustHold(looks.plain.spinner && !looks.plain.light, "waiting shows the big spinner", looks.plain);
+  await mustHold(!looks.scan.spinner && looks.scan.light, "work over an image shows the sweeping light, not the spinner", looks.scan);
+  await mustHold(!looks.peek.spinner && !looks.peek.light, "an image painting in shows neither", looks.peek);
   // a held button keeps its own small spinner wherever it sits
   const held = await page.evaluate(() => {
     const t = document.createElement("button"); t.className = "working"; t.disabled = true; t.textContent = "x"; document.body.append(t);
     const a = getComputedStyle(t, "::after").animationName; t.remove(); return a;
   });
-  await check(held === "spin", "a working button turns a small spinner after its label", held);
+  await mustHold(held === "spin", "a working button turns a small spinner after its label", held);
   // the right side: from the edge, version, CPU, network, memory, disk; each but the version a grey icon and its number
   const ITEMS = ["#sb-disk", "#sb-memory", "#sb-net", "#sb-cpu", "#sb-version"];
   await page.waitForFunction(() => /\d/.test(document.querySelector("#sb-disk").textContent));
@@ -198,18 +197,18 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     const grey = svg && getComputedStyle(svg).color.match(/\d+/g).slice(0, 3).map(Number);
     return { id, right: e.getBoundingClientRect().right, box: cs.borderTopWidth + " " + cs.backgroundColor, text: e.textContent, grey: grey && Math.max(...grey) - Math.min(...grey) };
   }), ITEMS);
-  await check(right.every((e, k) => k === 0 || right[k - 1].right < e.right) && right[4].right > 1300, "disk, memory, network, CPU and version sit at the right, version at the edge", right);
-  await check(right.every((e) => e.box === "0px rgba(0, 0, 0, 0)"), "none has a box", right);
-  await check(right.slice(0, 4).every((e) => e.grey !== null && e.grey <= 12), "the four before the version each have a grey icon", right);
-  await check(/^\d+(\.\d)? (KB|MB|GB)$/.test(right[0].text), 'the disk reads "1.4 MB", with no word', right[0].text);
-  await check(/^\d+ MB$/.test(right[1].text), 'the memory reads "253 MB", with no word', right[1].text);
-  await check(/^\d+(\.\d)? (KB|MB|GB)\/s$/.test(right[2].text), 'the network reads "1.2 MB/s"', right[2].text);
-  await check(/^\d+%$/.test(right[3].text), 'the CPU reads "12%"', right[3].text);
+  await mustHold(right.every((e, k) => k === 0 || right[k - 1].right < e.right) && right[4].right > 1300, "disk, memory, network, CPU and version sit at the right, version at the edge", right);
+  await mustHold(right.every((e) => e.box === "0px rgba(0, 0, 0, 0)"), "none has a box", right);
+  await mustHold(right.slice(0, 4).every((e) => e.grey !== null && e.grey <= 12), "the four before the version each have a grey icon", right);
+  await mustHold(/^\d+(\.\d)? (KB|MB|GB)$/.test(right[0].text), 'the disk reads "1.4 MB", with no word', right[0].text);
+  await mustHold(/^\d+ MB$/.test(right[1].text), 'the memory reads "253 MB", with no word', right[1].text);
+  await mustHold(/^\d+(\.\d)? (KB|MB|GB)\/s$/.test(right[2].text), 'the network reads "1.2 MB/s"', right[2].text);
+  await mustHold(/^\d+%$/.test(right[3].text), 'the CPU reads "12%"', right[3].text);
   const left = await page.evaluate(() => document.querySelector("#sb-now").getBoundingClientRect().left);
-  await check(left < 40, "what the page is doing, from the left", left);
+  await mustHold(left < 40, "what the page is doing, from the left", left);
   // a mild bar between every two items on show, but the four resources
   const seps = await bars(page);
-  await check(seps.length >= 5 && seps.every((x) => x[2] === x[3]), "a vertical bar between every two items on show, none between the four resources", seps);
+  await mustHold(seps.length >= 5 && seps.every((x) => x[2] === x[3]), "a vertical bar between every two items on show, none between the four resources", seps);
   // an item that can be clicked reads as a button under the pointer
   const edge = (sel) => page.evaluate((s) => getComputedStyle(document.querySelector(s), "::after").borderTopColor, sel);
   const plain = await edge("#sb-version");
@@ -217,26 +216,26 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await page.waitForFunction((was) => { const c = getComputedStyle(document.querySelector("#sb-version"), "::after"); return c.borderTopColor !== was && !document.querySelector("#sb-version").getAnimations({ subtree: true }).length; }, plain);
   await shot(page, "1-hovered");
   const hovered = await edge("#sb-version"), fade = await page.evaluate(() => getComputedStyle(document.querySelector("#sb-version"), "::after").transitionDuration);
-  await check(/, 0\)$/.test(plain) && !/, 0\)$/.test(hovered) && parseFloat(fade) > 0 && parseFloat(fade) <= 0.2, "hovering a clickable item fades a button's border in around it, quickly", { plain, hovered, fade });
-  await check(await page.evaluate(() => getComputedStyle(document.querySelector("#sb-now"), "::after").content === "none"), "what cannot be clicked gets no border");
+  await mustHold(/, 0\)$/.test(plain) && !/, 0\)$/.test(hovered) && parseFloat(fade) > 0 && parseFloat(fade) <= 0.2, "hovering a clickable item fades a button's border in around it, quickly", { plain, hovered, fade });
+  await mustHold(await page.evaluate(() => getComputedStyle(document.querySelector("#sb-now"), "::after").content === "none"), "what cannot be clicked gets no border");
   await page.mouse.move(700, 300);
   const pointers = await page.evaluate(() => [...document.querySelectorAll("#statusbar, #statusbar *")].map((e) => getComputedStyle(e).cursor).filter((c) => c === "help"));
-  await check(!pointers.length, "nothing in the status bar shows a question-mark pointer", pointers);
+  await mustHold(!pointers.length, "nothing in the status bar shows a question-mark pointer", pointers);
 
   await loadImage(page);
   await shines(page, ["#annotate-scratch"]);
   await count(page);
-  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
+  await mustHold(await page.evaluate(() => document.querySelector("#switch").hidden), "while the user annotates there is no item view and no switch to one");
   // Python worked about WORK ms of the last two seconds
   await orMissed(page.waitForFunction(() => parseInt(document.querySelector("#sb-cpu").textContent) >= 30, null, { timeout: STEP }));
-  await check(parseInt(await page.textContent("#sb-cpu")) >= 30, "the CPU shows Python at work", await page.textContent("#sb-cpu"));
+  await mustHold(parseInt(await page.textContent("#sb-cpu")) >= 30, "the CPU shows Python at work", await page.textContent("#sb-cpu"));
   await orMissed(page.waitForFunction(() => window.seen["sb-cpu"].spiked, null, { timeout: STEP }));
   const cpuSeen = await page.evaluate(() => ({ ...window.seen["sb-cpu"], color: getComputedStyle(document.querySelector("#sb-cpu svg")).color,
     warn: getComputedStyle(document.documentElement).getPropertyValue("--warn") }));
-  await check(cpuSeen.spiked, "the CPU's sharp rise flashes it", cpuSeen);
-  await check(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
+  await mustHold(cpuSeen.spiked, "the CPU's sharp rise flashes it", cpuSeen);
+  await mustHold(cpuSeen.rolled > 0 && cpuSeen.anim.every((a) => a === "roll") && /^\d+%$/.test(cpuSeen.text), "the CPU rolls its changed digits, reading its number all the while", cpuSeen);
   await orMissed(page.waitForFunction(() => !document.querySelector("#sb-cpu").classList.contains("spike"), null, { timeout: 6000 }));
-  await check(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
+  await mustHold(!(await page.evaluate(() => document.querySelector("#sb-cpu").classList.contains("spike"))), "and the flash fades after a few seconds");
   await shines(page, ["#gt-submit"]);
   // the tasks in the shell's list (req/shell/ground-truth/tasks): a row each, a bar part each, Submit last
   const list = async () => page.evaluate(() => {
@@ -247,14 +246,14 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
       filled: +part.style.getPropertyValue("--done"), submit: !s.disabled, state: s.dataset.state || "" };
   });
   const l0 = await list();
-  await check(l0.rows.join() === "0/1 Count checked,Upload" && l0.last && l0.submit && l0.state === "todo",
+  await mustHold(l0.rows.join() === "0/1 Count checked,Upload" && l0.last && l0.submit && l0.state === "todo",
     "the study's task is a row, 0 of 1 done, and Upload, on, is the last", l0);
-  await check(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
+  await mustHold(l0.open, "annotating, the study's task is open (req/shell/ground-truth/tagging)", l0);
   const lt = await list();
-  await check(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
+  await mustHold(lt.open && lt.body && !lt.done && !lt.tick && lt.filled === 0, "the open task holds what the study puts under it, its bar part empty", lt);
   await page.check("#fx-done");
   const l1 = await list();
-  await check(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
+  await mustHold(l1.rows[0] === "1/1 Count checked" && l1.done && l1.tick && !l1.open && l1.filled === 1 && l1.state === "done",
     "a done task counts, gets its check, fills its bar part, and Submit says the ground truth is done", l1);
   // done, the task stays as one ticked line, its tools folded away, and the tick takes it back (owner, 2026-11-26)
   await atRest(page, '#gt-tasks > li[data-task="check"] .task-body');
@@ -263,11 +262,11 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     return { shown: li.checkVisibility(), tools: document.querySelector("#fx-marks-tools").checkVisibility() || document.querySelector("#fx-done").checkVisibility(),
       ticked: tick.getAttribute("role") === "checkbox" && tick.getAttribute("aria-checked") === "true" && tick.checkVisibility(), words: li.querySelector(".t").textContent.trim() };
   });
-  await check(line.shown && !line.tools && line.ticked && line.words === "1/1 Count checked", "a done task stays as one ticked line, its tools folded away", line);
+  await mustHold(line.shown && !line.tools && line.ticked && line.words === "1/1 Count checked", "a done task stays as one ticked line, its tools folded away", line);
   await page.click('#gt-tasks > li[data-task="check"] .tick');
   await page.waitForFunction(() => !window.fixture.model().checked);
   const back = await list();
-  await check(back.open && !back.done && back.body && await page.evaluate(() => !document.querySelector("#fx-done").checked && document.querySelector("#fx-done").checkVisibility()),
+  await mustHold(back.open && !back.done && back.body && await page.evaluate(() => !document.querySelector("#fx-done").checked && document.querySelector("#fx-done").checkVisibility()),
     "its tick pressed, the task is open again and not done, the study's own check unticked", back);
   await page.check("#fx-done");
   await page.waitForFunction(() => window.fixture.model().checked);
@@ -289,10 +288,10 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await page.click("#sb-memory");
   await tabIs(page, "memory");
   const rows = await page.evaluate(() => [...document.querySelectorAll("#ram-list .entry .name")].map((n) => n.textContent));
-  await check(["Python", "Python's files", "The image"].every((n) => rows.includes(n)), "the Memory tab lists what holds it", rows);
-  await check(!/reserved for its next use/.test(await page.textContent("#usage-dlg")), "with no explanation of Python's memory");
+  await mustHold(["Python", "Python's files", "The image"].every((n) => rows.includes(n)), "the Memory tab lists what holds it", rows);
+  await mustHold(!/reserved for its next use/.test(await page.textContent("#usage-dlg")), "with no explanation of Python's memory");
   const gc = await page.evaluate(() => [...document.querySelectorAll("#usage-dlg button")].filter((x) => /GC|garbage/i.test(x.textContent)).length);
-  await check(gc === 0, "and no Run GC button", gc);
+  await mustHold(gc === 0, "and no Run GC button", gc);
   if (shots) await page.screenshot({ path: path.join(shots, "4-memory.png") });
   // the tabs look alike: the total, then rows of a name, what it is and a size, in the same type
   const look = (tab) => page.evaluate((t) => {
@@ -308,20 +307,20 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     await page.click(`#usage-dlg [role=tab][data-tab=${t}]`);
     for (let k = 0; k < 3; k++) { boxes.push(await page.evaluate(() => { const r = document.querySelector("#usage-dlg").getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(); })); await page.waitForTimeout(150); } // waits on purpose (no event): samples the box over the tab's first redraws
   }
-  await check(new Set(boxes).size === 1, "switching tabs leaves the dialog the same size and place", [...new Set(boxes)]);
+  await mustHold(new Set(boxes).size === 1, "switching tabs leaves the dialog the same size and place", [...new Set(boxes)]);
   // the network tab, by its tab: the page's files, Python and Google Drive, adding up to the status bar's
   await page.click("#usage-dlg [role=tab][data-tab=network]");
   await tabIs(page, "network");
   const net = await page.evaluate(() => [...document.querySelectorAll("#net-list .entry .name")].map((n) => n.textContent));
-  await check(["The page", "Python", "Google Drive"].every((n) => net.includes(n)), "the Network tab splits what was downloaded", net);
+  await mustHold(["The page", "Python", "Google Drive"].every((n) => net.includes(n)), "the Network tab splits what was downloaded", net);
   const netTotal = await page.textContent("#net-total");
-  await check(/downloading \d+(\.\d)? (KB|MB|GB)\/s/.test(netTotal) && /downloaded \d+(\.\d)? (KB|MB|GB) since/.test(netTotal), "it gives the speed and the total", netTotal);
+  await mustHold(/downloading \d+(\.\d)? (KB|MB|GB)\/s/.test(netTotal) && /downloaded \d+(\.\d)? (KB|MB|GB) since/.test(netTotal), "it gives the speed and the total", netTotal);
   if (shots) await page.screenshot({ path: path.join(shots, "5-network.png") });
   const netLook = await look("network");
   await page.click("#usage-dlg [role=tab][data-tab=cpu]");
   await tabIs(page, "cpu");
   const cpu = await page.evaluate(() => [...document.querySelectorAll("#cpu-list .entry .name")].map((n) => n.textContent));
-  await check(["The page", "Python"].every((n) => cpu.includes(n)), "the CPU tab splits the page's thread from Python's", cpu);
+  await mustHold(["The page", "Python"].every((n) => cpu.includes(n)), "the CPU tab splits the page's thread from Python's", cpu);
   if (shots) await page.screenshot({ path: path.join(shots, "6-cpu.png") });
   const cpuLook = await look("cpu");
   await page.keyboard.press("Escape");
@@ -333,7 +332,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await tabIs(page, "storage");
   await page.waitForFunction(() => /keeps/.test(document.querySelector("#storage-total").textContent));
   const total = (await page.textContent("#storage-total")).match(/keeps (.+?) on/)[1];
-  await check((await page.textContent("#sb-disk")) === total, "the disk is the Storage tab's total", [total, await page.textContent("#sb-disk")]);
+  await mustHold((await page.textContent("#sb-disk")) === total, "the disk is the Storage tab's total", [total, await page.textContent("#sb-disk")]);
   for (const g of await page.$$("#storage-list .group > summary")) await g.click();
   if (shots) await page.screenshot({ path: path.join(shots, "7-storage.png") });
   const storeLook = await look("storage");
@@ -342,27 +341,27 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
   await orMissed(page.waitForFunction(() => window.seen["sb-net"].spiked, null, { timeout: STEP }));
   const all = await page.evaluate(() => window.seen);
-  await check(all["sb-net"].spiked, "a fast download flashes the network", all["sb-net"]);
-  await check(Object.values(all).every((x) => x.rolled > 0 && x.anim.every((a) => a === "roll")), "the disk, memory, network and CPU each rolled to a new value", all);
+  await mustHold(all["sb-net"].spiked, "a fast download flashes the network", all["sb-net"]);
+  await mustHold(Object.values(all).every((x) => x.rolled > 0 && x.anim.every((a) => a === "roll")), "the disk, memory, network and CPU each rolled to a new value", all);
   // with reduced motion asked for, a new value changes without rolling
   await page.emulateMedia({ reducedMotion: "reduce" });
   const before = all["sb-net"].rolled;
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
   await orMissed(page.waitForFunction((n) => window.seen["sb-net"].rolled > n, before, { timeout: STEP }));
   const calm = await page.evaluate(() => window.seen["sb-net"]);
-  await check(calm.rolled > before && calm.anim.slice(-1)[0] === "none", "with reduced motion asked for, it changes without rolling", calm);
+  await mustHold(calm.rolled > before && calm.anim.slice(-1)[0] === "none", "with reduced motion asked for, it changes without rolling", calm);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   // the CPU tab's Animations checkbox, checked at first, turns every animation off but the spinners'
   await page.click("#sb-cpu"); await tabIs(page, "cpu");
-  await check(await page.isChecked("#motion"), "the CPU tab's Animations checkbox is checked at first");
+  await mustHold(await page.isChecked("#motion"), "the CPU tab's Animations checkbox is checked at first");
   // each of the tab's two checkboxes explained in a line of its own under it
   const explained = await page.evaluate(() => ["#motion", "#unload-python"].map((sel) => {
     const box = document.querySelector(sel), hint = box.closest("[role=tabpanel] > *").querySelector(".hint");
     return { sel, text: hint?.textContent.trim() ?? "", below: !!hint && hint.getBoundingClientRect().top >= box.getBoundingClientRect().bottom };
   }));
-  await check(explained.every((e) => e.text && e.below), "Animations and Unload Python after each run each carry an explanation under the checkbox", explained);
+  await mustHold(explained.every((e) => e.text && e.below), "Animations and Unload Python after each run each carry an explanation under the checkbox", explained);
   await page.uncheck("#motion"); await page.keyboard.press("Escape");
-  await check(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-motion"))) === false, "unchecked, it is kept for the next visit");
+  await mustHold(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-motion"))) === false, "unchecked, it is kept for the next visit");
   const still = await page.evaluate(() => {
     const cs = (sel, pseudo) => getComputedStyle(document.querySelector(sel), pseudo);
     const b = document.createElement("button"); b.className = "shine"; document.body.append(b);
@@ -371,16 +370,16 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     b.className = "working"; b.disabled = true; out.working = getComputedStyle(b, "::after").animationName; b.remove();
     return out;
   });
-  await check(still.shine === "none" && still.gt === "0s", "nothing shines or fades", still);
-  await check(still.sweep === "none" && still.halo === "none", "a button that would shine looks plain: no light frozen on it, no halo", still);
+  await mustHold(still.shine === "none" && still.gt === "0s", "nothing shines or fades", still);
+  await mustHold(still.sweep === "none" && still.halo === "none", "a button that would shine looks plain: no light frozen on it, no halo", still);
   {
     // a device no one is signed in on: the setting is its own, with no Drive of the tagger's to sync it from
     const seeded = w.device().keeps({ "nor-motion": "false" });
     const kept = await (await seeded.opens("fixture", { until: "title" })).evaluate(() => ({ box: document.querySelector("#motion").checked, motion: document.documentElement.dataset.motion }));
-    await check(!kept.box && kept.motion === "off", "a page opened with the animations turned off opens with them off", kept);
+    await mustHold(!kept.box && kept.motion === "off", "a page opened with the animations turned off opens with them off", kept);
     await seeded.close();
   }
-  await check(still.spin === "spin" && still.working === "spin", "but a spinner still turns", still);
+  await mustHold(still.spin === "spin" && still.working === "spin", "but a spinner still turns", still);
   await page.waitForFunction(() => !document.querySelector("#sb-net").classList.contains("spike"), null, { timeout: 6000 });
   const net0 = await page.evaluate(() => { const s = window.seen["sb-net"]; s.spiked = false; return s.rolled; });
   await page.evaluate((u) => fetch(u, { cache: "no-store" }).then((r) => r.arrayBuffer()), origin + "/big");
@@ -388,9 +387,9 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   // the number written, and whatever it does about it over
   await page.waitForFunction(() => !document.querySelector("#sb-net").getAnimations({ subtree: true }).length);
   const quiet = await page.evaluate(() => window.seen["sb-net"]);
-  await check(quiet.rolled > net0 && quiet.anim.slice(-1)[0] === "none" && !quiet.spiked, "a fast download neither rolls nor flashes the network", quiet);
+  await mustHold(quiet.rolled > net0 && quiet.anim.slice(-1)[0] === "none" && !quiet.spiked, "a fast download neither rolls nor flashes the network", quiet);
   const alike = (a, b) => a.total && b.total && a.name === b.name && a.size === b.size && (!a.what || !b.what || a.what === b.what);
-  await check([memLook, netLook, cpuLook].every((l) => alike(l, storeLook) && alike(l, memLook)), "the four tabs look alike", [storeLook, memLook, netLook, cpuLook]);
+  await mustHold([memLook, netLook, cpuLook].every((l) => alike(l, storeLook) && alike(l, memLook)), "the four tabs look alike", [storeLook, memLook, netLook, cpuLook]);
   await ctx.close();
 }
 
@@ -407,25 +406,25 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own
     await page.waitForFunction(() => ["#sb-res-items", "#sb-res-icon"].every((id) => !document.querySelector(id).getAnimations().length));
     const b = await block();
-    await check((b.items > 150) === want && (want || b.items === 0), what, b);
+    await mustHold((b.items > 150) === want && (want || b.items === 0), what, b);
   };
   await isOpen(false, "on opening the page, the disk, memory, network and CPU are folded into one icon");
   await shot(page, "9-resources-folded");
   const folded = await bars(page);
-  await check(folded.length >= 4 && folded.every((x) => x[2] === x[3]), "folded, a bar between every two items on show, the icon among them", folded);
+  await mustHold(folded.length >= 4 && folded.every((x) => x[2] === x[3]), "folded, a bar between every two items on show, the icon among them", folded);
   const before = await fixed();
-  await check(before.every((x, k) => k === 0 || before[k - 1] < x), "the resources icon, the online icon, the report icon, then the version, toward the right edge", before);
+  await mustHold(before.every((x, k) => k === 0 || before[k - 1] < x), "the resources icon, the online icon, the report icon, then the version, toward the right edge", before);
   const look = await page.evaluate(() => { const s = getComputedStyle(document.querySelector("#sb-res-items")); return { property: s.transitionProperty, ms: parseFloat(s.transitionDuration) * 1000 }; });
-  await check(/max-width|width|all/.test(look.property) && look.ms >= 150, "folding and unfolding is animated", look);
+  await mustHold(/max-width|width|all/.test(look.property) && look.ms >= 150, "folding and unfolding is animated", look);
   await page.hover("#sb-res-icon");
   await isOpen(true, "hovering the icon unfolds the four as they look always open");
-  await check((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left),
+  await mustHold((await block()).icon > 10 && await page.evaluate(() => document.querySelector("#sb-res-items").getBoundingClientRect().right <= document.querySelector("#sb-res-icon").getBoundingClientRect().left),
     "the icon staying, the four opening beside it", await block());
   await shot(page, "9-resources-unfolded");
   const unfolded = await bars(page);
-  await check(unfolded.length && unfolded.every((x) => x[2] === x[3]), "unfolded, no bar between the four nor between them and their icon, one between all else", unfolded);
+  await mustHold(unfolded.length && unfolded.every((x) => x[2] === x[3]), "unfolded, no bar between the four nor between them and their icon, one between all else", unfolded);
   const after = await fixed();
-  await check(after.every((x, k) => x === before[k]), "unfolding moves neither the icon, the online icon, the report icon nor the version", { before, after });
+  await mustHold(after.every((x, k) => x === before[k]), "unfolding moves neither the icon, the online icon, the report icon nor the version", { before, after });
   // too little room: what the page is doing and the four give way; the icons and version stay whole, none
   // overlapping the next, the resources icon inside its block
   await page.evaluate(() => { document.querySelector("#status").textContent = "Loading the study's Python packages, a long message that cannot fit"; });
@@ -441,7 +440,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
         outside: box("#sb-res-icon").right > box("#sb-res").right + 0.5,
         status: box("#sb-now").width < document.querySelector("#status").scrollWidth };
     });
-    await check(!squeezed.right.length && !squeezed.overlap.length && !squeezed.outside && squeezed.status,
+    await mustHold(!squeezed.right.length && !squeezed.overlap.length && !squeezed.outside && squeezed.status,
       `at ${width}px the status gives way, the right-hand items stay whole and apart`, squeezed);
     await shot(page, `11-squeezed-${width}`);
   }
@@ -449,14 +448,14 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await shot(page, "10-resources-hovered");
   await page.mouse.move(700, 300);
   await isOpen(false, "and they fold again once the pointer leaves");
-  await check((await block()).icon > 10, "the icon coming back");
+  await mustHold((await block()).icon > 10, "the icon coming back");
   await page.click("#sb-res-icon");
   await page.waitForFunction(() => document.querySelector("#usage-dlg").open);
   if (shots) await page.screenshot({ path: path.join(shots, "12-resources-setting.png") });
   const mode = await page.evaluate(() => { const b = document.querySelector("#res-mode"); return { type: b?.type, checked: b?.checked, label: b?.closest("label")?.textContent.trim(), row: !!b?.closest(".dlg-row.end"),
     left: b && b.closest("label").getBoundingClientRect().left - b.closest(".dlg-row").getBoundingClientRect().left, level: b && Math.abs(b.closest("label").getBoundingClientRect().bottom - [...b.closest(".dlg-row").querySelectorAll("button")].at(-1).getBoundingClientRect().bottom), selects: document.querySelectorAll("#usage-dlg .res-mode select").length }; });
-  await check(mode.type === "checkbox" && mode.checked && mode.label === "Autohide in statusbar" && !mode.selects, "clicking the icon opens the resources dialog, whose one setting for the block is an Autohide in statusbar checkbox, checked", mode);
-  await check(mode.row && mode.left < 2 && mode.level < 12, "it sits at the left of the dialog's bottom row, in line with its buttons", mode);
+  await mustHold(mode.type === "checkbox" && mode.checked && mode.label === "Autohide in statusbar" && !mode.selects, "clicking the icon opens the resources dialog, whose one setting for the block is an Autohide in statusbar checkbox, checked", mode);
+  await mustHold(mode.row && mode.left < 2 && mode.level < 12, "it sits at the left of the dialog's bottom row, in line with its buttons", mode);
   await page.keyboard.press("Escape"); await page.mouse.move(700, 300);
   await isOpen(false, "closed, the block is folded again");
 
@@ -505,22 +504,22 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     document.documentElement.dataset.motion = "off";
     return getComputedStyle(document.querySelector("#sb-res-items")).transitionDuration;
   });
-  await check(still.split(",").every((d) => parseFloat(d) === 0), "with Animations off, folding and unfolding is not animated", still);
+  await mustHold(still.split(",").every((d) => parseFloat(d) === 0), "with Animations off, folding and unfolding is not animated", still);
   await page.evaluate(() => { document.documentElement.dataset.motion = "on"; });
 
   // always open: as before; kept for the next visit
   await page.click("#sb-res-icon"); await page.uncheck("#res-mode"); await page.keyboard.press("Escape"); await page.mouse.move(700, 300);
   await isOpen(true, "Autohide unchecked, the four show always");
-  await check((await block()).icon > 10, "beside their icon");
-  await check(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-resources"))) === "open", "the choice is kept for the next visit");
+  await mustHold((await block()).icon > 10, "beside their icon");
+  await mustHold(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-resources"))) === "open", "the choice is kept for the next visit");
   await page.click("#sb-disk"); await page.check("#res-mode"); await page.keyboard.press("Escape"); await page.mouse.move(700, 300);
   await isOpen(false, "checked again, they fold");
-  await check(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-resources"))) === "auto", "and auto-hiding is kept");
+  await mustHold(await page.evaluate(() => JSON.parse(localStorage.getItem("nor-resources"))) === "auto", "and auto-hiding is kept");
   // offline, what the page still asks of the network fails as it would, when it asks anything then
   await expecting(NETWORK_GONE, async () => {
     await ctx.setOffline(true);
     await isOpen(false, "going offline does not unfold them", 2500);
-    await check(!(await page.$("#sb-res-icon .no-net")), "the icon carries no offline mark: the online icon says so");
+    await mustHold(!(await page.$("#sb-res-icon .no-net")), "the icon carries no offline mark: the online icon says so");
     await shot(page, "11-resources-hidden-offline");
     await ctx.setOffline(false);
   }, { maybe: true });
@@ -532,7 +531,7 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await page.hover("#sb-res-icon");
   await page.waitForFunction(() => document.querySelector("#sb-res-items").getBoundingClientRect().width > 50);
   await page.click("#sb-res-icon");
-  await check(await page.isChecked("#res-mode"), "a kept Hidden always unfolds on hover and shows Autohide checked");
+  await mustHold(await page.isChecked("#res-mode"), "a kept Hidden always unfolds on hover and shows Autohide checked");
   await ctx.close();
 }
 
@@ -544,35 +543,35 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
     return { on: seen(".on"), off: seen(".off"), title: b.title, colour: getComputedStyle(b.querySelector(".off")).color };
   });
   const on = await icon();
-  await check(on.on && !on.off && /online/i.test(on.title) && /offline/i.test(on.title), "online, a Wi-Fi icon, its tooltip saying online and that it sets up offline", on);
-  await check(!(await page.$("#statusbar .no-net")), "no other item in the status bar carries an offline mark");
+  await mustHold(on.on && !on.off && /online/i.test(on.title) && /offline/i.test(on.title), "online, a Wi-Fi icon, its tooltip saying online and that it sets up offline", on);
+  await mustHold(!(await page.$("#statusbar .no-net")), "no other item in the status bar carries an offline mark");
   // offline, what the page still asks of the network fails as it would, when it asks anything then
   await expecting(NETWORK_GONE, async () => {
     await ctx.setOffline(true);
     await orMissed(page.waitForFunction(() => document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
     const off = await icon();
     const [r, g, bl] = off.colour.match(/\d+/g).map(Number);
-    await check(!off.on && off.off && /offline/i.test(off.title) && !/^online/i.test(off.title), "offline, the Wi-Fi crossed out, its tooltip saying offline", off);
-    await check(r > 150 && g < 120 && bl < 120, "in red", off.colour);
+    await mustHold(!off.on && off.off && /offline/i.test(off.title) && !/^online/i.test(off.title), "offline, the Wi-Fi crossed out, its tooltip saying offline", off);
+    await mustHold(r > 150 && g < 120 && bl < 120, "in red", off.colour);
     await shot(page, "13-online-offline");
     await page.click("#sb-online");
     const tab = await page.evaluate(() => document.querySelector("#usage-dlg").open && document.querySelector("#usage-dlg").dataset.tab);
-    await check(tab === "storage", "clicking it opens the Storage tab, where offline is set up", tab);
+    await mustHold(tab === "storage", "clicking it opens the Storage tab, where offline is set up", tab);
     // a clicked item is not left ringed when its dialog closes, by the keyboard or by the mouse
     const ringed = () => page.evaluate(() => [...document.querySelectorAll("#statusbar *")].filter((e) => {
       const cs = getComputedStyle(e);
       return cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0;
     }).map((e) => e.id || e.className));
     await page.keyboard.press("Escape");
-    await check(!(await ringed()).length, "closing its dialog with Escape leaves no ring in the status bar", await ringed());
+    await mustHold(!(await ringed()).length, "closing its dialog with Escape leaves no ring in the status bar", await ringed());
     await page.click("#sb-online");
     await page.click('#usage-dlg button[value="close"]');
-    await check(!(await ringed()).length, "closing it with its Close button leaves none either", await ringed());
+    await mustHold(!(await ringed()).length, "closing it with its Close button leaves none either", await ringed());
     await ctx.setOffline(false);
   }, { maybe: true });
   await orMissed(page.waitForFunction(() => !document.documentElement.classList.contains("offline"), null, { timeout: 40000 }));
   const back = await icon();
-  await check(back.on && !back.off, "back online, the Wi-Fi icon again", back);
+  await mustHold(back.on && !back.off, "back online, the Wi-Fi icon again", back);
   await ctx.close();
 }
 
@@ -583,24 +582,24 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   await stageIs(page, "Review");
   // another study's label speaks of that study
   const other = await hoverStage(page, "nor");
-  await check(other[1]?.now && other.filter((x) => x.now).length === 1, "in a Review study, hovering NoR Finder's label highlights Develop, its own", other);
+  await mustHold(other[1]?.now && other.filter((x) => x.now).length === 1, "in a Review study, hovering NoR Finder's label highlights Develop, its own", other);
   // with animations off, leaving it closes it all the same
   const was = await page.evaluate(() => { const m = document.documentElement.dataset.motion; document.documentElement.dataset.motion = "off"; return m; });
   await page.mouse.move(1300, 100);
   const closed = await orMissed(page.waitForFunction(() => !document.querySelector("#stage-pop").matches(":popover-open"), null, { timeout: STEP }));
-  await check(closed, "with animations off, the stage's popup closes once the pointer leaves it");
+  await mustHold(closed, "with animations off, the stage's popup closes once the pointer leaves it");
   await page.evaluate((m) => { document.documentElement.dataset.motion = m; }, was);
   await page.evaluate(() => { document.querySelector("#study-menu").open = false; });
   await loadImage(page);
-  await check(await page.evaluate(() => document.querySelector("#switch").hidden), "the shell shows no switch until the study has counted its items");
+  await mustHold(await page.evaluate(() => document.querySelector("#switch").hidden), "the shell shows no switch until the study has counted its items");
   await count(page);
   await shines(page, []);
   await switchIs(page, "Items 1", true, "a Review study's item view shows what was found, how many");
   await page.click("#switch");
   await page.waitForFunction(() => !document.querySelector("#switch").classList.contains("working"));
-  await check(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
+  await mustHold(await page.evaluate(() => !document.querySelector("#items-view").hidden && /pixels/.test(document.querySelector("#fx-item").textContent)),
     "pressing it shows the item view, its card what was found");
-  await check(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Save");
+  await mustHold(await page.evaluate(() => document.querySelector("#gt-submit").offsetParent === null), "and no Save");
   await ctx.close();
   stage = null;
 }

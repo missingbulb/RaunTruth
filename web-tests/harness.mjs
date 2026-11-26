@@ -23,6 +23,7 @@ import { driveIn } from "./fakes/google_drive.mjs";
 import { signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studiesIn } from "./fakes/studies.mjs";
+export { check, mustHold } from "./checks.mjs";
 
 // Playwright, installed beside the tests or globally: a run without it cannot start, and says so (exit 2). The global
 // folder is looked for beside the Node running this before npm is asked for it: asking starts a process, in every test
@@ -422,21 +423,11 @@ export async function expecting(pattern, during, { maybe = false } = {}) {
   return result;
 }
 
-// a test's check, said as it is made: "ok: what", or "FAILED: what" with what was seen instead, as JSON, when given; a
-// failed one fails the run as it exits, whatever exit code the test sets. True when it held
-let failedChecks = 0;
-export function check(ok, what, seen) {
-  if (ok) console.log("ok: " + what);
-  else { failedChecks++; console.error("FAILED: " + what + (seen === undefined ? "" : ": " + JSON.stringify(seen))); }
-  return !!ok;
-}
-
 // stopped by its test at the test's bound: the run ends as a failed one, saying what the page did lately
 process.on("SIGTERM", () => { console.error("stopped by its test, still running"); process.exit(1); });
 
 process.on("exit", (code) => {
   for (const e of [...reading]) { reading.delete(e); e.late(); }
-  if (failedChecks && code === 0) process.exitCode = 1;
   if (unexpected.length) {
     process.stderr.write(`\n${unexpected.length} warning(s) or error(s) no case expected:\n` + [...new Set(unexpected)].map((l) => "  " + l).join("\n") + "\n");
     if (code === 0) process.exitCode = 1;

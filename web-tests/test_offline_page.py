@@ -14,11 +14,9 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..'))
-NODE = shutil.which('node')
 
 
 @pytest.mark.chromium_only
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_site_runs_offline(tmp_path):
     # the site as the release builds it, under this test's own folder: dev/build/site is the build's, which another
     # test's build may rewrite while this one serves it

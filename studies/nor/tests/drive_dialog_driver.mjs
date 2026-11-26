@@ -7,33 +7,25 @@
 // Prints what it measured; exits 1 when something is wrong, 2 when it cannot run. With SHOT, also saves a
 // screenshot of the dialog there.
 //   node tests/drive_dialog_driver.mjs SHOT|- THUMBS IMAGE...
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 
 import { frames } from "../../../web-tests/page_frames.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 
 const [shot, thumbs, ...images] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-const TYPES = { ".jpg": "image/jpeg", ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 let thumbsServed = 0;
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(""); }
-  const ready = u.startsWith("/studies/nor/ready-thumbs/");
-  if (ready && u.endsWith(".jpg")) thumbsServed++;
-  const f = ready ? path.join(thumbs, u.slice("/studies/nor/ready-thumbs/".length)) : repoFile(repo, u);
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
+const { origin, server } = await serveSite({
+  "/web/worker.js": "",
+  "/studies/nor/ready-thumbs/": (q, u) => {
+    if (u.endsWith(".jpg")) thumbsServed++;
+    return { file: path.join(thumbs, u.slice("/studies/nor/ready-thumbs/".length)) };
+  },
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await launch(pw), w = world(browser, origin);
 w.studies.edit("nor", (m) => ({ ...m, driveThumbs: "ready-thumbs/" }));

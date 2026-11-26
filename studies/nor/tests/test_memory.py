@@ -13,7 +13,6 @@ import ctypes
 import gc
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -30,10 +29,8 @@ from drivers import run_driver
 
 # a drawn 200-pixel image that holds candidates, passing and failing, for every finder
 SIDE = 200
-NODE = shutil.which('node')
 KB = 1024
 
-needs_node = pytest.mark.skipif(not NODE, reason='node missing')
 
 
 @pytest.fixture(scope='module')
@@ -82,7 +79,6 @@ def test_session_holds_no_more_after_repeats(crop):
     assert now[1] - base[1] < 100, f'{now[1] - base[1]} more objects after 3 rounds'
 
 
-@needs_node
 def test_bridge_releases_what_it_hands_out():
     run('memory_bridge_driver.mjs')
 
@@ -110,6 +106,5 @@ def page_answers(crop, tmp_path_factory):
 
 
 @pytest.mark.chromium_only
-@needs_node
 def test_page_holds_no_more_after_repeats(crop, page_answers):
     run('memory_page_driver.mjs', page_answers, crop)

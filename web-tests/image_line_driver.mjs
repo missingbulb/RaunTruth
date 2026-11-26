@@ -40,7 +40,6 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 
-let failed = false;
 const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
 w.site.withoutGoogleClient();
@@ -130,7 +129,7 @@ try {
 
   // ---- the fixture, and the real studies, open from Google Drive alone ----
   for (const [id, title] of [["nor", "NoR Finder"], ["vascular", "Vascular Measurements"], ["fixture", "Fixture"]]) {
-    await page.goto(origin + "/web/" + id);
+    await device.visits("/web/" + id, { in: page, until: "none" });
     await mounted(title);
     check(!(await shown("#load-main")) && !(await shown("#load-menu")) && (await shown("#image-menu")) && (await shown("#load-remote")),
       `${title} offers the image selector and Drive's button, and no Load from the computer`);
@@ -268,8 +267,6 @@ try {
   d = await listed();
   check(d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
   await page.click("#remote-dlg button[value=close]");
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await device.close(); await browser.close(); server.close();
 }
-await device.close(); await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

@@ -19,7 +19,6 @@
 //   node web-tests/offline_driver.mjs SITE TIFF [SHOTS]
 import crypto from "node:crypto";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { pressDrive, pickRecent } from "./drive_open.mjs";
 import { until, orMissed } from "./page_until.mjs";
@@ -28,6 +27,7 @@ import { held } from "./held.mjs";
 import { pw, launch, expecting, check } from "./harness.mjs";
 import { siteHeaders } from "./site_headers.mjs";
 import { world } from "./world.mjs";
+import { serveSite, AS_SERVED, CUT } from "./site_server.mjs";
 import { cdnFile } from "./fakes/cdn.mjs";
 
 const [site, tiffPath, shots] = process.argv.slice(2);
@@ -43,7 +43,6 @@ const vascularServed = JSON.stringify({ ...vascular, web: { ...vascular.web, off
 // the site's list of its own files names it by what is served
 const servedList = (list) => ({ ...list, files: list.files.map((f) => f.path === "../studies/vascular/study.json" ? { ...f, sha256: crypto.createHash("sha256").update(vascularServed).digest("hex") } : f) });
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".whl": "application/zip" };
 // what the browser and the page say of a request the network does not carry: each case that takes the network away
 const NETWORK_GONE = /ERR_INTERNET_DISCONNECTED|ERR_FAILED|ERR_EMPTY_RESPONSE|ERR_CONNECTION|Failed to fetch|not up to date/;
 let down = false, pyDown = false; // pyDown: the network gone for the study's Python modules alone
@@ -53,42 +52,23 @@ const slowFile = held();
 // the site's list of its files asked for while the network is gone, kept unanswered until let go: the page not yet
 // told that the site does not answer
 let unanswered = null;
-// as Cloudflare serves the site: /<name> is <name>.html, a folder its index.html, a folder's address with no slash
-// redirected to it with one and a file's with one to it without, the headers _headers names added; and an unlisted
-// study's address in the app the app's page too, as the tests' repo server serves it, so the fixture study runs
+// the built site as the host serves it, the list of its files as this case has it, and the network as it goes and comes
 const HEADERS = siteHeaders(site);
-const server = http.createServer((q, r) => {
-  const url = new URL(q.url, "http://x");
-  let u = decodeURIComponent(url.pathname);
-  if (down && unanswered && u === "/app/offline.json") return void unanswered.hold().then(() => q.socket.destroy());
-  if (down || (pyDown && u.endsWith(".py"))) return q.socket.destroy();
-  const at = path.join(site, u), folder = fs.existsSync(at) && fs.statSync(at).isDirectory();
-  if (folder !== u.endsWith("/") && (folder || fs.existsSync(at.replace(/\/$/, "") + ".html") || /^\/app\/[\w-]+\/$/.test(u))) {
-    r.writeHead(307, { location: (folder ? u + "/" : u.replace(/\/$/, "")) + url.search });
-    return r.end();
-  }
-  if (u === "/app/offline.json") {
-    const list = servedList(JSON.parse(fs.readFileSync(path.join(site, "app", "offline.json"))));
-    if (!release) { r.writeHead(200, { "content-type": "application/json", ...HEADERS[u] }); return r.end(JSON.stringify(list)); }
-    list.files = [...list.files, { path: "slow.js", sha256: "0".repeat(64) }];
-    r.writeHead(200, { "content-type": "application/json" });
-    return r.end(JSON.stringify(list));
-  }
-  if (release && u === "/app/slow.js") return void slowFile.hold().then(() => { r.writeHead(200, { "content-type": "text/javascript" }); r.end(""); });
-  if (u === "/studies/vascular/study.json") { r.writeHead(200, { "content-type": "application/json" }); return r.end(vascularServed); }
-  let f = path.join(site, u);
-  if (u.endsWith("/")) f = path.join(f, "index.html");
-  else if (!fs.existsSync(f) && fs.existsSync(f + ".html")) f += ".html";
-  else if (/^\/app\/[\w-]+$/.test(u) && fs.existsSync(path.join(site, "studies", u.slice(5), "study.json"))) f = path.join(site, "app", "index.html");
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream", "content-length": fs.statSync(f).size, ...HEADERS[u] });
-  if (q.method === "HEAD") return r.end();
-  fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
-
-let failed = false;
+const { origin, server } = await serveSite({
+  "/": async (q, u) => {
+    if (down && unanswered && u === "/app/offline.json") { await unanswered.hold(); return CUT; }
+    if (down || (pyDown && u.endsWith(".py"))) return CUT;
+    if (u === "/app/offline.json") {
+      const list = servedList(JSON.parse(fs.readFileSync(path.join(site, "app", "offline.json"))));
+      if (!release) return { type: "application/json", headers: HEADERS[u], body: JSON.stringify(list) };
+      list.files = [...list.files, { path: "slow.js", sha256: "0".repeat(64) }];
+      return { type: "application/json", body: JSON.stringify(list) };
+    }
+    if (release && u === "/app/slow.js") { await slowFile.hold(); return { type: "text/javascript", body: "" }; }
+    if (u === "/studies/vascular/study.json") return { type: "application/json", body: vascularServed };
+    return AS_SERVED;
+  },
+}, { built: site });
 
 const browser = await launch(pw), w = world(browser, origin);
 // a profile of its own, as a browser's private window can install nothing, with the site's own worker and the
@@ -126,11 +106,11 @@ try {
   // a first visit, no copy of the site kept yet, the network dropping as the study's own Python modules are fetched:
   // the status says what the network's going stops, never Python's traceback
   {
-    const fresh = await launch(pw), first = await fresh.newPage();
+    const fresh = await launch(pw), firstVisit = world(fresh, origin).device().withWorker().welcomed(null);
     // the page's requests failing as the network drops
     await expecting(NETWORK_GONE, async () => {
       pyDown = true;
-      await first.goto(origin + "/app/fixture");
+      const first = await firstVisit.visits("/app/fixture", { until: "none" });
       await count(first);
       // the status and the spinner read at the one moment the failure is told: the site still answering, the page
       // soon takes the network as back and tries the Python again, which is its own, later state
@@ -144,7 +124,7 @@ try {
     });
   }
 
-  await page.goto(origin + "/app/fixture");
+  await device.visits("/app/fixture", { in: page, until: "none" });
   await count(page); await counted();
   check(true, "the fixture study's Python runs online");
   check(!(await page.$("link[rel=manifest]")), "the page names no app manifest before the user asks for the app (req/shell/offline/per-study)");
@@ -245,7 +225,7 @@ try {
     await ctx.setOffline(true); down = true;
     const reached = await page.evaluate(() => fetch("https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide-lock.json?offline-probe").then(() => true, () => false));
     check(!reached, "offline, nothing the cache lacks is reached, the service worker's own downloads included");
-    await page.goto(origin + "/app/fixture");
+    await device.visits("/app/fixture", { in: page, until: "none" });
     await orMissed(page.waitForFunction(() => document.querySelector("#title")?.textContent, null, { timeout: 10000 }));
     check(!!(await page.textContent("#title")), "offline, the page opens at its address: " + (await page.textContent("#title")));
     await count(page); await counted(60000);
@@ -277,13 +257,13 @@ try {
 
     // the addresses the site redirects online lead where it would: the app's with no slash, a study's with one
     for (const [from, to] of [["/app", "/app/"], ["/app/vascular/", "/app/vascular"]]) {
-      await page.goto(origin + from).catch(() => {});
+      await device.visits(from, { in: page, until: "none" }).catch(() => {});
       await orMissed(page.waitForFunction(() => window.$ && $("#title").textContent, null, { timeout: 10000 }));
       const at = new URL(page.url()), styled = await page.evaluate(() => [...document.styleSheets].some((s) => s.cssRules.length)).catch(() => false);
       check(at.origin === origin && at.pathname === to && styled && !!(await page.textContent("#title").catch(() => "")),
         `offline, ${from} opens at ${to}, styled and running: ${page.url()}`);
     }
-    await page.goto(origin + "/app/vascular");
+    await device.visits("/app/vascular", { in: page, until: "none" });
     await page.waitForFunction(() => window.$ && /^Ready/.test($("#status").textContent), null, { timeout: 60000 });
     check(true, "offline, the prepared study opens");
     await pressDrive(page);
@@ -295,7 +275,7 @@ try {
     await orMissed(page.waitForFunction(() => window.shellForTests.page.get("image")?.name === "stack two.tif", null, { timeout: 60000 }));
     check((await page.evaluate(() => window.shellForTests.page.get("image")?.name)) === "stack two.tif", "offline, a kept image opens");
 
-    await page.goto(origin + "/app/nor");
+    await device.visits("/app/nor", { in: page, until: "none" });
     await orMissed(page.waitForFunction(() => /not on this device/i.test(document.querySelector("#status").textContent), null, { timeout: 60000 }));
     check(/not on this device/i.test(await statusText()) && !/Error/.test(await statusText()) && !(await page.$eval("#status", (e) => e.classList.contains("err"))),
       "offline, a study whose Python is not here says so before any Run, not as an error: " + (await statusText()));
@@ -331,7 +311,7 @@ try {
   // the network goes mid-session while the browser still says it is online (a dead Wi-Fi), the Drive dialog open on
   // the study's folder: the page notices by itself, and the dialog follows
   // the vascular study's own folder, its images kept here, its subfolder never listed in the dialog
-  await page.goto(origin + "/app/vascular");
+  await device.visits("/app/vascular", { in: page, until: "none" });
   await page.waitForFunction(() => window.$ && $("#title").textContent);
   await pressDrive(page);
   await page.waitForSelector("#remote-dlg[open]");
@@ -368,7 +348,7 @@ try {
   unanswered = held(); down = true;
   await expecting(NETWORK_GONE, async () => {
     const failing = orMissed(page.waitForEvent("console", { predicate: (m) => /not kept yet/.test(m.text()), timeout: 60000 }));
-    await page.goto(origin + "/app/nor");
+    await device.visits("/app/nor", { in: page, until: "none" });
     const told = await failing;
     check(wheels > 0 && !!told && !(await page.isVisible("#sb-online .off")), `a file of the study's Python (${wheels} taken off this device) fails while the page still takes the network as there`);
     unanswered.release();
@@ -392,9 +372,8 @@ try {
   await orMissed(page.waitForSelector("#sb-online .off", { state: "hidden", timeout: 15000 }));
   check(!(await page.isVisible("#sb-online .off")), `back online with a release to copy, the online icon shows online within seconds (${Date.now() - back} ms)`);
 } catch (e) {
-  failed = true; console.error("FAILED: " + (e.stack || e));
   console.error("status: " + (await statusText().catch(() => "(no page)")));
+  throw e;
 } finally {
   await device.close(); await browser.close(); server.close();
 }
-process.exit(failed ? 1 : 0);

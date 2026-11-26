@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
@@ -24,6 +24,5 @@ def three(tmp_path):
     return root
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_follows_the_stage_table(answers, three):
     run('stage_table_driver.mjs', answers[0], answers[1], str(three), timeout=400)

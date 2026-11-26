@@ -3,7 +3,6 @@ makes look alike, the most frequent such word first, and leaves every other word
 (algorithm/reading.py) and the page's tagger tools' (web/reading.js) alike, on every case."""
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -19,9 +18,6 @@ from drivers import run_driver
 
 
 def spell(words, texts):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node missing')
     script = (f'import {{ spelling }} from {json.dumps("file://" + os.path.abspath(READING_JS))};'
               f'const s = spelling({json.dumps(words)});'
               f'console.log(JSON.stringify({json.dumps(texts)}.map(s)));')
@@ -76,9 +72,6 @@ def test_the_page_keeps_offline_the_word_list_it_fetches():
     """WORDS.list in reading.js is the address the page fetches; study.json's web.offline keeps that same address
     with the study's Python, lab/shelves_words.py reads it from there, and the lab's native services read the same
     list (study.json's services.words)."""
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node missing')
     script = f'import {{ WORDS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(WORDS.list);'
     fetched = run_driver(None, node_args=['--input-type=module', '-e', script], timeout=60).stdout.strip()
     study = json.load(open(os.path.join(HERE, '..', 'study.json')))
@@ -88,9 +81,6 @@ def test_the_page_keeps_offline_the_word_list_it_fetches():
 def test_the_lab_runs_the_text_finder_the_page_keeps_offline():
     """study.json's services.det, the model the lab's native text finder loads, is the address the page fetches the
     text finder from (reading.js's MODELS.find) and keeps offline."""
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node missing')
     script = f'import {{ MODELS }} from {json.dumps("file://" + os.path.abspath(READING_JS))}; console.log(MODELS.find);'
     name = run_driver(None, node_args=['--input-type=module', '-e', script], timeout=60).stdout.strip()
     study = json.load(open(os.path.join(HERE, '..', 'study.json')))

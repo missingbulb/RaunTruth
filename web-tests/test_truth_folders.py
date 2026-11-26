@@ -4,20 +4,16 @@ in-memory Drive stands in for Google's, so these cases cannot catch Drive refusi
 the stand-in Drive do."""
 import json
 import os
-import shutil
 
 import pytest
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 @pytest.fixture(scope='module')
 def out():
-    if not NODE:
-        pytest.skip('node missing')
     r = run_driver(os.path.join(HERE, 'truth_folders_driver.mjs'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)

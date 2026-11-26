@@ -22,7 +22,6 @@ const { origin, server } = await serveSite({ "/web/worker.js": "" });
 const browser = await launch(pw), w = world(browser, origin);
 // the deploy with a Google key
 w.site.withoutGoogleClient();
-let failed = false;
 // on the Drive fake every folder is empty: what the dialog opens on is what is checked, not what it lists; listed,
 // the folders listed since the test cleared them
 const fixture = w.folder("A folder").public(), pasted = w.folder("A folder").public();
@@ -34,11 +33,8 @@ const listed = () => drive.calls.slice(listedFrom).filter((c) => c.kind === "lis
 // resolves at the next folder the dialog lists
 const nextListing = () => drive.next((c) => c.kind === "list");
 // one device's page, taken to each study's address in turn
-const page = await w.device().opens("fixture", { until: "title" });
-const visit = async (study) => {
-  await page.goto(`${origin}/web/${study ?? ""}`);
-  await page.waitForFunction(() => window.$ && $("#title").textContent);
-};
+const device = w.device(), page = await device.opens("fixture", { until: "title" });
+const visit = (study) => device.visits(`/web/${study ?? ""}`, { in: page, until: "title" });
 
 // what the Drive dialog opens on, in this study (none: the Image Viewer): the link in its field where it takes one,
 // else the link of the folder it lists
@@ -76,8 +72,6 @@ try {
   at = await opensOn("fixture");
   check(at === FIXTURE_FOLDER, `a link pasted elsewhere leaves a study's folder: ${at}`);
   check(!(await page.evaluate(() => { $("#load-remote").click(); return $("#remote-link").checkVisibility(); })), "and a study's dialog has no link to paste");
-} catch (e) {
-  failed = true; console.error(e);
+} finally {
+  await browser.close(); server.close();
 }
-await browser.close(); server.close();
-process.exit(failed ? 1 : 0);

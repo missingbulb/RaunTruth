@@ -4,7 +4,6 @@ that throws and a Drive write nobody asked for, each with the step a replay star
 import json
 import os
 import re
-import shutil
 import subprocess
 
 import pytest
@@ -13,7 +12,6 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 # a walk of a few steps: booting its world and settling after each step, well inside this
 WALK_SECONDS = 300
 
@@ -31,7 +29,6 @@ def walked(run):
     return [{k: v for k, v in s['action'].items() if k != 'said'} for s in run['steps']]
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_seed_walks_the_same_steps_and_a_replay_takes_them_again(tmp_path):
     first = explore(tmp_path / 'one', '--world', 'visitor', '--seed', '7', '--steps', '12')
     assert len(first['steps']) == 12
@@ -46,7 +43,6 @@ def test_a_seed_walks_the_same_steps_and_a_replay_takes_them_again(tmp_path):
     assert walked(replayed) == walked(first)
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_control_that_throws_is_found(tmp_path):
     run = explore(tmp_path, '--world', 'visitor', '--seed', '3', '--steps', '10', '--focus', '#theme', '--plant', 'throw:#theme')
     found = [f for f in run['findings'] if f['oracle'] == 'uncaught' and 'planted fault' in f['what']]
@@ -57,7 +53,6 @@ def test_a_control_that_throws_is_found(tmp_path):
     assert any(f['sig'] == found[0]['sig'] for f in replayed['findings'])
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_drive_write_nobody_asked_for_is_found(tmp_path):
     run = explore(tmp_path, '--world', 'owner', '--seed', '5', '--steps', '8', '--plant', 'write:3')
     found = [f for f in run['findings'] if f['oracle'] == 'driveWrites' and 'planted.txt' in f['what']]
@@ -66,7 +61,6 @@ def test_a_drive_write_nobody_asked_for_is_found(tmp_path):
     assert run['steps'][found[0]['step']]['action']['kind'] in ('click', 'canvas', 'drag', 'key')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_cdn(tmp_path):
     click = {'kind': 'click', 'family': 'preferences', 'file': 'stack', 'confirm': True}
     plan = {'world': {'name': 'annotator', 'path': os.path.join(HERE, 'worlds', 'annotator.json')}, 'seed': 1, 'focus': [], 'plants': [],
@@ -77,7 +71,6 @@ def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_
     assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_screenshot_for_the_owner_has_two_device_pixels_to_a_css_pixel(tmp_path):
     from PIL import Image
     run = explore(tmp_path, '--world', 'phone', '--seed', '1', '--steps', '12')
@@ -86,7 +79,6 @@ def test_a_screenshot_for_the_owner_has_two_device_pixels_to_a_css_pixel(tmp_pat
     assert Image.open(tmp_path / shots[0]).size[0] == 2 * 390
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_press_repeated_that_answers_as_before_is_not_a_dead_control(tmp_path):
     click = {'kind': 'click', 'family': 'a control', 'file': 'large', 'confirm': True}
     memory = '#usage-dlg > form > div:nth-of-type(1) > div > button:nth-of-type(2)'
@@ -108,7 +100,6 @@ def replayed(tmp_path, world, steps):
     return explore(tmp_path / 'run', '--replay', str(tmp_path / 'plan.json'))
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_study_that_could_not_come_in_is_not_held_to_its_shell_states(tmp_path):
     # offline, the vascular study's file cannot be fetched: the address names it, the page still shows the study before
     run = replayed(tmp_path, 'offline-tagger', [
@@ -119,7 +110,6 @@ def test_a_study_that_could_not_come_in_is_not_held_to_its_shell_states(tmp_path
     assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
     script = """
     import { bookkeeping } from './oracles.mjs';
@@ -142,7 +132,6 @@ def test_bookkeeping_is_allowed_only_where_the_step_stood_to_make_it():
     assert 'settings' in signed and 'signin' in signed and 'storage.nor-google-sign-in' in signed
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp_path):
     run = replayed(tmp_path, 'annotator', [
         {'kind': 'click', 'key': '#load-remote', 'text': ''},
@@ -154,7 +143,6 @@ def test_the_details_the_images_name_unfolds_are_not_found_wrong_for_showing(tmp
     assert not [f for f in run['findings'] if f['oracle'] == 'shellStates'], run['findings']
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_undo_is_held_to_put_back_only_a_step_that_made_history():
     script = """
     import { ORACLES } from './oracles.mjs';
@@ -173,7 +161,6 @@ def test_undo_is_held_to_put_back_only_a_step_that_made_history():
     assert view_toggle == 0 and history_made == 1
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_refusal_the_world_itself_caused_is_not_found_wrong(tmp_path):
     # the owner stops sharing the study's folder while the dialog that lists it is open: Drive answers the page's next read
     # of the folder 404, which Chromium logs and the page tells the person of
@@ -217,7 +204,6 @@ def numbered(listing, words):
     return found[0]
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_path):
     s = Session(tmp_path / 's', '--world', 'visitor', '--persona', 'user')
     try:
@@ -254,7 +240,6 @@ def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_
     assert opened['happened']['motions'], opened['happened']
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_control_that_looks_unlike_its_neighbours_is_named_the_odd_one_out(tmp_path):
     s = Session(tmp_path / 's', '--world', 'visitor', '--plant', 'style:#sb-report { border-radius: 9px !important }')
     try:

@@ -20,7 +20,6 @@ const [shots] = process.argv.slice(2);
 const PNG = image.png("a.png"), FILES = ["a.png", "b.png", "c.tif"];
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
-let failed = false;
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // the deploy's Google key and a folder of three images on Drive
 w.site.withoutGoogleClient();
@@ -125,8 +124,6 @@ try {
     await page.waitForFunction(() => !$("#remote-throttle").hidden);
   });
   check((await wait()).notice, "a refused read for a TIFF row's badge starts the wait too");
-} catch (e) {
-  failed = true; console.error("FAILED: " + e.message);
+} finally {
+  await device.close(); await browser.close(); server.close();
 }
-await device.close(); await browser.close(); server.close();
-process.exitCode = failed ? 1 : 0;

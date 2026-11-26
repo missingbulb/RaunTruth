@@ -17,7 +17,7 @@ import fs from "node:fs";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
-import { pw, launch } from "../../../web-tests/harness.mjs";
+import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world, DRIVE_FILE } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { stepsOf } from "../../../web-tests/page_steps.mjs";
@@ -50,7 +50,6 @@ const browser = await launch(pw), w = world(browser, origin);
 w.site.withGoogle();
 const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 // the image on Drive, in the study's own folder
 const DRIVE_ID = w.studyFolder("nor").holds({ name: "corner.tif", mimeType: "image/tiff", bytes: fs.readFileSync(image) }).id;
 
@@ -128,8 +127,8 @@ async function markAndVote(page) {
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const ran = await crumbs(page);
-  await check(ran === "Load image › Run algorithm › Review all items* | ", `once it has run, Review all items is: ${ran}`);
-  await check(await gtColour(page) === "todo", "with no verdict the Ground truth button is red");
+  mustHold(ran === "Load image › Run algorithm › Review all items* | ", `once it has run, Review all items is: ${ran}`);
+  mustHold(await gtColour(page) === "todo", "with no verdict the Ground truth button is red");
   // the walk opens once tagging starts (req/shell/ground-truth/tagging), framing its first area; the view is put back
   // as it was, the whole image, once it rests, so a right click lands on the image point it aims at
   const rest = () => page.waitForFunction(() => {
@@ -142,37 +141,37 @@ async function markAndVote(page) {
   await rest();
   const m = await middle(page);
   await page.mouse.click(m.sx, m.sy, { button: "right" });
-  await check(await page.isVisible("#point-menu") && (await page.textContent('#point-menu [role="menuitem"]')) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
+  mustHold(await page.isVisible("#point-menu") && (await page.textContent('#point-menu [role="menuitem"]')) === "Add a NoR Here", "a right click on the image offers Add a NoR Here");
   await page.click('#point-menu [role="menuitem"]');
   const added = await page.evaluate(() => ({ sel: st.sel, c: nor.candOf(st.sel) }));
-  await check(added.sel === "u1" && Math.hypot(added.c.cx - m.x, added.c.cy - m.y) < 1, `the added NoR is centred where clicked and selected (${added.c.cx}, ${added.c.cy})`);
-  await check(await page.$$eval("#overlay .added .glow", (c) => c.length) === 1, "it glows on the image");
-  await check(await page.$$eval("#task-card .card.added", (c) => c.length) === 1 && await page.$$eval("#task-card .handle", (h) => h.length) === 6,
+  mustHold(added.sel === "u1" && Math.hypot(added.c.cx - m.x, added.c.cy - m.y) < 1, `the added NoR is centred where clicked and selected (${added.c.cx}, ${added.c.cy})`);
+  mustHold(await page.$$eval("#overlay .added .glow", (c) => c.length) === 1, "it glows on the image");
+  mustHold(await page.$$eval("#task-card .card.added", (c) => c.length) === 1 && await page.$$eval("#task-card .handle", (h) => h.length) === 6,
     "its task's card shows it with six handles");
   // a green end dragged off the axis turns it; the red ends follow onto the new axis
   await drag(page, await handle(page, "length", 1), 0, -40);
   let L = await page.evaluate(() => nor.candOf("u1").lines);
-  await check(Math.abs(L.length[1][1] - L.length[0][1]) > 3 && offAxis(L) < 0.05, `a dragged green end turns the axis, the red ends staying on it (${offAxis(L).toFixed(3)} px off)`);
+  mustHold(Math.abs(L.length[1][1] - L.length[0][1]) > 3 && offAxis(L) < 0.05, `a dragged green end turns the axis, the red ends staying on it (${offAxis(L).toFixed(3)} px off)`);
   // a width end sets the width
   const w0 = await page.evaluate(() => nor.candOf("u1").m.width);
   await drag(page, await handle(page, "width", 0), 0, -25);
   const w1 = await page.evaluate(() => nor.candOf("u1").m.width);
-  await check(w1 > w0 + 1, `a dragged width end widens the NoR (${w0.toFixed(1)} to ${w1.toFixed(1)} px)`);
+  mustHold(w1 > w0 + 1, `a dragged width end widens the NoR (${w0.toFixed(1)} to ${w1.toFixed(1)} px)`);
   // Escape in the middle of a handle's drag puts it back, and the NoR keeps its lines
   {
     const lines = () => page.evaluate(() => JSON.stringify(nor.candOf("u1").lines)), kept = await lines(), at = await handle(page, "width", 0);
     const mid = await escapedDrag(page, at, 0, -25, () => handle(page, "width", 0));
     const back = await handle(page, "width", 0);
-    await check(Math.abs(mid[1] - at[1]) > 10 && Math.hypot(back[0] - at[0], back[1] - at[1]) < 1 && await lines() === kept,
+    mustHold(Math.abs(mid[1] - at[1]) > 10 && Math.hypot(back[0] - at[0], back[1] - at[1]) < 1 && await lines() === kept,
       "Escape mid-drag puts a handle back where it was, the NoR's lines unchanged", { at, mid, back });
   }
   // with another candidate voted on, only the added NoR keeps the button red
   await page.evaluate(() => nor.decide(st.order[0].i, "approve"));
   const waiting = await page.$eval("#gt-submit", (b) => ({ state: b.dataset.state, why: b.title }));
   await page.evaluate(() => nor.decide(st.order[0].i, null));
-  await check(waiting.state === "todo" && /Approve or reject the 1 NoR you added/.test(waiting.why), `an added NoR without a verdict keeps the button red: "${waiting.why}"`);
+  mustHold(waiting.state === "todo" && /Approve or reject the 1 NoR you added/.test(waiting.why), `an added NoR without a verdict keeps the button red: "${waiting.why}"`);
   await page.click("#task-card .verdict .up");
-  await check(await page.$$eval("#overlay .added .glow", (c) => c.length) === 0, "approving it stops the glow");
+  mustHold(await page.$$eval("#overlay .added .glow", (c) => c.length) === 0, "approving it stops the glow");
   // in the finalists' task, a thumbs up on the first candidate, a thumbs down on the third; the second, skipped, stays undecided
   await page.click('#gt-counters > [data-task="pass"]');
   await page.click("#task-card .verdict .up");
@@ -185,11 +184,11 @@ async function markAndVote(page) {
     await drag(page, await handle(page, "red", 0), 15, 20);
     const M = await page.evaluate(() => nor.linesOf(nor.candOf(st.sel)));
     const moved = Math.hypot(M.red[0][0] - L.red[0][0], M.red[0][1] - L.red[0][1]);
-    await check(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length) && moved > 0.5,
+    mustHold(offAxis(M) < 0.05 && JSON.stringify(M.length) === JSON.stringify(L.length) && moved > 0.5,
       `a red end dragged off the axis slides along it (${moved.toFixed(1)} px), the green ends unmoved (${offAxis(M).toFixed(3)} px off)`);
   }
   await page.click("#task-card .verdict .down");
-  await check(await gtColour(page) === "part", "with some verdicts but a finalist left the button is orange");
+  mustHold(await gtColour(page) === "part", "with some verdicts but a finalist left the button is orange");
   return page.evaluate(() => ({ undecided: st.order.length - st.forced.size }));
 }
 
@@ -197,14 +196,14 @@ async function markAndVote(page) {
 async function popup(page) {
   // Save is the last of the tasks (req/nor/truth/tasks)
   await page.click("#gt-submit");
-  await check(await page.isVisible("#gt-dlg"), "the Ground truth button opens its popup");
+  mustHold(await page.isVisible("#gt-dlg"), "the Ground truth button opens its popup");
   // a checklist of every issue, the resolved ones crossed out: what is still open
   const items = await page.$$eval("#gt-problems li", (li) => li.map((l) => ({ ok: l.classList.contains("ok"), struck: getComputedStyle(l.querySelector("span")).textDecorationLine, text: l.textContent })));
   const has = await page.evaluate(() => ({ added: st.added.length > 0 }));
-  await check(items.length === 4 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
+  mustHold(items.length === 4 + has.added && items.every((t) => (t.struck === "line-through") === t.ok),
     `the popup lists every issue that applies, crossing out the resolved ones (${items.filter((t) => t.ok).length} of ${items.length})`);
   const line = (re) => items.find((t) => re.test(t.text));
-  await check(!!line(/you added/) === has.added && !line(/mask/),
+  mustHold(!!line(/you added/) === has.added && !line(/mask/),
     `the added NoRs are listed only when there are some, and the summary's mask never (${items.map((t) => t.text).join(" | ")})`);
   return items.filter((t) => !t.ok).map((t) => t.text).join(" | ");
 }
@@ -213,13 +212,13 @@ const blue = (page) => page.$$eval("#gt-dlg button.primary", (b) => b.map((x) =>
 // the popup read and shut, then the analysis downloaded from the Analysis box's header
 async function download(page) {
   const said = await popup(page);
-  await check(!(await page.$("#gt-export")), "the popup has no Export file");
+  mustHold(!(await page.$("#gt-export")), "the popup has no Export file");
   await page.click("#gt-close");
   await page.click("#analysis-dl");
   const offered = await page.evaluate(() => [...document.querySelectorAll("#analysis-dl-menu:not([hidden]) [role=menuitem]")].map((b) => b.textContent.trim()));
-  await check(offered.join("|") === "Analysis (JSON)|Candidates (CSV)", `Download Analysis opens a menu of the analysis and the candidates' table (${offered.join("|")})`);
+  mustHold(offered.join("|") === "Analysis (JSON)|Candidates (CSV)", `Download Analysis opens a menu of the analysis and the candidates' table (${offered.join("|")})`);
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click('#analysis-dl-menu [data-key="analysis"]')]);
-  await check(await page.isHidden("#analysis-dl-menu"), "which shuts once one is chosen");
+  mustHold(await page.isHidden("#analysis-dl-menu"), "which shuts once one is chosen");
   return { said, name: dl.suggestedFilename(), gt: JSON.parse(fs.readFileSync(await dl.path(), "utf8")) };
 }
 const csvRows = async (page, id) => {
@@ -249,11 +248,11 @@ async function mask(page) {
       return page.evaluate(() => !!$("#overlay .lasso-live"));
     });
     const after = await page.evaluate(() => ({ mask: st.mask.length, lassoing: $("#scroller").classList.contains("lassoing"), line: !!$("#overlay .lasso-live") }));
-    await check(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
+    mustHold(live && after.mask === masked && !after.lassoing && !after.line, "Escape mid-lasso draws no mask and ends the lasso", { live, masked, after });
   }
   await lasso(page, [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]]);
   const fit = await page.evaluate(() => ({ w: st.W * st.zoom, h: st.H * st.zoom, sw: $("#scroller").clientWidth, sh: $("#scroller").clientHeight }));
-  await check(fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
+  mustHold(fit.w <= fit.sw + 1 && fit.h <= fit.sh + 1, `Add mask shows the whole image (${JSON.stringify(fit)})`);
   // what the summary should count: the finalists whose centre lies in the middle square
   const inside = (page) => page.evaluate(() => [...nor.addedCands(), ...st.order].filter((c) => {
     const x = c.cx / st.W, y = c.cy / st.H, mid = x > 0.25 && x < 0.75 && y > 0.25 && y < 0.75, hole = x > 0.4 && x < 0.6 && y > 0.4 && y < 0.6;
@@ -261,24 +260,24 @@ async function mask(page) {
   }).map((c) => [c.i, nor.result(c.i) === null]));
   let want = await inside(page);
   const head = () => page.textContent("#summary > div");
-  await check(want.length > 0 && want.length < (await page.evaluate(() => st.order.length)), `the lasso holds some candidates and not others (${want.length})`);
-  await check((await head()).startsWith(`${want.filter(([, p]) => p).length} NoRs inside the mask`) && passes > want.filter(([, p]) => p).length,
+  mustHold(want.length > 0 && want.length < (await page.evaluate(() => st.order.length)), `the lasso holds some candidates and not others (${want.length})`);
+  mustHold((await head()).startsWith(`${want.filter(([, p]) => p).length} NoRs inside the mask`) && passes > want.filter(([, p]) => p).length,
     `the summary counts only the finalists inside the mask: "${await head()}"`);
-  await check(await page.isVisible("#mask-clear"), "Clear mask shows while a mask is on");
-  await check(await page.$$eval("#overlay .mask-marks .edge:not(.under)", (e) => e.length) === 1 && !(await page.$("#overlay .mask-marks .fill")),
+  mustHold(await page.isVisible("#mask-clear"), "Clear mask shows while a mask is on");
+  mustHold(await page.$$eval("#overlay .mask-marks .edge:not(.under)", (e) => e.length) === 1 && !(await page.$("#overlay .mask-marks .fill")),
     "one area is drawn as its border only");
   // density: the finalists inside over the lassoed square's area, a quarter of the image, per mm²
   const n = want.filter(([, p]) => p).length, sq = await page.evaluate(() => 0.25 * st.W * st.H * st.um * st.um * 1e-6);
   // the shell's Download Summary (req/shell/summary/download): measurement, unit and value in its fourth to sixth columns
   const dens = (await csvRows(page, "#summary-dl")).map((r) => r.split(",")).find((r) => r[3] === "Density" && r[4] === "per mm²");
   const got = dens && parseFloat(dens[5]);
-  await check(got && Math.abs(got / (n / sq) - 1) < 0.05, `the Summary CSV gives the finalists' density inside the mask (${got} vs ${(n / sq).toFixed(0)} per mm²)`);
-  await check((await page.textContent("#summary .density")).includes(Math.round(got).toString()), `the summary shows the density: "${await page.textContent("#summary .density")}"`);
+  mustHold(got && Math.abs(got / (n / sq) - 1) < 0.05, `the Summary CSV gives the finalists' density inside the mask (${got} vs ${(n / sq).toFixed(0)} per mm²)`);
+  mustHold((await page.textContent("#summary .density")).includes(Math.round(got).toString()), `the summary shows the density: "${await page.textContent("#summary .density")}"`);
   // a second lasso inside the first cuts a hole
   await lasso(page, [[0.4, 0.4], [0.6, 0.4], [0.6, 0.6], [0.4, 0.6]]);
   want = await inside(page);
-  await check((await head()).startsWith(`${want.filter(([, p]) => p).length} NoRs inside the mask`), `a lasso inside the mask cuts a hole: "${await head()}"`);
-  await check(await page.$$eval("#overlay .mask-marks .edge:not(.under)", (e) => e.length) === 2 && !!(await page.$("#overlay .mask-marks .fill")),
+  mustHold((await head()).startsWith(`${want.filter(([, p]) => p).length} NoRs inside the mask`), `a lasso inside the mask cuts a hole: "${await head()}"`);
+  mustHold(await page.$$eval("#overlay .mask-marks .edge:not(.under)", (e) => e.length) === 2 && !!(await page.$("#overlay .mask-marks .fill")),
     "a shape inside a shape is tinted inside");
 }
 
@@ -286,32 +285,32 @@ async function mask(page) {
 {
   const { device, page } = await open(false);
   const warn = await page.isVisible("#notice") && (await page.textContent("#notice-text"));
-  await check(warn && /local files/.test(warn) && warn.split(/\s+/).length <= 15, `a local image warns its ground truth cannot be sent: "${warn}"`);
+  mustHold(warn && /local files/.test(warn) && warn.split(/\s+/).length <= 15, `a local image warns its ground truth cannot be sent: "${warn}"`);
   const where = await page.evaluate(() => { const n = $("#notice").getBoundingClientRect(), v = $("#view").getBoundingClientRect(); return { top: n.top - v.top, centre: (n.left + n.right) / 2 - (v.left + v.right) / 2 }; });
-  await check(Math.abs(where.top - 56) <= 1 && Math.abs(where.centre) <= 1, `the warning sits at the top of the view, across its middle: ${JSON.stringify(where)}`);
+  mustHold(Math.abs(where.top - 56) <= 1 && Math.abs(where.centre) <= 1, `the warning sits at the top of the view, across its middle: ${JSON.stringify(where)}`);
   await page.click("#notice-ok");
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
   const none = await popup(page);
-  await check(/Vote on at least one/.test(none) && /thumbs/.test(await page.textContent("#gt-msg")) && (await page.isHidden("#gt-send") || await page.isDisabled("#gt-send")), `with nothing marked the popup says how to mark and uploads nothing: "${none}"`);
+  mustHold(/Vote on at least one/.test(none) && /thumbs/.test(await page.textContent("#gt-msg")) && (await page.isHidden("#gt-send") || await page.isDisabled("#gt-send")), `with nothing marked the popup says how to mark and uploads nothing: "${none}"`);
   await page.click("#gt-close");
   const { undecided } = await markAndVote(page);
   const { said, gt } = await download(page);
-  await check(/have no vote/.test(said), `the popup names the finalists left without a verdict: "${said}"`);
+  mustHold(/have no vote/.test(said), `the popup names the finalists left without a verdict: "${said}"`);
   // the file is the model (req/nor/downloads): the candidates that remain, listing each, the one approved marked; the added NoR with its
   // approval; the one rejected absent, and read from the history
   const total = await page.evaluate(() => st.order.length);
   const approved = gt.candidates.filter((c) => c.approved), miss = gt.added[0];
-  await check(gt.format === "norfinder-ground-truth/4" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
+  mustHold(gt.format === "norfinder-ground-truth/4" && approved.length === 1 && gt.candidates.length === total - 1 && gt.added.length === 1 && miss.approved
     && gt.checked.length === 0 && undecided > 0 && !("labels" in gt),
     `the file lists the candidates that remain, one approved, the added NoR approved, the rejected one absent (${approved.length} approved of ${gt.candidates.length}; ${undecided} undecided are only listed)`);
   const kinds = gt.history.actions.map((a) => a.type), run = gt.history.actions.find((a) => a.type === "run");
   const out = await page.evaluate(async (o) => JSON.parse(await new Response(new Blob([Uint8Array.from(atob(o.deflate), (c) => c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream("deflate"))).text()), run.output);
   const gone = out.cands.filter((c) => !gt.candidates.some((x) => x.id === c.id));
-  await check(gt.history.format === "rauntruth-gt-history/1" && kinds[0] === "open" && kinds.includes("add") && kinds.includes("approve") && kinds.includes("delete")
+  mustHold(gt.history.format === "rauntruth-gt-history/1" && kinds[0] === "open" && kinds.includes("add") && kinds.includes("approve") && kinds.includes("delete")
     && gone.length === 1 && gt.history.actions.some((a) => a.type === "delete" && a.cand === gone[0].id) && out.cands.every((c) => /^c\d+$/.test(c.id) && !("blk" in c) && !("mask" in c)),
     `the history holds the run, with no masks, and the delete of the rejected candidate ${gone[0]?.id} (${kinds.join(", ")})`);
-  await check(miss.id === "u1" && miss.lines.width && miss.lines.length && miss.lines.red, `an added NoR has its id and its lines (${miss.id})`);
+  mustHold(miss.id === "u1" && miss.lines.width && miss.lines.length && miss.lines.red, `an added NoR has its id and its lines (${miss.id})`);
   // one number per candidate, finalists and rejected alike, the added NoR after the found ones; the image,
   // the cards and the file all name a candidate by it
   const nums = await page.evaluate(() => {
@@ -320,26 +319,26 @@ async function mask(page) {
       at: Object.fromEntries(cs.map((c) => [on(c), [c.cx, c.cy]])) };
   });
   const all = Array.from({ length: nums.found + 1 }, (_, k) => String(k + 1));
-  await check(JSON.stringify([...nums.image].sort()) === JSON.stringify([...all].sort()), `the image numbers every candidate once, 1 to ${nums.found}, the added NoR ${nums.found + 1}`);
-  await check(nums.cards.every(([n, shown]) => shown === "#" + n), "each card shows its candidate's number");
+  mustHold(JSON.stringify([...nums.image].sort()) === JSON.stringify([...all].sort()), `the image numbers every candidate once, 1 to ${nums.found}, the added NoR ${nums.found + 1}`);
+  mustHold(nums.cards.every(([n, shown]) => shown === "#" + n), "each card shows its candidate's number");
   const mid = miss.lines.length[0].map((v, k) => (v + miss.lines.length[1][k]) / 2);
-  await check(gt.candidates.every((c) => nums.at[c.n] && Math.hypot(nums.at[c.n][0] - c.x, nums.at[c.n][1] - c.y) < 1e-6) && Math.hypot(nums.at[nums.found + 1][0] - mid[0], nums.at[nums.found + 1][1] - mid[1]) < 1e-6,
+  mustHold(gt.candidates.every((c) => nums.at[c.n] && Math.hypot(nums.at[c.n][0] - c.x, nums.at[c.n][1] - c.y) < 1e-6) && Math.hypot(nums.at[nums.found + 1][0] - mid[0], nums.at[nums.found + 1][1] - mid[1]) < 1e-6,
     `the file names each candidate by its number on the image, the added NoR by ${nums.found + 1}`);
-  await check(gt.image.location.source === "local", "the file says the image was local");
-  await check(!("mask" in gt), "the file holds no mask");
+  mustHold(gt.image.location.source === "local", "the file says the image was local");
+  mustHold(!("mask" in gt), "the file holds no mask");
   await popup(page);
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
-  await check(send.off && /local files/.test(send.why), `Upload is off for a local image, and says why: "${send.why}"`);
+  mustHold(send.off && /local files/.test(send.why), `Upload is off for a local image, and says why: "${send.why}"`);
   await page.click("#gt-close");
   await page.evaluate(() => st.order.filter((c) => !st.forced.has(c.i)).forEach((c) => nor.decide(c.i, "approve")));
-  await check(await gtColour(page) === "part", "with every candidate voted on but the areas not checked the button is orange");
+  mustHold(await gtColour(page) === "part", "with every candidate voted on but the areas not checked the button is orange");
   await page.click('#gt-counters > [data-task="missed"]');
   // every area checked by its own button, clicked in the page one after another with no draw awaited between: the walk
   // by hand, area by area, is the tasks test's
   await page.evaluate(() => { for (let k = 0; k < 100; k++) $("#area-ok").click(); });
-  await check(await gtColour(page) === "done", "with every task done the button is green");
+  mustHold(await gtColour(page) === "done", "with every task done the button is green");
   const all_ = await crumbs(page);
-  await check(all_ === "Load image › Run algorithm › Review all items › Upload | ", `with every task done and the file downloaded, every step is done: ${all_}`);
+  mustHold(all_ === "Load image › Run algorithm › Review all items › Upload | ", `with every task done and the file downloaded, every step is done: ${all_}`);
   await device.close();
 }
 
@@ -349,12 +348,12 @@ async function mask(page) {
   await page.evaluate(() => { $("#notice").hidden = true; });
   await page.click("#find");
   await page.waitForFunction(() => st.passes && $("#busy").hidden);
-  await check(await page.isHidden("#gt-submit"), "a Review study has no Save");
+  mustHold(await page.isHidden("#gt-submit"), "a Review study has no Save");
   const csvAt = await page.evaluate(() => {
     const box = $("#summary-box").getBoundingClientRect(), sum = $("#summary").getBoundingClientRect();
     return ["#summary-dl"].map((id) => { const b = $(id).getBoundingClientRect(), h = $("#summary-box > .sec-head").getBoundingClientRect(); return b.top >= h.top && b.bottom <= h.bottom && b.bottom <= sum.top && !$(id).textContent.trim() && !!$(id).querySelector("svg"); });
   });
-  await check(!/Rejected/.test(await page.textContent("#summary")), "the summary lists no filter reasons");
+  mustHold(!/Rejected/.test(await page.textContent("#summary")), "the summary lists no filter reasons");
   const hists = await page.evaluate(() => {
     const ss = nor.summaryRows(st.passes.filter(nor.inMask)).map(([, s]) => s);
     return [...document.querySelectorAll("#summary .hist")].map((h, k) => {
@@ -364,36 +363,36 @@ async function mask(page) {
         axis: [...h.querySelectorAll("text")].some((t) => t.textContent === String(Math.max(...[...b].map((r) => +r.textContent)))) };
     });
   });
-  await check(!(await page.$("#summary table")) && hists.length >= 3 && hists.every((h) => h.said && h.where && h.axis),
+  mustHold(!(await page.$("#summary table")) && hists.length >= 3 && hists.every((h) => h.said && h.where && h.axis),
     `each histogram names its mean, draws it where it falls and has a count axis, and no table repeats them (${JSON.stringify(hists)})`);
-  await check(csvAt.every(Boolean), `Download Summary is an icon on the Summary box's header (${csvAt})`);
+  mustHold(csvAt.every(Boolean), `Download Summary is an icon on the Summary box's header (${csvAt})`);
   await page.mouse.click(...(await (async () => { const m = await middle(page); return [m.sx, m.sy]; })()), { button: "right" });
   await page.click('#point-menu [role="menuitem"]');
   await mask(page);
   const gt = await page.evaluate(() => nor.document());
-  await check(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
+  mustHold(gt.candidates.every((c) => !c.approved) && gt.added.every((a) => !a.approved) && !("mask" in gt), "the ground truth ignores the mask");
   const all = await page.evaluate(() => Array.from({ length: st.order.length + st.added.length }, (_, k) => String(k + 1)));
   await page.click("#mask-clear");
-  await check(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");
+  mustHold(await page.evaluate(() => !st.mask.length) && await page.isHidden("#mask-clear") && !(await page.$("#overlay .mask-marks .edge")), "Clear mask removes the mask");
   // the candidates' table, from Download Analysis's menu
   await page.click("#analysis-dl");
   const [got] = await Promise.all([page.waitForEvent("download"), page.click('#analysis-dl-menu [data-key="candidates"]')]);
   const table = fs.readFileSync(await got.path(), "utf8").trim().split("\n"), ns = table.slice(1).map((r) => r.split(",")[0]);
-  await check(/_candidates\.csv$/.test(got.suggestedFilename()) && table[0].startsWith("n,x_px,y_px,decision,lengths,"), "Download Analysis's Candidates (CSV) saves the candidates' table, a CSV with its columns named", [got.suggestedFilename(), table[0]]);
-  await check(ns.length === all.length && new Set(ns).size === ns.length && ns.every((n) => all.includes(n)), "it names each candidate by its number", ns);
+  mustHold(/_candidates\.csv$/.test(got.suggestedFilename()) && table[0].startsWith("n,x_px,y_px,decision,lengths,"), "Download Analysis's Candidates (CSV) saves the candidates' table, a CSV with its columns named", [got.suggestedFilename(), table[0]]);
+  mustHold(ns.length === all.length && new Set(ns).size === ns.length && ns.every((n) => all.includes(n)), "it names each candidate by its number", ns);
   await device.close();
 }
 
 // ---- an image from Google Drive ----
 {
   const { device, page } = await open(true);
-  await check(await page.isHidden("#notice"), "a Drive image shows no warning");
+  mustHold(await page.isHidden("#notice"), "a Drive image shows no warning");
   await markAndVote(page);
   const { said, name, gt } = await download(page);
-  await check(!/mask/i.test(said), `with no mask the mask item is crossed out: "${said}"`);
-  await check(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
+  mustHold(!/mask/i.test(said), `with no mask the mask item is crossed out: "${said}"`);
+  mustHold(gt.image.location.source === "drive" && gt.image.location.drive_id === DRIVE_ID, "the file names the image's Drive id");
   const send = await page.$eval("#gt-send", (b) => ({ off: b.disabled, why: b.title }));
-  await check(send.off && /No permission/.test(send.why) && /sign out/i.test(send.why), `with no per-file permission, Submit is off and says to sign in again ticking its box: "${send.why}"`);
+  mustHold(send.off && /No permission/.test(send.why) && /sign out/i.test(send.why), `with no per-file permission, Submit is off and says to sign in again ticking its box: "${send.why}"`);
   await device.close();
 }
 await done(0);

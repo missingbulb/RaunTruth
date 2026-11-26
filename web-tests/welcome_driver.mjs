@@ -30,7 +30,6 @@ w.site.withGoogle();
 // the sign-in fake: what Google's window answers, and how often the page loaded Google's script
 const google = w.google;
 const ada = w.user("ada@acme.example").named("Ada Lovelace");
-let failed = false;
 // whether the page asked for Google's script: it appends the script's element in the handler that wants it, so the
 // element is there once the action that would load it returns, before any request reaches the route
 const askedGoogle = (page) => page.evaluate((src) => !!document.querySelector(`script[src="${src}"]`), GSI);
@@ -40,11 +39,11 @@ async function device({ offline = false, on = w.device().welcomed(null) } = {}) 
   const ctx = await on.context();
   if (offline) await ctx.addInitScript(() => { window.netDown = sessionStorage.getItem("net") !== "up"; Object.defineProperty(Navigator.prototype, "onLine", { get: () => !window.netDown }); });
   // the device opens the site on this tab, heard from the start
-  (await ctx.newPage()).on("pageerror", (e) => { if (cutShort(e)) return; failed = true; console.error("page error: " + e.message); });
+  (await ctx.newPage()).on("pageerror", (e) => { if (!cutShort(e)) check(false, "page error: " + e.message); });
   // the popup and the tip are decided as the shell's module runs, before the study's title is shown
   const page = await on.opens(undefined, { until: "title" });
-  const open = async () => { await page.goto(origin + "/web/index.html"); await page.waitForFunction(() => document.querySelector("#title").textContent); };
-  return { ctx, page, open };
+  const open = () => on.visits("/web/index.html", { in: page, until: "title" });
+  return { ctx, page, open, on };
 }
 const popup = (page) => page.evaluate(() => { const d = document.querySelector("#welcome-dlg"); return !!d && d.open && d.matches(":modal"); });
 const signedIn = (page) => page.evaluate(() => !document.querySelector("#sign-out").hidden);
@@ -256,7 +255,7 @@ try {
   // two tabs: signing out in one is not undone by the other
   await h.page.keyboard.press("Escape");
   const h2 = await h.ctx.newPage(); // visits again on purpose (another tab is the subject): signing out in one tab reaches the other
-  await h2.goto(origin + "/web/index.html"); await h2.waitForFunction(() => document.querySelector("#title").textContent);
+  await h.on.visits("/web/index.html", { in: h2, until: "title" });
   await h2.keyboard.press("Escape");
   await h.page.click("#user-menu summary");
   await h.page.click("#sign-out");
@@ -271,9 +270,6 @@ try {
   w.site.withoutGoogleClient();
   const d = await device();
   check(!(await popup(d.page)) && !(await signInTip(d.page)), "with no Google client there is no popup and no tip");
-} catch (e) {
-  failed = true; console.error("FAILED: " + (e.stack || e));
 } finally {
   await browser.close(); server.close();
 }
-process.exit(failed ? 1 : 0);

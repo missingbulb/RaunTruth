@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { pw, launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting, check, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
 import { githubIssues } from "./fakes/github_issues.mjs";
@@ -20,9 +20,6 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { identify, verdict } = await import(pathToFileURL(path.join(repo, "web", "browsers.js")).href);
 const { supported } = JSON.parse(fs.readFileSync(path.join(repo, "web", "browsers.json")));
 const SECRET = "SECRET-slide-42.tif";
-
-let failed = false;
-const report = (ok, what) => { console.log((ok ? "ok: " : "FAILED: ") + what); if (!ok) failed = true; };
 
 // ---- which browser, and whether it is supported ----
 const UA = {
@@ -55,14 +52,13 @@ const table = [
 ];
 for (const [key, touch, name, version, ok] of table) {
   const b = identify(UA[key], touch), v = verdict(b, supported);
-  report(b.name === name && b.version === version && v.ok === ok, `${key}${touch ? " (touch)" : ""}: ${b.name} ${b.version} on ${b.os}, ${v.ok ? "supported" : "not supported: " + v.why}`);
+  check(b.name === name && b.version === version && v.ok === ok, `${key}${touch ? " (touch)" : ""}: ${b.name} ${b.version} on ${b.os}, ${v.ok ? "supported" : "not supported: " + v.why}`);
 }
 
 // ---- the page ----
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what) => { report(ok, what); if (!ok) await done(1); };
 
 // a page in a browser saying it is `ua` (the engine's own when null), with one image from Drive among the recents;
 // window.open records the address it is given; seed: browser keys kept before the page opens
@@ -93,19 +89,19 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
 {
   const { ctx, page } = await open(UA.chrome);
   const icon = await reportIcon(page);
-  await check(icon.shown && icon.right && !icon.warns && icon.label === "Report a problem" && /GitHub issue/.test(icon.title),
+  await mustHold(icon.shown && icon.right && !icon.warns && icon.label === "Report a problem" && /GitHub issue/.test(icon.title),
     `in a supported browser the status bar's right side shows the plain report icon: "${icon.title}"`);
   await page.click("#sb-report");
   await page.waitForFunction(() => $("#report-dlg").open);
   const says = await page.evaluate(() => ({ words: $("#report-dlg").textContent, opened: window.opened ?? null, actions: [...$("#report-dlg").querySelectorAll("button")].map((b) => b.textContent).join() }));
-  await check(/public/.test(says.words) && /GitHub account/.test(says.words) && says.opened === null && says.actions === "Cancel,Continue",
+  await mustHold(/public/.test(says.words) && /GitHub account/.test(says.words) && says.opened === null && says.actions === "Cancel,Continue",
     "pressed, it first says the report is a public GitHub issue needing a GitHub account, with Cancel and Continue, nothing opened yet", says);
   await page.click("#report-cancel");
-  await check(await page.evaluate(() => !$("#report-dlg").open && (window.opened ?? null) === null), "Cancel closes it and opens nothing");
+  await mustHold(await page.evaluate(() => !$("#report-dlg").open && (window.opened ?? null) === null), "Cancel closes it and opens nothing");
   await page.click("#sb-report");
   await goOn(page);
   const q = await issue(page);
-  await check(q.template === "bug-report.yml" && q.title === "Problem: " && !/not supported/.test(q.browser), `Continue opens a new issue on the bug-report form titled "${q.title}": ${q.browser}`);
+  await mustHold(q.template === "bug-report.yml" && q.title === "Problem: " && !/not supported/.test(q.browser), `Continue opens a new issue on the bug-report form titled "${q.title}": ${q.browser}`);
   await ctx.close();
 }
 
@@ -113,7 +109,7 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
 {
   let { ctx, page } = await open(UA.opera);
   const icon = await reportIcon(page);
-  await check(icon.shown && icon.right && icon.warns && icon.label === "Unsupported browser" && /Opera is not one the page supports/.test(icon.title) && /report a problem/i.test(icon.title),
+  await mustHold(icon.shown && icon.right && icon.warns && icon.label === "Unsupported browser" && /Opera is not one the page supports/.test(icon.title) && /report a problem/i.test(icon.title),
     `in Opera the same icon is a warning sign, saying why: "${icon.title}"`);
 
   // six actions, the last five quoted, oldest first; the recent image is logged by what it is, never its name
@@ -134,17 +130,17 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await page.click("#sb-report");
   await goOn(page);
   const q = await issue(page);
-  await check(q.template === "bug-report.yml" && q.title === "Unsupported browser: ", `the icon opens a new issue on the bug-report form: ${q.template}, "${q.title}"`);
-  await check(/^Opera 120 on Windows, not supported \(Mozilla/.test(q.browser), `it names the browser: ${q.browser}`);
-  await check(/^- Site version: \d/.test(q.state) && /- Study: Fixture \(fixture\)/.test(q.state) && /- Image: none open/.test(q.state) && /- Online: yes/.test(q.state),
+  await mustHold(q.template === "bug-report.yml" && q.title === "Unsupported browser: ", `the icon opens a new issue on the bug-report form: ${q.template}, "${q.title}"`);
+  await mustHold(/^Opera 120 on Windows, not supported \(Mozilla/.test(q.browser), `it names the browser: ${q.browser}`);
+  await mustHold(/^- Site version: \d/.test(q.state) && /- Study: Fixture \(fixture\)/.test(q.state) && /- Image: none open/.test(q.state) && /- Online: yes/.test(q.state),
     `and the page's state:\n${q.state}`);
   const lines = q.actions.split("\n");
-  await check(lines.length === 5 && /^1\. .*Clicked “a recent image”$/.test(lines[0]) && /Clicked “Settings…”/.test(lines[2]) && /Clicked “Unsupported browser”$/.test(lines[4]),
+  await mustHold(lines.length === 5 && /^1\. .*Clicked “a recent image”$/.test(lines[0]) && /Clicked “Settings…”/.test(lines[2]) && /Clicked “Unsupported browser”$/.test(lines[4]),
     `and the last five actions, oldest first:\n${q.actions}`);
-  await check(/thrown-for-the-test/.test(q.errors) && !/thrown-for-the-test/.test(q.actions), `the error the page met is listed apart: ${q.errors}`);
+  await mustHold(/thrown-for-the-test/.test(q.errors) && !/thrown-for-the-test/.test(q.actions), `the error the page met is listed apart: ${q.errors}`);
   const log = await kept(page);
-  await check(log.length >= 7 && log.some((e) => /Opened the study “Fixture”/.test(e.text)), `the page keeps the log on this device (${log.length} entries)`);
-  await check(!JSON.stringify(log).includes(SECRET) && !JSON.stringify(q).includes(SECRET), "no image's name is in the log or the report");
+  await mustHold(log.length >= 7 && log.some((e) => /Opened the study “Fixture”/.test(e.text)), `the page keeps the log on this device (${log.length} entries)`);
+  await mustHold(!JSON.stringify(log).includes(SECRET) && !JSON.stringify(q).includes(SECRET), "no image's name is in the log or the report");
 
   // a page opened with that log kept, from the avatar's menu
   await ctx.close();
@@ -153,17 +149,17 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await page.click("#report-problem");
   await goOn(page);
   const again = await issue(page);
-  await check(again.title === "Unsupported browser: " && /Clicked “Report a problem…”$/.test(again.actions.split("\n").at(-1)) && /Clicked “Unsupported browser”/.test(again.actions),
+  await mustHold(again.title === "Unsupported browser: " && /Clicked “Report a problem…”$/.test(again.actions.split("\n").at(-1)) && /Clicked “Unsupported browser”/.test(again.actions),
     "a page opened with the log kept still has the actions, and Report a problem in the avatar's menu opens the same report");
 
   // listed in Settings, kept on this device only, and cleared there
   await page.click("#user-menu summary");
   await page.click("#open-settings");
   const listed = page.locator("#settings-dlg label.tick", { hasText: "Your last actions here" });
-  await check(await listed.count() === 1, "Settings lists the actions among what is kept on this device only");
+  await mustHold(await listed.count() === 1, "Settings lists the actions among what is kept on this device only");
   await listed.locator("input").uncheck();
   await page.click("#settings-save");
-  await check((await kept(page)).length <= 1, "unticked and saved, the log is cleared");
+  await mustHold((await kept(page)).length <= 1, "unticked and saved, the log is cleared");
   await ctx.close();
 }
 
@@ -174,7 +170,7 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   await page.click("#report-problem");
   await goOn(page);
   const q = await issue(page);
-  await check(q.title === "Problem: " && !/not supported/.test(q.browser), `in a supported browser the menu opens a report titled "${q.title}": ${q.browser}`);
+  await mustHold(q.title === "Problem: " && !/not supported/.test(q.browser), `in a supported browser the menu opens a report titled "${q.title}": ${q.browser}`);
   await ctx.close();
 }
 
@@ -187,9 +183,9 @@ const reportIcon = (page) => page.evaluate(() => { const b = $("#sb-report"); re
   const form = await tab;
   await form.waitForSelector('[data-field="title"]');
   const sent = githubIssues(ctx).opened;
-  await check(sent.length === 1 && sent[0].template === "bug-report.yml" && /\//.test(sent[0].repo) && (await form.textContent('[data-field="title"]')) === "Problem: "
+  await mustHold(sent.length === 1 && sent[0].template === "bug-report.yml" && /\//.test(sent[0].repo) && (await form.textContent('[data-field="title"]')) === "Problem: "
     && (await form.textContent('[data-field="actions"]')).includes("Clicked “Report a problem”"),
     "Continue opens one new tab on the repo's new-issue form, filled in with the title and the last actions", sent.map((o) => [o.repo, o.template, o.title]));
   await ctx.close();
 }
-await done(failed ? 1 : 0);
+await done(0);

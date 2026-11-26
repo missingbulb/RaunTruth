@@ -4,19 +4,16 @@
 // THROTTLE=n slows its CPU n times over, as a slow test machine is.
 //   node tests/memory_page_driver.mjs ANSWERS IMAGE
 import { EARLY } from "../../../web-tests/early_messages.mjs";
-import { repoFile } from "../../../web-tests/repo_file.mjs";
-import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { ENGINE } from "../../../web-tests/engine.mjs";
 import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
+import { serveSite } from "../../../web-tests/site_server.mjs";
 import { detached, grown } from "./detached_nodes.mjs";
 
 const [answers, image] = process.argv.slice(2);
-const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 // answers every request the way web/worker.js does, from the folder served at answers/
 const STAND_IN = `
@@ -36,17 +33,7 @@ onmessage = async ({ data: m }) => {
   }
 };`;
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
-const server = http.createServer((q, r) => {
-  const u = decodeURIComponent(new URL(q.url, "http://x").pathname);
-  if (u === "/web/worker.js") { r.writeHead(200, { "content-type": "text/javascript" }); return r.end(EARLY + STAND_IN); }
-  let f = u.startsWith("/web/answers/") ? path.join(answers, u.slice("/web/answers/".length)) : repoFile(repo, u);
-  if (f.endsWith(path.sep)) f = path.join(f, "index.html");
-  if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(r);
-});
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const { origin, server } = await serveSite({ "/web/worker.js": EARLY + STAND_IN, "/web/answers/": { dir: answers } });
 
 // Chromium running its bytecode alone, and keeping it: its compilers, and its flushing of bytecode left idle, add and
 // drop tens of kilobytes over the first hundred rounds, which would hide the few a round keeps

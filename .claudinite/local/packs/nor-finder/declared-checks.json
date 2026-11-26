@@ -289,5 +289,61 @@
         "unlessLineMatches": "/^\\s*(\\/\\/|\\*|\\/\\*)/"
       }
     ]
+  },
+  {
+    "id": "node-skip-in-run-driver",
+    "on_fail": "block",
+    "failureMessage": "a test that looks for Node itself repeats what run_driver already does, one more copy of how a test without Node is skipped",
+    "fix": "drop the lookup and the skipif: run_driver() skips the test when there is no Node; import NODE from drivers.py where a test needs the path",
+    "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.py$/",
+    "matchLines": [
+      {
+        "match": "/shutil\\.which\\(\\s*['\\\"]node['\\\"]\\s*\\)|skipif\\(\\s*not\\s+NODE\\b|\\bif\\s+not\\s+NODE\\s*:/",
+        "what": "looks for Node itself: {match}",
+        "unlessLineMatches": "/^\\s*#/"
+      }
+    ]
+  },
+  {
+    "id": "site-through-serve-site",
+    "on_fail": "block",
+    "failureMessage": "a test serving the site from its own server answers the site's files its own way, so a change to how the site is served misses that test",
+    "fix": "serve it with serveSite() from web-tests/site_server.mjs, passing the addresses the test answers itself",
+    "scanFiles": "/^(?!web-tests\\/(site_server\\.mjs|fakes\\/|explore\\/))(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.mjs$/",
+    "matchLines": [
+      {
+        "match": "/\\bhttps?\\.createServer\\(/",
+        "what": "serves the site itself: {match}",
+        "unlessLineMatches": "/^\\s*\\/\\//"
+      }
+    ]
+  },
+  {
+    "id": "checks-through-checks-mjs",
+    "on_fail": "block",
+    "failureMessage": "a driver saying its own FAILED lines decides by itself whether a failed check ends the run, and its failures read unlike every other test's",
+    "fix": "use check() or mustHold() from web-tests/checks.mjs (harness.mjs passes both on), and let an error the run cannot go on after throw",
+    "scanFiles": "/^(?!web-tests\\/checks\\.mjs$)(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.mjs$/",
+    "matchLines": [
+      {
+        "match": "/[\\\"'`]FAILED\\b/",
+        "what": "says its own failure: {match}",
+        "unlessLineMatches": "/^\\s*\\/\\//"
+      }
+    ]
+  },
+  {
+    "id": "page-through-device",
+    "on_fail": "block",
+    "failureMessage": "a driver sending a page to an address itself skips what the World's device waits for and keeps, so the page it gets is not the one a visitor gets",
+    "fix": "open it with the device from web-tests/world.mjs: device.opens(study), device.opensSetup(study), or device.visits(address, { in: page }) for another address in a page already open",
+    "scanFiles": "/^(?!web-tests\\/(world\\.mjs$|explore\\/))(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.mjs$/",
+    "matchLines": [
+      {
+        "match": "/(?<!\\blog|\\bopened)\\.goto\\(\\s*[^\\d\\s)]/",
+        "what": "sends the page to an address itself: {match}",
+        "unlessLineMatches": "/^\\s*\\/\\//"
+      }
+    ]
   }
 ]

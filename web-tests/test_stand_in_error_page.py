@@ -6,12 +6,11 @@ import numpy as np
 import pytest
 import tifffile
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_study_failing_on_its_image_is_an_error_message_not_an_uncaught_one(answers, tmp_path):
     (tmp_path / 'drive').mkdir()
     two = tmp_path / 'two.tif'

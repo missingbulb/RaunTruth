@@ -1,7 +1,6 @@
 """req/vascular/model/view, req/vascular/model/correct and req/vascular/model/cards: what the main view shows, the model
 corrected over the stack and its item cards, in a Review study (model_page_driver.mjs, in headless Chromium with a stand-in worker)."""
 import os
-import shutil
 
 import pytest
 from drivers import run_driver
@@ -9,10 +8,8 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_model_page(tmp_path):
     # the build's list of studies, which the switcher reads: made here, not left by another test's build
     import json, sys

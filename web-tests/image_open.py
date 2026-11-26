@@ -4,11 +4,9 @@ browser or libheif would decode (a PNG, a JPEG, a HEIC) is decoded by Pillow and
 naming its channels' order, puts them in it as the page does."""
 import json
 import os
-import shutil
 import sys
 
 import numpy as np
-import pytest
 from PIL import Image
 
 import pillow_heif
@@ -18,12 +16,9 @@ pillow_heif.register_heif_opener()
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 def open_images(tmp_path, *files, view=None, order=None):
-    if not NODE:
-        pytest.skip('node missing')
     jobs = []
     for k, f in enumerate(files):
         job = {'view': view or {}, 'order': order, 'planes': str(tmp_path / f'opened{k}.planes'), 'volume': str(tmp_path / f'opened{k}.volume')}

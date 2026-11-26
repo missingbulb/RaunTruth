@@ -3,7 +3,6 @@ the packages the study's study.json names, through web/bridge.js (find_bridge_dr
 saved as a phone saves a HEIC, in tiles: each version's one run asks the page's own services (web/reading.js, on
 stand-in engines) for what it reads with, and answers with its books and their titles."""
 import os
-import shutil
 
 import pytest
 from PIL import Image
@@ -14,10 +13,8 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_finds_and_reads_books_on_a_tiled_heic(tmp_path):
     import pillow_heif
     path = tmp_path / 'shelf.heic'

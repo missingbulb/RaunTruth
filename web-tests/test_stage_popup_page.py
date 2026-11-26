@@ -4,12 +4,11 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_popup_tells_each_user_their_next_action(answers, tmp_path):
     root = tmp_path / 'drive'
     root.mkdir()

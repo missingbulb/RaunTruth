@@ -3,20 +3,16 @@ under Node by truth_actions_driver.mjs against the fixture study's pure GT actio
 model against its log, and the packing of a run's output. No page and no clock are involved."""
 import json
 import os
-import shutil
 
 import pytest
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 @pytest.fixture(scope='module')
 def out():
-    if not NODE:
-        pytest.skip('node missing')
     r = run_driver(os.path.join(HERE, 'truth_actions_driver.mjs'), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)

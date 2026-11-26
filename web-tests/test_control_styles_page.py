@@ -3,12 +3,11 @@
 import pytest
 
 from test_data_mode_page import folder
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_controls_of_a_kind_and_place_share_one_look(answers, png, tmp_path):
     root = tmp_path / 'drive'
     folder(root)

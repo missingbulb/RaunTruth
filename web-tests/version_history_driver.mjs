@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { watchReads, readsDone } from "./page_reads.mjs";
-import { pw, launch, expecting } from "./harness.mjs";
+import { pw, launch, expecting, mustHold } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -34,7 +34,6 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
-const check = async (ok, what) => { if (!ok) { console.error("FAILED: " + what); await done(1); } console.log("ok: " + what); };
 const shot = async (page, name, sel) => { if (shots) await (sel ? page.locator(sel) : page).screenshot({ path: path.join(shots, name + ".png") }); };
 
 // a page whose browser last saw `seen` (null: never visited)
@@ -58,18 +57,18 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
 // ---- a first visit: no bubble; the version box opens the full history ----
 {
   const { ctx, page } = await open(null);
-  await check(!(await bubble(page)), "a first visit shows no bubble");
-  await check(await stored(page) === VERSION, "and remembers the version seen");
+  await mustHold(!(await bubble(page)), "a first visit shows no bubble");
+  await mustHold(await stored(page) === VERSION, "and remembers the version seen");
   const box = await page.evaluate(() => ({ text: $("#sb-version").textContent, title: $("#sb-version").getAttribute("title") }));
-  await check(box.text === "v" + VERSION && !box.title, `the version box shows "${box.text}" with no tooltip`);
+  await mustHold(box.text === "v" + VERSION && !box.title, `the version box shows "${box.text}" with no tooltip`);
   await page.click("#sb-version");
-  await check(await page.evaluate(() => $("#history-dlg").open && $("#history-title").textContent === "Version history"), "clicking it opens Version history");
+  await mustHold(await page.evaluate(() => $("#history-dlg").open && $("#history-title").textContent === "Version history"), "clicking it opens Version history");
   const t = await tags(page);
-  await check(t.length === 3 && t[0][0] === "v" + VERSION && t.every(([, tag]) => !tag), `every release is listed, newest first, none marked new: ${JSON.stringify(t)}`);
+  await mustHold(t.length === 3 && t[0][0] === "v" + VERSION && t.every(([, tag]) => !tag), `every release is listed, newest first, none marked new: ${JSON.stringify(t)}`);
   await shot(page, "history_popup");
   await shot(page, "history_popup_box", "#history-dlg");
   await page.click("#history-dlg button[value=close]");
-  await check(!(await page.evaluate(() => $("#history-dlg").open)), "Close closes it");
+  await mustHold(!(await page.evaluate(() => $("#history-dlg").open)), "Close closes it");
   await ctx.close();
 }
 
@@ -78,9 +77,9 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   const seen = "0.10928.2";
   const { ctx, page } = await open(seen);
   const text = await bubble(page);
-  await check(text === `Click here to see what was updated since v${seen}.`, `after an update the bubble says: "${text}"`);
+  await mustHold(text === `Click here to see what was updated since v${seen}.`, `after an update the bubble says: "${text}"`);
   const pos = await page.evaluate(() => { const b = $("#whats-new").getBoundingClientRect(), v = $("#sb-version").getBoundingClientRect(); return { above: b.bottom <= v.top, over: b.left < v.right && b.right > v.left }; });
-  await check(pos.above && pos.over, "it sits above the version box");
+  await mustHold(pos.above && pos.over, "it sits above the version box");
   // its arrow points into the version box, and both follow the box when the window is resized
   const aim = () => page.evaluate(() => {
     const s = document.createElement("style"); s.textContent = "#whats-new::after { pointer-events: auto !important; }"; document.head.append(s);
@@ -90,21 +89,21 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
     return { arrow, above: b.bottom <= v.top, over: b.left < v.right && b.right > v.left, inside: b.left >= 0 && b.right <= innerWidth };
   });
   const at = await aim();
-  await check(at.arrow, "its arrow points at the middle of the version box", at);
+  await mustHold(at.arrow, "its arrow points at the middle of the version box", at);
   await page.setViewportSize({ width: 900, height: 700 });
   const after = await aim();
-  await check(after.arrow && after.above && after.over && after.inside, "and both follow the box when the window is resized", after);
+  await mustHold(after.arrow && after.above && after.over && after.inside, "and both follow the box when the window is resized", after);
   await page.setViewportSize({ width: 1400, height: 900 });
   await shot(page, "bubble_corner", "body");
   if (shots) await page.screenshot({ path: path.join(shots, "bubble_zoom.png"), clip: { x: 1400 - 420, y: 900 - 160, width: 420, height: 160 } });
-  await check(await stored(page) === seen, "until it is closed, the version seen stays the old one");
+  await mustHold(await stored(page) === seen, "until it is closed, the version seen stays the old one");
   await page.click("#whats-new-x");
-  await check(!(await bubble(page)) && await stored(page) === VERSION, "the x closes it and remembers this version");
+  await mustHold(!(await bubble(page)) && await stored(page) === VERSION, "the x closes it and remembers this version");
   await ctx.close();
 }
 {
   const { ctx, page } = await open(VERSION);
-  await check(!(await bubble(page)), "so a page that remembers this version shows no bubble");
+  await mustHold(!(await bubble(page)), "so a page that remembers this version shows no bubble");
   await ctx.close();
 }
 
@@ -114,10 +113,10 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   const { ctx, page } = await open(seen, "light");
   await page.click("#whats-new-open");
   const t = await tags(page);
-  await check(await page.evaluate(() => $("#history-dlg").open) && t.map(([, tag]) => tag).join() === "true,true,false", `clicking it opens the history with the newer releases marked: ${JSON.stringify(t)}`);
+  await mustHold(await page.evaluate(() => $("#history-dlg").open) && t.map(([, tag]) => tag).join() === "true,true,false", `clicking it opens the history with the newer releases marked: ${JSON.stringify(t)}`);
   const since = await page.textContent("#history-list .since");
-  await check(since.includes("v" + seen), `and names the version seen: "${since}"`);
-  await check(!(await bubble(page)) && await stored(page) === VERSION, "the bubble is gone and this version remembered");
+  await mustHold(since.includes("v" + seen), `and names the version seen: "${since}"`);
+  await mustHold(!(await bubble(page)) && await stored(page) === VERSION, "the bubble is gone and this version remembered");
   await shot(page, "history_new_light", "#history-dlg");
   await ctx.close();
 }
@@ -127,7 +126,7 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   const seen = `${major}.${day}.${build - 2}`;
   history = JSON.stringify(HISTORY.slice(1));
   const { ctx, page } = await open(seen);
-  await check(!(await bubble(page)) && await stored(page) === VERSION, "an update with nothing in the history shows no bubble");
+  await mustHold(!(await bubble(page)) && await stored(page) === VERSION, "an update with nothing in the history shows no bubble");
   await ctx.close();
 }
 
@@ -137,10 +136,10 @@ const tags = async (page) => (await page.waitForFunction(() => !/Loading/.test($
   // the site answers the history's file not found, as the browser says
   await expecting(/status of 404/, async () => {
     const { ctx, page } = await open("0.10928.2");
-    await check(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
+    await mustHold(!(await bubble(page)) && await stored(page) === "0.10928.2", "no history: no bubble, and the version seen is kept for next time");
     await page.click("#sb-version");
     const msg = await orMissed(page.waitForFunction(() => /could not be loaded/.test($("#history-list").textContent)));
-    await check(msg, "the popup says the history could not be loaded");
+    await mustHold(msg, "the popup says the history could not be loaded");
     await ctx.close();
   });
 }

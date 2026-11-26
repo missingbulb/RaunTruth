@@ -2,7 +2,7 @@
 ready-made thumbnail or the one saved when an image was opened, never reading Drive for one
 (drive_dialog_driver.mjs). The study ships no ready-made thumbnails, so the test serves stand-ins."""
 import json, os
-from test_memory import needs_node, run
+from test_memory import run
 from synthetic_nor import nor_image
 import numpy as np
 import pytest
@@ -22,7 +22,6 @@ def stand_in_thumbnails(folder, ids):
     return str(folder)
 
 
-@needs_node
 def test_select_then_open_and_thumbnails_without_reading_drive(tmp_path):
     images = [nor_image(str(tmp_path / f'slide {k}.tif'), seed=k) for k in range(2)]
     ids = [f'dialogfile{k:010d}' for k in range(len(images))]

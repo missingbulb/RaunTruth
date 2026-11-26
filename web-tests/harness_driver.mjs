@@ -5,25 +5,22 @@
 // deploy's variables, a study's edits, a test's own route answering what a fake does, and a wait in the page that
 // holds or never does. Prints what the page saw; the harness decides the exit.
 //   node web-tests/harness_driver.mjs CASE
-import http from "node:http";
 import path from "node:path";
-import { pw, launch, expecting, siteOf, check } from "./harness.mjs";
+import { pw, launch, expecting, siteOf, check, mustHold } from "./harness.mjs";
 import { googleDrive } from "./fakes/google_drive.mjs";
 import { signIn } from "./fakes/google_sign_in.mjs";
 import { until, idle } from "./page_until.mjs";
 import { held } from "./held.mjs";
+import { serveSite } from "./site_server.mjs";
+import { world } from "./world.mjs";
 
 const [which] = process.argv.slice(2);
-const server = http.createServer((q, r) => {
-  if (/study\.json$/.test(q.url)) { r.writeHead(200, { "content-type": "application/json" }); return r.end('{"id": "served"}'); }
-  if (/missing/.test(q.url)) { r.writeHead(404); return r.end(); }
-  r.writeHead(200, { "content-type": "text/html" }); r.end("<!doctype html><title>harness</title>");
+const { origin, server } = await serveSite({
+  "/": (q, u) => (/study\.json$/.test(u) ? { type: "application/json", body: '{"id": "served"}' }
+    : /missing/.test(u) ? null : { type: "text/html", body: "<!doctype html><title>harness</title>" }),
 });
-await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
-const origin = `http://127.0.0.1:${server.address().port}/`;
-const browser = await launch(pw);
-const page = await browser.newPage();
-await page.goto(origin);
+const browser = await launch(pw), w = world(browser, origin);
+const page = await w.device().visits("/", { until: "none" });
 const warn = () => page.evaluate(() => console.warn("the thing went wrong"));
 // in the page: work of its own under way for ms, counted as the site's pages count theirs
 const working = (ms) => {
@@ -48,6 +45,7 @@ const CASES = {
   },
   // a failed check fails the run, whatever the test sets its exit code to
   failedcheck: async () => { check(true, "a check that held"); check(false, "a check that did not", { seen: 1 }); process.exitCode = 0; },
+  musthold: async () => { mustHold(true, "a check that held"); mustHold(false, "a check the rest needs", { seen: 2 }); check(true, "a check after it"); },
   undeclared: warn,
   declared: () => expecting(/went wrong/, warn),
   // values that are not strings, said as what they hold
@@ -116,7 +114,7 @@ const CASES = {
     const ctx = await browser.newContext();
     await ctx.addInitScript((v) => localStorage.setItem("seeded", v), "yes");
     const p = await ctx.newPage();
-    await p.goto(origin);
+    await w.device().on(ctx).visits("/", { in: p, until: "none" });
     console.log("seeded " + await p.evaluate(() => localStorage.getItem("seeded")));
   },
   drive: async () => {

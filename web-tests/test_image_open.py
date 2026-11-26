@@ -5,7 +5,6 @@ the file; a study's upper quantile, its black-point method and an 8-bit image ke
 decoded by the page's own libheif build to the pixels Pillow's HEIF plugin reads."""
 import json
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -17,15 +16,12 @@ pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
 from drivers import run_driver
-NODE = shutil.which('node')
 from numpy_view import View
 
 RED, GREEN, BLUE = (np.stack([np.arange(256) * k for k in rgb]).astype(np.uint8) for rgb in ((1, 0, 0), (0, 1, 0), (0, 0, 1)))
 
 
 def opened(tmp_path, *jobs):
-    if not NODE:
-        pytest.skip('node missing')
     for k, j in enumerate(jobs):
         j.update(planes=str(tmp_path / f'p{k}.bin'), volume=str(tmp_path / f'v{k}.bin'))
     f = tmp_path / 'jobs.json'

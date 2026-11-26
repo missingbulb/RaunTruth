@@ -3,20 +3,17 @@ setting, filter or preset in it, each finder listed with its icon, the note titl
 drawn as a nested list, and its precision and recall as the list gives them. Drives web/ in headless Chromium with a
 stand-in worker answering the study's real ready() (processing_box_driver.mjs)."""
 import os
-import shutil
 import sys
 
 import pytest
 from drivers import run_driver
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 sys.path.insert(0, os.path.join(HERE, '..', 'algorithm'))
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_processing_box_explains_each_algorithm(tmp_path):
     ready = tmp_path / 'ready.json'
     ready.write_text('{}')
