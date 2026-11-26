@@ -91,6 +91,8 @@ const signInVia = async (page) => {
   });
 };
 const local = (page, k) => page.evaluate((k) => localStorage.getItem(k), k);
+// the sign-in the page keeps on this device
+const signedIn = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("nor-google-sign-in")));
 const shot = async (page, name) => { if (shots) await page.screenshot({ path: path.join(shots, name + ".png"), clip: { x: 1000, y: 0, width: 400, height: 260 } }); };
 
 try {
@@ -139,6 +141,11 @@ try {
     "the file holds the settings that follow the user, not the left bar's width");
   await a.page.click("body", { position: { x: 700, y: 500 } });
   await a.page.click("#theme");
+  check(await a.page.evaluate(() => shellForTests.work.pending > 0), "a setting's save waiting to go is work the page is doing",
+    await a.page.evaluate(() => shellForTests.work.doing));
+  await idle(a.page);
+  check(file()?.["nor-theme"] === "light" && (await signedIn(a.page)).changed.length === 0,
+    "and once the page is idle the save has reached the file and the page has taken its answer", { file: file()?.["nor-theme"], changed: (await signedIn(a.page)).changed });
   check(await until(() => file()?.["nor-theme"] === "light"), "switching to light while signed in saves it to the file");
 
   // req/shell/account/settings: Settings, from the avatar's menu
