@@ -47,6 +47,8 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
   };`;
   const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp" };
   // the studies' own Python, for the live studies' calls: one request a line, answered in turn
+  // python.hold = () => promise: an answer of the study's Python kept back until the promise settles (held.mjs)
+  const python = { hold: () => null };
   let py = null;
   const waiting = [];
   const ask = (body) => new Promise((ok) => {
@@ -62,7 +64,7 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     const send = (type, body) => { r.writeHead(200, { "content-type": type }); r.end(body); };
     if (u === "/py" && q.method === "POST") {
       const chunks = [];
-      q.on("data", (c) => chunks.push(c)).on("end", async () => send("application/json", await ask(Buffer.concat(chunks).toString())));
+      q.on("data", (c) => chunks.push(c)).on("end", async () => { const said = await ask(Buffer.concat(chunks).toString()); await python.hold(); send("application/json", said); });
       return;
     }
     if (u === "/web/worker.js") return send("text/javascript", EARLY + STAND_IN);
@@ -171,5 +173,5 @@ export async function standIn({ answers, studies, rootDir, uploaded = () => {}, 
     if (on) await page.waitForFunction(() => document.documentElement.dataset.mode === "data");
   }
 
-  return { w, root, drive, google, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
+  return { w, root, drive, google, python, ROOT, FILES, SUB, GT, settings, studyFile, hidden, writers, writes, keptForever, viewOnly, sharedOut, thumbs, open, dataManagement, check, done, close, origin, EMAIL };
 }
