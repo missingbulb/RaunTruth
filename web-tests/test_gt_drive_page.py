@@ -8,7 +8,7 @@ import os
 import pytest
 from PIL import Image
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
@@ -20,7 +20,6 @@ def folder(path, image):
     Image.open(image).rotate(90, expand=True).save(path / 'beta.png')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_person_saves_to_the_extractions_folder(answers, png, tmp_path):
     root = tmp_path / 'drive'
     folder(root, png)

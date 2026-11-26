@@ -2,7 +2,6 @@
 bar's icon in any other, the problem report it and the avatar's menu open, and the actions it quotes
 (problem_report_driver.mjs, in a headless browser)."""
 import os
-import shutil
 
 import pytest
 from drivers import run_driver
@@ -10,9 +9,7 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_problem_report():
     run_driver(os.path.join(HERE, 'problem_report_driver.mjs'), timeout=120)

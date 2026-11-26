@@ -4,7 +4,6 @@ an ImageJ TIFF holding the same pixels, scale, z-step, channel names and colours
 nothing of cellSens). The Google Drive dialog side runs in headless Chromium (cellsens_drive_driver.mjs)."""
 import json
 import os
-import shutil
 
 import numpy as np
 import pytest
@@ -18,7 +17,6 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 COLOURS = [(0, 0, 255), (255, 0, 255)]
 NAMES = ['DAPI', 'Iba1']
 
@@ -28,8 +26,6 @@ def lut(rgb):
 
 
 def run(tmp_path, *files):
-    if not NODE:
-        pytest.skip('node missing')
     jobs = [{'file': str(f), 'view': {}, 'planes': str(tmp_path / f'p{k}.bin'), 'volume': str(tmp_path / f'v{k}.bin')}
             for k, f in enumerate(files)]
     spec = tmp_path / 'jobs.json'
@@ -93,7 +89,6 @@ def test_an_image_stored_as_jpeg_says_why_it_cannot_be_read(tmp_path):
     assert 'JPEG' in got.get('error', ''), got
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_drive_dialog_lists_the_pair_as_one_image_and_opens_it(answers, tmp_path):
     root = tmp_path / 'drive'
     root.mkdir()

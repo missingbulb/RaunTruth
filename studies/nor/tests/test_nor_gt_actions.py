@@ -1,6 +1,5 @@
 """req/nor/candidates/remembered: the study's GT actions (web/gt_actions.js) on a small hand-built run, and the colour of Edit History's ring against the image's channels and what the page draws, run under Node."""
 import os
-import shutil
 
 import pytest
 
@@ -8,10 +7,8 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 @pytest.mark.parametrize('script', ['test_gt_actions.mjs', 'test_ring_colour.mjs'])
 def test_gt_actions(script):
     r = run_driver(os.path.join(HERE, script), timeout=120, check=False)

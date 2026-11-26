@@ -298,7 +298,7 @@
     "scanFiles": "/^(web-tests|studies\\/[^/]+\\/tests|lab)\\/.*\\.py$/",
     "matchLines": [
       {
-        "match": "/shutil\\.which\\(\\s*['\\\"]node['\\\"]\\s*\\)|skipif\\(\\s*not\\s+NODE\\b/",
+        "match": "/shutil\\.which\\(\\s*['\\\"]node['\\\"]\\s*\\)|skipif\\(\\s*not\\s+NODE\\b|\\bif\\s+not\\s+NODE\\s*:/",
         "what": "looks for Node itself: {match}",
         "unlessLineMatches": "/^\\s*#/"
       }

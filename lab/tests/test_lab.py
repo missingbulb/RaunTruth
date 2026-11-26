@@ -201,8 +201,6 @@ def test_no_study_s_sources_name_a_drive_id():
 
 def test_the_mutation_sweep_task_stops_clean_when_the_study_is_frozen(tmp_path):
     # the task's worker under node, against a stub of the SDK it imports and a stub lab/stage.py giving each exit
-    if not shutil.which('node'):
-        pytest.skip('node is not installed')
     task = os.path.join(lab_study.ROOT, '.claudinite', 'local', 'packs', 'nor-study', 'tasks', 'mutation-sweep')
     work = tmp_path / 'work'
     sdk = work / 'node_modules' / '@claudinite' / 'sdk'

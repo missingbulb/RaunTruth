@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from test_data_mode_page import folder
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
@@ -23,7 +23,6 @@ def second(tmp_path_factory):
     return path
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_store_of_extractions(answers, png, second, tmp_path):
     root = tmp_path / 'drive'
     folder(root)

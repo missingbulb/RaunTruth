@@ -4,7 +4,6 @@ and a hair either side of it boxes."""
 import base64
 import json
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -17,7 +16,6 @@ import books
 pytestmark = pytest.mark.full
 
 from drivers import run_driver
-NODE = shutil.which('node')
 BOXES = [
     [[40, 50], [90, 50], [90, 200], [40, 200]],
     [[130.3, 20.7], [171.9, 31.2], [140.4, 190.6], [98.2, 180.1]],
@@ -43,7 +41,6 @@ def page_crops(rgb, grey, tmp_path):
             for c in json.loads((tmp_path / 'out.json').read_text())]
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 @pytest.mark.parametrize('grey', [False, True])
 def test_the_page_straightens_as_the_finder_does(grey, tmp_path):
     rng = np.random.default_rng(7)

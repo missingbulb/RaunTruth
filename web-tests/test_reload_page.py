@@ -7,11 +7,10 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'dev', 'tools', 'build'))
-from drivers import NODE, run_driver  # noqa: E402  importable only once the path above is set
+from drivers import run_driver  # noqa: E402  importable only once the path above is set
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_a_reload_hands_the_page_its_controls_as_the_markup_starts_them():
     run_driver(os.path.join(HERE, 'reload_driver.mjs'))

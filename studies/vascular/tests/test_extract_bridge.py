@@ -1,7 +1,6 @@
 """req/vascular/model/run: Execute's algorithm runs in the page's Python, Pyodide with only the packages the study's
 study.json names, through web/bridge.js (extract_bridge_driver.mjs, under Node), on a drawn stack of crossing tubes."""
 import os
-import shutil
 
 import numpy as np
 import pytest
@@ -11,7 +10,6 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 def stack(path):
@@ -28,7 +26,6 @@ def stack(path):
     tifffile.imwrite(path, v.astype(np.uint16), imagej=True, resolution=(2, 2), metadata={'unit': 'micron', 'axes': 'ZYX'})
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_page_runs_the_extraction(tmp_path):
     path = str(tmp_path / 'stack.tif')
     stack(path)

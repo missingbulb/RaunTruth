@@ -4,7 +4,6 @@ recorded once at its drop and never by Escape, the shell's Undo and Redo, the id
 edits kept in this browser before Edit History offered once."""
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -13,10 +12,8 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_vessel_gt_actions_page(tmp_path):
     # the build's list of studies, which the switcher reads: made here, not left by another test's build
     sys.path.insert(0, os.path.join(HERE, '..', '..', '..', 'dev', 'tools', 'build'))

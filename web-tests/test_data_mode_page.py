@@ -13,7 +13,7 @@ import tifffile
 from PIL import Image
 
 from test_drive_previews_page import with_photo
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +39,6 @@ def folder(path):
 
 
 @pytest.mark.flaky(issue=1080, engines=['firefox', 'webkit'])
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_data_management(answers, tmp_path):
     root = tmp_path / 'drive'
     folder(root)
@@ -56,7 +55,6 @@ def test_data_management(answers, tmp_path):
     assert (meta['W'], meta['H']) == (150, 120) and planes.shape == (3, 120, 150), meta
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_write_permission_from_sign_in(answers, tmp_path):
     """A token from before sign-in asked for Drive's per-file permission is renewed asking for it; none, every folder is view only."""
     root = tmp_path / 'drive'

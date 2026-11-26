@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
@@ -22,7 +22,6 @@ def folder(path):
         Image.fromarray(np.full((64, 64, 3), 30 * k, np.uint8)).save(path / f)
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_the_listed_folders_and_the_study_index(answers, tmp_path):
     root = tmp_path / 'drive'
     folder(root)

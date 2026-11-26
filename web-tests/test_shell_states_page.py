@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import tifffile
 
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -79,7 +79,6 @@ def own_answers(answers, png, tif, stack, out):
     return str(out)
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 @pytest.mark.parametrize('shard', range(SHARDS))
 def test_every_state_is_what_the_rules_say(answers, png, tmp_path, shard):
     root = tmp_path / 'drive'

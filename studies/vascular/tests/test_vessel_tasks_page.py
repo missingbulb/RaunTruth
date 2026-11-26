@@ -3,7 +3,6 @@ req/vascular/model/ground-truth: Execute, the Ground Truth Tasks under it and th
 in headless Chromium with a stand-in worker that answers Execute with a model fixture)."""
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -12,10 +11,8 @@ from drivers import run_driver
 pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_vessel_tasks_page(tmp_path):
     # the build's list of studies, which the switcher reads: made here, not left by another test's build
     sys.path.insert(0, os.path.join(HERE, '..', '..', '..', 'dev', 'tools', 'build'))

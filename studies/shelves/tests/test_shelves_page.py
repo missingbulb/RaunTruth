@@ -2,7 +2,6 @@
 headless Chromium against a stand-in worker and a stand-in Tesseract (shelves_page_driver.mjs)."""
 import json
 import os
-import shutil
 import sys
 
 import pytest
@@ -12,10 +11,8 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..', '..', '..')
-NODE = shutil.which('node')
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_shelves_page(tmp_path):
     sys.path.insert(0, os.path.join(ROOT, 'dev', 'tools', 'build'))
     import build

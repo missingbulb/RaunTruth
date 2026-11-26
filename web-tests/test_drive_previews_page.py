@@ -2,7 +2,6 @@
 previews the images it covers in the Google Drive dialog (drive_previews_driver.mjs, in headless Chromium)."""
 import json
 import os
-import shutil
 import subprocess
 import sys
 
@@ -16,7 +15,6 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.join(HERE, '..')
-NODE = shutil.which('node')
 
 
 def folder(path):
@@ -90,7 +88,6 @@ def test_previews_leave_photos_to_drive(tmp_path):
     assert [e['name'] for e in index['images']] == ['flat.tif']
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_drive_previews(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))

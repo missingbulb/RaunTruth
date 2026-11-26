@@ -4,12 +4,11 @@ Drive's permissions seeded per case (setup_sharing_driver.mjs)."""
 import pytest
 
 from test_data_mode_page import folder
-from test_study_runs import NODE, answers, png, run  # noqa: F401  (fixtures)
+from test_study_runs import answers, png, run  # noqa: F401  (fixtures)
 
 pytestmark = pytest.mark.full
 
 
-@pytest.mark.skipif(not NODE, reason='node missing')
 def test_study_setup_checks_the_sharing_and_fixes_only_on_a_press(answers, tmp_path):
     root = tmp_path / 'drive'
     folder(root)

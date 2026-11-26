@@ -3,7 +3,6 @@ Node by tags_driver.mjs: what a tag may be, a multi-value tag's one value, a fol
 the groups Load study images draws."""
 import json
 import os
-import shutil
 
 import pytest
 
@@ -11,13 +10,10 @@ pytestmark = pytest.mark.full
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 from drivers import run_driver
-NODE = shutil.which('node')
 
 
 @pytest.fixture(scope='module')
 def out():
-    if not NODE:
-        pytest.skip('node missing')
     r = run_driver(os.path.join(HERE, 'tags_driver.mjs'), timeout=60, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
