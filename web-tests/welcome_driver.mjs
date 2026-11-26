@@ -91,6 +91,9 @@ try {
   await a.page.click("#welcome-anonymous");
   check(!(await popup(a.page)) && !(await signedIn(a.page)) && google.scriptLoads === 0, "Continue anonymously closes it, signed out, loading nothing from Google");
   check(!(await signInTip(a.page)), "and shows no tip while the choice is not remembered");
+  // req/shell/dialogs/focus-kept: nothing on the page opened it, so the keyboard goes to the page's first control
+  check(await orMissed(a.page.waitForFunction(() => { const f = document.activeElement; return f && f !== document.body && !f.closest("dialog"); }, null, { timeout: 3000 })),
+    "and the keyboard stays on the page, not its body");
   await a.open();
   check(await popup(a.page), "unticked, the popup comes back on the next visit");
 
