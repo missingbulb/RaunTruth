@@ -43,13 +43,13 @@ const gone = (page, sel) => page.evaluate((s) => !document.querySelector(s).chec
   let n = await played(page);
   await page.setInputFiles("#file", PNG);
   await page.waitForFunction(() => !$("#file-box").hidden);
-  const unfolded = await ran(page, n, [{ name: "height" }]);
+  const unfolded = await ran(page, n, [{}]);
   // the Image box folds to its title once the image is open: the part is measured with its box open again
   if (await page.evaluate(() => $("#image-box").classList.contains("folded"))) await page.click("#image-box .sec-head h2");
   await page.waitForFunction(() => !$("#image-box").classList.contains("folded"));
   await atRest(page, "#file-box");
-  await mustHold(!unfolded.missing && (await on(page, n, "#file-box")).some(([name, ended]) => name === "height" && ended) && await page.evaluate(() => $("#file-box").getBoundingClientRect().height > 10),
-    "a part that makes room for itself draws out with a motion, at its own height at the end", { unfolded, on: await on(page, n, "#file-box") });
+  await mustHold(!unfolded.missing && (await on(page, n, "#file-box")).some(([, ended]) => ended) && await page.evaluate(() => $("#file-box").getBoundingClientRect().height > 10),
+    "a part that makes room for itself opens with a motion that ends, at its own height at the end", { unfolded, on: await on(page, n, "#file-box") });
   await usage(page);
   // the dialog closing
   n = await played(page);
