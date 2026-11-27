@@ -14,7 +14,7 @@ import path from "node:path";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { world } from "../../../web-tests/world.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -61,7 +61,6 @@ async function open(stage, more = {}) {
     .keeps({ ["nor-mask-v1:" + path.basename(image)]: JSON.stringify(MASKED) });
   const ctx = await device.context();
   await keepStudyKeyListeners(ctx);
-  await standInDrive(ctx);
   ctx.on("request", (q) => { if (q.resourceType() === "image" && !q.url().startsWith(origin) && /^https?:/.test(q.url())) pictures.push(q.url()); });
   const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));

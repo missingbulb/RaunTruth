@@ -8,7 +8,7 @@ import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
@@ -48,7 +48,6 @@ async function found(width, stage) {
   const device = w.device().signedInAs(tagger).with({ viewport: { width, height: 900 } }).withStudy("nor", { stage })
     .keeps({ "nor-bars-v1": JSON.stringify({ left: 200, right: 200 }) });
   const ctx = await device.context();
-  await standInDrive(ctx);
   const page = await device.opens("nor", { until: "none" });
   await page.waitForFunction(() => !!document.querySelector("#find") && document.querySelector("#status").textContent.startsWith("Ready"));
   await openFromDrive(page, image);

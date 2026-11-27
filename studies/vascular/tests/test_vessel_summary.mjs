@@ -23,14 +23,14 @@ const tests = {
     assert.equal(jj.length, 1, 'the bridge is one branch, across the change of state');
     near(jj[0].length, 20, 1e-6, 'the bridge');
   },
-  'mean branch length is junction to junction only, and branch points are the junctions'() {
+  'mean branch length is junction to junction only, and junction density counts the junctions'() {
     const s = summarize(H(), { zStepUm: 1 });
     assert.equal(s.junctions, 2);
     assert.equal(s.branches, 5);
     assert.equal(s.branchLength.n, 1);
     near(s.branchLength.mean, 20, 1e-6, 'mean branch length');
     near(s.tissueMm3, 100 * 100 * 10 * 1e-9, 1e-12, 'tissue');
-    near(s.branchPointDensity, 2 / s.tissueMm3, 1e-6, 'branch point density');
+    near(s.junctionDensity, 2 / s.tissueMm3, 1e-6, 'junction density');
     near(s.lengthDensity, (100 * 1e-3) / s.tissueMm3, 1, 'length density, mm per mm³');
     near(s.tortuosity.mean, 1, 1e-6, 'straight vessels');
     near(s.diameter.mean, 4, 1e-6, 'diameter');
