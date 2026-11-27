@@ -866,9 +866,9 @@ img.avatar { border-radius: 50%; object-fit: cover; }
 .channel.v3-slices .levels::before { background: var(--line); }
 .channel.v3-slices .v3-spin { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg); overflow: hidden; }
 .channel.v3-slices .v3-spin:focus-within { outline: 2px solid var(--accent); outline-offset: -1px; }
-.channel.v3-slices #v3-zs { width: 52px; padding: 1px 3px; font-size: 11px; border: 0; border-radius: 0; background: none; outline: none; }
+.channel.v3-slices #v3-zs { width: 52px; height: auto; padding: 0 5px; font-size: 12px; border: 0; border-radius: 0; background: none; outline: none; }
 .channel.v3-slices .v3-steps { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
-.channel.v3-slices .v3-steps button { flex: 1; padding: 0 3px; border: 0; border-radius: 0; background: none; font-size: 8px; line-height: 1; color: var(--dim); cursor: pointer; }
+.channel.v3-slices .v3-steps button { flex: 1; display: grid; place-items: center; padding: 0 4px; border: 0; border-radius: 0; background: none; font-size: 10px; line-height: 1; color: var(--dim); cursor: pointer; }
 .channel.v3-slices .v3-steps button:hover { color: var(--text); background: var(--line); }
 /* colour by depth, a channel's own: a toggle button, stacked slices on it, beside the colour picker, which is a palette picker
    while it is on; the pair as wide and as tall as the spacing under it, so the column's edges line up */
