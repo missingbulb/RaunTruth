@@ -397,8 +397,11 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   // from the right edge: the version, the report icon, the online icon, then the resources block, which unfolds leftward moving none
   const fixed = () => page.evaluate(() => ["#sb-res-icon", "#sb-online", "#sb-report", "#sb-version"].map((id) => Math.round(document.querySelector(id).getBoundingClientRect().left)));
   // open: the four items take their room, once the animation is over; folded, only the icon shows
+  // and what opens it, for a check to say why it was open: raised by what needs watching, hovered, or set always
   const block = () => page.evaluate(() => ({ items: Math.round(document.querySelector("#sb-res-items").getBoundingClientRect().width),
-    icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width) }));
+    icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width),
+    raised: document.querySelector("#sb-res").classList.contains("raised"), hovered: document.querySelector("#sb-res").matches(":hover"),
+    classes: document.querySelector("#sb-res").className }));
   const isOpen = async (want, what, ms = 1500) => {
     await orMissed(page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }));
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own
