@@ -86,7 +86,7 @@ try {
     heat: document.querySelectorAll("#vm-summary .vm-heat rect").length }));
   check(levels.n > 1 && levels.groups === levels.n && levels.rows === levels.n && levels.heat > 0,
     `Summary maps and tables every sub-network: ${levels.n} sub-networks, ${levels.groups} on the map, ${levels.rows} rows, ${levels.heat} squares`);
-  await page.hover('#vm-net-table tr[data-c="1"]');
+  await page.dispatchEvent('#vm-net-table tr[data-c="1"]', "pointerover");
   check(await page.evaluate(() => $("#vm-net-map .route").getAttribute("d").length > 10 && $("#vm-net-map").classList.contains("focus")),
     "pointing at a sub-network's row brings it forward on the map, its longest shortest path drawn");
   const [nets] = await Promise.all([page.waitForEvent("download"), page.click('#vm-summary [data-dl="networks"]')]);
