@@ -20,8 +20,9 @@ from drivers import run_driver
 TOOL = os.path.join(REPO, 'dev', 'tools', 'previews', 'make_previews.py')
 
 
-def write(images, out, old=None, tiffs=None):
-    r = run_driver(os.path.join(HERE, 'previews_writer_driver.mjs'), str(images), str(out), str(old or '-'), *([str(tiffs)] if tiffs else []), timeout=120, check=False)
+def write(images, out, old=None, tiffs=None, spacing=None):
+    r = run_driver(os.path.join(HERE, 'previews_writer_driver.mjs'), str(images), str(out), str(old or '-'), str(tiffs or '-'),
+                   *([str(spacing)] if spacing else []), timeout=120, check=False)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)
 
@@ -55,14 +56,14 @@ def test_the_page_writes_what_the_tool_writes(tmp_path):
 def test_it_keeps_the_previews_still_valid(tmp_path):
     images = tmp_path / 'images'
     folder(str(images))
-    first = write(images, tmp_path / 'old.tiff')
+    first = write(images, tmp_path / 'old.tiff')['made']
     with open(images / 'c changed.tif', 'ab') as f:
         f.write(b'\0')
     again = write(images, tmp_path / 'new.tiff', tmp_path / 'old.tiff')
-    assert again == {'kept': ['a flat.tif', 'b stack.tif', 'd new.tif'], 'made': ['c changed.tif']}, again
+    assert {k: again[k] for k in ('kept', 'made')} == {'kept': ['a flat.tif', 'b stack.tif', 'd new.tif'], 'made': ['c changed.tif']}, again
     old_index, old_pages = read(tmp_path / 'old.tiff')
     new_index, new_pages = read(tmp_path / 'new.tiff')
-    assert [e['name'] for e in new_index['images']] == first['made']
+    assert [e['name'] for e in new_index['images']] == first
     for e in new_index['images']:
         if e['name'] == 'c changed.tif':
             continue
@@ -85,3 +86,42 @@ def test_a_stacks_preview_opens_in_3d(tmp_path):
     meta, _, _ = open_image(tmp_path, str(tiffs / 'z.preview.tif'))
     assert (meta['Z'], meta['W'], meta['H']) == (24, 83, 96), meta
     assert meta['spacing'] == pytest.approx(0.5 * 40 / 24), meta
+
+
+def test_a_stacks_preview_is_as_deep_as_its_slices_are_apart(tmp_path):
+    """req/shell/drive/previews: a stack's mini-volume is drawn as deep, for its width, as the stack is: its slices'
+    spacing over its pixels' width, the file's spacing first and the study's when the file gives none."""
+    images = tmp_path / 'images'
+    images.mkdir()
+    stack = np.zeros((20, 1, 300, 520), np.uint16)
+    stack[:, 0, 100:200, 50:90] = 3000
+    # 0.5 µm pixels, 1 µm apart in the file: 260 µm wide and 20 µm deep
+    tifffile.imwrite(images / 'a spaced.tif', stack, imagej=True, resolution=(2, 2), metadata={'axes': 'ZCYX', 'spacing': 1.0, 'unit': 'um'})
+    tifffile.imwrite(images / 'b unspaced.tif', stack, imagej=True, resolution=(2, 2), metadata={'axes': 'ZCYX', 'unit': 'um'})
+    tifffile.imwrite(images / 'c uncalibrated.tif', stack, imagej=True, metadata={'axes': 'ZCYX'})
+    depths = write(images, tmp_path / 'p.tiff', spacing=2.0)['depths']
+    wide = 96  # the preview's width in pixels, 520 source pixels across
+    assert depths['a spaced.tif'] == pytest.approx(wide * 20 / 260), depths
+    assert depths['b unspaced.tif'] == pytest.approx(wide * 40 / 260), depths
+    # nothing says how wide its pixels are: its slices as far apart as its pixels are wide
+    assert depths['c uncalibrated.tif'] == pytest.approx(wide * 20 / 520), depths
+
+
+def test_a_stack_from_a_file_that_does_not_say_how_wide_its_pixels_are_is_previewed_anew(tmp_path):
+    """req/shell/drive/previews: a previews file made before stacks recorded their pixels' width gives a stack no
+    preview, so Update previews makes it again, to scale."""
+    images = tmp_path / 'images'
+    folder(str(images))
+    write(images, tmp_path / 'old.tiff')
+    with tifffile.TiffFile(tmp_path / 'old.tiff') as t:
+        index, pages = json.loads(t.pages[0].description), [p.asarray() for p in t.pages]
+    for e in index['images']:
+        e.pop('width', None)
+        e.pop('um', None)
+    with tifffile.TiffWriter(tmp_path / 'older.tiff') as w:
+        for i, p in enumerate(pages):
+            w.write(p, photometric='rgb' if p.ndim == 3 else 'minisblack', metadata=None, description=json.dumps(index) if i == 0 else None)
+    again = write(images, tmp_path / 'new.tiff', tmp_path / 'older.tiff')
+    stacks = sorted(e['name'] for e in index['images'] if e['kind'] == 'stack')
+    assert stacks and all(n in again['made'] for n in stacks), again
+    assert not any(n in again['kept'] for n in stacks), again

@@ -101,10 +101,12 @@ export function imageKeeping(shell) {
   }
   // a remote image about to open: what it holds is remembered, and a stack's 3D thumbnail is saved at once, drawn
   // from the bytes in hand; a flat image's waits until it shows
+  // the µm between a stack's slices the study states, for a file that does not record it
+  const studySpacing = () => shell.manifest?.view?.spacing || null;
   function picture(id, name, bytes) {
     const s = shape(bytes);
     know(id, s); st.pictured = null;
-    const url = s && s.slices > 1 && stackPicture(bytes, s);
+    const url = s && s.slices > 1 && stackPicture(bytes, s, studySpacing());
     if (url) { keepThumb(id, name, url); st.pictured = id; }
   }
 
@@ -115,12 +117,12 @@ export function imageKeeping(shell) {
     const url = keptPreviewsUrl(folder);
     try {
       const cache = await caches.open(FOLDER_PREVIEWS), kept = await cache.match(url);
-      if (kept && f.sha && kept.headers.get(PREVIEWS_SHA) === f.sha) return readPreviews(await kept.arrayBuffer());
+      if (kept && f.sha && kept.headers.get(PREVIEWS_SHA) === f.sha) return readPreviews(await kept.arrayBuffer(), studySpacing());
       if (shell.throttled()) return null;
       const got = await remote.file(f.id, f.name);
       await cache.put(url, new Response(new Blob([got.bytes]), { headers: { [PREVIEWS_SHA]: f.sha || "", [IMAGE_NAME]: encodeURIComponent(folder.name), [IMAGE_STUDY]: shell.manifest?.id || "" } }));
       diskBar();
-      return readPreviews(got.bytes);
+      return readPreviews(got.bytes, studySpacing());
     } catch (e) {
       if (e.throttled) throttle();
       else console.warn("no previews for this folder:", e);
@@ -129,7 +131,7 @@ export function imageKeeping(shell) {
   }
   // the copy of a folder's previews kept on this device, while the store cannot say which file is current (offline)
   async function keptPreviews(folder) {
-    try { const kept = await (await caches.open(FOLDER_PREVIEWS)).match(keptPreviewsUrl(folder)); return kept ? readPreviews(await kept.arrayBuffer()) : null; } catch { return null; }
+    try { const kept = await (await caches.open(FOLDER_PREVIEWS)).match(keptPreviewsUrl(folder)); return kept ? readPreviews(await kept.arrayBuffer(), studySpacing()) : null; } catch { return null; }
   }
   // a stack's row turns its volume while the pointer is over it, and shows its still again after
   function turning(row, pic, volume) {

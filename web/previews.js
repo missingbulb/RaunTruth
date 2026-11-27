@@ -2,13 +2,14 @@
 // pages, each deflate-compressed with the horizontal predictor; a flat image's preview is a colour picture of
 // its page, a stack's a mini-volume drawn by drawVolume.
 "use strict";
-import { drawVolume, TURN } from "./stack.js";
+import { drawVolume, depthOf, TURN } from "./stack.js";
 import { isTiff } from "./accepts.js";
 
 export const PREVIEWS = "rauntruth-previews.tiff";
 
-// {index, entry(name, sha), picture(entry), volume(entry)} from the file's bytes; null when they are not one
-export function readPreviews(buf) {
+// {index, entry(name, sha), picture(entry), volume(entry)} from the file's bytes, `spacing` the µm between a stack's
+// slices when its entry does not record it; null when they are not one
+export function readPreviews(buf, spacing = null) {
   const v = new DataView(buf), little = v.getUint16(0) === 0x4949;
   if ((!little && v.getUint16(0) !== 0x4d4d) || v.getUint16(2, little) !== 42) return null;
   const size = { 1: 1, 2: 1, 3: 2, 4: 4, 16: 8 };
@@ -45,8 +46,9 @@ export function readPreviews(buf) {
   return {
     index,
     // the TIFF's entry when the file was made from the bytes the store has for it now; a photo has none, the
-    // remote store picturing it, whatever an older file holds
-    entry: (name, sha) => (isTiff(name) && index.images.find((e) => e.name === name && sha && e.sha256 === sha)) || null,
+    // remote store picturing it, whatever an older file holds, and a stack none from a file that does not say how
+    // wide its pixels are, which cannot be drawn to scale
+    entry: (name, sha) => (isTiff(name) && index.images.find((e) => e.name === name && sha && e.sha256 === sha && (e.kind !== "stack" || "width" in e))) || null,
     // a data URL of a flat image's picture, or of a stack's still
     async picture(e) {
       if (e.kind === "stack") return drawVolume(await this.volume(e), TURN).toDataURL("image/jpeg", 0.85);
@@ -59,12 +61,12 @@ export function readPreviews(buf) {
     },
     // an image's pages as they are, to write into a new file: [{W, H, spp, data}]
     pages: (e) => Promise.all(Array.from({ length: e.pages }, (_, i) => pixels(e.page + i))),
-    // a stack's mini-volume, as drawVolume takes it: its depth one pixel a slice
+    // a stack's mini-volume, as drawVolume takes it, as deep as its slices' spacing makes it
     async volume(e) {
       const [Z, C] = e.volume, planes = await Promise.all(Array.from({ length: e.pages }, (_, i) => pixels(e.page + i)));
       const { W, H } = planes[0], vol = Array.from({ length: C }, () => new Float32Array(Z * W * H));
       planes.forEach((p, i) => vol[i % C].set(p.data, Math.floor(i / C) * W * H));
-      return { vol, Z, n: W, m: H, depth: Z, colours: e.colours };
+      return { vol, Z, n: W, m: H, depth: depthOf(e.slices, e.spacing || spacing, e.um, e.width / W), colours: e.colours };
     },
   };
 }
