@@ -97,7 +97,7 @@ try {
     check(tools.title === "Reset view to top" && tools.label === "Reset view to top" && tools.icon && !tools.text && !tools.menu && tools.beside && !(await page.$("#v3-stage #v3-tools")),
       `beside Zoom one icon button, its tooltip Reset view to top, and no menu of views: ${JSON.stringify(tools)}`);
     check(!tools.gone.length, `the toolbar has no Render, Colour by depth or Slices tool: ${tools.gone}`);
-    check(tools.zoom && await page.isVisible("#ruler-btn") && await page.isHidden("#grid-btn"), "Zoom and the Ruler stay in 3D, the other 2D tools step aside");
+    check(tools.zoom && await page.isVisible("#ruler-btn") && await page.isHidden("#minimap-btn"), "Zoom and the Ruler stay in 3D, the other 2D tools step aside");
     const z0 = await page.textContent("#zoom-label");
     await page.click("#zoom-in");
     await picture();

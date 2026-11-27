@@ -5,6 +5,10 @@ export function mount(shell) {
   const $ = shell.$, NS = "http://www.w3.org/2000/svg", RING = "#ffd400";
   let selected = null, mask = null, lastTruthDoc = null;
   const model = () => shell.gt.model();
+  // a toggle of the study's own in the toolbar, pressed or not
+  const pinsWait = (im) => { $("#fx-pins").disabled = !im; };
+  shell.page.watch("image", pinsWait, { signal: shell.signal }); pinsWait(shell.page.get("image"));
+  $("#fx-pins").onclick = (e) => e.currentTarget.setAttribute("aria-pressed", e.currentTarget.getAttribute("aria-pressed") !== "true");
 
   const submit = () => {
     shell.submitTruth({ count: model() ? 1 : 0, items: [], empty: "Count first." });

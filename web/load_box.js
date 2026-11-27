@@ -44,8 +44,9 @@ export function loadBox(shell) {
   // the control the Load image step points at, and the one held while an image opens
   const loadButton = () => (!fromRemote() ? "#load-main" : recentAll().length ? "#image-pick" : fromLocal() ? "#load-main" : "#load-remote");
   const loadHolder = () => $(fromRemote() ? "#image-pick" : "#load-main");
+  // the controls to load with take the study's form, and show only once they have one (req/shell/load/from)
   function placeLoad() {
-    $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal());
+    $("#load").toggleAttribute("data-remote", fromRemote()); $("#load").toggleAttribute("data-local", fromLocal()); $("#image-box").dataset.placed = "";
     if (fromRemote()) $("#file-tags").before($("#load")); else $("#image-foot").prepend($("#load"));
   }
   // the Image box draws from the page's state: the image's name, its tags in the study and what its file says, the

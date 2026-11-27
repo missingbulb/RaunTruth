@@ -1,6 +1,6 @@
 // The 2D viewer: the opened image on a canvas, the study's drawing over it in an SVG in image
 // coordinates, zoom (buttons, the wheel), pan (dragging), the minimap that shows and moves the part in view,
-// each channel's row (shown or not, its black and white points), the ruler and the grid. It draws from the
+// each channel's row (shown or not, its black and white points) and the ruler. It draws from the
 // page's state: the image open, and the minimap's mode and opacity. A study reaches it as shell.viewer; another
 // viewer (3D, say) is a module with the same interface.
 //
@@ -20,8 +20,6 @@ import { asLoaded } from "./as_loaded.js";
 import { drag } from "./drag.js";
 import { areaMap } from "./gt_area_map.js";
 
-// the user's grid: {colour, um, px}, its colour and the distance between its lines in µm and in pixels
-export const GRID = "nor-grid";
 // the user's minimap: {mode: "open" | "collapsed" | "hidden", opacity: 0.1 to 1, how opaque it is at rest}
 export const MINIMAP = "nor-minimap";
 
@@ -56,7 +54,7 @@ export function hoverPop(btn, pop, fill) {
 
 // the viewer's tools a study may hide, by the names its study.json's view.hide gives them; "channels" there hides the
 // channel rows
-const HIDEABLE = { ruler: "#ruler-btn", grid: "#grid-btn" };
+const HIDEABLE = { ruler: "#ruler-btn" };
 
 const make = (tag, attrs) => { const n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
 
@@ -223,7 +221,7 @@ export function viewer(shell) {
   // the toolbar's tools wait for an image
   // and the ones the study names in its view.hide are not shown
   function tools() {
-    for (const id of ["#ruler-btn", "#grid-btn", "#minimap-btn", "#zoom-in", "#zoom-out"]) $(id).disabled = !st.img;
+    for (const id of ["#ruler-btn", "#minimap-btn", "#zoom-in", "#zoom-out"]) $(id).disabled = !st.img;
     const hide = shell.study?.view?.hide || [];
     for (const [name, id] of Object.entries(HIDEABLE)) $(id).hidden = hide.includes(name);
     minimap.place();
@@ -317,7 +315,7 @@ export function viewer(shell) {
     svg.style.fontSize = 12 / st.zoom + "px";
     sc.scrollLeft = ix * st.zoom - ax; sc.scrollTop = iy * st.zoom - ay;
     $("#zoom-label").textContent = Math.round(st.zoom * 100) + "%";
-    ruler.draw(); grid.draw(); ringDraw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
+    ruler.draw(); ringDraw(); hooks.zoomed?.(); minimap.place(); shrinkLater();
   }
   // the whole image in view, at most at 100%; a view another one covers (the 3D view, say) has no size, and the
   // image is fitted once it has
@@ -480,35 +478,6 @@ export function viewer(shell) {
       draw();
     }
     return { draw, reset: () => set(false), get armed() { return armed; }, take(fn) { set(false); takenBy = fn; } };
-  })();
-  // the grid: its button draws it or takes it away; a click or a hover opens the popup of its colour and
-  // spacing, in µm when the file gives the pixel's width and height (the cells then square in µm) and in
-  // pixels when it does not, each spacing kept apart
-  const grid = (() => {
-    const btn = $("#grid-btn"), svg = $("#grid"), colour = $("#grid-colour"), spacing = $("#grid-spacing");
-    const saved = { colour: "#ff0000", um: 10, px: 50, ...shell.readJSON(GRID) };
-    let on = false;
-    const unit = () => (st.um && st.umY ? "um" : "px");
-    function draw() {
-      svg.replaceChildren();
-      const d = saved[unit()];
-      if (!on || !st.W || !(d > 0)) return;
-      const w = st.W * st.zoom, h = st.H * st.zoom, cw = (unit() === "um" ? d / st.um : d) * st.zoom, ch = (unit() === "um" ? d / st.umY : d) * st.zoom;
-      svg.setAttribute("width", w); svg.setAttribute("height", h);
-      const cell = make("pattern", { id: "grid-cells", patternUnits: "userSpaceOnUse", width: cw, height: ch });
-      cell.append(make("path", { d: `M0,0V${ch}M0,0H${cw}`, stroke: saved.colour, "stroke-width": 1, fill: "none", "shape-rendering": "crispEdges" }));
-      const defs = make("defs", {}); defs.append(cell);
-      svg.append(defs, make("rect", { width: w, height: h, fill: "url(#grid-cells)" }));
-    }
-    function fill() {
-      colour.value = saved.colour; spacing.value = saved[unit()]; $("#grid-unit").textContent = unit() === "um" ? "µm" : "px";
-    }
-    const pop = hoverPop(btn, $("#grid-pop"), fill);
-    btn.onclick = () => { on = !on; btn.setAttribute("aria-pressed", on); draw(); pop.show(); };
-    const save = () => { shell.writeJSON(GRID, saved); draw(); };
-    colour.addEventListener("input", () => { saved.colour = colour.value; save(); });
-    spacing.addEventListener("input", () => { const v = parseFloat(spacing.value); if (v > 0) { saved[unit()] = v; save(); } });
-    return { draw: () => { draw(); pop.refill(); } };
   })();
   // the zoom buttons zoom this view, or the view that took them over (zoomWith)
   let zoomer = null;

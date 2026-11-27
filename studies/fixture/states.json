@@ -31,6 +31,14 @@
     {"under": "Summary", "tree": [
       {"name": "Study: count summed up", "select": "#fx-sum", "req": "req/shell/study/knows-none"}
     ]},
+    {"under": "Main view", "after": "Tasks/Items switch", "tree": [
+      {"name": "Study: Pins", "select": "#fx-pins", "control": true, "req": "req/shell/image/keys",
+        "rule": [
+          {"when": {"image": ["none"]}, "is": "disabled"}
+        ]
+      },
+      {"name": "Study: Show", "select": "#fx-show", "req": "req/shell/image/idle"}
+    ]},
     {"under": "Main view", "after": "Image view", "tree": [
       {"name": "Item view", "select": "#items-view", "req": "req/shell/views/second",
         "rule": [

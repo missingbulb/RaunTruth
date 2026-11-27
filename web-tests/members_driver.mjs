@@ -26,7 +26,7 @@ const prepare = (ctx) => {
   ctx.on("request", (r) => { if (/\/studies\/nor\/web\//.test(r.url())) moduleFetches.push(r.url()); });
   const s = studiesOf(ctx);
   for (const [id, title, stage] of [["nor", "Study A", "Develop"], ["b", "Study B", "Develop"], ["c", "Study C", "Public"]]) {
-    s.edit(id, () => ({ id, title, visibility: "listed", stage, root: link(ROOTS[id]), web: { module: "web/none.js" }, python: { paths: [], entry: "none", packages: [], wheels: [] } }));
+    s.edit(id, () => ({ id, title, visibility: "listed", stage, root: link(ROOTS[id]), files: { from: ["drive"], accept: ".png" }, web: { module: "web/none.js" }, python: { paths: [], entry: "none", packages: [], wheels: [] } }));
   }
   s.editList(() => LIST);
 };
