@@ -5,7 +5,7 @@
 //   node web-tests/control_styles_driver.mjs ANSWERS STUDIES ROOT IMAGE [SHOTS]
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
-import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { openFromDrive } from "./drive_open.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { atRest } from "./page_motions.mjs";
 import { idle } from "./page_until.mjs";
@@ -70,7 +70,7 @@ async function held(page, where) {
 }
 
 // ---- the study's page ----
-let page = await open(true, { prepare: standInDrive, ...SHARP });
+let page = await open(true, { ...SHARP });
 await held(page, "no image");
 await page.click("#load-remote");
 await page.waitForFunction(() => document.querySelector("#remote-dlg").open && document.querySelector("#remote-list").childElementCount > 0);

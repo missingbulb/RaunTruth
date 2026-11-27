@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { serve, atStage, taggersDevice, drawnStack } from "./stand_in.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
@@ -23,10 +23,11 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 const site = await serve(studies, model), origin = site.origin;
 
 const browser = await launch(pw), w = world(browser, site.origin);
+// the deploy with a Google key, the page offering no sign-in
+w.site.withoutGoogleClient();
 atStage(browser, "Review");
 let failed = false;
 const device = taggersDevice(w).with({ ...SOFTWARE_3D, acceptDownloads: true });
-await standInDrive(await device.context());
 let page;
 
 // the 3D view's brightness now, its mean over every pixel of red, green and blue
@@ -76,10 +77,23 @@ try {
   await page.waitForFunction(() => !!window.vascular.summary().summary);
   const sum = () => page.evaluate(() => ({ s: window.vascular.summary().summary, text: $("#vm-summary").textContent }));
   const whole = await sum();
-  const NAMES = ["Vascular volume fraction", "Vessel length density", "Branch point density", "Branch density", "Mean branch length",
+  const NAMES = ["Vascular volume fraction", "Vessel length density", "Junction density", "Branch density", "Mean branch length",
     "Vessel diameter", "Vessel tortuosity", "Nearest-vessel distance"];
   check(NAMES.every((n) => whole.text.includes(n)) && whole.s.junctions > 0 && whole.s.volumeFraction > 0 && whole.s.nearest.n > 0,
     `Summary gives the eight numbers over the whole field: ${whole.s.junctions} junctions, ${(100 * whole.s.volumeFraction).toFixed(2)}% vessel`);
+  // req/vascular/summary/levels: each sub-network on the map and in the table; pointing at one draws its longest path
+  const levels = await page.evaluate(() => ({ n: window.vascular.summary().networks.components.length,
+    groups: document.querySelectorAll("#vm-net-map g[data-c]").length, rows: document.querySelectorAll("#vm-net-table tr[data-c]").length,
+    heat: document.querySelectorAll("#vm-summary .vm-heat rect").length }));
+  check(levels.n > 1 && levels.groups === levels.n && levels.rows === levels.n && levels.heat > 0,
+    `Summary maps and tables every sub-network: ${levels.n} sub-networks, ${levels.groups} on the map, ${levels.rows} rows, ${levels.heat} squares`);
+  await page.dispatchEvent('#vm-net-table tr[data-c="1"]', "pointerover");
+  check(await page.evaluate(() => $("#vm-net-map .route").getAttribute("d").length > 10 && $("#vm-net-map").classList.contains("focus")),
+    "pointing at a sub-network's row brings it forward on the map, its longest shortest path drawn");
+  const [nets] = await Promise.all([page.waitForEvent("download"), page.click('#vm-summary [data-dl="networks"]')]);
+  const netCsv = fs.readFileSync(await nets.path(), "utf8").trim().split("\n");
+  check(nets.suggestedFilename().endsWith("_subnetworks.csv") && netCsv[0].startsWith("subnetwork,length_um") && netCsv.length === levels.n + 1,
+    `Sub-networks CSV saves a row per sub-network: ${nets.suggestedFilename()}, ${netCsv.length - 1} rows`);
   await page.click("#mask-add");
   check(await page.evaluate(() => $("#v3-stage").classList.contains("lassoing") && !$("#lasso-hint").hidden), "Add mask arms the shell's lasso on the stack from straight above");
   // the left half of the field, lassoed by dragging on the view
@@ -108,9 +122,9 @@ try {
   const csv = fs.readFileSync(await dl.path(), "utf8").trim().split("\n").map((r) => r.split(","));
   const row = (name) => csv.find((r) => r[3] === name);
   const jn = row("Junctions"), nearest = row("Nearest-vessel distance");
-  check(dl.suggestedFilename() === model.source.replace(/\.tiff?$/, "") + "_summary.csv" && csv.length === 13 && csv[1][2] === "a mask of 1 area"
+  check(dl.suggestedFilename() === model.source.replace(/\.tiff?$/, "") + "_summary.csv" && csv.length === 29 && csv[1][2] === "a mask of 1 area"
     && +jn?.[5] === half.s.junctions && +nearest?.[6] === half.s.nearest.n && nearest?.[5] === "",
-    `Download Summary saves the twelve rows inside the mask: ${dl.suggestedFilename()}, ${csv.length - 1} rows, junctions ${jn?.[5]}, nearest n ${nearest?.[6]}`);
+    `Download Summary saves the twenty-eight rows inside the mask: ${dl.suggestedFilename()}, ${csv.length - 1} rows, junctions ${jn?.[5]}, nearest n ${nearest?.[6]}`);
   await page.click("#mask-clear");
   await page.waitForFunction((t) => window.vascular.summary().summary?.tissueMm3 === t, whole.s.tissueMm3);
   check(true, "Clear mask counts the whole field again");
