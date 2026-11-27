@@ -260,7 +260,9 @@ owner's decisions on the stacks and the vessel model, are
     tortuosity, junctions per mm of vessel, and whether it touches the border, at a side or only the top or bottom
     slice; and the longest shortest paths' histogram. A point is on the border within its radius (at least a pixel) of
     a side, or within half a slice of the first or last slice. The longest shortest path is the longest of the
-    shortest routes along the vessels between two of its end points, in µm in 3D;
+    shortest routes along the vessels between two of its end points, in µm in 3D. Beside it, the longest trail, the
+    longest route that uses no segment twice, as the researcher described it (owner, 2026-11-27: "do both", named apart):
+    searched exactly up to 200,000 steps a sub-network, past them the longest found, shown "≥";
   - node degree, how many confirmed vessels meet at each of the model's points inside the tissue: 1, 2 (a point along a
     vessel, the model's own drawing), 3, 4 or more; and the 3D branching angle between each pair of branches leaving a
     junction, each branch's direction read 10 µm along it, or half its length if shorter;

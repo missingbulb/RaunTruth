@@ -42,6 +42,20 @@ const tests = {
     assert.ok(steps.length >= 3 && Math.max(...steps) <= 20 + 1e-9, `steps ${steps}`);
     near(steps.reduce((t, d) => t + d, 0), 60, 1e-6, 'the drawn path is as long as the path');
     near(island.longestPathUm, 30, 1e-6, 'the island end to end');
+    near(h.longestTrailUm, 60, 1e-6, 'with no loop, the longest trail is the longest shortest path');
+  },
+  'the longest trail runs through a loop, using no segment twice; the longest shortest path cuts across it'() {
+    // a 10 µm square loop with a 20 µm tail from one corner, in the middle of the field
+    const m = Mo.parse({ format: 'vessel-model/2', source: 'q.tif', slices: 10, size_px: [100, 100], um_per_px: 1,
+      nodes: [{ id: 1, x: 40, y: 40, z: 5, r: 1 }, { id: 2, x: 50, y: 40, z: 5, r: 1 }, { id: 3, x: 50, y: 50, z: 5, r: 1 },
+        { id: 4, x: 40, y: 50, z: 5, r: 1 }, { id: 5, x: 20, y: 40, z: 5, r: 1 }, { id: 6, x: 45, y: 35, z: 5, r: 1 }],
+      edges: [{ id: 1, a: 1, b: 2, state: 'vessel', via: [] }, { id: 2, a: 2, b: 3, state: 'vessel', via: [] },
+        { id: 3, a: 3, b: 4, state: 'vessel', via: [] }, { id: 4, a: 4, b: 1, state: 'vessel', via: [] },
+        { id: 5, a: 1, b: 5, state: 'vessel', via: [] }, { id: 6, a: 2, b: 6, state: 'vessel', via: [] }] });
+    const [c] = networks(m, { zStepUm: 1 }).components;
+    near(c.longestPathUm, 20 + 10 + Math.hypot(5, 5), 1e-6, 'tail, one side, the spur: the shortest way between the far ends');
+    near(c.longestTrailUm, 20 + 10 + 30, 1e-6, 'the tail, then both ways round the loop back to its corner');
+    assert.equal(c.trailExact, true);
   },
   'a sub-network touching the volume\'s border says so, and its tips there are border tips'() {
     const [h, island] = networks(H(), { zStepUm: 1 }).components;

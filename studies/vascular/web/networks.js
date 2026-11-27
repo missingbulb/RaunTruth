@@ -32,6 +32,26 @@ function shortest(adj, from) {
   return { dist, via };
 }
 
+// The longest trail: the longest route along the vessels that uses no branch twice, though it may pass a point again.
+// Searched exactly, from every end point, until `budget` steps are spent; past it, the longest found, flagged inexact.
+function longestTrail(adj, budget = TRAIL_STEPS) {
+  const used = new Set();
+  let best = 0, steps = 0, exact = true;
+  const go = (u, d) => {
+    if (d > best) best = d;
+    for (const { to, length, b } of adj.get(u) || []) {
+      if (used.has(b)) continue;
+      if (++steps > budget) { exact = false; return; }
+      used.add(b); go(to, d + length); used.delete(b);
+      if (!exact) return;
+    }
+  };
+  for (const u of adj.keys()) { go(u, 0); if (!exact) break; }
+  return { length: best, exact };
+}
+// the steps the longest trail's search may take in one sub-network before it gives the longest it found
+const TRAIL_STEPS = 200000;
+
 // the direction a branch leaves its end point `id` in, read DIRECTION_UM along it (or half its length, if shorter)
 function leaving(b, fromStart) {
   const P = fromStart ? b.path : [...b.path].reverse(), a = P[0], reach = Math.min(DIRECTION_UM, b.length / 2);
@@ -83,6 +103,7 @@ export function networks(m, { mask = [], damaged = [], zStepUm, cellUm = CELL_UM
       route.push(...(back ? [...b.path].reverse() : b.path).map((p) => [p.x, p.y]));
       at = back ? b.at[0] : b.at[1];
     }
+    const trail = longestTrail(adj);
     const length = bs.reduce((t, b) => t + b.length, 0), kinds = [...ends.values()];
     const junctions = kinds.filter((e) => e.kind === 'junction').length, tips = kinds.filter((e) => e.kind === 'tip');
     return {
@@ -93,7 +114,7 @@ export function networks(m, { mask = [], damaged = [], zStepUm, cellUm = CELL_UM
       branchLength: stats(bs.map((b) => b.length)), diameter: stats(bs.map((b) => b.diameter)),
       tortuosity: stats(bs.filter((b) => b.span > 1).map((b) => b.length / b.span)),
       junctionsPerMm: length ? junctions / (length * 1e-3) : null,
-      longestPathUm: best.d, longestPath: route,
+      longestPathUm: best.d, longestPath: route, longestTrailUm: trail.length, trailExact: trail.exact,
     };
   }).sort((a, b) => b.lengthUm - a.lengthUm);
   components.forEach((c, k) => { c.id = k + 1; for (const b of c.branchList) b.component = c.id; });

@@ -121,9 +121,9 @@ try {
   const csv = fs.readFileSync(await dl.path(), "utf8").trim().split("\n").map((r) => r.split(","));
   const row = (name) => csv.find((r) => r[3] === name);
   const jn = row("Junctions"), nearest = row("Nearest-vessel distance");
-  check(dl.suggestedFilename() === model.source.replace(/\.tiff?$/, "") + "_summary.csv" && csv.length === 28 && csv[1][2] === "a mask of 1 area"
+  check(dl.suggestedFilename() === model.source.replace(/\.tiff?$/, "") + "_summary.csv" && csv.length === 29 && csv[1][2] === "a mask of 1 area"
     && +jn?.[5] === half.s.junctions && +nearest?.[6] === half.s.nearest.n && nearest?.[5] === "",
-    `Download Summary saves the twenty-seven rows inside the mask: ${dl.suggestedFilename()}, ${csv.length - 1} rows, junctions ${jn?.[5]}, nearest n ${nearest?.[6]}`);
+    `Download Summary saves the twenty-eight rows inside the mask: ${dl.suggestedFilename()}, ${csv.length - 1} rows, junctions ${jn?.[5]}, nearest n ${nearest?.[6]}`);
   await page.click("#mask-clear");
   await page.waitForFunction((t) => window.vascular.summary().summary?.tissueMm3 === t, whole.s.tissueMm3);
   check(true, "Clear mask counts the whole field again");

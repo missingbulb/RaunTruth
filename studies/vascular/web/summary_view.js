@@ -100,7 +100,7 @@ function focus(id) {
   for (const r of document.querySelectorAll('#vm-net-table tr[data-c]')) { r.classList.toggle('on', +r.dataset.c === id); r.classList.toggle('picked', +r.dataset.c === picked); }
   const c = net.components.find((x) => x.id === id), path = svg.querySelector('.route');
   path.setAttribute('d', c?.longestPath.length ? 'M' + c.longestPath.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L') : '');
-  $('vm-net-caption').textContent = c ? `#${c.id}: ${fmt(c.lengthUm, 0)} µm of vessel (${pct(c.share, 1)}), ${c.junctions} junctions, ${c.tips} tips${c.borderTips ? ` (${c.borderTips} at the border)` : ''}; longest shortest path ${fmt(c.longestPathUm, 0)} µm, dashed` : 'Point at a sub-network, here or in the table, to see its longest shortest path; click to keep it.';
+  $('vm-net-caption').textContent = c ? `#${c.id}: ${fmt(c.lengthUm, 0)} µm of vessel (${pct(c.share, 1)}), ${c.junctions} junctions, ${c.tips} tips${c.borderTips ? ` (${c.borderTips} at the border)` : ''}; longest shortest path ${fmt(c.longestPathUm, 0)} µm, dashed; longest trail, no segment twice, ${c.trailExact ? '' : 'at least '}${fmt(c.longestTrailUm, 0)} µm` : 'Point at a sub-network, here or in the table, to see its longest shortest path; click to keep it.';
 }
 
 const tile = (label, value, unit, sub) => `<div class="vm-tile"><div class="k">${label}</div><div class="v"><b>${value}</b> ${unit}</div><div class="dim">${sub}</div></div>`;
@@ -130,7 +130,8 @@ const COLS = [
   ['junctions', 'Junct.', (c) => c.junctions],
   ['tips', 'Tips', (c) => `${c.tips}${c.borderTips ? ` <span class="dim">(${c.borderTips} at border)</span>` : ''}`],
   ['branches', 'Branches', (c) => c.branches],
-  ['longestPathUm', 'Longest path µm', (c) => fmt(c.longestPathUm, 0)],
+  ['longestPathUm', 'Longest shortest path µm', (c) => fmt(c.longestPathUm, 0)],
+  ['longestTrailUm', 'Longest trail µm', (c) => `${c.trailExact ? '' : '≥ '}${fmt(c.longestTrailUm, 0)}`],
   ['medBranch', 'Median branch µm', (c) => fmt(c.branchLength.med, 0)],
   ['medDiameter', 'Median ⌀ µm', (c) => fmt(c.diameter.med, 1)],
   ['meanTortuosity', 'Tortuosity', (c) => fmt(c.tortuosity.mean, 2)],
@@ -210,6 +211,7 @@ const rows = (s, n) => [
   { measurement: 'Largest sub-network', unit: '% of vessel length', value: n.components.length ? 100 * n.components[0].share : null },
   dist('Sub-network length', 'µm', stats(n.components.map((c) => c.lengthUm))),
   dist('Longest shortest path per sub-network', 'µm', stats(n.components.map((c) => c.longestPathUm))),
+  dist('Longest trail per sub-network', 'µm', stats(n.components.map((c) => c.longestTrailUm))),
   ...Object.entries(n.degrees).map(([k, v]) => ({ measurement: `Points where ${k} vessels meet`, unit: 'count', value: v })),
   dist('3D branching angle', '°', n.angles),
   { measurement: `Vessel length density CV over ${n.grid.cellUm} µm squares`, unit: 'ratio', value: n.grid.cv },
@@ -224,6 +226,7 @@ function download(which) {
     ['mean_branch_um', (c) => c.branchLength.mean], ['median_branch_um', (c) => c.branchLength.med],
     ['median_diameter_um', (c) => c.diameter.med], ['min_diameter_um', (c) => c.diameter.min], ['max_diameter_um', (c) => c.diameter.max],
     ['mean_tortuosity', (c) => c.tortuosity.mean], ['longest_shortest_path_um', (c) => c.longestPathUm],
+    ['longest_trail_um', (c) => c.longestTrailUm], ['longest_trail_exact', (c) => (c.trailExact ? 'yes' : 'no, the longest found')],
     ['junctions_per_mm', (c) => c.junctionsPerMm], ['touches_border', (c) => (c.touchesBorder ? (c.touchesSide ? 'side' : 'top/bottom') : 'no')],
   ], net.components), 'text/csv');
   else shell.saveFile(`${name}_branches.csv`, csv([
