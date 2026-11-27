@@ -260,8 +260,9 @@ const more = await page.evaluate(() => { const d = document.querySelector("#file
 await mustHold(more.shown && !more.open && more.n === more.rows && more.names.includes("ImageJ channels"),
   "below them More details lists every other field the file carries, folded, with its count (req/shell/image/file-info)", more);
 
-// ---- Unload: the page as it was before any image ----
-await page.click("#unload");
+// ---- Unload, from the keyboard (a click focuses no button in Safari): the page as it was before any image ----
+await page.focus("#unload");
+await page.keyboard.press("Enter");
 await page.waitForFunction(() => document.querySelector("#file-box").hidden && document.querySelector("#fx-result") && document.querySelector("#status").textContent.startsWith("Ready"));
 const clear = await page.evaluate(() => ({ stage: document.querySelector("#stage").hidden, empty: !document.querySelector("#empty").hidden,
   minimap: !!document.querySelector("#minimap").offsetParent, unload: !!document.querySelector("#unload").offsetParent, img: !!st.img,

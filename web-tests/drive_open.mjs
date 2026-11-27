@@ -1,6 +1,6 @@
 // Opens an image in a study that opens from Google Drive (req/shell/load/from) the way a user does, through the
-// Google Drive dialog, from the Drive fake: standInDrive(ctx) before the page loads gives the deploy a Google key,
-// and openFromDrive puts each file it is handed at Drive's top, listed in whichever folder the
+// Google Drive dialog, from the Drive fake, on a deploy with a Google key (the World's w.site.withGoogle() or
+// withoutGoogleClient()): openFromDrive puts each file it is handed at Drive's top, listed in whichever folder the
 // dialog shows while it is being opened.
 // openFromDrive(page, file) takes a path or {name, mimeType, buffer}, as setInputFiles does, the same name and bytes
 // again being the same file on Drive; it pastes the file's link where the dialog takes one (req/shell/drive/dialog),
@@ -14,16 +14,11 @@ import { world } from "./world.mjs";
 // per context, the files handed over: {name, buffer, id}
 const handed = new WeakMap();
 
-export async function standInDrive(ctx) {
-  handed.set(ctx, []);
-  // the context's deploy given a Google key where it has none, which a deploy with no key never gave a client
-  const settings = siteSettings(ctx);
-  if (!settings.env?.GOOGLE_API_KEY) settings.withoutGoogleClient();
-}
-
 export async function openFromDrive(page, file) {
-  const mine = handed.get(page.context()), w = world(page.context().browser()), drive = w.drive;
-  if (!mine) throw new Error("openFromDrive needs standInDrive(context) first");
+  const ctx = page.context(), w = world(ctx.browser()), drive = w.drive;
+  if (!siteSettings(ctx).env?.GOOGLE_API_KEY) throw new Error("openFromDrive needs a deploy with a Google key: w.site.withGoogle() or w.site.withoutGoogleClient()");
+  if (!handed.has(ctx)) handed.set(ctx, []);
+  const mine = handed.get(ctx);
   const f = typeof file === "string"
     ? { name: path.basename(file), mimeType: /\.png$/i.test(file) ? "image/png" : "image/tiff", buffer: fs.readFileSync(file) }
     : { ...file, buffer: Buffer.from(file.bytes ?? file.buffer) };
