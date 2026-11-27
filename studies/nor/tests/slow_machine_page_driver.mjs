@@ -11,12 +11,11 @@ import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
 import { pw, launch, expecting, mustHold } from "../../../web-tests/harness.mjs";
-import { world } from "../../../web-tests/world.mjs";
+import { world, TAGGER } from "../../../web-tests/world.mjs";
 import { idle } from "../../../web-tests/page_until.mjs";
 import { stepsOf } from "../../../web-tests/page_steps.mjs";
 import { held as holding } from "../../../web-tests/held.mjs";

@@ -16,7 +16,6 @@ import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
@@ -83,10 +82,9 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 const browser = await launch(pw), w = world(browser, origin);
+const tagger = w.tagger("shelves");
 // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-w.studies.shownTo("shelves", TAGGER);
-w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("shelves");
+w.studies.shownTo("shelves", tagger.email);
 let failed = false;
 
 const PNG = noisePng(W, H);

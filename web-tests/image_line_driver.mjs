@@ -41,8 +41,6 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-// the deploy with a Google key
-w.site.withoutGoogleClient();
 // the fixture's Drive root: kept.png, opened 30 minutes ago and kept on this device; far.png, opened 6 days ago and
 // not kept; never.png, never opened; and a subfolder the dialog never lists. Another folder elsewhere, empty;
 // calls(): the page's lists and downloads since the test cleared them
@@ -63,7 +61,7 @@ const RECENT = [
 ];
 let callsFrom = 0;
 // a device of its own remembering the folder's link and the images opened lately
-const device = w.device().kept().remembersDriveLink(slides).keeps({ "nor-drive-recent": JSON.stringify(RECENT) }), ctx = await device.context();
+const device = w.visitorWithLink(slides).kept().keeps({ "nor-drive-recent": JSON.stringify(RECENT) }), ctx = await device.context();
 const calls = () => drive.calls.slice(callsFrom).map((c) => c.kind).filter((k) => k === "list" || k === "download");
 // the browser's own file picker, where the browser has one, stands in as one handing over picked.png, a file of the
 // page's private storage, so the reference the page keeps to it is a real one; picks counts the times it was shown

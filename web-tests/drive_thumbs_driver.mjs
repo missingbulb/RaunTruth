@@ -32,13 +32,11 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-// the deploy with a Google key
-w.site.withoutGoogleClient();
 // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
 w.studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
 // the fixture study's own folder, which its dialog lists, and a device remembering its link
 const fixture = w.studyFolder("fixture");
-const device = w.device().remembersDriveLink(fixture), ctx = await device.context();
+const device = w.visitorWithLink(fixture), ctx = await device.context();
 // the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
 // held until the user has moved on
 const { drive } = w, slow = fixture.folder("slow");

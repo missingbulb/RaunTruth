@@ -21,15 +21,14 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
-// the deploy's Google key, and a.png on Drive, whose bytes the test changes
-w.site.withoutGoogleClient();
+// a.png on Drive, whose bytes the test changes
 const cache = w.folder("Cache").public(), PNG = image.png("a.png");
 const FILE = cache.holds(PNG, { createdTime: "2026-10-01T10:00:00Z" });
 // the folder's link, which the dialog remembers until a file's link is opened in its place
 const FOLDER = `https://drive.google.com/drive/folders/${cache.id}`;
 // a device of its own, remembering the folder's link; keys: kept before the page opens
 async function open(keys = {}) {
-  const device = w.device().kept().remembersDriveLink(cache).keeps(keys);
+  const device = w.visitorWithLink(cache).kept().keeps(keys);
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }
 const { device, page } = await open();

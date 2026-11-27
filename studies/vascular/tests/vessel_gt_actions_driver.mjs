@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
-import { serve, atStage, taggersDevice, drawnStack, STACK_PX } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
 import { viewDrawn } from "../../../web-tests/page_frames.mjs";
@@ -27,14 +27,12 @@ model.um_per_px *= model.size_px[0] / STACK_PX; model.size_px = [STACK_PX, STACK
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-// the deploy with a Google key, the page offering no sign-in
-w.site.withoutGoogleClient();
 atStage(browser, "Develop");
 let failed = false;
 let device, page;
 // a page of a device of its own, ready; drafts, keys: what the device keeps before it opens
 async function open({ drafts = [], keys = {} } = {}) {
-  device = taggersDevice(w).withEditHistoryShown().with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
+  device = w.device().signedInAs(w.tagger("vascular")).withEditHistoryShown().with({ ...SOFTWARE_3D, acceptDownloads: true }).keepsDrafts(drafts).keeps(keys);
   page = await device.opens("vascular");
 }
 

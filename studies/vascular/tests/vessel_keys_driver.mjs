@@ -14,7 +14,7 @@ import path from "node:path";
 
 import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { frames } from "../../../web-tests/page_frames.mjs";
-import { serve, atStage, taggersDevice, drawnStack, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, drawnStack, legend, legendKeys } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
@@ -25,15 +25,13 @@ const model = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cd31_front
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-// the deploy with a Google key, the page offering no sign-in
-w.site.withoutGoogleClient();
 let failed = false;
 // the page at a stage, the stack opened and the algorithm run; where the study asks how to get annotations (its GT stage),
 // from scratch chosen: the view toggles are tried in a published study, which is only viewed, and the keys of the walk in a GT one
 atStage(browser, "Develop");
 let device, page;
 async function begin(stage) {
-  device = taggersDevice(w).with({ ...SOFTWARE_3D }).withStudy("vascular", { stage });
+  device = w.device().signedInAs(w.tagger("vascular")).with({ ...SOFTWARE_3D }).withStudy("vascular", { stage });
   page = await device.opens("vascular");
   await openFromDrive(page, { name: model.source, mimeType: "image/tiff", buffer: drawnStack(model) });
   await page.waitForFunction(() => !$("#vm-run").disabled);

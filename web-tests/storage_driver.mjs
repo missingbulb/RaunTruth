@@ -58,8 +58,6 @@ const LISTED = JSON.stringify(fs.readdirSync(path.join(repo, "studies")).filter(
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
 // NoR Finder with a package of its own, which no other study names
 w.studies.edit("nor", (m) => ({ ...m, python: { ...m.python, packages: [...m.python.packages, OWN_PACKAGE] } }));
-// the deploy with a Google key
-w.site.withoutGoogleClient();
 // NoR Finder's own folder, which its dialog lists: two images, whose bytes need only be a real picture, which the
 // worker never reads; and a subfolder, listed after the images, holding an image named as the first one
 const nor = w.studyFolder("nor"), at = { createdTime: "2026-10-01T10:00:00Z" };
@@ -70,7 +68,7 @@ const TWIN = nor.folder("sub").holds(image.png("acme one.png"), at);
 // kept before the page opens; refusing: the thumbnails' cache takes nothing, as a full one, each refusal counted in
 // window.thumbsRefused
 async function start({ seed = {}, refusing = false } = {}) {
-  const device = w.device().kept().remembersDriveLink(nor).keeps({ ...SEED, ...seed }), ctx = await device.context();
+  const device = w.visitorWithLink(nor).kept().keeps({ ...SEED, ...seed }), ctx = await device.context();
   // jsDelivr's Python, its lock naming the stand-in file of each package, each a few bytes
   cdnFile(ctx, CORE.at(-1), JSON.stringify(LOCK), "application/json");
   for (const { file_name } of Object.values(LOCK.packages)) cdnFile(ctx, PYODIDE + file_name, Buffer.from("wheel"), "application/zip");

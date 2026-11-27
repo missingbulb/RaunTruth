@@ -12,7 +12,6 @@ import path from "node:path";
 import { helpTip } from "./help_tip.mjs";
 
 import { motion, record, begun, moved } from "./page_motions.mjs";
-import { TAGGER } from "./tagger.mjs";
 import { pw, launch, mustHold } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite } from "./site_server.mjs";
@@ -43,10 +42,8 @@ const { origin, server } = await serveSite({
 const browser = await launch(pw), w = world(browser, origin);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("fixture");
-const device = w.device().signedInAs(tagger);
+const device = w.device().signedInAs(w.tagger("fixture"));
 await record(await device.context());
 const page = await device.opens("fixture");
 const shot = async (name, sel) => { if (shots) await page.locator(sel).screenshot({ path: path.join(shots, name + ".png") }); };

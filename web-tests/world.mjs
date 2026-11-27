@@ -8,6 +8,9 @@
 //   w.studies.atStage("nor", "Analyze");                  the studies as served (fakes/studies.mjs)
 //   const ada = w.user("ada@acme.example").named("Ada").without(DRIVE_FILE).savedSettings({ "nor-theme": "dark" }).annotates("nor");
 //   w.studyFolder("nor").readableBy(ada)                  a study's members, Drive's readers of its root
+//   const tagger = w.tagger("nor");                       someone who may save the study's ground truth
+//     (req/shell/annotate/no-save): the site deployed with Google, TAGGER named Acme Tagger, annotating those studies
+//     (every study's with none named), their Drive holding no settings of the site's yet, whatever an earlier visit saved
 //   w.folder("Root C").public().saysStudy({ stage: "Public" })   a root's study file, as Study Setup left it; .study() reads it back
 //   const cache = w.folder("Cache").public();             a Drive folder, its sharing said as a test means it
 //   const a = cache.holds(image.png("a.png"));            what it holds (images.mjs), a.id its Drive id
@@ -17,6 +20,8 @@
 //   const page = await w.device().signedInAs(ada).keeps({ "nor-motion": "false" }).opens("nor");
 //   w.device().kept()                                     a browser profile of its own, for what Playwright's WebKit
 //     empties from a throwaway context (harness.mjs's keptContext)
+//   const device = w.visitorWithLink(cache);              a device no one is signed in on, on a deploy with the site's
+//     Google key and no client, the Drive dialog's link to the folder kept from before
 // A device, unless told: no one signed in, the opening popup answered (google signed in, else anonymous), the site's
 // worker gone, 1400x900, and a page that waits until the study says Ready. opens() alone is the site's own address.
 // The page's actions each end once the page has ended the work they set off (page_acts.mjs).
@@ -29,6 +34,7 @@ import { STEP } from "./deadlines.mjs";
 import { settle } from "./page_acts.mjs";
 
 export const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+export const TAGGER = "tagger@acme.example";
 const STUDY_FILE = "rauntruth-study.json";
 // what a page waits on before a test goes on: the study's Python ready, the page's title drawn, or nothing
 const UNTIL = {
@@ -144,6 +150,14 @@ export function world(browser, origin) {
         memberOf(folder) { (folder.readableBy ? folder : foldersOn(drive).of(folder)).readableBy(email); return user; },
       };
       return user;
+    },
+    tagger(...studies) {
+      w.site.withGoogle();
+      return w.user(TAGGER).named("Acme Tagger").savedSettings(null).annotates(...studies);
+    },
+    visitorWithLink(folder) {
+      w.site.withoutGoogleClient();
+      return w.device().remembersDriveLink(folder);
     },
 
     device() {
