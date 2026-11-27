@@ -1490,7 +1490,8 @@ nobody has decided: what the page does there is not a requirement yet.
   ("6d"), months ("2mo") and years ("1y"); one opened before the page kept that time carries none. An image is one
   entry however often it is opened. Choosing one from Drive opens the copy kept on this device
   (`req/shell/drive/kept-images`), with no download, and downloads it again only when none is kept; offline, one
-  not kept is greyed and opens nothing. Choosing a file from this computer opens the file itself, as it is now,
+  not kept is greyed and opens nothing; online, one kept here carries the offline mark (`req/shell/offline/mark`).
+  Choosing a file from this computer opens the file itself, as it is now,
   after the browser asks the user to allow it to be read again: the page keeps the browser's reference to the
   file, never a copy (set by the owner on 2026-11-04); a file moved, deleted or refused says so and opens nothing.
   The browser keeps such a reference only where it lets a page choose files itself (Chrome and Edge); in any
@@ -1583,8 +1584,10 @@ nobody has decided: what the page does there is not a requirement yet.
   follows a study whose Python is all on this device and, for a study with a Google Drive folder of its own, at least
   one of its images too (set by the owner on 2026-11-07), in the header's switcher and its Storage
   section, and an image kept on this device, in the Google Drive dialog's rows; what is not available
-  offline carries nothing. The image selector's images carry none: with Auto-save on, they are all kept; offline,
-  one not kept is greyed (`req/shell/load/selector`). The owner set on
+  offline carries nothing. Set by the owner on 2026-11-27, in place of the image selector's images carrying none: the
+  selector's list is the user's on every device, so listing an image says nothing of this one, and an image from Drive
+  kept here carries the mark there too, between its place and its age; offline, one not kept is greyed
+  (`req/shell/load/selector`). The owner set on
   2026-11-04 that the mark states a state rather than prompting an action, so it is green, with no
   question-mark pointer; assistive tech is told what it means: the study runs, or the image opens, without the internet.
   The owner set on 2026-11-06 a tiny tooltip on it, "Available for offline", and that in a Drive row it sits before what
