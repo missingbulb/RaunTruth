@@ -16,6 +16,7 @@ import { world } from "./world.mjs";
 import { image } from "./images.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
+import { unsettled } from "./page_acts.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [shots] = process.argv.slice(2);
@@ -191,9 +192,9 @@ try {
 
   // a folder asked for and left before its listing arrives never shows
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
-  await page.dblclick("#remote-list .item.folder");
+  await unsettled(page).dblclick("#remote-list .item.folder");
   await Promise.race([slowListing.asked, atMost(5000)]);
-  await page.click("#remote-path button[data-k='0']");
+  await unsettled(page).click("#remote-path button[data-k='0']");
   // the slow listing in, after the user moved on, and the page done with it
   slowListing.release();
   await Promise.race([slowListed, atMost(5000)]);

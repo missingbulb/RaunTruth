@@ -186,7 +186,6 @@ try {
 
   // req/shell/account/settings: the settings kept on this device only are listed in Settings, each to clear
   await page.click("#user-menu summary"); await page.click("#open-settings");
-  await page.waitForFunction(() => $("#settings-dlg").open);
   const local = await page.$$eval('#settings-dlg input[name="device-only"]', (is) => is.map((i) => ({ key: i.value, label: i.closest("label").textContent, on: i.checked })));
   check(local.some((e) => e.key === "nor-filter-settings-v1" && /Filter settings/.test(e.label) && /\d/.test(e.label) && e.on) && !local.some((e) => e.key === "nor-theme"),
     `Settings lists the settings kept on this device only, the study's too, each with its size, and not those that follow the user: ${JSON.stringify(local)}`);
@@ -199,8 +198,7 @@ try {
   const cache = await page.textContent("#storage-cache");
   check(/50 MB/.test(cache) && /browser/.test(cache) && /cache/.test(cache) && /clear/i.test(cache), "the Storage tab says Python's files sit in the browser's own cache, uncounted, and how that is cleared: " + cache);
   await page.click("#storage-settings");
-  await page.waitForFunction(() => $("#settings-dlg").open);
-  check(await page.evaluate(() => !$("#usage-dlg").open), "the total's Settings opens Settings in the dialog's place");
+  check(await page.evaluate(() => $("#settings-dlg").open && !$("#usage-dlg").open), "the total's Settings opens Settings in the dialog's place");
   const before = await page.$$eval('#settings-dlg input[name="device-only"]', (is) => is.map((i) => i.value));
   await page.click('#settings-dlg [data-clear="device-only"]');
   const after = await page.evaluate((keys) => ({ kept: keys.filter((k) => localStorage.getItem(k) !== null), open: $("#settings-dlg").open, status: $("#status").textContent,
@@ -245,7 +243,6 @@ try {
   // Auto-save images, in Settings, on at first
   const autosave = async (on, p = page) => {
     await p.click("#user-menu summary"); await p.click("#open-settings");
-    await p.waitForFunction(() => $("#settings-dlg").open);
     const box = 'input[name="nor-drive-autosave"]';
     const was = await p.$eval(`#settings-dlg ${box}`, (c) => [c.checked, c.closest("label").textContent]);
     check(!(await p.$('#settings-dlg input[name="device-only"][value="nor-drive-autosave"]')), "Auto-save images is not listed again among the settings kept on this device only");
@@ -309,7 +306,7 @@ try {
   await autosave(true);
   await drive();
   await page.dblclick("#remote-list .item.folder");
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 1 && /sub/.test($("#remote-path").textContent));
+  check(await page.evaluate(() => document.querySelectorAll("#remote-list .item").length === 1 && /sub/.test($("#remote-path").textContent)), "a folder opened in the dialog lists its one image");
   await page.dblclick("#remote-list .item:nth-child(1)"); await page.waitForFunction(() => !$("#remote-dlg").open);
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 2);
   r = await recents();

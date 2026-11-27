@@ -48,8 +48,7 @@ let page = await open(true, { email: ME });
 await opened(page, image);
 await page.waitForFunction(() => !$("#annotate-load").disabled);
 await page.click("#annotate-load");
-await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length === 3);
-await check(JSON.stringify(await rows(page)) === JSON.stringify(["Yours", "by hand · GT", "Others (1)"]),
+await check(await page.evaluate(() => document.querySelectorAll("#annotate-list button[data-key]").length === 3) && JSON.stringify(await rows(page)) === JSON.stringify(["Yours", "by hand · GT", "Others (1)"]),
   "the list holds mine, then the marked by how it was made and its mark, naming no one, then the others folded", await rows(page));
 await page.click("#annotate-list .others summary");
 const run = await page.evaluate(() => document.querySelector("#annotate-list .others button[data-key]").textContent);
@@ -58,9 +57,9 @@ await check(/^count 0\.1\.2/.test(run), "a batch run is named by its algorithm a
 // Edit this annotation on the other's: the next Save writes the user's own, recording its base, and the other's file is left alone
 await page.click(`#annotate-list button[data-key="${yael.id}"]`);
 await page.click("#load-go");
-await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
+await check(/^Showing/.test((await page.textContent("#annotate-say")).trim()), "the other's annotation is shown");
 await page.click("#annotate-edit");
-await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 2 && document.querySelector("#busy").hidden);
+await check(await page.evaluate(() => document.documentElement.hasAttribute("data-annotating") && window.fixture?.model()?.marks.length === 2 && document.querySelector("#busy").hidden), "Edit this annotation enters annotation mode on its two marks");
 await page.click("#fx-add");
 const w0 = writes.length;
 await check(/^Uploaded/.test(await saved(page)), "Save after Edit this annotation lands");
@@ -93,14 +92,12 @@ studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL }, official
 page = await open(false);
 await opened(page, image);
 await page.click("#annotate-load");
-await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length > 0);
 const outsider = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.textContent));
 await check(outsider.length === 2 && outsider.every((t) => !t.includes("@")) && !(await page.evaluate(() => !!document.querySelector("#annotate-list .others"))),
   "signed out, the list holds two rows, the GT and the official one, neither with an @, and no folded others", outsider);
 await check(/^by hand · GT/.test(outsider[0]) && /^count 0\.1\.2 · official/.test(outsider[1]), "labelled by hand or by algorithm version, with the mark", outsider);
 await page.click(`#annotate-list button[data-key="${yael.id}"]`);
 await page.click("#load-go");
-await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
-await check(!(await page.textContent("#annotate-say")).includes("@") && !(await page.evaluate(() => document.body.innerText.includes("yael"))), "its line names nobody", await page.textContent("#annotate-say"));
+await check(/^Showing/.test((await page.textContent("#annotate-say")).trim()) && !(await page.textContent("#annotate-say")).includes("@") && !(await page.evaluate(() => document.body.innerText.includes("yael"))), "its line names nobody", await page.textContent("#annotate-say"));
 await page.context().close();
 await done(0);

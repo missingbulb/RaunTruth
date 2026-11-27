@@ -5,7 +5,7 @@
 //   node web-tests/gt_resume_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until, idle } from "./page_until.mjs";
+import { until } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
@@ -34,20 +34,13 @@ const watch = (page) => {
 // the folders the page listed, each once, in the order it first listed them: on WebKit the page may list the
 // submissions folder a second time as the Drive dialog closes over the opening image, which reads nothing more
 const listed = (seen) => [...new Set(seen.lists)];
-// the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, nothing of it still
-// on its way to Drive, so what is counted after is the image's opening alone
-const quiet = (page) => idle(page);
 // the image opened from the Drive dialog, the page's calls to Drive from the double click counted, and the look for the
 // image's drafts and submission over
 const openImage = async (page, seen) => {
   await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
-  await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-  await quiet(page, seen);
   seen.lists.length = 0; seen.reads.length = 0;
   await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-  await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-  await until(page, () => document.documentElement.dataset.gtLookup === "done");
+  await check(await page.evaluate((n) => st.fileName === n && !$("#fx-count").disabled && document.documentElement.dataset.gtLookup === "done", png.name), "the image opened from the Drive dialog, its drafts and submission looked up");
 };
 // the image opened, then annotation from scratch chosen for it, which opens it again with the submission looked up
 const tagger = async (page) => {
@@ -97,8 +90,7 @@ await check(JSON.stringify(seen.lists) === JSON.stringify([GT.extractions, subFo
 await check((await marks(page)) !== edited && !(await page.evaluate(() => $("#analysis-box").classList.contains("folded"))), "nothing of it is loaded unasked, and the box is open with the image");
 seen.lists.length = 0; seen.reads.length = 0;
 await page.click("#gt-load-submission");
-await until(page, () => $("#gt-offers").hidden && !!window.fixture.model());
-await check((await marks(page)) === edited && JSON.stringify(seen.reads) === JSON.stringify([file.id]) && seen.lists.length === 0,
+await check(await page.evaluate(() => $("#gt-offers").hidden && !!window.fixture.model()) && (await marks(page)) === edited && JSON.stringify(seen.reads) === JSON.stringify([file.id]) && seen.lists.length === 0,
   "the click downloads the one file, lists nothing, and brings the submitted moves back", seen);
 const status = await page.textContent("#status");
 await check(/Analysis File loaded: replay verified/.test(status) && (await offer(page)).shown === false, "the replay is verified, said on the status line, and the loaded submission is no longer offered", status);
@@ -129,7 +121,6 @@ file.bytes = Buffer.from(JSON.stringify(plain));
 page = await open(true);
 await tagger(page);
 await page.click("#gt-load-submission");
-await until(page, () => /no history/.test($("#status").textContent));
 let list = await rows(page);
 await check((await marks(page)) === edited && await page.isDisabled("#gt-undo") && /no history/.test(await page.textContent("#status")), "a file with no history loads as a base: its marks, no Undo, and the status line says it held no history", await page.textContent("#status"));
 await check(list.some((r) => /Ground truth by tester@example\.com, .*, no history/.test(r.text)), "its Edit History row says whose it is, when, and no history", list);
@@ -141,9 +132,9 @@ file.bytes = Buffer.from(JSON.stringify(far));
 page = await open(true);
 await tagger(page);
 await page.click("#gt-load-submission");
-await until(page, () => $("#gt-load-submission").hidden && !!window.fixture.model());
+await check(await page.evaluate(() => $("#gt-load-submission").hidden && !!window.fixture.model()), "the base loads");
 await page.click("#fx-count");
-await until(page, () => window.fixture.model().marks.some((m) => m.x > 8 && m.x < 22));
+await check(await page.evaluate(() => window.fixture.model().marks.some((m) => m.x > 8 && m.x < 22)), "the run moves a mark where the algorithm puts it");
 const said = await page.textContent("#status");
 list = await rows(page);
 const ran = await page.evaluate(() => [...document.querySelectorAll("#eh-list li")].find((li) => /Algorithm ran/.test(li.textContent))?.title);
@@ -158,9 +149,8 @@ file.bytes = Buffer.from(JSON.stringify(altered));
 page = await open(true);
 await tagger(page);
 await page.click("#gt-load-submission");
-await until(page, () => $("#gt-load-submission").hidden && !!window.fixture.model());
 list = await rows(page);
-await check(JSON.stringify((await model(page)).marks) === JSON.stringify(altered.marks.map((m) => ({ ...m }))) && /did not replay/.test(await page.textContent("#status")),
+await check(await page.evaluate(() => $("#gt-load-submission").hidden) && JSON.stringify((await model(page)).marks) === JSON.stringify(altered.marks.map((m) => ({ ...m }))) && /did not replay/.test(await page.textContent("#status")),
   "a file whose model was altered says its history did not replay, and the stored model is the one loaded", await page.textContent("#status"));
 await check(list.some((r) => /Earlier history, not replayable/.test(r.text)), "its earlier history is set aside in the window", list);
 await page.context().close();
@@ -175,15 +165,9 @@ file.name = await personFile("tester@example.com");
 page = await open(true);
 seen = watch(page);
 await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
-await page.waitForSelector(`#remote-list .item[data-id="${png.id}"]`);
-await quiet(page, seen);
 seen.lists.length = 0;
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
-await until(page, () => document.documentElement.dataset.gtLookup === "done");
-await quiet(page, seen);
-await check(JSON.stringify(seen.lists.filter((id) => id === GT.extractions || id === subFolder.id)) === JSON.stringify([GT.extractions]) && !(await offer(page)).shown,
+await check(await page.evaluate((n) => st.fileName === n && !$("#fx-count").disabled && document.documentElement.dataset.gtLookup === "done", png.name) && JSON.stringify(seen.lists.filter((id) => id === GT.extractions || id === subFolder.id)) === JSON.stringify([GT.extractions]) && !(await offer(page)).shown,
   "outside annotation mode the image's opening asks the extractions folder once, for Load, lists no subfolder and offers no submission", seen.lists);
 await page.context().close();
 await done(0);

@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until, idle } from "./page_until.mjs";
+import { idle } from "./page_until.mjs";
 import { personFile, runFile } from "../web/truth_folders.js";
 import { aspect } from "./setup_page.mjs";
 
@@ -44,7 +44,6 @@ await check(await page.evaluate(() => !document.querySelector("#results-csv")?.c
 await check(readsOf(official).length === 0 && readsOf(new Set([own3.id])).length === 0, "opening Study Setup reads no extraction of an image's results", readsOf(official).map((c) => c.id));
 
 await page.click("#results-show");
-await page.waitForFunction(() => document.querySelectorAll("#results-scroll table tbody tr").length > 0 && !document.querySelector("#results-box").classList.contains("busy"));
 let t = await table(page);
 await check(JSON.stringify(t.head) === JSON.stringify(["Image", "Algorithm", "Pixels counted"]), "the table's columns are the image, the algorithm and the study's measures", t.head);
 await check(JSON.stringify(t.rows) === JSON.stringify([["img1.png", "above abcdef01", "7"], ["img2.png", "by hand", "5"]]), "one row per image with an official mark, none for the image with only a GT mark", t.rows);
@@ -52,7 +51,6 @@ await check(JSON.stringify(t.total) === JSON.stringify(["Total (2 images)", "", 
 await check(readsOf(official).length === 2 && readsOf(new Set([own3.id])).length === 0, "the press read the two official extractions and nothing else", readsOf(new Set([own3.id])).length);
 
 // the CSV is made on the page from those rows: no request goes out for it
-await idle(page);
 const before = drive.calls.length, seen = [];
 page.on("request", (r) => seen.push(r.url()));
 const [download] = await Promise.all([page.waitForEvent("download"), page.click("#results-csv")]);
@@ -65,23 +63,21 @@ await check(await page.textContent("#status") === "Saved results.csv.", "and the
 // a mark made on the page while the table shows: the table is of before the mark, so it goes, with no read of its own, until the next press
 await aspect(page, "images");
 await page.click("#data-tree .tree-folder .name");
-await page.waitForSelector("#folder-items .cell");
 await page.click('#folder-items .cell:has(.name:text-is("img3.png")) .name');
-await page.waitForSelector(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
 const readBefore = readsOf(official).length;
 await page.click(`#marks-list .mark-row[data-id="${own3.id}"] button[data-kind="official"]`);
-await page.waitForFunction(() => /^Marked/.test(document.querySelector("#marks-msg").textContent));
+const marked = await page.textContent("#marks-msg");
 await aspect(page, "results");
 t = await table(page);
-await check(t.rows.length === 0 && await page.evaluate(() => !document.querySelector("#results-csv").checkVisibility()) && readsOf(official).length === readBefore,
+await check(/^Marked/.test(marked) && t.rows.length === 0 && await page.evaluate(() => !document.querySelector("#results-csv").checkVisibility()) && readsOf(official).length === readBefore,
   "after a mark is made the table shown before it is gone, and nothing was read for that", t.rows);
 await page.click("#results-show");
-await until(page, () => document.querySelectorAll("#results-scroll table tbody tr").length === 3);
+t = await table(page);
+await check(t.rows.length === 3, "the next press lists the newly marked image too", t.rows);
 
 // an official mark taken off: the next press lists one row fewer
 studyFile({ marks: { [shaOf("img1.png")]: { official: { file: run1.id, by: null } } } });
 await page.click("#results-show");
-await until(page, () => document.querySelectorAll("#results-scroll table tbody tr").length === 1);
 t = await table(page);
 await check(JSON.stringify(t.rows) === JSON.stringify([["img1.png", "above abcdef01", "7"]]) && t.total[2] === "7", "a press reads the marks again: an image no longer marked official has no row", t);
 await done(0);

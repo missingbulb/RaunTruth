@@ -102,7 +102,7 @@ try {
     await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
     check(await page.evaluate(() => window.picks === 1 && st.fileName === "picked.png"), "the computer's button opens the image the browser's own picker hands over");
     await page.click("#unload");
-    await page.waitForFunction(() => !window.st.img);
+    check(await page.evaluate(() => !window.st.img), "Unload lets the image go");
     await page.click("#image-pick");
     const v = await rows();
     check(v.length === 1 && v[0].name === "picked.png" && v[0].where === "This computer" && v[0].age === "<1h", "its recent files list the file from this computer, saying so", v);
@@ -119,12 +119,10 @@ try {
     check(!(await rows()).some((r) => r.where === "This computer"), "and the file is not among the recent ones, which could not open it again");
   }
   await page.click("#load-remote");
-  await page.waitForFunction(() => $("#remote-dlg").open);
-  check(await shown("#remote-link") && (await shown("#remote-go")), "the Image Viewer's Drive dialog takes a pasted link");
+  check(await page.evaluate(() => $("#remote-dlg").open) && await shown("#remote-link") && (await shown("#remote-go")), "the Image Viewer's Drive dialog takes a pasted link");
   await page.click("#remote-dlg button[value=close]");
   await page.click("#user-menu summary"); await page.click("#open-settings");
-  await page.waitForFunction(() => $("#settings-dlg").open && $("#settings-dlg [name=nor-theme]"));
-  check(!(await page.$("#settings-dlg [name=nor-load-source]")), "where Load reads from is no setting");
+  check(await page.evaluate(() => $("#settings-dlg").open && !!$("#settings-dlg [name=nor-theme]")) && !(await page.$("#settings-dlg [name=nor-load-source]")), "where Load reads from is no setting");
   await page.keyboard.press("Escape");
 
   // ---- the fixture, and the real studies, open from Google Drive alone ----
@@ -138,13 +136,12 @@ try {
 
   // ---- req/shell/drive/dialog: a study's dialog browses its own folders, with no link to paste ----
   await page.click("#load-remote");
-  await page.waitForFunction(() => $("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 4);
-  check(!(await shown("#remote-link")) && !(await shown("#remote-go")), "a study's Drive dialog has no link to paste");
+  check(await page.evaluate(() => $("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 4) && !(await shown("#remote-link")) && !(await shown("#remote-go")), "a study's Drive dialog has no link to paste");
   check(/Slides/.test(await page.textContent("#remote-path")), "and opens straight into the study's root, which names no data folder", await page.textContent("#remote-path"));
   await page.click("#remote-dlg button[value=close]");
 
   // ---- req/shell/load/selector ----
-  await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
+  check(await page.evaluate(() => document.querySelector("#status").textContent.startsWith("Ready")), "the dialog closed, the page is Ready");
   const line = await page.evaluate(() => {
     const box = $("#image-box"), first = [...box.children].find((e) => e.matches(":not(.sec-head)") && e.getClientRects().length);
     return { first: first?.id, beforeDetails: !!(first.compareDocumentPosition($("#file-box")) & Node.DOCUMENT_POSITION_FOLLOWING) };
@@ -175,7 +172,7 @@ try {
 
   // a first open, from the dialog, downloads and keeps kept.png
   await page.click("#load-remote");
-  await page.waitForFunction(() => $("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 4);
+  check(await page.evaluate(() => $("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 4), "the Drive dialog lists the folder's four");
   let d = await listed();
   check(d.find((x) => x.name === "kept.png").age === "<1h" && d.find((x) => x.name === "far.png").age === "6d" && !d.find((x) => x.name === "never.png").age,
     "the Drive dialog says how long since each image was opened, nothing for one never opened", d);
@@ -183,12 +180,11 @@ try {
   // req/shell/drive/dialog: no date added to Drive on a row; a folder listed for the first time marks nothing new
   check(d.every((x) => x.fresh === null && !/2026/.test(x.meta)), "a row shows no date, and a folder listed here for the first time marks none of its images new", d);
   await page.dblclick(KEPT);
-  await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
+  check(await page.evaluate(() => document.querySelector("#status").textContent === "Image loaded."), "the image opens from the dialog");
   await until(page, async () => (await (await caches.open("nor-images-v1")).keys()).length === 1);
   // the box folds once the image is open, a step coming after Load: a click opens it again
   await page.click("#image-box.folded");
-  await page.waitForFunction(() => !$("#image-box").classList.contains("folded") && $("#unload").getClientRects().length);
-  check(/kept\.png/.test(await page.textContent("#image-pick")), "once open, the selector names the image");
+  check(await page.evaluate(() => !$("#image-box").classList.contains("folded") && $("#unload").getClientRects().length > 0) && /kept\.png/.test(await page.textContent("#image-pick")), "once open, the selector names the image");
   check(await shown("#unload"), "and Unload shows");
   const [p2, d2, l2] = [await box("#image-menu"), await box("#load-remote"), await box("#load")];
   check(await page.evaluate(() => $("#unload").parentElement.matches("#image-box > .sec-head") && $("#unload").textContent.trim() === "Unload image"), "as a link on the box's header");
@@ -196,8 +192,7 @@ try {
   check(await page.evaluate(() => $("#file-name").textContent.trim() === "Details"), "the details below are titled Details");
   await shot("loaded", "#image-box");
   await page.click("#unload");
-  await page.waitForFunction(() => !window.st.img && /Recently Opened/.test($("#image-pick").textContent));
-  check(true, "Unload clears the image");
+  check(await page.evaluate(() => !window.st.img && /Recently Opened/.test($("#image-pick").textContent)), "Unload clears the image");
 
   // ---- req/shell/drive/offline-listing ----
   await page.click("#load-remote");
@@ -227,17 +222,15 @@ try {
   check(r.find((x) => x.name === "kept.png").grey === false && r.filter((x) => x.name !== "kept.png").every((x) => x.grey), "offline, the selector greys the images not kept here", r);
   await page.keyboard.press("Escape");
   await page.click("#load-remote");
-  await page.waitForFunction(() => $("#remote-dlg").open && document.querySelectorAll("#remote-list .item").length === 4);
   d = await listed();
-  check(d.map((x) => x.name).join() === "Sub,kept.png,far.png,never.png", "offline, the dialog opens on the folder as last listed", d.map((x) => x.name));
+  check(await page.evaluate(() => $("#remote-dlg").open) && d.map((x) => x.name).join() === "Sub,kept.png,far.png,never.png", "offline, the dialog opens on the folder as last listed", d.map((x) => x.name));
   check(!d.find((x) => x.name === "kept.png").grey && ["Sub", "far.png", "never.png"].every((n) => d.find((x) => x.name === n).grey),
     "the image kept here opens, the others and a folder never listed are greyed", d);
   await shot("offline_dialog", "#remote-dlg");
   callsFrom = drive.calls.length;
   if (BLOBS_READ_OFFLINE) {
     await page.dblclick(KEPT);
-    await page.waitForFunction(() => document.querySelector("#status").textContent === "Image loaded.");
-    check(calls().length === 0, "and opens from this device", calls());
+    check(await page.evaluate(() => document.querySelector("#status").textContent === "Image loaded.") && calls().length === 0, "and opens from this device", calls());
   } else {
     console.log(`not checked in this ${ENGINE}: the image kept here opening offline, a blob its offline refuses the page`);
     await page.click("#remote-dlg button[value=close]");
@@ -250,11 +243,8 @@ try {
   callsFrom = drive.calls.length;
   if (BLOBS_READ_OFFLINE) await page.click("#image-box.folded");
   await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5);
-  check(calls().includes("list"), "online, opening the dialog reads the folder again", calls());
-  await until(page, (id) => JSON.parse(localStorage.getItem("nor-drive-listings") || "{}")[id]?.items?.some((f) => f.name === "new.png"), ROOT);
-  check(true, "and keeps what Drive says now in place of the old listing");
-  await until(page, (s) => document.querySelector(s), NEW + " .new");
+  check(await page.evaluate(() => document.querySelectorAll("#remote-list .item").length === 5) && calls().includes("list"), "online, opening the dialog reads the folder again", calls());
+  check(await page.evaluate((id) => JSON.parse(localStorage.getItem("nor-drive-listings") || "{}")[id]?.items?.some((f) => f.name === "new.png"), ROOT), "and keeps what Drive says now in place of the old listing");
   d = await listed();
   const added = d.find((x) => x.name === "new.png");
   check(/2026/.test(added.fresh || "") && d.filter((x) => x.fresh !== null).length === 1, "the image the folder did not hold last time is marked new, its hover saying when it was added to Drive", d);
@@ -263,9 +253,8 @@ try {
   await shot("new_in_dialog", "#remote-dlg");
   await page.click("#remote-dlg button[value=close]");
   await page.click("#load-remote");
-  await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 5 && !document.querySelector("#remote-list .item .new"), null, { timeout: STEP }));
   d = await listed();
-  check(d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
+  check(d.length === 5 && d.every((x) => x.fresh === null), "listed again, the folder holding the same images, none is new any more", d);
   await page.click("#remote-dlg button[value=close]");
 } finally {
   await device.close(); await browser.close(); server.close();

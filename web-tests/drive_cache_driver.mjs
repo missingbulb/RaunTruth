@@ -44,14 +44,14 @@ const fromDialog = async (p = page) => {
   await p.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 1);
   await p.evaluate(() => { st.fileName = ""; st.sha = ""; });
   await p.dblclick("#remote-list .item");
-  await p.waitForFunction(() => st.fileName === "a.png");
+  check(await p.evaluate(() => st.fileName === "a.png"), "a.png opens from the Drive dialog");
 };
 const fromLink = async () => {
   await pressDrive(page);
   await page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 1);
   await page.evaluate((id) => { st.fileName = ""; st.sha = ""; $("#remote-link").value = `https://drive.google.com/file/d/${id}/view`; }, FILE.id);
   await page.click("#remote-go");
-  await page.waitForFunction(() => st.fileName === "a.png");
+  check(await page.evaluate(() => st.fileName === "a.png"), "a.png opens from its link");
 };
 const fromRecents = async () => {
   await page.evaluate(() => { st.fileName = ""; st.sha = ""; });
@@ -123,11 +123,9 @@ try {
     await pressDrive(page);
     await page.evaluate((id) => { st.fileName = ""; st.sha = ""; $("#remote-link").value = `https://drive.google.com/file/d/${id}/view`; }, FILE.id);
     await page.click("#remote-go");
-    await page.waitForFunction(() => $("#remote-msg").classList.contains("err"));
   });
-  check(!(await page.evaluate(() => st.fileName)), `with the file's details unreachable, the kept copy does not open, and the dialog shows the error: "${await page.textContent("#remote-msg")}"`);
+  check(await page.evaluate(() => !st.fileName && $("#remote-msg").classList.contains("err")), `with the file's details unreachable, the kept copy does not open, and the dialog shows the error: "${await page.textContent("#remote-msg")}"`);
   await page.click("#remote-dlg button[value=close]");
-  await idle(page);
   drive.outage = null;
   await idle(page);
   drive.checksums = false; calls.length = 0;
@@ -162,8 +160,7 @@ try {
   check((await tip()) === null && (await page.evaluate(() => JSON.parse(localStorage.getItem("nor-tips-closed")) || [])).includes("recent-files"), "opening the selector closes it for good");
 
   await page.click("#user-menu summary"); await page.click("#open-settings");
-  await page.waitForFunction(() => $("#settings-dlg").open);
-  check(!!(await page.$('#settings-dlg input[name="nor-tips-closed"][value="recent-files"]')), "Settings lists the closed tip, to clear");
+  check(await page.evaluate(() => $("#settings-dlg").open) && !!(await page.$('#settings-dlg input[name="nor-tips-closed"][value="recent-files"]')), "Settings lists the closed tip, to clear");
 } finally {
   await device.close(); await browser.close(); server.close();
 }

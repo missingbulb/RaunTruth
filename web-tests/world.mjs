@@ -19,12 +19,14 @@
 //     empties from a throwaway context (harness.mjs's keptContext)
 // A device, unless told: no one signed in, the opening popup answered (google signed in, else anonymous), the site's
 // worker gone, 1400x900, and a page that waits until the study says Ready. opens() alone is the site's own address.
+// The page's actions each end once the page has ended the work they set off (page_acts.mjs).
 import { driveIn } from "./fakes/google_drive.mjs";
 import { SCOPES, signInIn } from "./fakes/google_sign_in.mjs";
 import { settingsIn } from "./fakes/site_settings.mjs";
 import { studies as studiesOf, studiesIn } from "./fakes/studies.mjs";
 import { pw, keptContext, worldOf, atRest } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
+import { settle } from "./page_acts.mjs";
 
 export const DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
 const STUDY_FILE = "rauntruth-study.json";
@@ -231,7 +233,7 @@ export function world(browser, origin) {
           page.setDefaultTimeout(STEP);
           await page.goto(origin + address);
           await UNTIL[until](page);
-          return page;
+          return settle(page);
         },
         // the hour up for the device, on a page of the site's it has open: Google refuses every token so far, and the
         // page's record of the sign-in says it ran out

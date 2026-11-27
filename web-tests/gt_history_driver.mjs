@@ -53,7 +53,6 @@ await counted(page);
 await moved(page, "m1", 20, 14); await moved(page, "m2", -16, 10);
 const edited2 = await marks(page);
 await page.click("#gt-save-draft");
-await until(page, () => $("#gt-unsaved").hidden);
 l = await label(page);
 await check(l.hidden && !(await unloadAsks(page)) && await page.isDisabled("#gt-save-draft"), "Save Draft clears the unsaved count and the guard against leaving", l);
 recs = await records(page);
@@ -71,8 +70,7 @@ await check(offer.shown && /^Load draft · saved \d\d:\d\d, 2 actions$/.test(off
 await check((await marks(page)) !== edited2, "nothing of the draft is loaded unasked: the marks are the run's own", await marks(page));
 await page.evaluate(() => { window.posted = []; const p = Worker.prototype.postMessage; Worker.prototype.postMessage = function (m, ...r) { posted.push(m.type + ":" + (m.action || "")); return p.call(this, m, ...r); }; });
 await page.click("#gt-load-draft");
-await until(page, () => $("#gt-offers").hidden);
-await check((await marks(page)) === edited2, "Load draft brings the model back with the two moves", { got: await marks(page), edited2 });
+await check(await page.isHidden("#gt-offers") && (await marks(page)) === edited2, "Load draft brings the model back with the two moves", { got: await marks(page), edited2 });
 const status = await page.textContent("#status");
 await check(/verified/.test(status) && !(await page.evaluate(() => posted.some((p) => p.startsWith("call:")))) && await page.isHidden("#gt-offers"),
   "the replay is verified on the status line, the study ran nothing again, and the loaded draft is no longer offered", { status, posted: await page.evaluate(() => posted) });
@@ -153,9 +151,8 @@ studyFile({ marks: { [createHash("sha256").update(png.bytes).digest("hex")]: { g
 await page.context().close();
 page = await open(false);
 await page.click("#load-remote");
-await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
 await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
+await check(await page.evaluate((n) => st.fileName === n && !$("#fx-count").disabled, png.name), "a viewer opens the image from the Drive dialog");
 await loadStored(page, file.id);
 await until(page, () => !!window.fixture.truth());
 const shown = await page.evaluate(() => Object.keys(window.fixture.truth()));
@@ -167,7 +164,7 @@ await tagger(page);
 await counted(page);
 await moved(page, "m1", 12, 12);
 await page.click("#gt-save-draft");
-await until(page, () => $("#gt-unsaved").hidden);
+await check(await page.isHidden("#gt-unsaved"), "Save Draft leaves nothing unsaved");
 // a run after the draft was saved is unsaved too
 await page.evaluate(() => $("#fx-count").click());
 await until(page, () => !$("#gt-save-draft").disabled);
@@ -178,7 +175,7 @@ await until(page, () => !document.activeViewTransition);
 await moved(page, await page.evaluate(() => window.fixture.model().marks[0].id), 9, 9);
 asked = await ask(page, false, () => page.evaluate(() => $("#unload").click()));
 await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name, "Unload with an unsaved action asks, and dismissing keeps the image", asked);
-asked = await ask(page, false, async () => { await page.click("#load-remote"); await page.waitForFunction(() => document.querySelector("#remote-dlg").open); await page.dblclick(`#remote-list .item[data-id="${png.id}"]`); });
+asked = await ask(page, false, async () => { await page.click("#load-remote"); await page.dblclick(`#remote-list .item[data-id="${png.id}"]`); });
 await check(/unsaved/.test(asked || "") && (await page.evaluate(() => st.fileName)) === png.name && !(await label(page)).hidden, "opening an image over an unsaved action asks, and dismissing keeps the model", asked);
 await page.evaluate(() => { const d = $("#remote-dlg"); if (d.open) d.close(); });
 // choosing another study, or clearing all annotations, with an action unsaved asks first
@@ -191,7 +188,7 @@ asked = await ask(page, false, () => page.click("#annotate-clear"));
 await check(/unsaved/.test(asked || "") && await page.evaluate(() => document.documentElement.hasAttribute("data-annotating")) && (await studyIs(page)) === before && !(await label(page)).hidden,
   "clearing all annotations with an unsaved action asks, and dismissing keeps annotation mode and the action", asked);
 await page.click("#gt-save-draft");
-await until(page, () => $("#gt-unsaved").hidden);
+await check(await page.isHidden("#gt-unsaved"), "and Save Draft then leaves nothing unsaved");
 
 await page.context().close();
 // the browser's Back and Forward cannot be cancelled: the study is swapped with an action unsaved, and nothing is asked
@@ -227,9 +224,8 @@ await expecting(/storage refused/, async () => {
   await counted(page);
   await moved(page, "m1", 12, 12);
   await page.click("#gt-save-draft");
-  await page.waitForFunction(() => /could not be saved/.test($("#notice").textContent));
   l = await label(page);
-  await check(l.text === "· 1 unsaved" && await unloadAsks(page), "a draft that cannot be written is said, and the action stays unsaved", l);
+  await check(/could not be saved/.test(await page.textContent("#notice")) && l.text === "· 1 unsaved" && await unloadAsks(page), "a draft that cannot be written is said, and the action stays unsaved", l);
   await page.context().close();
 });
 // a draft is listed in Manage storage, under its image, and deleted there
@@ -238,7 +234,6 @@ await tagger(page);
 await counted(page);
 await moved(page, "m1", 12, 12);
 await page.click("#gt-save-draft");
-await until(page, () => $("#gt-unsaved").hidden);
 await page.click("#user-menu summary");
 await page.click("#manage-storage");
 await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
