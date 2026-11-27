@@ -517,7 +517,7 @@ nobody has decided: what the page does there is not a requirement yet.
   happens at once. Test: `web-tests/test_dialog_motion_page.py`, `web-tests/test_fold_motion_page.py`.
   </details>
 
-- `req/shell/dialogs/focus-kept` When the control holding the keyboard is redrawn, hidden or disabled, the keyboard stays on the page.
+- `req/shell/dialogs/focus-kept` When the control holding the keyboard is redrawn, hidden or disabled, the keyboard stays on the page. A control that lets the keyboard go while it is still there and usable leaves it on the page itself, in every browser.
   <details>
 
   Set by the owner on 2026-11-26 (issues 1101, 1107, 1108). A control can go while it has the keyboard:

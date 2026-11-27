@@ -144,5 +144,10 @@ mustHold(listed.some((t) => t.includes("Grid colour and spacing")), "Settings li
   await p2.focus("#grid-btn");
   await orMissed(p2.waitForFunction(() => document.querySelector("#grid-pop").matches(":popover-open")));
   mustHold((await pop(p2)).open, "focusing the button opens it too");
+  // the keyboard put down, the button still there: the page leaves it on the body, and the popup goes
+  await p2.evaluate(() => document.activeElement.blur());
+  await orMissed(p2.waitForFunction(() => !document.querySelector("#grid-pop").matches(":popover-open")));
+  mustHold(!(await pop(p2)).open && await p2.evaluate(() => document.activeElement === document.body),
+    "the keyboard taken off the button, with the pointer away, closes it and stays off", await p2.evaluate(() => document.activeElement.id || document.activeElement.localName));
 }
 await done(0);
