@@ -162,3 +162,9 @@ not belong here — propose it to the Claudinite canon instead, where every repo
   a test that failed on the bug, a later commit fixed the bug, and the same test passed with no
   test file changed after that first commit. Any other pull request waits for the owner.
   (merge-proven-fix)
+
+## Videos
+
+- **Storyboarding a video** - build each scene from what it must convey and the moments that carry it, each by
+  picture, voice or both in sync and lasting the longer of the two; never fit one channel into the other's time.
+  `docs/videos/README.md` says how. (storyboard-scene-first)
