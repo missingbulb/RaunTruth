@@ -103,7 +103,8 @@ const quiet = async () => {
     await framesOf(page);
     const now = await shown();
     return !inflight && span(await inView()).every((k) => asked.includes(k) || now[k]);
-  }, () => Promise.race([next, orMissed(page.waitForEvent("requestfinished", { timeout: 10000 }))]), { timeout: 10000 });
+  // woken by a request or an answer, or a frame drawn: a picture decoded makes neither of the first two
+  }, () => Promise.race([next, framesOf(page)]), { timeout: 10000 });
   if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
 };
 // the page's handlers for what was just done have all run
@@ -123,7 +124,8 @@ try {
     new MutationObserver(() => said.push($("#status").textContent)).observe($("#status"), { childList: true, characterData: true, subtree: true });
   });
   await open();
-  await untilHeard(async () => span(await inView()).every((k) => gates.has(k)), () => next);
+  // every request the page has made held at the stand-in: it asks a few at a time, and while they are held asks no more
+  await untilHeard(async () => gates.size > 0 && gates.size === await page.evaluate(() => window.thumbsAsked), () => next);
   for (const k of [...gates.keys()].sort((x, y) => y - x)) {
     const left = inflight;
     letGo([k]);
