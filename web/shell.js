@@ -1008,7 +1008,8 @@ async function inventory() {
   return { sections: all, settings, overhead };
 }
 // the Storage tab; fresh: just opened, every section folded, where a redraw after a deletion keeps what the user unfolded
-async function storageTab(fresh) {
+function storageTab(fresh) { return work.during(listStorage(fresh), "the storage listing"); }
+async function listStorage(fresh) {
   const list = $("#storage-list"), open = new Set(fresh ? [] : [...list.querySelectorAll(".group[open]")].map((g) => g.dataset.group));
   if (fresh) { list.textContent = "Reading what this device keeps…"; $("#storage-total").textContent = ""; }
   const { sections, settings, overhead } = await inventory();

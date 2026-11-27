@@ -125,7 +125,13 @@ try {
   await page.click("#user-menu summary");
   check(await page.isVisible("#manage-storage"), "clicking it shows Manage storage");
   await shot("user_menu", "body");
+  // what the page counts as its work the moment the list says it is reading: the listing itself
+  await page.evaluate(() => new MutationObserver((_, o) => {
+    if (!/Reading/.test($("#storage-list").textContent)) return;
+    window.readingWhile = [...shellForTests.work.doing]; o.disconnect();
+  }).observe($("#storage-list"), { childList: true, characterData: true, subtree: true }));
   await page.click("#manage-storage");
+  check((await page.evaluate(() => window.readingWhile || []))?.some((w) => /storage/.test(w)), "reading what this device keeps counts as the page's work", await page.evaluate(() => window.readingWhile));
   await page.waitForFunction(() => $("#usage-dlg").open && !/Reading/.test($("#storage-list").textContent));
   check(await page.evaluate(() => !document.querySelector("#storage-list .group[open]")), "every section starts folded");
   await shot("storage_folded", "#usage-dlg");
