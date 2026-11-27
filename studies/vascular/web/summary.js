@@ -23,7 +23,7 @@ export function counted(m, mask, x, y) {
 // The confirmed network's branches: each the run of vessel between two points that are not plain points along a
 // vessel (a junction, three or more vessels meeting, or a tip), however many segments and edges the model drew it
 // in. Each: its ends' kinds, its path through the model's points in µm (z already scaled), its length along that path,
-// its straight span and its mean diameter.
+// its straight span and its mean diameter, the ids of its two end points and its segments.
 export function branches(m, zStepUm) {
   const inc = new Map(), S = m.segments;
   for (let i = 0; i < S.length; i++) if (Mo.confirmed(S[i])) for (const n of [S[i].a, S[i].b]) { const l = inc.get(n); if (l) l.push(i); else inc.set(n, [i]); }
@@ -46,7 +46,7 @@ export function branches(m, zStepUm) {
       if (next == null) break;
       i = next;
     }
-    return { ends: [kind(start), kind(at)], path, segs };
+    return { ends: [kind(start), kind(at)], at: [start, at], path, segs };
   };
   for (const [id, l] of inc) if (kind(id) !== 'point') for (const i of l) if (!used[i]) out.push(walk(id, i));
   // a closed loop of plain points has no end to start from
@@ -71,10 +71,12 @@ export function branches(m, zStepUm) {
       if (d >= half) { const t = d ? half / d : 0; mid = { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t }; break; }
       half -= d;
     }
-    return { ends: b.ends, path: b.path, length, span, diameter: wlen ? wsum / wlen : null, mid };
+    return { ends: b.ends, at: b.at, segs: b.segs, path: b.path, length, span, diameter: wlen ? wsum / wlen : null, mid };
   });
 }
 
+// the q-quantile of values sorted, linear between the two nearest
+export const quantile = (v, q) => { if (!v.length) return undefined; const i = (v.length - 1) * q, lo = Math.floor(i); return v[lo] + (v[Math.min(lo + 1, v.length - 1)] - v[lo]) * (i - lo); };
 // n, mean, sd, median and the values sorted, of the finite ones in xs
 export function stats(xs) {
   const v = xs.filter(Number.isFinite).sort((a, b) => a - b), n = v.length;
@@ -166,7 +168,7 @@ export function tissueUm3(m, mask, zStepUm) {
 
 // The paths of the network's branches with a radius at every point: one the file does not give is the median of the
 // others.
-function withRadii(every) {
+export function withRadii(every) {
   const known = [];
   let missing = false;
   for (const b of every) for (const p of b.path) if (Number.isFinite(p.r)) known.push(p.r); else missing = true;
@@ -179,7 +181,7 @@ function withRadii(every) {
 // The seven numbers the model's own geometry gives, over the tissue the mask and the damaged areas leave: sums and
 // counts over its points and segments, nothing sampled. zStepUm: µm a slice stands for.
 // the model with the image's damaged areas among its own
-const withDamaged = (m, damaged) => (damaged.length ? { ...m, excluded_regions: [...(m.excluded_regions || []), ...damaged.map((polygon) => ({ polygon }))] } : m);
+export const withDamaged = (m, damaged) => (damaged.length ? { ...m, excluded_regions: [...(m.excluded_regions || []), ...damaged.map((polygon) => ({ polygon }))] } : m);
 
 export function summarize(m, { mask = [], damaged = [], zStepUm } = {}) {
   m = withDamaged(m, damaged);
@@ -203,7 +205,7 @@ export function summarize(m, { mask = [], damaged = [], zStepUm } = {}) {
     tissueMm3: mm3,
     volumeFraction: t3 ? vesselUm3 / t3 : null,
     lengthDensity: per(length * 1e-3), lengthUm: length,
-    junctions, branchPointDensity: per(junctions),
+    junctions, junctionDensity: per(junctions), junctionsPerMm: length ? junctions / (length * 1e-3) : null,
     branches: counting.length, branchDensity: per(counting.length),
     branchLength: stats(jj.map((b) => b.length)),
     diameter: stats(all.map((b) => b.diameter)),
@@ -218,5 +220,8 @@ export function nearestVessel(m, { mask = [], damaged = [], zStepUm, points = 20
   m = withDamaged(m, damaged);
   const T = lattice(m, mask, zStepUm, points), near = walls(withRadii(branches(m, zStepUm)).map((b) => b.path), 20), far = [];
   for (const [x, y, z] of T.out) { const d = near(x, y, z); if (d != null && d > 0) far.push(d); }
-  return { ...stats(far), samples: T.out.length, spacingUm: T.s };
+  const st = stats(far), v = st.v;
+  // the share of the tissue outside the vessels lying farther than d µm from the nearest wall
+  const beyond = (d) => { if (!v.length) return null; let lo = 0, hi = v.length; while (lo < hi) { const k = (lo + hi) >> 1; if (v[k] > d) hi = k; else lo = k + 1; } return (v.length - lo) / v.length; };
+  return { ...st, p90: quantile(v, 0.9), p95: quantile(v, 0.95), beyond, samples: T.out.length, spacingUm: T.s };
 }

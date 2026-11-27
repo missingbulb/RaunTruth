@@ -229,7 +229,8 @@ owner's decisions on the stacks and the vessel model, are
   (the owner: "if you don't understand something, guess"):
   1. Vascular volume fraction: the model's tubes, πr² along each vessel, over the tissue's volume, in %.
   2. Vessel length density: the vessels' length through the model's points, over the tissue's volume, in mm/mm³.
-  3. Branch point density: the junctions (owner, 2026-11-16: "# of junctions"), three or more vessels meeting, per mm³.
+  3. Junction density: the junctions (owner, 2026-11-16: "# of junctions"), three or more vessels meeting, per mm³, and
+     per mm of vessel length; named Branch point density until the researcher asked for Junction density (2026-11-27).
   4. Branch density: the branches, junction to junction or junction to a tip (`locked-metric-definitions`), per mm³.
   5. Mean branch length: junction to junction along the vessel (owner, 2026-11-16: not the model's own segments), in µm.
   6. Vessel diameter distribution: each branch's diameter, a person's width where one was set, else the model's.
@@ -242,6 +243,35 @@ owner's decisions on the stacks and the vessel model, are
   model's points and segments, under 5 ms on a whole stack's model (owner, 2026-11-16; 5 ms, not 1, set by the owner on 2026-11-17). The shell's Download
   Summary saves them, a row each, the four distributions with their statistics (`req/shell/summary/download`). Test:
   `studies/vascular/tests/test_vessel_summary.mjs`, `studies/vascular/tests/test_model_page.py`.
+  </details>
+
+- `req/vascular/summary/levels` Summary shows the model at three levels, as pictures: the whole image, each sub-network and each branch.
+  <details>
+
+  Asked by the study's researcher on 2026-11-27, as an initial direction only: **Tentative**, every definition below
+  open to change, and none of it a choice about the analysis stage. A sub-network is a connected component of the
+  confirmed branches counted (`req/vascular/summary/metrics`): branches joined where they share an end point, inside
+  the imaged volume, so two that join outside it count apart. Below the whole image's numbers, as tiles:
+  - a map of the counted network from straight above, each sub-network in its colour (the three longest their own,
+    the rest grey), and the share of the vessel length each holds as one bar; pointing at one, on the map, the bar or
+    the table, brings it forward with its longest shortest path dashed over it, and a click keeps it;
+  - a table of the sub-networks, sorted by any column: length and share of all the length, junctions, tips and how
+    many lie on the volume's border, branches, longest shortest path, median branch length, median diameter, mean
+    tortuosity, junctions per mm of vessel, and whether it touches the border, at a side or only the top or bottom
+    slice; and the longest shortest paths' histogram. A point is on the border within its radius (at least a pixel) of
+    a side, or within half a slice of the first or last slice. The longest shortest path is the longest of the
+    shortest routes along the vessels between two of its end points, in µm in 3D;
+  - node degree, how many confirmed vessels meet at each of the model's points inside the tissue: 1, 2 (a point along a
+    vessel, the model's own drawing), 3, 4 or more; and the 3D branching angle between each pair of branches leaving a
+    junction, each branch's direction read 10 µm along it, or half its length if shorter;
+  - the branch histograms of `req/vascular/summary/metrics`;
+  - the nearest-vessel distance with its median, 90th and 95th percentiles marked, the share of the tissue farther
+    than a distance a person types (30 µm at first), and vessel length density in 50 µm squares from above as a
+    heat map, with its coefficient of variation over the squares at least half tissue.
+
+  Sub-networks CSV and Branches CSV save a row per sub-network and per branch (its sub-network, end points and their
+  kinds, length, span, tortuosity, diameter, middle); Download Summary adds the new image-level numbers. Test:
+  `studies/vascular/tests/test_vessel_networks.mjs`, `studies/vascular/tests/test_model_page.py`.
   </details>
 
 - `req/vascular/truth/keys` While an area is tagged, keys give the verdicts: F and J judge the junction, Space does the area, S skips it.
