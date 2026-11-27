@@ -9,7 +9,9 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { openFromDrive } from "./drive_open.mjs";
-import { until } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
+import { held } from "./held.mjs";
+import { unsettled } from "./page_acts.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
 
@@ -32,10 +34,22 @@ studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL } } } });
 const loaded = (page, name) => page.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), name);
 const opened = async (page, file) => { await openFromDrive(page, file); await loaded(page, path.basename(file)); };
 const rows = (page) => page.evaluate(() => [...document.querySelectorAll("#annotate-list > button[data-key], #annotate-list > details > summary")].map((e) => e.textContent.replace(/\d{1,2}\/\d{1,2}\/\d{4}.*$/, "").trim()));
+// the first upload's write held at Drive: the page counts the whole upload as its work, the steps before the write too
+let heldOnce = false;
 const saved = async (page) => {
   await page.evaluate(() => $("#gt-submit").click());
   await page.waitForFunction(() => $("#gt-dlg").open && !$("#gt-send").disabled);
-  await page.click("#gt-send");
+  if (!heldOnce) {
+    heldOnce = true;
+    const write = held();
+    drive.hold = (c) => (c.kind === "write" ? write.hold() : null);
+    await unsettled(page).click("#gt-send");
+    await write.asked;
+    const doing = await page.evaluate(() => shellForTests.work.doing);
+    check(doing.includes("analysis upload"), "an upload on its way counts as the page's work, from the press to its end", doing);
+    drive.hold = () => null; write.release();
+    await idle(page);
+  } else await page.click("#gt-send");
   await page.waitForFunction(() => /^Uploaded|not uploaded/.test($("#gt-msg").textContent));
   const msg = await page.textContent("#gt-msg");
   await page.click("#gt-close");
