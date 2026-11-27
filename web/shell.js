@@ -534,8 +534,12 @@ function settle(m) {
 }
 // a frame after the button is disabled, so it shows before the work holds the page
 const painted = () => new Promise((ok) => requestAnimationFrame(() => after(0, ok)));
-async function working(btn, action) {
+// a button's action, counted as the page's work from the press until it is done
+function working(btn, action) {
   if (btn.classList.contains("working")) return;
+  return work.during(holding(btn, action), `#${btn.id} at work`);
+}
+async function holding(btn, action) {
   btn.classList.add("working"); btn.disabled = true;
   // whatever the page redraws meanwhile, the button stays held until the action is done
   const hold = new MutationObserver(() => { if (!btn.disabled) btn.disabled = true; });

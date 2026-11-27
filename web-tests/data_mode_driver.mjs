@@ -65,7 +65,13 @@ await check(/Delete it/.test(await folderMsg()) && !writes.filter(([, name]) => 
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
 await page.click("#data-tree .tree-folder .name");
 await check((await summary()).previews === 1, "the file deleted in Drive, the folder's previews are the photo's alone", await summary());
+// what the page counts as its work the moment the button shows it is at work: the button's action itself
+await page.evaluate(() => new MutationObserver((_, o) => {
+  if (!$("#update-previews").classList.contains("working")) return;
+  window.workingWhile = [...shellForTests.work.doing]; o.disconnect();
+}).observe($("#update-previews"), { attributes: true, attributeFilter: ["class"] }));
 await page.click("#update-previews");
+await check((await page.evaluate(() => window.workingWhile || [])).length > 0, "a button's action counts as the page's work from the press", await page.evaluate(() => window.workingWhile));
 await check(/3 previews made/.test(await folderMsg()) && JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-study.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
