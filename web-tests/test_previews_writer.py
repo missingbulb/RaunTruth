@@ -37,7 +37,7 @@ def test_the_page_writes_what_the_tool_writes(tmp_path):
     folder(str(images))
     big = np.zeros((40, 2, 300, 260), np.uint16)
     big[:, 0, 100:200, 50:90] = np.arange(40)[:, None, None] * 50
-    tifffile.imwrite(images / 'e big stack.tif', big, imagej=True, metadata={'axes': 'ZCYX', 'spacing': 0.5})
+    tifffile.imwrite(images / 'e big stack.tif', big, imagej=True, resolution=(1 / 0.55, 1 / 0.55), metadata={'axes': 'ZCYX', 'spacing': 0.5, 'unit': 'um'})
     y, x = np.mgrid[0:300, 0:420]
     wide = np.stack([((x * 7) % 900).astype(np.uint16), ((y * 11) % 700).astype(np.uint16)])
     tifffile.imwrite(images / 'f big flat.tif', wide, imagej=True, metadata={'axes': 'CYX'})
