@@ -8,7 +8,7 @@ import fs from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
-import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
@@ -44,7 +44,7 @@ const saved = async (page) => {
 const bodyOf = (f) => JSON.parse(f.bytes.toString());
 
 // ---- a member: the list is mine, then the marked, then the others folded, each labelled
-let page = await open(true, { email: ME, prepare: standInDrive });
+let page = await open(true, { email: ME });
 await opened(page, image);
 await page.waitForFunction(() => !$("#annotate-load").disabled);
 await page.click("#annotate-load");
@@ -71,7 +71,7 @@ await check(Buffer.compare(yael.bytes, yaelBytes) === 0 && !writes.slice(w0).som
 await page.context().close();
 
 // ---- Save twice on an image of no extraction: one file in the image's own subfolder, two revisions
-page = await open(true, { email: ME, prepare: standInDrive });
+page = await open(true, { email: ME });
 await opened(page, second);
 await fromScratch(page, "#fx-count");
 await until(page, () => !!window.fixture.model());
@@ -90,7 +90,7 @@ await page.context().close();
 
 // ---- someone who is not a member, signed out: the marked extractions alone, by hand or by version, with no name
 studyFile({ marks: { [shaOf(image)]: { gt: { file: yael.id, by: YAEL }, official: { file: batch.id, by: null } } } });
-page = await open(false, { prepare: standInDrive });
+page = await open(false);
 await opened(page, image);
 await page.click("#annotate-load");
 await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length > 0);

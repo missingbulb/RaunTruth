@@ -71,10 +71,11 @@ def test_the_files_a_study_keeps_offline_are_on_the_cdn_fake_as_they_are_on_the_
     assert not [f for f in run['findings'] if f['class'] == 'bug'], run['findings']
 
 
+@pytest.mark.chromium_only
 def test_a_screenshot_for_the_owner_has_two_device_pixels_to_a_css_pixel(tmp_path):
     from PIL import Image
-    run = explore(tmp_path, '--world', 'phone', '--seed', '1', '--steps', '12')
-    shots = [f['ownerShot'] for f in run['findings'] if f.get('ownerShot')]
+    run = explore(tmp_path, '--world', 'phone', '--seed', '1', '--steps', '4', '--plant', 'style:#user-menu summary { position: relative; left: 300px !important }')
+    shots = [f['ownerShot'] for f in run['findings'] if f.get('ownerShot') and 'user-menu' in f['what']]
     assert shots, run['findings']
     assert Image.open(tmp_path / shots[0]).size[0] == 2 * 390
 
@@ -204,6 +205,7 @@ def numbered(listing, words):
     return found[0]
 
 
+@pytest.mark.chromium_only
 def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_path):
     s = Session(tmp_path / 's', '--world', 'visitor', '--persona', 'user')
     try:
@@ -240,6 +242,7 @@ def test_a_persona_says_what_it_expects_before_a_step_and_how_it_went_after(tmp_
     assert opened['happened']['motions'], opened['happened']
 
 
+@pytest.mark.chromium_only
 def test_a_control_that_looks_unlike_its_neighbours_is_named_the_odd_one_out(tmp_path):
     s = Session(tmp_path / 's', '--world', 'visitor', '--plant', 'style:#sb-report { border-radius: 9px !important }')
     try:

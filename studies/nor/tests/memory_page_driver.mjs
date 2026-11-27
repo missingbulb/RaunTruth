@@ -7,7 +7,7 @@ import { EARLY } from "../../../web-tests/early_messages.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { ENGINE } from "../../../web-tests/engine.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -40,8 +40,10 @@ const { origin, server } = await serveSite({ "/web/worker.js": EARLY + STAND_IN,
 const browser = await launch(pw, ENGINE === "chromium" ? { args: ["--js-flags=--no-sparkplug --no-maglev --no-turbofan --no-flush-bytecode"] } : {});
 const fail = async (why) => { console.error(why); await browser.close(); server.close(); process.exit(1); };
 // a device whose welcome popup is not answered yet
-const device = world(browser, origin).device().welcomed(null), ctx = await device.context();
-await standInDrive(ctx);
+const w = world(browser, origin);
+// the deploy with a Google key, the page offering no sign-in
+w.site.withoutGoogleClient();
+const device = w.device().welcomed(null), ctx = await device.context();
 // each worker the page makes is told as it is made, so its first answer is heard however soon it comes
 await ctx.addInitScript(() => {
   const Made = window.Worker;

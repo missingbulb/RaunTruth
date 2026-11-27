@@ -12,7 +12,7 @@ import { EARLY } from "./early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { ENGINE, SOFTWARE_3D } from "./engine.mjs";
-import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { openFromDrive } from "./drive_open.mjs";
 import { frames, viewDrawn } from "./page_frames.mjs";
 import { pw, launch, check } from "./harness.mjs";
 import { world } from "./world.mjs";
@@ -47,10 +47,11 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
+// the deploy with a Google key, the page offering no sign-in
+w.site.withoutGoogleClient();
 // the drawn stack's levels shown as drawn, so a check can name the colour a voxel gives
 w.studies.edit("vascular", (m) => ({ ...m, view: { ...m.view, stretch: false } }));
 const device = w.device().with(SOFTWARE_3D);
-await standInDrive(await device.context());
 let page;
 
 // the 3D view's picture as it is now: mean red, green and blue (0-255), and how many pixels are lit
@@ -372,7 +373,6 @@ try {
     const get = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (kind, ...rest) { return kind === "webgl2" ? null : get.call(this, kind, ...rest); };
   });
-  await standInDrive(noGl);
   noGl.on("weberror", (e) => check(false, "page error, no WebGL2: " + e.error().message));
   const p2 = await bare.opens("vascular");
   await openFromDrive(p2, STACK);
