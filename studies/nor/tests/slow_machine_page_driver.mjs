@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { TAGGER } from "../../../web-tests/tagger.mjs";
-import { standInDrive, openFromDrive } from "../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { studies as studiesOf } from "../../../web-tests/fakes/studies.mjs";
 import { siteSettings } from "../../../web-tests/fakes/site_settings.mjs";
 import { pw, launch, expecting, mustHold } from "../../../web-tests/harness.mjs";
@@ -76,7 +76,6 @@ async function open(gb, seed = {}) {
   const device = w.device().signedInAs(tagger).keeps(seed), ctx = await device.context();
   siteSettings(ctx).withGoogle();
   await ctx.addInitScript((gb) => { Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => gb, configurable: true }); }, gb);
-  await standInDrive(ctx);
   const page = await device.opens("nor", { until: "none" });
   await started(page);
   return { device, page };

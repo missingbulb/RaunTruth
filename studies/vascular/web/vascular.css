@@ -108,6 +108,55 @@
 #vm-summary .hist .grid { stroke: var(--line); }
 #vm-summary .hist .sd { fill: var(--text); opacity: .1; }
 #vm-summary .hist .mean { stroke: var(--text); stroke-width: 1.5; }
+/* the charts' colours: three sub-networks of their own and the rest in grey, validated for both themes */
+#vm-summary { --viz-1: #338ced; --viz-2: #e76624; --viz-3: #00a888; --viz-0: #6b7079; --viz-seq: #338ced; }
+:root[data-theme=light] #vm-summary { --viz-1: #257de0; --viz-2: #f47230; --viz-3: #00b894; --viz-0: #a3a9b2; --viz-seq: #1b64be; }
+@media (prefers-color-scheme: light) { :root:not([data-theme]) #vm-summary { --viz-1: #257de0; --viz-2: #f47230; --viz-3: #00b894; --viz-0: #a3a9b2; --viz-seq: #1b64be; } }
+#vm-summary .c1 { --c: var(--viz-1); } #vm-summary .c2 { --c: var(--viz-2); } #vm-summary .c3 { --c: var(--viz-3); } #vm-summary .c0 { --c: var(--viz-0); }
+#vm-summary h4 { margin: 16px 0 6px; font-size: 12px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
+#vm-summary h4 .dim { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.vm-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.vm-tile { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-chip); font-size: 11px; font-variant-numeric: tabular-nums; }
+.vm-tile .k { color: var(--dim); }
+.vm-tile .v { font-size: 12px; color: var(--dim); } .vm-tile .v b { font-size: 17px; color: var(--text); font-weight: 600; }
+.vm-map { display: block; width: 100%; height: auto; border-radius: var(--r-chip); }
+.vm-map .field { fill: color-mix(in srgb, var(--text) 4%, transparent); stroke: var(--line); vector-effect: non-scaling-stroke; }
+.vm-map .mask { fill: none; stroke: var(--dim); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.vm-map g path { fill: none; stroke: var(--c); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; cursor: pointer; }
+.vm-map g:hover path { stroke-width: 3; }
+.vm-map.focus g:not(.on) path { opacity: .25; }
+.vm-map.focus g.on path { stroke-width: 2.6; }
+.vm-map .route { fill: none; stroke: var(--text); stroke-width: 1.4; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.vm-caption { margin: 4px 0 8px; font-size: 11px; min-height: 2.6em; }
+.vm-share-label { font-size: 11px; }
+.vm-share { display: flex; gap: 2px; height: 10px; margin: 3px 0; }
+.vm-share span { background: var(--c); border-radius: 2px; min-width: 2px; cursor: pointer; }
+.vm-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; color: var(--dim); margin-bottom: 8px; }
+#vm-summary i[class^=c] { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--c); margin-right: 4px; vertical-align: 0; }
+.vm-table-wrap { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-chip); margin-bottom: 10px; }
+.vm-table { border-collapse: collapse; width: 100%; font-size: 11px; font-variant-numeric: tabular-nums; }
+.vm-table th { position: sticky; top: 0; background: var(--panel); color: var(--dim); font-weight: 500; text-align: right; padding: 3px 5px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; }
+.vm-table th.sorted { color: var(--text); } .vm-table th.down::after { content: " ↓"; } .vm-table th.up::after { content: " ↑"; }
+.vm-table td { text-align: right; padding: 2px 5px; white-space: nowrap; }
+.vm-table th:first-child, .vm-table td:first-child { text-align: left; }
+.vm-table tr[data-c] { cursor: pointer; }
+.vm-table tr.on td { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.vm-table tr.picked td { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+#vm-summary .hist { margin-bottom: 10px; }
+#vm-summary .hist .bar.quiet { opacity: .35; }
+#vm-summary .hist .val { fill: var(--text); }
+#vm-summary .hist .dimt { font-size: 9px; opacity: .8; }
+#vm-summary .hist .mark { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 2; }
+#vm-summary .hist .marktext { font-size: 9px; fill: var(--text); }
+.vm-heat { display: block; width: 100%; height: auto; margin-top: 4px; }
+.vm-heat .cell { fill: var(--viz-seq); stroke: var(--panel); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.vm-heat .cell.part { stroke-dasharray: 2 2; stroke: var(--dim); }
+.vm-scale { display: flex; align-items: center; gap: 6px; font-size: 10px; margin-top: 3px; }
+.vm-scale i { flex: 1; height: 6px; border-radius: 2px; background: linear-gradient(to right, color-mix(in srgb, var(--viz-seq) 6%, var(--panel)), var(--viz-seq)); }
+.vm-far { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
+.vm-far input { width: 4.5em; }
+.vm-far b { color: var(--text); }
+.vm-downloads { font-size: 12px; color: var(--dim); }
 /* the view toggles in the keys legend (req/vascular/model/view): filled while their view is on screen; a held key's
    chip ringed dashed, unfilled with a blue border while holding it turns its view off; 3D | 2D as two halves, the one
    shown filled */

@@ -18,8 +18,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { standInDrive, openFromDrive } from "../../../../web-tests/drive_open.mjs";
+import { openFromDrive } from "../../../../web-tests/drive_open.mjs";
 import { launch } from "../../../../web-tests/harness.mjs";
+import { world } from "../../../../web-tests/world.mjs";
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -56,10 +57,11 @@ await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const url = `http://127.0.0.1:${server.address().port}/web/?study=nor`;
 
 const browser = await launch(pw);
+// the deploy with a Google key, the page offering no sign-in
+world(browser, url).site.withoutGoogleClient();
 const ctx = await browser.newContext();
 // the page without its cache of third-party files, which is not what is measured here
 await ctx.addInitScript(() => { delete Navigator.prototype.serviceWorker; });
-await standInDrive(ctx);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => { console.error("page error:", e.message); process.exitCode = 1; });
 

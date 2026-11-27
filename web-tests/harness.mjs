@@ -198,7 +198,7 @@ function onSitePages(target) {
 // and so is what Firefox itself writes of a module the page was still loading.
 // WebKit does the same, in its own words.
 const CUT = {
-  firefox: /NetworkError when attempting to fetch resource|The operation was aborted|Loading failed for the module/,
+  firefox: /NetworkError when attempting to fetch resource|The operation was aborted|Loading failed for the module|Error in input stream/,
   webkit: /Load failed|Context is stopped|due to access control checks|Blob loading failed|reading the Blob/,
 }[ENGINE] || null;
 // the pages on their way out: from the request that takes one elsewhere until its next document is read, or for good
