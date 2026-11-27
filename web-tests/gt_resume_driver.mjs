@@ -5,7 +5,7 @@
 //   node web-tests/gt_resume_driver.mjs ANSWERS STUDIES ROOT
 import { createHash } from "node:crypto";
 import { standIn } from "./stand_in_drive.mjs";
-import { until, untilHeard } from "./page_until.mjs";
+import { until, idle } from "./page_until.mjs";
 import { kit } from "./gt_history_kit.mjs";
 import { fromScratch } from "./annotating.mjs";
 import { personFile } from "../web/truth_folders.js";
@@ -20,13 +20,10 @@ const GOOGLE = "https://www.googleapis.com/";
 
 // the page's calls to Drive from now on, told apart: the folders it listed (by parent) and the files it downloaded
 const watch = (page) => {
-  const seen = { lists: [], reads: [], away: 0 };
-  const back = (r) => { if (r.url().startsWith(GOOGLE)) seen.away--; };
-  page.on("requestfinished", back); page.on("requestfailed", back);
+  const seen = { lists: [], reads: [] };
   page.on("request", (r) => {
     const u = r.url();
     if (!u.startsWith(GOOGLE)) return;
-    seen.away++;
     const q = new URL(u).searchParams;
     if (q.get("q")) seen.lists.push(decodeURIComponent(q.get("q")).match(/'([^']+)' in parents/)?.[1]);
     // the image's own download is not a ground-truth file's
@@ -39,10 +36,7 @@ const watch = (page) => {
 const listed = (seen) => [...new Set(seen.lists)];
 // the page has stopped asking for anything: what the Drive dialog lists and tags as it opens is over, nothing of it still
 // on its way to Drive, so what is counted after is the image's opening alone
-const quiet = async (page, seen) => {
-  await untilHeard(() => seen.away === 0, () => new Promise((ok) => { page.once("requestfinished", ok); page.once("requestfailed", ok); }));
-  await until(page, () => { const n = performance.getEntriesByType("resource").length, same = window.seen === n; window.seen = n; return same; });
-};
+const quiet = (page) => idle(page);
 // the image opened from the Drive dialog, the page's calls to Drive from the double click counted, and the look for the
 // image's drafts and submission over
 const openImage = async (page, seen) => {
