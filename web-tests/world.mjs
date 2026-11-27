@@ -147,7 +147,7 @@ export function world(browser, origin) {
     device() {
       const kept = {}, visit = {}, options = { viewport: { width: 1400, height: 900 } };
       const cached = [], served = [];
-      let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null;
+      let who = null, left = 3599e3, granted, known, welcome, drafts = [], worker = false, profile = false, given = null, held, waiting, remember = true, ctx = null, sizeKeywords = true;
       const device = {
         // signed in on the device, Google's token lasting left ms; token: its value, for a test that checks what
         // carried it, else one of the sign-in fake's; unsaved: the settings' keys changed here since Drive last had
@@ -171,6 +171,9 @@ export function world(browser, origin) {
           return device;
         },
         withWorker() { worker = true; return device; },
+        // an engine that cannot move a height to a part's own (auto), as Firefox and Safari: CSS.supports says so of
+        // interpolate-size, and the stylesheet's asking for it is undone
+        withoutSizeKeywordMotion() { sizeKeywords = false; return device; },
         kept() { profile = true; return device; },
         // study id's study.json as this device alone is served it, with these keys (its stage, say)
         withStudy(id, keys) { served.push([id, keys]); return device; },
@@ -182,6 +185,13 @@ export function world(browser, origin) {
         async context() {
           if (ctx) return ctx;
           ctx = given || (profile ? await keptContext(pw, options, shared) : await browser.newContext(options));
+          if (!sizeKeywords) await ctx.addInitScript(() => {
+            const supports = CSS.supports;
+            CSS.supports = (...a) => !/interpolate-size/.test(a[0]) && supports.apply(CSS, a);
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(":root { interpolate-size: numeric-only !important; }");
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+          });
           for (const [id, keys] of served) studiesOf(ctx).edit(id, (m) => ({ ...m, ...keys }));
           const seed = { ...kept };
           if (who) {

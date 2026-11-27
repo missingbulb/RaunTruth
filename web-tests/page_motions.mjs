@@ -3,6 +3,8 @@
 // waits for one begun since then that moved the group named (a name, or a pattern) and finished. CSS transitions and
 // animations: played(page) counts them; ran(page, since, wants) waits for each want, a { name, left } with either
 // left out, to be matched by one begun since then and ended. Each gives what it found, missing: true when it did not.
+// Motions a script starts (Element.animate): scripted(page) counts them; animated(page, since, sel, name) waits for
+// one begun since then on what sel names, animating the property named, to end, and gives what it found as ran does.
 // atRest(page, selector) waits until nothing animates the element, for a check that measures it.
 
 // what the motion was doing, for a check that timed out waiting on it: whether a view transition is under way, what
@@ -35,6 +37,17 @@ export const record = (ctx) => ctx.addInitScript(() => {
   addEventListener("animationstart", begin("animationName"), true);
   for (const t of ["transitionend", "transitioncancel"]) addEventListener(t, end("propertyName"), true);
   for (const t of ["animationend", "animationcancel"]) addEventListener(t, end("animationName"), true);
+  // a motion a script starts, by the properties its keyframes move
+  window.scriptMotions = [];
+  const animate = Element.prototype.animate;
+  Element.prototype.animate = function (frames, ...rest) {
+    const a = animate.call(this, frames, ...rest), list = Array.isArray(frames) ? frames : [frames];
+    const m = { names: [...new Set(list.flatMap((f) => Object.keys(f).filter((k) => !["offset", "easing", "composite"].includes(k))))], target: this, ended: false };
+    window.scriptMotions.push(m);
+    a.addEventListener("finish", () => { m.ended = true; });
+    a.addEventListener("cancel", () => { m.cancelled = true; });
+    return a;
+  };
 });
 
 // a stall is a failure, a slow machine is not
@@ -52,6 +65,11 @@ export const ran = (page, since, wants) => page.waitForFunction(([n, ws]) => {
   return ws.every((w) => all.some((x) => x.ended && Object.entries(w).every(([k, v]) => x[k] === v)));
 }, [since, wants], { timeout: WAIT }).then(() => ({}),
   async () => ({ missing: true, played: await page.evaluate((n) => window.cssMotions.slice(n).map(({ name, left, ended }) => ({ name, left, ended })), since) }));
+
+export const scripted = (page) => page.evaluate(() => window.scriptMotions.length);
+export const animated = (page, since, selector, name) => page.waitForFunction(([n, sel, name]) =>
+  window.scriptMotions.slice(n).some((m) => m.ended && m.names.includes(name) && m.target.matches?.(sel)), [since, selector, name], { timeout: WAIT }).then(() => ({}),
+  async () => ({ missing: true, played: await page.evaluate(([n, sel]) => window.scriptMotions.slice(n).filter((m) => m.target.matches?.(sel)).map(({ names, ended, cancelled }) => ({ names, ended, cancelled })), [since, selector]) }));
 
 // a motion on an element begins a frame after what starts it, so one still frame is not yet rest; three in a row are
 export const atRest = (page, selector) => page.waitForFunction((sel) => {

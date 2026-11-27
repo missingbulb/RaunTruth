@@ -37,6 +37,7 @@ import { actionLog, ACTIONS } from "./action_log.js";
 import { identify, verdict } from "./browsers.js";
 import { problemUrl, ACTIONS_QUOTED, ERRORS_QUOTED } from "./problem_report.js";
 import { dialogMotion } from "./dialog_motion.js";
+import { foldMotion } from "./fold_motion.js";
 import { focusReturn } from "./focus_return.js";
 import { truthTagger, LOCAL_GT } from "./truth_tagger.js";
 import { truthHistory } from "./truth_history.js";
@@ -296,6 +297,7 @@ const showUnloading = () => { unloading.checked = readJSON(UNLOAD_PYTHON, false)
 showUnloading();
 unloading.onchange = () => { writeJSON(UNLOAD_PYTHON, unloading.checked); unloadIfDone(); };
 dialogMotion(still);
+foldMotion();
 focusReturn();
 
 $("#sb-net").onclick = () => usage("network");
