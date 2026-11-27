@@ -670,7 +670,12 @@ nobody has decided: what the page does there is not a requirement yet.
   once, in one request, and keeps it in the browser until Drive gives the file a different SHA-256.
   An image the index names with the SHA-256 Drive gives for it now shows its preview and, a TIFF, what it
   holds (`req/shell/drive/stacks`; a PNG or JPEG shows no 2D or channel tags) with no read of its own: a flat image's colour picture, a stack's mini-volume drawn
-  turned a little, its channels in their own colours, and turning while the pointer is over its row.
+  turned a little, its channels in their own colours, and turning while the pointer is over its row. A stack's
+  mini-volume is as deep, for its width, as the stack is: its slices' spacing over its pixels' width, the file's
+  spacing first and the study's (`view.spacing`) when the file gives none, the slices as far apart as the pixels
+  are wide while either is unknown (set by the owner on 2026-11-27: the vascular stacks' previews did not look
+  1 µm apart). So the index records each stack's width in pixels and its pixels' width in µm, and an entry from an
+  older file that lacks them is stale, Update previews making it again.
   An image the index lacks, or names with another SHA-256 (it changed since the file was made), is
   read as without the file (`req/shell/drive/dialog`, `req/shell/drive/stacks`). The download waits, like every other, while Drive
   throttles the site (`req/shell/drive/throttle`). Manage storage counts each folder's file with its study's thumbnails. Test:
@@ -699,7 +704,7 @@ nobody has decided: what the page does there is not a requirement yet.
   rows in view and the next 10 as the thumbnails are (`req/shell/drive/dialog`) and only while Show thumbnails is on.
   What each file holds is remembered in the browser, so it is read once. A file whose header says
   neither shows nothing. When a stack is opened from Drive, its thumbnail is a small 3D picture of
-  the whole stack, turned a little to show its depth, its channels in their own colours (two in green
+  the whole stack, turned a little to show its depth, as deep as `req/shell/drive/previews` draws a stack's mini-volume, its channels in their own colours (two in green
   and magenta), drawn from the file the page already has with
   no further download; a flat image's stays the one `req/shell/drive/dialog` describes. Test:
   `web-tests/test_drive_shapes_page.py`.
