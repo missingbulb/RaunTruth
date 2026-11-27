@@ -399,7 +399,8 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const block = () => page.evaluate(() => ({ items: Math.round(document.querySelector("#sb-res-items").getBoundingClientRect().width),
     icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width),
     raised: document.querySelector("#sb-res").classList.contains("raised"), hovered: document.querySelector("#sb-res").matches(":hover"),
-    classes: document.querySelector("#sb-res").className }));
+    classes: document.querySelector("#sb-res").className, mode: document.querySelector("#sb-res").dataset.mode,
+    maxWidth: getComputedStyle(document.querySelector("#sb-res-items")).maxWidth }));
   const isOpen = async (want, what, ms = 1500) => {
     await orMissed(page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }));
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own
