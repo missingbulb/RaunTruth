@@ -6,7 +6,7 @@
 import { BLOB } from "./file_fields.js";
 import { remote } from "./drive.js";
 import { LISTINGS } from "./image_dialog.js";
-import { CONNECTION } from "./offline.js";
+import { CONNECTION, markOffline } from "./offline.js";
 
 // [{id, name, path, study, at}], newest first: images opened from the remote store, path their folders under the link, study the one it was opened in, at when it was last opened (ms; absent for one kept before that was)
 export const RECENT = "nor-drive-recent";
@@ -98,7 +98,7 @@ export function loadBox(shell) {
   $("#image-menu").addEventListener("toggle", () => {
     if (!$("#image-menu").open) return;
     closeTip("recent-files");
-    greyRecents(); markRecentTruth();
+    keptRecents(); markRecentTruth();
     const rows = [...$("#recent").querySelectorAll(".recent")];
     (rows.find((b) => b.getAttribute("aria-selected") === "true") || rows[0])?.focus();
   });
@@ -198,22 +198,27 @@ export function loadBox(shell) {
       b.type = "button"; b.className = "item recent"; b.title = `${where} / ${r.name}`; b.dataset.id = r.id; if (r.local) b.dataset.local = "";
       b.setAttribute("role", "option"); b.setAttribute("aria-selected", String(r.id === on));
       const logo = r.local ? "computer-logo" : remote.logo.id;
-      b.innerHTML = `<svg class="${logo}" aria-hidden="true"><use href="#${logo}"/></svg><span class="what"><span class="name">${esc(r.name)}</span><span class="where">${esc(where)}</span></span>${r.local ? "" : '<span class="gt-tag"></span>'}${agoTag(r.at)}`;
+      b.innerHTML = `<svg class="${logo}" aria-hidden="true"><use href="#${logo}"/></svg><span class="what"><span class="name">${esc(r.name)}</span><span class="where">${esc(where)}</span></span>${r.local ? "" : '<span class="gt-tag"></span><span class="kept"></span>'}${agoTag(r.at)}`;
       b.onclick = () => { $("#image-menu").open = false; r.local ? openLocalRecent(r) : shell.openRecent(r); };
       return b;
     }));
     const how = fromLocal() ? "the buttons at the right open one" : `${remote.short}'s button, at the right, opens one`;
+    if ($("#image-menu").open) keptRecents();
     if (!list.length) box.append(Object.assign(document.createElement("p"), { className: "hint", textContent: `No image opened here yet: ${how}.` }));
     imageBox();
     const s = shell.steps.find((p) => p.key === "load");
     if (s && s.button !== loadButton()) { s.button = loadButton(); drawSteps(); }
   }
-  // offline, an image not kept on this device opens nothing, and is greyed
-  async function greyRecents() {
-    const off = shell.offlineCopy.offline(), kept = off ? await keptIds() : null;
-    for (const b of $("#recent").querySelectorAll(".recent")) b.disabled = off && !b.hasAttribute("data-local") && !kept.has(b.dataset.id);
+  // the recents are those of every device the user signs in on: an image from the remote store kept on this one carries
+  // the offline mark (req/shell/offline/mark); offline, one not kept opens nothing, and is greyed
+  async function keptRecents() {
+    const off = shell.offlineCopy.offline(), kept = await keptIds();
+    for (const b of $("#recent").querySelectorAll(".recent:not([data-local])")) {
+      b.disabled = off && !kept.has(b.dataset.id);
+      markOffline(b.querySelector(".kept"), "image", kept.has(b.dataset.id));
+    }
   }
   page.watch("image", () => showRecent());
-  addEventListener(CONNECTION, () => greyRecents());
+  addEventListener(CONNECTION, () => keptRecents());
   return { loadButton, loadHolder, noteSha, remember, recentHere, agoTag, showRecent, placeLoad };
 }
