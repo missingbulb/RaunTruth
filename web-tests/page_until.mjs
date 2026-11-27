@@ -37,17 +37,19 @@ export async function idle(page, { timeout = 10000 } = {}) {
 export const orMissed = (wait) => wait.then((x) => x ?? true, (e) => { console.error("not seen: " + String(e?.message ?? e).split("\n")[0]); return null; });
 
 // Waits until fn, run here (async allowed), gives something truthy, looking again each time the promise wake() gives
-// settles: something the test hears (a request reaching its stand-in, a page event), never a clock. What fn gave, or
-// false once timeout has passed without it, for the check after it to say what is missing.
+// settles: something the test hears (a request reaching its stand-in, a page event), never a clock. The wake is asked
+// for before fn looks, so what comes while it looks wakes the next look. What fn gave, or false once timeout has
+// passed without it, for the check after it to say what is missing.
 export async function untilHeard(fn, wake, { timeout = 10000 } = {}) {
   const end = Date.now() + timeout;
   for (;;) {
+    const woken = Promise.resolve(wake()).catch(() => {});
     const got = await fn();
     if (got) return got;
     const left = end - Date.now();
     if (left <= 0) return false;
     let stop;
-    await Promise.race([Promise.resolve(wake()).catch(() => {}), new Promise((ok) => { stop = setTimeout(ok, left); })]); // bounds a hang: what is never heard ends the wait
+    await Promise.race([woken, new Promise((ok) => { stop = setTimeout(ok, left); })]); // bounds a hang: what is never heard ends the wait
     clearTimeout(stop);
   }
 }
