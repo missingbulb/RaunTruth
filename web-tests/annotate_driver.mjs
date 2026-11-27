@@ -8,7 +8,7 @@ import fs from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
-import { standInDrive, openFromDrive } from "./drive_open.mjs";
+import { openFromDrive } from "./drive_open.mjs";
 import { until } from "./page_until.mjs";
 import { expecting, NETWORK_GONE } from "./harness.mjs";
 import { storedDrafts, seedDrafts } from "./device_storage.mjs";
@@ -71,7 +71,7 @@ const scratch = async (page) => { await fromScratch(page, "#fx-count"); await un
 const unsaved = (page) => page.evaluate(() => ($("#gt-unsaved").hidden ? "" : $("#gt-unsaved").textContent.trim()));
 
 // ---- no role menu; a signed-in tagger gets Start and Load, the runner only from Start
-let page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await holds(ctx); } });
+let page = await open(true, { email: OTHER, prepare: async (ctx) => { await holds(ctx); } });
 await check(await page.evaluate(() => !document.querySelector("#role-menu, #role-name, header .as")), "the header has no role menu");
 await check(!(await shown(page, "#annotate-box")), "before an image loads there is nothing to choose");
 await opened(page);
@@ -118,7 +118,7 @@ await check(/unsaved/.test(asked || "") && !(await annotating(page)) && JSON.str
 await page.context().close();
 
 // ---- Start, a draft kept on the device, reset analysis
-page = await open(true, { email: OTHER, prepare: standInDrive });
+page = await open(true, { email: OTHER });
 await opened(page);
 await page.click("#annotate-scratch");
 await page.waitForFunction(() => document.documentElement.hasAttribute("data-annotating") && !!window.fixture?.model());
@@ -149,7 +149,7 @@ await check(askedStore() === askedAtReset + 1 && listings(sub.id) === listedAtRe
 await page.context().close();
 
 // ---- the device holds a draft: Continue local work, only on that image
-page = await open(true, { email: OTHER, prepare: standInDrive });
+page = await open(true, { email: OTHER });
 await opened(page);
 await scratch(page);
 await page.click("#fx-add"); await page.click("#fx-add");
@@ -158,7 +158,7 @@ await until(page, () => $("#gt-unsaved").hidden);
 const drafts = await storedDrafts(page);
 await check(drafts.length === 1 && drafts[0].sha256 === sha, "Save draft keeps the image's draft on the device", drafts.map((d) => d.sha256));
 await page.context().close();
-page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await seedDrafts(ctx, drafts); } });
+page = await open(true, { email: OTHER, prepare: async (ctx) => { await seedDrafts(ctx, drafts); } });
 await opened(page);
 await page.waitForFunction(() => document.documentElement.dataset.gtLookup === "done" && document.querySelector("#annotate-local").checkVisibility() && !$("#annotate-load").disabled);
 const offered = await choices(page);
@@ -177,7 +177,7 @@ await page.context().close();
 
 // ---- who may not upload: Start and the tools, no Upload, Download Analysis on the box's header, a line saying what to do;
 // signed out, the store is asked for no list as the image opens: Load asks at its press
-page = await open(false, { prepare: standInDrive });
+page = await open(false);
 const listedBefore = listings(sub.id), askedBefore = askedStore();
 await opened(page);
 await check(JSON.stringify(await choices(page)) === BOTH && listings(sub.id) === listedBefore && askedStore() === askedBefore, "signed out, Start and Load are offered, and the store was asked nothing of the image's Analysis Files as it opened",
@@ -197,7 +197,7 @@ const file = await got;
 await check(/_analysis\.json$/.test(file.suggestedFilename()), "Download Analysis saves the analysis as a file", file.suggestedFilename());
 await page.context().close();
 w.of(GT.extractions).viewableOnly();
-page = await open(true, { email: OTHER, prepare: standInDrive });
+page = await open(true, { email: OTHER });
 await opened(page);
 await scratch(page);
 await page.waitForFunction(() => $("#left .gt-access").dataset.access === "nosave");
@@ -207,7 +207,7 @@ await page.context().close();
 viewOnly.delete(GT.extractions);
 
 // ---- the token running out, and the store not answering: the mode and the work stay, Save waits for the next click
-page = await open(true, { email: OTHER, prepare: standInDrive });
+page = await open(true, { email: OTHER });
 await page.evaluate(() => { const now = Date.now.bind(Date); window.skew = 0; Date.now = () => now() + window.skew; });
 await opened(page);
 await scratch(page);
@@ -263,7 +263,7 @@ await page.context().close();
 
 // the page asked whether to be left while the study it showed has gone and the next is not yet in (a reload, a tab closed, in
 // the swap): nothing is unsaved then, and nothing throws
-page = await open(true, { email: OTHER, prepare: standInDrive });
+page = await open(true, { email: OTHER });
 await opened(page);
 await scratch(page);
 await page.evaluate(() => {
@@ -281,7 +281,7 @@ await check(true, "the page asked whether to be left between two studies of a sw
 await page.context().close();
 
 // ---- unload image: the page is held as it was until the study has come in again, so nothing of the change between shows
-page = await open(true, { email: OTHER, prepare: async (ctx) => { await standInDrive(ctx); await holds(ctx); } });
+page = await open(true, { email: OTHER, prepare: async (ctx) => { await holds(ctx); } });
 await opened(page);
 const heldBefore = await page.evaluate(() => window.holds.length);
 await page.evaluate(() => $("#unload").click());

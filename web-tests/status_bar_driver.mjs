@@ -16,7 +16,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { tagger } from "./tagger.mjs";
-import { standInDrive } from "./drive_open.mjs";
 import { pw, launch, expecting, NETWORK_GONE, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -88,7 +87,6 @@ async function open(study, mode, clock, seed = {}) {
     .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
   const ctx = await device.context();
   if (clock) await ctx.clock.install();
-  await standInDrive(ctx);
   // what each of the four numbers did: rolled (each changed character wrapped to roll, the rolled ones' animations
   // as computed), and flashed
   await ctx.addInitScript(() => {
