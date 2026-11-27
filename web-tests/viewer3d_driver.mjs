@@ -190,6 +190,12 @@ try {
     // no row under it; ticked, its colour picker is a palette picker, and two channels by depth take two palettes. The
     // study ticks CD31's from the start.
     if (await page.evaluate(() => $("#image-box").classList.contains("folded"))) { await page.click("#image-box"); await page.waitForFunction(() => !$("#image-box").classList.contains("folded")); }
+    // the spacing's field fills its box, its text centred in it with nothing cut, its arrows legible
+    const spin = await page.evaluate(() => {
+      const box = $(".v3-spin").getBoundingClientRect(), f = $("#v3-zs").getBoundingClientRect(), up = getComputedStyle($("#v3-zs-up"));
+      return { box: box.height, field: f.height, off: Math.abs((f.top + f.bottom) / 2 - (box.top + box.bottom) / 2), arrow: parseFloat(up.fontSize) };
+    });
+    check(spin.field <= spin.box && spin.off <= 1 && spin.arrow >= 10, `the spacing's text sits in the middle of its box, uncut, beside legible arrows: ${JSON.stringify(spin)}`);
     const depthRows = () => page.evaluate(() => [...document.querySelectorAll("#channels > .channel:not(.v3-slices)")].map((r) => {
       const tick = r.querySelector(".v3-tick"), pal = r.querySelector(".v3-palette");
       return { name: r.querySelector("label").textContent, tick: tick ? tick.checked : null, under: !!r.nextElementSibling?.matches(".v3-depth-row"),
