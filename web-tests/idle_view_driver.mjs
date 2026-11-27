@@ -10,6 +10,7 @@ import { pw, launch, check } from "./harness.mjs";
 import { world } from "./world.mjs";
 import { serveSite, AS_SERVED } from "./site_server.mjs";
 import { held } from "./held.mjs";
+import { orMissed } from "./page_until.mjs";
 import { TAGGER } from "./tagger.mjs";
 
 const [answers, image, studies] = process.argv.slice(2);
@@ -62,7 +63,7 @@ check(at.middle.split("\n").length === 1, "the plug is one line: " + at.middle);
 
 // the study's file read, Drive still silent: the Image box has the study's form, Drive's
 studyFile.release();
-const formed = await page.waitForFunction(() => document.querySelector("#load")?.hasAttribute("data-remote"), null, { timeout: 5000 }).then(() => true, () => false);
+const formed = await orMissed(page.waitForFunction(() => document.querySelector("#load")?.hasAttribute("data-remote"), null, { timeout: 5000 }));
 check(formed, "the Image box takes the study's form (Google Drive) before Drive answers");
 check(await page.evaluate(() => document.querySelector("#file").accept) === ".png", "the file chooser takes the study's types before Drive answers");
 drive.release();
@@ -72,7 +73,7 @@ await page.waitForFunction(() => document.querySelector("#status").textContent.s
 // the plugs: one of a few, chosen afresh on each visit, a link in one going to the project on GitHub
 const seen = new Set([at.middle]), links = new Set(at.link ? [at.link] : []);
 for (let k = 0; k < 20 && (seen.size < 2 || !links.size); k++) {
-  await page.reload();
+  await page.reload(); // visits again on purpose (a reload is the subject): the plug is chosen afresh on each visit
   await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
   const again = await idle(); seen.add(again.middle); if (again.link) links.add(again.link);
 }

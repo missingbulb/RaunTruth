@@ -1578,7 +1578,7 @@ async function mountNow(id, read) {
   const r = read ?? await calls.during("site", "the study", () => fetch(base + "study.json"));
   if (!r.ok) throw new Error(`no study "${id}"`);
   manifest = await r.json();
-  // what the study's file sets in the shell's own controls, drawn before Drive is asked anything (req/shell/load/from)
+  // what the study's file sets in the shell's own controls, drawn before the store is asked anything (req/shell/load/from)
   $("#file").accept = manifest.files.accept; placeLoad();
   const no = await refusal(manifest);
   if (no) {
