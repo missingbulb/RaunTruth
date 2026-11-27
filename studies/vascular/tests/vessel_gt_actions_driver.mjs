@@ -13,6 +13,7 @@ import { SOFTWARE_3D } from "../../../web-tests/engine.mjs";
 import { serve, atStage, taggersDevice, drawnStack, STACK_PX } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { until } from "../../../web-tests/page_until.mjs";
+import { viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { oldKey } from "../web/old_edits.js";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
@@ -53,6 +54,8 @@ try {
   await opened();
   await execute();
   await page.selectOption("#gt-areas", "2");
+  // the view moved to the area: where its handles are on screen is known once it has drawn there
+  await viewDrawn(page);
   const ids = (await doc()).edges.flatMap((e) => e.segment_ids);
   check(ids.length > 0 && new Set(ids).size === ids.length && (await doc()).edges.every((e) => e.segment_ids.length === e.via.length + 1), `every segment has an id of its own, an edge naming one per segment: ${ids.length} segments`);
 
