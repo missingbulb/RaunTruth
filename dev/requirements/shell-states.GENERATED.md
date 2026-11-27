@@ -91,8 +91,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -111,7 +112,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -354,8 +355,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -374,7 +376,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -617,8 +619,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ● | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● | ● | ○* | ○* | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* | ● | ○* | ○* | ● |
@@ -637,7 +640,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ | ○ | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● | ● | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● | ● | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ | ○ | ⊘ | ○ | ○ |
@@ -880,8 +883,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ◐* |
@@ -900,7 +904,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -1143,8 +1147,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -1163,7 +1168,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -1406,8 +1411,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -1426,7 +1432,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -1669,8 +1675,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* |
@@ -1689,7 +1696,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ |
@@ -1932,8 +1939,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ○ |
@@ -1952,7 +1960,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ⊘ |
@@ -2195,8 +2203,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ○ |
@@ -2215,7 +2224,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ⊘ |
@@ -2458,8 +2467,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ○* |
@@ -2478,7 +2488,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -2721,8 +2731,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2741,7 +2752,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -2984,8 +2995,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3004,7 +3016,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3247,8 +3259,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3267,7 +3280,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -3510,8 +3523,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ |
@@ -3530,7 +3544,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ |
@@ -3773,8 +3787,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ |
@@ -3793,7 +3808,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ |
@@ -4036,8 +4051,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ⊘ |
@@ -4056,7 +4072,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ |
@@ -4299,8 +4315,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● | ● | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ● | ◐ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● | ● | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* | ◐* | ○* |
@@ -4319,7 +4336,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ | ○ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ | ○ | ⊘ |
@@ -4562,8 +4579,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● | ◐ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ◐ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● | ◐ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* | ○* |
@@ -4582,7 +4600,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ | ⊘ |
@@ -4825,8 +4843,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -4845,7 +4864,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -5088,8 +5107,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;Main view | ● | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ⊘ | ○ | ○ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ⊘ | ◐ | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ⊘ | ◐ | ● | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ⊘ | ◐ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ⊘ | ○* | ○* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ⊘ | ○* | ○* | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ⊘ | ○* | ○* | ⊘ |
@@ -5108,7 +5128,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ⊘ | ● | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ● | ○ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ○ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ○ | ⊘ |
@@ -5351,8 +5371,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* |
@@ -5371,7 +5392,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ |
@@ -5614,8 +5635,9 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Left bar gutter | ● | ● |
 | &nbsp;&nbsp;Main view | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Pins | ◐ | ● |
+| &nbsp;&nbsp;&nbsp;&nbsp;Study: Show | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* |
@@ -5634,7 +5656,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ● |
@@ -5882,7 +5904,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Card menu | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○ | ○ | ●* | ●* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -5901,7 +5922,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -6153,7 +6174,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Card menu | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○ | ○ | ●* | ●* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -6172,7 +6192,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -6424,7 +6444,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Card menu | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* |
@@ -6443,7 +6462,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ |
@@ -6690,7 +6709,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* |
@@ -6709,7 +6727,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ |
@@ -6952,7 +6970,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ○ | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ◐* |
@@ -6971,7 +6988,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ○ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ○ | ○ |
@@ -7222,7 +7239,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● | ○ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ○* | ○ | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ○* | ○ | ○* |
@@ -7241,7 +7257,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ○ | ○ | ⊘ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -7504,7 +7520,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Back to image | ○ | ○ | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Show menu | ● | ● | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ◐* | ◐* |
@@ -7523,7 +7538,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ⊘ | ⊘ | ⊘ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ⊘ | ⊘ | ⊘ |
@@ -7768,7 +7783,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* |
@@ -7787,7 +7801,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ |
@@ -8018,7 +8032,6 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;Main view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Tasks/Items switch | ○ | ○ | ○ | ○ |
 | &nbsp;&nbsp;&nbsp;&nbsp;Ruler | ◐ | ● | ● | ● |
-| &nbsp;&nbsp;&nbsp;&nbsp;Grid | ◐ | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;Minimap button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Edit History button | ○* | ○* | ○* | ○* |
 | &nbsp;&nbsp;&nbsp;&nbsp;Undo a GT action | ○* | ○* | ○* | ○* |
@@ -8037,7 +8050,7 @@ Each table is one path: the study it opens, a root (the study's stage, who is si
 | &nbsp;&nbsp;&nbsp;&nbsp;Image view | ● | ● | ● | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scroller | ● | ● | ○ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's text | ● | ○ | ⊘ | ○ |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Empty view's words | ● | ⊘ | ⊘ | ⊘ |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The plug for the project | ● | ⊘ | ⊘ | ⊘ |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image | ○ | ● | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image's canvas | ⊘ | ● | ⊘ | ● |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image zoomed out | ⊘ | ○ | ⊘ | ○ |

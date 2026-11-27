@@ -254,13 +254,8 @@
       <button id="switch" class="big" type="button" hidden disabled autocomplete="off"><span class="name"></span> <span class="count"></span></button>
       <slot-here data-slot-for="toolbar"></slot-here>
       <span class="grow"></span>
-      <button id="ruler-btn" class="for-image tool" type="button" aria-pressed="false" title="Ruler: drag across the image to measure a distance. Click again to clear it." aria-label="Ruler"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/></g></svg></button>
-      <button id="grid-btn" class="for-image tool" type="button" aria-pressed="false" title="Grid: draw a grid over the image. Hover to choose its colour and spacing." aria-label="Grid"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="#e53935" stroke-width="1.6" d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg></button>
-      <div id="grid-pop" popover aria-label="Grid">
-        <label>Colour <input id="grid-colour" type="color"></label>
-        <label>Lines every <input id="grid-spacing" type="number" min="0" step="any"> <span id="grid-unit"></span></label>
-      </div>
-      <button id="minimap-btn" class="for-image tool" type="button" aria-pressed="false" title="Minimap: a small picture of the whole image over it, showing the part in view. Hover to choose how see-through it is." aria-label="Minimap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><rect x="12" y="11" width="6" height="6" rx=".5"/></g></svg></button>
+      <button id="ruler-btn" class="for-image tool" type="button" aria-pressed="false" disabled title="Ruler: drag across the image to measure a distance. Click again to clear it." aria-label="Ruler"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v3M10 8v4M14 8v3M18 8v4"/></g></svg></button>
+      <button id="minimap-btn" class="for-image tool" type="button" aria-pressed="false" hidden disabled title="Minimap: a small picture of the whole image over it, showing the part in view. Hover to choose how see-through it is." aria-label="Minimap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><rect x="12" y="11" width="6" height="6" rx=".5"/></g></svg></button>
       <div id="minimap-pop" popover aria-label="Minimap">
         <label>Opacity <input id="minimap-opacity" type="range" min="10" max="100" step="5"> <span id="minimap-opacity-text"></span></label>
         <p class="hint">Opaque while the pointer is over it.</p>
@@ -269,7 +264,7 @@
       <button id="gt-undo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Undo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 5 4 9l4 4M4 9h10a6 6 0 0 1 0 12h-4"/></svg></button>
       <button id="gt-redo" class="for-image tool" type="button" hidden disabled autocomplete="off" aria-label="Redo"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m16 5 4 4-4 4M20 9H10a6 6 0 0 0 0 12h4"/></svg></button>
       <div class="for-image zoom" role="group" aria-label="Zoom">
-        <button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+        <button id="zoom-out" title="Zoom out" aria-label="Zoom out" disabled>−</button><span id="zoom-label">100%</span><button id="zoom-in" title="Zoom in" aria-label="Zoom in" disabled>+</button>
       </div>
       <slot-here data-slot-for="toolbar-end"></slot-here>
     </div>
@@ -280,9 +275,8 @@
     <div id="mask-warning" role="status" hidden>The summary counts an area not set by the study's manager.</div>
     <div id="image-view">
       <div id="scroller">
-        <div id="empty"><span id="empty-text"></span><br>
-          Python, which runs the analysis, loads in the background meanwhile: about 50 MB on the first visit, then from this browser's cache for 30 days.</div>
-        <div id="stage" hidden><canvas id="base"></canvas><canvas id="shrunk" hidden></canvas><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg><svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg><svg id="ruler" xmlns="http://www.w3.org/2000/svg"></svg></div>
+        <div id="empty"><p id="plug"></p></div>
+        <div id="stage" hidden><canvas id="base"></canvas><canvas id="shrunk" hidden></canvas><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg><svg id="ruler" xmlns="http://www.w3.org/2000/svg"></svg></div>
       </div>
       <div id="point-menu" class="pop" role="menu" hidden></div>
       <div id="minimap" hidden>
