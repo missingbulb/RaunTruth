@@ -85,7 +85,9 @@ await mustHold(await visible("#unload"), "an image open: Unload shows");
 const unload = await page.evaluate(() => { const u = document.querySelector("#unload"); return { head: u.parentElement.matches("#image-box > .sec-head"), text: u.textContent.trim(), link: u.classList.contains("link") }; });
 await mustHold(unload.head && unload.text === "Unload image" && unload.link, "as a link reading unload image, on the box's header", unload);
 const loadAfter = await box("#load");
-await mustHold(loadAfter.x === loadBefore.x && loadAfter.w === loadBefore.w && loadAfter.h === loadBefore.h, "the line of controls to load with is as it was before the image", { loadBefore, loadAfter });
+// to a hundredth of a pixel: Firefox lays out in sixtieths of one and sums them in floats
+const same = (a, b) => Math.abs(a - b) < 0.01;
+await mustHold(same(loadAfter.x, loadBefore.x) && same(loadAfter.w, loadBefore.w) && same(loadAfter.h, loadBefore.h), "the line of controls to load with is as it was before the image", { loadBefore, loadAfter });
 await title();
 await mustHold(!(await visible("#unload")), "the box folded: no Unload");
 await title();
