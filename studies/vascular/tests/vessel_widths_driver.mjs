@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { serve, atStage, taggersDevice, legend, legendKeys } from "./stand_in.mjs";
+import { serve, atStage, legend, legendKeys } from "./stand_in.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { frames as framesOf, viewDrawn } from "../../../web-tests/page_frames.mjs";
 import { pw, launch, check } from "../../../web-tests/harness.mjs";
@@ -49,11 +49,9 @@ const model = {
 const site = await serve(studies, model);
 
 const browser = await launch(pw), w = world(browser, site.origin);
-// the deploy with a Google key, the page offering no sign-in
-w.site.withoutGoogleClient();
 atStage(browser, "Develop");
 let failed = false;
-const device = taggersDevice(w).with({ deviceScaleFactor: 1, acceptDownloads: true });
+const device = w.device().signedInAs(w.tagger("vascular")).with({ deviceScaleFactor: 1, acceptDownloads: true });
 let page;
 
 const look = () => page.evaluate(() => window.vascular.model().widths);

@@ -16,6 +16,7 @@ import { world } from "./world.mjs";
 import { image } from "./images.mjs";
 import { orMissed, untilHeard } from "./page_until.mjs";
 import { held as holding } from "./held.mjs";
+import { unsettled } from "./page_acts.mjs";
 import { STEP } from "./deadlines.mjs";
 
 const [shots] = process.argv.slice(2);
@@ -31,13 +32,11 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-// the deploy with a Google key
-w.site.withoutGoogleClient();
 // the fixture with ready-made thumbnails, opening the TIFFs its folder holds
 w.studies.edit("fixture", (m) => ({ ...m, driveThumbs: "thumbs/", files: { ...m.files, accept: ".tif,.tiff" } }));
 // the fixture study's own folder, which its dialog lists, and a device remembering its link
 const fixture = w.studyFolder("fixture");
-const device = w.device().remembersDriveLink(fixture), ctx = await device.context();
+const device = w.visitorWithLink(fixture), ctx = await device.context();
 // the Drive fake's folder: the slow subfolder, and N images whose bytes are never read here; the subfolder's listing
 // held until the user has moved on
 const { drive } = w, slow = fixture.folder("slow");
@@ -103,7 +102,8 @@ const quiet = async () => {
     await framesOf(page);
     const now = await shown();
     return !inflight && span(await inView()).every((k) => asked.includes(k) || now[k]);
-  }, () => Promise.race([next, orMissed(page.waitForEvent("requestfinished", { timeout: 10000 }))]), { timeout: 10000 });
+  // woken by a request or an answer, or a frame drawn: a picture decoded makes neither of the first two
+  }, () => Promise.race([next, framesOf(page)]), { timeout: 10000 });
   if (!done) console.log("quiet: gave up after 10 s", JSON.stringify({ want, pics: want.map((k) => pics[k]), asked: sorted(asked), inflight, status: await page.textContent("#status") }));
 };
 // the page's handlers for what was just done have all run
@@ -123,7 +123,8 @@ try {
     new MutationObserver(() => said.push($("#status").textContent)).observe($("#status"), { childList: true, characterData: true, subtree: true });
   });
   await open();
-  await untilHeard(async () => span(await inView()).every((k) => gates.has(k)), () => next);
+  // every request the page has made held at the stand-in: it asks a few at a time, and while they are held asks no more
+  await untilHeard(async () => gates.size > 0 && gates.size === await page.evaluate(() => window.thumbsAsked), () => next);
   for (const k of [...gates.keys()].sort((x, y) => y - x)) {
     const left = inflight;
     letGo([k]);
@@ -189,9 +190,9 @@ try {
 
   // a folder asked for and left before its listing arrives never shows
   await page.evaluate(() => { $("#remote-list").scrollTop = 0; });
-  await page.dblclick("#remote-list .item.folder");
+  await unsettled(page).dblclick("#remote-list .item.folder");
   await Promise.race([slowListing.asked, atMost(5000)]);
-  await page.click("#remote-path button[data-k='0']");
+  await unsettled(page).click("#remote-path button[data-k='0']");
   // the slow listing in, after the user moved on, and the page done with it
   slowListing.release();
   await Promise.race([slowListed, atMost(5000)]);

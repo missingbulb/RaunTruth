@@ -11,7 +11,6 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
@@ -43,9 +42,8 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 // an annotator's, the study opening its image from this computer
-w.site.withGoogle();
+const tagger = w.tagger("nor");
 w.studies.fromThisComputer("nor");
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 const study = JSON.parse(fs.readFileSync(path.join(repo, "studies/nor/study.json"), "utf8"));
 

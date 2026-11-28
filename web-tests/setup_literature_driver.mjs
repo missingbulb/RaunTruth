@@ -7,6 +7,7 @@ import path from "node:path";
 import { standIn } from "./stand_in_drive.mjs";
 import { idle } from "./page_until.mjs";
 import { held } from "./held.mjs";
+import { unsettled } from "./page_acts.mjs";
 
 const [answers, studies, rootDir, shots] = process.argv.slice(2);
 const { w, root, drive, SUB, studyFile, open, check, done } = await standIn({ answers, studies, rootDir });
@@ -41,7 +42,7 @@ await check(listings(folder.id) === 0 && !(await rows(page, "#literature-papers"
 // the listing kept back: the place is marked loading and the store's logo turns
 const h = held();
 drive.hold = (call) => (call.kind === "list" && call.parent === folder.id ? h.hold() : null);
-await page.click('#setup-rail button[data-aspect="literature"]');
+await unsettled(page).click('#setup-rail button[data-aspect="literature"]');
 await h.asked;
 const waiting = await page.evaluate(() => ({ busy: $("#literature-papers").getAttribute("aria-busy"), bar: !!$("#literature-papers [role=progressbar]"), chip: document.querySelector('#sb-calls [data-server="store"]')?.textContent.trim() }));
 await check(waiting.busy === "true" && waiting.bar && /^Loading from Google Drive/.test(waiting.chip || ""), "while the folder is listed its place says so, and the store's logo turns in the status bar", waiting);

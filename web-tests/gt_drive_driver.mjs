@@ -22,9 +22,8 @@ const line = (page) => page.waitForFunction(() => { const e = document.querySele
 // the study's image opened from its folder, and annotation from scratch chosen for it: the access line once read
 const openPng = async (page) => {
   await page.click("#load-remote");
-  await page.waitForFunction(() => document.querySelector("#remote-dlg").open);
   await page.dblclick(`#remote-list .item[data-id="${png.id}"]`);
-  await page.waitForFunction((n) => st.fileName === n && !$("#fx-count").disabled, png.name);
+  await check(await page.evaluate((n) => st.fileName === n && !$("#fx-count").disabled, png.name), "the study's image opened from its folder");
 };
 const asTagger = async (page) => { await openPng(page); await fromScratch(page, "#fx-count"); return line(page); };
 // an image's ground-truth subfolder, and what Needs GT writes for it
@@ -39,7 +38,6 @@ const markNeeded = async (page, f) => {
   await page.waitForSelector(b + ":not([disabled])");
   const n = writes.length;
   await page.click(b);
-  await orMissed(page.waitForFunction((b) => document.querySelector(b)?.getAttribute("aria-pressed") === "true", b, { timeout: 10000 }));
   return writes.slice(n);
 };
 const pressed = (page) => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-items .cell")].map((c) => [c.dataset.id, c.querySelector(".mark-gt").getAttribute("aria-pressed")])));
@@ -63,7 +61,6 @@ await check(top.text === "Set up Analysis Files…" && top.first === "gt-setup" 
 await check(await page.isHidden("#gt-box"), "with no extractions folder, there is no Extractions box");
 await page.click("#gt-setup");
 await page.click("#setup-go");
-await page.waitForFunction(() => !$("#setup-dlg").open || $("#setup-msg").classList.contains("err"), null, { timeout: 15000 });
 await check(!(await page.evaluate(() => $("#setup-dlg").open)), "confirming sets it up and closes the dialog", await page.textContent("#setup-msg"));
 const EXT = id("Analysis");
 const settings = FILES.find((f) => f.parent === ROOT && f.name === "rauntruth-study.json");
@@ -108,7 +105,6 @@ const other = await page.evaluate((id) => document.querySelector(`#remote-list .
 await check(wanted === "GT wanted" && !other, "to the tagger, the Drive dialog tags the marked image GT wanted, the other nothing", { wanted, other });
 await page.keyboard.press("Escape");
 await page.click("#fx-count");
-await page.waitForFunction(() => !$("#gt-submit").disabled);
 // a study that says nothing of what is left: Upload's tooltip names the tasks still open, from the tasks the shell draws
 const openTitle = await page.evaluate(() => $("#gt-submit").title);
 await check(/Count checked/.test(openTitle) && /still open/i.test(openTitle), "with a task still open, Upload's tooltip names it", openTitle);
@@ -158,8 +154,7 @@ page.once("dialog", (d) => { asked = d.message(); d.accept(); });
 await check(await page.evaluate(() => !document.querySelector("#left .gt-clear") && !!document.querySelector("#edit-history:not([hidden]) #eh-clear")),
   "a study with GT actions has no Clear progress: Clear all history is at the Edit History window's foot");
 await page.click("#eh-clear");
-await page.waitForFunction(() => /History cleared/.test($("#status").textContent));
-await check(asked && asked.includes(png.name), "Clear all history asks first, naming the image", asked);
+await check(/History cleared/.test(await page.textContent("#status")) && asked && asked.includes(png.name), "Clear all history asks first, naming the image", asked);
 await check(await page.evaluate(() => new Promise((ok) => { const q = indexedDB.open("gt-drafts", 1); q.onsuccess = () => { const r = q.result.transaction("drafts").objectStore("drafts").getAll(); r.onsuccess = () => ok(r.result.length === 0); }; })),
   "and forgets the image's draft on this device");
 
@@ -222,14 +217,11 @@ await page.waitForFunction(() => document.querySelector("#annotate-load")?.check
 const beforeGt = await page.evaluate(() => ({ processing: !$("#processing-box").hidden, items: !$("#switch").hidden }));
 await check(!beforeGt.processing, "before choosing an annotation, Processing is not shown: only starting from scratch shows it", beforeGt);
 await page.click("#annotate-load");
-await page.waitForFunction(() => document.querySelectorAll("#annotate-list button[data-key]").length > 0);
 await check(downloads.every((d) => d === png.id || d === settings.id), "before a row is chosen, only the image and the root's study file (which holds the study index and the marks) are downloaded: the two listings alone offer it", downloads);
 const rows = await page.evaluate(() => [...document.querySelectorAll("#annotate-list button[data-key]")].map((b) => b.textContent));
 await check(rows.length === 1 && /^by hand · GT/.test(rows[0]) && !/@/.test(rows[0]), "signed out, the list holds the marked extraction alone, by hand, with no name", rows);
 await page.click(`#annotate-list button[data-key="${file.id}"]`);
 await page.click("#load-go");
-// only the choice loaded reads the extraction
-await page.waitForFunction(() => /^Showing/.test($("#annotate-say").textContent.trim()));
 const summed = await page.textContent("#annotate-say"), shown = await page.textContent("#fx-result");
 await check(/GT/.test(summed) && !/@/.test(summed) && /pixels counted/.test(summed), "its line says it is the GT one, with the study's counts and no name", summed);
 await check(/^Ground truth: \d+ pixels/.test(shown) && await page.evaluate(() => !document.querySelector("#busy") || $("#busy").hidden), "the study shows the final result, with nothing run", shown);

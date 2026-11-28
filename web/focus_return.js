@@ -3,13 +3,14 @@
 // req/shell/dialogs/focus-kept: when the control holding the keyboard is redrawn, hidden or disabled, the keyboard goes
 // to the one in its place, else the nearest one still there, never the page's body.
 import { after } from "./pacing.js";
+import { work } from "./pending.js";
 
 // a control disabled with the keyboard on it gets it back when enabled again this soon, as one disabled while the page is
 // busy is, unless the keyboard has moved on since
 const SINCE_CLICK_MS = 1000, FOCUS_KEPT = 30, COMES_BACK_MS = 10000;
 const PRESSABLE = "button, a, summary, input, select, [role=button], [role=menuitem], [role=tab]";
 // what a click can give the keyboard to; a click on anything else leaves it on the body, by the person's choice
-const TAKES = PRESSABLE + ", textarea, label, [tabindex], [contenteditable]";
+const TAKES = "button, a[href], summary, input, select, textarea, label, [tabindex], [contenteditable]";
 const FOCUSABLE = "button, a[href], summary, input, select, textarea, [tabindex]:not([tabindex='-1']), [contenteditable]";
 
 // what finds an element again once a redraw has replaced it: its place among the look-alikes under its nearest
@@ -73,6 +74,9 @@ export function focusReturn() {
       if (back) { displaced = null; back.focus(); return; }
     }
     if ((now && now !== document.body && usable(now)) || !kept) return;
+    // a control still in its place, the keyboard taken off it (a blur, a press that gives the keyboard to nothing):
+    // left on the body
+    if (!kept.moved && usable(kept.ref.deref())) { kept = null; return; }
     const el = kept.ref.deref(), dialog = kept.dialog?.deref(), from = dialog && !dialog.open && openers.get(dialog);
     const to = target(kept) || (from && target(from)) || nearby(kept);
     if (!to) return;
@@ -81,8 +85,16 @@ export function focusReturn() {
     if (el?.disabled && present(el)) displaced = { from: was, to, at: performance.now() };
   };
   document.addEventListener("pointerdown", (e) => { if (!e.target.closest?.(TAKES)) kept = null; }, true);
-  document.addEventListener("focusout", (e) => { if (!e.relatedTarget) after(0, keep); });
-  new MutationObserver(keep).observe(document.body, { subtree: true, childList: true, attributes: true,
+  document.addEventListener("focusout", (e) => {
+    if (e.relatedTarget) return;
+    const end = work.begin("a look at where the keyboard fell");
+    after(0, () => { end(); keep(); });
+  });
+  new MutationObserver((changes) => {
+    const el = kept?.ref.deref();
+    if (el && changes.some((c) => [...c.removedNodes].some((n) => n.contains(el)))) kept.moved = true;
+    keep();
+  }).observe(document.body, { subtree: true, childList: true, attributes: true,
     attributeFilter: ["hidden", "disabled", "class", "style", "open", "inert"] });
 
   document.addEventListener("click", (e) => {

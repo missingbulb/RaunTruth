@@ -21,14 +21,13 @@ const PNG = image.png("a.png"), FILES = ["a.png", "b.png", "c.tif"];
 const { origin, server } = await serveSite({ "/web/worker.js": "" });
 
 const browser = await launch(pw), w = world(browser, origin), drive = w.drive;
-// the deploy's Google key and a folder of three images on Drive
-w.site.withoutGoogleClient();
+// a folder of three images on Drive
 const throttled = w.folder("Throttled").public();
 for (const name of FILES) throttled.holds({ ...PNG, name }, { createdTime: "2026-10-01T10:00:00Z" });
 // a device of its own remembering the folder's link, opened at the page on a clock the test moves; time: the clock's
 // start; keys: kept before the page opens
 async function start({ time, keys = {} } = {}) {
-  const device = w.device().kept().remembersDriveLink(throttled).keeps(keys);
+  const device = w.visitorWithLink(throttled).kept().keeps(keys);
   await (await device.context()).clock.install(time === undefined ? {} : { time });
   return { device, page: await device.opens(undefined, { until: "title" }) };
 }

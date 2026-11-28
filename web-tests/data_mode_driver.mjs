@@ -12,7 +12,6 @@ import { BLOBS_READ_OFFLINE } from "./engine.mjs";
 import { frames } from "./page_frames.mjs";
 import { click } from "./page_click.mjs";
 import { orMissed } from "./page_until.mjs";
-import { STEP } from "./deadlines.mjs";
 import { openImage } from "./setup_page.mjs";
 
 const [answers, studies, rootDir, out, shots] = process.argv.slice(2);
@@ -55,23 +54,25 @@ await check(await page.evaluate(() => [...document.querySelectorAll(".tree-image
 const summary = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#folder-summary dd")].map((d) => [d.dataset.k, +d.textContent])));
 const folderMsg = () => page.textContent("#folder-msg");
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 4);
 await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 2, stale: 1, extracted: 0, truth: 0, missing: 1 }), "the folder's sums, its photo among its images and pictured by Drive", await summary());
 await page.click('#folder-layout button[data-layout="list"]');
-await page.waitForFunction(() => $("#folder-items").dataset.layout === "list");
-await check(true, "the list button lays the images out as a list");
+await check(await page.evaluate(() => $("#folder-items").dataset.layout === "list"), "the list button lays the images out as a list");
 
 // whether the page made the previews file is asked of Drive, which knows nothing of the page's making it
 await page.click("#update-previews");
-await page.waitForFunction(() => /Delete it/.test($("#folder-msg").textContent));
-await check(!writes.filter(([, name]) => name !== "rauntruth-study.json").length, "a previews file the page did not make is left alone", writes);
+await check(/Delete it/.test(await folderMsg()) && !writes.filter(([, name]) => name !== "rauntruth-study.json").length, "a previews file the page did not make is left alone", writes);
 // the user deletes it in Drive; the old file beside the images stays, unread
 FILES.splice(FILES.findIndex((f) => f.name === OURS), 1);
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "1");
+await check((await summary()).previews === 1, "the file deleted in Drive, the folder's previews are the photo's alone", await summary());
+// what the page counts as its work the moment the button shows it is at work: the button's action itself
+await page.evaluate(() => new MutationObserver((_, o) => {
+  if (!$("#update-previews").classList.contains("working")) return;
+  window.workingWhile = [...shellForTests.work.doing]; o.disconnect();
+}).observe($("#update-previews"), { attributes: true, attributeFilter: ["class"] }));
 await page.click("#update-previews");
-await page.waitForFunction(() => /3 previews made/.test($("#folder-msg").textContent), null, { timeout: 30000 });
-await check(JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-study.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
+await check((await page.evaluate(() => window.workingWhile || [])).length > 0, "a button's action counts as the page's work from the press", await page.evaluate(() => window.workingWhile));
+await check(/3 previews made/.test(await folderMsg()) && JSON.stringify(writes.filter(([, name]) => name !== "rauntruth-study.json")) === JSON.stringify([["create", OURS]]) && FILES.find((f) => f.name === OURS)?.parent === PREVIEWS_DIR,
   "Update previews creates the file in the root's Previews folder, named by the data folder's id, and writes nothing into the data folder", writes);
 await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="previews"]')?.textContent === "4");
 await check(JSON.stringify(await summary()) === JSON.stringify({ images: 4, previews: 4, stale: 0, extracted: 0, truth: 0, missing: 1 }), "then every image has a preview, the TIFFs from the file and the photo from Drive", await summary());
@@ -89,32 +90,26 @@ await page.click("#data-tree .tree-folder .count");
 // one image changes; the page replaces its own file, making that one preview alone
 FILES.find((f) => f.name === "e plain.tif").bytes = Buffer.concat([FILES.find((f) => f.name === "e plain.tif").bytes, Buffer.from([0])]);
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="stale"]')?.textContent === "1");
+await check((await summary()).stale === 1, "the changed image's preview is out of date", await summary());
 await page.click("#update-previews");
-await page.waitForFunction(() => /1 preview made, 2 kept/.test($("#folder-msg").textContent), null, { timeout: 30000 });
-await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["replace", OURS]), "a changed image: the page's own file is replaced, the rest kept", writes);
+await check(/1 preview made, 2 kept/.test(await folderMsg()) && JSON.stringify(writes.at(-1)) === JSON.stringify(["replace", OURS]), "a changed image: the page's own file is replaced, the rest kept", writes);
 fs.writeFileSync(out, FILES.find((f) => f.name === OURS).bytes);
 
 const cell = (name) => `#folder-items .cell:has(.name:text-is("${name}"))`;
 await page.click(cell("e plain.tif") + " .mark-gt");
-await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "2");
 const eMarker = neededOf("e plain.tif");
-await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.extractions,
+await check((await summary()).missing === 2 && JSON.stringify(writes.at(-1)) === JSON.stringify(["create", eMarker]) && FILES.find((f) => f.name === eMarker)?.parent === GT.extractions,
   "marking an image creates its marker in the extractions folder, not beside the image", writes);
 await page.click(cell("e plain.tif") + " .mark-gt");
-await page.waitForFunction(() => document.querySelector('#folder-summary dd[data-k="missing"]')?.textContent === "1");
-await check(JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
+await check((await summary()).missing === 1 && JSON.stringify(writes.at(-1)) === JSON.stringify(["trash", eMarker]), "unmarking trashes the page's own marker", writes);
 await page.click(cell("b stack.tif") + " .mark-gt");
-await page.waitForFunction(() => /Someone else/.test($("#folder-msg").textContent));
-await check(writes.at(-1)[1] !== neededOf("b stack.tif"), "a marker someone else made is left alone");
+await check(/Someone else/.test(await folderMsg()) && writes.at(-1)[1] !== neededOf("b stack.tif"), "a marker someone else made is left alone");
 
 await page.click("#data-tree .tree-folder .count");
-await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder .tree-image").length === 4);
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder .tree-image .pic img").length === 4);
 await check(true, "a folder's images unfold with small previews");
 await page.click('#data-tree .tree-image:has(.name:text-is("a flat.tif"))');
-await page.waitForFunction(() => st.fileName === "a flat.preview.tif" && !$("#load-original").hidden);
-await check(await page.evaluate(() => shellForTests.page.get("image").source.kind === "preview"), "an image chosen opens from its preview, with Load Original");
+await check(await page.evaluate(() => st.fileName === "a flat.preview.tif" && !$("#load-original").hidden && shellForTests.page.get("image").source.kind === "preview"), "an image chosen opens from its preview, with Load Original");
 await shot("4-preview");
 // the file the page opened, which is what Python is handed at a Run, for the test to open as the study would
 const got = await page.evaluate(() => ({ name: st.kept.name, bytes: Array.from(new Uint8Array(st.kept.bytes)) }));
@@ -122,14 +117,12 @@ await check(got.name === "a flat.preview.tif", "the preview opens as a TIFF, the
 fs.writeFileSync(out + ".preview.tif", Buffer.from(got.bytes));
 await openImage(page);
 await page.click("#image-original");
-// the name is set as the open starts, the image's source once it is done
-await orMissed(page.waitForFunction(() => shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden));
 await check(await page.evaluate(() => st.fileName === "a flat.tif" && shellForTests.page.get("image")?.source.kind === "drive" && $("#load-original").hidden), "Load Original opens the image itself");
 await page.click("#image-close");
 
 // offline (req/shell/offline/default): no bar asking for folders, and nothing written to Drive
 await page.click("#data-tree .tree-folder .name");
-await page.waitForFunction(() => document.querySelectorAll("#folder-items .cell").length === 4);
+await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell").length === 4), "the folder's four images listed again");
 // its previews drawn first: Playwright's WebKit, set offline, fails every read of a Blob's bytes, the previews' among them
 await page.waitForFunction(() => [...document.querySelectorAll("#folder-items .cell .pic")].every((p) => p.querySelector("img") || p.classList.contains("none")));
 const before = writes.length;
@@ -194,10 +187,8 @@ await expecting(/could not be (read|counted)|is corrupted/, async () => {
   kept.bytes = damage(Buffer.from(kept.bytes));
   await dataManagement(page);
   await page.click("#data-tree .tree-folder .name");
-  await orMissed(page.waitForFunction(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3, null, { timeout: 5000 }));
   await check(await page.evaluate(() => document.querySelectorAll("#folder-items .cell .pic.none").length === 3), "a previews file that cannot be read: each TIFF shows no preview, the photo still Drive's");
   await page.click(cell("a flat.tif"));
-  await orMissed(page.waitForFunction(() => st.fileName === "a flat.tif", null, { timeout: STEP }));
   await check(await page.evaluate(() => st.fileName === "a flat.tif"), "and an image chosen opens itself");
   // the test's last case, which lasts until it closes: the page draws the previews again as the image opens, and
   // says each it cannot read, and what it cannot count, until then

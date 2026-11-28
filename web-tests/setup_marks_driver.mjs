@@ -29,17 +29,15 @@ const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll("#mar
 const press = async (page, file, kind) => {
   await page.evaluate(() => { document.querySelector("#marks-msg").textContent = ""; });
   await page.click(`#marks-list .mark-row[data-id="${file}"] button[data-kind="${kind}"]`);
-  await page.waitForFunction(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent));
+  await check(await page.evaluate(() => !document.querySelector("#marks-list button:disabled") && /^(Marked|Took)/.test(document.querySelector("#marks-msg").textContent)), `the ${kind} press is taken and said`, await page.textContent("#marks-msg"));
 };
 
 // the owner on Study Setup, the image chosen
 let page = await open(true, { setup: true });
 await page.waitForFunction(() => document.querySelectorAll("#data-tree .tree-folder").length >= 1);
 await page.click("#data-tree .tree-folder .name");
-await page.waitForSelector("#folder-items .cell");
-await check(await page.evaluate(() => document.querySelector("#marks-box").hidden), "with a folder chosen, the extractions box is not there");
+await check(await page.evaluate(() => !!document.querySelector("#folder-items .cell") && document.querySelector("#marks-box").hidden), "with a folder chosen, the extractions box is not there");
 await page.click('#folder-items .cell:has(.name:text-is("img1.png")) .name');
-await page.waitForFunction(() => document.querySelectorAll("#marks-list .mark-row").length === 2);
 await check(await page.evaluate(() => !document.querySelector("#marks-box").hidden), "choosing an image shows its extractions");
 await check(JSON.stringify((await rowsOf(page)).sort()) === JSON.stringify([yFile.id, zFile.id].sort()), "it lists the image's two extractions", await rowsOf(page));
 await check(marks() === null, "none is marked yet", marks());
@@ -54,8 +52,7 @@ yFile.bytes = doc(Y, 9);
 const main = await open(true);
 await pressDrive(main);
 await main.dblclick(`#remote-list .item[data-id="${FILES.find((f) => f.parent === ROOT && f.name === "img1.png").id}"]`);
-await main.waitForFunction((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), "img1.png");
-await check(marks().gt.file === yFile.id, "y's later save leaves the mark on the same file", marks());
+await check(await main.evaluate((n) => st.fileName === n && !!window.shellForTests?.page.get("image") && /^Image loaded/.test($("#status").textContent), "img1.png") && marks().gt.file === yFile.id, "y's later save leaves the mark on the same file", marks());
 await loadStored(main, yFile.id);
 const shown = await until(main, () => /^Ground truth: 9 pixels/.test($("#fx-result").textContent) && $("#fx-result").textContent);
 await check(!!shown, "the main app shows y's new model as ground truth", shown);
@@ -76,7 +73,6 @@ await check(marks() === null, "with both taken off, the image has no entry", mar
 await press(page, yFile.id, "gt");
 await press(page, zFile.id, "official");
 await page.click("#data-tree .tree-folder .name");
-await until(page, () => document.querySelectorAll("#folder-items .tag.yes").length === 2);
 const tags = await page.evaluate(() => [...document.querySelectorAll("#folder-items .tag.yes")].map((t) => t.textContent));
 await check(tags.join() === "Ground truth,Official", "the folder's image shows it has ground truth and an official mark", tags);
 await done(0);

@@ -3,6 +3,7 @@
 // message, so the page says it, the button is pressed again, and nothing goes uncaught. Exits 1 on a failed check,
 // 2 when it cannot run.
 //   node web-tests/stand_in_error_driver.mjs ANSWERS STUDIES ROOT TWO_CHANNELS.tif NOR.tif
+import { unsettled } from "./page_acts.mjs";
 import { standIn } from "./stand_in_drive.mjs";
 import { expecting } from "./harness.mjs";
 import { STEP } from "./deadlines.mjs";
@@ -33,7 +34,7 @@ await page.waitForFunction(() => document.querySelector("#status").textContent.s
 await check(!errors.length, "a study left while its run is on is no uncaught error", errors);
 await page.evaluate(() => document.querySelector('#study-list a[data-id="nor"]').click());
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Ready"));
-await page.setInputFiles("#file", image);
+await unsettled(page).setInputFiles("#file", image);
 await page.waitForFunction(() => document.querySelector("#status").textContent.startsWith("Image loaded"));
 // the run they left answers now, on another image: its answer is for a study that is gone
 drive.python.hold = () => null; late.release();

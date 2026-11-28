@@ -13,6 +13,7 @@
 // cannot run.
 //   node web-tests/study_page_driver.mjs ANSWERS IMAGE.png STUDIES
 import { fromScratch } from "./annotating.mjs";
+import { unsettled } from "./page_acts.mjs";
 import { EARLY } from "./early_messages.mjs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -264,8 +265,8 @@ try {
     window.statuses = [];
     new MutationObserver(() => window.statuses.push(document.querySelector("#status").textContent)).observe(document.querySelector("#status"), { childList: true, characterData: true, subtree: true });
   });
-  await early.click("#study-menu summary");
-  await early.click("#study-list a >> text=Image Viewer");
+  await unsettled(early).click("#study-menu summary");
+  await unsettled(early).click("#study-list a >> text=Image Viewer");
   slow[MODULE].release();
   // the first study is in, or its coming in has failed
   await early.waitForFunction(() => /^(Ready|Error)/.test(document.querySelector("#status").textContent));

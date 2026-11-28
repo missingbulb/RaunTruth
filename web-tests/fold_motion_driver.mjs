@@ -7,7 +7,7 @@
 import { pw, launch, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { world } from "./world.mjs";
-import { record, played, ran, atRest } from "./page_motions.mjs";
+import { record, played, ran, atRest, scripted, animated } from "./page_motions.mjs";
 import { greyPng } from "./png_fixture.mjs";
 
 const { origin, server } = await serveSite({ "/web/worker.js": "", "/web/version_history.json": "[]" });
@@ -17,8 +17,9 @@ const done = async (code) => { await browser.close(); server.close(); process.ex
 // a grey square, as a file a person picks
 const PNG = { name: "acme.png", mimeType: "image/png", buffer: greyPng(8, 8, () => 128) };
 // the Image Viewer, which opens a file of this computer, with one open
-async function open({ motion = true, reducedMotion = "no-preference" } = {}) {
-  const device = w.device().with({ reducedMotion }).keeps({ "nor-motion": JSON.stringify(motion) });
+async function open({ motion = true, reducedMotion = "no-preference", sizeKeywords = true } = {}) {
+  let device = w.device().with({ reducedMotion }).keeps({ "nor-motion": JSON.stringify(motion) });
+  if (!sizeKeywords) device = device.withoutSizeKeywordMotion();
   const ctx = await device.context();
   await record(ctx);
   const page = await device.opens(null, { until: "none" });
@@ -43,13 +44,13 @@ const gone = (page, sel) => page.evaluate((s) => !document.querySelector(s).chec
   let n = await played(page);
   await page.setInputFiles("#file", PNG);
   await page.waitForFunction(() => !$("#file-box").hidden);
-  const unfolded = await ran(page, n, [{ name: "height" }]);
+  const unfolded = await ran(page, n, [{}]);
   // the Image box folds to its title once the image is open: the part is measured with its box open again
   if (await page.evaluate(() => $("#image-box").classList.contains("folded"))) await page.click("#image-box .sec-head h2");
   await page.waitForFunction(() => !$("#image-box").classList.contains("folded"));
   await atRest(page, "#file-box");
-  await mustHold(!unfolded.missing && (await on(page, n, "#file-box")).some(([name, ended]) => name === "height" && ended) && await page.evaluate(() => $("#file-box").getBoundingClientRect().height > 10),
-    "a part that makes room for itself draws out with a motion, at its own height at the end", { unfolded, on: await on(page, n, "#file-box") });
+  await mustHold(!unfolded.missing && (await on(page, n, "#file-box")).some(([, ended]) => ended) && await page.evaluate(() => $("#file-box").getBoundingClientRect().height > 10),
+    "a part that makes room for itself opens with a motion that ends, at its own height at the end", { unfolded, on: await on(page, n, "#file-box") });
   await usage(page);
   // the dialog closing
   n = await played(page);
@@ -81,6 +82,39 @@ for (const [how, opts] of [["animations off", { motion: false }], ["reduced moti
   await page.waitForFunction(() => !$("#usage-dlg").checkVisibility());
   const made = await page.evaluate((n) => window.cssMotions.slice(n).filter((m) => m.target.matches?.("#usage-dlg, #file-box") && ["height", "opacity", "transform"].includes(m.name)).map((m) => m.name), n);
   await mustHold(!made.length, `with ${how}, the part shows and the dialog closes at once`, made);
+  await ctx.close();
+}
+// ---- on an engine that cannot move a height to a part's own, as Firefox and Safari: the part still draws out and in ----
+for (const [how, opts] of [["animations on", {}], ["animations off", { motion: false }], ["reduced motion asked for", { reducedMotion: "reduce" }]]) {
+  const { ctx, page } = await open({ ...opts, sizeKeywords: false });
+  const moves = how === "animations on";
+  // the Image box kept open, so that its parts fold with motions of their own
+  await page.evaluate(() => { new MutationObserver(() => $("#image-box").classList.remove("folded")).observe($("#image-box"), { attributeFilter: ["class"] }); });
+  let n = await scripted(page);
+  await page.setInputFiles("#file", PNG);
+  await page.waitForFunction(() => !$("#file-box").hidden);
+  if (moves) {
+    const opened = await animated(page, n, "#file-box", "height");
+    await atRest(page, "#file-box");
+    const tall = await page.evaluate(() => $("#file-box").getBoundingClientRect().height);
+    await mustHold(!opened.missing && tall > 10, "where the engine cannot move a height to its own, a part opens with a height motion that ends at its own height", { opened, tall });
+  }
+  await atRest(page, "#file-box");
+  const opening = await page.evaluate((n) => window.scriptMotions.slice(n).filter((m) => m.target.matches("#file-box")).length, n);
+  n = await scripted(page);
+  await page.focus("#unload");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => $("#file-box").hidden);
+  await mustHold(await page.evaluate(() => $("#file-box").hidden), "a part closed is hidden at once to the page");
+  if (moves) {
+    const closed = await animated(page, n, "#file-box", "height");
+    await page.waitForFunction(() => !$("#file-box").checkVisibility());
+    await mustHold(!closed.missing, "and it closes with a height motion, hidden at its end", closed);
+  } else {
+    await page.waitForFunction(() => !$("#file-box").checkVisibility());
+    const closing = await page.evaluate((n) => window.scriptMotions.slice(n).filter((m) => m.target.matches("#file-box")).length, n);
+    await mustHold(!opening && !closing, `with ${how}, the part opens and closes at once there too`, { opening, closing });
+  }
   await ctx.close();
 }
 await done(0);

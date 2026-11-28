@@ -7,7 +7,6 @@
 import { annotateIfAsked } from "../../../web-tests/annotating.mjs";
 import { EARLY } from "../../../web-tests/early_messages.mjs";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { pw, launch, mustHold } from "../../../web-tests/harness.mjs";
 import { world } from "../../../web-tests/world.mjs";
@@ -39,8 +38,7 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
+const tagger = w.tagger("nor");
 // a tagger's device in a window that wide, the side bars at their narrowest, the study at that stage, its image opened
 // from Drive and found on
 async function found(width, stage) {

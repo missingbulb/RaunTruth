@@ -12,7 +12,6 @@ import { EARLY } from "../../../web-tests/early_messages.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { openFromDrive } from "../../../web-tests/drive_open.mjs";
 import { legend, legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
@@ -46,8 +45,7 @@ const { origin, server } = await serveSite({
 
 const browser = await launch(pw), w = world(browser, origin);
 // ground truth is made by someone the store lets save it (req/shell/annotate/no-save)
-w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("nor");
+const tagger = w.tagger("nor");
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
 // a summary mask the user lassoed on this image before, in the Viewer

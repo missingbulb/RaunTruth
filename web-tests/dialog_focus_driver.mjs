@@ -108,6 +108,12 @@ await page.evaluate(() => { const b = $("#sb-version"); b.replaceWith(b.cloneNod
 await settle();
 { const f = await focus(); await mustHold(f === "body", "a click on nothing, then a redraw: the keyboard stays where the click left it", f); }
 
+// and a control that lets the keyboard go while it is still there and usable leaves it on the page itself
+await page.focus("#sb-version");
+await page.evaluate(() => document.activeElement.blur());
+await settle();
+{ const f = await focus(); await mustHold(f === "body", "the keyboard let go by a control still there stays on the page", f); }
+
 // every dialog of both pages wears the page's own frame, a hairline and round corners, none the browser's
 for (const [at, atLeast] of [["/web/index.html", 11], ["/web/setup.html", 14]]) {
   const p = await w.device().visits(at, { until: "none" });

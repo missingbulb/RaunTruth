@@ -58,9 +58,7 @@ const tree = () => page.evaluate(() => ({
 await check(JSON.stringify(await tree()) === JSON.stringify({ listed: ["Data"], unlisted: ["Other"] }), "the tree shows the listed folder, and the root's other folder as not in the study", await tree());
 
 await page.click('#data-unlisted .unlisted-folder:has-text("Other") .add');
-await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2);
-await settled(page);
-await check(JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && !!studyFile().extractions,
+await check(await page.evaluate(() => document.querySelectorAll("#data-tree > .tree-folder").length === 2) && JSON.stringify(studyFile().folders) === JSON.stringify([idOf("Data"), idOf("Other")]) && !!studyFile().extractions,
   "Add to study writes the folder into the study file, every other key kept", studyFile());
 await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "gamma.png" && p === "Other"), "and the index again, with its images", indexes.map(names));
 
@@ -68,10 +66,8 @@ await check(indexes.length === 2 && names(indexes[1]).some(([n, p]) => n === "ga
 await expecting(/status of 404.*googleapis/, async () => {
   await page.fill("#data-add-link", "https://drive.google.com/drive/folders/dmelsewhere000000001");
   await page.click("#data-add");
-  await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3);
-  await settled(page);
 });
-await check(studyFile().folders.includes("dmelsewhere000000001"), "a pasted folder link adds that folder", studyFile());
+await check(await page.evaluate(() => document.querySelectorAll("#data-tree > .tree-folder").length === 3) && studyFile().folders.includes("dmelsewhere000000001"), "a pasted folder link adds that folder", studyFile());
 await shoot("#data-col", "data-management.png");
 await check(/Anyone with the link/.test(await page.textContent("#data-msg")), "and the page says a viewer cannot read it, not being shared as Anyone with the link", await page.textContent("#data-msg"));
 
@@ -95,7 +91,6 @@ await page.context().close();
 // a viewer's Load: the index's images, grouped by folder, the listed folders' order kept
 page = await open(false);
 await page.click("#load-remote");
-await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 3, null, { timeout: 10000 }));
 const listed = await page.evaluate(() => [...document.querySelectorAll("#remote-list > *")].map((e) => (e.classList.contains("group") ? "# " + e.querySelector(".group-name").textContent : e.querySelector(".name").textContent)));
 await check(JSON.stringify(listed) === JSON.stringify(["# Data", "acme.png", "# Data / sub", "beta.png", "# Elsewhere", "delta.png"]), "Load study images lists the index's images, a group per folder", listed);
 const dialog = await page.evaluate(() => ({ title: document.querySelector("#remote-title").textContent, path: document.querySelector("#remote-path").checkVisibility() ? document.querySelector("#remote-path").textContent : "" }));
@@ -109,7 +104,6 @@ await page.click('#remote-list .group:has(.group-name:text-is("Data / sub"))');
 await check(JSON.stringify(await showing()) === '["beta.png"]' && (await heads())[1].open === "true", "a click on a group unfolds its images, and no other's", { heads: await heads(), showing: await showing() });
 const reads = writes.length;
 await page.dblclick('#remote-list .item:has(.name:text-is("beta.png"))');
-await orMissed(page.waitForFunction(() => st.fileName === "beta.png", null, { timeout: 10000 }));
 await check(await page.evaluate(() => st.fileName === "beta.png") && writes.length === reads, "an image chosen there opens", await page.evaluate(() => st.fileName));
 
 // offline, the index kept on this device lists the same groups; only an image kept here opens
@@ -133,7 +127,7 @@ await page.waitForFunction(() => document.querySelectorAll("#data-tree > .tree-f
 await settled(page);
 const imageOf = (ix, name) => ix.images.find((i) => i.name === name);
 const indexed = (n) => orMissed(page.waitForFunction((n) => /^Study index/.test(document.querySelector("#data-index").textContent), n, { timeout: 10000 }).then(() => frames(page)));
-const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); await idle(page); };
+const tagIt = async (text) => { await page.fill("#tags-add", text); await page.press("#tags-add", "Enter"); };
 await page.evaluate(() => [...document.querySelectorAll("#data-tree > .tree-folder > .row .name")].find((b) => b.textContent === "Data").click());
 await page.waitForFunction(() => /^Folder Data/.test(document.querySelector("#tags-for").textContent));
 const studyWrites = () => writes.filter(([, name]) => name === "rauntruth-study.json").length;
@@ -150,7 +144,7 @@ const chooseImage = async (folder, name) => {
   }, [folder, name]);
   await page.waitForSelector(`#data-tree .tree-image:has(.name:text-is("${name}"))`);
   await page.click(`#data-tree .tree-image:has(.name:text-is("${name}"))`);
-  await page.waitForFunction((n) => document.querySelector("#tags-for").textContent === "Image " + n, name);
+  await check(await page.textContent("#tags-for") === "Image " + name, `the image ${name} chosen in the tree`);
 };
 await chooseImage("sub", "beta.png");
 const shownTags = () => page.evaluate(() => [...document.querySelectorAll("#tags-list .tag-chip")].map((c) => c.dataset.tag + (c.classList.contains("inherited") ? " (" + c.querySelector(".from").textContent.trim() + ")" : "")));
@@ -178,9 +172,7 @@ await check(imageOf(indexes.at(-1), "acme.png")?.description === "First slide", 
 await chooseImage("Elsewhere", "delta.png");
 await tagIt("damaged-slide");
 await page.selectOption("#study-group", "group");
-await idle(page);
 await page.fill("#study-hide-add", "damaged-slide"); await page.press("#study-hide-add", "Enter");
-await idle(page);
 await check(studyFile().group === "group" && JSON.stringify(studyFile().hide) === JSON.stringify(["damaged-slide"]) && studyFile().folders.length === 2,
   "Study images writes the grouping tag and the hiding rule into the study file, the folders kept", studyFile());
 await check(indexes.at(-1).group === "group" && JSON.stringify(indexes.at(-1).hide) === JSON.stringify(["damaged-slide"]), "and the index carries them", { group: indexes.at(-1).group, hide: indexes.at(-1).hide });
@@ -200,14 +192,12 @@ await page.context().close();
 // a viewer's: the hidden image left out
 page = await open(false);
 await page.click("#load-remote");
-await orMissed(page.waitForFunction(() => document.querySelectorAll("#remote-list .item").length === 2, null, { timeout: 10000 }));
 const viewerRows = await rows();
 await check(JSON.stringify(viewerRows) === JSON.stringify(["# group: sick", "beta.png | group:sick", "# group: wild-type", "acme.png | First slide | group:wild-type"]),
   "a viewer's Load leaves the hidden image out", viewerRows);
 // req/shell/image/file-info: the image's tags in the Image box, over its details
 await page.click('#remote-list .group:has(.group-name:text-is("group: wild-type"))');
 await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
-await orMissed(page.waitForFunction(() => document.querySelector("#file-tags .tag-chip"), null, { timeout: 10000 }));
 const boxTags = await page.evaluate(() => { const t = document.querySelector("#file-tags");
   return { tags: [...t.querySelectorAll(".tag-chip")].map((c) => c.textContent), above: t.nextElementSibling === document.querySelector("#file-box"), shown: !t.hidden }; });
 await check(JSON.stringify(boxTags.tags) === '["group:wild-type"]' && boxTags.above && boxTags.shown, "an image opened shows its tags in the Image box, above its details", boxTags);
@@ -257,13 +247,11 @@ await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && !$("#are
 await openImage(page);
 await check(await page.evaluate(() => !$("#areas-damaged-mark").disabled && !$("#areas-interest-mark").disabled), "with the image itself open in its dialog, its areas can be marked");
 await page.click("#areas-damaged-mark");
-await page.waitForFunction(() => !!document.querySelector("#image-dlg .lassoing"));
+await check(await page.evaluate(() => !!document.querySelector("#image-dlg .lassoing")), "Mark damaged area starts a lasso");
 await page.keyboard.press("Escape");
 await check(await page.evaluate(() => $("#image-dlg").open && !document.querySelector("#image-dlg .lassoing")), "Esc while an area is being lassoed gives the lasso up and leaves the dialog open");
 await page.click("#areas-damaged-mark"); await lasso(4, 4, 20, 20);
-await idle(page);
 await page.click("#areas-interest-mark"); await lasso(2, 2, 60, 60);
-await idle(page);
 await shoot("#image-dlg", "areas-lassoed.png");
 const acmeAreas = tagFiles.at(-1).images[idOf("acme.png")];
 await check(acmeAreas?.damaged?.length === 1 && acmeAreas?.interest?.length === 1 && acmeAreas.description === "First slide",
@@ -281,12 +269,10 @@ page = await open(false, { study: masked, prepare: (c) => c.addInitScript(() => 
 await page.click("#load-remote");
 await unfoldTo(page, '#remote-list .item:has(.name:text-is("acme.png"))');
 await page.dblclick('#remote-list .item:has(.name:text-is("acme.png"))');
-await orMissed(page.waitForFunction(() => st.fileName === "acme.png" && document.querySelector('#overlay g[data-layer="study-areas"] .interest'), null, { timeout: 10000 }));
 const marks = await page.evaluate(() => ({ damaged: document.querySelectorAll('#overlay g[data-layer="study-areas"] .damaged').length, interest: document.querySelectorAll('#overlay g[data-layer="study-areas"] .interest:not(.under)').length }));
 await check(marks.damaged === 1 && marks.interest === 1, "a viewer sees the damaged area marked and the area of interest outlined", marks);
 await fromScratch(page, "#fx-count");
 await page.click("#fx-count");
-await orMissed(page.waitForFunction(() => !$("#summary-box").hidden, null, { timeout: 10000 }));
 const sent = await page.evaluate(() => window.posted.filter((m) => m.type === "call").at(-1)?.damaged);
 await check(sent?.length === 1 && sent[0].length >= 4, "Python is handed the image's damaged areas with each call", sent);
 const maskNow = () => page.evaluate(() => ({ n: window.shellForTests.mask.polygons().length, warned: !$("#mask-warning").hidden, middle: window.shellForTests.mask.inside(40, 40), damaged: window.shellForTests.mask.inside(10, 10), out: window.shellForTests.mask.inside(62, 62) }));

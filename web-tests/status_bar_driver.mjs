@@ -15,7 +15,6 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-import { tagger } from "./tagger.mjs";
 import { pw, launch, expecting, NETWORK_GONE, mustHold } from "./harness.mjs";
 import { serveSite } from "./site_server.mjs";
 import { orMissed } from "./page_until.mjs";
@@ -57,7 +56,6 @@ const { origin, server } = await serveSite({
 });
 
 const browser = await launch(pw), w = world(browser, origin);
-w.site.withGoogle();
 w.studies.fromThisComputer("fixture");
 // the fixture at the stage the test sets, and listed, as the build lists no fixture, so its row in the switcher carries it
 w.studies.edit("fixture", (m) => (stage ? { ...m, stage } : m));
@@ -83,7 +81,7 @@ const bars = (page) => page.evaluate(() => {
 // clock: the page's clock made one the test can move past a wait on the page's own timers; it runs as the real one does;
 // seed: browser keys kept before the page opens
 async function open(study, mode, clock, seed = {}) {
-  const device = w.device().with({ acceptDownloads: true }).signedInAs(tagger(w))
+  const device = w.device().with({ acceptDownloads: true }).signedInAs(w.tagger())
     .keeps({ ...(mode ? { "nor-resources": JSON.stringify(mode) } : {}), ...seed });
   const ctx = await device.context();
   if (clock) await ctx.clock.install();
@@ -401,7 +399,8 @@ const count = async (page) => { await fromScratch(page, "#fx-count"); await page
   const block = () => page.evaluate(() => ({ items: Math.round(document.querySelector("#sb-res-items").getBoundingClientRect().width),
     icon: Math.round(document.querySelector("#sb-res-icon").getBoundingClientRect().width),
     raised: document.querySelector("#sb-res").classList.contains("raised"), hovered: document.querySelector("#sb-res").matches(":hover"),
-    classes: document.querySelector("#sb-res").className }));
+    classes: document.querySelector("#sb-res").className, mode: document.querySelector("#sb-res").dataset.mode,
+    maxWidth: getComputedStyle(document.querySelector("#sb-res-items")).maxWidth }));
   const isOpen = async (want, what, ms = 1500) => {
     await orMissed(page.waitForFunction((w) => (document.querySelector("#sb-res-items").getBoundingClientRect().width > 150) === w, want, { timeout: ms }));
     // and its folding or unfolding over, whichever is under way: the four's and the icon's, which each run their own

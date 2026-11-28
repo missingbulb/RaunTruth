@@ -16,12 +16,11 @@ import { noisePng } from "../../../web-tests/png_fixture.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-import { TAGGER } from "../../../web-tests/tagger.mjs";
 import { world } from "../../../web-tests/world.mjs";
 import { legendRows, keepStudyKeyListeners, studyTakes } from "../../../web-tests/keys_legend.mjs";
 import { prepare, seed } from "./reader_stand_in.mjs";
 import { frames as framesOf } from "../../../web-tests/page_frames.mjs";
-import { until, orMissed } from "../../../web-tests/page_until.mjs";
+import { until, orMissed, idle } from "../../../web-tests/page_until.mjs";
 import { pw, launch, expecting, check } from "../../../web-tests/harness.mjs";
 import { serveSite } from "../../../web-tests/site_server.mjs";
 import { STEP } from "../../../web-tests/deadlines.mjs";
@@ -83,10 +82,9 @@ const { origin, server } = await serveSite({
   "/web/studies.json": { file: studies },
 });
 const browser = await launch(pw), w = world(browser, origin);
+const tagger = w.tagger("shelves");
 // the study shown to the stand-in tagger's account, as it is to its owner's (req/shell/study/visibility)
-w.studies.shownTo("shelves", TAGGER);
-w.site.withGoogle();
-const tagger = w.user(TAGGER).named("Acme Tagger").annotates("shelves");
+w.studies.shownTo("shelves", tagger.email);
 let failed = false;
 
 const PNG = noisePng(W, H);
@@ -310,7 +308,8 @@ try {
   await page.keyboard.press("Enter");
   check((await rowsOf(page))[0] === "1/3 Books" && await valueOf(page) === "Title 240x35" && await confirm() === "",
     "a second Enter approves it as read and moves on, as Right does", [await rowsOf(page), await valueOf(page)]);
-  await page.waitForFunction(() => document.activeElement === $(".bs-item input"));
+  // the next title is selected a frame after its book is drawn: typed before then, its first letters would be typed over
+  await page.waitForFunction(() => { const t = $(".bs-item input"); return document.activeElement === t && t.selectionStart === 0 && t.selectionEnd === t.value.length; });
   check(await unsaved(page) === 1, "the verdict is one GT action", await history(page));
   await page.keyboard.type("Dune");
   check(await unsaved(page) === 1, "a title typed is no GT action a key: nothing is recorded while the field is typed in", await history(page));
@@ -454,7 +453,8 @@ try {
   check((await rows())[0] === "1/3 Books" && await value() === "Title 240x35", "a verdict given again there moves on to the next book still open", await value());
   await page.click('.bs-verdicts [data-do="right"]');
   check((await rows())[0] === "2/3 Books" && await value() === "Title 180x180" && await cut() === 2, "the next verdict moves on along the shelf");
-  await page.click('.bs-tools [data-do="next"]');
+  // pressed as a hand presses it: what the press set off has run before the button comes up
+  await page.hover('.bs-tools [data-do="next"]'); await page.mouse.down(); await idle(page); await page.mouse.up();
   check(await value() === "הארי פוטר", "Next goes to the next book along the shelves, round to the first", await value());
   check(!(await selected()), "an approved book's title is not selected for retyping");
   // the cover picked on the photo, and a book already approved picked there too
@@ -538,6 +538,8 @@ try {
   // right-click on the photo: a book added where no box is, sized as the books found, and one deleted from inside it
   // Edit History floats over the photo's right side, where the next clicks are: it is switched off
   await page.evaluate(() => { if ($("#history-btn").getAttribute("aria-pressed") === "true") $("#history-btn").click(); });
+  // and painted gone: WebKit sends a click to what its last painted frame showed there
+  await framesOf(page);
   await page.mouse.click(...(await toScreen(390, 250)), { button: "right" });
   check(await page.$$eval("#point-menu:not([hidden]) .item", (b) => b.map((x) => x.textContent).join()) === "Add a book here", "right-click off every book offers only Add a book");
   await page.click('#point-menu .item:text-is("Add a book here")');

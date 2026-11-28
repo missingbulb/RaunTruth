@@ -175,3 +175,17 @@ def test_sign_in_grants_a_token_that_reads_the_account_and_the_app_folder():
 def test_offline_the_fakes_answer_nothing():
     r = run('offline')
     assert 'unreachable' in r.stdout and 'INTERNET_DISCONNECTED' in r.stderr, r.stdout + r.stderr
+
+
+def test_a_wait_on_what_is_heard_hears_what_comes_while_it_looks():
+    # the one event there will be comes while the wait reads its condition: a wake asked for after reading would never come
+    code = f'''import {{ untilHeard }} from {json.dumps("file://" + os.path.join(HERE, "page_until.mjs"))};
+let n = 0, ring, next = new Promise((ok) => {{ ring = ok; }});
+const happen = () => {{ n++; ring(); next = new Promise((ok) => {{ ring = ok; }}); }};
+let first = true;
+const t0 = Date.now();
+const got = await untilHeard(async () => {{ const seen = n; if (first) {{ first = false; await Promise.resolve(); happen(); }} return seen > 0; }}, () => next, {{ timeout: 3000 }});
+console.log(JSON.stringify({{ got, ms: Date.now() - t0 }}));'''
+    r = run_driver(None, node_args=['--input-type=module', '-e', code], timeout=30)
+    said = json.loads(r.stdout.strip().splitlines()[-1])
+    assert said['got'] and said['ms'] < 1000, said
